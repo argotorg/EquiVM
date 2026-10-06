@@ -1,3 +1,4 @@
+import Reasoning.StateFacts
 import Examples.BlindAuction.Storage
 import Examples.SimpleAuction.Withdraw
 import Reasoning.ExternalCall
@@ -339,7 +340,7 @@ theorem withdrawRehashMappingKeccak (I : ExecutionEnv) :
 theorem withdrawStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionUint256Loc slot)
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  exact blindAuctionStorageLocLoad_uint256 evm slot
+  exact storageLocLoad_uint256 evm slot
 
 theorem withdrawPendingReturns_evalStorageRef
     (evm : EVM.State) (locals : Store) :
@@ -384,7 +385,7 @@ theorem withdrawPendingReturns_clear (evm : EVM.State) (locals : Store)
           (blindAuctionUint256Loc (withdrawAmountSlot evm.executionEnv))
           (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) =
         some (withdrawClearedState evm evm.executionEnv)
-      rw [blindAuctionStorageLocStore_uint256]
+      erw [storageLocStore_uint256]
       rfl)]
 
 theorem withdrawZeroState_originalMap (evm : EVM.State) :
@@ -417,11 +418,6 @@ theorem withdrawCallStore_amount_get (amount : UInt256) (success : Bool) (out : 
     · decide
   · decide
 
-theorem withdrawAccountMapEquiv_balance {σ τ : AccountMap}
-    (hστ : σ = τ) (addr : AccountAddress) :
-    (σ.get? addr |>.elim ⟨0⟩ (·.balance)) =
-      (τ.get? addr |>.elim ⟨0⟩ (·.balance)) := by
-  rw [hστ]
 
 theorem evalExpr_withdraw_sender (evm : EVM.State) (locals : Store) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm

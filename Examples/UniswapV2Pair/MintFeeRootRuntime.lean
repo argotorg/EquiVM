@@ -79,7 +79,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
-      (UInt256.sub rootK rootKLast :: uniswapSlotWord ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
+      (UInt256.sub rootK rootKLast :: solcSlotWordAt ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd7930⟩ :=
@@ -89,10 +89,10 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
   obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.sload (by native_decide) (by evm_ov)
   have rd7934 : RD uniswapV2PairBytecode I g
       s0 ⟨7934⟩
-      (uniswapSlotWord ⟨0⟩ σFee I :: UInt256.sub rootK rootKLast :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
+      (solcSlotWordAt ⟨0⟩ σFee I :: UInt256.sub rootK rootKLast :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k7934 C7934 := by
-    simpa [uniswapSlotWord] using rd7934₀
+    simpa [solcSlotWordAt, solcSlotWord] using rd7934₀
   have rd6780pre := evm_run rd7934 with [
     swap1, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
   have hpc6780 : UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ := by
@@ -108,16 +108,16 @@ theorem uniswapMintFeeRuntimePositiveNumeratorEntryOfTail
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd6780 : RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
-      (UInt256.sub rootK rootKLast :: uniswapSlotWord ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
+      (UInt256.sub rootK rootKLast :: solcSlotWordAt ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k C)
     (hnumFit :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
         UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨7945⟩
-      (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: ⟨0⟩ :: rootKLast ::
+      (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
   exact RD.uniswapSafeMathMulSuccess rd6780 hnumFit (by jump_dest)
@@ -330,7 +330,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
       mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hnumFit :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
         UInt256.size)
     (hrootK5Fit : rootK.toNat * 5 < UInt256.size)
     (hdenFit : (UInt256.mul rootK ⟨5⟩).toNat + rootKLast.toNat < UInt256.size)
@@ -338,7 +338,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨7982⟩
       ((UInt256.mul rootK ⟨5⟩ + rootKLast) :: ⟨0⟩ ::
-        UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: rootKLast :: rootK ::
+        UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd6879⟩ :=

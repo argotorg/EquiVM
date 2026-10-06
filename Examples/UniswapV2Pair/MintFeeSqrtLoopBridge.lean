@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.MintFeeAfterRootsRuntime
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -43,42 +44,6 @@ theorem sqrtLoopNextX_size_of_add_fit
   rw [sqrtLoopNextX_toNat y x hyNonneg hxPos]
   exact lt_of_le_of_lt (Nat.div_le_self _ _) haddFit
 
-theorem sqrtLoop_step_add_le_y_of_bounds
-    (y x : Nat)
-    (hy : 3 < y)
-    (hxLow : 2 ≤ x)
-    (hxHigh : x ≤ y / 2 + 1) :
-    y / x + x ≤ y := by
-  by_cases hx2 : x = 2
-  · subst x
-    omega
-  · have hx3 : 3 ≤ x := by omega
-    have hdiv3 : y / x ≤ y / 3 := Nat.div_le_div_left (a := y) hx3 (by norm_num)
-    omega
-
-theorem sqrtLoop_step_next_low_of_bounds
-    (y x : Nat)
-    (hy : 3 < y)
-    (hxLow : 2 ≤ x)
-    (hxHigh : x ≤ y / 2 + 1) :
-    2 ≤ (y / x + x) / 2 := by
-  by_cases hx2 : x = 2
-  · subst x
-    omega
-  · have hx3 : 3 ≤ x := by omega
-    have hxLeY : x ≤ y := by omega
-    have hdivPos : 0 < y / x := Nat.div_pos hxLeY (by omega)
-    omega
-
-theorem sqrtLoop_step_next_high_of_bounds
-    (y x : Nat)
-    (hy : 3 < y)
-    (hxLow : 2 ≤ x)
-    (hxHigh : x ≤ y / 2 + 1) :
-    (y / x + x) / 2 ≤ y / 2 + 1 := by
-  have hsum := sqrtLoop_step_add_le_y_of_bounds y x hy hxLow hxHigh
-  have hdiv : (y / x + x) / 2 ≤ y / 2 := Nat.div_le_div_right hsum
-  omega
 
 abbrev sqrtLoopRuntimeInv (y x : Int) : Prop :=
   2 ≤ x.toNat ∧ x.toNat ≤ y.toNat / 2 + 1

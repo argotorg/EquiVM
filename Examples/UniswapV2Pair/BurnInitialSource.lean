@@ -1,3 +1,4 @@
+import Reasoning.ExternalCall
 import Examples.UniswapV2Pair.BurnCommon
 import Examples.UniswapV2Pair.MintCommon
 
@@ -56,13 +57,12 @@ theorem uniswapAddressAtSlot_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State} (slot : UInt256)
     (hAccounts : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     uniswapAddressAtSlot evm slot =
-      AccountAddress.ofUInt256 (UInt256.land solcAddrMask (uniswapSlotWord slot σ I)) := by
+      AccountAddress.ofUInt256 (UInt256.land solcAddrMask (solcSlotWordAt slot σ I)) := by
   subst σ
   simp only [uniswapAddressAtSlot, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, henv, uniswapSlotWord,
+    Account.lookupStorage, henv, solcSlotWordAt, solcSlotWord,
     accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
 
--- LIBRARY CANDIDATE: evaluating a code-existence guard from coupled accounts and an address value.
 theorem evalExpr_uniswap_codeGuard
     {σ : AccountMap} {evm : EVM.State} {frame : Frame} {receiver : Expr}
     {target : UInt256} {addr : AccountAddress}
@@ -70,15 +70,8 @@ theorem evalExpr_uniswap_codeGuard
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hreceiver : evalExpr? config frame evm receiver = .ok (.address addr)) :
     evalExpr? config frame evm (.binary .gt (.extCodeSize receiver) (.intLit 0)) =
-      .ok (.bool (decide (0 < (extCodeSizeWord σ target).toNat))) := by
-  have hword : EVM.Word.ofNat
-      ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
-      extCodeSizeWord σ target := by
-    rw [congrArg (fun accounts => extCodeSizeWord accounts target) hAccounts]
-    cases hacc : evm.accountMap.get? addr <;>
-      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, extCodeSizeWord,
-        ← haddr, hacc, Option.option] <;> rfl
-  simp [evalExpr?, hreceiver, EvalResult.bind, bind, pure, evalBinaryOp?, hword]
+      .ok (.bool (decide (0 < (extCodeSizeWord σ target).toNat))) :=
+  Reasoning.Theory.evalExpr_codeGuard_of_accounts_eq (cfg := config) hAccounts haddr hreceiver
 
 theorem burnCacheStore_token0 (evm : EVM.State) (I : ExecutionEnv) :
     (burnCacheStore evm I).get? "_token0" = some (.address (uniswapAddressAtSlot evm ⟨6⟩)) := by

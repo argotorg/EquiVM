@@ -92,7 +92,7 @@ theorem uniswapMintAfterMintFeeCases
     (hreserve0 : nextLocals.get? "_reserve0" = some (.int (Int.ofNat reserve0.toNat)))
     (hreserve1 : nextLocals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hmem : mem.size = 164)

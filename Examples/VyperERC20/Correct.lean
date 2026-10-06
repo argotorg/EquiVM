@@ -1,3 +1,5 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.Bytecode
 import Examples.VyperERC20.Storage
 import Examples.VyperERC20.TotalSupply
@@ -197,7 +199,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   rfl
 
 theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
@@ -227,7 +229,7 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem erc20SolmCtorExecReverts_nonpayable
     {σ : AccountMap}
@@ -777,144 +779,6 @@ theorem erc20Dispatch_none_nomatch {cd : ByteArray}
   · simpa [selectorOf, vyperERC20TransferSelectorBytes] using hnm 4 (by decide)
   · simpa [selectorOf, vyperERC20AllowanceSelectorBytes] using hnm 5 (by decide)
 
-theorem u256_xor_ne_zero_of_ne {a b : UInt256} (h : a ≠ b) :
-    UInt256.xor a b ≠ ⟨0⟩ := by
-  cases a with
-  | mk av =>
-      cases b with
-      | mk bv =>
-          simp [UInt256.xor] at h ⊢
-          intro hx
-          apply h
-          apply Fin.ext
-          have hxv := congrArg Fin.val hx
-          have hxv' : (av.val ^^^ bv.val) % UInt256.size = 0 := by
-            simpa [Fin.xor] using hxv
-          have hlt : av.val ^^^ bv.val < UInt256.size := by
-            simpa [UInt256.size] using Nat.xor_lt_two_pow (n := 256) av.isLt bv.isLt
-          have hx0 : av.val ^^^ bv.val = 0 := by
-            rwa [Nat.mod_eq_of_lt hlt] at hxv'
-          exact Nat.xor_eq_zero_iff.mp hx0
-
-theorem selector_toNat_readBytes4 (cd : ByteArray) :
-    (UInt256.shiftRight (uInt256OfByteArray (ByteArray.readBytes cd 0 32)) ⟨224⟩).toNat
-      = fromBytesBigEndian ((ByteArray.readBytes cd 0 32).data.toList.take 4) := by
-  have hlen := readBytes32_len cd
-  have hV : fromBytes' (ByteArray.readBytes cd 0 32).data.toList.reverse < 2 ^ 256 := by
-    have := fromBytes'_le (bs := (ByteArray.readBytes cd 0 32).data.toList.reverse)
-    rwa [List.length_reverse, hlen] at this
-  unfold UInt256.shiftRight uInt256OfByteArray
-  rw [if_neg (by decide : ¬ ((⟨224⟩ : UInt256).val ≥ 256))]
-  show ((UInt256.ofNat _).val >>> (⟨224⟩ : UInt256).val).val = _
-  rw [Fin.shiftRight_val]
-  show (UInt256.ofNat _).val.val >>> (224 : ℕ) = _
-  rw [Nat.shiftRight_eq_div_pow]
-  show (fromBytes' _ % UInt256.size) / 2 ^ 224 = _
-  rw [show UInt256.size = 2 ^ 256 from rfl, Nat.mod_eq_of_lt hV]
-  show fromBytesBigEndian (ByteArray.readBytes cd 0 32).data.toList / 2 ^ 224 = _
-  conv_lhs => rw [← List.take_append_drop 4 (ByteArray.readBytes cd 0 32).data.toList]
-  rw [show (224 : ℕ) = 8 * ((ByteArray.readBytes cd 0 32).data.toList.drop 4).length from by
-        rw [List.length_drop, hlen], fromBytesBigEndian_append_div]
-
-theorem vyperRuntimeSelectorWord_short_mod_256_zero {cd : ByteArray}
-    (hshort : cd.size < 4) :
-    (UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩).toNat % 256 = 0 := by
-  rw [selector_toNat_readBytes4]
-  have htake32eq4 : cd.data.toList.take 32 = cd.data.toList.take 4 := by
-    have htake32 : cd.data.toList.take 32 = cd.data.toList := by
-      rw [List.take_of_length_le]
-      simpa [Array.length_toList] using (show cd.size ≤ 32 by omega)
-    have htake4 : cd.data.toList.take 4 = cd.data.toList := by
-      rw [List.take_of_length_le]
-      simpa [Array.length_toList] using (show cd.size ≤ 4 by omega)
-    rw [htake32, htake4]
-  have hpad :
-      (ByteArray.readBytes cd 0 32).data.toList.take 4 =
-        cd.data.toList.take 4 ++ List.replicate (4 - cd.size) 0 := by
-    rw [readBytes32_toList]
-    have hlenTake32 : (cd.data.toList.take 32).length = cd.size := by
-      rw [List.length_take, Array.length_toList]
-      simpa using min_eq_right (show cd.size ≤ 32 by omega)
-    rw [List.take_append, List.take_take, show min 4 32 = 4 by decide, hlenTake32]
-    congr 1
-    rw [List.take_replicate]
-    rw [min_eq_left]
-    omega
-  rw [hpad, fromBytesBigEndian_append_zeros]
-  have hpos : 1 ≤ 4 - cd.size := by
-    omega
-  have hsplit : 2 ^ (8 * (4 - cd.size)) = 256 * 2 ^ (8 * (4 - cd.size) - 8) := by
-    rw [show 256 = 2 ^ 8 by norm_num]
-    calc
-      2 ^ (8 * (4 - cd.size)) = 2 ^ (8 + (8 * (4 - cd.size) - 8)) := by
-        congr
-        omega
-      _ = 2 ^ 8 * 2 ^ (8 * (4 - cd.size) - 8) := by rw [Nat.pow_add]
-  rw [hsplit]
-  simpa [Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using
-    (Nat.mul_mod_right 256
-      (fromBytesBigEndian (List.take 4 cd.data.toList) * 2 ^ (8 * (4 - cd.size) - 8)))
-
-theorem vyperRuntimeSelectorWord_ne_of_short {cd : ByteArray} {sel : UInt256}
-    (hshort : cd.size < 4) (hlow : sel.toNat % 256 ≠ 0) :
-    UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩ ≠ sel := by
-  intro heq
-  have hmod := vyperRuntimeSelectorWord_short_mod_256_zero (cd := cd) hshort
-  have : sel.toNat % 256 = 0 := by
-    simpa [heq] using hmod
-  exact hlow this
-
-theorem vyperRuntimeSelectorWord_ne_of_selector_false
-    {cd : ByteArray} {sel : UInt256} {c0 c1 c2 c3 : UInt8}
-    (hsz : 4 ≤ cd.size)
-    (hselNat : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
-    (hfalse : ((⟨#[c0, c1, c2, c3]⟩ : ByteArray) == cd.extract 0 4) = false) :
-    UInt256.shiftRight (uInt256OfByteArray (cd.readBytes 0 32)) ⟨224⟩ ≠ sel := by
-  intro heq
-  have h := evmSelectorDecode hsz c0 c1 c2 c3 sel hselNat
-  rw [hfalse, heq, u256_eq_refl] at h
-  cases h
-
-theorem u256_lor_ne_zero_right {a b : UInt256} (hb : b ≠ ⟨0⟩) :
-    UInt256.lor a b ≠ ⟨0⟩ := by
-  intro hzero
-  have hlt : Nat.lor a.toNat b.toNat < UInt256.size := by
-    simpa [UInt256.size] using Nat.or_lt_two_pow (n := 256) a.val.isLt b.val.isLt
-  have hle : b.toNat ≤ (UInt256.lor a b).toNat := by
-    rw [u256_lor_toNat, Nat.mod_eq_of_lt hlt]
-    exact Nat.right_le_or
-  have hlor0 : (UInt256.lor a b).toNat = 0 := by
-    rw [hzero]
-    rfl
-  have hb0 : b.toNat = 0 := by omega
-  exact hb (u256_inj hb0)
-
-theorem vyperDispatchIndexWord {sel : UInt256} {m : Nat}
-    (hmod : sel.toNat % 7 = m) :
-    UInt256.mod sel ⟨7⟩ = UInt256.ofNat m := by
-  apply u256_inj
-  unfold UInt256.mod
-  rw [if_neg (by decide : ¬ ((⟨7⟩ : UInt256).val == 0))]
-  show sel.toNat % 7 = (UInt256.ofNat m).toNat
-  rw [hmod]
-  have hm7 : m < 7 := by
-    rw [← hmod]
-    exact Nat.mod_lt _ (by decide)
-  have hmlt : m < UInt256.size := lt_trans hm7 (by decide)
-  exact (ulit_toNat' m hmlt).symm
-
-theorem shiftLeft1_ofNat_eq {n : Nat} (h : 2 * n < UInt256.size) :
-    UInt256.shiftLeft (UInt256.ofNat n) ⟨1⟩ = UInt256.ofNat (2 * n) := by
-  apply u256_inj
-  unfold UInt256.shiftLeft
-  rw [if_neg (by decide : ¬ ((⟨1⟩ : UInt256).val ≥ 256))]
-  change (((UInt256.ofNat n).val.val <<< 1) % UInt256.size) = (UInt256.ofNat (2 * n)).val.val
-  have hn : n < UInt256.size := by
-    omega
-  rw [show (UInt256.ofNat n).val.val = n by exact ulit_toNat' n hn]
-  rw [show (UInt256.ofNat (2 * n)).val.val = 2 * n by exact ulit_toNat' (2 * n) h]
-  rw [Nat.shiftLeft_eq]
-  simpa [Nat.mul_comm] using (Nat.mod_eq_of_lt h)
 
 theorem vyperDispatchSourceOfMod {sel : UInt256} {m : Nat}
     (hmod : sel.toNat % 7 = m) :
@@ -1287,7 +1151,7 @@ theorem erc20NoDispatchRuntimeCore
       exact Nat.mod_lt _ (by decide)
     interval_cases m
     · have hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 3 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 3 (by decide))
       exact (erc20BalanceOfSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1295,7 +1159,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ approveSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 0 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 0 (by decide))
       exact (erc20ApproveSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1303,7 +1167,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferFromSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 2 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 2 (by decide))
       exact (erc20TransferFromSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1311,7 +1175,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 4 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 4 (by decide))
       exact (erc20TransferSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1320,7 +1184,7 @@ theorem erc20NoDispatchRuntimeCore
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · exact erc20SelectorMissRuntime_mod4 hcode hm.symm hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ totalSupplySelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 1 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 1 (by decide))
       exact (erc20TotalSupplySelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1328,7 +1192,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ allowanceSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 5 (by decide))
+        exact selectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 5 (by decide))
       exact (erc20AllowanceSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1343,7 +1207,7 @@ theorem erc20NoDispatchRuntimeCore
       exact Nat.mod_lt _ (by decide)
     interval_cases m
     · have hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20BalanceOfSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1351,7 +1215,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ approveSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20ApproveSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1359,7 +1223,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferFromSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20TransferFromSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1367,7 +1231,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20TransferSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1376,7 +1240,7 @@ theorem erc20NoDispatchRuntimeCore
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · exact erc20SelectorMissRuntime_mod4 hcode hm.symm hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ totalSupplySelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20TotalSupplySelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1384,7 +1248,7 @@ theorem erc20NoDispatchRuntimeCore
           (σ := σ) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ allowanceSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact selectorWord_ne_of_short hshort (by native_decide)
       exact (erc20AllowanceSelectorMiss
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq

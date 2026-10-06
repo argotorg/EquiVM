@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.SwapInputRuntime
 import Examples.UniswapV2Pair.SafeMathMulOverflowRuntime
 import Examples.UniswapV2Pair.Routines
@@ -16,16 +17,6 @@ theorem swapAmountInWord_le (balance reserve amountOut : UInt256) :
     omega
   · exact Nat.zero_le _
 
-theorem swapAdjustmentBounds (balance amountIn : UInt256)
-    (hle : amountIn.toNat ≤ balance.toNat) (hfit : balance.toNat * 1000 < UInt256.size) :
-    amountIn.toNat * 3 < UInt256.size ∧
-    (UInt256.mul amountIn ⟨3⟩).toNat ≤ (UInt256.mul balance ⟨1000⟩).toNat := by
-  have hi : amountIn.toNat * 3 < UInt256.size := by omega
-  refine ⟨hi, ?_⟩
-  rw [u256_mul_toNat, u256_mul_toNat]
-  change amountIn.toNat * 3 % UInt256.size ≤ balance.toNat * 1000 % UInt256.size
-  rw [Nat.mod_eq_of_lt hi, Nat.mod_eq_of_lt hfit]
-  omega
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAdjustmentInputMulEntry

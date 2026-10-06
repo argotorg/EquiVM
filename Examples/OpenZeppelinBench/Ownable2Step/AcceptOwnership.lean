@@ -95,7 +95,7 @@ theorem acceptOwnershipSetAddressZero_eq (old : UInt256) :
   unfold acceptOwnershipClearPendingWord
   apply u256_inj
   rw [ownable2StepSetAddressWord_toNat old ⟨0⟩ (by decide),
-    ownable2StepHigh160Mask_toNat]
+    addressOffset0High160Mask_toNat]
   simp
 
 theorem acceptOwnershipAfterPendingState_accountMap (evm : EVM.State) :
@@ -136,8 +136,8 @@ theorem evalExpr_acceptOwnership_pendingOwner (evm : EVM.State) :
       ({ base := "_pendingOwner", steps := [] } : EvaledStorageRef) =
       some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
+  erw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+    (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0]
 
 theorem evalExpr_acceptOwnership_sender (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := ∅ } evm sender =
@@ -200,7 +200,7 @@ theorem acceptOwnershipAssignPending (evm : EVM.State) :
       storageLocStore evm (addrLoc ⟨1⟩) (.address (AccountAddress.ofNat 0)) =
         some (acceptOwnershipAfterPendingState evm) := by
     simpa [acceptOwnershipAfterPendingState, acceptOwnershipClearPendingWord] using
-      ownable2StepStorageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
+      storageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
   exact assignStorageRef_storage_scalar_value (cfg := config) (solm := { contract := contract, locals := ∅ })
     (evm := evm) (evm' := acceptOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
     (er := { base := "_pendingOwner", steps := [] }) (ty := .elem .address)
@@ -230,7 +230,7 @@ theorem acceptOwnershipAssignOwner (evm : EVM.State) :
       simpa using acceptOwnershipSource_ofNat (acceptOwnershipAfterPendingState evm).executionEnv
     rw [← hsource]
     simpa [acceptOwnershipAfterOwnerState] using
-      ownable2StepStorageLocStore_address_offset0 (acceptOwnershipAfterPendingState evm) ⟨0⟩
+      storageLocStore_address_offset0 (acceptOwnershipAfterPendingState evm) ⟨0⟩
         (UInt256.ofNat (acceptOwnershipAfterPendingState evm).executionEnv.source.val)
         (ownable2StepSourceWord_canonical (acceptOwnershipAfterPendingState evm).executionEnv)
   exact assignStorageRef_storage_scalar_value (cfg := config) (solm := { contract := contract, locals := ∅ })

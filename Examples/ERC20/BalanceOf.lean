@@ -79,7 +79,8 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           storageTypeStep?])
         (hloc := erc20Config_storage_balanceOf
           (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)))]
-      simp [balanceOfSlot, erc20StorageLocLoad_uint256])
+      simp [show erc20Uint256Loc = uint256Loc from rfl,
+        balanceOfSlot, storageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the `balanceOf` mapping access -/
 
@@ -392,7 +393,7 @@ theorem erc20X_balanceOf {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw ret 0 (UInt256.toByteArray (balanceOfWord σ I)) (by decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, subRet32_toNat]
         change (balanceOfReturnMem (balanceOfOwnerWord I) (balanceOfWord σ I)).readWithPadding 128 32 =
           UInt256.toByteArray (balanceOfWord σ I)
         exact balanceOfReturnMem_read128 (balanceOfOwnerWord I) (balanceOfWord σ I))

@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Reasoning.SolmBody
 
@@ -50,12 +52,6 @@ def votersVotedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 def votersDelegateWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (UInt256.div (votersPackedWord σ I) ⟨256⟩) solcAddrMask
 
-theorem votersDelegateWord_doubleMask (w : UInt256) :
-    UInt256.land solcAddrMask (UInt256.land solcAddrMask (UInt256.div w ⟨256⟩)) =
-      UInt256.land (UInt256.div w ⟨256⟩) solcAddrMask := by
-  rw [u256_land_comm solcAddrMask (UInt256.land solcAddrMask (UInt256.div w ⟨256⟩))]
-  rw [u256_land_comm solcAddrMask (UInt256.div w ⟨256⟩)]
-  exact solcAddrMask_clean (solcAddrMask_result_canonical (UInt256.div w ⟨256⟩))
 
 abbrev votersBoolWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.isZero (UInt256.isZero (votersVotedWord σ I))
@@ -68,12 +64,6 @@ theorem votersBaseSlot_spec (I : ExecutionEnv)
   unfold votersBaseSlot voterBase mapSlot
   rw [keyValueToWord_address_of_canonical (votersArgWord I) hcanon]
 
-theorem ballotStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
 
 theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -99,7 +89,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
           (hloc := by funext evm'; rfl),
-          ballotStorageLocLoad_uint256]
+          show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
         simp [votersWeightWord, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
       have hvoted :
@@ -112,7 +102,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, boolSt, storageTypeStep?])
           (hloc := by funext evm'; rfl),
-          ballotStorageLocLoad_bool_offset0]
+          storageLocLoad_bool_offset0']
         simp [votersVotedWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       have hdelegate :
@@ -138,7 +128,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
           (hloc := by funext evm'; rfl),
-          ballotStorageLocLoad_uint256]
+          show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
         simp [votersVoteWord, votersVoteSlot, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
       simp only [Solm.evalExprs?.eq_def, EvalResult.bind, bind, pure,
@@ -471,9 +461,6 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
           change (UInt256.toByteArray vote).size ≤ 32
           rw [toByteArray_size])]
 
-theorem votersSubRet128_toNat :
-    (UInt256.sub ((⟨128⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 128 := by
-  decide
 
 theorem ballotBoolWordEncoding (w : UInt256) :
     encodeABIValue? boolTy (wordToElem .bool (UInt256.land w ⟨255⟩)) =

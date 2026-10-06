@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetMemory
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -5,18 +6,6 @@ set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-theorem MachineState_M_same_of_cover_len (s f l : Nat) (hcover : f + l ≤ s * 32) :
-    MachineState.M s f l = s := by
-  unfold MachineState.M
-  cases l with
-  | zero => rfl
-  | succ l =>
-      change max s ((f + (l + 1) + 31) / 32) = s
-      rw [Nat.max_eq_left]
-      have hdivlt : (f + (l + 1) + 31) / 32 < s + 1 := by
-        rw [Nat.div_lt_iff_lt_mul (by norm_num : 0 < 32)]
-        omega
-      omega
 
 theorem skimSecondSafeTransferDynamicWordsCall0_cover_base128 (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
@@ -131,7 +120,7 @@ theorem skimSecondSafeTransferDynamicWordsCall2_callOutputSame (out : ByteArray)
       MachineState.M (skimSecondSafeTransferDynamicWordsCall2 out).toNat
           (skimSecondSafeTransferDynamicCallPtr out).toNat 68 =
         (skimSecondSafeTransferDynamicWordsCall2 out).toNat := by
-    exact MachineState_M_same_of_cover_len _ _ _
+    exact machineState_M_same_of_cover_len _ _ _
       (skimSecondSafeTransferDynamicWordsCall2_cover_callPtr68 out houtSize)
   rw [hinner]
   simpa [MachineState.M] using u256_ofNat_toNat (skimSecondSafeTransferDynamicWordsCall2 out)
@@ -1105,12 +1094,12 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by
         set_option linter.unusedSimpArgs false in
           simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            UInt256_mload64_same_of_toNat_ge13 _
+            uInt256_mload64_same_of_toNat_ge13 _
               (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size)]
         exact Nat.sub_self _)
       (skimSecondSafeTransferDynamicCallMem2_mload64 self toWord prevValue value
         ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
-      (UInt256_mload64_same_of_toNat_ge13 _
+      (uInt256_mload64_same_of_toNat_ge13 _
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size))
       (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]

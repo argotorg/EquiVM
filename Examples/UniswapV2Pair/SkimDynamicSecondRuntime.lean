@@ -1,3 +1,5 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.SkimSafeTransferDynamicRuntime
 import Examples.UniswapV2Pair.SkimSecondRuntime
 
@@ -343,23 +345,6 @@ theorem skimSecondBalanceDynamicCalldataMem_encode
   rw [balanceOfThisCalldataMem_read128_36] at h
   exact h
 
-theorem UInt256_mload64_same_of_toNat_ge13 (aw : UInt256) (haw : 13 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw := by
-  have hM : MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32 = aw.toNat := by
-    rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
-    simp [MachineState.M]
-    omega
-  rw [hM]
-  exact u256_ofNat_toNat aw
-
-theorem UInt256_mload64_haw_of_toNat_ge13 (aw : UInt256)
-    (hge : 13 ≤ aw.toNat) (hmul : aw.toNat * 32 < UInt256.size) :
-    ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ := by
-  intro h
-  have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := h
-  rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-    Nat.mod_eq_of_lt hmul, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
-  omega
 
 theorem skimSecondBalanceDynamicSelectorWords_M_mul32_lt (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
@@ -495,7 +480,7 @@ theorem skimSecondBalanceDynamicCalldataWords_mload64_same (out : ByteArray)
     UInt256.ofNat (MachineState.M (skimSecondBalanceDynamicCalldataWords out).toNat
       (⟨64⟩ : UInt256).toNat 32) =
       skimSecondBalanceDynamicCalldataWords out :=
-  UInt256_mload64_same_of_toNat_ge13 _
+  uInt256_mload64_same_of_toNat_ge13 _
     (skimSecondBalanceDynamicCalldataWords_toNat_ge out houtSize)
 
 theorem skimSecondBalanceDynamicStaticcallWords_M_mul32_lt (out : ByteArray)
@@ -620,7 +605,7 @@ theorem skimSecondBalanceDynamicStaticcallWords_mload64_same (out : ByteArray)
     UInt256.ofNat (MachineState.M (skimSecondBalanceDynamicStaticcallWords out).toNat
       (⟨64⟩ : UInt256).toNat 32) =
       skimSecondBalanceDynamicStaticcallWords out :=
-  UInt256_mload64_same_of_toNat_ge13 _
+  uInt256_mload64_same_of_toNat_ge13 _
     (skimSecondBalanceDynamicStaticcallWords_toNat_ge out houtSize)
 
 theorem skimSecondBalanceDynamicStaticcallMem_read64_of_size_ge
@@ -632,7 +617,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_read64_of_size_ge
         64 32 =
       UInt256.toByteArray (skimSafeTransferReturnDataPtr out1) := by
   unfold skimSecondBalanceDynamicStaticcallMem
-  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
+  rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
   rw [write32_read_below _ _ (skimSafeTransferReturnDataPtr out1).toNat 64 hout2_32
     (by
       have hsize :=
@@ -665,7 +650,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_ge
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       unfold skimSecondBalanceDynamicStaticcallMem
-      rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
+      rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
       have hbase :=
         skimSecondBalanceDynamicCalldataMem_size_ge_ptr_add36 self toWord value
           ho32 hoSize hout1Ne hout1Size
@@ -691,7 +676,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_read64_of_size_lt
         64 32 =
       UInt256.toByteArray (skimSafeTransferReturnDataPtr out1) := by
   unfold skimSecondBalanceDynamicStaticcallMem
-  rw [skimSecondBalanceStaticcallWriteLen_of_size_lt out2 hshort hout2Size]
+  rw [secondBalanceStaticcallWriteLen_of_size_lt out2 hshort hout2Size]
   by_cases hzero : out2.size = 0
   · rw [hzero, byteArray_write_len_zero]
     exact skimSecondBalanceDynamicCalldataMem_read64 self toWord value
@@ -730,7 +715,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_lt
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       unfold skimSecondBalanceDynamicStaticcallMem
-      rw [skimSecondBalanceStaticcallWriteLen_of_size_lt out2 hshort hout2Size]
+      rw [secondBalanceStaticcallWriteLen_of_size_lt out2 hshort hout2Size]
       by_cases hzero : out2.size = 0
       · rw [hzero, byteArray_write_len_zero]
         have hsize :=
@@ -816,7 +801,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_size_ge_ptr_add32_of_size_ge
     (skimSafeTransferReturnDataPtr out1).toNat + 32 ≤
       (skimSecondBalanceDynamicStaticcallMem self o toWord value out1 out2).size := by
   unfold skimSecondBalanceDynamicStaticcallMem
-  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
+  rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
   have hbase :=
     skimSecondBalanceDynamicCalldataMem_size_ge_ptr_add36 self toWord value
       ho32 hoSize hout1Ne hout1Size
@@ -837,7 +822,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_read_ptr_of_size_ge
         (skimSafeTransferReturnDataPtr out1).toNat 32 =
       out2.extract 0 32 := by
   unfold skimSecondBalanceDynamicStaticcallMem
-  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
+  rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
   exact write32_read_back out2
     (skimSecondBalanceDynamicCalldataMem self o toWord value out1)
     (skimSafeTransferReturnDataPtr out1).toNat hout2_32
@@ -924,14 +909,14 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade_dynamic {g : Sat256} {s0 : S
           ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) ::
             (skimSafeTransferReturnDataPtr out1 + ⟨36⟩) ::
             balanceOfSelectorWord :: UInt256.land token1 solcAddrMask ::
-            UInt256.land reserve112Mask (UInt256.div (uniswapSlotWord ⟨8⟩ σ ee) reserve112Shift) ::
+            UInt256.land reserve112Mask (UInt256.div (solcSlotWordAt ⟨8⟩ σ ee) reserve112Shift) ::
             ⟨5325⟩ :: toWord :: token1 :: ⟨5433⟩ ::
             token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
           (skimSecondBalanceDynamicStaticcallMem (UInt256.ofNat ee.codeOwner.val) o
             toWord value out1 out2)
           (skimSecondBalanceDynamicStaticcallWords out1) out2 σ' k' C'
       ∧ out2.size < UInt256.size := by
-  let packedWord := uniswapSlotWord ⟨8⟩ σ ee
+  let packedWord := solcSlotWordAt ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   let reserve1Word := UInt256.land reserve112Mask (UInt256.div packedWord reserve112Shift)
   let fp := skimSafeTransferReturnDataPtr out1
@@ -941,7 +926,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade_dynamic {g : Sat256} {s0 : S
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferReturnDataMem (UInt256.ofNat ee.codeOwner.val) o toWord value out1)
       (skimSafeTransferReturnDataActiveWords out1) out1 σ k5334 C5334 := by
-    simpa [packedWord, uniswapSlotWord] using rd5334₀
+    simpa [packedWord, solcSlotWordAt, solcSlotWord] using rd5334₀
   let aw0 := skimSafeTransferReturnDataActiveWords out1
   let awLoad0 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
   have hawLoad0 : awLoad0 = aw0 := by
@@ -1231,7 +1216,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts_dynamic {g : Sat256} {s0 : St
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (htoken1NoCode : extCodeSizeWord σ (UInt256.land token1 solcAddrMask) = ⟨0⟩) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  let packedWord := uniswapSlotWord ⟨8⟩ σ ee
+  let packedWord := solcSlotWordAt ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   let reserve1Word := UInt256.land reserve112Mask (UInt256.div packedWord reserve112Shift)
   let fp := skimSafeTransferReturnDataPtr out1
@@ -1241,7 +1226,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts_dynamic {g : Sat256} {s0 : St
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferReturnDataMem (UInt256.ofNat ee.codeOwner.val) o toWord value out1)
       (skimSafeTransferReturnDataActiveWords out1) out1 σ k5334 C5334 := by
-    simpa [packedWord, uniswapSlotWord] using rd5334₀
+    simpa [packedWord, solcSlotWordAt, solcSlotWord] using rd5334₀
   let aw0 := skimSafeTransferReturnDataActiveWords out1
   let awLoad0 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
   have hawLoad0 : awLoad0 = aw0 := by

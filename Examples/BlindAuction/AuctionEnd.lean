@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.BlindAuction.Beneficiary
 import Examples.BlindAuction.Ended
 import Examples.BlindAuction.Storage
@@ -106,40 +108,6 @@ theorem auctionEndEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
   mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide)
     (auctionEndEventMem_read64 σ I)
 
-theorem auctionEndAddress_ofNat_toNat (w : UInt256) :
-    AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat =
-      AccountAddress.ofUInt256 (UInt256.land w solcAddrMask) := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat AccountAddress.ofUInt256
-  simp [UInt256.toNat]
-
-theorem auctionEndAddress_from_toNat (a : AccountAddress) :
-    EVM.address a.toNat = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt a.isLt
-
-theorem blindAuctionStorageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocStore evm (blindAuctionBoolLoc slot) (.bool true) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.lor
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-            (UInt256.lnot ⟨255⟩)) ⟨1⟩)) := by
-  simpa [blindAuctionBoolLoc, boolOffset0Loc] using storageLocStore_bool_true_offset0 evm slot
-
-theorem blindAuctionStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm (blindAuctionBoolLoc slot) = .bool false := by
-  simpa [blindAuctionBoolLoc, boolOffset0Loc] using
-    storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem blindAuctionStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm (blindAuctionBoolLoc slot) = .bool true := by
-  simpa [blindAuctionBoolLoc, boolOffset0Loc] using
-    storageLocLoad_bool_offset0_true evm slot hnz
 
 theorem auctionEndCallStore_success_get (success : Bool) (out : ByteArray) :
     (auctionEndCallStore success out)["success"]? = some (.bool success) := by
@@ -163,7 +131,7 @@ theorem evalExpr_auctionEnd_revealEnd (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
-  rw [blindAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
 
 theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := ∅ } evm
@@ -178,7 +146,7 @@ theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_beneficiary)]
-  rw [blindAuctionStorageLocLoad_address_offset0]
+  erw [storageLocLoad_address_offset0]
   rfl
 
 theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
@@ -195,7 +163,7 @@ theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_highestBid)]
-  rw [blindAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   rfl
 
 theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
@@ -212,7 +180,7 @@ theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    blindAuctionStorageLocLoad_bool_offset0_false evm ⟨3⟩ hzero
+    storageLocLoad_bool_offset0_false evm ⟨3⟩ hzero
 
 theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
     (hnz : auctionEndEndedWordState evm ≠ ⟨0⟩) :
@@ -228,7 +196,7 @@ theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    blindAuctionStorageLocLoad_bool_offset0_true evm ⟨3⟩ hnz
+    storageLocLoad_bool_offset0_true evm ⟨3⟩ hnz
 
 theorem evalExpr_auctionEnd_time_true (evm : EVM.State)
     (htime :
@@ -290,7 +258,7 @@ theorem auctionEndAssignEnded (evm : EVM.State) :
       (hty := by decide)
       (hloc := blindAuctionConfig_storage_ended)
       (hscalar := by trivial)
-  rw [blindAuctionStorageLocStore_bool_true_offset0]
+  erw [storageLocStore_bool_true_offset0]
   rfl
 
 theorem blindAuctionAuctionEndBodyReverts_time (evm : EVM.State)

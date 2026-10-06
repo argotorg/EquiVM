@@ -1,3 +1,4 @@
+import Reasoning.ABIComposite
 import Examples.VyperERC20.Transfer
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -223,100 +224,6 @@ theorem transferFromToBalanceRawAfterBalance_initState
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
 
-theorem decodeScalarWords_address_address_uint256_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hcanon32 : (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .address (Ethereum.AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)] :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_ok
-        (bytes := bytes) hlen0 hlen32 hlen64 hcanon0 hcanon32
-
-theorem decodeScalarWords_address_address_uint256_none_noncanon0 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_none_noncanon0
-        (bytes := bytes) hlen0 hnc0
-
-theorem decodeScalarWords_address_address_uint256_none_noncanon1 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus)
-    (hnc32 : ¬ (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, addr, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_none_noncanon1
-        (bytes := bytes) hlen0 hlen32 hcanon0 hnc32
-
-theorem decodeScalarWords_address_address_uint256_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeScalarWords? [addr, addr, uint256] bytes 0 = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeScalarWords_address_address_uint256_none_short
-        (bytes := bytes) hshort
-
-theorem decodeCalldata_address_address_uint256_ok {cd : ByteArray} {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hcanon1 : (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [addr, addr, uint256] cd =
-      some ((((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_ok
-        (cd := cd) (x := x) (y := y) (z := z) hsz100 hbig hcanon0 hcanon1
-
-theorem decodeCalldata_address_address_uint256_none_noncanon0 {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [addr, addr, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon0
-        (cd := cd) (x := x) (y := y) (z := z) hsz100 hbig hnc0
-
-theorem decodeCalldata_address_address_uint256_none_noncanon1 {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus)
-    (hnc1 : ¬ (calldataWord cd 36).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [addr, addr, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_none_noncanon1
-        (cd := cd) (x := x) (y := y) (z := z) hsz100 hbig hcanon0 hnc1
-
-theorem decodeCalldata_address_address_uint256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldata [x, y, z] [addr, addr, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_none_short
-        (cd := cd) (x := x) (y := y) (z := z) hsz4 hshort
-
-theorem decodeCalldata_address_address_uint256_none_huge {cd : ByteArray}
-    {x y z : Solm.Ident} (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y, z] [addr, addr, uint256] cd = none :=
-  by
-    simpa [addr, uint256, abiUInt256] using
-      Reasoning.Theory.decodeCalldata_address_address_uint256_none_huge
-        (cd := cd) (x := x) (y := y) (z := z) hbig
 
 theorem erc20Decode_transferFrom_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size)
@@ -576,7 +483,7 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
     (hloc := vyperERC20Config_storage_allowance
       (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
       (.address evm.executionEnv.source))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferFromAllowanceEvaledRef, transferFromAllowanceSlot,
     transferFromCurrentAllowanceWord]
 
@@ -644,7 +551,7 @@ theorem evalExpr_transferFrom_from_balance (evm : EVM.State) (I : ExecutionEnv) 
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
       (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferFromFromBalanceEvaledRef, transferFromFromSlot, transferFromFromBalanceWord]
 
 theorem evalExpr_transferFrom_from_balance_fromBalance
@@ -663,7 +570,7 @@ theorem evalExpr_transferFrom_from_balance_fromBalance
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
       (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferFromFromBalanceEvaledRef, transferFromFromSlot, transferFromFromBalanceWord]
 
 theorem evalExpr_transferFrom_require_from_true (evm : EVM.State) (I : ExecutionEnv)
@@ -738,7 +645,7 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := vyperERC20Config_storage_allowance
         (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
         (.address evm.executionEnv.source))
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferFromAfterAllowanceState, transferFromAllowanceSlot]
 
 theorem evalExpr_transferFrom_balance_debit_raw (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -848,7 +755,7 @@ theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         ERC20.uint256Storage, storageTypeStep?])
       (hloc := vyperERC20Config_storage_balanceOf
         (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferFromAfterBalanceState, transferFromFromSlot, transferFromAfterAllowance_codeOwner]
 
 def transferFromToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
@@ -889,7 +796,7 @@ theorem evalExpr_transferFrom_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
       (.address (AccountAddress.ofNat (transferFromToWord I).toNat)))]
-  rw [vyperERC20StorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp [transferFromToEvaledRef, transferFromToSlot, transferFromToBalanceWord,
     transferFromAfterBalance_codeOwner]
 
@@ -962,7 +869,7 @@ theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
       (hloc := vyperERC20Config_storage_balanceOf
         (.address (AccountAddress.ofNat (transferFromToWord I).toNat)))
   rw [← transferFromNewToWord_toNat evm I hfit]
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferFromPostState, transferFromToSlot, transferFromAfterBalance_codeOwner]
 
 theorem erc20TransferFromBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -2307,7 +2214,6 @@ theorem transferFromReturnMem_read160 (src dst caller allowance val : UInt256) :
   exact Array.extract_eq_self_of_le (by
     change (UInt256.toByteArray (⟨1⟩ : UInt256)).size ≤ 32
     rw [toByteArray_size])
-
 
 
 theorem transferFromDispatchMem_mload0 :

@@ -59,7 +59,7 @@ theorem unpauseAssign (evm : EVM.State) :
     decide
   have hstore :
       storageLocStore evm (boolLoc ⟨0⟩) (.bool false) = some (unpausePostState evm) := by
-    simpa [unpausePostState] using pausableStorageLocStore_bool_false_offset0 evm ⟨0⟩
+    simpa [unpausePostState] using storageLocStore_bool_false_offset0 evm ⟨0⟩
   exact assignStorageRef_storage_scalar_value (cfg := config)
     (solm := { contract := contract, locals := ∅ }) (evm := evm) (evm' := unpausePostState evm)
     (slot := pausedRef) (er := { base := "_paused", steps := [] }) (ty := boolSt)

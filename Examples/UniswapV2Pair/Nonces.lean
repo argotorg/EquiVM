@@ -81,7 +81,7 @@ theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (noncesStorageSlot I)))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (noncesStorageSlot I)))
 
 /-! ## EVM trace -/
 

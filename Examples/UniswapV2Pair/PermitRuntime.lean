@@ -744,7 +744,7 @@ theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : Execu
   have hinnerFree :
       (twoWordHashMem owner (⟨2⟩ : UInt256) mem).readWithPadding 64 32 =
         UInt256.toByteArray (⟨482⟩ : UInt256) := by
-    rw [twoWordHashMem_read64_of_ge96 owner ⟨2⟩ (by omega)]
+    rw [twoWordHashMem_read64_preserved_of_ge96 owner ⟨2⟩ (by omega)]
     exact hfree
   obtain ⟨_, _, rd7457⟩ := RD.uniswapPermitApproveStore20
     (value := value) (spender := spender) (owner := owner) (ret := ⟨5976⟩)
@@ -760,7 +760,7 @@ theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : Execu
       (twoWordHashMem spender (mapSlot owner ⟨2⟩)
           (twoWordHashMem owner (⟨2⟩ : UInt256) mem)).readWithPadding 64 32 =
         UInt256.toByteArray (⟨482⟩ : UInt256) := by
-    rw [twoWordHashMem_read64_of_ge96 spender (mapSlot owner ⟨2⟩) (by omega)]
+    rw [twoWordHashMem_read64_preserved_of_ge96 spender (mapSlot owner ⟨2⟩) (by omega)]
     exact hinnerFree
   obtain ⟨_, _, rd5976⟩ := RD.uniswapPermitApproveEmitAndJump20
     (value := value) (spender := spender) (owner := owner) (ret := ⟨5976⟩)

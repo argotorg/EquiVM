@@ -18,7 +18,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hover : UInt256.size ≤ mintFeeNumeratorNat evmFeeS rootK rootKLast)
@@ -35,7 +35,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail (hov := hov) rd6879 hrootGt
   have hoverRuntime :
       UInt256.size ≤
-        (uniswapSlotWord ⟨0⟩ σFee I).toNat *
+        (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)).toNat := by
     rw [← htotalEq]
     have hdiff :=
@@ -45,7 +45,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     rw [← hdiff]
     simpa [mintFeeNumeratorNat] using hover
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
-    (a := uniswapSlotWord ⟨0⟩ σFee I)
+    (a := solcSlotWordAt ⟨0⟩ σFee I)
     (b := UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat))
     rd6780 hoverRuntime hmem hread64
     (by simp only [List.length_cons]; omega)
@@ -63,7 +63,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hnumFit : mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size)
@@ -80,7 +80,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
   obtain ⟨_, _, rd6780Num⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail (hov := hov) rd6879 hrootGt
   have hnumFitRuntime :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat *
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)).toNat <
         UInt256.size := by
     rw [← htotalEq]
@@ -111,7 +111,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -130,7 +130,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
   obtain ⟨_, _, rd6780Num⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail (hov := hov) rd6879 hrootGt
   have hnumFitRuntime :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat *
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)).toNat <
         UInt256.size := by
     rw [← htotalEq]

@@ -344,12 +344,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask ::
-        uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc ee) timestamp balance1
+        uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ acc ee) timestamp balance1
           balance0 ::
         elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata
       (sstoreAccountMap ee.codeOwner acc ⟨8⟩
-        (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc ee) timestamp balance1
+        (uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ acc ee) timestamp balance1
           balance0))
       k' C' := by
   have rd7244 := evm_run h with [jumpdest, push1 ⟨8⟩, dup1]
@@ -372,7 +372,8 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd7339⟩ := rd7338.sstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
-    simpa [uniswapUpdatePackedReserveWord, uniswapSlotWord, reserve112Shift, reserve112Mask,
+    simpa [uniswapUpdatePackedReserveWord, solcSlotWordAt, solcSlotWord, reserve112Shift,
+      reserve112Mask,
       reserve224Shift, reserve32Mask] using rd7339⟩
 
 set_option maxHeartbeats 3000000 in

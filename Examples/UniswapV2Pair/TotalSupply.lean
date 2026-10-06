@@ -10,7 +10,7 @@ namespace UniswapV2Pair
 /-! ## `totalSupply()` getter -/
 
 def totalSupplyWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨0⟩ σ I
+  solcSlotWordAt ⟨0⟩ σ I
 
 /-- The Solm `totalSupply()` body returns the uint256 stored in slot 0. -/
 theorem uniswapTotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
@@ -62,7 +62,7 @@ theorem uniswapTotalSupplyBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (totalSupplyWord σ I).toNat))])) := by
-    simpa [totalSupplyWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [totalSupplyWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       uniswapTotalSupplyBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

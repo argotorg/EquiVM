@@ -1,3 +1,7 @@
+import Reasoning.StateFacts
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Examples.Ballot.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -16,89 +20,6 @@ namespace Ballot
 
 /-! ## Ballot-wide storage and ABI helpers -/
 
-theorem ballotNat_lor_packed_address (a q : Nat) (ha : a < 2 ^ 160) :
-    Nat.lor 1 (Nat.lor (a * 2 ^ 8) (q * 2 ^ 168)) =
-      1 + a * 2 ^ 8 + q * 2 ^ 168 :=
-  nat_lor_packed_bool_address_high a q ha
-
-theorem ballotHigh168Mask_toNat (old : UInt256) :
-    (UInt256.land (UInt256.ofNat (2 ^ 256 - 2 ^ 168)) old).toNat =
-      (old.toNat / 2 ^ 168) * 2 ^ 168 :=
-  u256_land_high_mask_toNat old 168 (by norm_num)
-
-theorem ballotPackedAddressAfterBoolTrueWord_eq (old val : UInt256)
-    (hcanon : val.toNat < EVM.addressModulus) :
-    UInt256.lor ⟨1⟩
-      (UInt256.lor
-        (UInt256.mul (UInt256.land val solcAddrMask) ⟨256⟩)
-        (UInt256.land
-              (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
-              old)) =
-      UInt256.ofNat (1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168) :=
-  packedAddressAfterBoolTrueWord_eq old val hcanon
-
-/-- Loading a Solidity `address` stored at byte offset 0 returns the low-160-bit address word. -/
-theorem ballotStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
-      = .address (AccountAddress.ofNat
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-            solcAddrMask).toNat) := by
-  simpa [addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-/-- Loading a full-slot Solidity `uint256` returns the source-level integer for that word. -/
-theorem ballotStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-/-- Loading a full-slot Solidity `bytes32` returns the big-endian fixed-bytes value. -/
-theorem ballotStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 32, hbound := by decide,
-          type := .bytes ⟨31, by decide⟩ }
-      = .fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
-
-/-- ABI-encoding a `Proposal` getter return list is exactly `name || voteCount`. -/
-theorem ballotProposalReturnEncoding (name count : UInt256) :
-    encodeReturnValues? [bytes32, uint256]
-      [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name),
-        .int (Int.ofNat count.toNat)] =
-      some (UInt256.toByteArray name ++ UInt256.toByteArray count) := by
-  have hnameLen : (EVM.Word.toBytesBE name).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size name
-  have hword : EVM.word count.toNat = count := u256_ofNat_toNat count
-  have hlt : count.toNat < EVM.twoPow 256 := by
-    change count.val.val < EVM.twoPow 256
-    exact count.val.isLt
-  have hencName :
-      encodeABIValue? bytes32 (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name)) =
-        some (EVM.Word.toBytesBE name) := by
-    simp only [bytes32, encodeABIValue?, hnameLen, zeroBytes]
-    simp
-  have hencCount :
-      encodeABIValue? uint256 (.int (Int.ofNat count.toNat)) =
-        some (EVM.Word.toBytesBE count) := by
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
-  have hdynUint : isDynamicABIType uint256 = false := by native_decide
-  rw [toByteArray_eq_toBytesBE name, toByteArray_eq_toBytesBE count]
-  simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
-    hhead, hencName, hencCount, hdynBytes, hdynUint, bind, Option.bind, Bool.false_eq_true, if_false,
-    List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp
-
-theorem ballotStorageLoad_storageStore_self_nonzero (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) {acc : Account} (hacc : evm.lookupAccount a = some acc)
-    (_hval : (val == default) = false) :
-    Solm.EVM.storageLoad (Solm.EVM.storageStore evm a slot val) a slot = val :=
-  storageLoad_storageStore_same_present evm a (by simpa [State.lookupAccount] using hacc) slot val
 
 /-- The shared solc return wrapper computes the fixed one-word return length. -/
 abbrev ballotRetEnd : UInt256 := (⟨32⟩ : UInt256) + ⟨128⟩

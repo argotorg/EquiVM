@@ -32,8 +32,8 @@ theorem ownable2StepPendingOwnerBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "_pendingOwner", steps := [] } : EvaledStorageRef) =
           some (.elem .address) := by
         decide
-      rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0])
+      erw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
+        (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0])
 
 theorem ownable2StepPendingOwnerSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xe3, 0x0c, 0x39, 0x78]⟩) :

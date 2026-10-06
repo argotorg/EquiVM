@@ -1,58 +1,9 @@
+import Reasoning.EVMWord
 import Reasoning.ExternalCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
-
--- LIBRARY CANDIDATE: transport a zero-value opaque call witness to a source state,
--- preserving the context needed by subsequent calls.
-theorem rawZeroCall_source_of_theta
-    {evm : EVM.State} {s0 : State} {I : ExecutionEnv}
-    {σ σ' : AccountMap}
-    {targetWord callGas : UInt256} {A_in : Substate} {z : Bool} {data out : ByteArray}
-    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
-    (hσ0 : evm.σ₀ = s0.σ₀)
-    (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
-    (hΘ : ∃ (g'' : UInt256) (A' : Substate),
-      (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ σ s0.σ₀ A_in
-          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
-          (AccountAddress.ofUInt256 targetWord) (toExecute σ (AccountAddress.ofUInt256 targetWord))
-          callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩ data (I.depth + 1)
-          I.header I.blobVersionedHashes I.blocks I.perm) :
-    ∃ evm', callViaEVM evm (AccountAddress.ofUInt256 targetWord) 0 data (z, evm', out) ∧
-      σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I := by
-  let evmE : EVM.State :=
-    { evm with
-      accountMap := σ
-      σ₀ := s0.σ₀
-      executionEnv := I }
-  obtain ⟨g', A', hΘ⟩ := hΘ
-  have hcallE : callViaEVM evmE (AccountAddress.ofUInt256 targetWord) 0 data
-      (z, { evmE with accountMap := σ', substate := A' }, out) := by
-    refine callViaEVM.callMade (perm := true) (g' := g') wordOfInt_zero.symm ?_ rfl ?_ ?_
-    · refine ⟨callGas, A_in, ?_⟩
-      simpa only [evmE, hperm, accountAddress_roundtrip] using hΘ
-    · exact Fin.zero_le _
-    · intro h
-      have hlt := hdepth
-      change I.depth = 1024 at h
-      rw [h] at hlt
-      exact absurd hlt (by decide)
-  have hevmE : evmE = evm := by
-    cases evm
-    simp_all [evmE]
-  refine ⟨{ evm with accountMap := σ', substate := A' }, ?_, rfl, ?_, ?_⟩
-  · simpa [hevmE] using hcallE
-  · exact hσ0
-  · exact henv
-
--- LIBRARY CANDIDATE: normalization is identity on an already bounded address.
-theorem uniswapAddress_self (a : AccountAddress) : EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
 
 
 end UniswapV2Pair

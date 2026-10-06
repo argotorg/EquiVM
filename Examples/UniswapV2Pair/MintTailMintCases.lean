@@ -9,11 +9,11 @@ namespace UniswapV2Pair
 abbrev mintRuntimeMintMap (σ : AccountMap) (I : ExecutionEnv)
     (recipient value : UInt256) (mem : ByteArray) : AccountMap :=
   sstoreAccountMap I.codeOwner
-    (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + value))
+    (sstoreAccountMap I.codeOwner σ ⟨0⟩ (solcSlotWordAt ⟨0⟩ σ I + value))
     (uniswapInternalMintBalanceHashSlot recipient
       (uniswapInternalMintBalanceHashMem recipient mem))
     (uniswapCodeOwnerStorageWord I
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + value))
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ (solcSlotWordAt ⟨0⟩ σ I + value))
       (uniswapInternalMintBalanceHashSlot recipient mem) + value)
 
 abbrev mintRuntimeMintMem (recipient value : UInt256) (mem : ByteArray) : ByteArray :=
@@ -70,7 +70,7 @@ theorem uniswapMintTailMintCases
   have htotalEq := mintFunctionTotalSupplyNewNat_eq_runtime
     (liquidity := liquidity) hAccounts henv
   by_cases hfitSupply : mintFunctionTotalSupplyNewNat evm liquidity < UInt256.size
-  · have htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size := by
+  · have htotalFit : (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size := by
       rwa [← htotalEq]
     have hbalanceEq := mintFunctionToBalanceNewNat_eq_runtimeMintRecipient
       (mem := mem) hAccounts henv hrecipient (by rw [hmem]; omega) hfitSupply

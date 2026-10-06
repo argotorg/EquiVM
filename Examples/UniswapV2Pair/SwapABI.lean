@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
 import Examples.UniswapV2Pair.MutatorDispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -92,42 +95,6 @@ theorem swapStore_balanceOf (I : ExecutionEnv) :
   repeat rw [store_get_ne _ _ (by decide)]
   simp
 
-theorem swapReadNat_drop4_eq_calldataWord {I : ExecutionEnv} {headOff : Nat}
-    (h : 4 + headOff + 32 ≤ I.calldata.size) :
-    readNat? (I.calldata.toList.drop 4) headOff =
-      some (calldataWord I.calldata (4 + headOff)).toNat := by
-  unfold readNat? readWord? readBytes?
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hslice : (((I.calldata.toList.drop 4).drop headOff).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  rw [if_pos hslice]
-  rw [calldataWord]
-  rw [← decode_word_at_eq_any I.calldata (4 + headOff) h]
-  simp [UInt256.toNat, List.drop_drop, Nat.add_comm]
-
-theorem swapDecodeABIValue_uint256_legacy_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint256 bytes start DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
-        start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := uint256) (bytes := bytes) (start := start) (by decide)]
-  simpa [uint256, uint256Int, abiUInt256] using
-    (decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := bytes) (start := start) hlen)
-
-theorem swapDecodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? legacyAddr bytes start DecodeMode.legacySolc05 =
-      some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := legacyAddr) (bytes := bytes) (start := start) (by decide)]
-  simpa [legacyAddr, addr, abiAddress] using
-    (decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := start) hlen)
 
 theorem swapDecodeABIValue_bytes_ok {I : ExecutionEnv}
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
@@ -179,18 +146,18 @@ theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.s
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
     simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+      decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
         (start := 0) htake0
   have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
       (start := 32) htake32
   have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
       DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
         64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
@@ -327,18 +294,18 @@ theorem swapDecodeABIValues_none_offset_huge {I : ExecutionEnv}
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
     simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+      decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
         (start := 0) htake0
   have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
       (start := 32) htake32
   have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
       DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
         64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
@@ -436,18 +403,18 @@ theorem swapDecodeABIValues_none_data {I : ExecutionEnv} (hsz132 : 132 ≤ I.cal
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
     simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+      decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
         (start := 0) htake0
   have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
       DecodeMode.legacySolc05 = some (.int (Int.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyUint256_ok (bytes := I.calldata.toList.drop 4)
       (start := 32) htake32
   have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
       DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
         (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
         64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
+    exact decodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
@@ -540,29 +507,6 @@ theorem uniswapDecode_swap_none_payload_short {I : ExecutionEnv}
     (swapDecodeABIValues_none_data (I := I) hsz132 hoffMax
       (swapDecodeABIValue_bytes_none_payload_short (I := I) hlenWord hlenMax hpayload))
 
-theorem swapU256_lor_one_ne_zero_left (w : UInt256) :
-    UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ := by
-  intro h
-  have hval : (UInt256.lor ⟨1⟩ w).toNat = 0 := by
-    simpa using congrArg UInt256.toNat h
-  rw [u256_lor_toNat] at hval
-  change Nat.lor 1 w.toNat % UInt256.size = 0 at hval
-  have hlt : Nat.lor 1 w.toNat < UInt256.size := by
-    have hw : w.toNat < 2 ^ 256 := by
-      simp [UInt256.toNat, UInt256.size]
-    simpa [UInt256.size] using Nat.or_lt_two_pow (by norm_num : 1 < 2 ^ 256) hw
-  rw [Nat.mod_eq_of_lt hlt] at hval
-  have hbitTrue : Nat.testBit (Nat.lor 1 w.toNat) 0 = true := by
-    change Nat.testBit (1 ||| w.toNat) 0 = true
-    rw [Nat.testBit_lor]
-    norm_num
-  rw [hval] at hbitTrue
-  simp at hbitTrue
-
-theorem swapU256_lor_one_ne_zero_right (w : UInt256) :
-    UInt256.lor w ⟨1⟩ ≠ ⟨0⟩ := by
-  rw [u256_lor_comm]
-  exact swapU256_lor_one_ne_zero_left w
 
 theorem swapPayloadShort_lt {I : ExecutionEnv}
     (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take

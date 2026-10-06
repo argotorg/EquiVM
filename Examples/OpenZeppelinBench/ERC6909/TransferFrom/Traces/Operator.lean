@@ -220,7 +220,7 @@ theorem erc6909TransferFromX_operatorFalse_insufficientAllowance
   exact evm_run rd1266 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
-      mem_cost (erc6909ScratchMem_mload64 hbase hread64) (by decide) (by evm_ov),
+      mem_cost (scratchMem_mload64 hbase hread64) (by decide) (by evm_ov),
     push4 ⟨0x2c51fead⟩, push1 ⟨225⟩, shl, dup2,
     raw mstore 6
       (transferFromInsufficientAllowanceSelectorBaseMem

@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Examples.ERC20.Allowance
 import Examples.ERC20.Storage
 
@@ -126,7 +127,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
                        uint256Storage, storageTypeStep?])
       (hloc := erc20Config_storage_allowance (.address evm.executionEnv.source)
           (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 
 theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -144,14 +145,6 @@ theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 abbrev approveOwnerWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.source.val
 
-theorem approveSource_keyValueToWord (a : AccountAddress) :
-    keyValueToWord (.address a) = UInt256.ofNat a.val := by
-  apply u256_inj
-  unfold keyValueToWord UInt256.ofNat
-  change a.val = (Fin.ofNat UInt256.size a.val).val
-  rw [Fin.val_ofNat]
-  exact (Nat.mod_eq_of_lt
-    (lt_of_lt_of_le a.isLt (show AccountAddress.size ≤ UInt256.size from by decide))).symm
 
 theorem approveOwnerWord_toNat (I : ExecutionEnv) :
     (approveOwnerWord I).toNat = I.source.val := by
@@ -697,7 +690,7 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, subRet32_toNat]
         change (approveReturnMem (approveOwnerWord I) (approveSpenderWord I)
             (approveValueWord I)).readWithPadding 128 32 =
           UInt256.toByteArray (⟨1⟩ : UInt256)

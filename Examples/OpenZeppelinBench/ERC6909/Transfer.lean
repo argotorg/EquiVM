@@ -1,3 +1,4 @@
+import Reasoning.ABIComposite
 import Examples.OpenZeppelinBench.ERC6909.BalanceOf
 import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.ERC6909.Storage
@@ -129,72 +130,6 @@ theorem transferNewToWord_toNat (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ### ABI decoding -/
 
-theorem decodeScalarWords_address_uint256_uint256_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hcanon0 : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, uint256, uint256] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)] := by
-  change decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 =
-    some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-      .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-      .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)]
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_ok
-    hlen0 hlen32 hlen64 hcanon0
-
-theorem decodeScalarWords_address_uint256_uint256_none_noncanon0 {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc0 : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [addr, uint256, uint256] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_noncanon0
-    hlen0 hnc0
-
-theorem decodeScalarWords_address_uint256_uint256_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeScalarWords? [addr, uint256, uint256] bytes 0 = none := by
-  change decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_short hshort
-
-theorem decodeCalldata_address_uint256_uint256_ok {cd : ByteArray} {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon0 : (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [addr, uint256, uint256] cd =
-      some ((((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  change decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd =
-    some ((((∅ : Solm.Store).insert x
-      (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-      (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-      (.int (Int.ofNat (calldataWord cd 68).toNat)))
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_ok
-    hsz100 hbig hcanon0
-
-theorem decodeCalldata_address_uint256_uint256_none_noncanon0 {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc0 : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [addr, uint256, uint256] cd = none := by
-  change decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_noncanon0
-    hsz100 hbig hnc0
-
-theorem decodeCalldata_address_uint256_uint256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldata [x, y, z] [addr, uint256, uint256] cd = none := by
-  change decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_short hsz4 hshort
-
-theorem decodeCalldata_address_uint256_uint256_none_huge {cd : ByteArray}
-    {x y z : Solm.Ident} (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y, z] [addr, uint256, uint256] cd = none := by
-  change decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_huge hbig
 
 theorem erc6909Decode_transfer_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -474,8 +409,9 @@ theorem evalExpr_transfer_from_balance (evm : EVM.State) (I : ExecutionEnv) :
       simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
     (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])]
-  simp [transferFromEvaledRef, transferFromSlot, transferFromBalanceWord,
-    erc6909StorageLocLoad_uint256]
+  simp [show wordLoc = uint256Loc from rfl, transferFromEvaledRef, transferFromSlot,
+    transferFromBalanceWord,
+    storageLocLoad_uint256]
 
 theorem evalExpr_transfer_require_from_true (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferAmountWord I).toNat ≤ (transferFromBalanceWord evm I).toNat) :
@@ -544,7 +480,7 @@ theorem transferAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
       (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])
-  rw [erc6909StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferFromSlot]
 
 def transferToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
@@ -595,8 +531,9 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
     (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])]
-  simp [transferToEvaledRef, transferToSlot, transferToBalanceWord,
-    erc6909StorageLocLoad_uint256, transferAfterDebit_codeOwner]
+  simp [show wordLoc = uint256Loc from rfl, transferToEvaledRef, transferToSlot,
+    transferToBalanceWord,
+    storageLocLoad_uint256, transferAfterDebit_codeOwner]
 
 theorem evalExpr_transfer_newToBalance (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferNewToNat evm I < UInt256.size) :
@@ -662,7 +599,7 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
           storageTypeStep?])
       (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])
   rw [← transferNewToWord_toNat evm I hfit]
-  rw [erc6909StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
 
 theorem erc6909TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -872,14 +809,14 @@ theorem erc6909TransferX_noncanon_receiver {σ σ₀ A I} {g : Sat256}
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
 
 def transferInnerHashMem (owner : UInt256) : ByteArray :=
-  approveTwoWordHashMem owner ⟨0⟩ solcFreePtrMem
+  twoWordHashMem owner ⟨0⟩ solcFreePtrMem
 
 def transferInnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((transferInnerHashMem owner).readWithPadding 0 64)))
 
 def transferOuterHashMem (owner id : UInt256) : ByteArray :=
-  approveTwoWordHashMem id (transferInnerSlot owner) (transferInnerHashMem owner)
+  twoWordHashMem id (transferInnerSlot owner) (transferInnerHashMem owner)
 
 def transferOuterSlot (owner id : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
@@ -898,34 +835,34 @@ def transferReturnMem (from_ to_ id amount : UInt256) : ByteArray :=
 theorem transferInnerHashMem_size (owner : UInt256) :
     (transferInnerHashMem owner).size = 96 := by
   unfold transferInnerHashMem
-  exact approveTwoWordHashMem_size owner ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_size_96 owner ⟨0⟩ solcFreePtrMem_size
 
 theorem transferOuterHashMem_size (owner id : UInt256) :
     (transferOuterHashMem owner id).size = 96 := by
   unfold transferOuterHashMem
-  exact approveTwoWordHashMem_size id (transferInnerSlot owner)
+  exact twoWordHashMem_size_96 id (transferInnerSlot owner)
     (transferInnerHashMem_size owner)
 
 theorem transferInnerHashMem_read0_64 (owner : UInt256) :
     (transferInnerHashMem owner).readWithPadding 0 64 =
       UInt256.toByteArray owner ++ UInt256.toByteArray (⟨0⟩ : UInt256) := by
   unfold transferInnerHashMem
-  exact approveTwoWordHashMem_read0_64 owner ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_read0_64 owner ⟨0⟩ solcFreePtrMem_size
 
 theorem transferOuterHashMem_read0_64 (owner id : UInt256) :
     (transferOuterHashMem owner id).readWithPadding 0 64 =
       UInt256.toByteArray id ++ UInt256.toByteArray (transferInnerSlot owner) := by
   unfold transferOuterHashMem
-  exact approveTwoWordHashMem_read0_64 id (transferInnerSlot owner)
+  exact twoWordHashMem_read0_64 id (transferInnerSlot owner)
     (transferInnerHashMem_size owner)
 
 theorem transferOuterHashMem_read64 (owner id : UInt256) :
     (transferOuterHashMem owner id).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold transferOuterHashMem transferInnerHashMem
-  apply approveTwoWordHashMem_read64
-  · exact approveTwoWordHashMem_size owner ⟨0⟩ solcFreePtrMem_size
-  · exact approveTwoWordHashMem_read64 owner ⟨0⟩ solcFreePtrMem_size solcFreePtrMem_read64
+  apply twoWordHashMem_read64
+  · exact twoWordHashMem_size_96 owner ⟨0⟩ solcFreePtrMem_size
+  · exact twoWordHashMem_read64 owner ⟨0⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem transferOuterHashMem_mload64 (owner id : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (transferOuterHashMem owner id).size then ⟨0⟩
@@ -937,22 +874,22 @@ theorem transferOuterHashMem_mload64 (owner id : UInt256) :
     (transferOuterHashMem_read64 owner id)
 
 def transferMapScratchMem (base : ByteArray) (owner id : UInt256) : ByteArray :=
-  approveTwoWordHashMem id (transferInnerSlot owner) (approveTwoWordHashMem owner ⟨0⟩ base)
+  twoWordHashMem id (transferInnerSlot owner) (twoWordHashMem owner ⟨0⟩ base)
 
 theorem transferMapScratchMem_size {base : ByteArray} (owner id : UInt256)
     (hbase : base.size = 96) :
     (transferMapScratchMem base owner id).size = 96 := by
   unfold transferMapScratchMem
-  exact approveTwoWordHashMem_size id (transferInnerSlot owner)
-    (approveTwoWordHashMem_size owner ⟨0⟩ hbase)
+  exact twoWordHashMem_size_96 id (transferInnerSlot owner)
+    (twoWordHashMem_size_96 owner ⟨0⟩ hbase)
 
 theorem transferMapScratchMem_read0_64 {base : ByteArray} (owner id : UInt256)
     (hbase : base.size = 96) :
     (transferMapScratchMem base owner id).readWithPadding 0 64 =
       UInt256.toByteArray id ++ UInt256.toByteArray (transferInnerSlot owner) := by
   unfold transferMapScratchMem
-  exact approveTwoWordHashMem_read0_64 id (transferInnerSlot owner)
-    (approveTwoWordHashMem_size owner ⟨0⟩ hbase)
+  exact twoWordHashMem_read0_64 id (transferInnerSlot owner)
+    (twoWordHashMem_size_96 owner ⟨0⟩ hbase)
 
 theorem transferMapScratchMem_read64 {base : ByteArray} (owner id : UInt256)
     (hbase : base.size = 96)
@@ -960,9 +897,9 @@ theorem transferMapScratchMem_read64 {base : ByteArray} (owner id : UInt256)
     (transferMapScratchMem base owner id).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold transferMapScratchMem
-  apply approveTwoWordHashMem_read64
-  · exact approveTwoWordHashMem_size owner ⟨0⟩ hbase
-  · exact approveTwoWordHashMem_read64 owner ⟨0⟩ hbase hread64
+  apply twoWordHashMem_read64
+  · exact twoWordHashMem_size_96 owner ⟨0⟩ hbase
+  · exact twoWordHashMem_read64 owner ⟨0⟩ hbase hread64
 
 theorem transferMapScratchMem_mload64 {base : ByteArray} (owner id : UInt256)
     (hbase : base.size = 96)
@@ -1688,7 +1625,7 @@ theorem erc6909TransferX_afterRequire {σ σ₀ A I} {g : Sat256}
       exact isZero_eq_zero_of_ne hsenderWordNZ) ]
   have rd1372 := evm_run rd1340 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferSenderWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (transferSenderWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1703,7 +1640,7 @@ theorem erc6909TransferX_afterRequire {σ σ₀ A I} {g : Sat256}
     raw keccak256 0 (transferInnerSlot (transferSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferIdWord I)
+    raw mstore 0 (wordAt0Mem (transferIdWord I)
         (transferInnerHashMem (transferSenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
@@ -1828,7 +1765,7 @@ theorem erc6909TransferX_afterLoad {σ σ₀ A I} {g : Sat256}
       exact isZero_eq_zero_of_ne hsenderWordNZ) ]
   have rd1372 := evm_run rd1340 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferSenderWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (transferSenderWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1843,7 +1780,7 @@ theorem erc6909TransferX_afterLoad {σ σ₀ A I} {g : Sat256}
     raw keccak256 0 (transferInnerSlot (transferSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferIdWord I)
+    raw mstore 0 (wordAt0Mem (transferIdWord I)
         (transferInnerHashMem (transferSenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
@@ -1905,7 +1842,7 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
   have rd1451 := evm_run rd1437 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and,
     push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferSenderWord I)
+    raw mstore 0 (wordAt0Mem (transferSenderWord I)
         (transferOuterHashMem (transferSenderWord I) (transferIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -1916,7 +1853,7 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov) ]
   have rd1456 := evm_run rd1451 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferSenderWord I) ⟨0⟩
+    raw mstore 0 (twoWordHashMem (transferSenderWord I) ⟨0⟩
         (transferOuterHashMem (transferSenderWord I) (transferIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1461 := evm_run rd1456 with [
@@ -1928,20 +1865,20 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
         change UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC
-                ((approveTwoWordHashMem (transferSenderWord I) ⟨0⟩
+                ((twoWordHashMem (transferSenderWord I) ⟨0⟩
                     (transferOuterHashMem (transferSenderWord I) (transferIdWord I))
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC ((transferInnerHashMem (transferSenderWord I)).readWithPadding 0 64)))
-        rw [approveTwoWordHashMem_read0_64 (transferSenderWord I) ⟨0⟩
+        rw [twoWordHashMem_read0_64 (transferSenderWord I) ⟨0⟩
           (transferOuterHashMem_size (transferSenderWord I) (transferIdWord I)),
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1468 := evm_run rd1461 with [
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferIdWord I)
-        (approveTwoWordHashMem (transferSenderWord I) ⟨0⟩
+    raw mstore 0 (wordAt0Mem (transferIdWord I)
+        (twoWordHashMem (transferSenderWord I) ⟨0⟩
           (transferOuterHashMem (transferSenderWord I) (transferIdWord I))))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
@@ -2048,7 +1985,7 @@ theorem erc6909TransferX_toCheckedAdd {σ σ₀ A I} {g : Sat256}
   have rd1505 := evm_run rd1492 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and, push0, swap1,
     dup2,
-    raw mstore 0 (approveWordAt0Mem (transferReceiverWord I) debitMem)
+    raw mstore 0 (wordAt0Mem (transferReceiverWord I) debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -2058,7 +1995,7 @@ theorem erc6909TransferX_toCheckedAdd {σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov) ]
   have rd1510 := evm_run rd1505 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem)
+    raw mstore 0 (twoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1515 := evm_run rd1510 with [
     push1 ⟨64⟩, dup1, dup4,
@@ -2069,18 +2006,18 @@ theorem erc6909TransferX_toCheckedAdd {σ σ₀ A I} {g : Sat256}
         change UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC
-                ((approveTwoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem
+                ((twoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC ((transferInnerHashMem (transferReceiverWord I)).readWithPadding 0 64)))
-        rw [approveTwoWordHashMem_read0_64 (transferReceiverWord I) ⟨0⟩ hdebitMemSize,
+        rw [twoWordHashMem_read0_64 (transferReceiverWord I) ⟨0⟩ hdebitMemSize,
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1522 := evm_run rd1515 with [
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferIdWord I)
-        (approveTwoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem))
+    raw mstore 0 (wordAt0Mem (transferIdWord I)
+        (twoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
     raw mstore 0 (transferMapScratchMem debitMem (transferReceiverWord I) (transferIdWord I))

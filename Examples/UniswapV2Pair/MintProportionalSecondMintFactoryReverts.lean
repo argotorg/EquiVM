@@ -112,7 +112,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroSecondMintTotalSupplyOverflowFromF
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -151,7 +151,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroSecondMintTotalSupplyOverflowFromF
           ((amount1.mul totalSupply).div reserve1) ∧
       liquidity ≠ ⟨0⟩ ∧
       UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) :
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToZero, hkLastZero, htotalNonzero, hmulFit0, hmulFit1, hreserve0Nonzero,
@@ -349,7 +349,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroSecondMintBalanceOverflowFromFacto
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -391,11 +391,11 @@ theorem uniswapMintProportionalFeeOffKLastZeroSecondMintBalanceOverflowFromFacto
       UInt256.size ≤
         mintFunctionToBalanceNewNat evmFeeS
           (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -598,7 +598,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroUpdateBoundFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -639,9 +639,9 @@ theorem uniswapMintProportionalFeeOffKLastZeroUpdateBoundFromFactoryCases
       mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
       mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat (mintToWord I).toNat)
         liquidity < UInt256.size ∧
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
       (uniswapCodeOwnerStorageWord I
-        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord
           (feeToStaticcallMem
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
@@ -879,7 +879,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroSecondMintTotalSupplyOverflowFromFa
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -918,7 +918,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroSecondMintTotalSupplyOverflowFromFa
           ((amount1.mul totalSupply).div reserve1) ∧
       liquidity ≠ ⟨0⟩ ∧
       UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-      UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) :
+      UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToNonzero, hkLastZero, htotalNonzero, hmulFit0, hmulFit1,
@@ -1117,7 +1117,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroSecondMintBalanceOverflowFromFactor
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -1159,11 +1159,11 @@ theorem uniswapMintProportionalFeeOnKLastZeroSecondMintBalanceOverflowFromFactor
       UInt256.size ≤
         mintFunctionToBalanceNewNat evmFeeS
           (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)

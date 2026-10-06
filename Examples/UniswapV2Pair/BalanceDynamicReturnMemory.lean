@@ -1,14 +1,10 @@
+import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.BalanceDynamicMemory
 import Examples.UniswapV2Pair.ByteArrayWriteMemory
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-theorem balanceDynamicReturnWriteLen (out : ByteArray) (hout : out.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 32 out.size := by
-  by_cases hlo : 32 ≤ out.size
-  · rw [balanceOfThisStaticcallWriteLen_of_size_ge out hlo hout, Nat.min_eq_left hlo]
-  · rw [balanceOfThisStaticcallWriteLen_of_size_lt out (by omega) hout, Nat.min_eq_right (by omega)]
 
 theorem balanceDynamicReturnMem_size {base : ByteArray} (ptr self : UInt256) (out : ByteArray)
     (hgap : ptr.toNat - base.size < USize.size) (hfit : ptr.toNat + 4 < UInt256.size)

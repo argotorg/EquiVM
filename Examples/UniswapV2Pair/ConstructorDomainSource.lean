@@ -18,9 +18,9 @@ theorem constructorTypeHashWord_bytes :
 theorem evalExpr_constructor_hashLiteral {caller : Frame} (evm : EVM.State)
     (bytes : ByteArray) (word : UInt256) (h : KEC bytes = word.toByteArray) :
     evalExpr? config caller evm (.keccak256 (.bytesLit bytes)) =
-      .ok (permitWordBytes32Value word) := by
-  simp only [evalExpr?, EvalResult.bind, bind, pure, h, permitWordBytes32Value,
-    word_toBytesBE_eq_toByteArray_toList, bytes32Width]
+      .ok (wordBytes32Value word) := by
+  simp only [evalExpr?, EvalResult.bind, bind, pure, h, wordBytes32Value,
+    word_toBytesBE_eq_toByteArray_toList, abiBytes32Width]
 
 theorem evalExpr_constructor_thisWord {caller : Frame} (evm : EVM.State) :
     evalExpr? config caller evm (addressAsUint256 this) =
@@ -40,30 +40,30 @@ theorem evalPackedArgs_constructor_domain {caller : Frame} (evm : EVM.State) :
         (UInt256.ofNat evm.executionEnv.codeOwner.val)).toList := by
   simp only [constructorDomainBytes, byteArray_toList_append,
     ← word_toBytesBE_eq_toByteArray_toList, List.append_assoc]
-  refine permitEvalPackedArgs_cons
+  refine evalPackedArgs_cons
     (evalExpr_constructor_hashLiteral evm _ _ constructorTypeHashWord_bytes.symm)
-    (permitEncodePacked_bytes32 _) ?_
-  refine permitEvalPackedArgs_cons
+    (encodePacked_bytes32 _) ?_
+  refine evalPackedArgs_cons
     (evalExpr_constructor_hashLiteral evm _ _ constructorNameHash)
-    (permitEncodePacked_bytes32 _) ?_
-  refine permitEvalPackedArgs_cons
+    (encodePacked_bytes32 _) ?_
+  refine evalPackedArgs_cons
     (evalExpr_constructor_hashLiteral evm _ _ constructorVersionHash)
-    (permitEncodePacked_bytes32 _) ?_
-  refine permitEvalPackedArgs_cons (v := uniswapUint256Value ⟨1⟩)
+    (encodePacked_bytes32 _) ?_
+  refine evalPackedArgs_cons (v := uniswapUint256Value ⟨1⟩)
     (by
       simp only [evalExpr?, envValue, pure, uniswapUint256Value, uint256Value, Ethereum.chainId]
       rfl)
-    (permitEncodePacked_uint256 _) ?_
-  exact permitEvalPackedArgs_single (evalExpr_constructor_thisWord evm)
-    (permitEncodePacked_uint256 _)
+    (encodePacked_uint256 _) ?_
+  exact evalPackedArgs_single (evalExpr_constructor_thisWord evm)
+    (encodePacked_uint256 _)
 
 theorem evalExpr_constructor_domain {caller : Frame} (evm : EVM.State) :
     evalExpr? config caller evm domainSeparatorExpr =
-      .ok (permitWordBytes32Value
+      .ok (wordBytes32Value
         (constructorDomainHashWord (UInt256.ofNat evm.executionEnv.codeOwner.val))) := by
   rw [domainSeparatorExpr, evalExpr?, evalExpr?]
   simp only [evalPackedArgs_constructor_domain, EvalResult.bind, bind, byteArray_mk_toList_toArray]
-  simp only [permitWordBytes32Value, constructorDomainHashWord]
+  simp only [wordBytes32Value, constructorDomainHashWord]
   rw [keccakSlot_eq, toBytesBE_keccak_uInt256OfByteArray]
   rfl
 

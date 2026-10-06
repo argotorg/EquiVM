@@ -14,8 +14,8 @@ theorem uniswapSwapRuntimeTokensLoaded
       mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1765⟩
-      (UInt256.land toWord solcAddrMask :: UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I) ::
-        UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I) :: ⟨0⟩ :: ⟨0⟩ ::
+      (UInt256.land toWord solcAddrMask :: UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ I) ::
+        UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σ I) :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       mem aw rdata σ k' C' := by
   have rd1738 := evm_run rd1735 with [jumpdest, push1 ⟨6⟩]

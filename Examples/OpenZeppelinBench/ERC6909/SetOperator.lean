@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.Pausable.Storage
@@ -26,36 +28,6 @@ abbrev setOperatorSpenderValue (I : ExecutionEnv) : Value :=
 abbrev setOperatorApprovedValue (I : ExecutionEnv) : Value :=
   wordToElem .bool (setOperatorApprovedWord I)
 
-theorem erc6909WordToElem_bool_scalar (word : UInt256) :
-    match wordToElem .bool word with
-    | .struct _ _ => False
-    | .array _ => False
-    | .bytes _ => False
-    | _ => True := by
-  change
-    match
-        (if (word.val == 0) = true then
-          Value.bool false
-        else
-          Value.bool true) with
-    | .struct _ _ => False
-    | .array _ => False
-    | .bytes _ => False
-    | _ => True
-  by_cases h : (word.val == 0) = true <;> simp [h]
-
-theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
-    {evm evm' : EVM.State} {slot : StorageRef} {er : EvaledStorageRef}
-    {ty : StorageType} {loc : StorageLoc} {word : UInt256}
-    (hbase : solm.locals.get? slot.base = none)
-    (her : evalStorageRef cfg solm evm slot = .ok er)
-    (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = fun _ => some loc)
-    (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
-    assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =
-      .ok (solm, evm') := by
-  exact assignStorageRef_storage_scalar_value hbase her hty hloc
-    (erc6909WordToElem_bool_scalar word) hstore
 
 abbrev setOperatorStore (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "spender" (setOperatorSpenderValue I)).insert "approved"
@@ -361,10 +333,6 @@ def setOperatorStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 def setOperatorStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   setOperatorBoolWord (setOperatorStorageWord σ I) (setOperatorApprovedWord I)
 
-theorem setOperatorAccountAddress_ofNat_zero_iff {w : UInt256}
-    (hcanon : w.toNat < EVM.addressModulus) :
-    AccountAddress.ofNat w.toNat = AccountAddress.ofNat 0 ↔ w = ⟨0⟩ := by
-  exact approveAccountAddress_ofNat_zero_iff hcanon
 
 theorem setOperatorSource_zero_iff (I : ExecutionEnv) :
     I.source = AccountAddress.ofNat 0 ↔ setOperatorOwnerWord I = ⟨0⟩ := by
@@ -377,28 +345,16 @@ theorem setOperatorSource_zero_iff (I : ExecutionEnv) :
     rw [← setOperatorOwner_ofNat I, h]
     rfl
 
-theorem setOperatorBoolCanonJump {word : UInt256}
-    (hbool : word = ⟨0⟩ ∨ word = ⟨1⟩) :
-    UInt256.eq word (UInt256.isZero (UInt256.isZero word)) ≠ ⟨0⟩ := by
-  rcases hbool with rfl | rfl <;> native_decide
-
-theorem setOperatorBoolNoncanonJump {word : UInt256}
-    (hnz : word ≠ ⟨0⟩) (hno : word ≠ ⟨1⟩) :
-    UInt256.eq word (UInt256.isZero (UInt256.isZero word)) = ⟨0⟩ := by
-  rw [isZero_eq_zero_of_ne hnz]
-  have hone : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by native_decide
-  rw [hone]
-  exact u256_eq_of_ne hno
 
 def setOperatorOwnerHashMem (owner : UInt256) : ByteArray :=
-  approveTwoWordHashMem owner ⟨1⟩ solcFreePtrMem
+  twoWordHashMem owner ⟨1⟩ solcFreePtrMem
 
 def setOperatorOwnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((setOperatorOwnerHashMem owner).readWithPadding 0 64)))
 
 def setOperatorSpenderHashMem (owner spender : UInt256) : ByteArray :=
-  approveTwoWordHashMem spender (setOperatorOwnerSlot owner) (setOperatorOwnerHashMem owner)
+  twoWordHashMem spender (setOperatorOwnerSlot owner) (setOperatorOwnerHashMem owner)
 
 def setOperatorSpenderSlot (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
@@ -415,34 +371,34 @@ def setOperatorReturnMem (owner spender approved : UInt256) : ByteArray :=
 theorem setOperatorOwnerHashMem_size (owner : UInt256) :
     (setOperatorOwnerHashMem owner).size = 96 := by
   unfold setOperatorOwnerHashMem
-  exact approveTwoWordHashMem_size owner ⟨1⟩ solcFreePtrMem_size
+  exact twoWordHashMem_size_96 owner ⟨1⟩ solcFreePtrMem_size
 
 theorem setOperatorSpenderHashMem_size (owner spender : UInt256) :
     (setOperatorSpenderHashMem owner spender).size = 96 := by
   unfold setOperatorSpenderHashMem
-  exact approveTwoWordHashMem_size spender (setOperatorOwnerSlot owner)
+  exact twoWordHashMem_size_96 spender (setOperatorOwnerSlot owner)
     (setOperatorOwnerHashMem_size owner)
 
 theorem setOperatorOwnerHashMem_read0_64 (owner : UInt256) :
     (setOperatorOwnerHashMem owner).readWithPadding 0 64 =
       UInt256.toByteArray owner ++ UInt256.toByteArray (⟨1⟩ : UInt256) := by
   unfold setOperatorOwnerHashMem
-  exact approveTwoWordHashMem_read0_64 owner ⟨1⟩ solcFreePtrMem_size
+  exact twoWordHashMem_read0_64 owner ⟨1⟩ solcFreePtrMem_size
 
 theorem setOperatorSpenderHashMem_read0_64 (owner spender : UInt256) :
     (setOperatorSpenderHashMem owner spender).readWithPadding 0 64 =
       UInt256.toByteArray spender ++ UInt256.toByteArray (setOperatorOwnerSlot owner) := by
   unfold setOperatorSpenderHashMem
-  exact approveTwoWordHashMem_read0_64 spender (setOperatorOwnerSlot owner)
+  exact twoWordHashMem_read0_64 spender (setOperatorOwnerSlot owner)
     (setOperatorOwnerHashMem_size owner)
 
 theorem setOperatorSpenderHashMem_read64 (owner spender : UInt256) :
     (setOperatorSpenderHashMem owner spender).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold setOperatorSpenderHashMem setOperatorOwnerHashMem
-  apply approveTwoWordHashMem_read64
-  · exact approveTwoWordHashMem_size owner ⟨1⟩ solcFreePtrMem_size
-  · exact approveTwoWordHashMem_read64 owner ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64
+  apply twoWordHashMem_read64
+  · exact twoWordHashMem_size_96 owner ⟨1⟩ solcFreePtrMem_size
+  · exact twoWordHashMem_read64 owner ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem setOperatorSpenderHashMem_mload64 (owner spender : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorSpenderHashMem owner spender).size then ⟨0⟩
@@ -607,7 +563,7 @@ theorem erc6909SetOperatorX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     iszero, dup2, eq, push2 ⟨1836⟩,
     jumpiT (by
       simpa [setOperatorApprovedWord, calldataWord] using
-        setOperatorBoolCanonJump (word := setOperatorApprovedWord I) hbool)
+        boolCanonJump (word := setOperatorApprovedWord I) hbool)
       (by jump_dest),
     jumpdest, dup1, swap2, pop, pop, swap3, pop, swap3, swap1, pop,
     jump (by jump_dest) ]
@@ -696,7 +652,7 @@ theorem erc6909SetOperatorX_noncanon_approved {σ σ₀ A I} {g : Sat256}
     iszero, dup2, eq, push2 ⟨1836⟩,
     jumpiNT (by
       simpa [setOperatorApprovedWord, calldataWord] using
-        setOperatorBoolNoncanonJump (word := setOperatorApprovedWord I) hnz hno),
+        boolNoncanonJump (word := setOperatorApprovedWord I) hnz hno),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem erc6909SetOperatorX_toHelper {σ σ₀ A I} {g : Sat256}
@@ -780,7 +736,7 @@ theorem erc6909SetOperatorX_revert_spender {σ σ₀ A I} {g : Sat256}
     intro hzero
     exact hsource ((setOperatorSource_zero_iff I).mpr hzero)
   have hspenderZeroWord : setOperatorSpenderWord I = ⟨0⟩ :=
-    (setOperatorAccountAddress_ofNat_zero_iff hcanonSpender).mp hspender
+    (accountAddress_ofNat_zero_iff hcanonSpender).mp hspender
   have rd1013 := evm_run rd957 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
     push2 ⟨998⟩,
@@ -875,7 +831,7 @@ theorem erc6909SetOperatorX_toStoredSlot {σ σ₀ A I} {g : Sat256}
     exact hsource ((setOperatorSource_zero_iff I).mpr hzero)
   have hspenderWordNZ : setOperatorSpenderWord I ≠ ⟨0⟩ := by
     intro hzero
-    exact hspender ((setOperatorAccountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
+    exact hspender ((accountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
   have rd1039 := evm_run rd957 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
     push2 ⟨998⟩,
@@ -897,7 +853,7 @@ theorem erc6909SetOperatorX_toStoredSlot {σ σ₀ A I} {g : Sat256}
   have rd1066 := evm_run rd1039 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push0, dup2, dup2,
-    raw mstore 0 (approveWordAt0Mem (setOperatorOwnerWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (setOperatorOwnerWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -914,7 +870,7 @@ theorem erc6909SetOperatorX_toStoredSlot {σ σ₀ A I} {g : Sat256}
   have rd1067 := RD.swap5 rd1066 (by decide) (by evm_ov)
   have rd1072 := evm_run rd1067 with [
     dup8, and, dup1, dup5,
-    raw mstore 0 (approveWordAt0Mem (setOperatorSpenderWord I)
+    raw mstore 0 (wordAt0Mem (setOperatorSpenderWord I)
         (setOperatorOwnerHashMem (setOperatorOwnerWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by

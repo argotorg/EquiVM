@@ -242,7 +242,7 @@ theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
        uint256Storage, storageTypeStep?])
     (hloc := erc20Config_storage_balanceOf (.address evm.executionEnv.source))]
   simp [transferSenderEvaledRef, transferSenderSlot, transferFromBalanceWord,
-    erc20StorageLocLoad_uint256]
+    show erc20Uint256Loc = uint256Loc from rfl, storageLocLoad_uint256]
 
 theorem evalStorageRef_transfer_sender_balance_fromBalance
     (evm : EVM.State) (I : ExecutionEnv) :
@@ -328,7 +328,7 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, erc20StorageDecls,
          uint256Storage, storageTypeStep?])
       (hloc := erc20Config_storage_balanceOf (.address evm.executionEnv.source))
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferSenderSlot]
 
 theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
@@ -344,7 +344,8 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hloc := erc20Config_storage_balanceOf
       (.address (AccountAddress.ofNat (transferToWord I).toNat)))]
   simp [transferToEvaledRef, transferToSlot, transferToBalanceWord,
-    erc20StorageLocLoad_uint256, transferAfterDebit_codeOwner]
+    show erc20Uint256Loc = uint256Loc from rfl, storageLocLoad_uint256,
+      transferAfterDebit_codeOwner]
 
 theorem evalExpr_transfer_newToBalance (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferNewToNat evm I < UInt256.size) :
@@ -407,7 +408,7 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
       (hloc := erc20Config_storage_balanceOf
         (.address (AccountAddress.ofNat (transferToWord I).toNat)))
   rw [← transferNewToWord_toNat evm I hfit]
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
 
 theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -1606,7 +1607,7 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, subRet32_toNat]
         exact transferReturnMem_read128 (transferToWord I) (transferValueWord I))
       (by evm_ov) ]
 

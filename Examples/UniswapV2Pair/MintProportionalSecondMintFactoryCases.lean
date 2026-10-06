@@ -21,7 +21,7 @@ def mintProportionalSecondMintOverflowCase
       ((amount1.mul totalSupply).div reserve1) ∧
     liquidity ≠ ⟨0⟩ ∧
     UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-    UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
+    UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
   (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
     totalSupply ≠ ⟨0⟩ ∧
@@ -34,11 +34,11 @@ def mintProportionalSecondMintOverflowCase
     mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
     UInt256.size ≤ mintFunctionToBalanceNewNat evmFeeS
       (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-    (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+    (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
     UInt256.size ≤
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+          (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidity.toNat) ∨
   (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
@@ -52,10 +52,10 @@ def mintProportionalSecondMintOverflowCase
     mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
     mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat (mintToWord I).toNat)
       liquidity < UInt256.size ∧
-    (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+    (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
     (uniswapCodeOwnerStorageWord I
       (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-        (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
       (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidity.toNat <
         UInt256.size ∧
     (reserve112Mask.toNat < balance0.toNat ∨
@@ -70,7 +70,7 @@ def mintProportionalSecondMintOverflowCase
       ((amount1.mul totalSupply).div reserve1) ∧
     liquidity ≠ ⟨0⟩ ∧
     UInt256.size ≤ mintFunctionTotalSupplyNewNat evmFeeS liquidity ∧
-    UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
+    UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat) ∨
   (UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I = ⟨0⟩ ∧
     totalSupply ≠ ⟨0⟩ ∧
@@ -83,11 +83,11 @@ def mintProportionalSecondMintOverflowCase
     mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size ∧
     UInt256.size ≤ mintFunctionToBalanceNewNat evmFeeS
       (AccountAddress.ofNat (mintToWord I).toNat) liquidity ∧
-    (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
+    (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size ∧
     UInt256.size ≤
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+          (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidity.toNat) ∨
   (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
@@ -100,7 +100,7 @@ def mintProportionalSecondMintOverflowCase
     liquidityCleared ≠ ⟨0⟩ ∧
     UInt256.size ≤ mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS)
       liquidityCleared ∧
-    UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat) ∨
+    UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat) ∨
   (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
     mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
     totalSupplyCleared ≠ ⟨0⟩ ∧
@@ -114,11 +114,11 @@ def mintProportionalSecondMintOverflowCase
       UInt256.size ∧
     UInt256.size ≤ mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
       (AccountAddress.ofNat (mintToWord I).toNat) liquidityCleared ∧
-    (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
+    (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
     UInt256.size ≤
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σCleared I + liquidityCleared))
+          (solcSlotWordAt ⟨0⟩ σCleared I + liquidityCleared))
         (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidityCleared.toNat)
     ∨
   (UInt256.land feeToWord solcAddrMask = ⟨0⟩ ∧
@@ -134,10 +134,10 @@ def mintProportionalSecondMintOverflowCase
       UInt256.size ∧
     mintFunctionToBalanceNewNat (mintFeeKLastClearedState evmFeeS)
       (AccountAddress.ofNat (mintToWord I).toNat) liquidityCleared < UInt256.size ∧
-    (uniswapSlotWord ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
+    (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidityCleared.toNat < UInt256.size ∧
     (uniswapCodeOwnerStorageWord I
       (sstoreAccountMap I.codeOwner σCleared ⟨0⟩
-        (uniswapSlotWord ⟨0⟩ σCleared I + liquidityCleared))
+        (solcSlotWordAt ⟨0⟩ σCleared I + liquidityCleared))
       (uniswapInternalMintBalanceHashSlot toWord memFee)).toNat + liquidityCleared.toNat <
         UInt256.size ∧
     (reserve112Mask.toNat < balance0.toNat ∨
@@ -253,8 +253,8 @@ theorem uniswapMintProportionalSecondMintOverflowFromFactoryCases
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
-    (htotalClearedSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupplyCleared)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
+    (htotalClearedSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupplyCleared)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :

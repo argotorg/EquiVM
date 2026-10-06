@@ -111,7 +111,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
             · exact uniswapInternalMintSuccessMem_read96 feeToWord
                 (mintFeeLiquidityWord evmFeeS rootK rootKLast) (by rw [hmem]; omega)
             · simpa only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-                balanceCallStorageStore_sigma0] using hσ0
+                storageStore_σ0] using hσ0
           · exact Or.inl ⟨uniswapMintFeeAfterRoots_mintCallReverts evmFeeS reserve0 reserve1
               feeTo kLast rootK rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg
               hnumFit hrootFiveFit hdenFit hdenom hliq

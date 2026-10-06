@@ -45,7 +45,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata σFee k C)
     (evmFeeS : EVM.State)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast)
     (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size)
@@ -63,7 +63,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
   have hrootGt :=
     mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   have hnumFitRuntime :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat *
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat)
             (UInt256.ofNat rootKLast.toNat)).toNat <
         UInt256.size := by
@@ -86,7 +86,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
     mintFeeLiquidityWord_eq_zero_of_not_pos evmFeeS rootK rootKLast hfeeLiq
   have hliqRuntimeEq :
       UInt256.div
-          (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+          (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
             (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)))
           (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
             UInt256.ofNat rootKLast.toNat) =
@@ -98,7 +98,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
     exact hword.symm
   have hliqZero :
       UInt256.div
-          (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+          (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
             (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)))
           (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
             UInt256.ofNat rootKLast.toNat) =
@@ -122,7 +122,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
     (evmFeeS : EVM.State)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast)
     (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size)
@@ -135,13 +135,13 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
     (hfeeLiqFit : (mintFeeLiquidityInt evmFeeS rootK rootKLast).toNat < UInt256.size)
     (hperm : I.perm = true)
     (htotalFit :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat +
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat +
           (mintFeeLiquidityWord evmFeeS rootK rootKLast).toNat <
         UInt256.size)
     (hbalanceFit :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
+          (solcSlotWordAt ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
         (uniswapInternalMintBalanceHashSlot feeTo mem)).toNat +
           (mintFeeLiquidityWord evmFeeS rootK rootKLast).toNat <
         UInt256.size)
@@ -177,18 +177,18 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
       feeToStaticcallActiveWords rdata
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
+          (solcSlotWordAt ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
         (uniswapInternalMintBalanceHashSlot feeTo
           (uniswapInternalMintBalanceHashMem feeTo mem))
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
+            (solcSlotWordAt ⟨0⟩ σFee I + mintFeeLiquidityWord evmFeeS rootK rootKLast))
           (uniswapInternalMintBalanceHashSlot feeTo mem) +
             mintFeeLiquidityWord evmFeeS rootK rootKLast)) k' C' := by
   have hrootGt :=
     mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   have hnumFitRuntime :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat *
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat)
             (UInt256.ofNat rootKLast.toNat)).toNat <
         UInt256.size := by
@@ -206,7 +206,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
     mintFeeLiquidityWord_ne_zero_of_pos evmFeeS rootK rootKLast hfeeLiq hfeeLiqFit
   have hliqRuntimeEq :
       UInt256.div
-          (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+          (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
             (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)))
           (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
             UInt256.ofNat rootKLast.toNat) =
@@ -218,16 +218,16 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
     exact hword.symm
   have hliqRuntimeNonzero :
       UInt256.div
-          (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+          (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
             (UInt256.sub (UInt256.ofNat rootK.toNat) (UInt256.ofNat rootKLast.toNat)))
           (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
             UInt256.ofNat rootKLast.toNat) ≠
         ⟨0⟩ := by
     simpa [hliqRuntimeEq] using hliqWordNonzero
   have htotalFitRuntime :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat +
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat +
           (UInt256.div
-            (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+            (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
               (UInt256.sub (UInt256.ofNat rootK.toNat)
                 (UInt256.ofNat rootKLast.toNat)))
             (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
@@ -237,16 +237,16 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
   have hbalanceFitRuntime :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I +
+          (solcSlotWordAt ⟨0⟩ σFee I +
             UInt256.div
-              (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+              (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
                 (UInt256.sub (UInt256.ofNat rootK.toNat)
                   (UInt256.ofNat rootKLast.toNat)))
               (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
                 UInt256.ofNat rootKLast.toNat)))
         (uniswapInternalMintBalanceHashSlot feeTo mem)).toNat +
           (UInt256.div
-            (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+            (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
               (UInt256.sub (UInt256.ofNat rootK.toNat)
                 (UInt256.ofNat rootKLast.toNat)))
             (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
@@ -257,7 +257,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
       (if (⟨64⟩ : UInt256).toNat ≥
             (uniswapInternalMintLogMem
               (UInt256.div
-                (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+                (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
                   (UInt256.sub (UInt256.ofNat rootK.toNat)
                     (UInt256.ofNat rootKLast.toNat)))
                 (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
@@ -268,7 +268,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
         (fromByteArrayBigEndian
           ((uniswapInternalMintLogMem
             (UInt256.div
-              (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I)
+              (UInt256.mul (solcSlotWordAt ⟨0⟩ σFee I)
                 (UInt256.sub (UInt256.ofNat rootK.toNat)
                   (UInt256.ofNat rootKLast.toNat)))
               (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +

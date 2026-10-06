@@ -140,7 +140,7 @@ theorem stringStoreLiteSetRuntime
                     hsz36 hhi hoff hlenWord hsizeSign hlenZero hheader
                 · have hlenZeroAbi :
                       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-                    rw [← setLengthWord_eq_abi I.calldata hoff]
+                    rw [← calldataLengthWord_eq_abi I.calldata hoff]
                     exact hlenZero
                   have hpayload :
                       ((((I.calldata.toList.drop 4).drop
@@ -198,7 +198,7 @@ theorem stringStoreLiteSetRuntime
                   · exact stringStoreLiteSetPayloadShortRuntime hcode hsize hperm hwv hsel
                       hsz36 hhi hoff hlenWord hsizeSign hlenHuge hpayloadList hpayloadWord
                   · have hpwOne :=
-                      setPayloadWord_one_of_payload_short I.calldata hsize hoff hlenWord
+                      calldataPayloadWord_one_of_payload_short I.calldata hsize hoff hlenWord
                         hlenHuge hpayloadList
                     exact False.elim (hpayloadWord hpwOne)
                 · have hpayload :

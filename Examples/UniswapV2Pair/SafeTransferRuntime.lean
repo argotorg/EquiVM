@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.SkimSafeTransferReturn
 import Examples.UniswapV2Pair.SafeTransferDynamicCallRuntime
 import Examples.UniswapV2Pair.SafeTransferDynamicCalldata
@@ -220,7 +221,7 @@ theorem safeTransferRuntimeMem5_size
     (hbase : base.size = 164) :
     (safeTransferRuntimeMem5 base toWord value).size = 292 := by
   rw [safeTransferRuntimeMem5_eq_writeCascade]
-  exact safeTransferCalldata_writeCascade_size _ _ 164 292
+  exact writeCascade_size_of_eq _ _ 164 292
     hbase
     (by
       rw [hbase]
@@ -646,7 +647,7 @@ theorem safeTransferRuntimeMem4_read256_32
       (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).extract 28 32 ++
         (UInt256.toByteArray value).extract 0 28 := by
   unfold safeTransferRuntimeMem4
-  exact safeTransferCalldata_read_boundary_word _ _ _ 260 (by norm_num)
+  exact wordWrite_read_boundary4 _ _ _ 260 (by norm_num)
     (safeTransferRuntimeMem3_size toWord hbase)
     (safeTransferRuntimeMem3_read256_4 toWord hbase)
 
@@ -974,27 +975,12 @@ theorem safeTransferRuntimeReturnDataMem_read292
       (by rw [hbaseSize]; omega)]
     exact safeTransferRuntimeReturnDataSizeMem_read292 toWord value out hbase houtSize
 
-theorem safeTransferRuntimeReturnDataActiveWords_M_mul32_lt (out : ByteArray)
-    (houtSize : out.size < 2 ^ 255) :
-    MachineState.M (UInt256.ofNat 13).toNat 324 out.size * 32 < UInt256.size := by
-  rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
-  unfold MachineState.M
-  split
-  · norm_num [UInt256.size]
-  · by_cases hle : 13 ≤ (324 + out.size + 31) / 32
-    · rw [Nat.max_eq_right hle]
-      have hdiv : ((324 + out.size + 31) / 32) * 32 ≤ 324 + out.size + 31 :=
-        Nat.div_mul_le_self _ _
-      have hcap : 2 ^ 255 + 355 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
-      norm_num [UInt256.size]
 
 theorem safeTransferRuntimeReturnDataActiveWords_toNat_ge (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
     13 ≤ (safeTransferRuntimeReturnDataActiveWords out).toNat := by
   unfold safeTransferRuntimeReturnDataActiveWords
-  have hmul := safeTransferRuntimeReturnDataActiveWords_M_mul32_lt out houtSize
+  have hmul := safeTransferReturnDataActiveWords_M_mul32_lt out houtSize
   have hMlt : MachineState.M (UInt256.ofNat 13).toNat 324 out.size < UInt256.size := by
     omega
   rw [UInt256.toNat_ofNat_of_lt hMlt]
@@ -1008,7 +994,7 @@ theorem safeTransferRuntimeReturnDataActiveWords_mul32_lt (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
     (safeTransferRuntimeReturnDataActiveWords out).toNat * 32 < UInt256.size := by
   unfold safeTransferRuntimeReturnDataActiveWords
-  have hmul := safeTransferRuntimeReturnDataActiveWords_M_mul32_lt out houtSize
+  have hmul := safeTransferReturnDataActiveWords_M_mul32_lt out houtSize
   have hMlt : MachineState.M (UInt256.ofNat 13).toNat 324 out.size < UInt256.size := by
     omega
   rw [UInt256.toNat_ofNat_of_lt hMlt]
@@ -1181,53 +1167,6 @@ theorem safeTransferRuntimeReturnDataActiveWords_mload324_same (out : ByteArray)
   rw [hM]
   exact u256_ofNat_toNat _
 
-theorem safeTransferRuntimeReturnDataHugeCopyMemCost_gt_g
-    (g : Sat256) (out : ByteArray)
-    (hhi : 2 ^ 255 ≤ out.size) (hlo : out.size < UInt256.size) :
-    g.toNat <
-      Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 13).toNat 324 out.size)) -
-        Cₘ (UInt256.ofNat 13) := by
-  let M := MachineState.M (UInt256.ofNat 13).toNat 324 out.size
-  have hMge : 2 ^ 250 ≤ M := by
-    simp only [M]
-    rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
-    unfold MachineState.M
-    split
-    · omega
-    · apply le_trans ?_ (Nat.le_max_right _ _)
-      rw [Nat.le_div_iff_mul_le (by norm_num)]
-      norm_num
-      omega
-  have hMlt : M < UInt256.size := by
-    simp only [M]
-    rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
-    unfold MachineState.M
-    split
-    · norm_num [UInt256.size]
-    · apply max_lt
-      · norm_num [UInt256.size]
-      · rw [Nat.div_lt_iff_lt_mul (by norm_num)]
-        norm_num [UInt256.size] at hlo ⊢
-        omega
-  have hdivLower : 2 ^ 491 ≤ M * M / 512 := by
-    rw [Nat.le_div_iff_mul_le (by norm_num)]
-    have hMM : (2 ^ 250) * (2 ^ 250) ≤ M * M := Nat.mul_le_mul hMge hMge
-    have hpow : (2 ^ 491) * 512 = (2 ^ 250) * (2 ^ 250) := by decide
-    rwa [hpow]
-  have hbig :
-      UInt256.size + Cₘ (UInt256.ofNat 13) <
-        Cₘ (UInt256.ofNat M) := by
-    rw [show Cₘ (UInt256.ofNat 13) = 39 from by decide]
-    rw [Cₘ, UInt256.toNat_ofNat_of_lt hMlt]
-    simp only [GasConstants.Gmemory, Cₘ.QuadraticCeofficient]
-    have hpow : UInt256.size + 39 < 2 ^ 491 := by decide
-    omega
-  have hg : g.toNat < UInt256.size := g.isLt
-  have hcost :
-      UInt256.size <
-        Cₘ (UInt256.ofNat M) - Cₘ (UInt256.ofNat 13) := by
-    omega
-  simpa [M] using lt_trans hg hcost
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferCallMem2NonemptyReturnToCheck
@@ -1285,7 +1224,7 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyHugeReverts
     (by
       rw [show (((⟨292⟩ : UInt256) + ⟨32⟩).toNat) = 324 from by decide]
       simpa [safeTransferRuntimeReturnDataActiveWords] using
-        safeTransferRuntimeReturnDataHugeCopyMemCost_gt_g g out hhi houtSize)
+        safeTransferReturnDataHugeCopyMemCost_gt_g g out hhi houtSize)
     hR
 
 set_option maxHeartbeats 1000000 in

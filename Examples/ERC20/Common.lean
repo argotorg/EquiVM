@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.ERC20.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -12,16 +14,6 @@ namespace ERC20
 
 /-! ## ERC20-local storage and ABI helpers -/
 
-/-- Loading an ERC20 full-slot `uint256` location is the source-level integer value of the same word. -/
-theorem erc20StorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (erc20Uint256Loc slot)
-      = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [erc20Uint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-/-- The shared solc return wrapper computes the fixed one-word return length. -/
-theorem erc20SubRet32_toNat :
-    (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
-  decide
 
 /-- ERC20 jump-destination proof macro. -/
 macro "erc20_jd" : term => `(by jump_dest)

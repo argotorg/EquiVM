@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Examples.TinyImmutable.Common
 import Reasoning.SolmBody
 import Solm.Equiv
@@ -125,45 +126,6 @@ theorem tinyCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArr
                         uint256Int, boolTy, staticABIEncodedSize?, isDynamicABIType,
                         encodeABIValue?, encodeABIWord?] at h
 
-theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hge : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ srcAddr ≥ src.size from by omega)]
-  have hcopy : min len (src.size - srcAddr) = len := by omega
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
-  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract, show (destAddr - base.size) =
-      destAddr - base.size from rfl]
-  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
-      destAddr - base.size := by
-    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-      ByteArray_zeroes_size]
-  have hDsz : (base.data ++
-        (ByteArray.zeroes (destAddr - base.size)).data).size =
-      destAddr := by
-    rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
-    omega
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := (0)) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [show min len (src.data.size - srcAddr) = len by
-    have : src.data.size = src.size := rfl
-    omega]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show (base.data ++
-        (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr + len) = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp [Array.append_assoc]
 
 theorem tinyCtorTail_size (owner : AccountAddress) (scale : UInt256) (useScale : Bool) :
     (tinyCtorTail owner scale useScale).size = 96 := by
@@ -248,7 +210,7 @@ theorem tinyCtorArg_codecopy_mem (owner : AccountAddress) (scale : UInt256)
     (tinyCtorCode owner scale useScale).write 634 tinyCtorFreePtrMem 192 96 =
       tinyCtorAbiMem owner scale useScale := by
   unfold tinyCtorAbiMem
-  rw [write_from_gap_eq]
+  rw [write_from_gap_eq']
   · rw [tinyCtorFreePtrMem_size]
     rw [show 192 - 96 = 96 by norm_num]
     rw [tinyCtorCode_tail_window]
@@ -438,16 +400,6 @@ theorem tinyCtorAbiFreeMem_mload256 (owner : AccountAddress) (scale : UInt256)
   · simpa [show (⟨256⟩ : UInt256).toNat = 256 from by decide] using
       tinyCtorAbiFreeMem_read256 owner scale useScale
 
-theorem write0_eq_extract_from_of_base_le (src base : ByteArray) (srcAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hbase : base.size ≤ len) :
-    src.write srcAddr base 0 len = src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  rw [write0_data_from src base srcAddr len hlen hsrc]
-  rw [show base.data.extract len base.data.size = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [show base.data.size = base.size from rfl]
-    simpa using hbase]
-  simp
 
 def tinyCtorOwnerMem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
@@ -704,7 +656,7 @@ theorem tinyCtorRuntimeCodeOf_true (v : TinyImmutables) (owner : AccountAddress)
       some (patchedRuntime { owner := owner, scale := EVM.word scaleInt.toNat }) := by
   have hword : (EVM.word scaleInt.toNat).toNat = scaleInt.toNat :=
     constructorUInt256Word_toNat scaleInt h0 hlt
-  unfold runtimeCodeOf patchesFrom offsets wordBytes?
+  unfold runtimeCodeOf patchesFrom offsets Reasoning.Theory.wordBytes?
   simp [List.foldrM]
   rw [show (tinyCtorFinalLocals v owner scaleInt true)["imm_owner"]? =
       some (.address owner) by
@@ -713,7 +665,7 @@ theorem tinyCtorRuntimeCodeOf_true (v : TinyImmutables) (owner : AccountAddress)
       some (.int scaleInt) by
     exact tinyCtorFinalLocals_get_scale_true v owner scaleInt]
   simp [valueToWord, wordOfInt_nonneg _ h0]
-  simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+  simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
     List.lookup_cons,
     hword, Int.toNat_of_nonneg h0, wordOfInt_nonneg _ h0] using
     (patchRuntime_eq_patchedRuntime
@@ -723,7 +675,7 @@ theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress
     (scaleInt : Int) :
     runtimeCodeOf tinyImmutableBytecode (tinyCtorFinalLocals v owner scaleInt false) =
       some (patchedRuntime { owner := owner, scale := ⟨0⟩ }) := by
-  unfold runtimeCodeOf patchesFrom offsets wordBytes?
+  unfold runtimeCodeOf patchesFrom offsets Reasoning.Theory.wordBytes?
   simp [List.foldrM]
   rw [show (tinyCtorFinalLocals v owner scaleInt false)["imm_owner"]? =
       some (.address owner) by
@@ -732,7 +684,7 @@ theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress
       some (.int 0) by
     exact tinyCtorFinalLocals_get_scale_false v owner scaleInt]
   simp [valueToWord]
-  simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+  simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
     show EVM.wordOfInt 0 = (⟨0⟩ : UInt256) by decide] using
     (patchRuntime_eq_patchedRuntime
       (v := { owner := owner, scale := (⟨0⟩ : UInt256) }))

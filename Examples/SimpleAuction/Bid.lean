@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody
 
@@ -9,10 +11,6 @@ namespace SimpleAuction
 
 /-! ## `bid()` local words, storage slots, and small EVM helpers -/
 
-private theorem evalBinaryOp_ne_int_ok (x y : Int) :
-    evalBinaryOp? .ne (.int x) (.int y) =
-      .ok (.bool (!(Value.int x == Value.int y))) := by
-  rfl
 
 def bidTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
@@ -385,40 +383,8 @@ theorem bidPendingKeccak (σ : AccountMap) (I : ExecutionEnv) :
 theorem bidStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (simpleAuctionUint256Loc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  exact simpleAuctionStorageLocStore_uint256 evm slot val
+  exact storageLocStore_uint256 evm slot val
 
-theorem bidSolcAddrMask_eval :
-    UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-  decide
-
-theorem bidCheckedAddNoOverflowGt (a b : UInt256)
-    (hfit : a.toNat + b.toNat < UInt256.size) :
-    UInt256.gt a (b + a) = ⟨0⟩ := by
-  have hsum : (b + a).toNat = b.toNat + a.toNat := by
-    rw [uadd_toNat, Nat.mod_eq_of_lt (by omega)]
-  exact ugt_zero (by rw [hsum]; omega)
-
-theorem bidCheckedAddOverflowGt (a b : UInt256)
-    (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    UInt256.gt a (b + a) = ⟨1⟩ := by
-  have hover' : UInt256.size ≤ b.toNat + a.toNat := by omega
-  have hsum_lt2 : b.toNat + a.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hmod : (b.toNat + a.toNat) % UInt256.size =
-      b.toNat + a.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover']
-    rw [Nat.mod_eq_of_lt (by omega)]
-  have hsum : (b + a).toNat = b.toNat + a.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  show UInt256.fromBool (decide (a > b + a)) = ⟨1⟩
-  rw [decide_eq_true]
-  · rfl
-  · show a.toNat > (b + a).toNat
-    rw [hsum]
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
 
 theorem bidCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -427,7 +393,7 @@ theorem bidCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     (hfit : a.toNat + b.toNat < UInt256.size)
     (hret : (D_J simpleAuctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD simpleAuctionBytecode ee g s0 ret ((b + a) :: R) mem aw rdata acc k' C' := by
-  have hgt : UInt256.gt a (b + a) = ⟨0⟩ := bidCheckedAddNoOverflowGt a b hfit
+  have hgt : UInt256.gt a (b + a) = ⟨0⟩ := checkedAddNoOverflowGt a b hfit
   have rd964₀ := evm_run h with [
     jumpdest, dup1, dup3, add, dup1, dup3, gt]
   have rd964 := rd964₀
@@ -477,7 +443,7 @@ theorem bidCheckedAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
       rdata acc k C)
     (hover : UInt256.size ≤ a.toNat + b.toNat) (hov : R.length + 9 ≤ 1024) :
     RDrev simpleAuctionBytecode g s0 := by
-  have hgt : UInt256.gt a (b + a) = ⟨1⟩ := bidCheckedAddOverflowGt a b hover
+  have hgt : UInt256.gt a (b + a) = ⟨1⟩ := checkedAddOverflowGt a b hover
   have rd964₀ := evm_run h with [
     jumpdest, dup1, dup3, add, dup1, dup3, gt]
   have rd964 := rd964₀
@@ -934,7 +900,7 @@ theorem simpleAuctionX_bid_successWithPending {σ σ₀ A I} {g : Sat256}
 
 def bidAfterHighestBidderState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩
-    (simpleAuctionSetAddressWord
+    (setAddressOffset0Word
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) (bidSenderWord I))
 
 def bidPostStateNoPending (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
@@ -980,8 +946,8 @@ theorem bidSender_ofNat (I : ExecutionEnv) :
   exact Nat.mod_eq_of_lt I.source.isLt
 
 theorem bidPackedSenderWord_eq_setAddress (old : UInt256) (I : ExecutionEnv) :
-    bidPackedSenderWord old I = simpleAuctionSetAddressWord old (bidSenderWord I) := by
-  unfold bidPackedSenderWord simpleAuctionSetAddressWord
+    bidPackedSenderWord old I = setAddressOffset0Word old (bidSenderWord I) := by
+  unfold bidPackedSenderWord setAddressOffset0Word
   rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
   rw [solcAddrMask_clean (bidSenderWord_canonical I)]
   exact u256_lor_comm (bidSenderWord I) (UInt256.land old (UInt256.lnot solcAddrMask))
@@ -1000,7 +966,7 @@ theorem evalExpr_bid_auctionEndTime (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime)]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
 
 theorem evalExpr_bid_highestBid (evm : EVM.State) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
@@ -1016,7 +982,7 @@ theorem evalExpr_bid_highestBid (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
 
 theorem evalExpr_bid_highestBidder (evm : EVM.State) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
@@ -1032,7 +998,7 @@ theorem evalExpr_bid_highestBidder (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBidder)]
-  rw [simpleAuctionStorageLocLoad_address_offset0]
+  erw [storageLocLoad_address_offset0]
   rfl
 
 theorem evalStorageRef_bid_pending_current (evm : EVM.State) :
@@ -1051,7 +1017,7 @@ theorem evalExpr_bid_pendingReturns_current (evm : EVM.State) :
     (hty := by simp [storageTypeAt?, simpleAuctionContract, storageDecls, uint256St,
       storageTypeStep?])
     (hloc := simpleAuctionConfig_storage_pendingReturns (bidHighestBidderKeyState evm))]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   rfl
 
 theorem evalExpr_bid_sender (evm : EVM.State) :
@@ -1226,7 +1192,7 @@ theorem bidAssignHighestBidder (evm : EVM.State) (I : ExecutionEnv)
   have hsource : evm.executionEnv.source = AccountAddress.ofNat (bidSenderWord I).toNat := by
     rw [hEnv, bidSender_ofNat]
   rw [hsource]
-  rw [simpleAuctionStorageLocStore_address_offset0 evm ⟨2⟩ (bidSenderWord I)
+  erw [storageLocStore_address_offset0 evm ⟨2⟩ (bidSenderWord I)
     (bidSenderWord_canonical I)]
   rfl
 

@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.MemoryArithmetic
 import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
@@ -460,21 +462,6 @@ theorem withdrawReturnDataPtr_gap (I : ExecutionEnv) (o : ByteArray)
   rw [withdrawReturnDataMem_size I o ho0]
   exact lt_usize _ (by omega)
 
-theorem withdrawReturnDataActiveWords_M_mul32_lt (o : ByteArray)
-    (hosz : o.size < 2 ^ 255) :
-    MachineState.M (UInt256.ofNat 5).toNat 160 o.size * 32 < UInt256.size := by
-  rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
-  unfold MachineState.M
-  split
-  · norm_num [UInt256.size]
-  · by_cases hle : 5 ≤ (160 + o.size + 31) / 32
-    · rw [Nat.max_eq_right hle]
-      have hdiv : ((160 + o.size + 31) / 32) * 32 ≤ 160 + o.size + 31 :=
-        Nat.div_mul_le_self _ _
-      have hcap : 2 ^ 255 + 191 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
-      norm_num [UInt256.size]
 
 theorem withdrawReturnDataActiveWords_toNat_ge (o : ByteArray)
     (hosz : o.size < 2 ^ 255) :
@@ -513,53 +500,6 @@ theorem withdrawReturnDataActiveWords_mload64_haw (o : ByteArray)
   have hge := withdrawReturnDataActiveWords_toNat_ge o hosz
   omega
 
-theorem withdrawReturnDataHugeCopyMemCost_gt_g (g : Sat256) (o : ByteArray)
-    (hhi : 2 ^ 255 ≤ o.size) (hlo : o.size < UInt256.size) :
-    g.toNat <
-      Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 5).toNat 160 o.size)) -
-        Cₘ (UInt256.ofNat 5) := by
-  let M := MachineState.M (UInt256.ofNat 5).toNat 160 o.size
-  have hMge : 2 ^ 250 ≤ M := by
-    simp only [M]
-    rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
-    unfold MachineState.M
-    split
-    · omega
-    · apply le_trans ?_ (Nat.le_max_right _ _)
-      rw [Nat.le_div_iff_mul_le (by norm_num)]
-      norm_num
-      omega
-  have hMlt : M < UInt256.size := by
-    simp only [M]
-    rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
-    unfold MachineState.M
-    split
-    · norm_num [UInt256.size]
-    · apply max_lt
-      · norm_num [UInt256.size]
-      · rw [Nat.div_lt_iff_lt_mul (by norm_num)]
-        norm_num [UInt256.size] at hlo ⊢
-        omega
-  have hdivLower : 2 ^ 491 ≤ M * M / 512 := by
-    rw [Nat.le_div_iff_mul_le (by norm_num)]
-    have hMM : (2 ^ 250) * (2 ^ 250) ≤ M * M := Nat.mul_le_mul hMge hMge
-    have hpow : (2 ^ 491) * 512 = (2 ^ 250) * (2 ^ 250) := by decide
-    rwa [hpow]
-  have hbig :
-      UInt256.size + Cₘ (UInt256.ofNat 5) <
-        Cₘ (UInt256.ofNat M) := by
-    rw [show Cₘ (UInt256.ofNat 5) = 15 from by
-      decide]
-    rw [Cₘ, UInt256.toNat_ofNat_of_lt hMlt]
-    simp only [GasConstants.Gmemory, Cₘ.QuadraticCeofficient]
-    have hpow : UInt256.size + 15 < 2 ^ 491 := by decide
-    omega
-  have hg : g.toNat < UInt256.size := g.isLt
-  have hcost :
-      UInt256.size <
-        Cₘ (UInt256.ofNat M) - Cₘ (UInt256.ofNat 5) := by
-    omega
-  simpa [M] using lt_trans hg hcost
 
 theorem withdrawReturnDataBoolActiveWords_M_mul32_lt (o : ByteArray)
     (hosz : o.size < 2 ^ 255) :
@@ -1315,12 +1255,6 @@ theorem withdrawCallStore_amount_get (amount : UInt256) (success : Bool) (out : 
     · decide
   · decide
 
-theorem withdrawAccountMapEquiv_balance {σ τ : AccountMap}
-    (hστ : σ = τ) (addr : AccountAddress) :
-    (σ.get? addr |>.elim ⟨0⟩ (·.balance)) =
-      (τ.get? addr |>.elim ⟨0⟩ (·.balance)) := by
-  subst τ
-  rfl
 
 theorem evalExpr_withdraw_sender (evm : EVM.State) (locals : Store) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := locals } evm
@@ -1344,7 +1278,7 @@ theorem evalExpr_withdraw_pendingReturns (evm : EVM.State) :
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_pendingReturns
       (.address evm.executionEnv.source))]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   rfl
 
 theorem evalExpr_withdraw_amount_gt_false (evm : EVM.State) (amount : UInt256)
@@ -1434,7 +1368,7 @@ theorem withdrawAssignPending (evm : EVM.State) (locals : Store) (amount : UInt2
       (hty := by
         simp [storageTypeAt?, storageTypeStep?, simpleAuctionContract, storageDecls, uint256St])
       (hloc := simpleAuctionConfig_storage_pendingReturns (.address evm.executionEnv.source))
-  rw [simpleAuctionStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   rfl
 
 theorem withdrawAssignZero (evm : EVM.State) (amount : UInt256) :

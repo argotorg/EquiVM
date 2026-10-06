@@ -222,7 +222,7 @@ theorem uniswapMintProportionalLiquidityZeroAfterMintFeeCase
                 (uniswapLockEnteredState
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat)))
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hreserve0Eq :
       uniswapReserve0Word
@@ -388,7 +388,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroLiquidityZeroFromFactoryCase
     (houtFee32 : 32 ≤ outFee.size)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (hruntimeReserve0 :
       reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
@@ -612,7 +612,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroLiquidityZeroCase
         toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hreserve0Eq :
       uniswapReserve0Word
@@ -802,7 +802,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroLiquidityZeroCase
         toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hreserve0Eq :
       uniswapReserve0Word
@@ -968,7 +968,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroLiquidityZeroCase
         toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata σCleared k C)
     (htotalEq : mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) = totalSupply)
-    (htotalSlot : uniswapSlotWord ⟨0⟩ σCleared I = totalSupply)
+    (htotalSlot : solcSlotWordAt ⟨0⟩ σCleared I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hreserve0Eq :
       uniswapReserve0Word

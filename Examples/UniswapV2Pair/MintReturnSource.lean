@@ -92,7 +92,7 @@ theorem mintAssignKLastProduct
   · rfl
   · simpa [mintKLastUpdatedState, mintKLastProductValue, mintFeeReserveProductValue,
       uniswapUint256Value, uint256Value] using
-      uniswapStorageLocStore_uint256 evm ⟨11⟩
+      storageLocStore_uint256 evm ⟨11⟩
         (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm))
 
 theorem uniswapMintAfterUpdateFeeOffReturn

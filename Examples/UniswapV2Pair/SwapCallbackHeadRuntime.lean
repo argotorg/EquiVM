@@ -59,7 +59,7 @@ theorem uniswapSwapCallbackHeadStored
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, dup2]
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by native_decide
-  rw [hmask, u256_add_comm ⟨4⟩ ptr, u256_land_solcAddrMask_idem_left] at rd1970
+  rw [hmask, u256_add_comm ⟨4⟩ ptr, solcAddrMask_idem_left_left] at rd1970
   have rd1971 := RD.mstoreWord rd1970 (by native_decide) (by evm_ov)
   have rd1976 := evm_run rd1971 with [push1 ⟨32⟩, add, dup6, dup2]
   rw [u256_add_comm ⟨32⟩ (ptr + ⟨4⟩), u256_add_assoc ptr ⟨4⟩ ⟨32⟩, show (⟨4⟩ : UInt256) + ⟨32⟩ = ⟨36⟩ from by decide] at rd1976

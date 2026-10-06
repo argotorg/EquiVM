@@ -100,13 +100,13 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
       (sel := blindAuctionSelWord I) (freePtr := aDone.fp)
       (by simpa using rd1331)
       aDone.hfpLoad
-      (scratch_reveal_aw_mload64_of_ge3 aDone.haw)
+      (reveal_aw_mload64_of_ge3 aDone.haw)
   have hawCall : UInt256.ofNat
       (MachineState.M
         (MachineState.M aDone.aw.toNat aDone.fp.toNat
           (⟨0⟩ : UInt256).toNat)
         aDone.fp.toNat (⟨0⟩ : UInt256).toNat) = aDone.aw :=
-    scratch_reveal_aw_call_empty aDone.aw aDone.fp
+    reveal_aw_call_empty aDone.aw aDone.fp
   by_cases hdepthEq : I.depth = 1024
   · exact scratch_blindAuctionReveal_postLoop_callDepth_fromCall
 

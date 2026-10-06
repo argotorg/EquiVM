@@ -1,3 +1,4 @@
+import Reasoning.StateFacts
 import Examples.UniswapV2Pair.MintFeeCallRuntimeCases
 import Examples.UniswapV2Pair.BurnInternalCases
 
@@ -5,15 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-theorem uniswapCodeOwnerWord_clean (I : ExecutionEnv) :
-    UInt256.land (UInt256.ofNat I.codeOwner.val) solcAddrMask = UInt256.ofNat I.codeOwner.val := by
-  have hsmall : I.codeOwner.val < 2 ^ 160 := I.codeOwner.isLt
-  have hsize : I.codeOwner.val < UInt256.size :=
-    lt_trans hsmall (by native_decide : 2 ^ 160 < UInt256.size)
-  apply u256_inj
-  rw [u256_land_toNat, UInt256.toNat_ofNat_of_lt hsize,
-    show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide,
-    land_mask160 I.codeOwner.val hsmall, Nat.mod_eq_of_lt hsize]
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeMintFeeEntry
@@ -32,7 +24,7 @@ theorem uniswapBurnRuntimeMintFeeEntry
         balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
       (uniswapInternalMintBalanceHashMem (UInt256.ofNat I.codeOwner.val) mem)
       feeToStaticcallActiveWords rdata σ k' C' := by
-  have hclean := uniswapCodeOwnerWord_clean I
+  have hclean := codeOwnerWord_clean I
   have rd4449 := evm_run rd4444 with [address, push1 ⟨0⟩, swap1, dup2]
   have rd4450 := rd4449.mstore 0
     (wordAt0Mem (UInt256.ofNat I.codeOwner.val) mem) feeToStaticcallActiveWords
