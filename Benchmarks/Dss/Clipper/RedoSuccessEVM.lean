@@ -95,7 +95,7 @@ theorem RD.clipperRedoFeedPriceToRmul {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {feedPrice discard lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7719⟩
@@ -104,7 +104,7 @@ theorem RD.clipperRedoFeedPriceToRmul {code : ByteArray}
       mem aw o acc k C)
     (hov : R.length + 30 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨9233⟩
-      (solcSlotWord acc.2 ee ⟨5⟩ :: feedPrice :: ⟨7733⟩ :: feedPrice :: lot ::
+      (solcSlotWord acc ee ⟨5⟩ :: feedPrice :: ⟨7733⟩ :: feedPrice :: lot ::
         tab :: done :: top :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
       mem aw o acc k' C' := by
   have rdSload := evm_run rd with [
@@ -130,7 +130,7 @@ theorem RD.clipperRedoRmulOverflowReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9233⟩
@@ -146,7 +146,7 @@ theorem RD.clipperRedoRmulSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9233⟩
@@ -164,7 +164,7 @@ theorem RD.clipperRedoTopZeroReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7733⟩
@@ -265,13 +265,13 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7733⟩
       (topNew :: feedPrice :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C)
+      mem (UInt256.ofNat 7) o σ k C)
     (htop : 0 < topNew.toNat)
     (hmem : mem.size = 196)
     (hov : R.length + 40 ≤ 1024)
@@ -282,7 +282,7 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
       (⟨0⟩ :: clipperRedoChipWord σTop ee :: clipperRedoTipWord σTop ee ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id ::
         ret :: sel :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) o (cA, σTop) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) o σTop k' C' := by
   intro topSlot σTop
   have hgt : UInt256.gt topNew ⟨0⟩ = ⟨1⟩ :=
     ugt_one (by simpa using htop)
@@ -357,7 +357,7 @@ theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {par valBln has val pipWord ret discard lot tab done top tic usr two kpr id
       outerRet sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
@@ -365,7 +365,7 @@ theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
       (par :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: ⟨7719⟩ ::
         discard :: lot :: tab :: done :: top :: tic :: usr :: two :: kpr :: id ::
         outerRet :: sel :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C)
+      mem (UInt256.ofNat 7) o σ k C)
     (hrdivMul : valBln.toNat * clipperRayWord.toNat < UInt256.size)
     (hpar : par ≠ ⟨0⟩)
     (hrmul :
@@ -388,7 +388,7 @@ theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
       (⟨0⟩ :: clipperRedoChipWord σTop ee :: clipperRedoTipWord σTop ee ::
         feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr ::
         id :: outerRet :: sel :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) o (cA, σTop) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) o σTop k' C' := by
   intro feedPrice topNew topSlot σTop
   obtain ⟨_, _, rd7719⟩ := RD.clipperGetFeedPriceRdivSuccess
     (v := v) (hpatch := hpatch) rd hrdivMul hpar
@@ -409,7 +409,7 @@ theorem RD.clipperRedoIncentiveInactive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7867⟩
@@ -446,7 +446,7 @@ theorem RD.clipperRedoIncentiveActiveOfTip {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7867⟩
@@ -483,7 +483,7 @@ theorem RD.clipperRedoIncentiveActiveOfChip {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {coin chip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7867⟩
@@ -522,7 +522,7 @@ theorem RD.clipperRedoIncentiveActive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7867⟩
@@ -549,19 +549,19 @@ theorem RD.clipperRedoTabBelowChostSkipsIncentive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (htab : tab.toNat < (clipperRedoChostWord σ ee).toNat)
     (hov : R.length + 30 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
-      mem aw o (cA, σ) k' C' := by
+      mem aw o σ k' C' := by
   have rdSlot := evm_run rd with [
     raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rdChost⟩ := rdSlot.sload (by clipper_runtime_decode) (by evm_ov)
@@ -593,20 +593,20 @@ theorem RD.clipperRedoToLotFeedCheckedMul {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7886⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
         usr :: two :: kpr :: id :: ret :: sel :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (htab : (clipperRedoChostWord σ ee).toNat ≤ tab.toNat)
     (hov : R.length + 35 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨8686⟩
       (feedPrice :: lot :: ⟨7910⟩ :: clipperRedoChostWord σ ee ::
         clipperRedoChostWord σ ee :: coin :: chip :: tip :: feedPrice :: lot :: tab ::
         done :: topNew :: tic :: usr :: two :: kpr :: id :: ret :: sel :: R)
-      mem aw o (cA, σ) k' C' := by
+      mem aw o σ k' C' := by
   have rdSlot := evm_run rd with [
     raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]
   obtain ⟨_, _, rdChost⟩ := rdSlot.sload (by clipper_runtime_decode) (by evm_ov)
@@ -635,7 +635,7 @@ theorem RD.clipperRedoLotFeedOverflowReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {feedPrice lot chost coin chip tip tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8686⟩
@@ -655,7 +655,7 @@ theorem RD.clipperRedoLotFeedMulSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {feedPrice lot chost coin chip tip tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8686⟩
@@ -680,7 +680,7 @@ theorem RD.clipperRedoLotFeedBelowChostSkipsIncentive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {lotFeed chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -715,7 +715,7 @@ theorem RD.clipperRedoLotFeedAtLeastChostToPayout {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {lotFeed chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -746,7 +746,7 @@ theorem RD.clipperRedoPayoutToWmul {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7919⟩
@@ -772,7 +772,7 @@ theorem RD.clipperRedoPayoutWmulOverflowReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chip tab tip : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8238⟩
@@ -788,7 +788,7 @@ theorem RD.clipperRedoPayoutWmulToCheckedAdd {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chip tab tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8238⟩
@@ -812,7 +812,7 @@ theorem RD.clipperRedoPayoutAddOverflowReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chipCoin tip ret : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9258⟩ (chipCoin :: tip :: ret :: R) mem aw o acc k C)
@@ -853,7 +853,7 @@ theorem RD.clipperRedoPayoutAddSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chipCoin tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9258⟩

@@ -33,13 +33,13 @@ theorem setMinBidBody (evm : EVM.State) (value : UInt256)
       (auctionUint8LocAt ⟨205⟩ 0) _ (by simp) (by native_decide) rfl
       (by trivial) (storageLocStore_uint8 evm ⟨205⟩ value hc)
 
-theorem setMinBidStore {I g s0 value ret R rdata cA σ k C}
+theorem setMinBidStore {I g s0 value ret R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hc : value.toNat < 256)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
-      rdata (cA, sstoreAccountMap I.codeOwner σ ⟨205⟩
+      rdata (sstoreAccountMap I.codeOwner σ ⟨205⟩
         (minBidWord (storedWord σ I ⟨205⟩) value)) k' C' := by
   have rd1007 := evm_run h with [jumpdest, push1 ⟨205⟩, dup1]
   obtain ⟨_, _, rd1008⟩ := rd1007.sload (by native_decide) (by evm_ov)
@@ -64,13 +64,12 @@ theorem setMinBidStore {I g s0 value ret R rdata cA σ k C}
   have rd1065 := evm_run rd1061 with [swap1, push1 ⟨32⟩, add]
   exact wordEventReturn rd1065 hperm hret (by omega)
 
-theorem setMinBidIncrementPercentageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem setMinBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 2))
-    (hreach : EntryReached 2 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 2 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract
+      σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 2 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 2) (entryBytes_size 2) hsel
@@ -92,36 +91,24 @@ theorem setMinBidIncrementPercentageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
           obtain ⟨_, _, rd408⟩ := decodeUint8Ok rd5325 hlen hhi hsize hc
             (by jump_dest) (by evm_ov)
           have rd952 := evm_run rd408 with [jumpdest, push2 ⟨952⟩, jump (by jump_dest)]
-          by_cases ho : solcSourceWord I = ownerWord σ_evm I
+          by_cases ho : solcSourceWord I = ownerWord σ I
           · obtain ⟨_, _, rd1003⟩ := ownerAllowed 0 rd952 ho (by evm_ov)
             obtain ⟨_, _, rd413⟩ := setMinBidStore rd1003 hperm hc
               (by jump_dest) (by evm_ov)
             have hbody := setMinBidBody
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (calldataWord I.calldata 4) hwv (by
-                change solcSourceWord I = ownerWord σ_solm I
-                rw [← ownerWord_equiv hAccounts I]
-                exact ho) hc
-            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
-              hcode hd hdec hbody (by rw [storageStore_createdAccounts]; rfl) (by
-                rw [storageStore_accountMap]
-                change accountMapEquiv
-                  (sstoreAccountMap I.codeOwner σ_evm ⟨205⟩
-                    (minBidWord (storedWord σ_evm I ⟨205⟩) (calldataWord I.calldata 4)))
-                  (sstoreAccountMap I.codeOwner σ_solm ⟨205⟩
-                    (minBidWord (storedWord σ_solm I ⟨205⟩) (calldataWord I.calldata 4)))
-                rw [← storedWord_equiv hAccounts I ⟨205⟩]
-                exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨205⟩ _ hAccounts)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (calldataWord I.calldata 4) hwv ho hc
+            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
+              hcode hd hdec hbody (by simp [storageStore_accountMap, initState, storedWord, Solm.EVM.storageLoad,
+                State.lookupAccount, Account.lookupStorage])
               (.fallthrough rfl rfl (by native_decide))
           · have hbody : ExecTransitionBody auctionConfig auctionContract
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 ((∅ : Store).insert "_minBidIncrementPercentage"
                   (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
                 setMinBidIncTransition.body .reverted := by
               apply ownerBodyReverts _ _ _ hwv
-              · change solcSourceWord I ≠ ownerWord σ_solm I
-                rw [← ownerWord_equiv hAccounts I]
-                exact ho
+              · exact ho
               · simp
             exact (ownerDenied 0 rd952 ho (by evm_ov)).reEquivExecutionRevert
               hcode hd hdec hbody

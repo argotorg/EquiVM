@@ -284,13 +284,11 @@ theorem assign_flopperCtorKicksStorage (evm : EVM.State) (locals : Store)
         simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
 
 theorem flopperCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := flopperCtorLocals vat gem
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := flopperCtorAfterBegState evm0
     let evm2 := flopperCtorAfterPadState evm1
@@ -376,13 +374,10 @@ theorem flopperCtorBodySuccess
     ExecBlock.nil
 
 theorem flopperSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [.address vat, .address gem] createdAccounts genesisBlockHeader
-      blocks σ σ₀ g A I
+    solmCtorExec config contract [.address vat, .address gem] σ σ₀ g A I
       (.returned { contract := contract, locals := flopperCtorLocals vat gem }
         (flopperCtorAfterLiveState
           (flopperCtorAfterGemState
@@ -393,13 +388,13 @@ theorem flopperSolmCtorExecSuccess
                     (flopperCtorAfterTtlState
                       (flopperCtorAfterPadState
                         (flopperCtorAfterBegState
-                          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+                          (initState σ σ₀
                             (Sat256.ofUInt256 g) A I)))))))
               vat)
             gem))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := flopperCtorLocals vat gem)
     ?_ rfl ?_ ?_
@@ -408,20 +403,16 @@ theorem flopperSolmCtorExecSuccess
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (flopperCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat gem hwv)
 
 theorem flopperSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat gem : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [.address vat, .address gem] createdAccounts genesisBlockHeader
-      blocks σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [.address vat, .address gem] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := flopperCtorLocals vat gem)
     ?_ rfl ?_ ?_
@@ -429,7 +420,7 @@ theorem flopperSolmCtorExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := flopperCtorLocals vat gem) hwv
 

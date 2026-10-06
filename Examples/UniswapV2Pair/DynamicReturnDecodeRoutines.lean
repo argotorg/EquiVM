@@ -8,7 +8,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.solcUint256ReturnWordDecodeDynamicOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc ptr : UInt256} {mem o : ByteArray}
-    {aw : UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {aw : UInt256} {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 retWord : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
@@ -107,7 +107,7 @@ theorem RD.solcUint256ReturnWordDecodeDynamicOk {code : ByteArray} {ee : Executi
 set_option maxHeartbeats 2000000 in
 theorem RD.solcUint256ReturnWordDecodeDynamicShortReverts {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc ptr : UInt256} {mem o : ByteArray}
-    {aw : UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {aw : UInt256} {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)

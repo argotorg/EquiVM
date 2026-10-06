@@ -7,17 +7,16 @@ set_option maxHeartbeats 10000000
 namespace BlindAuction
 
 /-- `reveal(uint256[],bool[],bytes32[])` body (pc 387) refines its transition. -/
-theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem blindAuctionRevealBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x90, 0x0f, 0x08, 0x0a]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨387⟩
-      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨387⟩
+      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
  :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
 
@@ -65,23 +64,22 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
                 (transitionSignature revealTransition).paramTypes I.calldata = none
           · have hrev :=
               scratch_blindAuctionRevealDecode1806_none_reverts
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := Sat256.ofUInt256 g) rd1806 (by omega)
                 hcalldataSign hdecNone
             exact hrev.reEquivDecodingFailed hcode hd hdecNone
           · obtain ⟨callargs, hdec⟩ := Option.ne_none_iff_exists'.mp hdecNone
             exact scratch_blindAuctionReveal_decoded_ok_from1806
               (I := I) (g := g)
-              (cA := cA) (gh := gh) (bl := bl)
-              (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+              (σ := σ)  (σ₀ := σ₀) (A := A)
               (callargs := callargs)
-              hcode hsize hperm hd hdec hwv hcalldataSign hAccounts
+              hcode hsize hperm hd hdec hwv hcalldataSign
               ⟨k1806, C1806, rd1806⟩
         · have hcalldataGe : 2 ^ 255 ≤ I.calldata.size := by omega
           have hdecNone := blindAuctionDecode_reveal_none_huge_dynamic (I := I) hcalldataGe
           have hrev :=
             blindAuctionRevealDecode1806_hugeDynamic_reverts
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := Sat256.ofUInt256 g) rd1806 hcalldataGe hsize
           exact hrev.reEquivDecodingFailed hcode hd hdecNone
   · have hrev := blindAuctionX_reveal_nonpayable (g := Sat256.ofUInt256 g) hwv hreach
@@ -92,7 +90,7 @@ theorem blindAuctionRevealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
     · obtain ⟨callargs, hdec⟩ := Option.ne_none_iff_exists'.mp hdecNone
       have hbody :
           ExecTransitionBody blindAuctionConfig blindAuctionContract
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
             revealTransition.body .reverted := by
         exact blindAuctionRevealBodyReverts_nonpayable
           (by simp only [initState]; exact hwv)

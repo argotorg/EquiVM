@@ -971,7 +971,7 @@ theorem execFrobFinalStoreTailFromConstructedLocalsSplit {evmDebt : EVM.State}
 
 set_option maxHeartbeats 0 in
 theorem vatFrobSourceBodySuccessFromDustBlock
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hsz196 : 196 ≤ I.calldata.size)
     (hsourceDust :
       let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
@@ -981,7 +981,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
       let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
       let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let localsLoaded :=
         frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
       let urnInkNew := frobDinkWord I + urnInk
@@ -1089,7 +1089,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
     let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
     let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
     let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let localsLoaded :=
       frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
     let urnInkNew := frobDinkWord I + urnInk
@@ -1188,6 +1188,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
       frobAfterDebt, frobDebtNew, gemOld, debtNew, dtabWord, debtOld,
       frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196]
+    simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have hloadDai :
       Solm.EVM.storageLoad evmGem evmGem.executionEnv.codeOwner
         (frobDaiWSourceSlot I) = daiOld := by
@@ -1197,6 +1198,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       frobGemNew, gemNew, gemOld, daiOld, debtNew, dtabWord, debtOld,
       frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196,
       frobDaiWSourceSlot_eq I]
+    simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have htail :
       let evmGem := Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
         (frobGemVSourceSlot I) gemNew
@@ -1331,26 +1333,25 @@ theorem vatFrobSourceBodySuccessFromDustBlock
 
 set_option maxHeartbeats 0 in
 theorem vatFrobLiveSuccessFinish
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsel : selIs I (vatSelBytes 11))
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hret : RDret vatBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-      (cA, frobAfterRuntimeFinal σ_evm I) ByteArray.empty)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hsourceDust :
-      let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-      let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-      let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-      let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-      let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-      let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+      let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+      let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+      let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+      let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+      let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let localsLoaded :=
         frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
       let urnInkNew := frobDinkWord I + urnInk
@@ -1363,7 +1364,7 @@ theorem vatFrobLiveSuccessFinish
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
       let localsDtab := localsIlk.insert "dtab" (.int dtab)
       let tab := UInt256.mul ilkRate urnArtNew
-      let debtOld := vatSlotWord foldDebtSlot σ_solm I
+      let debtOld := vatSlotWord foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let localsDebt :=
@@ -1428,38 +1429,38 @@ theorem vatFrobLiveSuccessFinish
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         (.ok { contract := contract, locals := localsSafe } evmDebt))
     (hdtabRange :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I;
+      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I;
       -((2 : Int) ^ 255) ≤ dtab ∧ dtab < (2 : Int) ^ 255)
     (hGemPosS :
       UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (frobGemNew σ_solm I)
-          (solcSlotWord (frobAfterDebt σ_solm I) I (frobGemVSlot I)) = ⟨0⟩)
+        UInt256.gt (frobGemNew σ I)
+          (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩)
     (hGemNegS :
       UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (frobGemNew σ_solm I)
-          (solcSlotWord (frobAfterDebt σ_solm I) I (frobGemVSlot I)) = ⟨0⟩)
+        UInt256.lt (frobGemNew σ I)
+          (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩)
     (hDaiNegS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I;
+      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (frobDaiNew σ_solm I)
-          (solcSlotWord (frobAfterGem σ_solm I) I (frobDaiWSlot I)) = ⟨0⟩)
+        UInt256.gt (frobDaiNew σ I)
+          (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩)
     (hDaiPosS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I;
+      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (frobDaiNew σ_solm I)
-          (solcSlotWord (frobAfterGem σ_solm I) I (frobDaiWSlot I)) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        UInt256.lt (frobDaiNew σ I)
+          (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let localsLoaded :=
     frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
   let urnInkNew := frobDinkWord I + urnInk
@@ -1472,7 +1473,7 @@ theorem vatFrobLiveSuccessFinish
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
   let localsDtab := localsIlk.insert "dtab" (.int dtab)
   let tab := UInt256.mul ilkRate urnArtNew
-  let debtOld := vatSlotWord foldDebtSlot σ_solm I
+  let debtOld := vatSlotWord foldDebtSlot σ I
   let dtabWord := UInt256.mul (frobDartWord I) ilkRate
   let debtNew := dtabWord + debtOld
   let localsDebt :=
@@ -1487,13 +1488,13 @@ theorem vatFrobLiveSuccessFinish
     (localsDebt.insert "ceilingDebt"
       (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
       (.int (Int.ofNat inkSpot.toNat))
-  let gemOld := solcSlotWord (frobAfterDebt σ_solm I) I (frobGemVSlot I)
-  let gemNew := frobGemNew σ_solm I
+  let gemOld := solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)
+  let gemNew := frobGemNew σ I
   let evmGem :=
     Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
       (frobGemVSourceSlot I) gemNew
-  let daiOld := solcSlotWord (frobAfterGem σ_solm I) I (frobDaiWSlot I)
-  let daiNew := frobDaiNew σ_solm I
+  let daiOld := solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)
+  let daiNew := frobDaiNew σ I
   let finalLocals :=
     (localsSafe.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).insert
       "daiNew" (.int (Int.ofNat daiNew.toNat))
@@ -1525,84 +1526,51 @@ theorem vatFrobLiveSuccessFinish
       ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals } evmDust none) := by
     exact vatFrobSourceBodySuccessFromDustBlock
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hsz196
       hsourceDust hdtabRange hGemPosS hGemNegS hDaiNegS hDaiPosS
-  have hcreated :
-      (cA, frobAfterRuntimeFinal σ_evm I).1 = evmDust.createdAccounts := by
-    change (cA, frobAfterRuntimeFinal σ_solm I).1 = evmDust.createdAccounts
-    change
-      (cA, frobAfterRuntimeFinal σ_solm I).1 =
-        (let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-         let evmDebt := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
-          foldDebtSlot (frobDebtNew σ_solm I)
-         let evmGem := Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
-          (frobGemVSourceSlot I) (frobGemNew σ_solm I)
-         let evmDai := Solm.EVM.storageStore evmGem evmGem.executionEnv.codeOwner
-          (frobDaiWSourceSlot I) (frobDaiNew σ_solm I)
-         let evmInk := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner
-          (frobUrnInkSourceSlot I) (frobUrnInkNew σ_solm I)
-         let evmArt := Solm.EVM.storageStore evmInk evmInk.executionEnv.codeOwner
-          (frobUrnArtSourceSlot I) (frobUrnArtNew σ_solm I)
-         let evmIlk := Solm.EVM.storageStore evmArt evmArt.executionEnv.codeOwner
-          (frobIlkArtSourceSlot I) (frobIlkArtNew σ_solm I)
-         let evmRate := Solm.EVM.storageStore evmIlk evmIlk.executionEnv.codeOwner
-          (frobIlkRateSourceSlot I) (solcSlotWord σ_solm I (frobIlkRateSlot I))
-         let evmSpot := Solm.EVM.storageStore evmRate evmRate.executionEnv.codeOwner
-          (frobIlkSpotSourceSlot I) (solcSlotWord σ_solm I (frobIlkSpotSlot I))
-         let evmLine := Solm.EVM.storageStore evmSpot evmSpot.executionEnv.codeOwner
-          (frobIlkLineSourceSlot I) (solcSlotWord σ_solm I (frobIlkLineSlot I))
-         Solm.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
-          (frobIlkDustSourceSlot I) (solcSlotWord σ_solm I (frobIlkDustSlot I))).createdAccounts
-    exact frobSourceFinal_createdAccounts
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-      (A := A) (I := I) (g := g)
-      (frobUrnInkNew σ_solm I) (frobUrnArtNew σ_solm I)
-      (frobIlkArtNew σ_solm I) (frobGemNew σ_solm I)
-      (frobDaiNew σ_solm I)
   have hsourceAccounts :
-      accountMapEquiv (frobAfterRuntimeFinal σ_solm I) evmDust.accountMap := by
+      Eq (frobAfterRuntimeFinal σ I) evmDust.accountMap := by
     change
-      accountMapEquiv (frobAfterRuntimeFinal σ_solm I)
-        (let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      Eq (frobAfterRuntimeFinal σ I)
+        (let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
          let evmDebt := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
-          foldDebtSlot (frobDebtNew σ_solm I)
+          foldDebtSlot (frobDebtNew σ I)
          let evmGem := Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
-          (frobGemVSourceSlot I) (frobGemNew σ_solm I)
+          (frobGemVSourceSlot I) (frobGemNew σ I)
          let evmDai := Solm.EVM.storageStore evmGem evmGem.executionEnv.codeOwner
-          (frobDaiWSourceSlot I) (frobDaiNew σ_solm I)
+          (frobDaiWSourceSlot I) (frobDaiNew σ I)
          let evmInk := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner
-          (frobUrnInkSourceSlot I) (frobUrnInkNew σ_solm I)
+          (frobUrnInkSourceSlot I) (frobUrnInkNew σ I)
          let evmArt := Solm.EVM.storageStore evmInk evmInk.executionEnv.codeOwner
-          (frobUrnArtSourceSlot I) (frobUrnArtNew σ_solm I)
+          (frobUrnArtSourceSlot I) (frobUrnArtNew σ I)
          let evmIlk := Solm.EVM.storageStore evmArt evmArt.executionEnv.codeOwner
-          (frobIlkArtSourceSlot I) (frobIlkArtNew σ_solm I)
+          (frobIlkArtSourceSlot I) (frobIlkArtNew σ I)
          let evmRate := Solm.EVM.storageStore evmIlk evmIlk.executionEnv.codeOwner
-          (frobIlkRateSourceSlot I) (solcSlotWord σ_solm I (frobIlkRateSlot I))
+          (frobIlkRateSourceSlot I) (solcSlotWord σ I (frobIlkRateSlot I))
          let evmSpot := Solm.EVM.storageStore evmRate evmRate.executionEnv.codeOwner
-          (frobIlkSpotSourceSlot I) (solcSlotWord σ_solm I (frobIlkSpotSlot I))
+          (frobIlkSpotSourceSlot I) (solcSlotWord σ I (frobIlkSpotSlot I))
          let evmLine := Solm.EVM.storageStore evmSpot evmSpot.executionEnv.codeOwner
-          (frobIlkLineSourceSlot I) (solcSlotWord σ_solm I (frobIlkLineSlot I))
+          (frobIlkLineSourceSlot I) (solcSlotWord σ I (frobIlkLineSlot I))
          Solm.EVM.storageStore evmLine evmLine.executionEnv.codeOwner
-          (frobIlkDustSourceSlot I) (solcSlotWord σ_solm I (frobIlkDustSlot I))).accountMap
-    exact accountMapEquiv_frobSourceFinal
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (frobIlkDustSourceSlot I) (solcSlotWord σ I (frobIlkDustSlot I))).accountMap
+    exact frobSourceFinal_accountMap_eq
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hsz196
-      (frobUrnInkNew σ_solm I) (frobUrnArtNew σ_solm I)
-      (frobIlkArtNew σ_solm I) (frobGemNew σ_solm I)
-      (frobDaiNew σ_solm I) rfl rfl rfl rfl rfl
+      (frobUrnInkNew σ I) (frobUrnArtNew σ I)
+      (frobIlkArtNew σ I) (frobGemNew σ I)
+      (frobDaiNew σ I) rfl rfl rfl rfl rfl
   exact vatFrobSuccessEquivFromFinalState hcode (vatDispatchFrob hsel) hdecode hret
-    hbody hcreated ((accountMapEquiv_frobAfterRuntimeFinal hAccounts).trans hsourceAccounts)
+    hbody hsourceAccounts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveSuccessGuards
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -1610,75 +1578,63 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hSuccess : frobLiveSuccessGuards σ_evm I)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hSuccess : frobLiveSuccessGuards σ I)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  by_cases hrateZeroEvm : solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩
-  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-    let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-    have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
-      rw [← hliveWord]
-      exact hlive
-    have hrateWord :
-        vatSlotWord (frobIlkRateSlot I) σ_solm I = ⟨0⟩ := by
-      have heq :
-          vatSlotWord (frobIlkRateSlot I) σ_evm I =
-            vatSlotWord (frobIlkRateSlot I) σ_solm I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner
-          (frobIlkRateSlot I) ⟨0⟩
-      rw [← heq]
+  by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
+  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+    let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    have hrateWord : vatSlotWord (frobIlkRateSlot I) σ I = ⟨0⟩ := by
       simpa [vatSlotWord] using hrateZeroEvm
     have hbodyRaw :
         let locals := frobStore I
-        let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
         ExecTransitionBody config contract evm0' locals frobTransition.body
           .reverted := by
       exact vatFrobSourceBodyRateZero
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g)
           (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
           (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
           (ilkDust := ilkDust)
-          hwv hsz196 hliveSolm
+          hwv hsz196 hlive
           (by simpa [urnInk] using
-            (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_urnInk
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [urnArt] using
-            (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_urnArt
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkArt] using
-            (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkArt
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkRate] using
-            (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkRate
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkSpot] using
-            (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkSpot
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkLine] using
-            (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkLine
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkDust] using
-            (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkDust
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by
-            rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ_solm I from rfl,
+            rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ I from rfl,
               hrateWord]
             native_decide)
     have hbody :
@@ -1688,29 +1644,19 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     obtain ⟨_, _, hafterUrn⟩ := RD.vatFrobUrnLoads hafterLive
     have hrev := RD.vatFrobIlkLoadsRateZero hafterUrn hrateZeroEvm
     exact hrev.reEquivExecutionRevert hcode (vatDispatchFrob hsel) hdecode hbody
-  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-    let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-    have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
-      rw [← hliveWord]
-      exact hlive
+  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+    let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hrateWordNe :
-        vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+        vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
       intro hzeroSolm
       apply hrateZeroEvm
-      have heq :
-          vatSlotWord (frobIlkRateSlot I) σ_evm I =
-            vatSlotWord (frobIlkRateSlot I) σ_solm I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner
-          (frobIlkRateSlot I) ⟨0⟩
-      simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
+      simpa [vatSlotWord] using hzeroSolm
     have hratePos : 0 < ilkRate.toNat := by
       have hnat : ilkRate.toNat ≠ 0 := by
         intro hzeroNat
@@ -1720,7 +1666,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       exact Nat.pos_of_ne_zero hnat
     have hsourcePrefixRaw :
         let locals := frobStore I
-        let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
         ExecBlock config { contract := contract, locals := locals } evm0'
           (nonpayable ++ requireLive ++
             [ .letDecl "urnInk" (some uint256)
@@ -1739,33 +1685,33 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                 frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
             evm0') := by
       exact vatFrobSourceRateNonzeroPrefix
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g)
           (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
           (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
           (ilkDust := ilkDust)
-          hwv hsz196 hliveSolm
+          hwv hsz196 hlive
           (by simpa [urnInk] using
-            (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_urnInk
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [urnArt] using
-            (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_urnArt
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkArt] using
-            (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkArt
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkRate] using
-            (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkRate
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkSpot] using
-            (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkSpot
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkLine] using
-            (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkLine
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by simpa [ilkDust] using
-            (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+            (frobSourceLoad_ilkDust
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           hratePos
     have hsourcePrefix :
         ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -1792,39 +1738,39 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthreeAddsEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
-            [frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I),
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
+            [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
-            (frobUrnArtUpdatedMem σ_evm I
-              (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+            (frobUrnArtUpdatedMem σ I
+              (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
       obtain ⟨_, _, hInk⟩ :=
         RD.vatFrobUrnInkAddSuccess (h := hafterRateNonzero) hInkNeg hInkPos
@@ -1836,49 +1782,49 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughDtabEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
             [UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+                (solcSlotWord σ I (frobIlkRateSlot I)),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
-            (frobIlkArtUpdatedMem σ_evm I
-              (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))
-            (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+            (frobIlkArtUpdatedMem σ I
+              (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))
+            (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
       obtain ⟨_, _, hIlk⟩ :=
         hthreeAddsEvm hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
@@ -1888,58 +1834,58 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughTabEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3351⟩
-            [UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)),
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3351⟩
+            [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
               UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+                (solcSlotWord σ I (frobIlkRateSlot I)),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
-            (frobIlkArtUpdatedMem σ_evm I
-              (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))
-            (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+            (frobIlkArtUpdatedMem σ I
+              (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))
+            (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
         hTabMul
       obtain ⟨_, _, hDtab⟩ :=
@@ -1948,55 +1894,39 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       obtain ⟨_, _, hTab⟩ :=
         RD.vatFrobTabMulSuccess
           (h := by simpa using hDtab)
-          (urnArtNew := frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (ilkArtNew := frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
+          (urnArtNew := frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (ilkArtNew := frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
           (dtabWord :=
             UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
           (by simpa using hTabMul)
       exact ⟨_, _, by simpa using hTab⟩
-    have hUrnInkEq :
-        solcSlotWord σ_evm I (frobUrnInkSlot I) =
-          solcSlotWord σ_solm I (frobUrnInkSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
-    have hUrnArtEq :
-        solcSlotWord σ_evm I (frobUrnArtSlot I) =
-          solcSlotWord σ_solm I (frobUrnArtSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
-    have hIlkArtEq :
-        solcSlotWord σ_evm I (frobIlkArtSlot I) =
-          solcSlotWord σ_solm I (frobIlkArtSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
-    have hIlkRateEq :
-        solcSlotWord σ_evm I (frobIlkRateSlot I) =
-          solcSlotWord σ_solm I (frobIlkRateSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
     let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
     have hthreeAddsSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         let localsLoaded :=
           frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
         let urnInkNew := frobDinkWord I + urnInk
@@ -2032,42 +1962,42 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
           hsourcePrefix
           (frobDinkAddGuardNegCond (by
-            simpa [urnInk, vatSlotWord, hUrnInkEq] using hInkNeg))
+            simpa [urnInk, vatSlotWord] using hInkNeg))
           (frobDinkAddGuardPosCond (by
-            simpa [urnInk, vatSlotWord, hUrnInkEq] using hInkPos))
+            simpa [urnInk, vatSlotWord] using hInkPos))
           (frobDartAddGuardNegCond (by
-            simpa [urnArt, vatSlotWord, hUrnArtEq] using hArtNeg))
+            simpa [urnArt, vatSlotWord] using hArtNeg))
           (frobDartAddGuardPosCond (by
-            simpa [urnArt, vatSlotWord, hUrnArtEq] using hArtPos))
+            simpa [urnArt, vatSlotWord] using hArtPos))
           (frobDartAddGuardNegCond (by
-            simpa [ilkArt, vatSlotWord, hIlkArtEq] using hIlkNeg))
+            simpa [ilkArt, vatSlotWord] using hIlkNeg))
           (frobDartAddGuardPosCond (by
-            simpa [ilkArt, vatSlotWord, hIlkArtEq] using hIlkPos))
+            simpa [ilkArt, vatSlotWord] using hIlkPos))
     have hthroughDtabSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         -((2 : Int) ^ 255) ≤ dtab →
         dtab < (2 : Int) ^ 255 →
         evalExpr? config
@@ -2182,7 +2112,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
         List.append_assoc] using h04
     have hDtabSourceGuards :
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         let localsLoaded :=
           frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
         let urnInkNew := frobDinkWord I + urnInk
@@ -2240,7 +2170,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           frobStoreIlkDust_get_dart I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
             ilkDust
       have hRateMaxS : UInt256.slt ilkRate ⟨0⟩ = ⟨0⟩ := by
-        simpa [ilkRate, vatSlotWord, hIlkRateEq] using hRateMax
+        simpa [ilkRate, vatSlotWord] using hRateMax
       have hrateEval :
           evalExpr? config
             { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
@@ -2290,18 +2220,18 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               hrateGet hdartNe hdiv
       exact ⟨hguardMax, hguardMul⟩
     have hDtabRangeOfGuards :
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         -((2 : Int) ^ 255) ≤ dtab ∧ dtab < (2 : Int) ^ 255 := by
       intro hRateMax hDtabMul
       have hRateMaxS : UInt256.slt ilkRate ⟨0⟩ = ⟨0⟩ := by
-        simpa [ilkRate, vatSlotWord, hIlkRateEq] using hRateMax
+        simpa [ilkRate, vatSlotWord] using hRateMax
       have hRateLowS : ilkRate.toNat < EVM.twoPow 255 :=
         u256_toNat_lt_sign_of_slt_zero hRateMaxS
       have hMulGuardEqS :
@@ -2312,7 +2242,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         | inl hzero => exact Or.inl hzero
         | inr hne =>
             exact Or.inr (u256_eq_ne_zero_to_eq (by
-              simpa [ilkRate, vatSlotWord, hIlkRateEq] using hne))
+              simpa [ilkRate, vatSlotWord] using hne))
       change
         -((2 : Int) ^ 255) ≤ Int.ofNat ilkRate.toNat * frobDartInt I ∧
           Int.ofNat ilkRate.toNat * frobDartInt I < (2 : Int) ^ 255
@@ -2320,43 +2250,43 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughTabSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         let localsLoaded :=
           frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
         let urnInkNew := frobDinkWord I + urnInk
@@ -2411,7 +2341,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           urnArtNew = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul ilkRate urnArtNew) urnArtNew)
               ilkRate ≠ ⟨0⟩ := by
-        simpa [urnArtNew, urnArt, ilkRate, vatSlotWord, hUrnArtEq, hIlkRateEq]
+        simpa [urnArtNew, urnArt, ilkRate, vatSlotWord]
           using hTabMul
       have htabFitGuard :=
         uintCheckedMulGuard_to_fit_and_source_guard hTabMulS
@@ -2455,101 +2385,81 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         htabBlock
       simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
         tab, List.append_assoc] using h05
-    have hDebtEq :
-        solcSlotWord σ_evm I foldDebtSlot =
-          solcSlotWord σ_solm I foldDebtSlot :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
-    have hIlkSpotEq :
-        solcSlotWord σ_evm I (frobIlkSpotSlot I) =
-          solcSlotWord σ_solm I (frobIlkSpotSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkSpotSlot I) ⟨0⟩
-    have hIlkLineEq :
-        solcSlotWord σ_evm I (frobIlkLineSlot I) =
-          solcSlotWord σ_solm I (frobIlkLineSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkLineSlot I) ⟨0⟩
-    have hIlkDustEq :
-        solcSlotWord σ_evm I (frobIlkDustSlot I) =
-          solcSlotWord σ_solm I (frobIlkDustSlot I) :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkDustSlot I) ⟨0⟩
-    have hLineEq :
-        solcSlotWord σ_evm I ⟨9⟩ =
-          solcSlotWord σ_solm I ⟨9⟩ :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
     have hthroughDebtEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3369⟩
-            [UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)),
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3369⟩
+            [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
               UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+                (solcSlotWord σ I (frobIlkRateSlot I)),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
-            (frobIlkArtUpdatedMem σ_evm I
-              (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))
+            (frobIlkArtUpdatedMem σ I
+              (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))
             (UInt256.ofNat 18) ByteArray.empty
-            (cA, sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) k' C' := by
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
         hTabMul hDebtNeg hDebtPos
       obtain ⟨_, _, hTab⟩ :=
@@ -2565,59 +2475,59 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughDebtSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         let localsLoaded :=
           frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
         let urnInkNew := frobDinkWord I + urnInk
@@ -2629,7 +2539,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ_solm I
+        let debtOld := vatSlotWord foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -2672,7 +2582,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       let localsDtab := localsIlk.insert "dtab" (.int dtab)
       let tab := UInt256.mul ilkRate urnArtNew
       let localsTab := localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))
-      let debtOld := vatSlotWord foldDebtSlot σ_solm I
+      let debtOld := vatSlotWord foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       have hsourceTab :=
@@ -2681,13 +2591,11 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       have hDebtNegS :
           UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.gt debtNew debtOld = ⟨0⟩ := by
-        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
-          hDebtEq] using hDebtNeg
+        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord] using hDebtNeg
       have hDebtPosS :
           UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.lt debtNew debtOld = ⟨0⟩ := by
-        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
-          hDebtEq] using hDebtPos
+        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord] using hDebtPos
       have hdtabRange := hDtabRangeOfGuards hRateMax hDtabMul
       have hdtabMod :
           dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
@@ -2702,7 +2610,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         simpa [evm0, debtOld, vatSlotWord, solcSlotWord,
           codeOwnerStorageWord] using
           (codeOwnerStorageWord_initState
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+            (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) foldDebtSlot)
       have hdebtBlock :
@@ -2751,106 +2659,106 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughSafetySource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
-        (solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩ ∨
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
+        (solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
+                (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.land
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)
-                (solcSlotWord σ_evm I ⟨9⟩)))
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)
+                (solcSlotWord σ I ⟨9⟩)))
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkLineSlot I)))))
           (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
-        (((sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+        (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot) →
-        (solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot) →
+        (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-              (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))
+              (solcSlotWord σ I (frobIlkSpotSlot I)))
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.isZero
             (UInt256.gt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
@@ -2865,7 +2773,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ_solm I
+        let debtOld := vatSlotWord foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         let localsDebt :=
@@ -2934,8 +2842,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         ((localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).insert "debtNew"
           (.int (Int.ofNat
             (UInt256.mul (frobDartWord I) ilkRate +
-              vatSlotWord foldDebtSlot σ_solm I).toNat)))
-      let debtOld := vatSlotWord foldDebtSlot σ_solm I
+              vatSlotWord foldDebtSlot σ I).toNat)))
+      let debtOld := vatSlotWord foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let evmDebt :=
@@ -2949,7 +2857,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           ilkRate = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul ilkArtNew ilkRate) ilkRate)
               ilkArtNew ≠ ⟨0⟩ := by
-        simpa [ilkArtNew, ilkArt, ilkRate, vatSlotWord, hIlkArtEq, hIlkRateEq]
+        simpa [ilkArtNew, ilkArt, ilkRate, vatSlotWord]
           using hCeilingMul
       have hceilingFitGuard :=
         uintCheckedMulGuard_to_fit_and_source_guard hCeilingMulS
@@ -2957,19 +2865,18 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           ilkSpot = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul urnInkNew ilkSpot) ilkSpot)
               urnInkNew ≠ ⟨0⟩ := by
-        simpa [urnInkNew, urnInk, ilkSpot, vatSlotWord, hUrnInkEq, hIlkSpotEq]
+        simpa [urnInkNew, urnInk, ilkSpot, vatSlotWord]
           using hInkMul
       have hinkFitGuard := uintCheckedMulGuard_to_fit_and_source_guard hInkMulS
       have hCeilingOkS :
           UInt256.lor
             (UInt256.land
               (UInt256.isZero
-                (UInt256.gt debtNew (vatSlotWord ⟨9⟩ σ_solm I)))
+                (UInt256.gt debtNew (vatSlotWord ⟨9⟩ σ I)))
               (UInt256.isZero (UInt256.gt ceilingDebt ilkLine)))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ := by
         simpa [ceilingDebt, debtNew, dtabWord, debtOld, ilkArtNew, ilkArt,
-          ilkRate, ilkLine, vatSlotWord, hIlkArtEq, hIlkRateEq, hIlkLineEq,
-          hDebtEq, hLineEq] using hCeilingOk
+          ilkRate, ilkLine, vatSlotWord] using hCeilingOk
       have hSafetyOkS :
           UInt256.lor
             (UInt256.isZero (UInt256.gt tab inkSpot))
@@ -2977,20 +2884,20 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
               (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ := by
         simpa [tab, inkSpot, urnInkNew, urnInk, urnArtNew, urnArt, ilkRate,
-          ilkSpot, vatSlotWord, hUrnInkEq, hUrnArtEq, hIlkRateEq, hIlkSpotEq]
+          ilkSpot, vatSlotWord]
           using hSafetyOk
       have hlineLoad :
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner ⟨9⟩ =
-            vatSlotWord ⟨9⟩ σ_solm I := by
+            vatSlotWord ⟨9⟩ σ I := by
         have hne : (⟨9⟩ : UInt256) ≠ foldDebtSlot := by
           simp [foldDebtSlot]
         have hload0 :
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨9⟩ =
-              vatSlotWord ⟨9⟩ σ_solm I := by
+              vatSlotWord ⟨9⟩ σ I := by
           simpa [evm0, initState, vatSlotWord, solcSlotWord,
             codeOwnerStorageWord] using
             (codeOwnerStorageWord_initState
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+              (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I)
               (g := Sat256.ofUInt256 g) ⟨9⟩)
         have hstore :
@@ -3198,7 +3105,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (evalExpr_frob_ceiling_req_true
             (evm := evmDebt) (I := I)
             (ceilingDebt := ceilingDebt) (ilkLine := ilkLine)
-            (debtNew := debtNew) (Line := vatSlotWord ⟨9⟩ σ_solm I)
+            (debtNew := debtNew) (Line := vatSlotWord ⟨9⟩ σ I)
             (by
               rw [store_get_ne _ _ (by decide)]
               rw [store_get_ne _ _ (by decide)]
@@ -3248,116 +3155,116 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughDustSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
-        (solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩ ∨
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
+        (solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
+                (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.land
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)
-                (solcSlotWord σ_evm I ⟨9⟩)))
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)
+                (solcSlotWord σ I ⟨9⟩)))
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkLineSlot I)))))
           (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
-        (((sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+        (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot) →
-        (solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot) →
+        (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-              (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))
+              (solcSlotWord σ I (frobIlkSpotSlot I)))
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.isZero
             (UInt256.gt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobUWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I)))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
@@ -3365,29 +3272,29 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobVWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I)))
           (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobWWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I)))
           (UInt256.isZero (UInt256.slt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.isZero
             (UInt256.lt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (solcSlotWord σ_evm I (frobIlkDustSlot I))))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (solcSlotWord σ I (frobIlkDustSlot I))))
           (UInt256.eq ⟨0⟩
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))) ≠ ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))) ≠ ⟨0⟩ →
         let localsLoaded :=
           frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
         let urnInkNew := frobDinkWord I + urnInk
@@ -3399,7 +3306,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ_solm I
+        let debtOld := vatSlotWord foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         let localsDebt :=
@@ -3481,8 +3388,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         ((localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).insert "debtNew"
           (.int (Int.ofNat
             (UInt256.mul (frobDartWord I) ilkRate +
-              vatSlotWord foldDebtSlot σ_solm I).toNat)))
-      let debtOld := vatSlotWord foldDebtSlot σ_solm I
+              vatSlotWord foldDebtSlot σ I).toNat)))
+      let debtOld := vatSlotWord foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let evmDebt :=
@@ -3494,48 +3401,36 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
           (.int (Int.ofNat inkSpot.toNat))
       let uWish := vatSlotWord (frobUWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
       let vWish := vatSlotWord (frobVWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
       let wWish := vatSlotWord (frobWWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
       have hsourceSafe :=
         hthroughSafetySource hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
           hRateMax hDtabMul hTabMul hDebtNeg hDebtPos hCeilingMul hCeilingOk
           hDebtLoadStore hInkMul hSafetyOk
       have hUWishEq :
           vatSlotWord (frobUWishSlot I)
-            (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) I = uWish := by
-        simpa [uWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord,
-          hIlkRateEq, hDebtEq] using
-          (vatSlotWord_debtStore_accountMapEquiv
-            (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
-            (frobUWishSlot I) debtNew)
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) I = uWish := by
+        rfl
       have hVWishEq :
           vatSlotWord (frobVWishSlot I)
-            (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) I = vWish := by
-        simpa [vWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord,
-          hIlkRateEq, hDebtEq] using
-          (vatSlotWord_debtStore_accountMapEquiv
-            (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
-            (frobVWishSlot I) debtNew)
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) I = vWish := by
+        rfl
       have hWWishEq :
           vatSlotWord (frobWWishSlot I)
-            (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) I = wWish := by
-        simpa [wWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord,
-          hIlkRateEq, hDebtEq] using
-          (vatSlotWord_debtStore_accountMapEquiv
-            (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
-            (frobWWishSlot I) debtNew)
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) I = wWish := by
+        rfl
       have hU' := hU
       rw [hUWishEq] at hU'
       have hV' := hV
@@ -3546,21 +3441,20 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           UInt256.lor
             (UInt256.isZero (UInt256.lt tab ilkDust))
             (UInt256.eq ⟨0⟩ urnArtNew) ≠ ⟨0⟩ := by
-        simpa [tab, urnArtNew, urnArt, ilkRate, ilkDust, vatSlotWord,
-          hUrnArtEq, hIlkRateEq, hIlkDustEq] using hDust
+        simpa [tab, urnArtNew, urnArt, ilkRate, ilkDust, vatSlotWord] using hDust
       have hloadU :
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
             (frobUWishSlot I) = uWish := by
         have hmap :
             evmDebt.accountMap =
-              sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+              sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
           simpa [evmDebt, evm0, initState] using
             storageStore_accountMap evm0 evm0.executionEnv.codeOwner
               foldDebtSlot debtNew
         change
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
             (frobUWishSlot I) =
-          solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot
+          solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot
             debtNew) I (frobUWishSlot I)
         simp only [Solm.EVM.storageLoad, State.lookupAccount,
           Account.lookupStorage]
@@ -3571,14 +3465,14 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (frobVWishSlot I) = vWish := by
         have hmap :
             evmDebt.accountMap =
-              sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+              sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
           simpa [evmDebt, evm0, initState] using
             storageStore_accountMap evm0 evm0.executionEnv.codeOwner
               foldDebtSlot debtNew
         change
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
             (frobVWishSlot I) =
-          solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot
+          solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot
             debtNew) I (frobVWishSlot I)
         simp only [Solm.EVM.storageLoad, State.lookupAccount,
           Account.lookupStorage]
@@ -3589,14 +3483,14 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (frobWWishSlot I) = wWish := by
         have hmap :
             evmDebt.accountMap =
-              sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+              sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
           simpa [evmDebt, evm0, initState] using
             storageStore_accountMap evm0 evm0.executionEnv.codeOwner
               foldDebtSlot debtNew
         change
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
             (frobWWishSlot I) =
-          solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot
+          solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot
             debtNew) I (frobWWishSlot I)
         simp only [Solm.EVM.storageLoad, State.lookupAccount,
           Account.lookupStorage]
@@ -3829,128 +3723,128 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughSafetyEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
-        (solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩ ∨
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
+        (solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
+                (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.land
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)
-                (solcSlotWord σ_evm I ⟨9⟩)))
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)
+                (solcSlotWord σ I ⟨9⟩)))
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkLineSlot I)))))
           (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
-        (((sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+        (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot) →
-        (solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot) →
+        (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-              (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))
+              (solcSlotWord σ I (frobIlkSpotSlot I)))
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.isZero
             (UInt256.gt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3605⟩
-            [UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)),
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3605⟩
+            [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
               UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+                (solcSlotWord σ I (frobIlkRateSlot I)),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
-            (frobIlkArtUpdatedMem σ_evm I
-              (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-              (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))
+            (frobIlkArtUpdatedMem σ I
+              (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+              (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))
             (UInt256.ofNat 18) ByteArray.empty
-            (cA, sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) k' C' := by
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
         hTabMul hDebtNeg hDebtPos hCeilingMul hCeilingOk hDebtLoadStore hInkMul
         hSafetyOk
@@ -3972,116 +3866,116 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hthroughDustEvm :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
         (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
         (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-            (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-        UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+            (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+        UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
         (frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
-        ((frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+        ((frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
         (UInt256.slt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
         (UInt256.sgt
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
+              (solcSlotWord σ I (frobIlkRateSlot I))) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
             (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩) →
-        (solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩ ∨
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) →
+        (solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
+                (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.land
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)
-                (solcSlotWord σ_evm I ⟨9⟩)))
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)
+                (solcSlotWord σ I ⟨9⟩)))
             (UInt256.isZero
               (UInt256.gt
                 (UInt256.mul
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkLineSlot I)))))
           (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
-        (((sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+        (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot) →
-        (solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+            (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot) →
+        (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.div
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-              (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))
+              (solcSlotWord σ I (frobIlkSpotSlot I)))
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠ ⟨0⟩) →
         UInt256.lor
           (UInt256.isZero
             (UInt256.gt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
               (UInt256.mul
-                (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                (solcSlotWord σ I (frobIlkSpotSlot I)))))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobUWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I)))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
@@ -4089,36 +3983,36 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobVWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I)))
           (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobWWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I)))
           (UInt256.isZero (UInt256.slt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.isZero
             (UInt256.lt
-              (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (solcSlotWord σ_evm I (frobIlkDustSlot I))))
+              (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (solcSlotWord σ I (frobIlkDustSlot I))))
           (UInt256.eq ⟨0⟩
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))) ≠ ⟨0⟩ →
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))) ≠ ⟨0⟩ →
         ∃ k' C',
           RD vatBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3963⟩
-            [UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)),
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3963⟩
+            [UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)),
               UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+                (solcSlotWord σ I (frobIlkRateSlot I)),
               ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
               frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
               frobIWord I, ⟨524⟩, vatSelWord I]
@@ -4130,15 +4024,15 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                     (twoWordHashMem (hopeSourceWord I)
                       (solcMappingSlot ⟨1⟩ (frobUMaskedWord I))
                       (twoWordHashMem (frobUMaskedWord I) ⟨1⟩
-                        (frobIlkArtUpdatedMem σ_evm I
-                          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-                          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))))))))
+                        (frobIlkArtUpdatedMem σ I
+                          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+                          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))))))))
             (UInt256.ofNat 18) ByteArray.empty
-            (cA, sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) k' C' := by
+                (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) k' C' := by
       intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
         hTabMul hDebtNeg hDebtPos hCeilingMul hCeilingOk hDebtLoadStore hInkMul
         hSafetyOk hU hV hW hDust
@@ -4956,7 +4850,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (.int (Int.ofNat ilkArtNew.toNat)))
     let localsDtab := localsIlk.insert "dtab" (.int dtab)
     let tab := UInt256.mul ilkRate urnArtNew
-    let debtOld := vatSlotWord foldDebtSlot σ_solm I
+    let debtOld := vatSlotWord foldDebtSlot σ I
     let dtabWord := UInt256.mul (frobDartWord I) ilkRate
     let debtNew := dtabWord + debtOld
     let localsDebt :=
@@ -4971,20 +4865,20 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       (localsDebt.insert "ceilingDebt"
         (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
         (.int (Int.ofNat inkSpot.toNat))
-    let gemOld := solcSlotWord (frobAfterDebt σ_solm I) I (frobGemVSlot I)
-    let gemNew := frobGemNew σ_solm I
+    let gemOld := solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)
+    let gemNew := frobGemNew σ I
     let evmGem :=
       Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
         (frobGemVSourceSlot I) gemNew
-    let daiOld := solcSlotWord (frobAfterGem σ_solm I) I (frobDaiWSlot I)
-    let daiNew := frobDaiNew σ_solm I
+    let daiOld := solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)
+    let daiNew := frobDaiNew σ I
     let finalLocals :=
       (localsSafe.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).insert
         "daiNew" (.int (Int.ofNat daiNew.toNat))
     have hret :
         RDret vatBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          (cA, frobAfterRuntimeFinal σ_evm I) ByteArray.empty := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (frobAfterRuntimeFinal σ I) ByteArray.empty := by
       exact RD.vatFrobStoreSuccess
         (h := by
           simpa [frobTabWord, frobDtabWord, frobUrnInkNew, frobUrnArtNew,
@@ -4996,13 +4890,9 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         hRateMax hDtabMul hTabMul hDebtNeg hDebtPos hCeilingMul hCeilingOk
         hDebtLoadStore hInkMul hSafetyOk hU hV hW hDust
     have hdtabRange := hDtabRangeOfGuards hRateMax hDtabMul
-    have hDebtAccounts :
-        accountMapEquiv (frobAfterDebt σ_evm I) (frobAfterDebt σ_solm I) :=
-      accountMapEquiv_frobAfterDebt (I := I) hAccounts
     have hGemOldEq :
-        solcSlotWord (frobAfterDebt σ_evm I) I (frobGemVSlot I) = gemOld :=
-      accountMapEquiv_storage_findD hDebtAccounts I.codeOwner (frobGemVSlot I) ⟨0⟩
-    have hGemNewEq : frobGemNew σ_evm I = gemNew := by
+        solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I) = gemOld := rfl
+    have hGemNewEq : frobGemNew σ I = gemNew := by
       simp [gemNew, frobGemNew, gemOld, hGemOldEq]
     have hGemPosS :
         UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
@@ -5012,19 +4902,15 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt gemNew gemOld = ⟨0⟩ := by
       simpa [gemNew, gemOld, hGemNewEq, hGemOldEq] using hGemNeg
-    have hAfterGemAccounts :
-        accountMapEquiv (frobAfterGem σ_evm I) (frobAfterGem σ_solm I) :=
-      accountMapEquiv_frobAfterGem (I := I) hAccounts
     have hDaiOldEq :
-        solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I) = daiOld :=
-      accountMapEquiv_storage_findD hAfterGemAccounts I.codeOwner (frobDaiWSlot I) ⟨0⟩
-    have hDtabEq : frobDtabWord σ_evm I = dtabWord := by
-      simp [frobDtabWord, dtabWord, ilkRate, vatSlotWord, hIlkRateEq]
-    have hDaiNewEq : frobDaiNew σ_evm I = daiNew := by
+        solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) = daiOld := rfl
+    have hDtabEq : frobDtabWord σ I = dtabWord := by
+      simp [frobDtabWord, dtabWord, ilkRate, vatSlotWord]
+    have hDaiNewEq : frobDaiNew σ I = daiNew := by
       calc
-        frobDaiNew σ_evm I =
-            frobDtabWord σ_evm I +
-              solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I) := by
+        frobDaiNew σ I =
+            frobDtabWord σ I +
+              solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) := by
           rfl
         _ = dtabWord + daiOld := by
           rw [hDtabEq, hDaiOldEq]
@@ -5041,7 +4927,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           UInt256.lt daiNew daiOld = ⟨0⟩ := by
       simpa [dtabWord, daiNew, daiOld, hDtabEq, hDaiNewEq, hDaiOldEq] using
         hDaiPos
-    exact vatFrobLiveSuccessFinish hcode hsel hdecode hAccounts hsz196 hret
+    exact vatFrobLiveSuccessFinish hcode hsel hdecode hsz196 hret
       hsourceDust hdtabRange hGemPosS hGemNegS hDaiNegS hDaiPosS
 
 end Benchmarks.Dss.Vat

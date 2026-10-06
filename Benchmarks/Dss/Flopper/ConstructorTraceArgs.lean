@@ -13,7 +13,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem flopperCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
     (h : RD (flopperCtorCode vat gem) I g s0 ⟨91⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
@@ -58,7 +58,7 @@ theorem flopperCtorArgCopyTrace
 set_option maxHeartbeats 1000000 in
 theorem flopperCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
     (h : RD (flopperCtorCode vat gem) I g s0 ⟨111⟩
       [(UInt256.ofNat (flopperCtorCode vat gem).size).sub ⟨5000⟩, ⟨128⟩]
@@ -86,22 +86,19 @@ theorem flopperCtorArgSizeGuardTrace
         from by native_decide] using rd134⟩
 
 theorem flopperCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (flopperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨134⟩
+      (initState σ σ₀ g A I) ⟨134⟩
       [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
       (flopperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, flopperCtorAfterKicksMap σ I) k C := by
+      (flopperCtorAfterKicksMap σ I) k C := by
   obtain ⟨_, _, rd91⟩ :=
     flopperCtorGuardSuccessReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm hwv
   obtain ⟨_, _, rd111⟩ := flopperCtorArgCopyTrace vat gem rd91
   exact flopperCtorArgSizeGuardTrace vat gem rd111

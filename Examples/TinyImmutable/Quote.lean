@@ -103,14 +103,14 @@ theorem tinyQuoteReturnEncoding (v : TinyImmutables) (amount : UInt256) :
   rw [← hmod]
   simpa [uint256] using uint256ReturnEncoding (UInt256.mul amount v.scale)
 
-theorem tinyQuoteX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_toDecoder {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨396⟩
+      (initState σ σ₀ g A I) ⟨396⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨162⟩, ⟨167⟩, solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd148⟩ := hreach
   exact ⟨_, _, evm_run rd148 with [
     raw jumpdest (by tiny_decode_at v, ⟨148⟩, 0x5b, .JUMPDEST) (by evm_ov),
@@ -121,16 +121,16 @@ theorem tinyQuoteX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmut
     raw push2 ⟨396⟩ (by tiny_decode_at v, ⟨158⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
     raw jump (by tiny_decode_at v, ⟨161⟩, 0x56, .JUMP) (tinyContains396 v) (by evm_ov)]⟩
 
-theorem tinyQuoteX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨220⟩
+      (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
@@ -161,13 +161,13 @@ theorem tinyQuoteX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutab
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd220⟩
 
-theorem tinyQuoteX_decodeRevert {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
   exact evm_run rd396 with [
     raw jumpdest (by tiny_decode_at v, ⟨396⟩, 0x5b, .JUMPDEST) (by evm_ov),
@@ -185,38 +185,38 @@ theorem tinyQuoteX_decodeRevert {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyIm
       (by tiny_decode_at v, ⟨410⟩, 0x5f, .PUSH0)
       (by tiny_decode_at v, ⟨411⟩, 0xfd, .REVERT) (by evm_ov)]
 
-theorem tinyQuoteX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_shortarg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
   exact tinyQuoteX_decodeRevert (v := v) hslt hreach
 
-theorem tinyQuoteX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_hugearg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
   exact tinyQuoteX_decodeRevert (v := v) hslt hreach
 
 set_option maxHeartbeats 1000000 in
-theorem tinyQuoteX_success {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcaller : I.source = v.owner)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨220⟩
+      (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.mul (calldataWord I.calldata 4) v.scale)) := by
   obtain ⟨_, _, rd220⟩ := hreach
   have heq : UInt256.eq
@@ -276,13 +276,13 @@ theorem tinyQuoteOwnerErrorMem_mload64 :
   native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem tinyQuoteX_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcaller : I.source ≠ v.owner)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨220⟩
+      (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd220⟩ := hreach
   have heq : UInt256.eq
       (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
@@ -354,16 +354,15 @@ theorem tinyQuoteX_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyIm
     mem_cost (by evm_ov)
 
 theorem tinyQuoteBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} (v : TinyImmutables)
+    {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
-    (hsel : (quoteSelBytes == I.calldata.extract 0 4) = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : (quoteSelBytes == I.calldata.extract 0 4) = true) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 := tinyQuoteSelector_size hsel
   have hd := tinyDispatch_quote v howner hsel
-  have hreach := tinyReachQuoteBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := tinyReachQuoteBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz4 hsize
     howner hsel
   by_cases hshort : I.calldata.size < 36
@@ -380,29 +379,29 @@ theorem tinyQuoteBodyCore
       by_cases hcaller : I.source = v.owner
       · have hbody :
             ExecTransitionBody (config v) (contract v)
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (quoteAmountStore I) (quoteTransition v).body
               (.returned { contract := contract v, locals := quoteAmountStore I }
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (some [.int ((quoteAmountValue I * Int.ofNat v.scale.toNat) %
                   Int.ofNat EVM.wordModulus)])) := by
           exact tinyQuoteBodyReturns v
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
             (quoteAmountValue I)
             (by simp only [initState]; exact hwv)
             (by simp only [initState]; exact hcaller)
             (by simp [quoteAmountStore, quoteAmountValue])
         exact (tinyQuoteX_success (g := Sat256.ofUInt256 g) v hcaller ⟨_, _, rd220⟩)
-          |>.reEquivExecution hcode hd hdec hbody hAccounts
+          |>.reEquivExecution hcode hd hdec hbody
             (returnEquiv_of_encode
               (by simpa [quoteAmountValue] using
                 tinyQuoteReturnEncoding v (calldataWord I.calldata 4)))
       · have hbody :
             ExecTransitionBody (config v) (contract v)
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (quoteAmountStore I) (quoteTransition v).body .reverted := by
           exact tinyQuoteBodyRevertsUnauthorized v
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) (quoteAmountStore I)
             (by simp only [initState]; exact hwv)
             (by simp only [initState]; exact hcaller)
         exact (tinyQuoteX_unauthorized (g := Sat256.ofUInt256 g) v hcaller ⟨_, _, rd220⟩)

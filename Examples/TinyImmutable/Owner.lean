@@ -31,11 +31,11 @@ theorem tinyOwnerReturnEncoding (v : TinyImmutables) :
   simpa [addr, hclean, tinyOwnerWord_toNat v, accountAddress_ofNat_val] using
     solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat (↑v.owner : Nat))
 
-theorem tinyOwnerX {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hreach : ∃ k C, RD (patchedRuntime v) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨67⟩ [solcSelectorWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨67⟩ [solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) := by
   obtain ⟨_, _, rd67⟩ := hreach
   have rd71 := evm_run rd67 with [
@@ -51,29 +51,28 @@ theorem tinyOwnerX {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
   simpa [tinyOwnerWord_clean v] using hret
 
 theorem tinyOwnerBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} (v : TinyImmutables)
+    {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : (ownerSelBytes == I.calldata.extract 0 4) = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : (ownerSelBytes == I.calldata.extract 0 4) = true) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz := tinyOwnerSelector_size hsel
   have hd := tinyDispatch_owner v hsel
-  have hreach := tinyReachOwnerBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := tinyReachOwnerBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize
     hsel
   have hdec := tinyOwnerDecode_empty (v := v) (I := I) hsz
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ownerTransition v).body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [.address v.owner])) := by
     exact tinyOwnerBodyReturns v
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
-  exact (tinyOwnerX v hreach).reEquivExecution hcode hd hdec hbody hAccounts
+  exact (tinyOwnerX v hreach).reEquivExecution hcode hd hdec hbody
     (returnEquiv_of_encode (tinyOwnerReturnEncoding v))
 
 end TinyImmutable

@@ -253,12 +253,11 @@ theorem dispatchShort {cd : ByteArray} (hsz : cd.size < 4) :
   rw [entrySelector, entryBytes_size]
 
 /-- The body entry reached after selector routing, before its per-entry value guard. -/
-abbrev EntryReached (i : Entry) (cA : Batteries.RBSet AccountAddress compare)
-    (gh : BlockHeader) (bl : ProcessedBlocks) (σ σ₀ : AccountMap)
+abbrev EntryReached (i : Entry) (σ σ₀ : AccountMap)
     (A : Substate) (I : ExecutionEnv) (g : UInt256) : Prop :=
   ∃ k C, RD auctionBytecode I (Sat256.ofUInt256 g)
-    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (entryPc i)
-    [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) (entryPc i)
+    [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C
 
 end Auction
 
@@ -267,7 +266,7 @@ namespace Reasoning.Reach
 /-- LIBRARY CANDIDATE: the Shanghai `PUSH0; DUP1; REVERT` terminal. -/
 theorem RD.auctionRevert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hd0 : decode code pc = some (.PUSH0, .none))
     (hd1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))

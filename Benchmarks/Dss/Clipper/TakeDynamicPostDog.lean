@@ -10,14 +10,14 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (htabNew : tabNew = ⟨0⟩) (hmem : clipperTakeMemoryWF mem aw) :
     ∃ k' C', RD code ee g s0 ⟨5177⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
@@ -25,7 +25,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuardWF {code : ByteArray}
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (clipperTakeVatFluxCalldataMem v ee packed lotNew mem) aw rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
@@ -157,7 +157,7 @@ theorem RD.clipperTakePostDogFluxNoCodeWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -166,7 +166,7 @@ theorem RD.clipperTakePostDogFluxNoCodeWF {code : ByteArray}
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩) :
     RDrev code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5177⟩) (okPc := ⟨5189⟩)
@@ -177,40 +177,40 @@ theorem RD.clipperTakePostDogFluxNoCodeWF {code : ByteArray}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.clipperTakePostDogFluxPostCallWF {cA0 cA gh bl σ₀ σStart σ I}
+theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {baseMem rdata : ByteArray} {aw : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨5177⟩
+    (rd : RD code I g (initState σStart σ₀ g A I) ⟨5177⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem) aw rdata
-      (cA, σ) k C)
+      σ k C)
     (hbaseMem : clipperTakeMemoryWF baseMem aw)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    ∃ (cA_vat : Batteries.RBSet AccountAddress compare) (σ_vat : AccountMap)
+    ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨5193⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨5193⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
             stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
         (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem) aw outVat
-        (cA_vat, σ_vat) k' C' ∧
+        σ_vat k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat packed.toNat),
           .int (Int.ofNat lotNew.toNat)]
         (zVat,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σ_vat, substate := A_vat, createdAccounts := cA_vat },
+          { initState σStart σ₀ g A I with
+            accountMap := σ_vat, substate := A_vat },
           outVat) true ∧
       outVat.size < UInt256.size ∧
       clipperTakeMemoryWF (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem) aw := by
@@ -224,7 +224,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {cA0 cA gh bl σ₀ σStart σ I}
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA_vat, σ_vat, zVat, outVat, A_in, callGas, k5193, C5193, hΘpack,
+  obtain ⟨σ_vat, zVat, outVat, A_in, callGas, k5193, C5193, hΘpack,
       rd5193raw, houtVatSize⟩ :=
     RD.call rd5192 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_vat, hΘ⟩ := hΘpack
@@ -246,7 +246,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {cA0 cA gh bl σ₀ σStart σ I}
       MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat by
         simp [MachineState.M]]
     exact hMIn
-  refine ⟨cA_vat, σ_vat, zVat, outVat, A_vat, k5193, C5193, ?_, ?_,
+  refine ⟨σ_vat, zVat, outVat, A_vat, k5193, C5193, ?_, ?_,
     houtVatSize, clipperTakeVatFluxMemoryWF v I packed lotNew hbaseMem⟩
   · have hwrite : outVat.write 0 (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem)
         (⟨128⟩ : UInt256).toNat
@@ -257,13 +257,13 @@ theorem RD.clipperTakePostDogFluxPostCallWF {cA0 cA gh bl σ₀ σStart σ I}
     rw [hwrite, hactive] at rd5193raw
     simpa using rd5193raw
   · let evmVat : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A I with
-        accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A I with
+        accountMap := σ }
     refine callCoincides (cfg := config v) (evm := evmVat) (name := "flux")
       (args := [v.ilk, .address I.codeOwner,
         .address (AccountAddress.ofNat packed.toNat), .int (Int.ofNat lotNew.toNat)])
       (tgt := EVM.address v.vat) (targetWord := clipperTakeVatTarget v)
-      (cA' := cA_vat) (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
+      (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
       (z := zVat) (o := outVat) (g'' := g'') (callGas := callGas)
       (mem := clipperTakeVatFluxCalldataMem v I packed lotNew baseMem)
       (inOff := ⟨128⟩) (inSize := ⟨132⟩) (callPerm := true)

@@ -129,13 +129,13 @@ theorem ownerFailures : ∀ i : OwnerSite, ownerFailWf i := by
   unfold ownerFailWf
   native_decide
 
-theorem ownerPrefix {I g s0 R rdata cA σ k C} (i : OwnerSite)
+theorem ownerPrefix {I g s0 R rdata σ k C} (i : OwnerSite)
     (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (ownerComparePc i)
       (UInt256.eq (solcSourceWord I) (ownerWord σ I) :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, _⟩ := ownerPrefixes i
   have rdLoad := evm_run h with [
     raw jumpdest h0 (by evm_ov), raw push1 ⟨151⟩ h1 (by evm_ov) ]
@@ -145,21 +145,21 @@ theorem ownerPrefix {I g s0 R rdata cA σ k C} (i : OwnerSite)
     raw push1 ⟨160⟩ h5 (by evm_ov), raw shl h6 (by evm_ov), raw sub h7 (by evm_ov),
     raw and h8 (by evm_ov), raw caller h9 (by evm_ov), raw eq h10 (by evm_ov) ]⟩
 
-theorem ownerAllowed {I g s0 R rdata cA σ k C} (i : OwnerSite)
+theorem ownerAllowed {I g s0 R rdata σ k C} (i : OwnerSite)
     (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (ho : solcSourceWord I = ownerWord σ I) (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (ownerSuccessPc i) R
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd⟩ := ownerPrefix i h (by omega)
   obtain ⟨_, _, _, _, _, _, _, _, _, _, _, hp, hj, hd⟩ := ownerPrefixes i
   exact ⟨_, _, evm_run rd with [
     raw push2 (ownerSuccessPc i) hp (by evm_ov),
     raw jumpiT hj (by rw [ho, uInt256_eq_self]; decide) hd (by evm_ov) ]⟩
 
-theorem ownerDenied {I g s0 R rdata cA σ k C} (i : OwnerSite)
+theorem ownerDenied {I g s0 R rdata σ k C} (i : OwnerSite)
     (h : RD auctionBytecode I g s0 (ownerPc i) R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (ho : solcSourceWord I ≠ ownerWord σ I) (hov : R.length + 7 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd⟩ := ownerPrefix i h (by omega)

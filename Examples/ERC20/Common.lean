@@ -18,12 +18,6 @@ theorem erc20StorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [erc20Uint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
-/-- ABI-encoding a Solm `uint256` return value produces exactly the EVM's returned word bytes.
-    Re-export of `Reasoning.Theory.uint256ReturnEncoding` (`uint256 ≡ .elem (.int (.uint 256))`). -/
-theorem erc20Uint256ReturnEncoding (v : UInt256) :
-    encodeReturnValue? uint256 (.int (Int.ofNat v.toNat)) =
-      some (UInt256.toByteArray v) := uint256ReturnEncoding v
-
 /-- The shared solc return wrapper computes the fixed one-word return length. -/
 theorem erc20SubRet32_toNat :
     (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
@@ -32,36 +26,10 @@ theorem erc20SubRet32_toNat :
 /-- ERC20 jump-destination proof macro. -/
 macro "erc20_jd" : term => `(by jump_dest)
 
-/-! ## Address canonicality helpers
-
-These moved to the library — `solcAddrMask` / `solcAddrCanon_eq` / `solcAddrCanonical_of_clean` in
-`Reasoning.Solc`, and `uInt256_eq_self` / `uInt256_eq_zero_of_ne` / `land_mask160` in
-`Reasoning.EVMWord`.  The `erc20*` names are kept as thin re-exports so ERC20's call sites are
-unchanged. -/
+/-! ## Address mask in the ERC20 bytecode proof -/
 
 /-- Address-mask literal (`PUSH20 0xff…ff`) used by solc address cleanup.  See `solcAddrMask`. -/
 def erc20AddrMask : UInt256 := solcAddrMask
-
-theorem erc20Ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := uInt256_eq_self a
-
-theorem erc20Ueq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) :
-    UInt256.eq a b = ⟨0⟩ := uInt256_eq_zero_of_ne h
-
-theorem erc20Land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n :=
-  land_mask160 n h
-
-theorem erc20Canon_eq {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩ := solcAddrCanon_eq hcanon
-
-theorem erc20Word_canonical_of_clean {w : UInt256}
-    (hclean : UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩) :
-    w.toNat < EVM.addressModulus := solcAddrCanonical_of_clean hclean
-
-theorem erc20AddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land w erc20AddrMask = w := solcAddrMask_clean hcanon
-
-theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land erc20AddrMask w = w := solcAddrMask_clean_left hcanon
 
 end ERC20
 
@@ -70,7 +38,7 @@ namespace Reasoning.Reach
 /-- ERC20's solc `cleanup_t_uint256` identity routine at pc 1894. -/
 theorem RD.erc20Routine0766 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨1894⟩ (v :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 4 ≤ 1024) :
     RD erc20Bytecode ee g s0 ret (v :: R) mem aw rdata acc (k + 9) (C + 27) :=
@@ -81,7 +49,7 @@ theorem RD.erc20Routine0766 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C :
 /-- ERC20's shared solc ABI encoder for one `uint256` word at pc 2073. -/
 theorem RD.erc20RoutineEncodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hret : (D_J erc20Bytecode 0).contains ret = true) (hov : R.length + 11 ≤ 1024) :
@@ -119,7 +87,7 @@ set_option maxHeartbeats 1000000 in
     non-canonical ones revert.  `csize`, `ret`, and the working scratch are threaded untouched. -/
 theorem RD.erc20DecodeAddrMask {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 14 ≤ 1024) :
     ∃ k' C', RD erc20Bytecode ee g s0 ⟨1861⟩
@@ -149,7 +117,7 @@ set_option maxHeartbeats 400000 in
     canonicality-pass branch; shared by every successful ERC20 address decode. -/
 theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
         < EVM.addressModulus)
@@ -160,7 +128,7 @@ theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
   have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
       (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
         ERC20.erc20AddrMask) = ⟨1⟩ :=
-    ERC20.erc20Canon_eq hcanon
+    Reasoning.Theory.solcAddrCanon_eq hcanon
   exact ⟨_, _, evm_run rd with [
     jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) (by jump_dest),
     jumpdest, pop, jump (by jump_dest),
@@ -172,7 +140,7 @@ theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
     address-decode revert. -/
 theorem RD.erc20DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off csize ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨1874⟩ (off :: csize :: ret :: R) mem aw rdata acc k C)
     (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
         (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
@@ -243,7 +211,7 @@ macro "erc20_mapping_hash_wf" : term =>
     `allowance` and of the incoming scratch memory. -/
 theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc key baseSlot slot : UInt256} {R : List UInt256} {mem memKey memHash : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 pc (key :: ⟨0⟩ :: baseSlot :: R) mem
         (UInt256.ofNat 3) rdata acc k C)
     (hwf : erc20MappingHashSuffixWf pc)
@@ -280,7 +248,7 @@ namespace ERC20
 /-- ERC20's shared uint256 encoder at pc 2073, generalized to an arbitrary incoming memory. -/
 theorem erc20RoutineEncodeUint256FromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {mem memout : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc20Bytecode ee g s0 ⟨2073⟩ (⟨128⟩ :: val :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)

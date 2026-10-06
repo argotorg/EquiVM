@@ -604,17 +604,17 @@ theorem dealExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -623,23 +623,23 @@ theorem dealExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem dealExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem flopperDealBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -881,13 +881,13 @@ theorem flopperDecode_deal_none_short {I : ExecutionEnv}
   simpa [config, uint256] using
     decodeCalldata_legacyUint256_none_short (cd := I.calldata) (x := "id") hsz4 hshort
 
-theorem flopperReachDealBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flopperReachDealBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 3)) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
         ⟨804⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flopperSelWord I = ⟨0xc959c42b⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xc9 0x59 0xc4 0x2b ⟨0xc959c42b⟩
@@ -901,7 +901,7 @@ theorem flopperReachDealBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flopperReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flopperReachHighHighFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   have heq0 : ∀ j, j < 1 →
       UInt256.eq
@@ -921,14 +921,14 @@ theorem flopperReachDealBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flopperHighHighArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flopperDealX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨804⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3892⟩
+      (initState σ σ₀ g A I) ⟨804⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨3892⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flopperBytecode) (sel := sel) (entry := ⟨804⟩) (ret := ⟨334⟩)
     (decoded := ⟨826⟩) (need := ⟨32⟩) hreach
@@ -945,13 +945,13 @@ theorem flopperDealX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     simpa [dealIdWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
       using rd832.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem flopperDealX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨804⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨804⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -967,22 +967,22 @@ theorem flopperDealX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDealX_notLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3892⟩
+      (initState σ σ₀ g A I) ⟨3892⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3892⟩ := h
   have rd3895 := evm_run rd3892 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3896, C3896, rd3896raw⟩ := rd3895.sload (by native_decide) (by evm_ov)
   have rd3896 : RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3896⟩
+      (initState σ σ₀ g A I) ⟨3896⟩
       (flopperSlotWord ⟨8⟩ σ I :: dealIdWord I :: ⟨334⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3896 C3896 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3896 C3896 := by
     simpa [flopperSlotWord] using rd3896raw
   have rd3902 := evm_run rd3896 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1011,24 +1011,24 @@ theorem flopperDealX_notLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     solcFreePtrMem_read64
     (by simp)
 
-theorem flopperDealX_liveOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (h : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3892⟩
+      (initState σ σ₀ g A I) ⟨3892⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3966⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd3892⟩ := h
   have rd3895 := evm_run rd3892 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3896, C3896, rd3896raw⟩ := rd3895.sload (by native_decide) (by evm_ov)
   have rd3896 : RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3896⟩
+      (initState σ σ₀ g A I) ⟨3896⟩
       (flopperSlotWord ⟨8⟩ σ I :: dealIdWord I :: ⟨334⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3896 C3896 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3896 C3896 := by
     simpa [flopperSlotWord] using rd3896raw
   have rd3902 := evm_run rd3896 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1041,15 +1041,15 @@ theorem flopperDealX_liveOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDealX_toTicGuard
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd3966 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3966⟩
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (rd3966 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
-    ∃ k' C', RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4000⟩
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4000⟩
       [flopperUint48Offset20Word (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
-      memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memMap
   let memKey := wordAt0Mem id solcFreePtrMem
   let base := solcMappingSlot ⟨1⟩ id
@@ -1101,9 +1101,9 @@ theorem flopperDealX_toTicGuard
   rw [hpacked] at rd3984pre
   obtain ⟨k3985, C3985, rd3985raw⟩ := rd3984pre.sload (by native_decide) (by evm_ov)
   have rd3985 : RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3985⟩
+      (initState σ σ₀ g A I) ⟨3985⟩
       [flopperSlotWord (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
-      memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3985 C3985 := by
+      memMap (UInt256.ofNat 3) ByteArray.empty σ k3985 C3985 := by
     simpa [flopperSlotWord] using rd3985raw
   have rd3992 := evm_run rd3985 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1123,13 +1123,13 @@ theorem flopperDealX_toTicGuard
       using rd4000⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDealX_ticZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_ticZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I = ⟨0⟩)
     (rd3966 : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3966⟩
+      (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   let id := dealIdWord I
   let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   obtain ⟨_, _, rd3966'⟩ := rd3966
@@ -1183,17 +1183,17 @@ theorem flopperDealX_ticZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (by simp)
 
 theorem flopperDealX_ticNonzero_toTicLtStart
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
-    (rd4000 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4000⟩
+    (rd4000 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4000⟩
       [flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I, dealIdWord I,
         ⟨334⟩, sel]
       (twoWordHashMem (dealIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4009⟩
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4009⟩
       [dealIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dealIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4007 := evm_run rd4000 with [
     raw iszero (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1209,17 +1209,17 @@ theorem flopperDealX_ticNonzero_toTicLtStart
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDealX_toTicLtGuard
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd4009 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4009⟩
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (rd4009 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4009⟩
       [dealIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dealIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
     let memTic := twoWordHashMem id ⟨1⟩ (twoWordHashMem id ⟨1⟩ solcFreePtrMem)
-    ∃ k' C', RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4045⟩
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4045⟩
       [UInt256.lt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), id, ⟨334⟩, sel]
-      memTic (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memTic
   let mem0 := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memKey := wordAt0Mem id mem0
@@ -1274,9 +1274,9 @@ theorem flopperDealX_toTicLtGuard
   rw [hpacked] at rd4026pre
   obtain ⟨k4027, C4027, rd4027raw⟩ := rd4026pre.sload (by native_decide) (by evm_ov)
   have rd4027 : RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨4027⟩
+      (initState σ σ₀ g A I) ⟨4027⟩
       [flopperSlotWord (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
-      memTic (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4027 C4027 := by
+      memTic (UInt256.ofNat 3) ByteArray.empty σ k4027 C4027 := by
     simpa [flopperSlotWord] using rd4027raw
   have rd4036 := evm_run rd4027 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1300,19 +1300,19 @@ theorem flopperDealX_toTicLtGuard
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDealX_toEndLtGuard
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd4051 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4051⟩
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (rd4051 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4051⟩
       [dealIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (dealIdWord I) ⟨1⟩
         (twoWordHashMem (dealIdWord I) ⟨1⟩ solcFreePtrMem))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := dealIdWord I
     let memTic := twoWordHashMem id ⟨1⟩ (twoWordHashMem id ⟨1⟩ solcFreePtrMem)
     let memEnd := twoWordHashMem id ⟨1⟩ memTic
-    ∃ k' C', RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4087⟩
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4087⟩
       [UInt256.lt (flopperUint48Offset26Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), id, ⟨334⟩, sel]
-      memEnd (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      memEnd (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memTic memEnd
   let memKey := wordAt0Mem id memTic
   let base := solcMappingSlot ⟨1⟩ id
@@ -1363,9 +1363,9 @@ theorem flopperDealX_toEndLtGuard
   rw [hpacked] at rd4068pre
   obtain ⟨k4069, C4069, rd4069raw⟩ := rd4068pre.sload (by native_decide) (by evm_ov)
   have rd4069 : RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨4069⟩
+      (initState σ σ₀ g A I) ⟨4069⟩
       [flopperSlotWord (auctionPackedSlot id) σ I, id, ⟨334⟩, sel]
-      memEnd (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4069 C4069 := by
+      memEnd (UInt256.ofNat 3) ByteArray.empty σ k4069 C4069 := by
     simpa [flopperSlotWord] using rd4069raw
   have rd4078 := evm_run rd4069 with [
     raw timestamp (by native_decide) (by evm_ov),
@@ -1388,7 +1388,7 @@ theorem flopperDealX_toEndLtGuard
       using rd4087⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flopperDealX_notFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperDealX_notFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
     (hticGe :
       (UInt256.ofNat I.header.timestamp).toNat ≤
@@ -1397,10 +1397,10 @@ theorem flopperDealX_notFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       (UInt256.ofNat I.header.timestamp).toNat ≤
         (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat)
     (rd3966 : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3966⟩
+      (initState σ σ₀ g A I) ⟨3966⟩
       [dealIdWord I, ⟨334⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   let id := dealIdWord I
   let mem0 := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ mem0
@@ -1426,8 +1426,8 @@ theorem flopperDealX_notFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     native_decide
   rw [hpc4051] at rd4051raw
   have rd4051 : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨4051⟩
-      [id, ⟨334⟩, sel] memTic (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (initState σ σ₀ g A I) ⟨4051⟩
+      [id, ⟨334⟩, sel] memTic (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [id, memTic, hticLt] using rd4051raw⟩
   obtain ⟨_, _, rd4051'⟩ := rd4051
   obtain ⟨_, _, rd4087⟩ := flopperDealX_toEndLtGuard rd4051'

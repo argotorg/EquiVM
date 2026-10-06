@@ -34,14 +34,21 @@ translate that account-address relation to the Uniswap code-size word helper use
 rules. -/
 
 /-- `extCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
-    function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/
-theorem extCodeSizeWord_eq_ofNat_findD (σ : AccountMap) (target : UInt256) :
+    function of `(σ.getD a default).code` — the projection `accountCodeStateEq` preserves. -/
+theorem extCodeSizeWord_eq_ofNat_getD (σ : AccountMap) (target : UInt256) :
     Reasoning.Theory.extCodeSizeWord σ target
-      = UInt256.ofNat (σ.findD (AccountAddress.ofUInt256 target) default).code.size := by
+      = UInt256.ofNat (σ.getD (AccountAddress.ofUInt256 target) default).code.size := by
   unfold Reasoning.Theory.extCodeSizeWord
-  cases h : σ.find? (AccountAddress.ofUInt256 target) with
-  | none => simp [Batteries.RBMap.findD, h, Option.option]; rfl
-  | some acc => simp [Batteries.RBMap.findD, h, Option.option]
+  cases h : σ.get? (AccountAddress.ofUInt256 target) with
+  | none =>
+      have hdefault : (default : Account).code.size = 0 := by
+        native_decide
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, hdefault, h]
+      rfl
+  | some acc =>
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, h]
 
 /-- Code preservation transfers to `extCodeSizeWord`: static calls leave every account's
     `EXTCODESIZE` word unchanged. -/
@@ -49,7 +56,7 @@ theorem extCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target :
     (h : accountCodeStateEq σ σ') :
     Reasoning.Theory.extCodeSizeWord σ' target
       = Reasoning.Theory.extCodeSizeWord σ target := by
-  rw [extCodeSizeWord_eq_ofNat_findD, extCodeSizeWord_eq_ofNat_findD,
+  rw [extCodeSizeWord_eq_ofNat_getD, extCodeSizeWord_eq_ofNat_getD,
     (h (AccountAddress.ofUInt256 target)).symm]
 
 /-! ## Selector helpers -/
@@ -227,7 +234,7 @@ theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (catStorageLocLoad_address_offset0 evm slot))
 
 theorem catUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
     (hcode : I.code = catBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -235,33 +242,32 @@ theorem catUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf catBytecode entry ⟨419⟩ routine)
     (hgetter : solcWordSlotGetterWf catBytecode routine slot)
     (hroutine : (D_J catBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : catSlotWord slot σ_evm I = catSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+    rfl
   have hval :
-      some [Value.int (Int.ofNat (catSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (catSlotWord slot σ_evm I).toNat)] := by
+      some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] =
+        some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] := by
     rw [hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (catSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (catSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (catSlotWord slot σ I))
+        (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := catBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨419⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -270,13 +276,13 @@ theorem catUint256GetterBodyCore
       repeat' first | apply And.intro | native_decide)
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (catSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (catSlotWord slot σ I)) := by
     simpa [catSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem catAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
     (hcode : I.code = catBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -284,36 +290,35 @@ theorem catAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf catBytecode entry ⟨347⟩ routine)
     (hgetter : solcAddressSlotGetterWf catBytecode routine slot)
     (hroutine : (D_J catBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (catAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : catSlotWord slot σ_evm I = catSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+            (catAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+    rfl
   have hval :
-      some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : catSlotWord slot σ_solm I = catSlotWord slot σ_evm I := hword.symm
+      some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat)] =
+        some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat)] := by
+    have hslot : catSlotWord slot σ I = catSlotWord slot σ I := hword.symm
     simp [catAddressReturnWord, hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (catAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (catAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (catAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [catAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (catSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (catSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := catBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨347⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -322,10 +327,10 @@ theorem catAddressGetterBodyCore
       repeat' first | apply And.intro | native_decide)
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (catAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (catAddressReturnWord slot σ I)) := by
     simpa [catAddressReturnWord, catSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 /-! ## Selector-word extraction and split/arm well-formedness -/
 
@@ -422,14 +427,14 @@ theorem catHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 
 /-! ## Dispatcher navigation (reach the selected arm group / body) -/
 
-theorem catReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catRootSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [catRootSplitPc, catSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := catBytecode)
       (bodyPc := catDispatchBodyPc) (loadPc := catSelectorLoadPc)
       (firstPc := catRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -444,128 +449,128 @@ theorem catReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem catReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catLowSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    catReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h151 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h151 : RD catBytecode I g (initState σ σ₀ g A I)
       (armTgt catBytecode catRootSplitPc) [catSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) :=
+      (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 catRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h152 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h152 : RD catBytecode I g (initState σ σ₀ g A I)
       catLowSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [catLowSplitPc, catLowJumpdestPc, catRootSplitPc, armTgt, pushAt]
       using h151.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h152⟩
 
-theorem catReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catHighSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    catReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD catBytecode I g (initState σ σ₀ g A I)
       catHighSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [catHighSplitPc, catRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 catRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
-theorem catReachLowLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catLowLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k152, C152, h152⟩ :=
-    catReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h211 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h211 : RD catBytecode I g (initState σ σ₀ g A I)
       (armTgt catBytecode catLowSplitPc) [catSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k152 + 5) (C152 + 22) :=
+      (UInt256.ofNat 3) ByteArray.empty σ (k152 + 5) (C152 + 22) :=
     RD.selectorSplitTakenAuto h152 catLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h212 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h212 : RD catBytecode I g (initState σ σ₀ g A I)
       catLowLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k152 + 5 + 1) (C152 + 22 + 1) := by
+      ByteArray.empty σ (k152 + 5 + 1) (C152 + 22 + 1) := by
     simpa [catLowLowFirstArmPc, catLowLowJumpdestPc, catLowSplitPc, armTgt, pushAt]
       using h211.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h212⟩
 
-theorem catReachLowHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachLowHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) = ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catLowHighFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k152, C152, h152⟩ :=
-    catReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h163 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h163 : RD catBytecode I g (initState σ σ₀ g A I)
       catLowHighFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k152 + 5) (C152 + 22) := by
+      ByteArray.empty σ (k152 + 5) (C152 + 22) := by
     simpa [catLowHighFirstArmPc, catLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h152 catLowSplitWellFormed hlow (by simp)
   exact ⟨_, _, h163⟩
 
-theorem catReachHighLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catHighLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    catReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h102 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h102 : RD catBytecode I g (initState σ σ₀ g A I)
       (armTgt catBytecode catHighSplitPc) [catSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) :=
+      (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5) (C43 + 22) :=
     RD.selectorSplitTakenAuto h43 catHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h103 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h103 : RD catBytecode I g (initState σ σ₀ g A I)
       catHighLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
+      ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [catHighLowFirstArmPc, catHighLowJumpdestPc, catHighSplitPc, armTgt, pushAt]
       using h102.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h103⟩
 
-theorem catReachHighHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) = ⟨0⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         catHighHighFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    catReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD catBytecode I g (initState σ σ₀ g A I)
       catHighHighFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) := by
+      ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [catHighHighFirstArmPc, catHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 catHighSplitWellFormed hhigh (by simp)
   exact ⟨_, _, h54⟩
 
-theorem catReachLowLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachLowLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -579,17 +584,17 @@ theorem catReachLowLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (catSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J catBytecode 0).contains bodyPC = true)
     (hbody : armTgt catBytecode (nthArmPc catBytecode catLowLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         bodyPC [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    catReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachLowLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => catLowLowArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem catReachLowHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachLowHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -603,17 +608,17 @@ theorem catReachLowHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (catSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J catBytecode 0).contains bodyPC = true)
     (hbody : armTgt catBytecode (nthArmPc catBytecode catLowHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         bodyPC [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    catReachLowHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachLowHighFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => catLowHighArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem catReachHighLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachHighLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -627,17 +632,17 @@ theorem catReachHighLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (catSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J catBytecode 0).contains bodyPC = true)
     (hbody : armTgt catBytecode (nthArmPc catBytecode catHighLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         bodyPC [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    catReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachHighLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => catHighLowArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem catReachHighHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachHighHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -651,11 +656,11 @@ theorem catReachHighHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (catSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J catBytecode 0).contains bodyPC = true)
     (hbody : armTgt catBytecode (nthArmPc catBytecode catHighHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         bodyPC [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    catReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    catReachHighHighFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => catHighHighArmsWellFormed j (le_trans hj hi))
@@ -663,10 +668,10 @@ theorem catReachHighHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## Global prologue reverts (nonpayable / short calldata) -/
 
-theorem catX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide)
@@ -676,11 +681,11 @@ theorem catX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem catX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -773,26 +778,26 @@ theorem catBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
 
 /-! ## No-selector-match revert paths -/
 
-theorem catJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem catJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD catBytecode I g (initState σ σ₀ g A I) pc
+      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode catBytecode pc = some (.Push .PUSH2, some (catDispatchRevertPc, 2)))
     (hjump : decode catBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have h256 := h.push2 catDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catLowLowFirstArmPc
-      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem catLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD catBytecode I g (initState σ σ₀ g A I) catLowLowFirstArmPc
+      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowLowFirstArmPc j))
         (catSelWord I) = ⟨0⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have h256 := h
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -802,13 +807,13 @@ theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem catLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catLowHighFirstArmPc
-      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem catLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD catBytecode I g (initState σ σ₀ g A I) catLowHighFirstArmPc
+      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have htail := h
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -816,13 +821,13 @@ theorem catLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
   exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
 
-theorem catHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catHighLowFirstArmPc
-      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem catHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD catBytecode I g (initState σ σ₀ g A I) catHighLowFirstArmPc
+      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighLowFirstArmPc j))
         (catSelWord I) = ⟨0⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have htail := h
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -830,13 +835,13 @@ theorem catHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
   exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
 
-theorem catHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catHighHighFirstArmPc
-      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem catHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD catBytecode I g (initState σ σ₀ g A I) catHighHighFirstArmPc
+      [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have htail := h
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
@@ -844,11 +849,11 @@ theorem catHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
   exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
 
-theorem catX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 16 → (catSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have heqLowLow : ∀ j, j < 4 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowLowFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
@@ -936,26 +941,26 @@ theorem catX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   by_cases hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩
   · by_cases hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) ≠ ⟨0⟩
     · obtain ⟨_, _, hfirst⟩ :=
-        catReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        catReachLowLowFirstArm (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
       exact catLowLowNoMatchRevert hfirst heqLowLow
     · have hlow0 : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) = ⟨0⟩ := by
         by_contra hne; exact hlow hne
       obtain ⟨_, _, hfirst⟩ :=
-        catReachLowHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        catReachLowHighFirstArm (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow0
       exact catLowHighNoMatchRevert hfirst heqLowHigh
   · have hroot0 : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
       by_contra hne; exact hroot hne
     by_cases hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) ≠ ⟨0⟩
     · obtain ⟨_, _, hfirst⟩ :=
-        catReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        catReachHighLowFirstArm (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh
       exact catHighLowNoMatchRevert hfirst heqHighLow
     · have hhigh0 : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) = ⟨0⟩ := by
         by_contra hne; exact hhigh hne
       obtain ⟨_, _, hfirst⟩ :=
-        catReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        catReachHighHighFirstArm (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh0
       exact catHighHighNoMatchRevert hfirst heqHighHigh
 

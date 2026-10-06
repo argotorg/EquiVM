@@ -23,21 +23,21 @@ PC, then hands control to one per-function body theorem.
 -/
 
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
-theorem simpleAuctionShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem simpleAuctionShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+      σ σ₀ g A I := by
   exact (simpleAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
     (simpleAuctionDispatch_none_short hsz)
 
 /-- `size ≥ 4` but no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
-theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (simpleAuctionX_noMatch (g := Sat256.ofUInt256 g) hcode hsz hsize hnm)
       |>.reEquivNoDispatch hcode (simpleAuctionDispatch_none_nomatch hnm)
@@ -48,8 +48,8 @@ theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
     runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
-      hAccounts => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize hperm
+      => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x19, 0x98, 0xae, 0xef]⟩
     · exact simpleAuctionBidBody hcode hsize hperm h0
@@ -61,7 +61,6 @@ theorem simpleAuctionCorrect :
           (simpleAuctionLowMatches 0 (by omega) hsz
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).2
           (by jump_dest) (by decide))
-        hAccounts
     · by_cases h1 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
       · exact simpleAuctionWithdrawBody hcode hsize hperm h1
           (simpleAuctionReachHighBody 0 (by omega) ⟨203⟩ hcode hsz hsize
@@ -72,7 +71,6 @@ theorem simpleAuctionCorrect :
             (simpleAuctionHighMatches 0 (by omega) hsz
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).2
             (by jump_dest) (by decide))
-          hAccounts
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
         · exact simpleAuctionAuctionEndBody hcode hperm h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
@@ -83,7 +81,6 @@ theorem simpleAuctionCorrect :
               (simpleAuctionLowMatches 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).2
               (by jump_dest) (by decide))
-            hAccounts
         · by_cases h3 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
           · exact simpleAuctionBeneficiaryBody hcode hsize hperm h3
               (simpleAuctionReachLowBody 2 (by omega) ⟨144⟩ hcode hsz hsize
@@ -94,7 +91,6 @@ theorem simpleAuctionCorrect :
                 (simpleAuctionLowMatches 2 (by omega) hsz
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).2
                 (by jump_dest) (by decide))
-              hAccounts
           · by_cases h4 : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩
             · exact simpleAuctionAuctionEndTimeBody hcode hsize hperm h4
                 (simpleAuctionReachHighBody 1 (by omega) ⟨239⟩ hcode hsz hsize
@@ -105,7 +101,6 @@ theorem simpleAuctionCorrect :
                   (simpleAuctionHighMatches 1 (by omega) hsz
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).2
                   (by jump_dest) (by decide))
-                hAccounts
             · by_cases h5 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
               · exact simpleAuctionHighestBidderBody hcode hsize hperm h5
                   (simpleAuctionReachHighBody 2 (by omega) ⟨274⟩ hcode hsz hsize
@@ -116,7 +111,6 @@ theorem simpleAuctionCorrect :
                     (simpleAuctionHighMatches 2 (by omega) hsz
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).2
                     (by jump_dest) (by decide))
-                  hAccounts
               · by_cases h6 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
                 · exact simpleAuctionHighestBidBody hcode hsize hperm h6
                     (simpleAuctionReachHighBody 3 (by omega) ⟨305⟩ hcode hsz hsize
@@ -127,7 +121,6 @@ theorem simpleAuctionCorrect :
                       (simpleAuctionHighMatches 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).2
                       (by jump_dest) (by decide))
-                    hAccounts
                 · refine simpleAuctionNoDispatch hcode hsize hperm ?_
                   intro i hi
                   interval_cases i
@@ -423,9 +416,6 @@ theorem simpleAuctionReturnMem_read (biddingTime : UInt256)
   rw [hleft, simpleAuctionInitcode_runtime_window]
 
 theorem simpleAuctionInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -435,11 +425,11 @@ theorem simpleAuctionInitcodeNonpayableRevert
     (hcode : I.code = simpleAuctionInitcode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (simpleAuctionInitcode ++ tail) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (simpleAuctionInitcode ++ tail) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd6 := simple_ctor_run rd0 with [
     callvalue, dup1, iszero, push1 ⟨9⟩, jumpiNT (isZero_eq_zero_of_ne hwv)]
@@ -447,9 +437,6 @@ theorem simpleAuctionInitcodeNonpayableRevert
     (by simp)
 
 theorem simpleAuctionInitcodeOverflowRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -462,14 +449,14 @@ theorem simpleAuctionInitcodeOverflowRevert
     (hwv : I.weiValue = ⟨0⟩)
     (hover : UInt256.size ≤ (UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) :
     RDrev (simpleAuctionCtorCode biddingTime beneficiaryAddress) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
     have rd0 :
         RD (simpleAuctionCtorCode biddingTime beneficiaryAddress) I g
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-          ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+          (initState σ σ₀ g A I) ⟨0⟩ []
+          ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
       RD.initState hcode
     let oldBeneficiarySlot : UInt256 :=
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
     have rdBeforeSload := simple_ctor_run rd0 with [
       callvalue, dup1, iszero, push1 ⟨9⟩,
       jumpiT (by rw [hwv]; decide) (by simple_ctor_jd),
@@ -524,9 +511,6 @@ theorem simpleAuctionInitcodeOverflowRevert
       (by simp)
 
 theorem simpleAuctionInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -539,22 +523,21 @@ theorem simpleAuctionInitcodeSuccess
     (hwv : I.weiValue = ⟨0⟩)
     (hno : ¬ UInt256.size ≤ (UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) :
     RDret (simpleAuctionCtorCode biddingTime beneficiaryAddress) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨0⟩
             (simpleAuctionSetAddressWord
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
               (EVM.word beneficiaryAddress)))
           ⟨1⟩ (biddingTime + UInt256.ofNat I.header.timestamp))
       simpleAuctionBytecode := by
   have rd0 :
       RD (simpleAuctionCtorCode biddingTime beneficiaryAddress) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   let oldBeneficiarySlot : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWord : UInt256 :=
     simpleAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress)
   have rdBeforeSload := simple_ctor_run rd0 with [
@@ -869,9 +852,6 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
     (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat))
 
 theorem simpleAuctionSolmCtorExecReverts_overflow
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -886,9 +866,9 @@ theorem simpleAuctionSolmCtorExecReverts_overflow
       (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
     solmCtorExec simpleAuctionConfig simpleAuctionContract
       [.int biddingTime, .address beneficiaryAddress]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := simpleAuctionCtorLocals biddingTime beneficiaryAddress)
     ?_ rfl ?_ ?_
   · rfl
@@ -897,7 +877,7 @@ theorem simpleAuctionSolmCtorExecReverts_overflow
     let frame : Frame :=
       { contract := simpleAuctionContract,
         locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := simpleAuctionCtorAfterBeneficiaryState evm0 beneficiaryAddress
     have hlookupBeneficiary :
         (simpleAuctionCtorLocals biddingTime beneficiaryAddress).get? "beneficiaryAddress" =
@@ -926,7 +906,7 @@ theorem simpleAuctionSolmCtorExecReverts_overflow
         (by
           unfold evm1 evm0 frame
           exact simpleAuctionCtorAssignBeneficiary
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             biddingTime beneficiaryAddress)
     · exact ExecBlock.consRevert
         (ExecStmt.assignExprRevert
@@ -938,9 +918,6 @@ theorem simpleAuctionSolmCtorExecReverts_overflow
                 using hover)))
 
 theorem simpleAuctionSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -951,9 +928,9 @@ theorem simpleAuctionSolmCtorExecReverts_nonpayable
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec simpleAuctionConfig simpleAuctionContract
       [.int biddingTime, .address beneficiaryAddress]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := Std.HashMap.ofList
       (List.zip (simpleAuctionContract.ctor.params.map Param.name)
         [.int biddingTime, .address beneficiaryAddress]))
@@ -966,9 +943,6 @@ theorem simpleAuctionSolmCtorExecReverts_nonpayable
       hwv
 
 theorem simpleAuctionSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -983,19 +957,19 @@ theorem simpleAuctionSolmCtorExecSuccess
       (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
     solmCtorExec simpleAuctionConfig simpleAuctionContract
       [.int biddingTime, .address beneficiaryAddress]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned
         { contract := simpleAuctionContract,
           locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
         (Solm.EVM.storageStore
           (simpleAuctionCtorAfterBeneficiaryState
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             beneficiaryAddress)
           I.codeOwner ⟨1⟩
           (EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat)))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := simpleAuctionCtorLocals biddingTime beneficiaryAddress)
     ?_ rfl ?_ ?_
   · rfl
@@ -1004,7 +978,7 @@ theorem simpleAuctionSolmCtorExecSuccess
     let frame : Frame :=
       { contract := simpleAuctionContract,
         locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := simpleAuctionCtorAfterBeneficiaryState evm0 beneficiaryAddress
     let auctionEndWord : UInt256 :=
       EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat)
@@ -1024,7 +998,7 @@ theorem simpleAuctionSolmCtorExecSuccess
         (by
           unfold evm1 evm0 frame
           exact simpleAuctionCtorAssignBeneficiary
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             biddingTime beneficiaryAddress)
     · refine ExecBlock.consNormal ?_ ExecBlock.nil
       exact ExecStmt.assign (value := .int (Int.ofNat auctionEndWord.toNat))
@@ -1033,7 +1007,7 @@ theorem simpleAuctionSolmCtorExecSuccess
           simpa [simpleAuctionCtorAfterBeneficiaryState, storageStore_executionEnv, initState]
             using simpleAuctionCtorAuctionEndExprOK
               (simpleAuctionCtorAfterBeneficiaryState
-                (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 beneficiaryAddress)
               biddingTime beneficiaryAddress h0 hlt (by
                 simpa [simpleAuctionCtorAfterBeneficiaryState, storageStore_executionEnv, initState]
@@ -1043,18 +1017,14 @@ theorem simpleAuctionSolmCtorExecSuccess
           simpa [simpleAuctionCtorAfterBeneficiaryState, storageStore_executionEnv, initState]
             using simpleAuctionCtorAssignAuctionEndTime
               (simpleAuctionCtorAfterBeneficiaryState
-                (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 beneficiaryAddress)
               biddingTime beneficiaryAddress h0 hlt (by
                 simpa [simpleAuctionCtorAfterBeneficiaryState, storageStore_executionEnv, initState]
                   using hno))
 
 theorem simpleAuctionConstructorEquiv_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
-    {σ_evm : AccountMap}
-    {σ_solm : AccountMap}
+    {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
     {A : Substate}
@@ -1065,10 +1035,8 @@ theorem simpleAuctionConstructorEquiv_nonpayable
     (hcode : I.code = deployedInitcode)
     (_hcalldata : I.calldata = .empty)
     (_hperm : I.perm = true)
-    (_hσ : accountMapEquiv σ_evm σ_solm)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args createdAccounts
-      genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I simpleAuctionBytecode := by
+    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, _h0, _hlt, hdeployed⟩
   subst args
@@ -1080,24 +1048,18 @@ theorem simpleAuctionConstructorEquiv_nonpayable
     simp only [tail, bidWordBytes, beneficiaryWordBytes]
     rw [ByteArray.append_assoc]
   have hrd := simpleAuctionInitcodeNonpayableRevert
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) tail hcodeTail hwv
   rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
   · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
   · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
       (simpleAuctionSolmCtorExecReverts_nonpayable
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress hwv) ?_
     exact ctorResultEquiv.revert rfl rfl
 
 theorem simpleAuctionConstructorEquiv_overflow
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
-    {σ_evm : AccountMap}
-    {σ_solm : AccountMap}
+    {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
     {A : Substate}
@@ -1108,15 +1070,13 @@ theorem simpleAuctionConstructorEquiv_overflow
     (hcode : I.code = deployedInitcode)
     (_hcalldata : I.calldata = .empty)
     (hperm : I.perm = true)
-    (_hσ : accountMapEquiv σ_evm σ_solm)
     (hwv : I.weiValue = ⟨0⟩)
     (hoverShape : ∀ biddingTime : Int, 0 ≤ biddingTime →
       biddingTime < Int.ofNat (EVM.twoPow 256) →
       args.head? = some (.int biddingTime) →
       UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args createdAccounts
-      genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I simpleAuctionBytecode := by
+    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1129,25 +1089,19 @@ theorem simpleAuctionConstructorEquiv_overflow
     unfold simpleAuctionCtorCode simpleAuctionCtorArgTail
     rw [ByteArray.append_assoc]
   have hrd := simpleAuctionInitcodeOverflowRevert
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (EVM.word biddingTime.toNat) beneficiaryAddress hcodeCtor
     hperm hwv hover
   rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
   · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
   · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
       (simpleAuctionSolmCtorExecReverts_overflow
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress h0 hlt hwv hover) ?_
     exact ctorResultEquiv.revert rfl rfl
 
 theorem simpleAuctionConstructorEquiv_success
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
-    {σ_evm : AccountMap}
-    {σ_solm : AccountMap}
+    {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
     {A : Substate}
@@ -1158,15 +1112,13 @@ theorem simpleAuctionConstructorEquiv_success
     (hcode : I.code = deployedInitcode)
     (_hcalldata : I.calldata = .empty)
     (hperm : I.perm = true)
-    (hσ : accountMapEquiv σ_evm σ_solm)
     (hwv : I.weiValue = ⟨0⟩)
     (hnoShape : ∀ biddingTime : Int, 0 ≤ biddingTime →
       biddingTime < Int.ofNat (EVM.twoPow 256) →
       args.head? = some (.int biddingTime) →
       ¬ UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat) :
-    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args createdAccounts
-      genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I simpleAuctionBytecode := by
+    constructorEquivalenceFor simpleAuctionConfig simpleAuctionContract args σ σ₀ g A I simpleAuctionBytecode := by
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1179,8 +1131,7 @@ theorem simpleAuctionConstructorEquiv_success
     unfold simpleAuctionCtorCode simpleAuctionCtorArgTail
     rw [ByteArray.append_assoc]
   have hrd := simpleAuctionInitcodeSuccess
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (EVM.word biddingTime.toNat) beneficiaryAddress hcodeCtor
     hperm hwv hno
   rcases hrd with hOOG | ⟨s, hX, hacc⟩
@@ -1193,55 +1144,39 @@ theorem simpleAuctionConstructorEquiv_success
       simpa [Sat256.ofUInt256] using hX)
     let beneficiaryStoreWordEvm : UInt256 :=
       simpleAuctionSetAddressWord
-        (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
-        (EVM.word beneficiaryAddress)
-    let beneficiaryStoreWordSolm : UInt256 :=
-      simpleAuctionSetAddressWord
-        (σ_solm.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+        (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
         (EVM.word beneficiaryAddress)
     let auctionEndWordEvm : UInt256 :=
       EVM.word biddingTime.toNat + UInt256.ofNat I.header.timestamp
-    let auctionEndWordSolm : UInt256 :=
-      EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat)
-    have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
     have hσ' : s.accountMap =
         sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨0⟩ beneficiaryStoreWordEvm)
+          (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWordEvm)
           ⟨1⟩ auctionEndWordEvm := by
-      simpa [beneficiaryStoreWordEvm, auctionEndWordEvm] using congrArg Prod.snd hacc
-    rw [hcA, hσ'] at hsuccess
+      simpa [beneficiaryStoreWordEvm, auctionEndWordEvm] using hacc
+    rw [hσ'] at hsuccess
     refine constructorEquivalenceFor.execution hsuccess
       (simpleAuctionSolmCtorExecSuccess
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress h0 hlt hwv hno) ?_
-    refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-    · simp only [storageStore_createdAccounts, initState, simpleAuctionCtorAfterBeneficiaryState]
-    · have hOldSlot :
-          (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩)) =
-            (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-              (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩)) := by
-        exact accountMapEquiv_storage_findD hσ I.codeOwner ⟨0⟩ ⟨0⟩
-      have hAuctionEnd :
+    refine ctorResultEquiv.success rfl rfl ?_ rfl
+    · have hAuctionEnd :
           EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) =
             auctionEndWordEvm := by
         unfold auctionEndWordEvm
         exact simpleAuctionCtorAuctionEndWord_eq
-          (initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           biddingTime h0 hlt (by simpa [initState] using hno)
       simp only [storageStore_accountMap, initState, simpleAuctionCtorAfterBeneficiaryState]
       simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      rw [← hOldSlot, hAuctionEnd]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨1⟩ auctionEndWordEvm
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ beneficiaryStoreWordEvm hσ)
+      rw [hAuctionEnd]
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem simpleAuctionConstructorCorrect :
     constructorEquivalence simpleAuctionConfig simpleAuctionInitcode simpleAuctionContract
       simpleAuctionBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode hcalldata hperm hσ
+  intro σ σ₀ g A I
+      args deployedInitcode hdeploy hcode hcalldata hperm
   rcases simpleAuctionDeployment_shape hdeploy with
     ⟨biddingTime, beneficiaryAddress, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1249,10 +1184,9 @@ theorem simpleAuctionConstructorCorrect :
   · by_cases hover : UInt256.size ≤
         (UInt256.ofNat I.header.timestamp).toNat + (EVM.word biddingTime.toNat).toNat
     · exact simpleAuctionConstructorEquiv_overflow
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (g := g) (A := A) (I := I) (args := [.int biddingTime, .address beneficiaryAddress])
-        (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hσ hwv
+        (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hwv
         (by
           intro biddingTime' _h0' _hlt' hhead
           simp only [List.head?_cons] at hhead
@@ -1261,10 +1195,9 @@ theorem simpleAuctionConstructorCorrect :
           subst biddingTime'
           exact hover)
     · exact simpleAuctionConstructorEquiv_success
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (g := g) (A := A) (I := I) (args := [.int biddingTime, .address beneficiaryAddress])
-        (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hσ hwv
+        (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hwv
         (by
           intro biddingTime' _h0' _hlt' hhead
           simp only [List.head?_cons] at hhead
@@ -1273,10 +1206,9 @@ theorem simpleAuctionConstructorCorrect :
           subst biddingTime'
           exact hover)
   · exact simpleAuctionConstructorEquiv_nonpayable
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (g := g) (A := A) (I := I) (args := [.int biddingTime, .address beneficiaryAddress])
-      (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hσ hwv
+      (deployedInitcode := deployedInitcode) hdeploy hcode hcalldata hperm hwv
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem simpleAuctionContractCorrect :

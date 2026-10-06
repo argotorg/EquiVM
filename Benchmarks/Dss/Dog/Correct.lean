@@ -76,58 +76,51 @@ theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     runtimeEquivalence (config v) code (contract v) := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
-    · exact dogDirtBodyCore hpatch hcode hsize hperm hwv hDirt hAccounts
+    · exact dogDirtBodyCore hpatch hcode hsize hperm hwv hDirt
     · by_cases hHole : selIs I (dogSelBytes 1)
-      · exact dogHoleBodyCore hpatch hcode hsize hperm hwv hHole hAccounts
+      · exact dogHoleBodyCore hpatch hcode hsize hperm hwv hHole
       · by_cases hBark : selIs I (dogSelBytes 2)
-        · exact dogBarkBodyCore hpatch hcode hsize hperm hwv hBark hAccounts
+        · exact dogBarkBodyCore hpatch hcode hsize hperm hwv hBark
         · by_cases hCage : selIs I (dogSelBytes 3)
-          · exact dogCageBodyCore hpatch hcode hsize hperm hwv hCage hAccounts
+          · exact dogCageBodyCore hpatch hcode hsize hperm hwv hCage
           · by_cases hChop : selIs I (dogSelBytes 4)
-            · exact dogChopBodyCore hpatch hcode hsize hperm hwv hChop hAccounts
+            · exact dogChopBodyCore hpatch hcode hsize hperm hwv hChop
             · by_cases hDeny : selIs I (dogSelBytes 5)
-              · exact dogDenyBodyCore hpatch hcode hsize hperm hwv hDeny hAccounts
+              · exact dogDenyBodyCore hpatch hcode hsize hperm hwv hDeny
               · by_cases hDigs : selIs I (dogSelBytes 6)
-                · exact dogDigsBodyCore hpatch hcode hsize hperm hwv hDigs hAccounts
+                · exact dogDigsBodyCore hpatch hcode hsize hperm hwv hDigs
                 · by_cases hFileIlkUint : selIs I (dogSelBytes 7)
                   · exact dogFileIlkUintBodyCore hpatch hcode hsize hperm hwv
-                      hFileIlkUint hAccounts
+                      hFileIlkUint
                   · by_cases hFileUint : selIs I (dogSelBytes 8)
                     · exact dogFileUintBodyCore hpatch hcode hsize hperm hwv hFileUint
-                        hAccounts
                     · by_cases hFileAddress : selIs I (dogSelBytes 9)
                       · exact dogFileAddressBodyCore hpatch hcode hsize hperm hwv
-                          hFileAddress hAccounts
+                          hFileAddress
                       · by_cases hFileIlkClip : selIs I (dogSelBytes 10)
                         · exact dogFileIlkClipBodyCore hpatch hcode hsize hperm hwv
-                            hFileIlkClip hAccounts
+                            hFileIlkClip
                         · by_cases hIlks : selIs I (dogSelBytes 11)
                           · exact dogIlksBodyCore hpatch hcode hsize hperm hwv hIlks
-                              hAccounts
                           · by_cases hLive : selIs I (dogSelBytes 12)
                             · exact dogLiveBodyCore hpatch hcode hsize hperm hwv hLive
-                                hAccounts
                             · by_cases hRely : selIs I (dogSelBytes 13)
                               · exact dogRelyBodyCore hpatch hcode hsize hperm hwv hRely
-                                  hAccounts
                               · by_cases hVat : selIs I (dogSelBytes 14)
                                 · exact dogVatBodyCore hpatch hcode hsize hperm hwv hVat
-                                    hAccounts
                                 · by_cases hVow : selIs I (dogSelBytes 15)
                                   · exact dogVowBodyCore hpatch hcode hsize hperm hwv hVow
-                                      hAccounts
                                   · by_cases hWards : selIs I (dogSelBytes 16)
                                     · exact dogWardsBodyCore hpatch hcode hsize hperm hwv
-                                        hWards hAccounts
+                                        hWards
                                     · exact dogNoDispatch hpatch hcode hsize hperm hwv
                                         (dogNoSelectorMatches hDirt hHole hBark hCage
                                           hChop hDeny hDigs hFileIlkUint hFileUint
                                           hFileAddress hFileIlkClip hIlks hLive hRely
                                           hVat hVow hWards)
-                                        hAccounts
   · exact dogNonPayable hpatch hcode hwv
 
 theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}

@@ -66,13 +66,13 @@ theorem vatDispatchNope {I : ExecutionEnv}
     liveSelectorBytes, moveSelectorBytes, nopeSelectorBytes]
   native_decide
 
-theorem vatReachNopeBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachNopeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 20)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨1467⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0xdc4d20fa⟩ :=
     vatSelWord_eq_of_beq I hsz 0xdc 0x4d 0x20 0xfa ⟨0xdc4d20fa⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -100,14 +100,14 @@ theorem vatReachNopeBody {cA gh bl σ σ₀ A I} {g : Sat256}
     hroot hhigh hhighhigh heq0 htake (by jump_dest) (by native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem vatNopeX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatNopeX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨6131⟩
+      (initState σ σ₀ g A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨6131⟩
         [hopeUsrMaskedWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1467⟩) (ret := ⟨524⟩)
     (decoded := ⟨1489⟩) hreach
@@ -123,13 +123,13 @@ theorem vatNopeX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [hopeUsrMaskedWord, hopeUsrWord, calldataWord] using hroutine⟩
 
-theorem vatNopeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatNopeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -145,13 +145,13 @@ theorem vatNopeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem vatNopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem vatNopeX_storeOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD vatBytecode I g s0 ⟨6131⟩
       [hopeUsrMaskedWord I, ⟨524⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret vatBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ (hopeStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -229,7 +229,7 @@ theorem vatNopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   simpa [hopeStorageSlot_eq_innerSlot I] using RD.stop rd525 (by native_decide) (by evm_ov)
 
 theorem vatNopeBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -238,11 +238,10 @@ theorem vatNopeBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (nopeTransition.params.map Param.name)
         (transitionSignature nopeTransition).paramTypes I.calldata = some (hopeStore I))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (hopeStore I)
         nopeTransition.body
@@ -255,40 +254,37 @@ theorem vatNopeBodyCoreOk
   obtain ⟨_, _, rd6131⟩ := vatNopeX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   exact (vatNopeX_storeOk (I := I) hperm rd6131)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [nopePostState, evmSolm, initState, storageStore_createdAccounts])
-      (by
-        simpa [nopePostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (hopeStorageSlot I) ⟨0⟩ hAccounts)
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+      (by simp [nopePostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [nopeTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem vatNopeBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some nopeTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (vatNopeX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (vatDecode_nope_none_short hsz4 hshort)
 
 theorem vatNopeBodyCore : VatBodyTheorem 20 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 20) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some nopeTransition :=
     vatDispatchNope hsel
-  have hreach := vatReachNopeBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachNopeBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact vatNopeBodyCoreOk hcode hsize hperm hwv hsz36 hdispatch
-      (vatDecode_nope_ok hsz36) hreach hAccounts
+      (vatDecode_nope_ok hsz36) hreach
   · exact vatNopeBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

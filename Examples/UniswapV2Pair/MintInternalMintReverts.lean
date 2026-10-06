@@ -124,7 +124,7 @@ theorem RD.solcErrorStringRevertTail_feeToStaticcall_size164
     {code : ByteArray} {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem feeToStaticcallActiveWords rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -203,7 +203,7 @@ theorem RD.solcErrorStringRevertTail_size164 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -276,7 +276,7 @@ theorem RD.solcCheckedAddStringRevert_size164 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hadd : solcCheckedAddSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
@@ -330,7 +330,7 @@ theorem RD.solcCheckedAddStringRevert_feeToStaticcall_size164
     {code : ByteArray} {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc okPc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem feeToStaticcallActiveWords rdata acc k C)
     (hadd : solcCheckedAddSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
@@ -383,7 +383,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
       mem feeToStaticcallActiveWords rdata acc k C)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
@@ -409,11 +409,11 @@ theorem RD.uniswapSafeMathAddOverflow_feeToStaticcall_size164
 set_option maxHeartbeats 1000000 in
 theorem uniswapInternalMintRuntimeTotalSupplyOverflowReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
     (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
-      (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hover : UInt256.size ≤ (uniswapSlotWord ⟨0⟩ σ ee).toNat + value.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -429,11 +429,11 @@ theorem uniswapInternalMintRuntimeTotalSupplyOverflowReverts
 set_option maxHeartbeats 1000000 in
 theorem uniswapInternalMintRuntimeBalanceOverflowReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {value recipient ret : UInt256} {R : List UInt256}
     (rd8128 : RD uniswapV2PairBytecode ee g s0 ⟨8128⟩
-      (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      (value :: recipient :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : ee.perm = true)
     (htotalFit : (uniswapSlotWord ⟨0⟩ σ ee).toNat + value.toNat < UInt256.size)
     (hover :

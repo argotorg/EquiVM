@@ -51,16 +51,16 @@ theorem cureDecode_deny_none_short {I : ExecutionEnv}
   simpa [config, denyTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort)
 
-theorem cureReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 2)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨732⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨732⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x9c52a7f1⟩ :=
     cureSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨732⟩ 0 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
@@ -72,9 +72,9 @@ abbrev cureDenyEventTopic : UInt256 :=
 
 theorem RD.cureDenyStoreZero {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨3517⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hperm : ee.perm = true)
     (hmem : mem.size = 96)
@@ -83,7 +83,7 @@ theorem RD.cureDenyStoreZero {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -160,14 +160,13 @@ theorem RD.cureDenyStoreZero {g : Sat256} {s0 : State}
   have rdPop := rdLogged.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rdPop.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 2)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
@@ -177,7 +176,7 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (cureSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     cureDispatchDeny hsel
-  have hreach := cureReachDenyBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := cureReachDenyBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -188,10 +187,6 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       cureDecode_deny_ok hsz36
     have hslot : denySlotFor I = slot := by
       simp [slot, key, denySlotFor_eq]
-    have hcallerWord : cureSlotWord callerSlot σ_evm I = cureSlotWord callerSlot σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-    have hliveWord : cureSlotWord ⟨1⟩ σ_evm I = cureSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
     obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
       (code := cureBytecode) (sel := sel) (entry := ⟨732⟩) (ret := ⟨484⟩)
       (decoded := ⟨754⟩) hreach
@@ -205,11 +200,8 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-    by_cases hauthEvm : cureSlotWord callerSlot σ_evm I = ⟨1⟩
-    · have hauthSolm : cureSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-        rw [← hcallerWord]
-        exact hauthEvm
-      have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+    by_cases hauthEvm : cureSlotWord callerSlot σ I = ⟨1⟩
+    · have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
         simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
       obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
         (code := cureBytecode) (pc := ⟨3356⟩) (okPc := ⟨3446⟩) (key := key)
@@ -219,23 +211,20 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           unfold cureAuthCheckWf
           repeat' first | apply And.intro | native_decide)
         hauthSolc (by jump_dest) (by simp)
-      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
-          rw [← hliveWord]
-          exact hliveEvm
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩
+      · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
         have hbody :
             ExecTransitionBody config contract evm0 locals denyTransition.body
               (.returned { contract := contract, locals := locals } evm1 none) := by
-          have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguardAuth := cureAuthGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
-            (by simp [locals]) hauthSolm
-          have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+            (by simp [locals]) hauthEvm
+          have hguardLive := cureLiveGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
-            (by simp [locals]) hliveSolm
+            (by simp [locals]) hliveEvm
           have hassign :
               assignStorageRef? config { contract := contract, locals := locals } evm0
                 .storage (wardsRef (.var "usr")) (.int 0) =
@@ -274,7 +263,7 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               ExecBlock.nil
           simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1] using
             ExecFuncBody.execBlockOK hblock
-        have hliveSolc : solcSlotWord σ_evm I ⟨1⟩ = ⟨1⟩ := by
+        have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
           simpa [cureSlotWord] using hliveEvm
         obtain ⟨_, _, hstorePc⟩ := RD.cureLiveGuardOk
           (code := cureBytecode) (pc := ⟨3446⟩) (okPc := ⟨3517⟩) (key := key)
@@ -296,41 +285,34 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
           exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
         obtain ⟨_, _, hretPc⟩ := RD.cureDenyStoreZero
-          (g := Sat256.ofUInt256 g) (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+          (g := Sat256.ofUInt256 g) (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
           hstorePc (by jump_dest) hperm hmemAuth hread64 hcanonKey (by simp)
         have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
         have hret :
             RDret cureBytecode (Sat256.ofUInt256 g)
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-              (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩) ByteArray.empty := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
           simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
-        have hcreated :
-            (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).1 = evm1.createdAccounts := by
-          simp [evm1, evm0, initState, storageStore_createdAccounts]
         have haccounts :
-            accountMapEquiv (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).2
-              evm1.accountMap := by
-          simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨0⟩ hAccounts
+            sstoreAccountMap I.codeOwner σ slot ⟨0⟩ = evm1.accountMap := by
+          simp [evm1, evm0, initState, storageStore_accountMap, hslot]
         have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
           rw [show denyTransition.returnType = [] by rfl]
           exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-          hcreated haccounts henc
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I ≠ ⟨1⟩ := by
-          intro hsolm
-          exact hliveEvm (by rw [hliveWord, hsolm])
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+          haccounts henc
+      ·
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
-          have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguardAuth := cureAuthGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
-            (by simp [locals]) hauthSolm
-          have hguardLive := cureLiveGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+            (by simp [locals]) hauthEvm
+          have hguardLive := cureLiveGuardEval_false
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
-            (by simp [locals]) hliveSolm
+            (by simp [locals]) hliveEvm
           have hblock :
               ExecBlock config { contract := contract, locals := locals } evm0
                 [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
@@ -344,7 +326,7 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact ExecBlock.consRevert (ExecStmt.requireFalse hguardLive)
           simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0] using
             ExecFuncBody.execBlockRevert hblock
-        have hliveSolc : solcSlotWord σ_evm I ⟨1⟩ ≠ ⟨1⟩ := by
+        have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨1⟩ := by
           simpa [cureSlotWord] using hliveEvm
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -365,15 +347,13 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             repeat' first | apply And.intro | native_decide)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
-        intro hsolm
-        exact hauthEvm (by rw [hcallerWord, hsolm])
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    ·
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
-        have hguard := cureAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguard := cureAuthGuardEval_false
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
-          (by simp [locals]) hauthSolm
+          (by simp [locals]) hauthEvm
         have hblock := nonpayableSecondRequireReverts
           (cfg := config) (solm := { contract := contract, locals := locals })
           (evm := evm0)
@@ -385,7 +365,7 @@ theorem cureDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           hguard
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0] using
           ExecFuncBody.execBlockRevert hblock
-      have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+      have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
         simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
       have hrev := RD.cureAuthCheckRevert
         (code := cureBytecode) (pc := ⟨3356⟩) (okPc := ⟨3446⟩) (key := key)

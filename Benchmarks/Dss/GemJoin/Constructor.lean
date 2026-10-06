@@ -16,17 +16,17 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -35,47 +35,35 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 private theorem storageStore_substate_ctor (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 private theorem storageStore_sigma0_ctor (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_blocks_ctor (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_genesisBlockHeader_ctor (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 private theorem evmAddress_accountAddress_ctor (a : AccountAddress) :
     EVM.address a = a := by
@@ -83,34 +71,30 @@ private theorem evmAddress_accountAddress_ctor (a : AccountAddress) :
   simp [EVM.address, EVM.uintN]
   exact Nat.mod_eq_of_lt (by simpa [EVM.twoPow, AccountAddress.size] using a.isLt)
 
-private theorem RDret.xiResultAcc {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+private theorem RDret.xiResultAcc {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
+    {g : Sat256} {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc.1, acc.2, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I =
+          .ok (.success (σ', g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hcA : s.createdAccounts = acc.1 := congrArg Prod.fst hacc
-    have hσ : s.accountMap = acc.2 := congrArg Prod.snd hacc
+  · have hσ : s.accountMap = σ' := hacc
     have hxi := Xi_success_of_X (g := g.toUInt256) (by
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hcA, hσ] at hxi
+    rw [hσ] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem gemJoinCtorPrefixStateEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
-    (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let evm0e := initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I
-    let evm0s := initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) :
+    let evm0e := initState σ σ₀ g A I
+    let evm0s := initState σ σ₀ g A I
     let evm1e := gemJoinCtorAfterWardsState evm0e
     let evm1s := gemJoinCtorAfterWardsState evm0s
     let evm2e := gemJoinCtorAfterLiveState evm1e
@@ -121,53 +105,14 @@ theorem gemJoinCtorPrefixStateEquiv
     let evm4s := gemJoinCtorAfterIlkState evm3s ilk
     let evm5e := gemJoinCtorAfterGemState evm4e gem
     let evm5s := gemJoinCtorAfterGemState evm4s gem
-    EVMStateEquiv evm5e evm5s := by
+    evm5e.accountMap = evm5s.accountMap := by
   intro evm0e evm0s evm1e evm1s evm2e evm2s evm3e evm3s evm4e evm4s evm5e evm5s
-  have h0 : EVMStateEquiv evm0e evm0s := by
-    simpa [evm0e, evm0s] using EVMStateEquiv.initState (g := g) hAccounts
-  have h1 : EVMStateEquiv evm1e evm1s := by
-    have hslot : wardsSlot (.address I.source) = gemJoinCtorCallerWardsSlot I :=
-      gemJoinCtorCallerWardsSlot_eq I
-    simpa [evm1e, evm1s, evm0e, evm0s, gemJoinCtorAfterWardsState, initState, hslot]
-      using h0.storageStore_codeOwner (gemJoinCtorCallerWardsSlot I)
-        (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
-  have h2 : EVMStateEquiv evm2e evm2s := by
-    simpa [evm2e, evm2s, gemJoinCtorAfterLiveState] using
-      h1.storageStore_codeOwner ⟨5⟩ (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
-  have h3 : EVMStateEquiv evm3e evm3s := by
-    have hval :
-        setAddressOffset0Word
-            (Solm.EVM.storageLoad evm2e evm2e.executionEnv.codeOwner ⟨1⟩)
-            (EVM.word vat.val) =
-          setAddressOffset0Word
-            (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨1⟩)
-            (EVM.word vat.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word vat.val))
-        (h2.storageLoad_codeOwner ⟨1⟩)
-    simpa [evm3e, evm3s, gemJoinCtorAfterVatState] using h2.storageStore_codeOwner ⟨1⟩ hval
-  have h4 : EVMStateEquiv evm4e evm4s := by
-    simpa [evm4e, evm4s, gemJoinCtorAfterIlkState] using
-      h3.storageStore_codeOwner ⟨2⟩ (show ilk = ilk by rfl)
-  have h5 : EVMStateEquiv evm5e evm5s := by
-    have hval :
-        setAddressOffset0Word
-            (Solm.EVM.storageLoad evm4e evm4e.executionEnv.codeOwner ⟨3⟩)
-            (EVM.word gem.val) =
-          setAddressOffset0Word
-            (Solm.EVM.storageLoad evm4s evm4s.executionEnv.codeOwner ⟨3⟩)
-            (EVM.word gem.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word gem.val))
-        (h4.storageLoad_codeOwner ⟨3⟩)
-    simpa [evm5e, evm5s, gemJoinCtorAfterGemState] using h4.storageStore_codeOwner ⟨3⟩ hval
-  exact h5
+  rfl
 
 theorem gemJoinCtorPrefixAccountMapEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
-    (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let σWards := sstoreAccountMap I.codeOwner σ_evm (gemJoinCtorCallerWardsSlot I) ⟨1⟩
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
+    (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) :
+    let σWards := sstoreAccountMap I.codeOwner σ (gemJoinCtorCallerWardsSlot I) ⟨1⟩
     let σLive := sstoreAccountMap I.codeOwner σWards ⟨5⟩ ⟨1⟩
     let vatStored := gemJoinCtorVatStored σLive I vat
     let σVat := sstoreAccountMap I.codeOwner σLive ⟨1⟩ vatStored
@@ -175,30 +120,29 @@ theorem gemJoinCtorPrefixAccountMapEquiv
     let gemStored := gemJoinCtorGemStored σIlk I gem
     let σGem := sstoreAccountMap I.codeOwner σIlk ⟨3⟩ gemStored
     let evm0s :=
-      initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1s := gemJoinCtorAfterWardsState evm0s
     let evm2s := gemJoinCtorAfterLiveState evm1s
     let evm3s := gemJoinCtorAfterVatState evm2s vat
     let evm4s := gemJoinCtorAfterIlkState evm3s ilk
     let evm5s := gemJoinCtorAfterGemState evm4s gem
-    accountMapEquiv σGem evm5s.accountMap := by
+    σGem = evm5s.accountMap := by
   intro σWards σLive vatStored σVat σIlk gemStored σGem evm0s evm1s evm2s evm3s evm4s evm5s
   let evm0e :=
-    initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1e := gemJoinCtorAfterWardsState evm0e
   let evm2e := gemJoinCtorAfterLiveState evm1e
   let evm3e := gemJoinCtorAfterVatState evm2e vat
   let evm4e := gemJoinCtorAfterIlkState evm3e ilk
   let evm5e := gemJoinCtorAfterGemState evm4e gem
-  have hprefix := gemJoinCtorPrefixStateEquiv (createdAccounts := createdAccounts)
-    (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-    (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-    vat ilk gem hAccounts
+  have hprefix := gemJoinCtorPrefixStateEquiv
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    vat ilk gem
   have hslot : wardsSlot (.address I.source) = gemJoinCtorCallerWardsSlot I :=
     gemJoinCtorCallerWardsSlot_eq I
-  have hmap : accountMapEquiv evm5e.accountMap evm5s.accountMap := by
+  have hmap : evm5e.accountMap = evm5s.accountMap := by
     simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm5e, evm0s, evm1s, evm2s,
-      evm3s, evm4s, evm5s] using hprefix.accountMap
+      evm3s, evm4s, evm5s] using hprefix
   simpa [evm5e, evm4e, evm3e, evm2e, evm1e, evm0e, σGem, gemStored, σIlk,
     σVat, vatStored, σLive, σWards, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
     gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, initState,
@@ -209,19 +153,18 @@ theorem gemJoinCtorPrefixAccountMapEquiv
 theorem gemJoinConstructorCorrect :
     constructorEquivalence config gemJoinCreationBytecode contract gemJoinBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases gemJoinCtorDeployment_shape hdeploy with ⟨vat, ilk, gem, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = gemJoinCtorCode vat ilk gem := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
   · obtain ⟨_, _, rd68⟩ := gemJoinCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g0 := Sat256.ofUInt256 g) vat ilk gem hcodeCtor hwv
     obtain ⟨_, _, rd85⟩ := gemJoinCtorWardsStoreReach vat ilk gem hperm rd68
-    let σWards := sstoreAccountMap I.codeOwner σ_evm (gemJoinCtorCallerWardsSlot I) ⟨1⟩
+    let σWards := sstoreAccountMap I.codeOwner σ (gemJoinCtorCallerWardsSlot I) ⟨1⟩
     have rd85' := by simpa [σWards] using rd85
     obtain ⟨_, _, rd90⟩ := gemJoinCtorLiveStoreReach vat ilk gem hperm rd85'
     let σLive := sstoreAccountMap I.codeOwner σWards ⟨5⟩ ⟨1⟩
@@ -241,19 +184,18 @@ theorem gemJoinConstructorCorrect :
     let gemTarget := gemJoinCtorGemTargetOfStored gemStored
     have rd184 := by simpa [gemTarget, gemStored] using rd184raw
     let evm0s :=
-      initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1s := gemJoinCtorAfterWardsState evm0s
     let evm2s := gemJoinCtorAfterLiveState evm1s
     let evm3s := gemJoinCtorAfterVatState evm2s vat
     let evm4s := gemJoinCtorAfterIlkState evm3s ilk
     let evm5s := gemJoinCtorAfterGemState evm4s gem
-    have hAccounts5 : accountMapEquiv σGem evm5s.accountMap := by
+    have hAccounts5 : σGem = evm5s.accountMap := by
       simpa [σWards, σLive, vatStored, σVat, σIlk, gemStored, σGem,
         evm0s, evm1s, evm2s, evm3s, evm4s, evm5s] using
-        gemJoinCtorPrefixAccountMapEquiv (createdAccounts := createdAccounts)
-          (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-          (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          vat ilk gem hAccounts
+        gemJoinCtorPrefixAccountMapEquiv
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          vat ilk gem
     have htargetAddr : gem = AccountAddress.ofUInt256 gemTarget := by
       simpa [gemTarget, gemStored, gemJoinCtorGemTargetOfStored] using
         (gemJoinCtorGemTargetAddress_eq σIlk I gem).symm
@@ -262,8 +204,7 @@ theorem gemJoinConstructorCorrect :
       rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
       · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · have hcodeSizeSolm : extCodeSizeWord evm5s.accountMap gemTarget = ⟨0⟩ := by
-          have hEq := extCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
-          exact hEq ▸ hcodeSize
+          simpa [hAccounts5] using hcodeSize
         have hgemNoCode :
             (UInt256.ofNat ((evm5s.lookupAccount gem).option 0 (fun acc => acc.code.size))).toNat =
               0 := by
@@ -272,8 +213,7 @@ theorem gemJoinConstructorCorrect :
               (target := gemTarget) (addr := gem) htargetAddr hcodeSizeSolm
         refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (gemJoinSolmCtorExecReverts_noCode
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv
             (by
               simpa [gemJoinCtorAfterInitStores, evmAddress_accountAddress_ctor, evm0s, evm1s,
@@ -282,8 +222,9 @@ theorem gemJoinConstructorCorrect :
         exact ctorResultEquiv.revert rfl rfl
     · have hcodeSizeSolmNe : extCodeSizeWord evm5s.accountMap gemTarget ≠ ⟨0⟩ := by
         intro hzero
-        have hEq := extCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
-        exact hcodeSize (hEq.trans hzero)
+        have hzero' : extCodeSizeWord σGem gemTarget = ⟨0⟩ := by
+          simpa [hAccounts5] using hzero
+        exact hcodeSize hzero'
       have hgemCode :
           0 < (UInt256.ofNat ((evm5s.lookupAccount gem).option 0
             (fun acc => acc.code.size))).toNat := by
@@ -291,22 +232,21 @@ theorem gemJoinConstructorCorrect :
           ctorExtCodeSize_ne_zero_lookup_code_pos (σ := evm5s.accountMap)
             (target := gemTarget) (addr := gem) htargetAddr hcodeSizeSolmNe
       by_cases hdepth : I.depth.val < 1024
-      · obtain ⟨createdAccountsCall, σCall, z, out, Ain, callGas, _, _, hΘ, rd200, hout⟩ :=
+      · obtain ⟨σCall, z, out, Ain, callGas, _, _, hΘ, rd200, hout⟩ :=
           gemJoinCtorDecimalsStaticcallReach vat ilk gem gemTarget hcodeSize hdepth rd184
         let evm0e :=
-          initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+          initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1e := gemJoinCtorAfterWardsState evm0e
         let evm2e := gemJoinCtorAfterLiveState evm1e
         let evm3e := gemJoinCtorAfterVatState evm2e vat
         let evm4e := gemJoinCtorAfterIlkState evm3e ilk
         let evm5e := gemJoinCtorAfterGemState evm4e gem
-        have hAccounts5e : accountMapEquiv evm5e.accountMap evm5s.accountMap := by
+        have hAccounts5e : evm5e.accountMap = evm5s.accountMap := by
           simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm5e, evm0s, evm1s, evm2s,
             evm3s, evm4s, evm5s] using
-            (gemJoinCtorPrefixStateEquiv (createdAccounts := createdAccounts)
-              (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-              (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-              (g := Sat256.ofUInt256 g) vat ilk gem hAccounts).accountMap
+            (gemJoinCtorPrefixStateEquiv
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+              (g := Sat256.ofUInt256 g) vat ilk gem)
         have htgt : EVM.address gem = AccountAddress.ofUInt256 gemTarget := by
           rw [evmAddress_accountAddress_ctor, htargetAddr]
         have hslot : wardsSlot (.address I.source) = gemJoinCtorCallerWardsSlot I :=
@@ -326,8 +266,7 @@ theorem gemJoinConstructorCorrect :
         let evmCallEvm : EVM.State :=
           { evm5e with
             accountMap := σCall
-            substate := ATheta
-            createdAccounts := createdAccountsCall }
+            substate := ATheta }
         have hcallEvm :
             typedCallViaEVM config evm5e (EVM.address gem) "decimals" 0 []
               (z, evmCallEvm, out) false := by
@@ -341,50 +280,29 @@ theorem gemJoinConstructorCorrect :
               σVat, vatStored, σLive, σWards, gemTarget, evmCallEvm,
               gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
               gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, storageStore_accountMap,
-              storageStore_executionEnv, storageStore_createdAccounts,
-              storageStore_sigma0_ctor, storageStore_blocks_ctor,
-              storageStore_genesisBlockHeader_ctor, initState, Solm.EVM.storageLoad,
+              storageStore_executionEnv,
+              storageStore_sigma0_ctor, initState, Solm.EVM.storageLoad,
               State.lookupAccount, Account.lookupStorage, solcSlotWord,
               gemJoinCtorGemStored, gemJoinCtorVatStored, hslot, hperm] using hTheta
-        obtain ⟨σSolmCall, ASolmCall, hcallSolm, hPostAccounts⟩ :=
-          typedCallViaEVM_accountMapEquiv (evm_solm := evm5s) hcallEvm hAccounts5e
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_sigma0_ctor, initState])
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_createdAccounts, initState])
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_genesisBlockHeader_ctor, initState])
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_blocks_ctor, initState])
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_substate_ctor, initState])
-            (by simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-              gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-              storageStore_executionEnv, initState])
-        let evmDecimalsSolm : EVM.State :=
-          { evm5s with
-            accountMap := σSolmCall
-            substate := ASolmCall
-            createdAccounts := createdAccountsCall }
+        have hstate : evm5e = evm5s := by
+          simp [evm5e, evm5s, evm4e, evm4s, evm3e, evm3s, evm2e, evm2s,
+            evm1e, evm1s, evm0e, evm0s, gemJoinCtorAfterGemState,
+            gemJoinCtorAfterIlkState, gemJoinCtorAfterVatState,
+            gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
+            storageStore_sigma0_ctor, storageStore_accountMap,
+            storageStore_executionEnv, initState]
+        have hcallSolm :
+            typedCallViaEVM config evm5s (EVM.address gem) "decimals" 0 []
+              (z, evmCallEvm, out) false := by
+          simpa [hstate] using hcallEvm
+        let evmDecimalsSolm := evmCallEvm
         cases hz : z
         · have hrev := gemJoinCtorDecimalsStatusFailReverts vat ilk gem gemTarget hz hout rd200
           rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
           · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
           · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
               (gemJoinSolmCtorExecReverts_decimalsFailure
-                (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmDecimals := evmDecimalsSolm) (outDecimals := out)
                 vat ilk gem hwv
                 (by
@@ -465,23 +383,21 @@ theorem gemJoinConstructorCorrect :
                 simpa [retWord, gemJoinCtorDecimalsReturnWord,
                   UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
                   using decodeReturnValueWithMode_legacy_uint256_ok (returndata := out) hlo
-              have hcreated :
-                  createdAccountsCall =
-                    (gemJoinCtorAfterDecState evmDecimalsSolm retWord).createdAccounts := by
-                simp [evmDecimalsSolm, gemJoinCtorAfterDecState, storageStore_createdAccounts]
               have hAccountsDec :
-                  accountMapEquiv (sstoreAccountMap I.codeOwner σCall ⟨4⟩ retWord)
+                  (sstoreAccountMap I.codeOwner σCall ⟨4⟩ retWord) =
                     (gemJoinCtorAfterDecState evmDecimalsSolm retWord).accountMap := by
-                have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ retWord hPostAccounts
-                simpa [evmDecimalsSolm, gemJoinCtorAfterDecState, storageStore_accountMap,
-                  storageStore_executionEnv, evmCallEvm, evm5s, evm4s, evm3s, evm2s, evm1s,
-                  evm0s, gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
-                  gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState,
-                  initState] using hbase
+                simp only [evmDecimalsSolm, gemJoinCtorAfterDecState,
+                  storageStore_accountMap, evmCallEvm]
+                have howner : evm5e.executionEnv.codeOwner = I.codeOwner := by
+                  simp [evm5e, evm4e, evm3e, evm2e, evm1e, evm0e,
+                    gemJoinCtorAfterGemState, gemJoinCtorAfterIlkState,
+                    gemJoinCtorAfterVatState, gemJoinCtorAfterLiveState,
+                    gemJoinCtorAfterWardsState, storageStore_executionEnv,
+                    initState]
+                rw [howner]
               refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
                 (gemJoinSolmCtorExecSuccess
-                  (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                  (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out) (dec := retWord)
                   vat ilk gem hwv
                   (by
@@ -492,7 +408,7 @@ theorem gemJoinConstructorCorrect :
                       evm4s, evm5s, evmDecimalsSolm] using hcallSolm)
                   hdec)
                 ?_
-              exact ctorResultEquiv.success rfl rfl hcreated hAccountsDec rfl
+              exact ctorResultEquiv.success rfl rfl hAccountsDec rfl
           ·
             have hshort : out.size < 32 := by omega
             have hrev := gemJoinCtorDecimalsReturnDecodeShortReverts vat ilk gem gemTarget hshort hout
@@ -530,8 +446,7 @@ theorem gemJoinConstructorCorrect :
                 exact decodeReturnValueWithMode_legacy_uint256_none_short hshort
               refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
                 (gemJoinSolmCtorExecReverts_decimalsDecode
-                  (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                  (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   (evmDecimals := evmDecimalsSolm) (outDecimals := out)
                   vat ilk gem hwv
                   (by
@@ -572,8 +487,7 @@ theorem gemJoinConstructorCorrect :
                     gemJoinCtorAfterLiveState, gemJoinCtorAfterWardsState, initState] using hdepthEq))
           refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
             (gemJoinSolmCtorExecReverts_decimalsFailure
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmDecimals := { evm5s with substate := A_dec }) (outDecimals := ByteArray.empty)
               vat ilk gem hwv
               (by
@@ -585,15 +499,13 @@ theorem gemJoinConstructorCorrect :
             ?_
           exact ctorResultEquiv.revert rfl rfl
   · have hrd := gemJoinInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat ilk gem hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (gemJoinSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat ilk gem hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

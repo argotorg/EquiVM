@@ -7,12 +7,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeSecondBalanceOfExtcodesize
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {out : ByteArray} {balance0 token1 : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4324 : RD uniswapV2PairBytecode I g s0 ⟨4324⟩
       (balance0 :: ⟨0⟩ :: token1 :: R)
       (balanceOfThisStaticcallMem (UInt256.ofNat I.codeOwner.val) out)
-      balanceOfThisStaticcallActiveWords out (cA, σ) k C)
+      balanceOfThisStaticcallActiveWords out σ k C)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4387⟩
@@ -20,7 +20,7 @@ theorem uniswapBurnRuntimeSecondBalanceOfExtcodesize
         ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: balanceOfSelectorWord ::
         UInt256.land token1 solcAddrMask :: ⟨0⟩ :: balance0 :: token1 :: R)
       (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) out)
-      balanceOfThisStaticcallActiveWords out (cA, σ) k' C' := by
+      balanceOfThisStaticcallActiveWords out σ k' C' := by
   have rd4337 := evm_run rd4324 with [push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide)
       mem_cost (balanceOfThisStaticcallMem_mload64_of_size_ge
@@ -59,33 +59,33 @@ theorem uniswapBurnRuntimeSecondBalanceOfExtcodesize
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {o : ByteArray} {target : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4387 : RD uniswapV2PairBytecode I g s0 ⟨4387⟩
       (target :: target :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ ::
         balanceOfSelectorWord :: target :: R)
       (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o) balanceOfThisStaticcallActiveWords
-      o (cA, σ) k C)
+      o σ k C)
     (hdepth : I.depth.val < 1024) (hcode : extCodeSizeWord σ target ≠ ⟨0⟩)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z1, o1) = Ethereum.EVM.Θ I.blobVersionedHashes
-          cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in1
+        (σ'', g'', A', z1, o1) = Ethereum.EVM.Θ
+          σ s0.σ₀ A_in1
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
           callGas1 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o).readWithPadding 128 36)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ (z1 = false → RDrev uniswapV2PairBytecode g s0)
       ∧ (z1 = true → o1.size < 32 → RDrev uniswapV2PairBytecode g s0)
       ∧ (z1 = true → 32 ≤ o1.size → ∃ k' C',
         RD uniswapV2PairBytecode I g s0 ⟨4444⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o1.extract 0 32)) :: R)
           (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
-          balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k' C')
+          balanceOfThisStaticcallActiveWords o1 σ'' k' C')
       ∧ o1.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd4402⟩ :=
     RD.solcExtcodesizeGuardOkGas (okPc := ⟨4399⟩) rd4387 hcode
@@ -93,11 +93,11 @@ theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
       (by native_decide) (by native_decide) (by jump_dest)
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd4403, ho1Size⟩ :=
+  obtain ⟨σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd4403, ho1Size⟩ :=
     RD.solcStaticcall rd4402 (by native_decide) hdepth
       (by simp only [List.length_cons]; omega)
-  refine ⟨cA'', σ'', z1, o1, A_in1, callGas1, ?_, ?_, ?_, ?_, ho1Size⟩
-  · simpa [balanceOfThisRebuiltStaticcallMem, initState] using hΘ1
+  refine ⟨σ'', z1, o1, A_in1, callGas1, ?_, ?_, ?_, ?_, ho1Size⟩
+  · simpa [balanceOfThisRebuiltStaticcallMem] using hΘ1
   · intro hz1
     have hstatus : (if z1 then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz1]
@@ -147,10 +147,10 @@ theorem uniswapBurnRuntimeSecondBalanceOfResultBranchesOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeSecondBalanceOfMissingCodeReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw target : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4387 : RD uniswapV2PairBytecode I g s0 ⟨4387⟩
-      (target :: target :: R) mem aw rdata (cA, σ) k C)
+      (target :: target :: R) mem aw rdata σ k C)
     (hnoCode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) :
     RDrev uniswapV2PairBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨4399⟩) rd4387 hnoCode

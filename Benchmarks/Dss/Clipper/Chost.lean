@@ -79,14 +79,14 @@ theorem clipperChostBodyReturns (v : ClipperImmutables) (evm : EVM.State) (local
       (clipperEvalChost v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachChostBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachChostBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 4)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1295⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1295⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperChostSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
@@ -265,35 +265,34 @@ theorem clipperJumpDest6759 (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperChostBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 4))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 4)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 4) (by native_decide) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ chostTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chostTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ_solm I ⟨9⟩).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨9⟩).toNat))])) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperChostBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hreach := clipperReachChostBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachChostBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hroutine : (D_J code 0).contains (⟨6759⟩ : UInt256) = true := by
     exact clipperJumpDest6759 v hpatch
-  exact clipperUint256GetterBodyCore (v := v) (code := code) (cA := cA) (gh := gh)
-    (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+  exact clipperUint256GetterBodyCore (v := v) (code := code)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := clipperSelWord I) (transition := chostTransition)
     (entry := (⟨1295⟩ : UInt256)) (routine := (⟨6759⟩ : UInt256))
     (slot := (⟨9⟩ : UInt256)) (returnPc := (⟨476⟩ : UInt256))
-    hcode (clipperDispatch_chost v hsel) (clipperDecode_chost v hsz) hreach hAccounts
+    hcode (clipperDispatch_chost v hsel) (clipperDecode_chost v hsz) hreach
     (clipperChostGetterEntryWf v hpatch) (clipperChostSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
     (clipperReturnWord476Wf v hpatch) (by rfl) hbody

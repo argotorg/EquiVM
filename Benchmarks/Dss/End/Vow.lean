@@ -31,18 +31,18 @@ theorem endVowArmsWellFormed :
   dsimp [armWellFormed]
   repeat' first | apply And.intro | native_decide
 
-theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachVowBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endVowConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endVowEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x626cb3c5⟩ :=
     endSelWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 ⟨0x626cb3c5⟩
       (by native_decide) (by simpa [selIs, endVowConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup343FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup343FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -62,7 +62,7 @@ theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endVowBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some vowTransition)
@@ -70,20 +70,19 @@ theorem endVowBodyCore
       decodeCalldataWithMode config.abiDecodeMode (vowTransition.params.map Param.name)
         (transitionSignature vowTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨715⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨715⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (vowWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (vowWord σ I).toNat))])) := by
     simpa [vowTransition, vowWord, endAddressReturnWord, endSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
         (slot := ⟨4⟩)
         (by simp only [initState]; exact hwv) (by simp [vowRef])
@@ -91,7 +90,7 @@ theorem endVowBodyCore
         (by decide) (by rfl)
   exact endAddressGetterBodyCore (entry := ⟨715⟩) (returnPc := ⟨572⟩)
     (routine := ⟨5236⟩) (slot := ⟨4⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -105,18 +104,16 @@ theorem endVowBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [vowWord] using hbody)
 
-theorem endVowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endVowBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf vowTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf vowTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endVowConcreteSelector := by
     simpa [endVowSelectorBytes, endVowConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endVowConcreteSelector (by rfl) hsel'
   exact endVowBodyCore hcode hwv (endDispatchVow hsel) (endDecode_vow hsz)
     (endReachVowBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel')
-    hAccounts
 
 end Benchmarks.Dss.End

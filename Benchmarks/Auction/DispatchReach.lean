@@ -7,24 +7,24 @@ set_option synthInstance.maxSize 1024
 
 namespace Auction
 
-theorem auctionPrologue {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem auctionPrologue {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) :
-    RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5⟩ []
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 3 18 := by
+    RD auctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by native_decide) mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by native_decide) (by native_decide) ]
 
-theorem auctionReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem auctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨18⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD auctionBytecode I g (initState σ σ₀ g A I) ⟨18⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd13⟩ := solcCalldataOk
     (bodyPc := ⟨5⟩) (selLoadTgt := ⟨283⟩) (opR := .PUSH2) (wR := 2)
-    (auctionPrologue (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (auctionPrologue (σ := σ) (σ₀ := σ₀)
       (A := A) (g := g) hcode)
     hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by
       native_decide) (by native_decide)
@@ -74,13 +74,13 @@ theorem auctionReachGroup {ee g s0 word mem aw rdata acc k C}
       exact ⟨_, _, by simpa only [selectedGroup, if_neg hroot, if_neg hlower,
         groupFirstPc] using rd228⟩
 
-theorem auctionReachEntry {cA gh bl σ σ₀ A I} {g : UInt256} (i : Entry)
+theorem auctionReachEntry {σ σ₀ A I} {g : UInt256} (i : Entry)
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (entryBytes i)) :
-    EntryReached i cA gh bl σ σ₀ A I g := by
+    EntryReached i σ σ₀ A I g := by
   have hword := entryWord_eq i hsz hsel
   obtain ⟨_, _, rd18⟩ := auctionReachSplit
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (g := Sat256.ofUInt256 g) hcode hsz hsize
   obtain ⟨_, _, rdGroup⟩ := auctionReachGroup rd18
   have hg : selectedGroup (solcSelectorWord I) = entryGroup i := by
@@ -93,11 +93,11 @@ theorem auctionReachEntry {cA gh bl σ σ₀ A I} {g : UInt256} (i : Entry)
     (by rw [entryArmTarget]; exact entryJumpdest i)
     (entryArmTarget i) (by simp)
 
-theorem auctionXShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem auctionXShort {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : I.calldata.size < 4) :
-    RDrev auctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev auctionBytecode g (initState σ σ₀ g A I) := by
   have rd5 := auctionPrologue
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hcode
   exact evm_run rd5 with [
     push1 ⟨4⟩, calldatasize, lt, push2 ⟨283⟩,
     jumpiT (lt_four_ne_zero_of_lt hsz) (by jump_dest), jumpdest,
@@ -137,13 +137,13 @@ theorem auctionGroupMissRevert {ee g s0 word mem aw rdata acc k C} (group : Fin 
   · exact h.auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
   · exact h.auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
-theorem auctionXNoMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem auctionXNoMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i : Entry, ¬ selIs I (entryBytes i)) :
-    RDrev auctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev auctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd18⟩ := auctionReachSplit
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcode hsz hsize
   obtain ⟨_, _, rdGroup⟩ := auctionReachGroup rd18
   obtain ⟨_, _, rdMiss⟩ := auctionSkipGroup _ rdGroup (by

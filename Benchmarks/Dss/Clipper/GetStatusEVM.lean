@@ -829,7 +829,7 @@ theorem swap9_xstep {s : State} {code : ByteArray}
 theorem RD.swap9
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
       mem aw rdata acc k C)
@@ -848,9 +848,9 @@ theorem RD.clipperGetStatusToStatus {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {id ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 ⟨3185⟩ (id :: ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hmem : mem.size = 96)
     (hov : R.length + 64 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨8460⟩
@@ -863,7 +863,7 @@ theorem RD.clipperGetStatusToStatus {code : ByteArray} (v : ClipperImmutables)
         UInt256.land (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩))
           solcAddrMask ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: id :: ret :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ id
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -943,8 +943,8 @@ theorem RD.clipperStatusAgeForPrice {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {top tic ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 ⟨8460⟩ (top :: tic :: ret :: R) mem aw rdata σ k C)
     (hle : (UInt256.land tic clipperSalesUint96Mask).toNat ≤
       (UInt256.ofNat ee.header.timestamp).toNat)
     (hov : R.length + 80 ≤ 1024) :
@@ -954,7 +954,7 @@ theorem RD.clipperStatusAgeForPrice {code : ByteArray} (v : ClipperImmutables)
         top :: clipperStatusPriceSelectorWord ::
           UInt256.land (solcSlotWord σ ee ⟨4⟩) solcAddrMask ::
         ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd8463pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -998,11 +998,11 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {age top calcAddr tic ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 ⟨8502⟩
       (age :: top :: clipperStatusPriceSelectorWord :: calcAddr ::
         ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1015,7 +1015,7 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have hselectorMask :
       UInt256.land (⟨4294967295⟩ : UInt256) clipperStatusPriceSelectorWord =
         clipperStatusPriceSelectorWord := by
@@ -1076,32 +1076,32 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g age top calcAddr tic ret : UInt256}
+    {σ σ₀ A I} {g age top calcAddr tic ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8549⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8549⟩
       (calcAddr :: calcAddr :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨196⟩ ::
         clipperStatusPriceSelectorWord :: calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       (clipperStatusPriceCalldataMem top age mem) (UInt256.ofNat 7) rdata
-      (cA, σ) k C)
+      σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmem : mem.size = 96)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8565⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8565⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperStatusPriceSelectorWord ::
           calcAddr :: ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
         (clipperStatusPricePostCallMem top age mem o)
-        (UInt256.ofNat 7) o (cA', σ') k' C'
+        (UInt256.ofNat 7) o σ' k' C'
     ∧ typedCallViaEVM (config v)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofUInt256 calcAddr)) "price" 0
         [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o) false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o) false
     ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd8564⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨8549⟩) (okPc := ⟨8561⟩)
@@ -1113,11 +1113,11 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k8565, C8565, hΘpack, rd8565raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k8565, C8565, hΘpack, rd8565raw, hosz⟩ :=
     RD.solcStaticcall rd8564 (by clipper_runtime_decode) hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o, A', k8565, C8565, ?_, ?_, hosz⟩
+  refine ⟨σ', z, o, A', k8565, C8565, ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
@@ -1126,11 +1126,11 @@ theorem RD.clipperStatusPricePostStaticcall {code : ByteArray} (v : ClipperImmut
       native_decide
     simpa [clipperStatusPricePostCallMem] using haw ▸ rd8565raw
   · refine callCoincides (cfg := config v)
-      (evm := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (name := "price")
       (args := [.int (Int.ofNat top.toNat), .int (Int.ofNat age.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 calcAddr)) (targetWord := calcAddr)
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in) (z := z)
+      (σ' := σ') (A' := A') (A_in := A_in) (z := z)
       (o := o) (g'' := g'') (callGas := callGas)
       (mem := clipperStatusPriceCalldataMem top age mem)
       (inOff := ⟨128⟩) (inSize := ⟨68⟩) (callPerm := false)
@@ -1148,7 +1148,7 @@ theorem RD.clipperStatusPriceCallFailure
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨8565⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -1168,7 +1168,7 @@ theorem RD.clipperStatusPriceCallSuccessToDecode
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨8565⟩ (⟨1⟩ :: R) mem aw o acc k C)
     (hov : R.length + 3 ≤ 1024) :
@@ -1185,7 +1185,7 @@ theorem RD.clipperStatusPriceReturnDecodeShortReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {top age d0 d1 d2 : UInt256} {baseMem out : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (rd8583 : RD code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
@@ -1213,7 +1213,7 @@ theorem RD.clipperStatusPriceReturnDecodeOk
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {top age d0 d1 d2 : UInt256} {baseMem out : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (rd8583 : RD code ee g s0 ⟨8583⟩ (d0 :: d1 :: d2 :: R)
@@ -1247,11 +1247,11 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
         (UInt256.ofNat ee.header.timestamp).toNat)
@@ -1262,7 +1262,7 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 80 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (price :: (⟨1⟩ : UInt256) :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   let ageForDone : UInt256 :=
     UInt256.sub (UInt256.ofNat ee.header.timestamp) (UInt256.land tic clipperSalesUint96Mask)
   let tail : UInt256 := solcSlotWord σ ee ⟨6⟩
@@ -1312,18 +1312,18 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw pop (by clipper_runtime_decode) (by evm_ov),
     raw jump (by clipper_runtime_decode) hret (by evm_ov)]
-  exact ⟨_, _, by simpa [ageForDone, tail, hgtTailOne] using rdret⟩
+  exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, ageForDone, tail, hgtTailOne] using rdret⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperStatusAfterPriceRdivBranch
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price d0 d1 top tic ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd8606 : RD code ee g s0 ⟨8606⟩ (price :: d0 :: d1 :: top :: tic :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hleDone :
       (UInt256.land tic clipperSalesUint96Mask).toNat ≤
         (UInt256.ofNat ee.header.timestamp).toNat)
@@ -1339,7 +1339,7 @@ theorem RD.clipperStatusAfterPriceRdivBranch
       (price ::
         UInt256.lt (UInt256.div (UInt256.mul price clipperRayWord) top)
           (solcSlotWord σ ee ⟨7⟩) :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   let ageForDone : UInt256 :=
     UInt256.sub (UInt256.ofNat ee.header.timestamp) (UInt256.land tic clipperSalesUint96Mask)
   let tail : UInt256 := solcSlotWord σ ee ⟨6⟩
@@ -1407,12 +1407,12 @@ theorem RD.clipperGetStatusReturnLoadsFrom3283
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {needs done tic usr b0 c0 price e0 id ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd3283 : RD code ee g s0 ⟨3283⟩
       (needs :: done :: tic :: usr :: b0 :: c0 :: price :: e0 :: id :: ret :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : 64 ≤ mem.size)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 80 ≤ 1024) :
@@ -1420,7 +1420,7 @@ theorem RD.clipperGetStatusReturnLoadsFrom3283
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩) ::
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩) ::
         price :: needs :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata (cA, σ) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata σ k' C' := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ id
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1476,12 +1476,12 @@ theorem RD.clipperGetStatusAfterStatusToReturnEncoder
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price done a0 tic usr b0 c0 d0 e0 id ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd3258 : RD code ee g s0 ⟨3258⟩
       (price :: done :: a0 :: tic :: usr :: b0 :: c0 :: d0 :: e0 :: id :: ret :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : 64 ≤ mem.size)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 100 ≤ 1024) :
@@ -1489,7 +1489,7 @@ theorem RD.clipperGetStatusAfterStatusToReturnEncoder
       (solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩) ::
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩) ::
         price :: clipperGetStatusNeedsRedoWord usr done :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata (cA, σ) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) rdata σ k' C' := by
   let usrMasked : UInt256 := UInt256.land usr solcAddrMask
   let usrIsZero : UInt256 := UInt256.isZero usrMasked
   let usrNonzero : UInt256 := UInt256.isZero usrIsZero
@@ -1544,7 +1544,7 @@ theorem RD.clipperGetStatusReturnEncode
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {tab lot price needs : UInt256} {R : List UInt256}
     {mem memBool memPrice memLot memTab retBytes rdata : ByteArray} {k C : ℕ}
     (rd789 : RD code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
@@ -1624,7 +1624,7 @@ theorem RD.clipperGetStatusReturnEncodeConcrete
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {tab lot price needs : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd789 : RD code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)

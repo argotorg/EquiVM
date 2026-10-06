@@ -402,9 +402,9 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
 set_option maxHeartbeats 1000000 in
 theorem RD.flapperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : flapperBidsStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
@@ -420,7 +420,7 @@ theorem RD.flapperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
           solcAddrMask ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
       hd17, hd18, hd19, hd20, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29,
@@ -821,7 +821,7 @@ theorem flapperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
 theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc bid lot guy tic endw ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (endw :: tic :: guy :: lot :: bid :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : flapperBidsReturnFromMemWf code pc)
@@ -942,13 +942,13 @@ theorem RD.flapperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
   exact rd60.ret 0 (flapperBidsReturnBytes bid lot guy tic endw) hd61 mem_cost
     hretBytes (by evm_ov)
 
-theorem flapperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachBidsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 1)) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         ⟨433⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flapperSelWord I = ⟨0x4423c5f1⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x44 0x23 0xc5 0xf1 ⟨0x4423c5f1⟩
@@ -962,7 +962,7 @@ theorem flapperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flapperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flapperReachLowLowFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   have heq0 : ∀ j, j < 4 →
       UInt256.eq
@@ -981,7 +981,7 @@ theorem flapperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem flapperBidsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some bidsTransition)
@@ -990,18 +990,17 @@ theorem flapperBidsBodyCoreOk
         (transitionSignature bidsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (bidsArgValue I)))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨433⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨433⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := bidsArgWord I
   let baseSlot := solcMappingSlot ⟨1⟩ key
   let bidSlot := baseSlot
   let lotSlot := baseSlot + ⟨1⟩
   let packedSlot := baseSlot + ⟨2⟩
-  let bidWord := flapperSlotWord bidSlot σ_evm I
-  let lotWord := flapperSlotWord lotSlot σ_evm I
-  let packedWord := flapperSlotWord packedSlot σ_evm I
+  let bidWord := flapperSlotWord bidSlot σ I
+  let lotWord := flapperSlotWord lotSlot σ I
+  let packedWord := flapperSlotWord packedSlot σ I
   let ticRaw := UInt256.div packedWord (UInt256.ofNat (256 ^ 20))
   let endRaw := UInt256.div packedWord (UInt256.ofNat (256 ^ 26))
   let locals : Store := (∅ : Store).insert "arg0" (bidsArgValue I)
@@ -1013,22 +1012,22 @@ theorem flapperBidsBodyCoreOk
     simp [packedSlot, baseSlot, key, bidsPackedSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals bidsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals bidsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (flapperSlotWord (bidsBidSlotFor I) σ_solm I).toNat)),
+            (flapperSlotWord (bidsBidSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperSlotWord (bidsLotSlotFor I) σ_solm I).toNat)),
+            (flapperSlotWord (bidsLotSlotFor I) σ I).toNat)),
             (.address (AccountAddress.ofNat
-            (flapperAddressReturnWord (bidsPackedSlotFor I) σ_solm I).toNat)),
+            (flapperAddressReturnWord (bidsPackedSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperUint48Offset20Word (bidsPackedSlotFor I) σ_solm I).toNat)),
+            (flapperUint48Offset20Word (bidsPackedSlotFor I) σ I).toNat)),
             (.int (Int.ofNat
-            (flapperUint48Offset26Word (bidsPackedSlotFor I) σ_solm I).toNat))])) := by
+            (flapperUint48Offset26Word (bidsPackedSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       flapperBidsBodyReturns (I := I)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (by simp only [initState]; exact hwv) rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flapperBytecode) (sel := sel) (entry := ⟨433⟩) (ret := ⟨462⟩)
@@ -1040,9 +1039,9 @@ theorem flapperBidsBodyCoreOk
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have htoRoutine : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1562⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1562⟩
       (bidsArgWord I :: ⟨462⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     have rd430 := hdecoded.jumpdest (by native_decide) (by evm_ov)
     have rd431 := rd430.pop (by native_decide) (by evm_ov)
     have rd432 := rd431.calldataload (by native_decide) (by evm_ov)
@@ -1060,7 +1059,7 @@ theorem flapperBidsBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret flapperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (flapperBidsReturnBytes bidWord lotWord packedWord ticRaw endRaw) := by
     have hret' := RD.flapperBidsReturnFromMem
       (pc := ⟨462⟩) (bid := bidWord) (lot := lotWord)
@@ -1091,22 +1090,18 @@ theorem flapperBidsBodyCoreOk
           UInt256.land endRaw flapperUint48Mask :=
       flapperUint48Mask_clean endRaw
     simpa [flapperBidsReturnBytes, hcleanGuy, hcleanTic, hcleanEnd] using hret'
-  have hbidWord : flapperSlotWord bidSlot σ_evm I = flapperSlotWord bidSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner bidSlot ⟨0⟩
-  have hlotWord : flapperSlotWord lotSlot σ_evm I = flapperSlotWord lotSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner lotSlot ⟨0⟩
-  have hpackedWord :
-      flapperSlotWord packedSlot σ_evm I = flapperSlotWord packedSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner packedSlot ⟨0⟩
+  have hbidWord : flapperSlotWord bidSlot σ I = flapperSlotWord bidSlot σ I := rfl
+  have hlotWord : flapperSlotWord lotSlot σ I = flapperSlotWord lotSlot σ I := rfl
+  have hpackedWord : flapperSlotWord packedSlot σ I = flapperSlotWord packedSlot σ I := rfl
   have hval :
-      some [Value.int (Int.ofNat (flapperSlotWord (bidsBidSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (flapperSlotWord (bidsLotSlotFor I) σ_solm I).toNat),
+      some [Value.int (Int.ofNat (flapperSlotWord (bidsBidSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (flapperSlotWord (bidsLotSlotFor I) σ I).toNat),
         Value.address (AccountAddress.ofNat
-          (flapperAddressReturnWord (bidsPackedSlotFor I) σ_solm I).toNat),
+          (flapperAddressReturnWord (bidsPackedSlotFor I) σ I).toNat),
         Value.int (Int.ofNat
-          (flapperUint48Offset20Word (bidsPackedSlotFor I) σ_solm I).toNat),
+          (flapperUint48Offset20Word (bidsPackedSlotFor I) σ I).toNat),
         Value.int (Int.ofNat
-          (flapperUint48Offset26Word (bidsPackedSlotFor I) σ_solm I).toNat)] =
+          (flapperUint48Offset26Word (bidsPackedSlotFor I) σ I).toNat)] =
       some [Value.int (Int.ofNat bidWord.toNat),
         Value.int (Int.ofNat lotWord.toNat),
         Value.address (AccountAddress.ofNat (UInt256.land packedWord solcAddrMask).toNat),
@@ -1127,17 +1122,17 @@ theorem flapperBidsBodyCoreOk
     rw [show bidsTransition.returnType = [uint256, uint256, addr, uint48, uint48] by rfl]
     exact returnEquiv.returned rfl
       (flapperBidsReturnEncoding bidWord lotWord packedWord ticRaw endRaw)
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem flapperBidsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some bidsTransition)
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨433⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨433⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1154,24 +1149,23 @@ theorem flapperBidsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (flapperDecode_bids_none_short hsz4 hshort)
 
-theorem flapperBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flapperSelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flapperSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some bidsTransition :=
     flapperDispatchBids hsel
-  have hreach := flapperReachBidsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := flapperReachBidsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact flapperBidsBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (flapperDecode_bids_ok hsz36) hreach hAccounts
+      (flapperDecode_bids_ok hsz36) hreach
   · exact flapperBidsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Flapper

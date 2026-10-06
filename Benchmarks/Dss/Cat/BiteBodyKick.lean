@@ -25,14 +25,14 @@ set_option maxHeartbeats 40000000 in
 calldata at the abstract free pointer `p` (`@0x40 = p`), leaving the CALL frame on the stack (inOff
 `p`, argsLen `164`, retOff `p`, retLen `32`, end pointer `p+164`) and the calldata memory
 `kickCalldataMemP p (urn&mask) (vow&mask) tab dink mem`. -/
-theorem catBiteKickCalldataP {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+theorem catBiteKickCalldataP {σ σ₀ A I} {g : UInt256}
+    {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn ilk milkFlip p : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cAx, σx) k C)
+      mem aw o σx k C)
     (hFlip : (if q.toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding q.toNat 32))) = milkFlip)
     (hFree : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -45,7 +45,7 @@ theorem catBiteKickCalldataP {cA gh bl σ σ₀ A I} {g : UInt256}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
     (hov : R.length + 40 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (UInt256.land biteAddrMaskWord milkFlip :: UInt256.land biteAddrMaskWord milkFlip ::
         ⟨0⟩ :: p :: ⟨164⟩ :: p :: ⟨32⟩ ::
         (p + ⟨164⟩) :: ⟨891151872⟩ :: UInt256.land biteAddrMaskWord milkFlip ::
@@ -53,7 +53,7 @@ theorem catBiteKickCalldataP {cA gh bl σ σ₀ A I} {g : UInt256}
       (kickCalldataMemP p (UInt256.land biteAddrMaskWord urn)
         (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
           (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
-      aw o (cAx, σx) k' C' := by
+      aw o σx k' C' := by
   -- offset `toNat` facts
   have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
     rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
@@ -301,43 +301,43 @@ theorem kickEncodeP_eq (p urn vow tab dink : UInt256) {mem : ByteArray}
 `Θ`→Solm coupling (`callCoincides`).  The kick `CALL` copies its 1-word return `o'` (the auction `id`)
 into memory at `p`, so the post-call memory is `o'.write 0 mem' p (min 32 o'.size)`.  Generic in the
 `targetWord`/`args`/`hencode` so the caller instantiates the spec-side values. -/
-theorem catBiteKickGuardCallP {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
+    {σx : AccountMap}
     {target p : UInt256} {args : List Value} {R : List UInt256}
     {mem' o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: p :: ⟨164⟩ :: p :: ⟨32⟩ :: R)
-      mem' aw o (cAx, σx) k C)
+      mem' aw o σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hencode : config.externalABI.encode? "kick" args = some (mem'.readWithPadding p.toNat 164))
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' aw' : _) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: R)
         (o'.write 0 mem' p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        aw' o' (cA', σ') k' C'
+        aw' o' σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σx, createdAccounts := cAx }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σx }
         (AccountAddress.ofUInt256 target) "kick" 0 args
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2531⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd2532raw, hosz⟩ :=
+  obtain ⟨σ', z, o', A_in, callGas, k', C', hΘpack, rd2532raw, hosz⟩ :=
     RD.call rd2531 (by native_decide) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   have hpc : ((⟨2528⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2532⟩ : UInt256) := by native_decide
   rw [hpc] at rd2532raw
-  refine ⟨cA', σ', z, o', A', _, k', C', rd2532raw, ?_, hosz⟩
+  refine ⟨σ', z, o', A', _, k', C', rd2532raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := I.perm) (targetWord := target)
     (mem := mem') (inOff := p) (inSize := ⟨164⟩)
@@ -351,12 +351,12 @@ set_option maxHeartbeats 40000000 in
 /-- `p`-relative clone of `catBiteTraceSeg8b1`: the success guard (`RD.catBiteKickCallSucceeded`), the
 free-ptr reload (`@64 = p`), the returned `id` read (`@p`), and the `dtab = dart*rate` checkedMul,
 reaching pc 2631 with the event topic pushed. -/
-theorem catBiteKickSeg8b1P {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteKickSeg8b1P {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {status endptr target tab dink dart q art ink iDust iSpot iRate id ret urn ilk p : UInt256}
     {R3 : List UInt256} {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: endptr :: ⟨891151872⟩ :: target ::
         tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk ::
         ⟨419⟩ :: ret :: R3) mem8 aw8 o acc k C)
@@ -371,7 +371,7 @@ theorem catBiteKickSeg8b1P {cA gh bl σ σ₀ A I} {g : UInt256}
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hov : R3.length + 40 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
       (UInt256.mul dart iRate :: dart :: dink ::
         ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ ::
         ilk :: UInt256.land urn biteAddrMaskWord ::
@@ -493,12 +493,12 @@ theorem seg8_evMemRead64P (base : ByteArray) (p v1 v2 v3 v4 v5 : UInt256)
 set_option maxHeartbeats 40000000 in
 /-- `p`-relative clone of `catBiteTraceSeg8b2`: builds the `Bite()` event data at `[p, p+160)`,
 `LOG3`s it, then the `@419` uint256 return encoder (`id@p`, `RETURN [p, p+32)`) → `RDret (toByteArray id)`. -/
-theorem catBiteKickSeg8b2P {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteKickSeg8b2P {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {dart dink q art ink iDust iSpot iRate id ret urn ilk flip2 p : UInt256}
     {R3 : List UInt256} {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2631⟩
       (UInt256.mul dart iRate :: dart :: dink ::
         ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ ::
         ilk :: UInt256.land urn biteAddrMaskWord ::
@@ -516,7 +516,7 @@ theorem catBiteKickSeg8b2P {cA gh bl σ σ₀ A I} {g : UInt256}
        else UInt256.ofNat (fromByteArrayBigEndian (mem8.readWithPadding 64 32))) = p)
     (hov : R3.length + 30 ≤ 1024) :
     RDret catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
   have f32 : (p + ⟨32⟩).toNat = p.toNat + 32 := by
     rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide, Nat.mod_eq_of_lt (by omega)]
   have f64 : (p + ⟨64⟩).toNat = p.toNat + 64 := by
@@ -678,12 +678,12 @@ theorem catBiteKickSeg8b2P {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- `2532 → RETURN` at the free pointer `p` (composes `Seg8b1P` + `Seg8b2P`): the `p`-relative
 replacement for `catBiteReach2532toRet` on the success path. -/
-theorem catBiteKickReturnP {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteKickReturnP {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {status endptr target tab dink dart q art ink iDust iSpot iRate id ret urn ilk milkFlip p : UInt256}
     {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: endptr :: ⟨891151872⟩ :: target ::
         tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk ::
         ⟨419⟩ :: ret :: []) mem8 aw8 o acc k C)
@@ -703,7 +703,7 @@ theorem catBiteKickReturnP {cA gh bl σ σ₀ A I} {g : UInt256}
     (hFlipEv : (if q.toNat ≥ mem8.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem8.readWithPadding q.toNat 32))) = milkFlip) :
     RDret catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
   obtain ⟨_, _, rd2631⟩ :=
     catBiteKickSeg8b1P rd hstatus ho32 hoszLt hFree8 hId8 hp96 haw8 hRateFit (by simp)
   exact catBiteKickSeg8b2P rd2631 hperm hp96 hmem8size hpsz haw8q haw8 hFlipEv hFree8 (by simp)
@@ -869,14 +869,14 @@ Composes `catBiteKickCalldataP` (2383→2516), the EXTCODESIZE guard + `kick` `C
 inlined so the post-call active-words `M (M aw p 164) p 32` stays concrete — it collapses to `aw`
 by `haw`), and, on the success branch, `catBiteKickReturnP` (2532→RETURN) discharged by the Part A
 memory `if`-forms. -/
-theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
+    {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn milkFlip p : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
-        biteIlkWord I :: ⟨419⟩ :: catSelWord I :: []) mem aw o (cAx, σx) k C)
+        biteIlkWord I :: ⟨419⟩ :: catSelWord I :: []) mem aw o σx k C)
     (hFlip : (if q.toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding q.toNat 32))) = milkFlip)
     (hFree : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -889,10 +889,10 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx
       (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : _) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (p + ⟨164⟩) :: ⟨891151872⟩ ::
           UInt256.land biteAddrMaskWord milkFlip ::
           tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
@@ -901,18 +901,18 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
           (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
             (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
           p.toNat (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        aw o' (cA', σ') k' C'
+        aw o' σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σx, createdAccounts := cAx }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σx }
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
         (seg8KickArgs σx I urn tab dink)
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o') I.perm
     ∧ o'.size < UInt256.size
     ∧ (z = true → 32 ≤ o'.size →
         RDret catBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA', σ')
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
           (UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o'.extract 0 32))))) := by
   -- 2383 → 2516: build the kick calldata at the free pointer `p`
   obtain ⟨_, _, rd2516⟩ :=
@@ -928,7 +928,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd2532raw, hosz⟩ :=
+  obtain ⟨σ', z, o', A_in, callGas, k', C', hΘpack, rd2532raw, hosz⟩ :=
     RD.call rd2531 (by native_decide) hdepth (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   have hpc : ((⟨2528⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2532⟩ : UInt256) := by native_decide
@@ -944,12 +944,12 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
   rw [hawEq] at rd2532raw
   -- the spec-side call coincidence (Θ ↔ Solm)
   have hcall : typedCallViaEVM config
-      { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σx, createdAccounts := cAx }
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σx }
       (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
       (seg8KickArgs σx I urn tab dink)
-      (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm := by
+      (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', substate := A' }, o') I.perm := by
     refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := I.perm) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
       (mem := kickCalldataMemP p (UInt256.land biteAddrMaskWord urn)
@@ -959,7 +959,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       rfl henc ?_
     simpa [initState] using hΘ
-  refine ⟨cA', σ', z, o', A', k', C', rd2532raw, hcall, hosz, ?_⟩
+  refine ⟨σ', z, o', A', k', C', rd2532raw, hcall, hosz, ?_⟩
   -- success path: 2532 → RETURN via `catBiteKickReturnP`
   intro hz ho32
   subst hz

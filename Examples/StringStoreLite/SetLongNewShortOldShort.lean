@@ -14,13 +14,12 @@ set_option maxHeartbeats 20000000
 namespace StringStoreLite
 
 theorem stringStoreLiteSetNewShortOldShortValidRuntime
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz36 : 36 ≤ I.calldata.size)
     (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -40,14 +39,14 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     (hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32)
     (hflag :
-      UInt256.land (currentLengthHeaderWord σ_evm I) ⟨1⟩ = ⟨0⟩)
+      UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ = ⟨0⟩)
     (hvalid :
-      UInt256.sub (UInt256.land (currentLengthHeaderWord σ_evm I) ⟨1⟩)
+      UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt
-          (UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩)
+          (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+      σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
     simpa [selIs] using hsel
@@ -61,8 +60,8 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
   let payloadStart : UInt256 :=
     (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩)
   let oldLen : UInt256 :=
-    UInt256.land (UInt256.div (currentLengthHeaderWord σ_evm I) ⟨2⟩) ⟨127⟩
-  let evmSolm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩
+  let evmSolm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmSolm1 := Solm.EVM.storageStore evmSolm0 I.codeOwner ⟨0⟩
     (solidityShortBytesWord (setDecodedValueBytes I))
   have hlenAbi :
@@ -102,13 +101,13 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
         (UInt256.ofNat I.calldata.size) = ⟨0⟩ :=
     setPayloadWord_zero_of_payload I.calldata hsize hoffMax hlenWord hlenMax hpayload
   obtain ⟨k175, C175, rd175₀⟩ := stringStoreLiteX_setDecoderOkCore
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz36 hhi hsize hsel hoffMax hstart hlenMaxWord hpayloadWord
   have rd175 : RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨175⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨175⟩
       [len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k175 C175 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k175 C175 := by
     simpa [len, payloadStart] using rd175₀
   obtain ⟨_, _, rd1350⟩ :=
     stringStoreLiteX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
@@ -117,18 +116,11 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     (by simpa [oldLen] using hvalid)
   have hret := stringStoreLiteX_setShortNonemptyReturnFromWrite
     (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
-  have hword := currentLengthHeaderWord_eq_of_accountMapEquiv (I := I) hAccounts
-  have hslot :
-      (σ_solm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) =
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)) := by
-    simpa [currentLengthHeaderWord] using hword.symm
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
-        currentLengthHeaderWord σ_evm I := by
+        currentLengthHeaderWord σ I := by
     simp [evmSolm0, Solm.EVM.storageLoad, initState, State.lookupAccount,
-      Account.lookupStorage, currentLengthHeaderWord, hslot]
+      Account.lookupStorage, currentLengthHeaderWord]
   have hpacked : checkBytesPacked ⟨0⟩ evmSolm0 = true :=
     checkBytesPacked_of_storageLoad_land_one_zero hload hflag
   have hvalueSizeShort : (setDecodedValueBytes I).size < 32 := by
@@ -138,27 +130,23 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
       writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
         .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
     have hwrite₀ := writeCurrentShortPacked (evm := evmSolm0)
-      (header := currentLengthHeaderWord σ_evm I) (len := oldLen)
+      (header := currentLengthHeaderWord σ I) (len := oldLen)
       (value := setDecodedValueBytes I)
       hvalueSizeShort hload hpacked hflag rfl (by simpa [oldLen] using hvalid)
-    simpa [evmSolm1] using hwrite₀
+    simpa only [evmSolm1] using hwrite₀
   have hretEnc :
       returnEquiv (UInt256.toByteArray len) (some [.int (setDecodedValueBytes I).size])
         [(.elem (.int (.uint ⟨256, by decide⟩)))] := by
     have hlenSize : len.toNat = (setDecodedValueBytes I).size := by
       rw [setDecodedValueBytes_size hpayload, hlenAbi]
-    simpa [hlenSize] using returnEquiv_of_encode (uint256ReturnEncoding len)
+    simpa only [hlenSize] using returnEquiv_of_encode (uint256ReturnEncoding len)
   have hheaderEq :
       setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len =
         solidityShortBytesWord (setDecodedValueBytes I) :=
     setShortPackedHeader_eq_solidityShortBytesWord (I := I) (len := len)
       (payloadStart := payloadStart) hlenAbi rfl hoffMax hnz hshort hsrc hpayload
-  exact setRuntimeOfWriteAccountMapEquiv hcode hwv hret hd hdec hwrite
-    (by simp [evmSolm1, evmSolm0, initState, storageStore_createdAccounts])
-    (by
-      simp [evmSolm1, evmSolm0, initState, storageStore_accountMap, hheaderEq]
-      exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-        (solidityShortBytesWord (setDecodedValueBytes I)) hAccounts)
+  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+    (by simp [evmSolm1, evmSolm0, initState, storageStore_accountMap, hheaderEq])
     hretEnc
 
 

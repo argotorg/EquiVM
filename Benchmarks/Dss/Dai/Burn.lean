@@ -289,14 +289,14 @@ theorem burnTailLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
     (burnTailUsrStoreMem_size I hmem)
     (burnTailUsrStoreMem_read64 I hmem hread64)
 
-theorem daiBurnX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiBurnX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨946⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3336⟩
+      (initState σ σ₀ g A I) ⟨946⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3336⟩
         [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd968⟩ := RD.daiAddressUint256ExternalLenOk
     (entry := ⟨946⟩) (ret := ⟨686⟩) (routine := ⟨3336⟩) hreach
     dai_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
@@ -307,29 +307,29 @@ theorem daiBurnX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, by
     simpa [burnWadWord, burnUsrMaskedWord, burnUsrWord, calldataWord] using rd3336⟩
 
-theorem daiBurnX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiBurnX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨946⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨946⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressUint256ExternalShort
     (entry := ⟨946⟩) (ret := ⟨686⟩) (routine := ⟨3336⟩)
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
 
 set_option maxHeartbeats 4000000 in
-theorem daiBurnX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_initialBalanceOkCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (henough :
       (burnWadWord I).toNat ≤ (solcSlotWord σ I (burnEvmUsrSlot I)).toNat)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3336⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
@@ -381,6 +381,7 @@ theorem daiBurnX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State} {k C :
   have rdGt := evm_run rdLoaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdIszero
@@ -389,27 +390,27 @@ theorem daiBurnX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State} {k C :
     (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_initialBalanceOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_initialBalanceOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (henough :
       (burnWadWord I).toNat ≤ (solcSlotWord σ I (burnEvmUsrSlot I)).toNat)
     (h : RD daiBytecode I g s0 ⟨3336⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_initialBalanceOkCont (I := I) (ret := ⟨686⟩) (S := [sel])
     henough (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 4000000 in
-theorem daiBurnX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_initialBalanceRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hlt : (solcSlotWord σ I (burnEvmUsrSlot I)).toNat < (burnWadWord I).toNat)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3336⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -462,6 +463,7 @@ theorem daiBurnX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdLoaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdIszero
@@ -487,12 +489,12 @@ theorem daiBurnX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_initialBalanceRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_initialBalanceRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hlt : (solcSlotWord σ I (burnEvmUsrSlot I)).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3336⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiBurnX_initialBalanceRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hlt (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
@@ -528,16 +530,16 @@ theorem burn_address_eq_of_usrMaskedWord_eq (I : ExecutionEnv)
   exact hmaskAddr.trans hmasked
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSkipSenderCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSkipSenderCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (heq : burnUsrMaskedWord I = solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -578,31 +580,31 @@ theorem daiBurnX_allowanceSkipSenderCont {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSkipSender {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSkipSender {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (heq : burnUsrMaskedWord I = solcSourceWord I)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSkipSenderCont (I := I) (ret := ⟨686⟩) (S := [sel])
     heq (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceLoadedCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3502⟩
       ((UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (burnEvmAllowanceWord σ I)))
         :: burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -712,32 +714,32 @@ theorem daiBurnX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, by simpa [UInt256.lnot] using rdMaxCheck⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceLoaded {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceLoaded {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3502⟩
       [UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (burnEvmAllowanceWord σ I)),
         burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceLoadedCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hne (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSkipMaxCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSkipMaxCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hmax : (burnEvmAllowanceWord σ I).toNat = UInt256.size - 1)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiBurnX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -760,21 +762,21 @@ theorem daiBurnX_allowanceSkipMaxCont {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSkipMax {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSkipMax {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hmax : (burnEvmAllowanceWord σ I).toNat = UInt256.size - 1)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSkipMaxCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hne hmax (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSpendCheckOkCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -782,10 +784,10 @@ theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3627⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiBurnX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -890,6 +892,7 @@ theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdReloaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [burnEvmAllowanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdOk := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -898,28 +901,28 @@ theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, rdOk.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceSpendCheckOk {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceSpendCheckOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3627⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (burnAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiBurnX_allowanceSpendCheckOkCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hne hnotMax hallowEnough (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_insufficientAllowanceTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨3551⟩ stk mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+    (h : RD daiBytecode I g s0 ⟨3551⟩ stk mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -973,7 +976,7 @@ theorem daiBurnX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : State}
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -981,7 +984,7 @@ theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiBurnX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
@@ -1088,6 +1091,7 @@ theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdReloaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [burnEvmAllowanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdFail := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1104,21 +1108,21 @@ theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     rdTail
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_allowanceRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_allowanceRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (burnEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hlt : (burnEvmAllowanceWord σ I).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiBurnX_allowanceRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hne hnotMax hlt (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
@@ -1127,11 +1131,11 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, burnEvmAfterAllowanceAccountMap σ I) k' C' := by
+      (burnEvmAfterAllowanceAccountMap σ I) k' C' := by
   obtain ⟨_, _, rd3627⟩ :=
     daiBurnX_allowanceSpendCheckOkCont (I := I) (ret := ret) (S := S)
       hne hnotMax hallowEnough hSlen h
@@ -1313,7 +1317,7 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       using rd3710Raw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_spendToTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_spendToTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hne : burnUsrMaskedWord I ≠ solcSourceWord I)
@@ -1321,17 +1325,17 @@ theorem daiBurnX_spendToTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat)
     (h : RD daiBytecode I g s0 ⟨3440⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
       (burnAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, burnEvmAfterAllowanceAccountMap σ I) k' C' := by
+      (burnEvmAfterAllowanceAccountMap σ I) k' C' := by
   exact daiBurnX_spendToTailCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hperm hne hnotMax hallowEnough
     (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
-theorem daiBurnX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_logAndJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256} {scratch rdata : ByteArray}
     (hperm : I.perm = true)
     (hscratch : scratch.size = 96)
@@ -1340,10 +1344,10 @@ theorem daiBurnX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hretDest : (D_J daiBytecode 0).contains ret = true)
     (h : RD daiBytecode I g s0 ⟨3787⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      scratch (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      scratch (UInt256.ofNat 3) rdata σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret S
       (solcScratchReturnMem scratch (burnWadWord I)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have husrMask :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1403,7 +1407,7 @@ theorem daiBurnX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rdRet⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -1416,10 +1420,10 @@ theorem daiBurnX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret S
       (burnTailLogMem mem I) (UInt256.ofNat 5) rdata
-      (cA, burnEvmTailPostAccountMap σ I) k' C' := by
+      (burnEvmTailPostAccountMap σ I) k' C' := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1560,7 +1564,7 @@ theorem daiBurnX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by omega) hretDest rdAfterSupplyStore
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiBurnX_tailSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -1571,8 +1575,8 @@ theorem daiBurnX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, burnEvmTailPostAccountMap σ I) ByteArray.empty := by
+      mem (UInt256.ofNat 3) rdata σ k C) :
+    RDret daiBytecode g s0 (burnEvmTailPostAccountMap σ I) ByteArray.empty := by
   obtain ⟨_, _, rd686⟩ := daiBurnX_tailSuccessJump
     (I := I) (ret := ⟨686⟩) (S := [sel])
     hperm hmem hread64
@@ -1582,7 +1586,7 @@ theorem daiBurnX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact RD.stop rd687 (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_tailUsrDebitRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hSlen : S.length + 16 ≤ 1024)
@@ -1590,7 +1594,7 @@ theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
       (burnEvmTailUsrBalanceWord σ I).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
@@ -1678,6 +1682,7 @@ theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw gt hd6 (by evm_ov)]
+  simp only [burnEvmTailUsrBalanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
@@ -1689,20 +1694,20 @@ theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailUsrDebitRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_tailUsrDebitRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hlt :
       (burnEvmTailUsrBalanceWord σ I).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiBurnX_tailUsrDebitRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hmem (by simp only [List.length_cons, List.length_nil]; omega) hlt (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailAfterUsrStoreCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_tailAfterUsrStoreCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -1711,11 +1716,11 @@ theorem daiBurnX_tailAfterUsrStoreCont {cA σ I} {g : Sat256} {s0 : State}
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3771⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
       (burnTailUsrStoreMem mem I) (UInt256.ofNat 3) rdata
-      (cA, burnEvmTailAfterUsrAccountMap σ I) k' C' := by
+      (burnEvmTailAfterUsrAccountMap σ I) k' C' := by
   have husrMaskLiteral :
       UInt256.land (burnUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1823,7 +1828,7 @@ theorem daiBurnX_tailAfterUsrStoreCont {cA σ I} {g : Sat256} {s0 : State}
       using rdAfterUsrStoreRaw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailSupplyRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_tailSupplyRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -1834,7 +1839,7 @@ theorem daiBurnX_tailSupplyRevertCont {cA σ I} {g : Sat256} {s0 : State}
       (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       (burnWadWord I :: burnUsrMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rdAfterUsrStore⟩ := daiBurnX_tailAfterUsrStoreCont
     (I := I) (ret := ret) (S := S) hperm hmem hSlen husrEnough h
@@ -1884,6 +1889,7 @@ theorem daiBurnX_tailSupplyRevertCont {cA σ I} {g : Sat256} {s0 : State}
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw gt hd6 (by evm_ov)]
+  simp only [burnEvmTailSupplyWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
@@ -1895,7 +1901,7 @@ theorem daiBurnX_tailSupplyRevertCont {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiBurnX_tailSupplyRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiBurnX_tailSupplyRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -1905,7 +1911,7 @@ theorem daiBurnX_tailSupplyRevert {cA σ I} {g : Sat256} {s0 : State}
       (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨3710⟩
       [burnWadWord I, burnUsrMaskedWord I, ⟨686⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiBurnX_tailSupplyRevertCont (I := I) (ret := ⟨686⟩) (S := [sel])
     hperm hmem (by simp only [List.length_cons, List.length_nil]; omega)
@@ -2766,45 +2772,38 @@ theorem daiBurnBodyReverts_supply_skipMax (evm : EVM.State) (I : ExecutionEnv)
     (ExecStmt.requireRevert
       (evalExpr_burn_supply_checkedSub_revert (burnAfterUsrDebitState evm I) I hltSupply))
 
-theorem burnUsrBalanceWord_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
+theorem burnUsrBalanceWordEq {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    (hmap : evm.accountMap = σ) :
     burnEvmTailUsrBalanceWord σ I = burnUsrBalanceWord evm I := by
-  have hread :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (burnEvmUsrSlot I)
-      (⟨0⟩ : UInt256)
   simpa [burnEvmTailUsrBalanceWord, burnUsrBalanceWord, burnEvmUsrSlot,
     burnUsrSlot_eq_mapSlot_masked, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, solcSlotWord, howner] using hread
+    Account.lookupStorage, solcSlotWord, howner, hmap]
 
-theorem burnAllowanceWord_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
+theorem burnAllowanceWordEq {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hsource : evm.executionEnv.source = I.source)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    (hmap : evm.accountMap = σ) :
     burnEvmAllowanceWord σ I = burnAllowanceWord evm I := by
-  have hread :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (burnEvmAllowanceSlot I)
-      (⟨0⟩ : UInt256)
   unfold burnAllowanceWord
   rw [show burnAllowanceSlot evm I = burnEvmAllowanceSlot I by
     simpa [burnEvmAllowanceSlot] using
       burnAllowanceSlot_eq_mapSlot_masked evm I hsource]
   simpa [burnEvmAllowanceWord, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, solcSlotWord, howner] using hread
+    Account.lookupStorage, solcSlotWord, howner, hmap]
 
-theorem burnAfterAllowance_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
+theorem burnAfterAllowanceAccountMapEq {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hsource : evm.executionEnv.source = I.source)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (hallowEnough : (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat) :
-    accountMapEquiv (burnEvmAfterAllowanceAccountMap σ I)
+    burnEvmAfterAllowanceAccountMap σ I =
       (burnAfterAllowanceState evm I).accountMap := by
   have hallowWord :=
-    burnAllowanceWord_accountMapEquiv (σ := σ) (evm := evm) (I := I)
-      howner hsource hAccounts
+    burnAllowanceWordEq (σ := σ) (evm := evm) (I := I) howner hsource hmap
   have hallowDebitEq :
       burnEvmAllowanceDebitWord σ I = burnAllowanceDebitWord evm I := by
     apply u256_inj
@@ -2823,26 +2822,23 @@ theorem burnAfterAllowance_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
       burnAllowanceSlot evm I = burnEvmAllowanceSlot I := by
     simpa [burnEvmAllowanceSlot] using
       burnAllowanceSlot_eq_mapSlot_masked evm I hsource
-  simpa [burnEvmAfterAllowanceAccountMap, burnAfterAllowanceState, storageStore_accountMap,
-    howner, hslot, hallowDebitEq] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (burnEvmAllowanceSlot I)
-      (burnEvmAllowanceDebitWord σ I) hAccounts
+  simp [burnEvmAfterAllowanceAccountMap, burnAfterAllowanceState, storageStore_accountMap,
+    howner, hslot, hallowDebitEq, hmap]
 
 set_option maxHeartbeats 1000000 in
 theorem burnTailSolmPrefixBridge {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (husrEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat) :
     (burnWadWord I).toNat ≤ (burnUsrBalanceWord evm I).toNat ∧
     (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat =
       (burnEvmTailSupplyWord σ I).toNat ∧
-    accountMapEquiv (burnEvmTailAfterUsrAccountMap σ I)
+    burnEvmTailAfterUsrAccountMap σ I =
       (burnAfterUsrDebitState evm I).accountMap := by
   have husrWord :=
-    burnUsrBalanceWord_accountMapEquiv (σ := σ) (evm := evm) (I := I)
-      howner hAccounts
+    burnUsrBalanceWordEq (σ := σ) (evm := evm) (I := I) howner hmap
   have husrEnoughSolm :
       (burnWadWord I).toNat ≤ (burnUsrBalanceWord evm I).toNat := by
     rw [← husrWord]
@@ -2858,28 +2854,23 @@ theorem burnTailSolmPrefixBridge {σ : AccountMap} {evm : EVM.State}
     rw [ulit_toNat' _ hlt]
     rw [← husrWord]
   have husrMap :
-      accountMapEquiv (burnEvmTailAfterUsrAccountMap σ I)
+      burnEvmTailAfterUsrAccountMap σ I =
         (burnAfterUsrDebitState evm I).accountMap := by
-    simpa [burnEvmTailAfterUsrAccountMap, burnAfterUsrDebitState, storageStore_accountMap,
-      burnEvmUsrSlot, burnUsrSlot_eq_mapSlot_masked, howner, husrDebitEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (burnEvmUsrSlot I)
-        (burnEvmTailUsrDebitWord σ I) hAccounts
+    simp [burnEvmTailAfterUsrAccountMap, burnAfterUsrDebitState, storageStore_accountMap,
+      burnEvmUsrSlot, burnUsrSlot_eq_mapSlot_masked, howner, husrDebitEq, hmap]
   have hsupplyWord :
       burnEvmTailSupplyWord σ I = burnTotalSupplyWord (burnAfterUsrDebitState evm I) := by
-    have hread :=
-      accountMapEquiv_storage_findD husrMap I.codeOwner burnTotalSupplySlot
-        (⟨0⟩ : UInt256)
     have hownerAfter :
         (burnAfterUsrDebitState evm I).executionEnv.codeOwner = I.codeOwner := by
       simpa [burnAfterUsrDebit_codeOwner evm I] using howner
     simpa [burnEvmTailSupplyWord, burnTotalSupplyWord, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter] using hread
+      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter, husrMap]
   exact ⟨husrEnoughSolm, by rw [← hsupplyWord], husrMap⟩
 
 set_option maxHeartbeats 1000000 in
 theorem burnTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (husrEnough :
       (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat)
     (hsupplyEnough :
@@ -2887,8 +2878,8 @@ theorem burnTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv
     (burnWadWord I).toNat ≤ (burnUsrBalanceWord evm I).toNat ∧
     (burnWadWord I).toNat ≤
       (burnTotalSupplyWord (burnAfterUsrDebitState evm I)).toNat ∧
-    accountMapEquiv (burnEvmTailPostAccountMap σ I) (burnPostState evm I).accountMap := by
-  rcases burnTailSolmPrefixBridge howner hAccounts husrEnough with
+    burnEvmTailPostAccountMap σ I = (burnPostState evm I).accountMap := by
+  rcases burnTailSolmPrefixBridge howner hmap husrEnough with
     ⟨husrEnoughSolm, hsupplyWordNat, husrMap⟩
   have hsupplyEnoughSolm :
       (burnWadWord I).toNat ≤
@@ -2912,42 +2903,39 @@ theorem burnTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv
       (burnAfterUsrDebitState evm I).executionEnv.codeOwner = I.codeOwner := by
     simpa [burnAfterUsrDebit_codeOwner evm I] using howner
   have hfinal :
-      accountMapEquiv (burnEvmTailPostAccountMap σ I) (burnPostState evm I).accountMap := by
-    simpa [burnEvmTailPostAccountMap, burnPostState, storageStore_accountMap,
-      hownerAfter, hsupplyDebitEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner burnTotalSupplySlot
-        (burnEvmTailSupplyDebitWord σ I) husrMap
+      burnEvmTailPostAccountMap σ I = (burnPostState evm I).accountMap := by
+    simp [burnEvmTailPostAccountMap, burnPostState, storageStore_accountMap,
+      hownerAfter, hsupplyDebitEq, husrMap]
   exact ⟨husrEnoughSolm, hsupplyEnoughSolm, hfinal⟩
 
 /-- `burn(address,uint256)` body refines its Solm transition. -/
-theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 3))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 3)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 3) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some burnTransition :=
     daiDispatchBurn hsel
-  have hreach := daiReachBurnBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachBurnBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := daiDecode_burn_ok (I := I) hsz68
     obtain ⟨_, _, rd3336⟩ :=
       daiBurnX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hownerSolm : evmSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmSolm, initState]
     have hsourceSolm : evmSolm.executionEnv.source = I.source := by
       simp [evmSolm, initState]
     have husrWord :
-        burnEvmTailUsrBalanceWord σ_evm I = burnUsrBalanceWord evmSolm I :=
-      burnUsrBalanceWord_accountMapEquiv (σ := σ_evm) (evm := evmSolm) (I := I)
-        hownerSolm hAccounts
+        burnEvmTailUsrBalanceWord σ I = burnUsrBalanceWord evmSolm I :=
+      burnUsrBalanceWordEq (σ := σ) (evm := evmSolm) (I := I)
+        hownerSolm (by simp [evmSolm, initState])
     by_cases husrEnough :
-        (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ_evm I).toNat
+        (burnWadWord I).toNat ≤ (burnEvmTailUsrBalanceWord σ I).toNat
     · obtain ⟨_, _, rd3440⟩ := daiBurnX_initialBalanceOk husrEnough rd3336
       have husrEnoughSolm :
           (burnWadWord I).toNat ≤ (burnUsrBalanceWord evmSolm I).toNat := by
@@ -2958,8 +2946,9 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · have heqWord := burnUsrMaskedWord_eq_solcSourceWord_of_address_eq I husrIsSender
         obtain ⟨_, _, rd3710⟩ := daiBurnX_allowanceSkipSender heqWord rd3440
         by_cases hsupplyEnough :
-            (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ_evm I).toNat
-        · rcases burnTailSolmBridge hownerSolm hAccounts husrEnough hsupplyEnough with
+            (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat
+        · rcases burnTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+            husrEnough hsupplyEnough with
             ⟨husrEnoughBody, hsupplyEnoughBody, hfinal⟩
           have hbody :
               ExecTransitionBody config contract evmSolm (burnStore I)
@@ -2974,19 +2963,17 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 hsupplyEnoughBody
           exact (daiBurnX_tailSuccess hperm (burnUsrHashMem_size I)
               (burnUsrHashMem_read64 I) husrEnough hsupplyEnough rd3710)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-              (by
-                simp [burnPostState, burnAfterUsrDebitState, evmSolm, initState,
-                  storageStore_createdAccounts])
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (by
                 simpa [burnTransition] using
                   (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                     (dvs := []) rfl (by native_decide) (by native_decide)))
         · have hltSupply :
-              (burnEvmTailSupplyWord σ_evm I).toNat < (burnWadWord I).toNat := by
+              (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat := by
             omega
-          rcases burnTailSolmPrefixBridge hownerSolm hAccounts husrEnough with
+          rcases burnTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+            husrEnough with
             ⟨husrEnoughBody, hsupplyNat, _⟩
           have hltSupplyBody :
               (burnTotalSupplyWord (burnAfterUsrDebitState evmSolm I)).toNat <
@@ -3009,17 +2996,18 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           intro hbad
           exact husrIsSender (burn_address_eq_of_usrMaskedWord_eq I hbad)
         have hallowWord :=
-          burnAllowanceWord_accountMapEquiv (σ := σ_evm) (evm := evmSolm) (I := I)
-            hownerSolm hsourceSolm hAccounts
+          burnAllowanceWordEq (σ := σ) (evm := evmSolm) (I := I)
+            hownerSolm hsourceSolm (by simp [evmSolm, initState])
         by_cases hmax :
-            (burnEvmAllowanceWord σ_evm I).toNat = UInt256.size - 1
+            (burnEvmAllowanceWord σ I).toNat = UInt256.size - 1
         · have hmaxBody : (burnAllowanceWord evmSolm I).toNat = UInt256.size - 1 := by
             rw [← hallowWord]
             exact hmax
           obtain ⟨_, _, rd3710⟩ := daiBurnX_allowanceSkipMax hneWord hmax rd3440
           by_cases hsupplyEnough :
-              (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ_evm I).toNat
-          · rcases burnTailSolmBridge hownerSolm hAccounts husrEnough hsupplyEnough with
+              (burnWadWord I).toNat ≤ (burnEvmTailSupplyWord σ I).toNat
+          · rcases burnTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+              husrEnough hsupplyEnough with
               ⟨husrEnoughBody, hsupplyEnoughBody, hfinal⟩
             have hbody :
                 ExecTransitionBody config contract evmSolm (burnStore I)
@@ -3035,19 +3023,17 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   hsupplyEnoughBody
             exact (daiBurnX_tailSuccess hperm (burnAllowanceHashMem_size I)
                 (burnAllowanceHashMem_read64 I) husrEnough hsupplyEnough rd3710)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                (by
-                  simp [burnPostState, burnAfterUsrDebitState, evmSolm, initState,
-                    storageStore_createdAccounts])
+              |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 (by
                   simpa [burnTransition] using
                     (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                       (dvs := []) rfl (by native_decide) (by native_decide)))
           · have hltSupply :
-                (burnEvmTailSupplyWord σ_evm I).toNat < (burnWadWord I).toNat := by
+                (burnEvmTailSupplyWord σ I).toNat < (burnWadWord I).toNat := by
               omega
-            rcases burnTailSolmPrefixBridge hownerSolm hAccounts husrEnough with
+            rcases burnTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+              husrEnough with
               ⟨husrEnoughBody, hsupplyNat, _⟩
             have hltSupplyBody :
                 (burnTotalSupplyWord (burnAfterUsrDebitState evmSolm I)).toNat <
@@ -3068,7 +3054,7 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 husrEnough hltSupply rd3710)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · by_cases hallowEnough :
-              (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ_evm I).toNat
+              (burnWadWord I).toNat ≤ (burnEvmAllowanceWord σ I).toNat
           · have hnotMaxBody :
                 (burnAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
               rw [← hallowWord]
@@ -3078,9 +3064,9 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               rw [← hallowWord]
               exact hallowEnough
             have hallowAcc :=
-              burnAfterAllowance_accountMapEquiv
-                (σ := σ_evm) (evm := evmSolm) (I := I)
-                hownerSolm hsourceSolm hAccounts hallowEnough
+              burnAfterAllowanceAccountMapEq
+                (σ := σ) (evm := evmSolm) (I := I)
+                hownerSolm hsourceSolm (by simp [evmSolm, initState]) hallowEnough
             let evmAfterAllowance := burnAfterAllowanceState evmSolm I
             have hownerAfterAllowance :
                 evmAfterAllowance.executionEnv.codeOwner = I.codeOwner := by
@@ -3091,12 +3077,12 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             by_cases husrDebitEnough :
                 (burnWadWord I).toNat ≤
                   (burnEvmTailUsrBalanceWord
-                    (burnEvmAfterAllowanceAccountMap σ_evm I) I).toNat
+                    (burnEvmAfterAllowanceAccountMap σ I) I).toNat
             · by_cases hsupplyEnough :
                   (burnWadWord I).toNat ≤
-                    (burnEvmTailSupplyWord (burnEvmAfterAllowanceAccountMap σ_evm I)
+                    (burnEvmTailSupplyWord (burnEvmAfterAllowanceAccountMap σ I)
                       I).toNat
-              · rcases burnTailSolmBridge hownerAfterAllowance hallowAcc
+              · rcases burnTailSolmBridge hownerAfterAllowance hallowAcc.symm
                     husrDebitEnough hsupplyEnough with
                   ⟨husrDebitEnoughBody, hsupplyEnoughBody, hfinal⟩
                 have hbody :
@@ -3116,11 +3102,7 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 exact (daiBurnX_tailSuccess hperm (burnAllowancePostStoreHashMem_size I)
                     (burnAllowancePostStoreHashMem_read64 I) husrDebitEnough
                     hsupplyEnough rd3710)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                    (by
-                      simp [burnPostState, burnAfterUsrDebitState, evmAfterAllowance,
-                        burnAfterAllowanceState, evmSolm, initState,
-                        storageStore_createdAccounts])
+                  |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                     hfinal
                     (by
                       simpa [burnTransition] using
@@ -3128,10 +3110,10 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (dvs := []) rfl (by native_decide) (by native_decide)))
               · have hltSupply :
                     (burnEvmTailSupplyWord
-                        (burnEvmAfterAllowanceAccountMap σ_evm I) I).toNat <
+                        (burnEvmAfterAllowanceAccountMap σ I) I).toNat <
                       (burnWadWord I).toNat := by
                   omega
-                rcases burnTailSolmPrefixBridge hownerAfterAllowance hallowAcc
+                rcases burnTailSolmPrefixBridge hownerAfterAllowance hallowAcc.symm
                     husrDebitEnough with
                   ⟨husrDebitEnoughBody, hsupplyNat, _⟩
                 have hltSupplyBody :
@@ -3158,17 +3140,22 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
             · have hltDebit :
                 (burnEvmTailUsrBalanceWord
-                    (burnEvmAfterAllowanceAccountMap σ_evm I) I).toNat <
+                    (burnEvmAfterAllowanceAccountMap σ I) I).toNat <
                   (burnWadWord I).toNat := by
                 omega
               have husrAfterWord :
                   burnEvmTailUsrBalanceWord
-                      (burnEvmAfterAllowanceAccountMap σ_evm I) I =
-                    burnUsrBalanceWord evmAfterAllowance I :=
-                burnUsrBalanceWord_accountMapEquiv
-                  (σ := burnEvmAfterAllowanceAccountMap σ_evm I)
-                  (evm := evmAfterAllowance) (I := I)
-                  hownerAfterAllowance hallowAcc
+                      (burnEvmAfterAllowanceAccountMap σ I) I =
+                    burnUsrBalanceWord evmAfterAllowance I := by
+                have hread :
+                    solcSlotWord (burnEvmAfterAllowanceAccountMap σ I) I
+                        (burnEvmUsrSlot I) =
+                      solcSlotWord evmAfterAllowance.accountMap I (burnEvmUsrSlot I) := by
+                  unfold solcSlotWord
+                  rw [hallowAcc]
+                simpa [burnEvmTailUsrBalanceWord, burnUsrBalanceWord, burnEvmUsrSlot,
+                  burnUsrSlot_eq_mapSlot_masked, Solm.EVM.storageLoad, State.lookupAccount,
+                  Account.lookupStorage, solcSlotWord, hownerAfterAllowance] using hread
               have hltDebitBody :
                   (burnUsrBalanceWord evmAfterAllowance I).toNat <
                     (burnWadWord I).toNat := by
@@ -3187,11 +3174,11 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     hltDebitBody
               exact (daiBurnX_tailUsrDebitRevert
                   (mem := burnAllowancePostStoreHashMem I)
-                  (σ := burnEvmAfterAllowanceAccountMap σ_evm I)
+                  (σ := burnEvmAfterAllowanceAccountMap σ I)
                   (burnAllowancePostStoreHashMem_size I) hltDebit rd3710)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hltAllow :
-                (burnEvmAllowanceWord σ_evm I).toNat < (burnWadWord I).toNat := by
+                (burnEvmAllowanceWord σ I).toNat < (burnWadWord I).toNat := by
               omega
             have hnotMaxBody :
                 (burnAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
@@ -3214,7 +3201,7 @@ theorem daiBurnBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact (daiBurnX_allowanceRevert hneWord hmax hltAllow rd3440)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hlt :
-          (burnEvmTailUsrBalanceWord σ_evm I).toNat < (burnWadWord I).toNat := by
+          (burnEvmTailUsrBalanceWord σ I).toNat < (burnWadWord I).toNat := by
         omega
       have hltBody :
           (burnUsrBalanceWord evmSolm I).toNat < (burnWadWord I).toNat := by

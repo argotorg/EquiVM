@@ -405,27 +405,27 @@ theorem evalExpr_permit_afterStructHash_domainSeparator_at
   simp only [evalExpr?, EvalResult.ofOption]
   rw [permitAfterStructHashStore_domainSeparator]
 
-theorem permitDomainSeparatorLoadedWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    permitDomainSeparatorLoadedWord (initState cA gh bl σ σ₀ g A I) =
+theorem permitDomainSeparatorLoadedWord_initState {σ σ₀ A I} {g : Sat256} :
+    permitDomainSeparatorLoadedWord (initState σ σ₀ g A I) =
       permitDomainSeparatorWord σ I := by
   simpa [permitDomainSeparatorLoadedWord, permitDomainSeparatorWord, initState] using
-    (codeOwnerStorageWord_initState (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (codeOwnerStorageWord_initState (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (slot := ⟨3⟩))
 
-theorem permitNonceLoadedWord_initState_for_hash {cA gh bl σ σ₀ A I} {g : Sat256} :
-    permitNonceLoadedWord (initState cA gh bl σ σ₀ g A I) I = permitNonceWord σ I := by
+theorem permitNonceLoadedWord_initState_for_hash {σ σ₀ A I} {g : Sat256} :
+    permitNonceLoadedWord (initState σ σ₀ g A I) I = permitNonceWord σ I := by
   unfold permitNonceLoadedWord permitNonceWord
   rw [permitNonceStorageSlot_eq_mapSlot_masked]
   simpa [initState] using
-    (codeOwnerStorageWord_initState (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (codeOwnerStorageWord_initState (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (slot := mapSlot (permitOwnerMaskedWord I) ⟨4⟩))
 
-theorem evalPackedArgs_permit_structHash_at {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalPackedArgs_permit_structHash_at {σ σ₀ A I} {g : Sat256}
     (cur : EVM.State) :
     evalPackedArgs? config
       { contract := contract,
-        locals := permitAfterNonceLoadStore (initState cA gh bl σ σ₀ g A I) I }
+        locals := permitAfterNonceLoadStore (initState σ σ₀ g A I) I }
       cur
       [ (bytes32, permitTypehashExpr),
         (uint256, addressAsUint256 (.var "owner")),
@@ -491,11 +491,11 @@ theorem evalPackedArgs_permit_structHash_at {cA gh bl σ σ₀ A I} {g : Sat256}
                 simpa [word_toBytesBE_eq_toByteArray_toList] using
                   permitEncodePacked_uint256 (permitDeadlineWord I))
 
-theorem evalExpr_permit_structHash_at {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_permit_structHash_at {σ σ₀ A I} {g : Sat256}
     (cur : EVM.State) :
     evalExpr? config
       { contract := contract,
-        locals := permitAfterNonceLoadStore (initState cA gh bl σ σ₀ g A I) I }
+        locals := permitAfterNonceLoadStore (initState σ σ₀ g A I) I }
       cur permitStructHashExpr = .ok (permitStructHashValue σ I) := by
   rw [permitStructHashExpr, evalExpr?, evalExpr?]
   simp only [evalPackedArgs_permit_structHash_at cur, EvalResult.bind, bind,
@@ -505,16 +505,16 @@ theorem evalExpr_permit_structHash_at {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [keccakSlot_eq, toBytesBE_keccak_uInt256OfByteArray]
   rfl
 
-theorem evalExpr_permit_domainSeparator_afterNonce_at {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_permit_domainSeparator_afterNonce_at {σ σ₀ A I} {g : Sat256}
     (hne : (⟨3⟩ : UInt256) ≠ mapSlot (permitOwnerMaskedWord I) ⟨4⟩) :
     evalExpr? config
       { contract := contract,
-        locals := permitAfterStructHashStore (initState cA gh bl σ σ₀ g A I) I
+        locals := permitAfterStructHashStore (initState σ σ₀ g A I) I
           (permitStructHashValue σ I) }
-      (permitAfterNonceState (initState cA gh bl σ σ₀ g A I) I)
+      (permitAfterNonceState (initState σ σ₀ g A I) I)
       (.storage domainSeparatorRef) =
         .ok (permitWordBytes32Value (permitDomainSeparatorWord σ I)) := by
-  let evmS := initState cA gh bl σ σ₀ g A I
+  let evmS := initState σ σ₀ g A I
   let evmNonceS := permitAfterNonceState evmS I
   have hbase :
       (permitAfterStructHashStore evmS I (permitStructHashValue σ I)).get?
@@ -540,7 +540,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {cA gh bl σ σ₀ A I} {g
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨3⟩ =
         permitDomainSeparatorWord σ I := by
     simpa [evmS, permitDomainSeparatorWord] using
-      (codeOwnerStorageWord_initState (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (codeOwnerStorageWord_initState (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) (slot := ⟨3⟩))
   have hloadNonce :
       Solm.EVM.storageLoad evmNonceS evmNonceS.executionEnv.codeOwner ⟨3⟩ =
@@ -624,12 +624,12 @@ theorem evalExpr_permit_digest_at {base cur : EVM.State} {σ I}
   rw [keccakSlot_eq, toBytesBE_keccak_uInt256OfByteArray]
   rfl
 
-theorem evalExpr_permit_digest_afterNonce_at {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_permit_digest_afterNonce_at {σ σ₀ A I} {g : Sat256} :
     evalExpr? config
       { contract := contract,
-        locals := permitAfterStructHashStore (initState cA gh bl σ σ₀ g A I) I
+        locals := permitAfterStructHashStore (initState σ σ₀ g A I) I
           (permitStructHashValue σ I) }
-      (permitAfterNonceState (initState cA gh bl σ σ₀ g A I) I)
+      (permitAfterNonceState (initState σ σ₀ g A I) I)
       permitDigestExpr = .ok (permitDigestValue σ I) := by
   exact evalExpr_permit_digest_at (by
     rw [evalExpr_permit_afterStructHash_domainSeparator_at]
@@ -1283,22 +1283,22 @@ theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
   rw [uniswapStorageLocStore_uint256]
   simp [permitAfterNonceState]
 
-theorem permitNonceLoadedWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    permitNonceLoadedWord (initState cA gh bl σ σ₀ g A I) I = permitNonceWord σ I := by
+theorem permitNonceLoadedWord_initState {σ σ₀ A I} {g : Sat256} :
+    permitNonceLoadedWord (initState σ σ₀ g A I) I = permitNonceWord σ I := by
   unfold permitNonceLoadedWord permitNonceWord
   rw [permitNonceStorageSlot_eq_mapSlot_masked]
   simpa [initState] using
-    (codeOwnerStorageWord_initState (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (codeOwnerStorageWord_initState (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (slot := mapSlot (permitOwnerMaskedWord I) ⟨4⟩))
 
-theorem permitNonceNextLoadedWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    permitNonceNextLoadedWord (initState cA gh bl σ σ₀ g A I) I =
+theorem permitNonceNextLoadedWord_initState {σ σ₀ A I} {g : Sat256} :
+    permitNonceNextLoadedWord (initState σ σ₀ g A I) I =
       permitNonceNextWord σ I := by
   simp [permitNonceNextLoadedWord, permitNonceNextWord, permitNonceLoadedWord_initState]
 
-theorem permitAfterNonceState_init_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (permitAfterNonceState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+theorem permitAfterNonceState_init_accountMap {σ σ₀ A I} {g : Sat256} :
+    (permitAfterNonceState (initState σ σ₀ g A I) I).accountMap =
       permitAfterNonceAccountMap σ I := by
   unfold permitAfterNonceState permitAfterNonceAccountMap
   rw [storageStore_accountMap]
@@ -1306,22 +1306,10 @@ theorem permitAfterNonceState_init_accountMap {cA gh bl σ σ₀ A I} {g : Sat25
   rw [permitNonceNextLoadedWord_initState]
   simp [initState]
 
-theorem permitAfterNonceState_init_createdAccounts {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (permitAfterNonceState (initState cA gh bl σ σ₀ g A I) I).createdAccounts = cA := by
-  simp [permitAfterNonceState, storageStore_createdAccounts, initState]
-
-theorem permitAfterNonceAccountMap_equiv {σ_evm σ_solm I}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (permitAfterNonceAccountMap σ_evm I)
-      (permitAfterNonceAccountMap σ_solm I) := by
-  have hword : permitNonceWord σ_evm I = permitNonceWord σ_solm I := by
-    exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (mapSlot (permitOwnerMaskedWord I) ⟨4⟩) ⟨0⟩
-  have hnext : permitNonceNextWord σ_evm I = permitNonceNextWord σ_solm I := by
-    simp [permitNonceNextWord, hword]
-  rw [permitAfterNonceAccountMap, permitAfterNonceAccountMap, hnext]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (mapSlot (permitOwnerMaskedWord I) ⟨4⟩)
-    (permitNonceNextWord σ_solm I) hAccounts
+theorem permitAfterNonceAccountMap_equiv {σ I} :
+    Eq (permitAfterNonceAccountMap σ I)
+      (permitAfterNonceAccountMap σ I) := by
+  rfl
 
 theorem evalExpr_permit_deadline_ge_now_false (evm : EVM.State) (I : ExecutionEnv)
     (hexpired : (permitDeadlineWord I).toNat <

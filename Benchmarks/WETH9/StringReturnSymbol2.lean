@@ -391,15 +391,15 @@ def weth9SymLong2LoopStack (σ : AccountMap) (I : ExecutionEnv) (i : UInt256) : 
 
 set_option maxHeartbeats 8000000 in
 /-- Setup (pc 187 → 221): write the ABI offset + length words and reach the Loop-2 head. -/
-theorem weth9SymNameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
-      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty (cA, σ) k C := by
+      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty σ k C := by
   have hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
     have := weth9SymLongLen_ge32 hge31; omega
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
@@ -410,7 +410,7 @@ theorem weth9SymNameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
       (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 := by
     rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by rw [hfpN]; omega)]
-  obtain ⟨_, _, h187⟩ := weth9SymNameLongReach187 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h187⟩ := weth9SymNameLongReach187 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   have h221 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
@@ -460,17 +460,17 @@ theorem weth9SymNameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
 
 set_option maxHeartbeats 8000000 in
 /-- One Loop-2 iteration (pc 221 → 221): copy `mem[0xa0+i] → mem[newFp+0x40+i]`, `i += 32`. -/
-theorem weth9SymNameLong2Continue {cA gh bl σ σ₀ A I} {g : Sat256} (j : Nat)
+theorem weth9SymNameLong2Continue {σ σ₀ A I} {g : Sat256} (j : Nat)
     (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
     (hjlt : j < weth9SymLongWC σ I + 1)
-    (h : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+    (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * j)))
-      (weth9SymLong2Mem σ I j) (UInt256.ofNat (8 + weth9SymLongWC σ I + j)) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+      (weth9SymLong2Mem σ I j) (UInt256.ofNat (8 + weth9SymLongWC σ I + j)) ByteArray.empty σ k C) :
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * (j + 1))))
       (weth9SymLong2Mem σ I (j + 1)) (UInt256.ofNat (8 + weth9SymLongWC σ I + (j + 1)))
-      ByteArray.empty (cA, σ) k C := by
+      ByteArray.empty σ k C := by
   obtain ⟨_, _, rd221⟩ := h
   rw [weth9SymLong2LoopStack] at rd221
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
@@ -524,16 +524,16 @@ theorem weth9SymNameLong2Continue {cA gh bl σ σ₀ A I} {g : Sat256} (j : Nat)
 set_option maxHeartbeats 8000000 in
 /-- Run the Loop-2 mem→mem copy (pc 221) to exhaustion (`wc` iterations), reaching the exit (pc 245)
     with all data words copied. -/
-theorem weth9SymNameLong2CopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
     (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
-    (h : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+    (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
-      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨245⟩
+      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty σ k C) :
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * (weth9SymLongWC σ I + 1))))
       (weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1))
-      (UInt256.ofNat (8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1))) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat (8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1))) ByteArray.empty σ k C := by
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
   have hbig : 288 + 64 * weth9SymLongWC σ I < UInt256.size := by omega
   have hdone : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat ≤ 32 * (weth9SymLongWC σ I + 1) := by
@@ -541,12 +541,12 @@ theorem weth9SymNameLong2CopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [weth9SymLongWC]; omega
   -- exit rule
   have hexit : ∀ a : ℕ, a + 0 = weth9SymLongWC σ I + 1 → ∀ k C,
-      RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+      RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
-        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty (cA, σ) k C →
-      ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨245⟩
+        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k C →
+      ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨245⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
-        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty (cA, σ) k' C' := by
+        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k' C' := by
     intro a hInv k C hrd
     have ha : a = weth9SymLongWC σ I + 1 := by omega
     subst ha
@@ -559,20 +559,20 @@ theorem weth9SymNameLong2CopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, rd⟩
   -- body rule
   have hbody : ∀ (v a : ℕ), a + (v + 1) = weth9SymLongWC σ I + 1 → ∀ k C,
-      RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+      RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
         (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a)))
-        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty (cA, σ) k C →
+        (weth9SymLong2Mem σ I a) (UInt256.ofNat (8 + weth9SymLongWC σ I + a)) ByteArray.empty σ k C →
       ∃ a' k' C', a' + v = weth9SymLongWC σ I + 1 ∧
-        RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+        RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
           (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * a')))
-          (weth9SymLong2Mem σ I a') (UInt256.ofNat (8 + weth9SymLongWC σ I + a')) ByteArray.empty (cA, σ) k' C' := by
+          (weth9SymLong2Mem σ I a') (UInt256.ofNat (8 + weth9SymLongWC σ I + a')) ByteArray.empty σ k' C' := by
     intro v a hInv k C hrd
     obtain ⟨k', C', rd'⟩ := weth9SymNameLong2Continue a hpos hfit (by omega) ⟨k, C, hrd⟩
     exact ⟨a + 1, k', C', by omega, rd'⟩
   obtain ⟨k0, C0, h0⟩ := h
-  have h0' : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨221⟩
+  have h0' : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I (UInt256.ofNat (32 * 0)))
-      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I + 0)) ByteArray.empty (cA, σ) k0 C0 := by
+      (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I + 0)) ByteArray.empty σ k0 C0 := by
     simpa using h0
   obtain ⟨a', k', C', hInv0, hexitRD⟩ :=
     RD.whileLoopCarry ⟨221⟩ ⟨245⟩ (fun v j => j + v = weth9SymLongWC σ I + 1)
@@ -733,13 +733,13 @@ set_option maxHeartbeats 8000000 in
     data words (Loop-2), zero the trailing garbage (tail mask, when `len % 32 ≠ 0`), and `RETURN`
     `weth9SymLongStringAbi`.  Config-independent, symbolic `len ≥ 32`; `hfit` bounds the returned object
     to a 64-bit-addressable size (EVM cannot return `≥ 2⁶⁴` bytes). -/
-theorem weth9SymbolStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) (weth9SymLongStringAbi σ I) := by
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ (weth9SymLongStringAbi σ I) := by
   have hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
     have := weth9SymLongLen_ge32 hge31; omega
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
@@ -751,9 +751,9 @@ theorem weth9SymbolStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [uadd_toNat, hfpN, show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
   have hawnorm : 8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1) = 9 + 2 * weth9SymLongWC σ I := by omega
-  obtain ⟨_, _, h245⟩ := weth9SymNameLong2CopyLoop (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h245⟩ := weth9SymNameLong2CopyLoop (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hpos hfit
-    (weth9SymNameLong2ReachLoopHead (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (weth9SymNameLong2ReachLoopHead (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31 hfit)
   rw [weth9SymLong2LoopStack] at h245
   -- common prefix: pops, tail-offset arithmetic, tail-mask decision.

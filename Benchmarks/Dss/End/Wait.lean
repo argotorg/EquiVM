@@ -32,18 +32,18 @@ theorem endWaitArmsWellFormed :
     (dsimp [armWellFormed]
      repeat' first | apply And.intro | native_decide)
 
-theorem endReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachWaitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endWaitConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endWaitEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x64bd7013⟩ :=
     endSelWord_eq_of_beq I hsz 0x64 0xbd 0x70 0x13 ⟨0x64bd7013⟩
       (by native_decide) (by simpa [selIs, endWaitConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup343FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup343FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -63,7 +63,7 @@ theorem endReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endWaitBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some waitTransition)
@@ -71,20 +71,19 @@ theorem endWaitBodyCore
       decodeCalldataWithMode config.abiDecodeMode (waitTransition.params.map Param.name)
         (transitionSignature waitTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endWaitEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endWaitEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ waitTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ waitTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (waitWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (waitWord σ I).toNat))])) := by
     simpa [waitTransition, waitWord, endSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := waitRef) (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
         (slot := ⟨10⟩)
         (by simp only [initState]; exact hwv) (by simp [waitRef])
@@ -92,7 +91,7 @@ theorem endWaitBodyCore
         (by decide) (by rfl)
   exact endUint256GetterBodyCore (entry := endWaitEntryPc)
     (returnPc := endWordReturnPc) (routine := endWaitRoutinePc) (slot := ⟨10⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -106,18 +105,16 @@ theorem endWaitBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [waitWord] using hbody)
 
-theorem endWaitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endWaitBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf waitTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf waitTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endWaitConcreteSelector := by
     simpa [endWaitSelectorBytes, endWaitConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endWaitConcreteSelector (by rfl) hsel'
   exact endWaitBodyCore hcode hwv (endDispatchWait hsel) (endDecode_wait hsz)
     (endReachWaitBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel')
-    hAccounts
 
 end Benchmarks.Dss.End

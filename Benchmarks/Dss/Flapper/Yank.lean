@@ -132,52 +132,6 @@ theorem twoWordHashMem_solcMappingSlot_any (baseSlot key : UInt256) (mem : ByteA
       solcMappingSlot baseSlot key :=
   Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any baseSlot key mem
 
-theorem flapperSlotWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flapperSlotWord slot σ I = flapperSlotWord slot τ I :=
-  accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-
-theorem flapperAddressReturnWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I := by
-  simp [flapperAddressReturnWord, flapperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem flapperAddressOfSlot_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    AccountAddress.ofNat (flapperAddressReturnWord slot σ I).toNat =
-      AccountAddress.ofNat (flapperAddressReturnWord slot τ I).toNat := by
-  simp [flapperAddressReturnWord_accountMapEquiv hAccounts slot]
-
-theorem flapperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flapperAddressReturnWord slot σ I)
-  have htarget :
-      flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts slot
-  rw [hsame, htarget]
-  exact hzero
-
-theorem flapperCodeSize_zero_accountMapEquiv_addressSlot {σ τ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flapperAddressReturnWord slot σ I)
-  have htarget :
-      flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts slot
-  rw [← htarget, ← hsame]
-  exact hzero
-
 abbrev yankIdWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
 
@@ -318,7 +272,7 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
           (yankDeleteAfterTic evm I).executionEnv.codeOwner
           (auctionPackedSlot (yankIdWord I))) =
       ⟨0⟩ := by
-  by_cases hacc0 : evm.accountMap.find? evm.executionEnv.codeOwner = none
+  by_cases hacc0 : evm.accountMap.get? evm.executionEnv.codeOwner = none
   · have hbid : yankDeleteAfterBid evm I = evm := by
       exact storageStore_absent evm evm.executionEnv.codeOwner hacc0
         (auctionBidSlot (yankIdWord I)) ⟨0⟩
@@ -343,17 +297,22 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     have hload :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot (yankIdWord I)) =
           ⟨0⟩ := by
+      rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0
       simp [Solm.EVM.storageLoad, State.lookupAccount, hacc0, Option.option]
     rw [htic, hload]
     exact clearUint48Offset26Word_zero
   · obtain ⟨_, hacc0some⟩ := Option.ne_none_iff_exists'.mp hacc0
+    have hacc0someElem := hacc0some
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0someElem
     have haccLotExists :
-        ∃ acc, (yankDeleteAfterLot evm I).accountMap.find?
+        ∃ acc, (yankDeleteAfterLot evm I).accountMap.get?
           (yankDeleteAfterLot evm I).executionEnv.codeOwner = some acc := by
       simp [yankDeleteAfterLot, yankDeleteAfterBid, Solm.EVM.storageStore,
-        State.lookupAccount, hacc0some, Option.option, State.setAccount,
-        accountMap_find_insert_self]
+        State.lookupAccount, hacc0someElem, Option.option, State.setAccount,
+        Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccLot⟩ := haccLotExists
+    have haccLotElem := haccLot
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccLotElem
     have hloadGuy :
         Solm.EVM.storageLoad (yankDeleteAfterGuy evm I)
             (yankDeleteAfterGuy evm I).executionEnv.codeOwner
@@ -373,10 +332,10 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
             (yankDeleteAfterLot evm I).executionEnv.codeOwner
             (auctionPackedSlot (yankIdWord I))) ⟨0⟩)
     have haccGuyExists :
-        ∃ acc, (yankDeleteAfterGuy evm I).accountMap.find?
+        ∃ acc, (yankDeleteAfterGuy evm I).accountMap.get?
           (yankDeleteAfterGuy evm I).executionEnv.codeOwner = some acc := by
-      simp [yankDeleteAfterGuy, haccLot, Solm.EVM.storageStore, State.lookupAccount,
-        Option.option, State.setAccount, accountMap_find_insert_self]
+      simp [yankDeleteAfterGuy, haccLotElem, Solm.EVM.storageStore, State.lookupAccount,
+        Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccGuy⟩ := haccGuyExists
     have hloadTic :
         Solm.EVM.storageLoad (yankDeleteAfterTic evm I)
@@ -400,9 +359,9 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     exact clearUint48Offset26_after_offset20_after_address_zero _
 
 set_option maxHeartbeats 1000000 in
-theorem yankDeletePostState_accountMapEquiv (evm : EVM.State) (I : ExecutionEnv)
+theorem yankDeletePostState_eq (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
-    accountMapEquiv (yankRuntimeDeleteAccountMap I evm.accountMap)
+    yankRuntimeDeleteAccountMap I evm.accountMap =
       (yankDeletePostState evm I).accountMap := by
   let owner := evm.executionEnv.codeOwner
   let bidSlot := auctionBidSlot (yankIdWord I)
@@ -426,24 +385,23 @@ theorem yankDeletePostState_accountMapEquiv (evm : EVM.State) (I : ExecutionEnv)
   have hfinal : vEnd = ⟨0⟩ := by
     simpa [vEnd, packedSlot] using yankDeletePackedFinalWord_zero evm I
   have h1 :
-      accountMapEquiv (sstoreAccountMap owner m2 packedSlot vEnd)
+      sstoreAccountMap owner m2 packedSlot vEnd =
         (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update m2 owner packedSlot vGuy vEnd
+    sstoreAccountMap_self_update m2 owner packedSlot vGuy vEnd
   have h2 :
-      accountMapEquiv
-        (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vEnd)
+      sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vEnd =
         (sstoreAccountMap owner
           (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vTic)
           packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update
+    sstoreAccountMap_self_update
       (sstoreAccountMap owner m2 packedSlot vGuy) owner packedSlot vTic vEnd
-  have h := accountMapEquiv.trans h1 h2
+  have h := h1.trans h2
   have hleftEq :
       sstoreAccountMap owner m2 packedSlot vEnd =
         sstoreAccountMap owner m2 packedSlot ⟨0⟩ := by
     rw [hfinal]
   have h' :
-      accountMapEquiv (sstoreAccountMap owner m2 packedSlot ⟨0⟩)
+      sstoreAccountMap owner m2 packedSlot ⟨0⟩ =
         (sstoreAccountMap owner
           (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vTic)
           packedSlot vEnd) := by
@@ -696,7 +654,7 @@ theorem yankMoveEncode_eq (src guy bid : UInt256) {mem : ByteArray}
 set_option maxHeartbeats 1000000 in
 theorem RD.flapperAuctionDeleteTail
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {k C : ℕ} {drop0 drop1 drop2 scratch id : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
@@ -706,9 +664,9 @@ theorem RD.flapperAuctionDeleteTail
     (hov : R.length + 10 ≤ 1024)
     (h : RD flapperBytecode I g s0 ⟨1190⟩
       (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨360⟩ :: R)
-      mem aw rdata (cA, σ) k C) :
+      mem aw rdata σ k C) :
     RDret flapperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
           (auctionLotSlot id) ⟨0⟩)
@@ -1094,17 +1052,17 @@ theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -1113,23 +1071,23 @@ theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem flapperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem flapperYankBodyReverts_stillLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1410,13 +1368,13 @@ theorem flapperDecode_yank_none_short {I : ExecutionEnv}
   simpa [config, uint256] using
     yankDecodeCalldata_legacyUint256_none_short (cd := I.calldata) (x := "id") hsz4 hshort
 
-theorem flapperReachYankBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachYankBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 19)) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         ⟨331⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flapperSelWord I = ⟨0x26e027f1⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x26 0xe0 0x27 0xf1 ⟨0x26e027f1⟩
@@ -1430,7 +1388,7 @@ theorem flapperReachYankBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flapperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flapperReachLowLowFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   have heq0 : ∀ j, j < 1 →
       UInt256.eq
@@ -1451,14 +1409,14 @@ theorem flapperReachYankBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flapperLowLowArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flapperYankX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨890⟩
+      (initState σ σ₀ g A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨890⟩
       [yankIdWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flapperBytecode) (sel := sel) (entry := ⟨331⟩) (ret := ⟨360⟩)
     (decoded := ⟨353⟩) (need := ⟨32⟩) hreach
@@ -1475,13 +1433,13 @@ theorem flapperYankX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     simpa [yankIdWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
       using rd333.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem flapperYankX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1497,22 +1455,22 @@ theorem flapperYankX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem flapperYankX_stillLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_stillLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : flapperSlotWord ⟨7⟩ σ I ≠ ⟨0⟩)
     (h : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨890⟩
+      (initState σ σ₀ g A I) ⟨890⟩
       [yankIdWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd878⟩ := h
   have rd881 := evm_run rd878 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
   have rd882 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨894⟩
+      (initState σ σ₀ g A I) ⟨894⟩
       (flapperSlotWord ⟨7⟩ σ I :: yankIdWord I :: ⟨360⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k882 C882 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
     simpa [flapperSlotWord] using rd882raw
   have rd886 := evm_run rd882 with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1539,14 +1497,14 @@ theorem flapperYankX_stillLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩)
     (h : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨890⟩
+      (initState σ σ₀ g A I) ⟨890⟩
       [yankIdWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   let id := yankIdWord I
   let mem1 := wordAt0Mem id solcFreePtrMem
   let mem2 := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -1557,9 +1515,9 @@ theorem flapperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
   have rd882 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨894⟩
+      (initState σ σ₀ g A I) ⟨894⟩
       (flapperSlotWord ⟨7⟩ σ I :: yankIdWord I :: ⟨360⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k882 C882 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
     simpa [flapperSlotWord] using rd882raw
   have rd886 := evm_run rd882 with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1616,10 +1574,10 @@ theorem flapperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   rw [hslot2] at rd970pre
   obtain ⟨k971, C971, rd971raw⟩ := rd970pre.sload (by native_decide) (by evm_ov)
   have rd971 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨983⟩
+      (initState σ σ₀ g A I) ⟨983⟩
       (flapperSlotWord (auctionPackedSlot (yankIdWord I)) σ I ::
         yankIdWord I :: ⟨360⟩ :: [sel])
-      mem2 (UInt256.ofNat 3) ByteArray.empty (cA, σ) k971 C971 := by
+      mem2 (UInt256.ofNat 3) ByteArray.empty σ k971 C971 := by
     simpa [flapperSlotWord] using rd971raw
   have rd980 := evm_run rd971 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1660,17 +1618,17 @@ theorem flapperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperYankX_readyToMove {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_readyToMove {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
     (h : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨890⟩
+      (initState σ σ₀ g A I) ⟨890⟩
       [yankIdWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   let id := yankIdWord I
   let mem1 := wordAt0Mem id solcFreePtrMem
   let mem2 := twoWordHashMem id ⟨1⟩ solcFreePtrMem
@@ -1681,9 +1639,9 @@ theorem flapperYankX_readyToMove {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k882, C882, rd882raw⟩ := rd881.sload (by native_decide) (by evm_ov)
   have rd882 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨894⟩
+      (initState σ σ₀ g A I) ⟨894⟩
       (flapperSlotWord ⟨7⟩ σ I :: yankIdWord I :: ⟨360⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k882 C882 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k882 C882 := by
     simpa [flapperSlotWord] using rd882raw
   have rd886 := evm_run rd882 with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1740,10 +1698,10 @@ theorem flapperYankX_readyToMove {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   rw [hslot2] at rd970pre
   obtain ⟨k971, C971, rd971raw⟩ := rd970pre.sload (by native_decide) (by evm_ov)
   have rd971 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨983⟩
+      (initState σ σ₀ g A I) ⟨983⟩
       (flapperSlotWord (auctionPackedSlot (yankIdWord I)) σ I ::
         yankIdWord I :: ⟨360⟩ :: [sel])
-      mem2 (UInt256.ofNat 3) ByteArray.empty (cA, σ) k971 C971 := by
+      mem2 (UInt256.ofNat 3) ByteArray.empty σ k971 C971 := by
     simpa [flapperSlotWord] using rd971raw
   have rd980 := evm_run rd971 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1766,11 +1724,11 @@ theorem flapperYankX_readyToMove {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
 
 set_option maxHeartbeats 1000000 in
 theorem flapperYankX_toMoveExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    (rd1050 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := yankIdWord I
     let memHash := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memMap := twoWordHashMem id ⟨1⟩ memHash
@@ -1778,12 +1736,12 @@ theorem flapperYankX_toMoveExtcodesizeGuard
     let src := yankThisWord I
     let guy := flapperAddressReturnWord (auctionPackedSlot id) σ I
     let bid := flapperSlotWord (auctionBidSlot id) σ I
-    ∃ k' C', RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1158⟩
+    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1158⟩
       (gem :: gem :: yankMoveOutSize :: yankMoveOutPtr :: yankMoveInSize ::
         yankMoveOutPtr :: yankMoveOutSize :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: id :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem src guy bid memMap) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k' C' := by
+      σ k' C' := by
   intro id memHash memMap gem src guy bid
   let base := solcMappingSlot ⟨1⟩ id
   let memKey := wordAt0Mem id memHash
@@ -1823,9 +1781,9 @@ theorem flapperYankX_toMoveExtcodesizeGuard
   obtain ⟨k1066, C1066, rd1066raw⟩ :=
     rd1065pre.sload (by native_decide) (by evm_ov)
   have rd1066 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1066⟩
+      (initState σ σ₀ g A I) ⟨1066⟩
       (flapperSlotWord ⟨3⟩ σ I :: id :: ⟨360⟩ :: [sel])
-      memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1066 C1066 := by
+      memHash (UInt256.ofNat 3) ByteArray.empty σ k1066 C1066 := by
     simpa [id, memHash, flapperSlotWord] using rd1066raw
   have rd1070pre := evm_run rd1066 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1876,10 +1834,10 @@ theorem flapperYankX_toMoveExtcodesizeGuard
   obtain ⟨k1086, C1086, rd1086raw⟩ :=
     rd1085pre.sload (by native_decide) (by evm_ov)
   have rd1086 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1086⟩
+      (initState σ σ₀ g A I) ⟨1086⟩
       (flapperSlotWord (auctionPackedSlot id) σ I :: base :: ⟨64⟩ :: ⟨0⟩ ::
         flapperSlotWord ⟨3⟩ σ I :: id :: ⟨360⟩ :: [sel])
-      memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1086 C1086 := by
+      memMap (UInt256.ofNat 3) ByteArray.empty σ k1086 C1086 := by
     simpa [flapperSlotWord] using rd1086raw
   have rd1087pre := rd1086.swap1 (by native_decide) (by evm_ov)
   have hbidSlot : base = auctionBidSlot id := by
@@ -1888,10 +1846,10 @@ theorem flapperYankX_toMoveExtcodesizeGuard
   obtain ⟨k1088, C1088, rd1088raw⟩ :=
     rd1087pre.sload (by native_decide) (by evm_ov)
   have rd1088 : RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1088⟩
+      (initState σ σ₀ g A I) ⟨1088⟩
       (bid :: flapperSlotWord (auctionPackedSlot id) σ I :: ⟨64⟩ :: ⟨0⟩ ::
         flapperSlotWord ⟨3⟩ σ I :: id :: ⟨360⟩ :: [sel])
-      memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1088 C1088 := by
+      memMap (UInt256.ofNat 3) ByteArray.empty σ k1088 C1088 := by
     simpa [bid, flapperSlotWord] using rd1088raw
   have rd1106 := evm_run rd1088 with [
     raw dup3 (by native_decide) (by evm_ov),
@@ -2017,15 +1975,15 @@ theorem flapperYankX_toMoveExtcodesizeGuard
       show yankMoveInSize + yankMoveOutPtr = yankMoveEndPtr from by native_decide]
       using rd1158⟩
 
-theorem flapperYankX_moveNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperYankX_moveNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩)
-    (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
+    (rd1050 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1148⟩ := flapperYankX_toMoveExtcodesizeGuard rd1050
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
     hnoCode
@@ -2033,16 +1991,16 @@ theorem flapperYankX_moveNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 theorem flapperYankX_moveCall
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
+    (rd1050 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := yankIdWord I
     let memHash := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memMap := twoWordHashMem id ⟨1⟩ memHash
@@ -2050,18 +2008,18 @@ theorem flapperYankX_moveCall
     let src := yankThisWord I
     let guy := flapperAddressReturnWord (auctionPackedSlot id) σ I
     let bid := flapperSlotWord (auctionBidSlot id) σ I
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+      RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: id :: ⟨360⟩ :: sel :: [])
-        (yankMoveCalldataMem src guy bid memMap) (UInt256.ofNat 8) out (cA', σ') k' C'
-    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ g A I)
+        (yankMoveCalldataMem src guy bid memMap) (UInt256.ofNat 8) out σ' k' C'
+    ∧ typedCallViaEVM config (initState σ σ₀ g A I)
         (EVM.address (AccountAddress.ofNat gem.toNat)) "move" 0
         [.address I.codeOwner, .address (AccountAddress.ofNat guy.toNat),
           .int (Int.ofNat bid.toNat)]
-        (z, { initState cA gh bl σ σ₀ g A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, out) true
+        (z, { initState σ σ₀ g A I with
+              accountMap := σ', substate := A' }, out) true
     ∧ out.size < UInt256.size := by
   intro id memHash memMap gem src guy bid
   have hmemHash : memHash.size = 96 := by
@@ -2094,11 +2052,11 @@ theorem flapperYankX_moveCall
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1164, C1164, hΘpack, rd1164raw,
+  obtain ⟨σ', z, out, A_in, callGas, k1164, C1164, hΘpack, rd1164raw,
       houtsz⟩ :=
     RD.call rd1163 (by native_decide) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k1164, C1164, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k1164, C1164, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           yankMoveOutPtr.toNat yankMoveInSize.toNat)
@@ -2108,12 +2066,12 @@ theorem flapperYankX_moveCall
     have hmin : (min yankMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankMoveOutSize
       rfl
-    have rd1164 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+    have rd1164 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: yankMoveEndPtr :: yankMoveSelectorWord ::
           gem :: id :: ⟨360⟩ :: sel :: [])
         (out.write 0 (yankMoveCalldataMem src guy bid memMap) yankMoveOutPtr.toNat
           (min yankMoveOutSize (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k1164 C1164 :=
+        (UInt256.ofNat 8) out σ' k1164 C1164 :=
       haw ▸ rd1164raw
     rw [hmin, byteArray_write_len_zero] at rd1164
     exact rd1164
@@ -2128,15 +2086,15 @@ theorem flapperYankX_moveCall
     · simpa [initState, hperm] using hΘ
 
 theorem flapperYankX_moveCallDepthLimit
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
+    (rd1050 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := yankIdWord I
     let memHash := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memMap := twoWordHashMem id ⟨1⟩ memHash
@@ -2144,11 +2102,11 @@ theorem flapperYankX_moveCallDepthLimit
     let src := yankThisWord I
     let guy := flapperAddressReturnWord (auctionPackedSlot id) σ I
     let bid := flapperSlotWord (auctionBidSlot id) σ I
-    ∃ k' C', RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         gem :: id :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem src guy bid memMap) (UInt256.ofNat 8)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   intro id memHash memMap gem src guy bid
   obtain ⟨_, _, rd1148⟩ := flapperYankX_toMoveExtcodesizeGuard rd1050
   obtain ⟨gasWord, _, _, rd1163⟩ :=
@@ -2174,15 +2132,15 @@ theorem flapperYankX_moveCallDepthLimit
     byteArray_write_len_zero, haw] using rd1164raw
 
 theorem flapperYankX_moveCallFailure
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ' : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd1164 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+    (rd1164 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
         flapperAddressReturnWord ⟨3⟩ σ I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
-      mem aw out (cA', σ') k C)
+      mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1174⟩) (okPc := ⟨1190⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2191,17 +2149,17 @@ theorem flapperYankX_moveCallFailure
     houtSize (by simp)
 
 theorem flapperYankX_moveCallSuccessDelete
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel status : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
+    {σ' : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hstatus : status ≠ ⟨0⟩)
-    (rd1164 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+    (rd1164 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
       (status :: yankMoveEndPtr :: yankMoveSelectorWord ::
         flapperAddressReturnWord ⟨3⟩ σ I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) out (cA', σ') k C) :
-    RDret flapperBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', sstoreAccountMap I.codeOwner
+      mem (UInt256.ofNat 8) out σ' k C) :
+    RDret flapperBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ' (auctionBidSlot (yankIdWord I)) ⟨0⟩)
           (auctionLotSlot (yankIdWord I)) ⟨0⟩)
@@ -2219,26 +2177,21 @@ theorem flapperYankX_moveCallSuccessDelete
     (by native_decide) (by native_decide) (by native_decide) (by simp) rd1190
 
 theorem flapperYankBodyCoreStillLive
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I ≠ ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I ≠ ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hlive (by
-      have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-      rw [hword, hzero])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I ≠ ⟨0⟩ := hlive
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -2252,33 +2205,24 @@ theorem flapperYankBodyCoreStillLive
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperYankBodyCoreGuyNotSet
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
-    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I = ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
+    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I = ⟨0⟩ := by
-    have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-    rw [← hword]
-    exact hlive
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I = ⟨0⟩ := by
-    have hword :=
-      flapperAddressReturnWord_accountMapEquiv (I := I) hAccounts
-        (auctionPackedSlot (yankIdWord I))
-    rw [← hword]
-    exact hguy
+      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩ := hguy
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -2293,41 +2237,33 @@ theorem flapperYankBodyCoreGuyNotSet
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperYankBodyCoreMoveNoCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
-    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
+    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I = ⟨0⟩ := by
-    have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-    rw [← hword]
-    exact hlive
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I ≠ ⟨0⟩ := by
+      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
     intro hzero
-    exact hguy (by
-      have hword :=
-        flapperAddressReturnWord_accountMapEquiv (I := I) hAccounts
-          (auctionPackedSlot (yankIdWord I))
-      rw [hword, hzero])
+    exact hguy hzero
   have hnoCodeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (flapperAddressReturnWord ⟨3⟩ σ_solm I) = ⟨0⟩ :=
-    flapperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hnoCode
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩ :=
+    hnoCode
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -2345,90 +2281,70 @@ theorem flapperYankBodyCoreMoveNoCode
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperYankBodyCoreMoveCallFailure
-    {cA cA' gh bl σ_evm σ_solm σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
+    {σ σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
     {out : ByteArray} {k C : ℕ}
     (hcode : I.code = flapperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (_hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
-    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
+    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (rd1164 : RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
       (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
-        flapperAddressReturnWord ⟨3⟩ σ_evm I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
+        flapperAddressReturnWord ⟨3⟩ σ I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem
         (yankThisWord I)
-        (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I)
-        (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I)
+        (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I)
+        (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I)
         (twoWordHashMem (yankIdWord I) ⟨1⟩
           (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
-      (UInt256.ofNat 8) out (cA', σ') k C)
+      (UInt256.ofNat 8) out σ' k C)
     (hcall :
       typedCallViaEVM config
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flapperAddressReturnWord ⟨3⟩ σ_evm I).toNat))
+          (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
         "move" 0
         [.address I.codeOwner,
         .address (AccountAddress.ofNat
-          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I).toNat),
+          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I).toNat)]
+          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (false,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' },
           out) true)
     (houtSize : out.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
-        (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, _hpostAccounts⟩ :=
-    typedCallViaEVM_initState_accountMapEquiv (hcall := hcall) hAccounts
+        (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCallSolm : EVM.State :=
-    { evmSolm with accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }
-  have hvatEq :
-      flapperAddressReturnWord ⟨3⟩ σ_evm I =
-        flapperAddressReturnWord ⟨3⟩ σ_solm I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts ⟨3⟩
-  have hguyEq :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I =
-        flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts (auctionPackedSlot (yankIdWord I))
-  have hbidEq :
-      flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I =
-        flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_solm I :=
-    flapperSlotWord_accountMapEquiv hAccounts (auctionBidSlot (yankIdWord I))
+    { evmSolm with accountMap := σ', substate := A' }
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flapperAddressReturnWord ⟨3⟩ σ_solm I).toNat))
+          (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
         "move" 0
         [.address I.codeOwner,
         .address (AccountAddress.ofNat
-          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I).toNat),
+          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_solm I).toNat)]
+          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (false, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, hvatEq, hguyEq, hbidEq] using hcallSolmRaw
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I = ⟨0⟩ := by
-    have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-    rw [← hword]
-    exact hlive
+    simpa [evmSolm, evmCallSolm] using hcall
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by rw [hguyEq, hzero])
+      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hcodeSizeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
-    flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -2444,33 +2360,32 @@ theorem flapperYankBodyCoreMoveCallFailure
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperYankBodyCoreMoveCallDepthLimit
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
-    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
+    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let id := yankIdWord I
   let memHash := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memMap := twoWordHashMem id ⟨1⟩ memHash
-  let gem := flapperAddressReturnWord ⟨3⟩ σ_solm I
+  let gem := flapperAddressReturnWord ⟨3⟩ σ I
   let src := yankThisWord I
-  let guy := flapperAddressReturnWord (auctionPackedSlot id) σ_solm I
-  let bid := flapperSlotWord (auctionBidSlot id) σ_solm I
+  let guy := flapperAddressReturnWord (auctionPackedSlot id) σ I
+  let bid := flapperSlotWord (auctionBidSlot id) σ I
   let A_move := (evmSolm.addAccessedAccount (EVM.address (AccountAddress.ofNat gem.toNat))).substate
   have hmemHash : memHash.size = 96 := by
     simpa [memHash, id] using
@@ -2485,7 +2400,7 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
     exact I.codeOwner.isLt
   have hguyCanon : guy.toNat < EVM.addressModulus := by
     simpa [guy, flapperAddressReturnWord] using
-      solcAddrMask_result_canonical (flapperSlotWord (auctionPackedSlot id) σ_solm I)
+      solcAddrMask_result_canonical (flapperSlotWord (auctionPackedSlot id) σ I)
   have hsrcAddr : AccountAddress.ofNat src.toNat = I.codeOwner := by
     rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
     simpa [src, yankThisWord] using accountAddress_roundtrip I.codeOwner
@@ -2507,22 +2422,15 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
           yankMoveOutPtr.toNat yankMoveInSize.toNat)
         (yankMoveEncode_eq src guy bid hmemMap hsrcCanon hguyCanon)
         hdepthInit)
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I = ⟨0⟩ := by
-    have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-    rw [← hword]
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩ := by
     exact hlive
   have hguySolm :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by
-      have hword :=
-        flapperAddressReturnWord_accountMapEquiv (I := I) hAccounts
-          (auctionPackedSlot (yankIdWord I))
-      rw [hword, hzero])
+      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
+    exact hguy
   have hcodeSizeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
-    flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -2544,89 +2452,69 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperYankBodyCoreMoveCallSuccess
-    {cA cA' gh bl σ_evm σ_solm σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
+    {σ σ' σ₀ A A' I} {g : UInt256} {sel : UInt256}
     {out : ByteArray} {k C : ℕ}
     (hcode : I.code = flapperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (_hsz36 : 36 ≤ I.calldata.size)
-    (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
-    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
+    (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩)
+    (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩)
     (rd1164 : RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
       (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
-        flapperAddressReturnWord ⟨3⟩ σ_evm I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
+        flapperAddressReturnWord ⟨3⟩ σ I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
       (yankMoveCalldataMem
         (yankThisWord I)
-        (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I)
-        (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I)
+        (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I)
+        (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I)
         (twoWordHashMem (yankIdWord I) ⟨1⟩
           (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
-      (UInt256.ofNat 8) out (cA', σ') k C)
+      (UInt256.ofNat 8) out σ' k C)
     (hcall :
       typedCallViaEVM config
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flapperAddressReturnWord ⟨3⟩ σ_evm I).toNat))
+          (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
         "move" 0
         [.address I.codeOwner,
         .address (AccountAddress.ofNat
-          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I).toNat),
+          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I).toNat)]
+          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' },
           out) true)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
-        (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostCallAccounts⟩ :=
-    typedCallViaEVM_initState_accountMapEquiv (hcall := hcall) hAccounts
+        (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmCallSolm : EVM.State :=
-    { evmSolm with accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }
-  have hvatEq :
-      flapperAddressReturnWord ⟨3⟩ σ_evm I =
-        flapperAddressReturnWord ⟨3⟩ σ_solm I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts ⟨3⟩
-  have hguyEq :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I =
-        flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I :=
-    flapperAddressReturnWord_accountMapEquiv hAccounts (auctionPackedSlot (yankIdWord I))
-  have hbidEq :
-      flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I =
-        flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_solm I :=
-    flapperSlotWord_accountMapEquiv hAccounts (auctionBidSlot (yankIdWord I))
+    { evmSolm with accountMap := σ', substate := A' }
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flapperAddressReturnWord ⟨3⟩ σ_solm I).toNat))
+          (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
         "move" 0
         [.address I.codeOwner,
         .address (AccountAddress.ofNat
-          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I).toNat),
+          (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I).toNat),
         .int (Int.ofNat
-          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_solm I).toNat)]
+          (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (true, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, hvatEq, hguyEq, hbidEq] using hcallSolmRaw
-  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ_solm I = ⟨0⟩ := by
-    have hword := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-    rw [← hword]
-    exact hlive
+    simpa [evmSolm, evmCallSolm] using hcall
+  have hliveSolmWord : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_solm I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by rw [hguyEq, hzero])
+      flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hcodeSizeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
-    flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
+      Reasoning.Theory.extCodeSizeWord σ
+        (flapperAddressReturnWord ⟨3⟩ σ I) ≠ ⟨0⟩ :=
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body
@@ -2642,80 +2530,61 @@ theorem flapperYankBodyCoreMoveCallSuccess
         hcallSolm
   have hret :=
     flapperYankX_moveCallSuccessDelete
-      (g := Sat256.ofUInt256 g) (σ := σ_evm) (sel := sel) hperm
+      (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel) hperm
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164
-  have hRuntimeDeleteEquiv :
-      accountMapEquiv (yankRuntimeDeleteAccountMap I σ')
-        (yankRuntimeDeleteAccountMap I σ'_solm) := by
-    unfold yankRuntimeDeleteAccountMap
-    exact accountMapEquiv_sstoreAccountMap_three I.codeOwner I.codeOwner I.codeOwner
-      (auctionBidSlot (yankIdWord I)) ⟨0⟩
-      (auctionLotSlot (yankIdWord I)) ⟨0⟩
-      (auctionPackedSlot (yankIdWord I)) ⟨0⟩
-      hpostCallAccounts
-  have hDeleteSolm :
-      accountMapEquiv (yankRuntimeDeleteAccountMap I σ'_solm)
-        (yankDeletePostState evmCallSolm I).accountMap := by
+  have hFinalMap :
+      yankRuntimeDeleteAccountMap I σ' = (yankDeletePostState evmCallSolm I).accountMap := by
     simpa [evmCallSolm] using
-      yankDeletePostState_accountMapEquiv evmCallSolm I
+      yankDeletePostState_eq evmCallSolm I
         (by simp [evmCallSolm, evmSolm, initState])
-  have hFinalAccounts :
-      accountMapEquiv (yankRuntimeDeleteAccountMap I σ')
-        (yankDeletePostState evmCallSolm I).accountMap :=
-    accountMapEquiv.trans hRuntimeDeleteEquiv hDeleteSolm
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by
-      simp [yankDeletePostState, yankDeleteAfterTic, yankDeleteAfterGuy,
-        yankDeleteAfterLot, yankDeleteAfterBid, evmCallSolm, evmSolm, initState,
-        storageStore_createdAccounts])
-    (by simpa [yankRuntimeDeleteAccountMap] using hFinalAccounts)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    (by simpa [yankRuntimeDeleteAccountMap] using hFinalMap)
     (by
       simpa [yankTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem flapperYankBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (flapperYankX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flapperDecode_yank_none_short hsz4 hshort)
 
-theorem flapperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperYankBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flapperSelBytes 19))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flapperSelBytes 19)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 19) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some yankTransition :=
     flapperDispatchYank hsel
-  have hreach := flapperReachYankBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flapperReachYankBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := flapperDecode_yank_ok (I := I) hsz36
-    by_cases hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩
+    by_cases hlive : flapperSlotWord ⟨7⟩ σ I = ⟨0⟩
     · by_cases hguy :
-          flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I = ⟨0⟩
+          flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩
       · exact flapperYankBodyCoreGuyNotSet hcode hsize hwv hsz36 hlive hguy
-          hdispatch hdecode hreach hAccounts
+          hdispatch hdecode hreach
       · by_cases hcodeSize :
-            Reasoning.Theory.extCodeSizeWord σ_evm
-              (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
+            Reasoning.Theory.extCodeSizeWord σ
+              (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩
         · exact flapperYankBodyCoreMoveNoCode hcode hsize hwv hsz36 hlive hguy
-            hcodeSize hdispatch hdecode hreach hAccounts
+            hcodeSize hdispatch hdecode hreach
         · by_cases hdepthEq : I.depth = 1024
           · exact flapperYankBodyCoreMoveCallDepthLimit hcode hsize hwv hsz36 hlive
-              hguy hcodeSize hdepthEq hdispatch hdecode hreach hAccounts
+              hguy hcodeSize hdepthEq hdispatch hdecode hreach
           · have hdepthLt : I.depth.val < 1024 := by
               have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
               by_contra hn
@@ -2727,77 +2596,77 @@ theorem flapperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             obtain ⟨_, _, rd1050⟩ :=
               flapperYankX_readyToMove (g := Sat256.ofUInt256 g) hlive hguy
                 (flapperYankX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
-            obtain ⟨cA', σ', z, out, A', k1164, C1164, rd1164, hcall, houtSize⟩ :=
+            obtain ⟨σ', z, out, A', k1164, C1164, rd1164, hcall, houtSize⟩ :=
               flapperYankX_moveCall (g := Sat256.ofUInt256 g) hperm hcodeSize
                 hdepthLt rd1050
             by_cases hz : z = true
             · have rd1164True : RD flapperBytecode I (Sat256.ofUInt256 g)
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
                   (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
-                    flapperAddressReturnWord ⟨3⟩ σ_evm I ::
+                    flapperAddressReturnWord ⟨3⟩ σ I ::
                     yankIdWord I :: ⟨360⟩ :: flapperSelWord I :: [])
                   (yankMoveCalldataMem
                     (yankThisWord I)
-                    (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I)
-                    (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I)
+                    (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I)
+                    (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I)
                     (twoWordHashMem (yankIdWord I) ⟨1⟩
                       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
-                  (UInt256.ofNat 8) out (cA', σ') k1164 C1164 := by
+                  (UInt256.ofNat 8) out σ' k1164 C1164 := by
                 simpa [hz] using rd1164
               have hcallTrue :
                   typedCallViaEVM config
-                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (AccountAddress.ofNat
-                      (flapperAddressReturnWord ⟨3⟩ σ_evm I).toNat))
+                      (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
                     "move" 0
                     [.address I.codeOwner,
                     .address (AccountAddress.ofNat
                       (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I))
-                        σ_evm I).toNat),
+                        σ I).toNat),
                     .int (Int.ofNat
-                      (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I).toNat)]
+                      (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
                     (true,
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-                          accountMap := σ', substate := A', createdAccounts := cA' },
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                          accountMap := σ', substate := A' },
                       out) true := by
                 simpa [hz] using hcall
               exact flapperYankBodyCoreMoveCallSuccess hcode hsize hperm hwv hsz36
-                hlive hguy hcodeSize rd1164True hcallTrue hdispatch hdecode hAccounts
+                hlive hguy hcodeSize rd1164True hcallTrue hdispatch hdecode
             · have hzFalse : z = false := Bool.eq_false_iff.mpr hz
               have rd1164False : RD flapperBytecode I (Sat256.ofUInt256 g)
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
                   (⟨0⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
-                    flapperAddressReturnWord ⟨3⟩ σ_evm I ::
+                    flapperAddressReturnWord ⟨3⟩ σ I ::
                     yankIdWord I :: ⟨360⟩ :: flapperSelWord I :: [])
                   (yankMoveCalldataMem
                     (yankThisWord I)
-                    (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I)
-                    (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I)
+                    (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I)
+                    (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I)
                     (twoWordHashMem (yankIdWord I) ⟨1⟩
                       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)))
-                  (UInt256.ofNat 8) out (cA', σ') k1164 C1164 := by
+                  (UInt256.ofNat 8) out σ' k1164 C1164 := by
                 simpa [hzFalse] using rd1164
               have hcallFalse :
                   typedCallViaEVM config
-                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (EVM.address (AccountAddress.ofNat
-                      (flapperAddressReturnWord ⟨3⟩ σ_evm I).toNat))
+                      (flapperAddressReturnWord ⟨3⟩ σ I).toNat))
                     "move" 0
                     [.address I.codeOwner,
                     .address (AccountAddress.ofNat
                       (flapperAddressReturnWord (auctionPackedSlot (yankIdWord I))
-                        σ_evm I).toNat),
+                        σ I).toNat),
                     .int (Int.ofNat
-                      (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ_evm I).toNat)]
+                      (flapperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
                     (false,
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-                          accountMap := σ', substate := A', createdAccounts := cA' },
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                          accountMap := σ', substate := A' },
                       out) true := by
                 simpa [hzFalse] using hcall
               exact flapperYankBodyCoreMoveCallFailure hcode hsize hwv hsz36 hlive
-                hguy hcodeSize rd1164False hcallFalse houtSize hdispatch hdecode hAccounts
+                hguy hcodeSize rd1164False hcallFalse houtSize hdispatch hdecode
     · exact flapperYankBodyCoreStillLive hcode hsize hwv hsz36 hlive
-        hdispatch hdecode hreach hAccounts
+        hdispatch hdecode hreach
   · exact flapperYankBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

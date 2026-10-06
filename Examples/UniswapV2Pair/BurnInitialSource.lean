@@ -54,19 +54,19 @@ theorem uniswapBurnCachePrefix (evm : EVM.State) (I : ExecutionEnv)
 
 theorem uniswapAddressAtSlot_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State} (slot : UInt256)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    (hAccounts : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     uniswapAddressAtSlot evm slot =
       AccountAddress.ofUInt256 (UInt256.land solcAddrMask (uniswapSlotWord slot σ I)) := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  subst σ
   simp only [uniswapAddressAtSlot, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, henv, uniswapSlotWord, ← hslot,
+    Account.lookupStorage, henv, uniswapSlotWord,
     accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
 
 -- LIBRARY CANDIDATE: evaluating a code-existence guard from coupled accounts and an address value.
 theorem evalExpr_uniswap_codeGuard
     {σ : AccountMap} {evm : EVM.State} {frame : Frame} {receiver : Expr}
     {target : UInt256} {addr : AccountAddress}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hreceiver : evalExpr? config frame evm receiver = .ok (.address addr)) :
     evalExpr? config frame evm (.binary .gt (.extCodeSize receiver) (.intLit 0)) =
@@ -74,9 +74,10 @@ theorem evalExpr_uniswap_codeGuard
   have hword : EVM.Word.ofNat
       ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
       extCodeSizeWord σ target := by
-    rw [extCodeSizeWord_accountMapEquiv hAccounts]
-    cases hacc : evm.accountMap.find? addr <;>
-      simp [State.lookupAccount, extCodeSizeWord, ← haddr, hacc, Option.option] <;> rfl
+    rw [congrArg (fun accounts => extCodeSizeWord accounts target) hAccounts]
+    cases hacc : evm.accountMap.get? addr <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, extCodeSizeWord,
+        ← haddr, hacc, Option.option] <;> rfl
   simp [evalExpr?, hreceiver, EvalResult.bind, bind, pure, evalBinaryOp?, hword]
 
 theorem burnCacheStore_token0 (evm : EVM.State) (I : ExecutionEnv) :

@@ -195,7 +195,7 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
 set_option maxHeartbeats 1000000 in
 theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
-    {acc : Account} (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       clipperYankArgWord I ≠
@@ -344,12 +344,14 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
     exact ExecStmt.pop hpopArray
   have haccPop :
       ∃ accPop,
-        (clipperYankRemovePopState evmMovePos popLastIndex).accountMap.find?
+        (clipperYankRemovePopState evmMovePos popLastIndex).accountMap.get?
             (clipperYankRemovePopState evmMovePos popLastIndex).executionEnv.codeOwner =
           some accPop := by
+    have haccElem := hacc
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccElem
     simp [clipperYankRemovePopState, evmMovePos, evmIndex, storageStore_accountMap,
-      storageStore_executionEnv, sstoreAccountMap, hacc, Option.option,
-      accountMap_find_insert_self]
+      storageStore_executionEnv, sstoreAccountMap, haccElem, Option.option,
+      Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
       ExecStmt (config v)
@@ -623,7 +625,7 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
 
 theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
     (evmVat : EVM.State) (I : ExecutionEnv)
-    {acc : Account} (hacc : evmVat.accountMap.find? evmVat.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evmVat.accountMap.get? evmVat.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmVat evmVat.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =
@@ -704,7 +706,7 @@ theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
 set_option linter.unusedVariables false in
 theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
     (evmVat : EVM.State) (I : ExecutionEnv)
-    {acc : Account} (hacc : evmVat.accountMap.find? evmVat.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evmVat.accountMap.get? evmVat.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmVat evmVat.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       clipperYankArgWord I ≠
@@ -796,7 +798,7 @@ theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
     exact ExecStmt.assign hzero hassign
   exact ExecBlock.consNormal hremove (ExecBlock.consNormal hunlock ExecBlock.nil)
 
-theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
     {evmDog evmVat : EVM.State} {outDog outVat : ByteArray} {result : ExecResult}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
@@ -806,8 +808,8 @@ theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdogCode :
       0 < (UInt256.ofNat
         (((Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩).lookupAccount
             (AccountAddress.ofUInt256
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
@@ -815,8 +817,8 @@ theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcallDog :
       typedCallViaEVM (config v)
         (Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩)
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I)))
@@ -841,7 +843,7 @@ theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         result) :
     let locals := clipperYankStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock (config v) { contract := contract v, locals := locals } evm0
       (yankTransition v).body result := by
   intro locals evm0
@@ -901,7 +903,7 @@ theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock
@@ -953,7 +955,7 @@ theorem clipperYankAfterVatSourceBlock {cA gh bl σ σ₀ A I} {g : UInt256}
           (clipperYankDecodeFluxVoid v outVat)) ?_
       exact hafter)
 
-theorem clipperYankAfterVatSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperYankAfterVatSourceOk {σ σ₀ A I} {g : UInt256}
     {evmDog evmVat : EVM.State} {outDog outVat : ByteArray} {frame : Frame}
     {evmFinal : EVM.State}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
@@ -964,8 +966,8 @@ theorem clipperYankAfterVatSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdogCode :
       0 < (UInt256.ofNat
         (((Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩).lookupAccount
             (AccountAddress.ofUInt256
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
@@ -973,8 +975,8 @@ theorem clipperYankAfterVatSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcallDog :
       typedCallViaEVM (config v)
         (Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩)
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I)))
@@ -999,20 +1001,20 @@ theorem clipperYankAfterVatSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         (.ok frame evmFinal)) :
     let locals := clipperYankStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body
       (.returned frame evmFinal none) := by
   intro locals evm0
   have hblock :=
     clipperYankAfterVatSourceBlock
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmDog := evmDog) (evmVat := evmVat)
       (outDog := outDog) (outVat := outVat) (result := .ok frame evmFinal)
       v hwv hauth hlocked husr hdogCode hcallDog hvatCode hcallVat hafter
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockOK
     (by simpa [locals, evm0] using hblock)
 
-theorem clipperYankAfterVatSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperYankAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
     {evmDog evmVat : EVM.State} {outDog outVat : ByteArray}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
@@ -1022,8 +1024,8 @@ theorem clipperYankAfterVatSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdogCode :
       0 < (UInt256.ofNat
         (((Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩).lookupAccount
             (AccountAddress.ofUInt256
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
@@ -1031,8 +1033,8 @@ theorem clipperYankAfterVatSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcallDog :
       typedCallViaEVM (config v)
         (Solm.EVM.storageStore
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨13⟩ ⟨1⟩)
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I)))
@@ -1057,13 +1059,13 @@ theorem clipperYankAfterVatSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
           .assign .storage lockedRef (.intLit 0)]
         .reverted) :
     let locals := clipperYankStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body
       .reverted := by
   intro locals evm0
   have hblock :=
     clipperYankAfterVatSourceBlock
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmDog := evmDog) (evmVat := evmVat)
       (outDog := outDog) (outVat := outVat) (result := .reverted)
       v hwv hauth hlocked husr hdogCode hcallDog hvatCode hcallVat hafter

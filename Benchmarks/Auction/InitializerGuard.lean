@@ -71,12 +71,12 @@ theorem initializerGuards : ∀ i : InitializerSite, initializerGuardWf i := by
   unfold initializerGuardWf
   native_decide
 
-theorem initializerGuardOk {I g s0 R mem aw rdata cA σ k C} (i : InitializerSite)
-    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata (cA, σ) k C)
+theorem initializerGuardOk {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
+    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
     (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (initializerGuardSuccess i) R
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13,
     h14, h15, h16, h17, h18, h19, hd1, hd2⟩ := initializerGuards i
   have rdLoad := evm_run h with [
@@ -113,11 +113,11 @@ theorem initializerGuardOk {I g s0 R mem aw rdata cA σ k C} (i : InitializerSit
       raw jumpdest h17 (by evm_ov), raw push2 _ h18 (by evm_ov),
       raw jumpiT h19 hi hd2 (by evm_ov) ]⟩
 
-theorem initializerGuardReady {I g s0 R mem aw rdata cA σ k C} (i : InitializerSite)
-    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata (cA, σ) k C)
+theorem initializerGuardReady {I g s0 R mem aw rdata σ k C} (i : InitializerSite)
+    (h : RD auctionBytecode I g s0 (initializerPc i) R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (initializerGuardSuccess i) R
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   apply initializerGuardOk i h _ hov
   rcases hr with hi | ha
   · exact Or.inl hi

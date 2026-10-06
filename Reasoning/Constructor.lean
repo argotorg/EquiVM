@@ -59,9 +59,6 @@ theorem emptyCtorBodyReturns
 
 theorem emptySolmCtorExec
     {cfg : Config} {contract : ContractDecl}
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader}
-    {blocks : Ethereum.ProcessedBlocks}
     {σ : Ethereum.AccountMap}
     {σ₀ : Ethereum.AccountMap}
     {g : Ethereum.UInt256}
@@ -73,15 +70,14 @@ theorem emptySolmCtorExec
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
     (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode) :
-    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I
+    solmCtorExec cfg contract args σ σ₀ g A I
       (.returned
         { contract := contract
           locals := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) }
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args))
     ?_ (emptyCtorDeployment_args_length hself hparams hdeploy) rfl ?_
   · rfl
@@ -90,59 +86,49 @@ theorem emptySolmCtorExec
 /-- Generic constructor-equivalence wrapper for empty constructors.
 
 The caller supplies only the concrete `RDret` trace proving that the initcode returns the runtime
-bytecode while preserving created accounts and account map.
+bytecode while preserving the account map.
 -/
 theorem emptyConstructorCorrect_of_RDret
     {cfg : Config} {contract : ContractDecl} {initcode runtimeCode : ByteArray}
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hrun : ∀ {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-        {genesisBlockHeader : Ethereum.BlockHeader}
-        {blocks : Ethereum.ProcessedBlocks}
-        {σ : Ethereum.AccountMap}
+    (hrun : ∀ {σ : Ethereum.AccountMap}
         {σ₀ : Ethereum.AccountMap}
         {A : Ethereum.Substate}
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-        (createdAccounts, σ) runtimeCode) :
+      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode) :
     constructorEquivalence cfg initcode contract runtimeCode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata _hperm hσ
+  intro σ σ₀ g A I
+      args deployedInitcode hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode hself hparams hdeploy
   rw [hdeployed] at hcode
-  have hrd := hrun (createdAccounts := createdAccounts)
-      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀)
+  have hrd := hrun (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode
   rcases hrd.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
   · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
   · refine constructorEquivalenceFor.execution hsuccess
       (emptySolmCtorExec (cfg := cfg) (contract := contract)
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         (args := args) (initcode := initcode) (deployedInitcode := deployedInitcode)
         hself hparams hbody hdeploy) ?_
-    exact ctorResultEquiv.success rfl rfl rfl hσ rfl
+    exact ctorResultEquiv.success rfl rfl rfl rfl
 
 theorem emptyContractCorrect_of_RDret
     {cfg : Config} {contract : ContractDecl} {initcode runtimeCode : ByteArray}
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hrun : ∀ {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-        {genesisBlockHeader : Ethereum.BlockHeader}
-        {blocks : Ethereum.ProcessedBlocks}
-        {σ : Ethereum.AccountMap}
+    (hrun : ∀ {σ : Ethereum.AccountMap}
         {σ₀ : Ethereum.AccountMap}
         {A : Ethereum.Substate}
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-        (createdAccounts, σ) runtimeCode)
+      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
     (hruntime : runtimeEquivalence cfg runtimeCode contract) :
     contractEquivalence cfg initcode runtimeCode contract :=
   contractEquivalence.intro

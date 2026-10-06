@@ -15,13 +15,13 @@ theorem flopperDecode_beg {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem flopperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flopperReachBegBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 0)) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
         ⟨636⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flopperSelWord I = ⟨0x7d780d82⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x7d 0x78 0x0d 0x82 ⟨0x7d780d82⟩
@@ -35,7 +35,7 @@ theorem flopperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flopperReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flopperReachHighLowFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   have heq0 : ∀ j, j < 0 →
       UInt256.eq
@@ -54,27 +54,26 @@ theorem flopperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem flopperBegBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some begTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (begTransition.params.map Param.name)
         (transitionSignature begTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨636⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨636⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ begTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ begTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (begWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (begWord σ I).toNat))])) := by
     simpa [begTransition, begWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := begRef) (er := ({ base := "beg", steps := [] } : EvaledStorageRef))
         (slot := ⟨4⟩)
         (by simp only [initState]; exact hwv) (by simp [begRef])
@@ -82,7 +81,7 @@ theorem flopperBegBodyCore
         (by decide) (by rfl)
   exact flopperUint256GetterBodyCore (entry := ⟨636⟩) (returnPc := ⟨644⟩)
     (routine := ⟨3264⟩) (slot := ⟨4⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -96,17 +95,16 @@ theorem flopperBegBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [begWord] using hbody)
 
-theorem flopperBegBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flopperBegBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flopperSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flopperSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 0) rfl hsel
   exact flopperBegBodyCore hcode hwv (flopperDispatchBeg hsel) (flopperDecode_beg hsz)
-    (flopperReachBegBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (flopperReachBegBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 end Benchmarks.Dss.Flopper

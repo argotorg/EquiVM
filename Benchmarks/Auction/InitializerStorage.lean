@@ -83,15 +83,17 @@ theorem storageLocStore_initializing (evm : EVM.State) (slot : UInt256) (value :
   cases value <;> simp [Bool.toUInt256, Nat.mul_comm] <;> decide
 
 theorem storedWord_sstore_present (σ : AccountMap) (I : ExecutionEnv)
-    {acc : Account} (ha : σ.find? I.codeOwner = some acc) (slot value : UInt256) :
+    {acc : Account} (ha : σ.get? I.codeOwner = some acc) (slot value : UInt256) :
     storedWord (sstoreAccountMap I.codeOwner σ slot value) I slot = value := by
   unfold storedWord sstoreAccountMap
   rw [ha]
-  simp only [Option.option, accountMap_find_insert_self]
+  simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?,
+    Std.ExtTreeMap.getElem?_insert_self]
   by_cases hz : value = (default : UInt256)
   · subst value
-    simpa using storage_findD_erase_self acc.storage slot ⟨0⟩
-  · simpa [hz] using storage_findD_insert_self acc.storage slot value ⟨0⟩
+    simp
+    rfl
+  · simp [hz]
 
 theorem initializingBeginWord (old : UInt256) :
     UInt256.land (UInt256.div (initializerBeginWord old) ⟨256⟩) ⟨255⟩ = ⟨1⟩ := by
@@ -105,7 +107,7 @@ theorem initializerEntered_ready (σ : AccountMap) (I : ExecutionEnv) :
     InitializerReady (initializerEntered σ I) I := by
   by_cases hi : initializingWord σ I = ⟨0⟩
   · rw [initializerEntered, if_pos hi]
-    cases ha : σ.find? I.codeOwner with
+    cases ha : σ.get? I.codeOwner with
     | none =>
       rw [sstoreAccountMap_absent_same ha]
       exact Or.inr ha

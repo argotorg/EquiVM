@@ -25,15 +25,15 @@ theorem evalExpr_burn_amountsRequire (evm : EVM.State) {locals : Store}
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
     (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+      mem feeToStaticcallActiveWords rdata σ k C)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hliq : locals.get? "liquidity" = some (uniswapUint256Value liquidity))
     (ha0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
     (ha1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
@@ -47,13 +47,13 @@ theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
         [burnAmountsRequireStmt, burnInternalBurnStmt]
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_burnResult" none)
           (burnFunctionPostState evm I.codeOwner liquidity)) ∧
-      accountMapEquiv (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity)
+      (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) =
         (burnFunctionPostState evm I.codeOwner liquidity).accountMap ∧
       RD uniswapV2PairBytecode I g s0 ⟨4617⟩
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
         mem' feeToStaticcallActiveWords rdata
-        (cA, burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) k' C' ∧
+        (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       mem'.readWithPadding 96 32 = mem.readWithPadding 96 32) := by
   have hreq := evalExpr_burn_amountsRequire evm ha0 ha1
@@ -87,15 +87,15 @@ theorem uniswapBurnAmountsGuardAndBurnCasesWithMemory
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnAmountsGuardAndBurnCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
     (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+      mem feeToStaticcallActiveWords rdata σ k C)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hliq : locals.get? "liquidity" = some (uniswapUint256Value liquidity))
     (ha0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
     (ha1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
@@ -109,13 +109,13 @@ theorem uniswapBurnAmountsGuardAndBurnCases
         [burnAmountsRequireStmt, burnInternalBurnStmt]
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals } "_burnResult" none)
           (burnFunctionPostState evm I.codeOwner liquidity)) ∧
-      accountMapEquiv (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity)
+      (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) =
         (burnFunctionPostState evm I.codeOwner liquidity).accountMap ∧
       RD uniswapV2PairBytecode I g s0 ⟨4617⟩
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
         mem' feeToStaticcallActiveWords rdata
-        (cA, burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) k' C' ∧
+        (burnRuntimePostMap σ I (UInt256.ofNat I.codeOwner.val) liquidity) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
   rcases uniswapBurnAmountsGuardAndBurnCasesWithMemory evm rd4533 hAccounts henv hliq ha0 ha1
       hperm hmem hread64 hov with

@@ -238,16 +238,16 @@ theorem clipperFileUintEventMem_mload64 (I : ExecutionEnv) :
     (clipperRelyAuthHashMem_size I) (clipperRelyAuthHashMem_read64 I)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (h : RD code I g s0 ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2703⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
@@ -282,7 +282,7 @@ theorem clipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd2638 : RD code I g s0 ⟨2638⟩
       (clipperRelyAuthWord σ I :: clipperFileUintData I :: calldataWord I.calldata 4 ::
         ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2638 C2638 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2638 C2638 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
       clipperRelyAuthStorageSlot_eq_mapSlot_source I] using rd2638raw
   have rd2640pre := evm_run rd2638 with [
@@ -294,16 +294,16 @@ theorem clipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   exact ⟨_, _, rd2644.jumpiT (by clipper_file_uint_decode) one_ne_zero_uint
     (clipperFileUintJumpDest2703 v hpatch) (by evm_ov)⟩
 
-theorem clipperFileUintX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (h : RD code I g s0 ⟨2703⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2780⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2706pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_file_uint_decode) (by evm_ov)]
@@ -312,7 +312,7 @@ theorem clipperFileUintX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd2707 : RD code I g s0 ⟨2707⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperFileUintData I ::
         calldataWord I.calldata 4 :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2707 C2707 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2707 C2707 := by
     simpa [solcSlotWord] using rd2707raw
   have rd2708 := rd2707.iszero (by clipper_file_uint_decode) (by evm_ov)
   have hcond : UInt256.isZero (solcSlotWord σ I ⟨13⟩) ≠ ⟨0⟩ := by
@@ -323,17 +323,17 @@ theorem clipperFileUintX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   exact ⟨_, _, rd2711.jumpiT (by clipper_file_uint_decode) hcond
     (clipperFileUintJumpDest2780 v hpatch) (by evm_ov)⟩
 
-theorem clipperFileUintX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (h : RD code I g s0 ⟨2780⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2786⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
   have rd2785pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_file_uint_decode) (by evm_ov),
@@ -343,18 +343,18 @@ theorem clipperFileUintX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : �
   exact ⟨_, _, by simpa using rd2786raw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_bufStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_bufStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintBufBytes)
     (h : RD code I g s0 ⟨2786⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩ (clipperFileUintData I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩ (clipperFileUintData I)) k' C' := by
   have rd2790 := h.pushConst (⟨3226291⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_uint_decode) (by evm_ov)
   have rd2793pre := evm_run rd2790 with [
@@ -381,16 +381,16 @@ theorem clipperFileUintX_bufStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (clipperFileUintJumpDest3065 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_bufSkip {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_bufSkip {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotBuf : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintBufBytes)
     (h : RD code I g s0 ⟨2786⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2809⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2790 := h.pushConst (⟨3226291⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_uint_decode) (by evm_ov)
   have rd2793pre := evm_run rd2790 with [
@@ -412,18 +412,18 @@ theorem clipperFileUintX_bufSkip {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperFileUintJumpDest2809 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_tailStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_tailStoreFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTailBytes)
     (h : RD code I g s0 ⟨2809⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨6⟩ (clipperFileUintData I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨6⟩ (clipperFileUintData I)) k' C' := by
   have rd2819pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -452,16 +452,16 @@ theorem clipperFileUintX_tailStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C 
     (clipperFileUintJumpDest3065 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_tailSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_tailSkipFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotTail : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTailBytes)
     (h : RD code I g s0 ⟨2809⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2834⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2819pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -485,18 +485,18 @@ theorem clipperFileUintX_tailSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C :
     (clipperFileUintJumpDest2834 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_cuspStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_cuspStoreFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintCuspBytes)
     (h : RD code I g s0 ⟨2834⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨7⟩ (clipperFileUintData I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨7⟩ (clipperFileUintData I)) k' C' := by
   have rd2844pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -525,16 +525,16 @@ theorem clipperFileUintX_cuspStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C 
     (clipperFileUintJumpDest3065 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_cuspSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_cuspSkipFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotCusp : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintCuspBytes)
     (h : RD code I g s0 ⟨2834⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2859⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2844pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -558,18 +558,18 @@ theorem clipperFileUintX_cuspSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C :
     (clipperFileUintJumpDest2859 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_chipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_chipStoreFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintChipBytes)
     (h : RD code I g s0 ⟨2859⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨8⟩
+      (sstoreAccountMap I.codeOwner σ ⟨8⟩
         (clipperFileUintChipWord (solcSlotWord σ I ⟨8⟩) (clipperFileUintData I)))
       k' C' := by
   have rd2869pre := evm_run h with [
@@ -597,7 +597,7 @@ theorem clipperFileUintX_chipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C 
       (solcSlotWord σ I ⟨8⟩ :: ⟨8⟩ :: clipperFileUintData I ::
         calldataWord I.calldata 4 :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k2879 C2879 := by
+      σ k2879 C2879 := by
     simpa [solcSlotWord] using rd2879raw
   have rd2888 := rd2879.pushConst clipperFileUintUint64Mask
     (width := 8) (op := .PUSH8) (by decide) (by clipper_file_uint_decode) (by evm_ov)
@@ -621,16 +621,16 @@ theorem clipperFileUintX_chipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C 
         (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_chipSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_chipSkipFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotChip : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintChipBytes)
     (h : RD code I g s0 ⟨2859⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2908⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2869pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -654,18 +654,18 @@ theorem clipperFileUintX_chipSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C :
     (clipperFileUintJumpDest2908 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_tipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_tipStoreFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTipBytes)
     (h : RD code I g s0 ⟨2908⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨8⟩
+      (sstoreAccountMap I.codeOwner σ ⟨8⟩
         (clipperFileUintTipWord (solcSlotWord σ I ⟨8⟩) (clipperFileUintData I)))
       k' C' := by
   have rd2917pre := evm_run h with [
@@ -693,7 +693,7 @@ theorem clipperFileUintX_tipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C :
       (solcSlotWord σ I ⟨8⟩ :: ⟨8⟩ :: clipperFileUintData I ::
         calldataWord I.calldata 4 :: ⟨502⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k2927 C2927 := by
+      σ k2927 C2927 := by
     simpa [solcSlotWord] using rd2927raw
   have rd2936 := rd2927.pushConst clipperFileUintUint64Mask
     (width := 8) (op := .PUSH8) (by decide) (by clipper_file_uint_decode) (by evm_ov)
@@ -727,16 +727,16 @@ theorem clipperFileUintX_tipStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C :
         (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_tipSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_tipSkipFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotTip : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTipBytes)
     (h : RD code I g s0 ⟨2908⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2960⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2917pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -760,18 +760,18 @@ theorem clipperFileUintX_tipSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (clipperFileUintJumpDest2960 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_stoppedStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_stoppedStoreFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintStoppedBytes)
     (h : RD code I g s0 ⟨2960⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨14⟩ (clipperFileUintData I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨14⟩ (clipperFileUintData I)) k' C' := by
   have rd2973pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -800,16 +800,16 @@ theorem clipperFileUintX_stoppedStoreFrom {cA σ I} {g : Sat256} {s0 : State} {k
     (clipperFileUintJumpDest3065 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_stoppedSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_stoppedSkipFrom {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hnotStopped : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintStoppedBytes)
     (h : RD code I g s0 ⟨2960⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2988⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd2973pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
@@ -833,14 +833,14 @@ theorem clipperFileUintX_stoppedSkipFrom {cA σ I} {g : Sat256} {s0 : State} {k 
     (clipperFileUintJumpDest2988 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_successEpilogue {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_successEpilogue {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (h : RD code I g s0 ⟨3065⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g s0 (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g s0 (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
   have rd3069 := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_file_uint_decode) (by evm_ov),
@@ -890,18 +890,18 @@ theorem clipperFileUintX_successEpilogue {cA σ I} {g : Sat256} {s0 : State} {k 
   have rd503 := rd502.jumpdest (by clipper_decode) (by evm_ov)
   exact RD.stop rd503 (by clipper_decode) (by evm_ov)
 
-theorem clipperFileUintX_bufOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_bufOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintBufBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨5⟩ (clipperFileUintData I))
         ⟨13⟩ ⟨0⟩)
@@ -913,7 +913,7 @@ theorem clipperFileUintX_bufOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_bufStore (v := v) hpatch hperm hwhat rd2786
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintX_tailOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_tailOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -921,11 +921,11 @@ theorem clipperFileUintX_tailOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hnotBuf : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintBufBytes)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTailBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨6⟩ (clipperFileUintData I))
         ⟨13⟩ ⟨0⟩)
@@ -938,7 +938,7 @@ theorem clipperFileUintX_tailOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_tailStoreFrom (v := v) hpatch hperm hwhat rd2809
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintX_cuspOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_cuspOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -947,11 +947,11 @@ theorem clipperFileUintX_cuspOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (hnotBuf : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintBufBytes)
     (hnotTail : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTailBytes)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintCuspBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨7⟩ (clipperFileUintData I))
         ⟨13⟩ ⟨0⟩)
@@ -965,7 +965,7 @@ theorem clipperFileUintX_cuspOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_cuspStoreFrom (v := v) hpatch hperm hwhat rd2834
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintX_chipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_chipOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -975,11 +975,11 @@ theorem clipperFileUintX_chipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (hnotTail : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTailBytes)
     (hnotCusp : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintCuspBytes)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintChipBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨8⟩
             (clipperFileUintChipWord
@@ -997,7 +997,7 @@ theorem clipperFileUintX_chipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_chipStoreFrom (v := v) hpatch hperm hwhat rd2859
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintX_tipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_tipOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -1008,11 +1008,11 @@ theorem clipperFileUintX_tipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (hnotCusp : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintCuspBytes)
     (hnotChip : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintChipBytes)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTipBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨8⟩
             (clipperFileUintTipWord
@@ -1031,7 +1031,7 @@ theorem clipperFileUintX_tipOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_tipStoreFrom (v := v) hpatch hperm hwhat rd2908
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintX_stoppedOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_stoppedOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -1043,11 +1043,11 @@ theorem clipperFileUintX_stoppedOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     (hnotChip : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintChipBytes)
     (hnotTip : calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTipBytes)
     (hwhat : calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintStoppedBytes)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2621⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨14⟩ (clipperFileUintData I))
         ⟨13⟩ ⟨0⟩)
@@ -1064,115 +1064,15 @@ theorem clipperFileUintX_stoppedOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
   obtain ⟨_, _, rd3065⟩ := clipperFileUintX_stoppedStoreFrom (v := v) hpatch hperm hwhat rd2960
   exact clipperFileUintX_successEpilogue (v := v) hpatch hperm rd3065
 
-theorem clipperFileUintWordPostState_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {slot data : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) slot data)
-        ⟨13⟩ ⟨0⟩)
-      (clipperFileUintWordPostState
-        (initState cA gh bl σ_solm σ₀ g A I) slot data).accountMap := by
-  simpa [clipperFileUintWordPostState, clipperFileUintLockedState, initState,
-    storageStore_accountMap, storageStore_executionEnv] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩
-      (accountMapEquiv_sstoreAccountMap I.codeOwner slot data
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts))
-
-theorem clipperFileUintChipPostState_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {data : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintChipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data))
-        ⟨13⟩ ⟨0⟩)
-      (clipperFileUintChipPostState (initState cA gh bl σ_solm σ₀ g A I) data).accountMap := by
-  have hlockAccounts :
-      accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
-        (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts
-  have hslot8 :
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩ =
-        solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hlockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hstore8 :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintChipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data))
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintChipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data)) :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩
-      (clipperFileUintChipWord
-        (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-        data)
-      hlockAccounts
-  have hfinal := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩ hstore8
-  simpa [clipperFileUintChipPostState, clipperFileUintLockedState, initState,
-    storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
-    State.lookupAccount, hslot8] using hfinal
-
-theorem clipperFileUintTipPostState_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256} {data : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintTipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data))
-        ⟨13⟩ ⟨0⟩)
-      (clipperFileUintTipPostState (initState cA gh bl σ_solm σ₀ g A I) data).accountMap := by
-  have hlockAccounts :
-      accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
-        (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts
-  have hslot8 :
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩ =
-        solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hlockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hstore8 :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintTipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data))
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) ⟨8⟩
-            (clipperFileUintTipWord
-              (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-              data)) :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩
-      (clipperFileUintTipWord
-        (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) I ⟨8⟩)
-        data)
-      hlockAccounts
-  have hfinal := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩ hstore8
-  simpa [clipperFileUintTipPostState, clipperFileUintLockedState, initState,
-    storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
-    State.lookupAccount, hslot8] using hfinal
-
-theorem clipperFileUintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperFileUintX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨673⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨673⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1240,13 +1140,13 @@ theorem clipperFileUintUnrecognizedStringWord :
   native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_locked {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
     (h : RD code I g s0 ⟨2703⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd2706pre := evm_run h with [
     raw jumpdest (by clipper_file_uint_decode) (by evm_ov),
@@ -1256,7 +1156,7 @@ theorem clipperFileUintX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd2707 : RD code I g s0 ⟨2707⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperFileUintData I ::
         calldataWord I.calldata 4 :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2707 C2707 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2707 C2707 := by
     simpa [solcSlotWord] using rd2707raw
   have rd2708pre := rd2707.iszero (by clipper_file_uint_decode) (by evm_ov)
   rw [isZero_eq_zero_of_ne hlocked] at rd2708pre
@@ -1273,13 +1173,13 @@ theorem clipperFileUintX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
     (h : RD code I g s0 ⟨2621⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1316,7 +1216,7 @@ theorem clipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C :
   have rd2638 : RD code I g s0 ⟨2638⟩
       (clipperRelyAuthWord σ I :: clipperFileUintData I ::
         calldataWord I.calldata 4 :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2638 C2638 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2638 C2638 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
       clipperRelyAuthStorageSlot_eq_mapSlot_source I] using rd2638raw
   have rd2640pre := evm_run rd2638 with [
@@ -1418,12 +1318,12 @@ theorem clipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C :
     raw rev 0 (by clipper_file_uint_decode) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperFileUintX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2988⟩
       [clipperFileUintData I, calldataWord I.calldata 4, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd2989 := h.jumpdest
     (by change decode code (⟨2988⟩ : UInt256) = some (.JUMPDEST, .none); clipper_file_uint_decode)
@@ -1488,23 +1388,22 @@ theorem clipperFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C :
 
 theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 9))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 9)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 9) (by native_decide) hsel
   have hdispatch := clipperDispatch_fileUint v hsel
   have hreachEntry :=
-    clipperReachFileUintBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    clipperReachFileUintBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hpatch hcode hwv
       hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := clipperDecode_fileUint_ok v (I := I) hsz68
     have hreachBody :=
-      clipperFileUintDecodedToBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+      clipperFileUintDecodedToBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hpatch hsz68
         hsize hreachEntry
     let data := clipperFileUintData I
@@ -1512,55 +1411,35 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
     have henc : returnEquiv ByteArray.empty none fileUintTransition.returnType := by
       rw [show fileUintTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    have hauthWord : clipperRelyAuthWord σ_evm I = clipperRelyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (clipperRelyAuthStorageSlot I) ⟨0⟩
-    have hlockWord : solcSlotWord σ_evm I ⟨13⟩ = solcSlotWord σ_solm I ⟨13⟩ :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨13⟩ ⟨0⟩
-    by_cases hauthEvm : clipperRelyAuthWord σ_evm I = ⟨1⟩
-    · have hauthSolm : clipperRelyAuthWord σ_solm I = ⟨1⟩ := by
-        rw [← hauthWord]
-        exact hauthEvm
-      by_cases hlockedEvm : solcSlotWord σ_evm I ⟨13⟩ = ⟨0⟩
-      · have hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩ := by
-          rw [← hlockWord]
-          exact hlockedEvm
+    have hauthWord : clipperRelyAuthWord σ I = clipperRelyAuthWord σ I := rfl
+    have hlockWord : solcSlotWord σ I ⟨13⟩ = solcSlotWord σ I ⟨13⟩ := rfl
+    by_cases hauthEvm : clipperRelyAuthWord σ I = ⟨1⟩
+    · have hauthSolm : clipperRelyAuthWord σ I = ⟨1⟩ := hauthEvm
+      by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
+      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩ := hlockedEvm
         by_cases hbuf : clipperFileUintWhat I = clipperFileUintBufBytes
         · have hbufWord :
               calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintBufBytes := by
             rw [← clipperFileUintWhatWord_eq (I := I) (by omega), hbuf]
-          let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm2 := clipperFileUintWordPostState evmSolm ⟨5⟩ data
           have hbody :
               ExecTransitionBody (config v) (contract v) evmSolm locals
                 fileUintTransition.body
                 (.returned { contract := contract v, locals := locals } evm2 none) := by
             simpa [evmSolm, evm2, locals, data] using
-              (clipperFileUintBufSourceBody (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+              (clipperFileUintBufSourceBody
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                 hauthSolm hlockedSolm hbuf)
           have hret := clipperFileUintX_bufOk (v := v) hpatch hperm hauthEvm
             hlockedEvm hbufWord hreachBody
-          have hcreated :
-              (cA, sstoreAccountMap I.codeOwner
-                    (sstoreAccountMap I.codeOwner
-                      (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨5⟩ data)
-                    ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-            simp [evm2, evmSolm, data, clipperFileUintWordPostState,
-              clipperFileUintLockedState, initState, storageStore_createdAccounts]
           have haccounts :
-              accountMapEquiv
-                (sstoreAccountMap I.codeOwner
+  (                (sstoreAccountMap I.codeOwner
                   (sstoreAccountMap I.codeOwner
-                    (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨5⟩ data)
-                  ⟨13⟩ ⟨0⟩)
-                evm2.accountMap := by
-            simpa [evm2, evmSolm, data] using
-              (clipperFileUintWordPostState_accountMapEquiv
-                (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                (g := Sat256.ofUInt256 g) (slot := ⟨5⟩) (data := data) hAccounts)
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-            hcreated haccounts henc
+                    (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨5⟩ data)
+                  ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+            simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
         · have hnotBufWord :
               calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintBufBytes :=
             clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1569,39 +1448,26 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
           · have htailWord :
                 calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTailBytes := by
               rw [← clipperFileUintWhatWord_eq (I := I) (by omega), htail]
-            let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             let evm2 := clipperFileUintWordPostState evmSolm ⟨6⟩ data
             have hbody :
                 ExecTransitionBody (config v) (contract v) evmSolm locals
                   fileUintTransition.body
                   (.returned { contract := contract v, locals := locals } evm2 none) := by
               simpa [evmSolm, evm2, locals, data] using
-                (clipperFileUintTailSourceBody (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+                (clipperFileUintTailSourceBody
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                   hauthSolm hlockedSolm hbuf htail)
             have hret := clipperFileUintX_tailOk (v := v) hpatch hperm hauthEvm
               hlockedEvm hnotBufWord htailWord hreachBody
-            have hcreated :
-                (cA, sstoreAccountMap I.codeOwner
-                      (sstoreAccountMap I.codeOwner
-                        (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨6⟩ data)
-                      ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-              simp [evm2, evmSolm, data, clipperFileUintWordPostState,
-                clipperFileUintLockedState, initState, storageStore_createdAccounts]
             have haccounts :
-                accountMapEquiv
-                  (sstoreAccountMap I.codeOwner
+  (                  (sstoreAccountMap I.codeOwner
                     (sstoreAccountMap I.codeOwner
-                      (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨6⟩ data)
-                    ⟨13⟩ ⟨0⟩)
-                  evm2.accountMap := by
-              simpa [evm2, evmSolm, data] using
-                (clipperFileUintWordPostState_accountMapEquiv
-                  (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                  (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                  (g := Sat256.ofUInt256 g) (slot := ⟨6⟩) (data := data) hAccounts)
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-              hcreated haccounts henc
+                      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨6⟩ data)
+                    ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+              simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+            exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
+
           · have hnotTailWord :
                 calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTailBytes :=
               clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1610,40 +1476,26 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
             · have hcuspWord :
                   calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintCuspBytes := by
                 rw [← clipperFileUintWhatWord_eq (I := I) (by omega), hcusp]
-              let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+              let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evm2 := clipperFileUintWordPostState evmSolm ⟨7⟩ data
               have hbody :
                   ExecTransitionBody (config v) (contract v) evmSolm locals
                     fileUintTransition.body
                     (.returned { contract := contract v, locals := locals } evm2 none) := by
                 simpa [evmSolm, evm2, locals, data] using
-                  (clipperFileUintCuspSourceBody (cA := cA) (gh := gh) (bl := bl)
-                    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+                  (clipperFileUintCuspSourceBody
+                    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                     hauthSolm hlockedSolm hbuf htail hcusp)
               have hret := clipperFileUintX_cuspOk (v := v) hpatch hperm hauthEvm
                 hlockedEvm hnotBufWord hnotTailWord hcuspWord hreachBody
-              have hcreated :
-                  (cA, sstoreAccountMap I.codeOwner
-                        (sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨7⟩ data)
-                        ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-                simp [evm2, evmSolm, data, clipperFileUintWordPostState,
-                  clipperFileUintLockedState, initState, storageStore_createdAccounts]
               have haccounts :
-                  accountMapEquiv
-                    (sstoreAccountMap I.codeOwner
+  (                    (sstoreAccountMap I.codeOwner
                       (sstoreAccountMap I.codeOwner
-                        (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨7⟩ data)
-                      ⟨13⟩ ⟨0⟩)
-                    evm2.accountMap := by
-                simpa [evm2, evmSolm, data] using
-                  (clipperFileUintWordPostState_accountMapEquiv
-                    (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                    (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                    (g := Sat256.ofUInt256 g) (slot := ⟨7⟩) (data := data)
-                    hAccounts)
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                hcreated haccounts henc
+                        (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨7⟩ data)
+                      ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+                simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+              exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
+
             · have hnotCuspWord :
                   calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintCuspBytes :=
                 clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1652,47 +1504,30 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
               · have hchipWord :
                     calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintChipBytes := by
                   rw [← clipperFileUintWhatWord_eq (I := I) (by omega), hchip]
-                let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 let evm2 := clipperFileUintChipPostState evmSolm data
                 have hbody :
                     ExecTransitionBody (config v) (contract v) evmSolm locals
                       fileUintTransition.body
                       (.returned { contract := contract v, locals := locals } evm2 none) := by
                   simpa [evmSolm, evm2, locals, data] using
-                    (clipperFileUintChipSourceBody (cA := cA) (gh := gh) (bl := bl)
-                      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+                    (clipperFileUintChipSourceBody
+                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                       hauthSolm hlockedSolm hbuf htail hcusp hchip)
                 have hret := clipperFileUintX_chipOk (v := v) hpatch hperm hauthEvm
                   hlockedEvm hnotBufWord hnotTailWord hnotCuspWord hchipWord hreachBody
-                have hcreated :
-                    (cA, sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner
-                            (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-                              (clipperFileUintChipWord
-                                (solcSlotWord
-                                  (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
-                                  I ⟨8⟩) data))
-                          ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-                  simp [evm2, evmSolm, data, clipperFileUintChipPostState,
-                    clipperFileUintLockedState, initState, storageStore_createdAccounts]
                 have haccounts :
-                    accountMapEquiv
-                      (sstoreAccountMap I.codeOwner
+  (                      (sstoreAccountMap I.codeOwner
                         (sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
+                          (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨8⟩
                             (clipperFileUintChipWord
                               (solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
+                                (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩)
                                 I ⟨8⟩) data))
-                        ⟨13⟩ ⟨0⟩)
-                      evm2.accountMap := by
-                  simpa [evm2, evmSolm, data] using
-                    (clipperFileUintChipPostState_accountMapEquiv
-                      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                      (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                      (g := Sat256.ofUInt256 g) (data := data) hAccounts)
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                  hcreated haccounts henc
+                        ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+                  simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+                exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
+
               · have hnotChipWord :
                     calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintChipBytes :=
                   clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1701,48 +1536,30 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                 · have htipWord :
                       calldataWord I.calldata 4 = ABI.bytesToWord clipperFileUintTipBytes := by
                     rw [← clipperFileUintWhatWord_eq (I := I) (by omega), htip]
-                  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   let evm2 := clipperFileUintTipPostState evmSolm data
                   have hbody :
                       ExecTransitionBody (config v) (contract v) evmSolm locals
                         fileUintTransition.body
                         (.returned { contract := contract v, locals := locals } evm2 none) := by
                     simpa [evmSolm, evm2, locals, data] using
-                      (clipperFileUintTipSourceBody (cA := cA) (gh := gh) (bl := bl)
-                        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+                      (clipperFileUintTipSourceBody
+                        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                         hauthSolm hlockedSolm hbuf htail hcusp hchip htip)
                   have hret := clipperFileUintX_tipOk (v := v) hpatch hperm hauthEvm
                     hlockedEvm hnotBufWord hnotTailWord hnotCuspWord hnotChipWord htipWord
                     hreachBody
-                  have hcreated :
-                      (cA, sstoreAccountMap I.codeOwner
-                            (sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
-                                (clipperFileUintTipWord
-                                  (solcSlotWord
-                                    (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
-                                    I ⟨8⟩) data))
-                            ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-                    simp [evm2, evmSolm, data, clipperFileUintTipPostState,
-                      clipperFileUintLockedState, initState, storageStore_createdAccounts]
                   have haccounts :
-                      accountMapEquiv
-                        (sstoreAccountMap I.codeOwner
+  (                        (sstoreAccountMap I.codeOwner
                           (sstoreAccountMap I.codeOwner
-                            (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩) ⟨8⟩
+                            (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨8⟩
                               (clipperFileUintTipWord
                                 (solcSlotWord
-                                  (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
+                                  (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩)
                                   I ⟨8⟩) data))
-                          ⟨13⟩ ⟨0⟩)
-                        evm2.accountMap := by
-                    simpa [evm2, evmSolm, data] using
-                      (clipperFileUintTipPostState_accountMapEquiv
-                        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                        (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                        (g := Sat256.ofUInt256 g) (data := data) hAccounts)
-                  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
-                    hbody hcreated haccounts henc
+                          ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+                    simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+                  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
                 · have hnotTipWord :
                       calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTipBytes :=
                     clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1752,57 +1569,41 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                         calldataWord I.calldata 4 =
                           ABI.bytesToWord clipperFileUintStoppedBytes := by
                       rw [← clipperFileUintWhatWord_eq (I := I) (by omega), hstopped]
-                    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     let evm2 := clipperFileUintWordPostState evmSolm ⟨14⟩ data
                     have hbody :
                         ExecTransitionBody (config v) (contract v) evmSolm locals
                           fileUintTransition.body
                           (.returned { contract := contract v, locals := locals } evm2 none) := by
                       simpa [evmSolm, evm2, locals, data] using
-                        (clipperFileUintStoppedSourceBody (cA := cA) (gh := gh)
-                          (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                        (clipperFileUintStoppedSourceBody
+                          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                           (g := g) v hwv hauthSolm hlockedSolm hbuf htail hcusp hchip
                           htip hstopped)
                     have hret := clipperFileUintX_stoppedOk (v := v) hpatch hperm
                       hauthEvm hlockedEvm hnotBufWord hnotTailWord hnotCuspWord
                       hnotChipWord hnotTipWord hstoppedWord hreachBody
-                    have hcreated :
-                        (cA, sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner
-                                (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
-                                  ⟨14⟩ data)
-                              ⟨13⟩ ⟨0⟩).1 = evm2.createdAccounts := by
-                      simp [evm2, evmSolm, data, clipperFileUintWordPostState,
-                        clipperFileUintLockedState, initState, storageStore_createdAccounts]
                     have haccounts :
-                        accountMapEquiv
-                          (sstoreAccountMap I.codeOwner
+  (                          (sstoreAccountMap I.codeOwner
                             (sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩)
+                              (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩)
                                 ⟨14⟩ data)
-                            ⟨13⟩ ⟨0⟩)
-                          evm2.accountMap := by
-                      simpa [evm2, evmSolm, data] using
-                        (clipperFileUintWordPostState_accountMapEquiv
-                          (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                          (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                          (g := Sat256.ofUInt256 g) (slot := ⟨14⟩) (data := data)
-                          hAccounts)
-                    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
-                      hbody hcreated haccounts henc
+                            ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
+                      simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
+                    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
                   · have hnotStoppedWord :
                         calldataWord I.calldata 4 ≠
                           ABI.bytesToWord clipperFileUintStoppedBytes :=
                       clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
                         (bs := clipperFileUintStoppedBytes) (by omega) hstopped
                         (by native_decide)
-                    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     have hbody :
                         ExecTransitionBody (config v) (contract v) evmSolm locals
                           fileUintTransition.body .reverted := by
                       simpa [evmSolm, locals] using
-                        (clipperFileUintUnrecognizedSourceBody (cA := cA) (gh := gh)
-                          (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                        (clipperFileUintUnrecognizedSourceBody
+                          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                           (g := g) v hwv hauthSolm hlockedSolm hbuf htail hcusp hchip
                           htip hstopped)
                     obtain ⟨_, _, rd2621⟩ := hreachBody
@@ -1827,32 +1628,32 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                         rd2960
                     have hrev := clipperFileUintX_unrecognized (v := v) hpatch rd2988
                     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ ≠ ⟨0⟩ := by
+      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩ := by
           intro hsolm
           exact hlockedEvm (by rw [hlockWord, hsolm])
-        let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evmSolm locals
               fileUintTransition.body .reverted := by
           simpa [evmSolm, locals] using
-            (clipperFileUintLockedSourceReverts (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+            (clipperFileUintLockedSourceReverts
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
               hauthSolm hlockedSolm)
         obtain ⟨_, _, rd2621⟩ := hreachBody
         obtain ⟨_, _, rd2703⟩ :=
           clipperFileUintX_authorized (v := v) hpatch hauthEvm rd2621
         have hrev := clipperFileUintX_locked (v := v) hpatch hlockedEvm rd2703
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : clipperRelyAuthWord σ_solm I ≠ ⟨1⟩ := by
+    · have hauthSolm : clipperRelyAuthWord σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm (by rw [hauthWord, hsolm])
-      let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evmSolm locals
             fileUintTransition.body .reverted := by
         simpa [evmSolm, locals] using
-          (clipperFileUintAuthSourceReverts (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
+          (clipperFileUintAuthSourceReverts
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
       obtain ⟨_, _, rd2621⟩ := hreachBody
       have hrev := clipperFileUintX_unauthorized (v := v) hpatch hauthEvm rd2621
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

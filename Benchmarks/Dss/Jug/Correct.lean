@@ -28,10 +28,10 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Jug
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
-theorem jugNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem jugNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (jugX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -46,18 +46,17 @@ theorem jugNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (jugBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem jugNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem jugNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (jugX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (jugDispatch_none_nomatch hnm)
@@ -97,36 +96,36 @@ theorem jugNoSelectorMatches {I : ExecutionEnv}
 theorem jugCorrect :
     runtimeEquivalence config jugBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbase : selIs I (jugSelBytes 0)
-    · exact jugBaseBody hcode hsize hperm hwv hbase hAccounts
+    · exact jugBaseBody hcode hsize hperm hwv hbase
     · by_cases hdeny : selIs I (jugSelBytes 1)
-      · exact jugDenyBody hcode hsize hperm hwv hdeny hAccounts
+      · exact jugDenyBody hcode hsize hperm hwv hdeny
       · by_cases hdrip : selIs I (jugSelBytes 2)
-        · exact jugDripBody hcode hsize hperm hwv hdrip hAccounts
+        · exact jugDripBody hcode hsize hperm hwv hdrip
         · by_cases hfileBase : selIs I (jugSelBytes 3)
-          · exact jugFileBaseBody hcode hsize hperm hwv hfileBase hAccounts
+          · exact jugFileBaseBody hcode hsize hperm hwv hfileBase
           · by_cases hfileDuty : selIs I (jugSelBytes 4)
-            · exact jugFileDutyBody hcode hsize hperm hwv hfileDuty hAccounts
+            · exact jugFileDutyBody hcode hsize hperm hwv hfileDuty
             · by_cases hfileVow : selIs I (jugSelBytes 5)
-              · exact jugFileVowBody hcode hsize hperm hwv hfileVow hAccounts
+              · exact jugFileVowBody hcode hsize hperm hwv hfileVow
               · by_cases hilks : selIs I (jugSelBytes 6)
-                · exact jugIlksBody hcode hsize hperm hwv hilks hAccounts
+                · exact jugIlksBody hcode hsize hperm hwv hilks
                 · by_cases hinit : selIs I (jugSelBytes 7)
-                  · exact jugInitBody hcode hsize hperm hwv hinit hAccounts
+                  · exact jugInitBody hcode hsize hperm hwv hinit
                   · by_cases hrely : selIs I (jugSelBytes 8)
-                    · exact jugRelyBody hcode hsize hperm hwv hrely hAccounts
+                    · exact jugRelyBody hcode hsize hperm hwv hrely
                     · by_cases hvat : selIs I (jugSelBytes 9)
-                      · exact jugVatBody hcode hsize hperm hwv hvat hAccounts
+                      · exact jugVatBody hcode hsize hperm hwv hvat
                       · by_cases hvow : selIs I (jugSelBytes 10)
-                        · exact jugVowBody hcode hsize hperm hwv hvow hAccounts
+                        · exact jugVowBody hcode hsize hperm hwv hvow
                         · by_cases hwards : selIs I (jugSelBytes 11)
-                          · exact jugWardsBody hcode hsize hperm hwv hwards hAccounts
+                          · exact jugWardsBody hcode hsize hperm hwv hwards
                           · exact jugNoDispatch hcode hsize hperm hwv
                               (jugNoSelectorMatches hbase hdeny hdrip hfileBase hfileDuty
                                 hfileVow hilks hinit hrely hvat hvow hwards)
-                              hAccounts
+
   · exact jugNonPayable hcode hwv
 
 theorem jugContractCorrect :

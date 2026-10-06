@@ -62,11 +62,10 @@ theorem ctorTruthDecode_empty {I : Ethereum.ExecutionEnv} (hsz : 4 ≤ I.calldat
   simpa [CtorTruth.truthTransition] using truthDecode_empty (I := I) hsz
 
 theorem ctorTruthReEquiv_callvalueZero
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthRuntimeBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ctorTruthConfig CtorTruth.contract cA gh bl
-      σ_evm σ_solm σ₀ g.toUInt256 A I := by
+    (hwv : I.weiValue = ⟨0⟩) :
+    runtimeEquivalenceFor ctorTruthConfig CtorTruth.contract σ σ₀ g.toUInt256 A I := by
   have hcode' : I.code = truthBytecode := by
     rw [← ctorTruthRuntime_eq_truthBytecode]
     exact hcode
@@ -79,9 +78,8 @@ theorem ctorTruthReEquiv_callvalueZero
         rw [ctorTruthDispatch.eq, if_pos hmatch]
       exact (truthX_cvz_success hcode' hwv hsz hsize hmatch).reEquivExecution hcode' hd
         (ctorTruthDecode_empty hsz)
-        (ctorTruthBodyReturns (initState cA gh bl σ_solm σ₀ g A I) ∅
+        (ctorTruthBodyReturns (initState σ σ₀ g A I) ∅
           (by simp only [initState]; exact hwv))
-        hAccounts
         (returnEquiv_of_encode ctorTruthReturnEncoding)
     · rw [Bool.not_eq_true] at hmatch
       exact (truthX_cvz_revertB hcode' hwv hsz hsize hmatch).reEquivNoDispatch hcode'
@@ -90,9 +88,9 @@ theorem ctorTruthReEquiv_callvalueZero
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
     runtimeEquivalence ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize _hperm hσ => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ
+  · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by
       rw [← ctorTruthRuntime_eq_truthBytecode]
       exact hcode
@@ -139,40 +137,16 @@ theorem ctorTruthFinal_read :
     (by decide) (by rw [ctorTruthRuntime_size]) (by decide)]
   exact ctorTruthRuntime_extract_all
 
-/-- Solidity deployment accepts only an argument list of the constructor parameter length. -/
-theorem ctorTruthDeployment_args_length {args : List Value} {deployedInitcode : ByteArray} :
-    ctorTruthConfig.selfDeployment ctorTruthInitcode args = some deployedInitcode →
-    args.length = CtorTruth.contract.ctor.params.length := by
-  intro h
-  cases args with
-  | nil => rfl
-  | cons arg rest =>
-      simp [ctorTruthConfig, genSolidityConstructorDeployment, CtorTruth.contract, CtorTruth.ctor,
-        encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?] at h
-
-theorem ctorTruthDeployment_eq_initcode {args : List Value} {deployedInitcode : ByteArray} :
-    ctorTruthConfig.selfDeployment ctorTruthInitcode args = some deployedInitcode →
-    deployedInitcode = ctorTruthInitcode := by
-  intro h
-  cases args with
-  | nil =>
-      simp [ctorTruthConfig, genSolidityConstructorDeployment, CtorTruth.contract, CtorTruth.ctor,
-        encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, ByteArray.append_empty] at h
-      exact h.symm
-  | cons arg rest =>
-      simp [ctorTruthConfig, genSolidityConstructorDeployment, CtorTruth.contract, CtorTruth.ctor,
-        encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?] at h
-
 set_option maxHeartbeats 400000 in
-theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+theorem ctorTruthInitcodeRun {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ctorTruthInitcode) :
     RDret ctorTruthInitcode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      (initState σ σ₀ g A I) σ
       ctorTruthRuntimeBytecode := by
-  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
       RD ctorTruthInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
-        (createdAccounts, σ) 0 0 := by
+        σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [
     raw push1 ⟨128⟩ ctorTruthDecode0 (by evm_ov),
@@ -195,84 +169,11 @@ theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀
       ctorTruthFinal_read
       (by evm_ov)]
 
-theorem ctorTruthInitcodeXiResult
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
-    (σ : Ethereum.AccountMap)
-    (σ₀ : Ethereum.AccountMap)
-    (g : Ethereum.UInt256)
-    (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv)
-    (args : List Value)
-    (deployedInitcode : ByteArray) :
-    ctorTruthConfig.selfDeployment ctorTruthInitcode args = some deployedInitcode →
-    I.code = deployedInitcode →
-    I.calldata = .empty →
-    I.perm = true →
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error .OutOfGass
-      ∨ ∃ (g' : UInt256) (A' : Substate),
-          Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-            = .ok (.success (createdAccounts, σ, g', A') ctorTruthRuntimeBytecode) := by
-  intro hdeploy hcode _hcalldata _hperm
-  have hdeployed := ctorTruthDeployment_eq_initcode hdeploy
-  rw [hdeployed] at hcode
-  rcases (ctorTruthInitcodeRun (createdAccounts := createdAccounts)
-      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ := σ) (σ₀ := σ₀)
-      (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).xiResult hcode with
-    hoog | ⟨g', A', hsuccess⟩
-  · left
-    simpa using hoog
-  · right
-    exact ⟨g', A', hsuccess⟩
-
-theorem ctorTruthCtorBodyReturns
-    (evm : EVM.State) (locals : Store) :
-    ExecTransitionBody ctorTruthConfig CtorTruth.contract evm locals CtorTruth.contract.ctor.body
-      (.returned { contract := CtorTruth.contract, locals := locals } evm none) := by
-  exact ExecFuncBody.execBlockOK ExecBlock.nil
-
-theorem ctorTruthSolmCtorExec
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader}
-    {blocks : Ethereum.ProcessedBlocks}
-    {σ : Ethereum.AccountMap}
-    {σ₀ : Ethereum.AccountMap}
-    {g : Ethereum.UInt256}
-    {A : Ethereum.Substate}
-    {I : Ethereum.ExecutionEnv}
-    {args : List Value}
-    {deployedInitcode : ByteArray}
-    (hdeploy : ctorTruthConfig.selfDeployment ctorTruthInitcode args = some deployedInitcode) :
-    solmCtorExec ctorTruthConfig CtorTruth.contract args createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I
-      (.returned
-        { contract := CtorTruth.contract
-          locals := Std.HashMap.ofList (List.zip (CtorTruth.contract.ctor.params.map Param.name) args) }
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
-        none) := by
-  refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
-    (argsStore := Std.HashMap.ofList (List.zip (CtorTruth.contract.ctor.params.map Param.name) args))
-    ?_ (ctorTruthDeployment_args_length hdeploy) rfl ?_
-  · rfl
-  · exact ctorTruthCtorBodyReturns _ _
-
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem ctorTruthConstructorCorrect :
     constructorEquivalence ctorTruthConfig ctorTruthInitcode CtorTruth.contract
-      ctorTruthRuntimeBytecode := by
-  refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode hcalldata hperm hσ
-  rcases ctorTruthInitcodeXiResult createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I args
-      deployedInitcode hdeploy hcode hcalldata hperm with hoog | ⟨g', A', hsuccess⟩
-  · exact constructorEquivalenceFor.outOfGas hoog
-  · refine constructorEquivalenceFor.execution hsuccess
-      (ctorTruthSolmCtorExec (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-        (args := args) hdeploy) ?_
-    exact ctorResultEquiv.success rfl rfl rfl hσ rfl
+      ctorTruthRuntimeBytecode :=
+  emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => ctorTruthInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorTruthCorrect :

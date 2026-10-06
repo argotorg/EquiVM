@@ -19,13 +19,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem potCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σVat : AccountMap} {k C : Nat}
+    {σVat : AccountMap} {k C : Nat}
     (vat : AccountAddress) (hperm : I.perm = true)
     (h : RD (potCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
-      (potCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata (cA, σVat) k C) :
+      (potCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata σVat k C) :
     RDret (potCtorCode vat) g s0
-      (cA,
-        sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σVat ⟨3⟩ potCtorOne) ⟨4⟩ potCtorOne)
@@ -55,17 +54,14 @@ theorem potCtorReturnTrace
     (by pot_ctor_decode) mem_cost (potCtorReturnMem_read I vat) (by evm_ov)
 
 theorem potInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = potCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (potCtorCode vat) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner
@@ -81,8 +77,7 @@ theorem potInitcodeSuccess
       potBytecode := by
   obtain ⟨_, _, rd54⟩ :=
     potCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat hcode hwv
   obtain ⟨_, _, rd75⟩ := potCtorWardsStoreReach vat hperm rd54
   obtain ⟨_, _, rd109⟩ := potCtorVatStoreReach vat hperm rd75

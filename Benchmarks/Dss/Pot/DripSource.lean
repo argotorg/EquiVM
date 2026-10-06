@@ -5,7 +5,7 @@ import Benchmarks.Dss.Pot.DripCommon
 
 For each control-flow leaf of `dripTransition.body`, a fact
 `ExecTransitionBody config contract evm0 ∅ dripTransition.body <result>` where
-`evm0 = initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I`.
+`evm0 = initState σ σ₀ (Sat256.ofUInt256 g) A I`.
 
 The `_rpow` result is supplied to the leaves as a hypothesis `hrpow` (the core obtains it from
 `rpowFunctionCoupled`); the checked-arithmetic `_rmul`/`_sub`/`_mul` bodies are discharged with the
@@ -80,20 +80,20 @@ theorem dripSuckFrameLocals_get_tmp (σ : AccountMap) (I : ExecutionEnv) (pow : 
 /-! ## Storage-word bridge on the initial state -/
 
 /-- On `evm0`, a code-owner storage read at `slot` is the layout word `potSlotWord slot σ I`. -/
-theorem dripEvm0_load {cA gh bl σ σ₀ A I} {g : UInt256} (slot : UInt256) :
-    Solm.EVM.storageLoad (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner slot =
+theorem dripEvm0_load {σ σ₀ A I} {g : UInt256} (slot : UInt256) :
+    Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner slot =
       potSlotWord slot σ I := by
-  have hco : (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
+  have hco : (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
       I.codeOwner := rfl
   rw [hco, codeOwnerStorageWord_initState]
   rfl
 
 /-- The `chi := tmp`/`rho := now` stores don't touch slots `≠ 4, 7`, so a later read there is still
 `potSlotWord slot σ I`. -/
-theorem dripEvmRho_load {cA gh bl σ σ₀ A I} {g : UInt256} {tmp now : UInt256} (slot : UInt256)
+theorem dripEvmRho_load {σ σ₀ A I} {g : UInt256} {tmp now : UInt256} (slot : UInt256)
     (h4 : slot ≠ (⟨4⟩ : UInt256)) (h7 : slot ≠ (⟨7⟩ : UInt256)) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     Solm.EVM.storageLoad (dripEvmRho evm0 tmp now) (dripEvmRho evm0 tmp now).executionEnv.codeOwner
         slot = potSlotWord slot σ I := by
   intro evm0

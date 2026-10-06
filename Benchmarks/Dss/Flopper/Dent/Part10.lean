@@ -10,14 +10,13 @@ set_option linter.unusedTactic false
 namespace Benchmarks.Dss.Flopper
 set_option maxHeartbeats 1000000 in
 theorem flopperDentBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flopperSelBytes 4))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flopperSelBytes 4)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -25,46 +24,46 @@ theorem flopperDentBody
   have hdispatch : dispatchMsg contract I.calldata = some dentTransition :=
     flopperDispatchDent hsel
   have hreach := flopperReachDentBody
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hdecode := flopperDecode_dent_ok (I := I) hsz100
     have hdecoded := flopperDentX_decoded (g := Sat256.ofUInt256 g) hsz100 hsize hreach
-    by_cases hlive : flopperSlotWord ⟨8⟩ σ_evm I = ⟨1⟩
-    · by_cases hguyZero : flopperAddressReturnWord packedSlot σ_evm I = ⟨0⟩
+    by_cases hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩
+    · by_cases hguyZero : flopperAddressReturnWord packedSlot σ I = ⟨0⟩
       · exact flopperDentBodyCoreGuyNotSet hcode hsize hwv hsz100 hlive
-          (by simpa [packedSlot, id] using hguyZero) hdispatch hdecode hreach hAccounts
+          (by simpa [packedSlot, id] using hguyZero) hdispatch hdecode hreach
       · have hguy :
-            flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I ≠ ⟨0⟩ := by
+            flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩ := by
           simpa [packedSlot, id] using hguyZero
-        by_cases hticZero : flopperUint48Offset20Word packedSlot σ_evm I = ⟨0⟩
+        by_cases hticZero : flopperUint48Offset20Word packedSlot σ I = ⟨0⟩
         · have hticOk :
               (UInt256.ofNat I.header.timestamp).toNat <
                   (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I))
-                    σ_evm I).toNat ∨
+                    σ I).toNat ∨
                 flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I))
-                    σ_evm I = ⟨0⟩ := by
+                    σ I = ⟨0⟩ := by
             exact Or.inr (by simpa [packedSlot, id] using hticZero)
           by_cases hendGt :
               (UInt256.ofNat I.header.timestamp).toNat <
-                (flopperUint48Offset26Word packedSlot σ_evm I).toNat
+                (flopperUint48Offset26Word packedSlot σ I).toNat
           · by_cases hbid :
-                dentBidWord I = flopperSlotWord (auctionBidSlot id) σ_evm I
+                dentBidWord I = flopperSlotWord (auctionBidSlot id) σ I
             · by_cases hlotLt :
                   (dentLotWord I).toNat <
-                    (flopperSlotWord (auctionLotSlot id) σ_evm I).toNat
+                    (flopperSlotWord (auctionLotSlot id) σ I).toNat
               · by_cases hbegFit :
-                    (flopperSlotWord ⟨4⟩ σ_evm I).toNat *
+                    (flopperSlotWord ⟨4⟩ σ I).toNat *
                         (dentLotWord I).toNat < UInt256.size
                 · by_cases hlotOneFit :
-                      (flopperSlotWord (auctionLotSlot id) σ_evm I).toNat *
+                      (flopperSlotWord (auctionLotSlot id) σ I).toNat *
                           dentOneWord.toNat < UInt256.size
                   · by_cases hsuff :
                         (dentBegLotWord
-                            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             I).toNat ≤
                           (dentLotOneWord
-                            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                             I).toNat
                     · obtain ⟨memLotOne, _, _, hmemLotOne, hreadLotOne, rd2322⟩ :=
                         flopperDentX_toBegLotOkFromDecoded hlive hguy hticOk
@@ -76,49 +75,48 @@ theorem flopperDentBody
                         flopperDentX_sufficientDecreaseOkFromGuard hsuff rd2322
                       by_cases hcallerEq :
                           UInt256.ofNat I.source.val =
-                            flopperAddressReturnWord packedSlot σ_evm I
+                            flopperAddressReturnWord packedSlot σ I
                       · by_cases haddFit :
                             (UInt256.land (UInt256.ofNat I.header.timestamp)
                                   flopperUint48Mask).toNat +
-                                (dentRuntimeTtlWord I.codeOwner σ_evm I).toNat <
+                                (dentRuntimeTtlWord I.codeOwner σ I).toNat <
                               2 ^ 48
                         · exact flopperDentBodyCoreSuccessCallerEq hcode hperm hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
                             (by simpa [packedSlot, id] using hcallerEq) haddFit
-                            hdispatch hdecode rd2405 hAccounts
+                            hdispatch hdecode rd2405
                         · exact flopperDentBodyCoreAddOverflowCallerEq hcode hperm hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
                             (by simpa [packedSlot, id] using hcallerEq)
                             (Nat.le_of_not_gt haddFit) hdispatch hdecode rd2405
-                            hAccounts
                       · have hcallerNe :
                             UInt256.ofNat I.source.val ≠
                               flopperAddressReturnWord
-                                (auctionPackedSlot (dentIdWord I)) σ_evm I := by
+                                (auctionPackedSlot (dentIdWord I)) σ I := by
                           simpa [packedSlot, id] using hcallerEq
                         by_cases hnoCode :
-                            Reasoning.Theory.extCodeSizeWord σ_evm
-                              (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩
+                            Reasoning.Theory.extCodeSizeWord σ
+                              (flopperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩
                         · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
                             hcallerNe hnoCode hdispatch hdecode rd2405 hmemLotOne
-                            hreadLotOne hAccounts
+                            hreadLotOne
                         · have hcodeSize :
-                              Reasoning.Theory.extCodeSizeWord σ_evm
-                                (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩ := hnoCode
+                              Reasoning.Theory.extCodeSizeWord σ
+                                (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ := hnoCode
                           by_cases hdepthEq : I.depth = 1024
                           · exact flopperDentBodyCoreMoveCallDepthLimit hcode hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff hcallerNe
                               hcodeSize hdepthEq hdispatch hdecode rd2405 hmemLotOne
-                              hreadLotOne hAccounts
+                              hreadLotOne
                           · have hdepthLt : I.depth.val < 1024 := by
                               have hle : I.depth.val ≤ 1024 :=
                                 Nat.le_of_lt_succ I.depth.isLt
@@ -131,8 +129,8 @@ theorem flopperDentBody
                             let memCaller := twoWordHashMem id ⟨1⟩ memLotOne
                             let memMap := twoWordHashMem id ⟨1⟩ memCaller
                             let src := UInt256.ofNat I.source.val
-                            let vat := flopperAddressReturnWord ⟨2⟩ σ_evm I
-                            let guy := flopperAddressReturnWord packedSlot σ_evm I
+                            let vat := flopperAddressReturnWord ⟨2⟩ σ I
+                            let guy := flopperAddressReturnWord packedSlot σ I
                             have hmemCaller : memCaller.size = 96 := by
                               simpa [memCaller, id] using
                                 twoWordHashMem_size_96 id ⟨1⟩ hmemLotOne
@@ -162,7 +160,7 @@ theorem flopperDentBody
                                 hmemMap hread64Map
                             obtain ⟨_, _, rd2439⟩ :=
                               flopperDentX_callerNeToMove hcallerNe rd2435
-                            obtain ⟨cA', σ', zMove, outMove, A', k2545, C2545,
+                            obtain ⟨σ', zMove, outMove, A', k2545, C2545,
                                 rd2545, hcallMove, houtMoveSize⟩ :=
                               flopperDentX_moveCall
                                 (g := Sat256.ofUInt256 g) hperm hcodeSize hdepthLt
@@ -170,33 +168,32 @@ theorem flopperDentBody
                             by_cases hzMove : zMove = true
                             · have rd2545True : RD flopperBytecode I
                                   (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g)
+                                  (initState σ σ₀ (Sat256.ofUInt256 g)
                                     A I) ⟨2545⟩
                                   (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-                                    flopperAddressReturnWord ⟨2⟩ σ_evm I ::
+                                    flopperAddressReturnWord ⟨2⟩ σ I ::
                                     dentBidWord I :: dentLotWord I :: dentIdWord I ::
                                     ⟨334⟩ :: flopperSelWord I :: [])
                                   (dentMoveCalldataMem src guy (dentBidWord I) memMap)
-                                  (UInt256.ofNat 8) outMove (cA', σ') k2545 C2545 := by
+                                  (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                 simpa [hzMove, vat, id] using rd2545
                               have hcallMoveTrue :
                                   typedCallViaEVM config
-                                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g)
+                                    (initState σ σ₀ (Sat256.ofUInt256 g)
                                       A I)
                                     (EVM.address (AccountAddress.ofNat
-                                      (flopperAddressReturnWord ⟨2⟩ σ_evm I).toNat))
+                                      (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
                                     "move" 0
                                     [.address (AccountAddress.ofNat
                                         (UInt256.ofNat I.source.val).toNat),
                                       .address (AccountAddress.ofNat
                                         (flopperAddressReturnWord
-                                          (auctionPackedSlot (dentIdWord I)) σ_evm I).toNat),
+                                          (auctionPackedSlot (dentIdWord I)) σ I).toNat),
                                       .int (Int.ofNat (dentBidWord I).toNat)]
                                     (true,
-                                      { initState cA gh bl σ_evm σ₀
+                                      { initState σ σ₀
                                           (Sat256.ofUInt256 g) A I with
-                                        accountMap := σ', substate := A',
-                                        createdAccounts := cA' },
+                                        accountMap := σ', substate := A' },
                                       outMove) true := by
                                 simpa [hzMove, vat, src, guy, packedSlot, id] using hcallMove
                               by_cases hticMoveZero :
@@ -214,14 +211,14 @@ theorem flopperDentBody
                                     (by simpa [packedSlot, id] using hticMoveZero)
                                     (by simpa [packedSlot, id] using hashNoCode)
                                     rd2545True hmoveMem96 hmoveRead64 hcallMoveTrue
-                                    hdispatch hdecode hAccounts
+                                    hdispatch hdecode
                                 · have hashCodeSize :
                                       Reasoning.Theory.extCodeSizeWord σ'
                                         (flopperAddressReturnWord
                                           (auctionPackedSlot (dentIdWord I)) σ' I) ≠
                                           ⟨0⟩ := by
                                     simpa [packedSlot, id] using hashNoCode
-                                  obtain ⟨memAshSelector, cAAsh, σAsh, zAsh, outAsh,
+                                  obtain ⟨memAshSelector, σAsh, zAsh, outAsh,
                                       AinAsh, AAsh, k2690, C2690, rd2690, hashCall,
                                       houtAshSize, hmemAsh64, hreadAsh64, hmemAsh128Of,
                                       hreadAsh128Of⟩ :=
@@ -231,10 +228,9 @@ theorem flopperDentBody
                                       (by simpa [packedSlot, id] using hticMoveZero)
                                       hashCodeSize hdepthLt rd2545True
                                   let evmAshPre : EVM.State :=
-                                    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g)
+                                    { initState σ σ₀ (Sat256.ofUInt256 g)
                                         A I with
-                                      accountMap := σ', substate := AinAsh,
-                                      createdAccounts := cA' }
+                                      accountMap := σ', substate := AinAsh }
                                   have hdepthNeAsh :
                                       evmAshPre.executionEnv.depth ≠ 1024 := by
                                     intro hbad
@@ -245,7 +241,7 @@ theorem flopperDentBody
                                   by_cases hzAsh : zAsh = true
                                   · have rd2690True : RD flopperBytecode I
                                         (Sat256.ofUInt256 g)
-                                        (initState cA gh bl σ_evm σ₀
+                                        (initState σ σ₀
                                           (Sat256.ofUInt256 g) A I) ⟨2690⟩
                                         (⟨1⟩ :: dentAshEndPtr :: dentAshSelectorWord ::
                                           flopperAddressReturnWord
@@ -255,24 +251,22 @@ theorem flopperDentBody
                                         (outAsh.write 0 memAshSelector dentAshOutPtr.toNat
                                           (min dentAshOutSize
                                             (UInt256.ofNat outAsh.size)).toNat)
-                                        (UInt256.ofNat 8) outAsh (cAAsh, σAsh) k2690
+                                        (UInt256.ofNat 8) outAsh σAsh k2690
                                         C2690 := by
                                       simpa [hzAsh, packedSlot, id] using rd2690
                                     have hashCallTrue :
                                         typedCallViaEVM config
-                                          { initState cA gh bl σ_evm σ₀
+                                          { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
-                                            accountMap := σ', substate := AinAsh,
-                                            createdAccounts := cA' }
+                                            accountMap := σ', substate := AinAsh }
                                           (EVM.address (AccountAddress.ofNat
                                             (flopperAddressReturnWord
                                               (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
                                           "Ash" 0 []
                                           (true,
-                                            { initState cA gh bl σ_evm σ₀
+                                            { initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I with
-                                              accountMap := σAsh, substate := AAsh,
-                                              createdAccounts := cAAsh },
+                                              accountMap := σAsh, substate := AAsh},
                                             outAsh) true := by
                                       simpa [hzAsh, packedSlot, id] using hashCall
                                     obtain ⟨AAshCore, hashCallTrueCoreRaw⟩ :=
@@ -280,19 +274,17 @@ theorem flopperDentBody
                                         (by simpa [evmAshPre] using hdepthNeAsh) A'
                                     have hashCallTrueCore :
                                         typedCallViaEVM config
-                                          { initState cA gh bl σ_evm σ₀
+                                          { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
-                                            accountMap := σ', substate := A',
-                                            createdAccounts := cA' }
+                                            accountMap := σ', substate := A' }
                                           (EVM.address (AccountAddress.ofNat
                                             (flopperAddressReturnWord
                                               (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
                                           "Ash" 0 []
                                           (true,
-                                            { initState cA gh bl σ_evm σ₀
+                                            { initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I with
-                                              accountMap := σAsh, substate := AAshCore,
-                                              createdAccounts := cAAsh },
+                                              accountMap := σAsh, substate := AAshCore},
                                             outAsh) true := by
                                       simpa using hashCallTrueCoreRaw
                                     by_cases houtAsh32 : 32 ≤ outAsh.size
@@ -316,7 +308,6 @@ theorem flopperDentBody
                                             hdepthLt rd2690True hcallMoveTrue hashCallTrueCore
                                             houtAsh32 houtAshSize hmemAsh64 hreadAsh64
                                             hmemAsh128 hreadAsh128 hdispatch hdecode
-                                            hAccounts
                                       · have hkissCodeSize :
                                             Reasoning.Theory.extCodeSizeWord σAsh
                                               (flopperAddressReturnWord
@@ -348,7 +339,7 @@ theorem flopperDentBody
                                             (dentKissEncode_eq
                                               (dentKissAmtWord I outAsh)
                                               (mem := memKissMap))
-                                        obtain ⟨cAKiss, σKiss, zKiss, outKiss,
+                                        obtain ⟨σKiss, zKiss, outKiss,
                                             AinKiss, AKiss, k2833, C2833, rd2833,
                                             hkissCall, houtKissSize⟩ :=
                                           flopperDentX_kissCall
@@ -363,7 +354,7 @@ theorem flopperDentBody
                                         by_cases hzKiss : zKiss = true
                                         · have rd2833True : RD flopperBytecode I
                                               (Sat256.ofUInt256 g)
-                                              (initState cA gh bl σ_evm σ₀
+                                              (initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I) ⟨2833⟩
                                               (⟨1⟩ :: dentKissEndPtr ::
                                                 dentKissSelectorWord ::
@@ -374,15 +365,14 @@ theorem flopperDentBody
                                                 dentLotWord I :: dentIdWord I ::
                                                 ⟨334⟩ :: flopperSelWord I :: [])
                                               memKiss (UInt256.ofNat 8) outKiss
-                                              (cAKiss, σKiss) k2833 C2833 := by
+                                              σKiss k2833 C2833 := by
                                             simpa only [hzKiss, memAsh, memKissMap, memKiss,
                                               packedSlot, id] using rd2833
                                           have hkissCallTrue :
                                               typedCallViaEVM config
-                                                { initState cA gh bl σ_evm σ₀
+                                                { initState σ σ₀
                                                     (Sat256.ofUInt256 g) A I with
-                                                  accountMap := σAsh, substate := AinKiss,
-                                                  createdAccounts := cAAsh }
+                                                  accountMap := σAsh, substate := AinKiss}
                                                 (EVM.address (AccountAddress.ofNat
                                                   (flopperAddressReturnWord
                                                     (auctionPackedSlot (dentIdWord I))
@@ -391,11 +381,10 @@ theorem flopperDentBody
                                                 [.int (Int.ofNat
                                                   (dentKissAmtWord I outAsh).toNat)]
                                                 (true,
-                                                  { initState cA gh bl σ_evm σ₀
+                                                  { initState σ σ₀
                                                       (Sat256.ofUInt256 g) A I with
                                                     accountMap := σKiss,
-                                                    substate := AKiss,
-                                                    createdAccounts := cAKiss },
+                                                    substate := AKiss},
                                                   outKiss) true := by
                                             simpa only [hzKiss, packedSlot, id] using hkissCall
                                           by_cases haddFit :
@@ -419,7 +408,7 @@ theorem flopperDentBody
                                                 hashCodeSize hkissCodeSize haddFit
                                                 hdepthLt rd2833True hcallMoveTrue
                                                 hashCallTrueCore houtAsh32 hkissCallTrue
-                                                hdispatch hdecode hAccounts
+                                                hdispatch hdecode
                                           · exact
                                               flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
                                                 hcode hperm hwv hlive hguy hticOk
@@ -434,12 +423,11 @@ theorem flopperDentBody
                                                 (Nat.le_of_not_gt haddFit) hdepthLt
                                                 rd2833True hcallMoveTrue hashCallTrueCore
                                                 houtAsh32 hkissCallTrue hdispatch hdecode
-                                                hAccounts
                                         · have hzKissFalse : zKiss = false := by
                                             cases zKiss <;> simp at hzKiss ⊢
                                           have rd2833False : RD flopperBytecode I
                                               (Sat256.ofUInt256 g)
-                                              (initState cA gh bl σ_evm σ₀
+                                              (initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I) ⟨2833⟩
                                               (⟨0⟩ :: dentKissEndPtr ::
                                                 dentKissSelectorWord ::
@@ -450,15 +438,14 @@ theorem flopperDentBody
                                                 dentLotWord I :: dentIdWord I ::
                                                 ⟨334⟩ :: flopperSelWord I :: [])
                                               memKiss (UInt256.ofNat 8) outKiss
-                                              (cAKiss, σKiss) k2833 C2833 := by
+                                              σKiss k2833 C2833 := by
                                             simpa only [hzKissFalse, memAsh, memKissMap,
                                               memKiss, packedSlot, id] using rd2833
                                           have hkissCallFalse :
                                               typedCallViaEVM config
-                                                { initState cA gh bl σ_evm σ₀
+                                                { initState σ σ₀
                                                     (Sat256.ofUInt256 g) A I with
-                                                  accountMap := σAsh, substate := AinKiss,
-                                                  createdAccounts := cAAsh }
+                                                  accountMap := σAsh, substate := AinKiss}
                                                 (EVM.address (AccountAddress.ofNat
                                                   (flopperAddressReturnWord
                                                     (auctionPackedSlot (dentIdWord I))
@@ -467,11 +454,10 @@ theorem flopperDentBody
                                                 [.int (Int.ofNat
                                                   (dentKissAmtWord I outAsh).toNat)]
                                                 (false,
-                                                  { initState cA gh bl σ_evm σ₀
+                                                  { initState σ σ₀
                                                       (Sat256.ofUInt256 g) A I with
                                                     accountMap := σKiss,
-                                                    substate := AKiss,
-                                                    createdAccounts := cAKiss },
+                                                    substate := AKiss},
                                                   outKiss) true := by
                                             simpa only [hzKissFalse, packedSlot, id]
                                               using hkissCall
@@ -488,7 +474,7 @@ theorem flopperDentBody
                                               hashCodeSize hkissCodeSize hdepthLt
                                               rd2833False hcallMoveTrue hashCallTrueCore
                                               houtAsh32 hkissCallFalse houtKissSize
-                                              hdispatch hdecode hAccounts
+                                              hdispatch hdecode
                                     · have hashShort : outAsh.size < 32 := by omega
                                       exact
                                         flopperDentBodyCoreAshDecodeShortMoveCallerNeTicZero
@@ -501,12 +487,12 @@ theorem flopperDentBody
                                           (by simpa [packedSlot, id] using hticMoveZero)
                                           hashCodeSize hdepthLt rd2690True hcallMoveTrue
                                           hashCallTrueCore hashShort houtAshSize hmemAsh64
-                                          hreadAsh64 hdispatch hdecode hAccounts
+                                          hreadAsh64 hdispatch hdecode
                                   · have hzAshFalse : zAsh = false := by
                                       cases zAsh <;> simp at hzAsh ⊢
                                     have rd2690False : RD flopperBytecode I
                                         (Sat256.ofUInt256 g)
-                                        (initState cA gh bl σ_evm σ₀
+                                        (initState σ σ₀
                                           (Sat256.ofUInt256 g) A I) ⟨2690⟩
                                         (⟨0⟩ :: dentAshEndPtr :: dentAshSelectorWord ::
                                           flopperAddressReturnWord
@@ -516,24 +502,22 @@ theorem flopperDentBody
                                         (outAsh.write 0 memAshSelector dentAshOutPtr.toNat
                                           (min dentAshOutSize
                                             (UInt256.ofNat outAsh.size)).toNat)
-                                        (UInt256.ofNat 8) outAsh (cAAsh, σAsh) k2690
+                                        (UInt256.ofNat 8) outAsh σAsh k2690
                                         C2690 := by
                                       simpa [hzAshFalse, packedSlot, id] using rd2690
                                     have hashCallFalse :
                                         typedCallViaEVM config
-                                          { initState cA gh bl σ_evm σ₀
+                                          { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
-                                            accountMap := σ', substate := AinAsh,
-                                            createdAccounts := cA' }
+                                            accountMap := σ', substate := AinAsh }
                                           (EVM.address (AccountAddress.ofNat
                                             (flopperAddressReturnWord
                                               (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
                                           "Ash" 0 []
                                           (false,
-                                            { initState cA gh bl σ_evm σ₀
+                                            { initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I with
-                                              accountMap := σAsh, substate := AAsh,
-                                              createdAccounts := cAAsh },
+                                              accountMap := σAsh, substate := AAsh},
                                             outAsh) true := by
                                       simpa [hzAshFalse, packedSlot, id] using hashCall
                                     obtain ⟨AAshCore, hashCallFalseCoreRaw⟩ :=
@@ -541,19 +525,17 @@ theorem flopperDentBody
                                         (by simpa [evmAshPre] using hdepthNeAsh) A'
                                     have hashCallFalseCore :
                                         typedCallViaEVM config
-                                          { initState cA gh bl σ_evm σ₀
+                                          { initState σ σ₀
                                               (Sat256.ofUInt256 g) A I with
-                                            accountMap := σ', substate := A',
-                                            createdAccounts := cA' }
+                                            accountMap := σ', substate := A' }
                                           (EVM.address (AccountAddress.ofNat
                                             (flopperAddressReturnWord
                                               (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
                                           "Ash" 0 []
                                           (false,
-                                            { initState cA gh bl σ_evm σ₀
+                                            { initState σ σ₀
                                                 (Sat256.ofUInt256 g) A I with
-                                              accountMap := σAsh, substate := AAshCore,
-                                              createdAccounts := cAAsh },
+                                              accountMap := σAsh, substate := AAshCore},
                                             outAsh) true := by
                                       simpa using hashCallFalseCoreRaw
                                     exact
@@ -567,7 +549,7 @@ theorem flopperDentBody
                                         (by simpa [packedSlot, id] using hticMoveZero)
                                         hashCodeSize hdepthLt rd2690False
                                         hcallMoveTrue hashCallFalseCore houtAshSize
-                                        hdispatch hdecode hAccounts
+                                        hdispatch hdecode
                               · have hticMoveNe :
                                     flopperUint48Offset20Word
                                       (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩ := by
@@ -586,7 +568,7 @@ theorem flopperDentBody
                                     (by simpa [id] using hlotLt) hbegFit
                                     (by simpa [id] using hlotOneFit) hsuff hcallerNe
                                     hcodeSize hticMoveNe haddFit rd2545True
-                                    hcallMoveTrue hdispatch hdecode hAccounts
+                                    hcallMoveTrue hdispatch hdecode
                                 · exact flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
                                     hcode hperm hwv hlive hguy hticOk
                                     (by simpa [packedSlot, id] using hendGt)
@@ -594,38 +576,37 @@ theorem flopperDentBody
                                     (by simpa [id] using hlotLt) hbegFit
                                     (by simpa [id] using hlotOneFit) hsuff hcallerNe
                                     hcodeSize hticMoveNe (Nat.le_of_not_gt haddFit)
-                                    rd2545True hcallMoveTrue hdispatch hdecode hAccounts
+                                    rd2545True hcallMoveTrue hdispatch hdecode
                             · have hzMoveFalse : zMove = false := by
                                 cases zMove <;> simp at hzMove ⊢
                               have rd2545False : RD flopperBytecode I
                                   (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g)
+                                  (initState σ σ₀ (Sat256.ofUInt256 g)
                                     A I) ⟨2545⟩
                                   (⟨0⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-                                    flopperAddressReturnWord ⟨2⟩ σ_evm I ::
+                                    flopperAddressReturnWord ⟨2⟩ σ I ::
                                     dentBidWord I :: dentLotWord I :: dentIdWord I ::
                                     ⟨334⟩ :: flopperSelWord I :: [])
                                   (dentMoveCalldataMem src guy (dentBidWord I) memMap)
-                                  (UInt256.ofNat 8) outMove (cA', σ') k2545 C2545 := by
+                                  (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                 simpa [hzMoveFalse, vat, id] using rd2545
                               have hcallMoveFalse :
                                   typedCallViaEVM config
-                                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g)
+                                    (initState σ σ₀ (Sat256.ofUInt256 g)
                                       A I)
                                     (EVM.address (AccountAddress.ofNat
-                                      (flopperAddressReturnWord ⟨2⟩ σ_evm I).toNat))
+                                      (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
                                     "move" 0
                                     [.address (AccountAddress.ofNat
                                         (UInt256.ofNat I.source.val).toNat),
                                       .address (AccountAddress.ofNat
                                         (flopperAddressReturnWord
-                                          (auctionPackedSlot (dentIdWord I)) σ_evm I).toNat),
+                                          (auctionPackedSlot (dentIdWord I)) σ I).toNat),
                                       .int (Int.ofNat (dentBidWord I).toNat)]
                                     (false,
-                                      { initState cA gh bl σ_evm σ₀
+                                      { initState σ σ₀
                                           (Sat256.ofUInt256 g) A I with
-                                        accountMap := σ', substate := A',
-                                        createdAccounts := cA' },
+                                        accountMap := σ', substate := A' },
                                       outMove) true := by
                                 simpa [hzMoveFalse, vat, src, guy, packedSlot, id]
                                   using hcallMove
@@ -634,61 +615,59 @@ theorem flopperDentBody
                                 (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                                 hbegFit (by simpa [id] using hlotOneFit) hsuff
                                 hcallerNe hcodeSize rd2545False hcallMoveFalse
-                                houtMoveSize hdispatch hdecode hAccounts
+                                houtMoveSize hdispatch hdecode
                     · exact flopperDentBodyCoreInsufficientDecrease hcode hsize hwv
                         hsz100 hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                         (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                         hbegFit (by simpa [id] using hlotOneFit) (by omega)
-                        hdispatch hdecode hreach hAccounts
+                        hdispatch hdecode hreach
                   · exact flopperDentBodyCoreLotOneOverflow hcode hsize hwv hsz100
                       hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                       (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                       hbegFit (Nat.le_of_not_gt hlotOneFit) hdispatch hdecode hreach
-                      hAccounts
                 · exact flopperDentBodyCoreBegLotOverflow hcode hsize hwv hsz100
                     hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                     (by simpa [id] using hbid) (by simpa [id] using hlotLt)
-                    (Nat.le_of_not_gt hbegFit) hdispatch hdecode hreach hAccounts
+                    (Nat.le_of_not_gt hbegFit) hdispatch hdecode hreach
               · exact flopperDentBodyCoreLotNotLower hcode hsize hwv hsz100 hlive
                   hguy hticOk (by simpa [packedSlot, id] using hendGt)
                   (by simpa [id] using hbid) (Nat.le_of_not_gt hlotLt)
-                  hdispatch hdecode hreach hAccounts
+                  hdispatch hdecode hreach
             · exact flopperDentBodyCoreBidMismatch hcode hsize hwv hsz100 hlive
                 hguy hticOk (by simpa [packedSlot, id] using hendGt)
-                (by simpa [id] using hbid) hdispatch hdecode hreach hAccounts
+                (by simpa [id] using hbid) hdispatch hdecode hreach
           · exact flopperDentBodyCoreEndFinished hcode hsize hwv hsz100 hlive
               hguy hticOk (Nat.le_of_not_gt hendGt) hdispatch hdecode hreach
-              hAccounts
         · by_cases hticGt :
               (UInt256.ofNat I.header.timestamp).toNat <
-                (flopperUint48Offset20Word packedSlot σ_evm I).toNat
+                (flopperUint48Offset20Word packedSlot σ I).toNat
           · have hticOk :
                 (UInt256.ofNat I.header.timestamp).toNat <
                     (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I))
-                      σ_evm I).toNat ∨
+                      σ I).toNat ∨
                   flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I))
-                      σ_evm I = ⟨0⟩ := by
+                      σ I = ⟨0⟩ := by
               exact Or.inl (by simpa [packedSlot, id] using hticGt)
             by_cases hendGt :
                 (UInt256.ofNat I.header.timestamp).toNat <
-                  (flopperUint48Offset26Word packedSlot σ_evm I).toNat
+                  (flopperUint48Offset26Word packedSlot σ I).toNat
             · by_cases hbid :
-                  dentBidWord I = flopperSlotWord (auctionBidSlot id) σ_evm I
+                  dentBidWord I = flopperSlotWord (auctionBidSlot id) σ I
               · by_cases hlotLt :
                     (dentLotWord I).toNat <
-                      (flopperSlotWord (auctionLotSlot id) σ_evm I).toNat
+                      (flopperSlotWord (auctionLotSlot id) σ I).toNat
                 · by_cases hbegFit :
-                      (flopperSlotWord ⟨4⟩ σ_evm I).toNat *
+                      (flopperSlotWord ⟨4⟩ σ I).toNat *
                           (dentLotWord I).toNat < UInt256.size
                   · by_cases hlotOneFit :
-                        (flopperSlotWord (auctionLotSlot id) σ_evm I).toNat *
+                        (flopperSlotWord (auctionLotSlot id) σ I).toNat *
                             dentOneWord.toNat < UInt256.size
                     · by_cases hsuff :
                           (dentBegLotWord
-                              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               I).toNat ≤
                             (dentLotOneWord
-                              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                               I).toNat
                       · obtain ⟨memLotOne, _, _, hmemLotOne, hreadLotOne, rd2322⟩ :=
                           flopperDentX_toBegLotOkFromDecoded hlive hguy hticOk
@@ -700,42 +679,41 @@ theorem flopperDentBody
                           flopperDentX_sufficientDecreaseOkFromGuard hsuff rd2322
                         by_cases hcallerEq :
                             UInt256.ofNat I.source.val =
-                              flopperAddressReturnWord packedSlot σ_evm I
+                              flopperAddressReturnWord packedSlot σ I
                         · by_cases haddFit :
                               (UInt256.land (UInt256.ofNat I.header.timestamp)
                                     flopperUint48Mask).toNat +
-                                  (dentRuntimeTtlWord I.codeOwner σ_evm I).toNat <
+                                  (dentRuntimeTtlWord I.codeOwner σ I).toNat <
                                 2 ^ 48
                           · exact flopperDentBodyCoreSuccessCallerEq hcode hperm hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
                               (by simpa [packedSlot, id] using hcallerEq) haddFit
-                              hdispatch hdecode rd2405 hAccounts
+                              hdispatch hdecode rd2405
                           · exact flopperDentBodyCoreAddOverflowCallerEq hcode hperm hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
                               (by simpa [packedSlot, id] using hcallerEq)
                               (Nat.le_of_not_gt haddFit) hdispatch hdecode rd2405
-                              hAccounts
                         · have hcallerNe :
                               UInt256.ofNat I.source.val ≠
                                 flopperAddressReturnWord
-                                  (auctionPackedSlot (dentIdWord I)) σ_evm I := by
+                                  (auctionPackedSlot (dentIdWord I)) σ I := by
                             simpa [packedSlot, id] using hcallerEq
                           by_cases hnoCode :
-                              Reasoning.Theory.extCodeSizeWord σ_evm
-                                (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩
+                              Reasoning.Theory.extCodeSizeWord σ
+                                (flopperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩
                           · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
                               hcallerNe hnoCode hdispatch hdecode rd2405 hmemLotOne
-                              hreadLotOne hAccounts
+                              hreadLotOne
                           · have hcodeSize :
-                                Reasoning.Theory.extCodeSizeWord σ_evm
-                                  (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩ :=
+                                Reasoning.Theory.extCodeSizeWord σ
+                                  (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
                               hnoCode
                             by_cases hdepthEq : I.depth = 1024
                             · exact flopperDentBodyCoreMoveCallDepthLimit hcode hwv
@@ -743,7 +721,7 @@ theorem flopperDentBody
                                 (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                                 hbegFit (by simpa [id] using hlotOneFit) hsuff
                                 hcallerNe hcodeSize hdepthEq hdispatch hdecode rd2405
-                                hmemLotOne hreadLotOne hAccounts
+                                hmemLotOne hreadLotOne
                             · have hdepthLt : I.depth.val < 1024 := by
                                 have hle : I.depth.val ≤ 1024 :=
                                   Nat.le_of_lt_succ I.depth.isLt
@@ -756,8 +734,8 @@ theorem flopperDentBody
                               let memCaller := twoWordHashMem id ⟨1⟩ memLotOne
                               let memMap := twoWordHashMem id ⟨1⟩ memCaller
                               let src := UInt256.ofNat I.source.val
-                              let vat := flopperAddressReturnWord ⟨2⟩ σ_evm I
-                              let guy := flopperAddressReturnWord packedSlot σ_evm I
+                              let vat := flopperAddressReturnWord ⟨2⟩ σ I
+                              let guy := flopperAddressReturnWord packedSlot σ I
                               have hmemCaller : memCaller.size = 96 := by
                                 simpa [memCaller, id] using
                                   twoWordHashMem_size_96 id ⟨1⟩ hmemLotOne
@@ -768,7 +746,7 @@ theorem flopperDentBody
                                   twoWordHashMem_read64 id ⟨1⟩ hmemLotOne hreadLotOne
                               obtain ⟨_, _, rd2439⟩ :=
                                 flopperDentX_callerNeToMove hcallerNe rd2435
-                              obtain ⟨cA', σ', zMove, outMove, A', k2545, C2545,
+                              obtain ⟨σ', zMove, outMove, A', k2545, C2545,
                                   rd2545, hcallMove, houtMoveSize⟩ :=
                                 flopperDentX_moveCall
                                   (g := Sat256.ofUInt256 g) hperm hcodeSize hdepthLt
@@ -796,34 +774,33 @@ theorem flopperDentBody
                               by_cases hzMove : zMove = true
                               · have rd2545True : RD flopperBytecode I
                                     (Sat256.ofUInt256 g)
-                                    (initState cA gh bl σ_evm σ₀
+                                    (initState σ σ₀
                                       (Sat256.ofUInt256 g) A I) ⟨2545⟩
                                     (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-                                      flopperAddressReturnWord ⟨2⟩ σ_evm I ::
+                                      flopperAddressReturnWord ⟨2⟩ σ I ::
                                       dentBidWord I :: dentLotWord I :: dentIdWord I ::
                                       ⟨334⟩ :: flopperSelWord I :: [])
                                     (dentMoveCalldataMem src guy (dentBidWord I) memMap)
-                                    (UInt256.ofNat 8) outMove (cA', σ') k2545 C2545 := by
+                                    (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                   simpa [hzMove, vat, id] using rd2545
                                 have hcallMoveTrue :
                                     typedCallViaEVM config
-                                      (initState cA gh bl σ_evm σ₀
+                                      (initState σ σ₀
                                         (Sat256.ofUInt256 g) A I)
                                       (EVM.address (AccountAddress.ofNat
-                                        (flopperAddressReturnWord ⟨2⟩ σ_evm I).toNat))
+                                        (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
                                       "move" 0
                                       [.address (AccountAddress.ofNat
                                           (UInt256.ofNat I.source.val).toNat),
                                         .address (AccountAddress.ofNat
                                           (flopperAddressReturnWord
                                             (auctionPackedSlot (dentIdWord I))
-                                            σ_evm I).toNat),
+                                            σ I).toNat),
                                         .int (Int.ofNat (dentBidWord I).toNat)]
                                       (true,
-                                        { initState cA gh bl σ_evm σ₀
+                                        { initState σ σ₀
                                             (Sat256.ofUInt256 g) A I with
-                                          accountMap := σ', substate := A',
-                                          createdAccounts := cA' },
+                                          accountMap := σ', substate := A' },
                                         outMove) true := by
                                   simpa [hzMove, vat, src, guy, packedSlot, id] using hcallMove
                                 by_cases hticMoveZero :
@@ -837,7 +814,7 @@ theorem flopperDentBody
                                     hcodeSize
                                     (by simpa [packedSlot, id] using hticMoveZero)
                                     hdepthLt rd2545True hmoveMem96 hmoveRead64
-                                    hcallMoveTrue hdispatch hdecode hAccounts
+                                    hcallMoveTrue hdispatch hdecode
                                 · have hticMoveNe :
                                       flopperUint48Offset20Word
                                         (auctionPackedSlot (dentIdWord I)) σ' I ≠
@@ -857,7 +834,7 @@ theorem flopperDentBody
                                       (by simpa [id] using hlotLt) hbegFit
                                       (by simpa [id] using hlotOneFit) hsuff hcallerNe
                                       hcodeSize hticMoveNe haddFit rd2545True
-                                      hcallMoveTrue hdispatch hdecode hAccounts
+                                      hcallMoveTrue hdispatch hdecode
                                   · exact flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
                                       hcode hperm hwv hlive hguy hticOk
                                       (by simpa [packedSlot, id] using hendGt)
@@ -865,39 +842,38 @@ theorem flopperDentBody
                                       (by simpa [id] using hlotLt) hbegFit
                                       (by simpa [id] using hlotOneFit) hsuff hcallerNe
                                       hcodeSize hticMoveNe (Nat.le_of_not_gt haddFit)
-                                      rd2545True hcallMoveTrue hdispatch hdecode hAccounts
+                                      rd2545True hcallMoveTrue hdispatch hdecode
                               · have hzMoveFalse : zMove = false := by
                                   cases zMove <;> simp at hzMove ⊢
                                 have rd2545False : RD flopperBytecode I
                                     (Sat256.ofUInt256 g)
-                                    (initState cA gh bl σ_evm σ₀
+                                    (initState σ σ₀
                                       (Sat256.ofUInt256 g) A I) ⟨2545⟩
                                     (⟨0⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-                                      flopperAddressReturnWord ⟨2⟩ σ_evm I ::
+                                      flopperAddressReturnWord ⟨2⟩ σ I ::
                                       dentBidWord I :: dentLotWord I :: dentIdWord I ::
                                       ⟨334⟩ :: flopperSelWord I :: [])
                                     (dentMoveCalldataMem src guy (dentBidWord I) memMap)
-                                    (UInt256.ofNat 8) outMove (cA', σ') k2545 C2545 := by
+                                    (UInt256.ofNat 8) outMove σ' k2545 C2545 := by
                                   simpa [hzMoveFalse, vat, id] using rd2545
                                 have hcallMoveFalse :
                                     typedCallViaEVM config
-                                      (initState cA gh bl σ_evm σ₀
+                                      (initState σ σ₀
                                         (Sat256.ofUInt256 g) A I)
                                       (EVM.address (AccountAddress.ofNat
-                                        (flopperAddressReturnWord ⟨2⟩ σ_evm I).toNat))
+                                        (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
                                       "move" 0
                                       [.address (AccountAddress.ofNat
                                           (UInt256.ofNat I.source.val).toNat),
                                         .address (AccountAddress.ofNat
                                           (flopperAddressReturnWord
                                             (auctionPackedSlot (dentIdWord I))
-                                            σ_evm I).toNat),
+                                            σ I).toNat),
                                         .int (Int.ofNat (dentBidWord I).toNat)]
                                       (false,
-                                        { initState cA gh bl σ_evm σ₀
+                                        { initState σ σ₀
                                             (Sat256.ofUInt256 g) A I with
-                                          accountMap := σ', substate := A',
-                                          createdAccounts := cA' },
+                                          accountMap := σ', substate := A' },
                                         outMove) true := by
                                   simpa [hzMoveFalse, vat, src, guy, packedSlot, id]
                                     using hcallMove
@@ -908,37 +884,35 @@ theorem flopperDentBody
                                   (by simpa [id] using hlotLt) hbegFit
                                   (by simpa [id] using hlotOneFit) hsuff hcallerNe
                                   hcodeSize rd2545False hcallMoveFalse houtMoveSize
-                                  hdispatch hdecode hAccounts
+                                  hdispatch hdecode
                       · exact flopperDentBodyCoreInsufficientDecrease hcode hsize hwv
                           hsz100 hlive hguy hticOk
                           (by simpa [packedSlot, id] using hendGt)
                           (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                           hbegFit (by simpa [id] using hlotOneFit) (by omega)
-                          hdispatch hdecode hreach hAccounts
+                          hdispatch hdecode hreach
                     · exact flopperDentBodyCoreLotOneOverflow hcode hsize hwv hsz100
                         hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                         (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                         hbegFit (Nat.le_of_not_gt hlotOneFit) hdispatch hdecode hreach
-                        hAccounts
                   · exact flopperDentBodyCoreBegLotOverflow hcode hsize hwv hsz100
                       hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                       (by simpa [id] using hbid) (by simpa [id] using hlotLt)
-                      (Nat.le_of_not_gt hbegFit) hdispatch hdecode hreach hAccounts
+                      (Nat.le_of_not_gt hbegFit) hdispatch hdecode hreach
                 · exact flopperDentBodyCoreLotNotLower hcode hsize hwv hsz100 hlive
                     hguy hticOk (by simpa [packedSlot, id] using hendGt)
                     (by simpa [id] using hbid) (Nat.le_of_not_gt hlotLt)
-                    hdispatch hdecode hreach hAccounts
+                    hdispatch hdecode hreach
               · exact flopperDentBodyCoreBidMismatch hcode hsize hwv hsz100 hlive
                   hguy hticOk (by simpa [packedSlot, id] using hendGt)
-                  (by simpa [id] using hbid) hdispatch hdecode hreach hAccounts
+                  (by simpa [id] using hbid) hdispatch hdecode hreach
             · exact flopperDentBodyCoreEndFinished hcode hsize hwv hsz100 hlive
                 hguy hticOk (Nat.le_of_not_gt hendGt) hdispatch hdecode hreach
-                hAccounts
           · exact flopperDentBodyCoreTicFinished hcode hsize hwv hsz100 hlive
               hguy (by simpa [packedSlot, id] using hticZero)
-              (Nat.le_of_not_gt hticGt) hdispatch hdecode hreach hAccounts
+              (Nat.le_of_not_gt hticGt) hdispatch hdecode hreach
     · exact flopperDentBodyCoreNotLive hcode hsize hwv hsz100 hlive hdispatch
-        hdecode hreach hAccounts
+        hdecode hreach
   · exact flopperDentBodyCoreDecodeFailed_short hcode hsize hsz4
       (Nat.lt_of_not_ge hsz100) hdispatch hreach
 

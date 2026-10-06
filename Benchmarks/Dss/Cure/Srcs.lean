@@ -86,16 +86,16 @@ theorem cureDecode_srcs_none_short {I : ExecutionEnv} (hshort : I.calldata.size 
       (start := 0) htakeShort]
     simp only [Option.bind, bind]
 
-theorem cureReachSrcsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachSrcsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 14)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨816⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨816⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0xf381273f⟩ :=
     cureSelWord_eq_of_beq I hsz 0xf3 0x81 0x27 0x3f ⟨0xf381273f⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨816⟩ 3 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
@@ -111,11 +111,11 @@ abbrev srcsRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev srcsAddressValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (UInt256.land (srcsRawWord σ I) solcAddrMask).toNat)
 
-theorem evalExpr_srcsStorage_inBounds {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_srcsStorage_inBounds {σ σ₀ A I} {g : Sat256}
     (hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat) :
     let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
+      (initState σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
         .ok (srcsAddressValue σ I) := by
   intro locals
   rw [evalExpr_storage_scalar
@@ -126,7 +126,7 @@ theorem evalExpr_srcsStorage_inBounds {cA gh bl σ σ₀ A I} {g : Sat256}
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   · simp [locals, srcElemRef]
   · have hlenLoad :
-        storageLocLoad (initState cA gh bl σ σ₀ g A I) (wordLoc ⟨2⟩) =
+        storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
           .int (Int.ofNat (srcsLenWord σ I).toNat) := by
       rw [cureStorageLocLoad_uint256]
       simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
@@ -143,42 +143,42 @@ theorem evalExpr_srcsStorage_inBounds {cA gh bl σ σ₀ A I} {g : Sat256}
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, srcsEvaledRef,
       srcsSlotFor, srcElemSlot, srcsIndex]
 
-theorem cureSrcsSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureSrcsSourceBodyOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat) :
     let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
       (.returned { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [srcsAddressValue σ I])) := by
   intro locals
   have hsrc :
       evalExpr? config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.storage (srcElemRef (.var "arg0"))) =
           .ok (srcsAddressValue σ I) := by
-    simpa [locals] using evalExpr_srcsStorage_inBounds (cA := cA) (gh := gh)
-      (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    simpa [locals] using evalExpr_srcsStorage_inBounds
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hlt
   simpa [srcsTransition] using
     nonpayableReturnExprBodyReturns
       (cfg := config) (contract := contract)
-      (evm := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (locals := locals) (expr := .storage (srcElemRef (.var "arg0")))
       (value := srcsAddressValue σ I)
       (by simp only [initState]; exact hwv)
       hsrc
 
-theorem evalExpr_srcsStorage_oob {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_srcsStorage_oob {σ σ₀ A I} {g : Sat256}
     (hle : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat) :
     let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
+      (initState σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
         .revert := by
   intro locals
   have hlenLoad :
-      storageLocLoad (initState cA gh bl σ σ₀ g A I) (wordLoc ⟨2⟩) =
+      storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
         .int (Int.ofNat (srcsLenWord σ I).toNat) := by
     rw [cureStorageLocLoad_uint256]
     simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
@@ -186,7 +186,7 @@ theorem evalExpr_srcsStorage_oob {cA gh bl σ σ₀ A I} {g : Sat256}
   simp only [wordLoc] at hlenLoad
   have her :
       evalStorageRef config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
+        (initState σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
     simp [srcElemRef, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
       EvalResult.ofOption, EvalResult.bind, pure, bind, valueToKey?, locals,
       arrayIndexInBounds?, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
@@ -196,39 +196,39 @@ theorem evalExpr_srcsStorage_oob {cA gh bl σ σ₀ A I} {g : Sat256}
   simp only [evalExpr?]
   change (do
       let __discr ← resolveStorageRef? config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) (srcElemRef (.var "arg0"))
-      readStorage? config (initState cA gh bl σ σ₀ g A I) __discr.1 __discr.2) =
+        (initState σ σ₀ g A I) (srcElemRef (.var "arg0"))
+      readStorage? config (initState σ σ₀ g A I) __discr.1 __discr.2) =
     EvalResult.revert
   have hresolve :
       resolveStorageRef? config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
+        (initState σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
     unfold resolveStorageRef?
     simp [srcElemRef, locals]
     have her' :
         evalStorageRef config
           { contract := contract,
             locals := (∅ : Store).insert "arg0" (.int ↑(srcsIndex I).toNat) }
-          (initState cA gh bl σ σ₀ g A I)
+          (initState σ σ₀ g A I)
           { base := "srcs", steps := [.aindex (.var "arg0")] } = .revert := by
       simpa [locals, srcElemRef] using her
     simpa [her']
   rw [hresolve]
   rfl
 
-theorem cureSrcsSourceBodyOob {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureSrcsSourceBodyOob {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat) :
     let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
       .reverted := by
   intro locals
   have hsrc :
       evalExpr? config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.storage (srcElemRef (.var "arg0"))) = .revert := by
-    simpa [locals] using evalExpr_srcsStorage_oob (cA := cA) (gh := gh)
-      (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    simpa [locals] using evalExpr_srcsStorage_oob
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hle
   simp [srcsTransition, nonpayable]
   refine ExecFuncBody.execBlockRevert ?_
@@ -237,7 +237,7 @@ theorem cureSrcsSourceBodyOob {cA gh bl σ σ₀ A I} {g : UInt256}
   exact ExecBlock.consRevert (ExecStmt.returnRevert (by
     change (do
       let value ← evalExpr? config { contract := contract, locals := locals }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.storage (srcElemRef (.var "arg0")))
       let values ← pure []
       pure (value :: values)) = EvalResult.revert
@@ -298,21 +298,21 @@ theorem srcsBaseSlotMem_keccak :
 
 theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {k C : ℕ} {idx len ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 ⟨3609⟩ (idx :: ret :: R) solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (hwf : srcsArrayGetterInBoundsWf code)
     (hlt : idx.toNat < len.toNat)
-    (hlen : (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) = len)
+    (hlen : (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) = len)
     (hjmpBounds : (D_J code 0).contains ⟨3622⟩ = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       ((UInt256.land
-          (σ.find? ee.codeOwner |>.option ⟨0⟩
-            (fun ac => ac.storage.findD (srcsDataSlot + idx) ⟨0⟩))
+          (σ.get? ee.codeOwner |>.option ⟨0⟩
+            (fun ac => ac.storage.getD (srcsDataSlot + idx) ⟨0⟩))
           solcAddrMask) :: ret :: R)
-      srcsBaseSlotMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      srcsBaseSlotMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8, hd11, hd13, hd13p, hd15, hd16, hd17,
       hd18, hd20, hd21, hd22, hd23, hd25, hd26, hd28, hd30, hd32, hd33, hd34,
@@ -323,7 +323,7 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
   have rd5 := rd4.dup2 hd4 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd6'⟩ := rd5.sload hd5 (by simp only [List.length_cons]; omega)
   have rd6 := by
-    simpa [hlen] using rd6'
+    simpa only [hlen] using rd6'
   have rd7 := rd6.dup2 hd6 (by simp only [List.length_cons]; omega)
   have rd8 := rd7.lt hd7 (by simp only [List.length_cons]; omega)
   have hltWord : UInt256.lt idx len = ⟨1⟩ := by
@@ -361,11 +361,12 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have rd35 := rd34.and hd34 (by simp only [List.length_cons]; omega)
-  have rd36 := by
-    simpa [hmask,
-      u256_land_comm solcAddrMask
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD (srcsDataSlot + idx) ⟨0⟩))] using rd35
+  have rd36 := rd35
+  rw [hmask] at rd36
+  rw [← Std.ExtTreeMap.get?_eq_getElem?] at rd36
+  rw [u256_land_comm solcAddrMask
+    (σ.get? ee.codeOwner |>.option ⟨0⟩
+      (fun ac => ac.storage.getD (srcsDataSlot + idx) ⟨0⟩))] at rd36
   have rd37 := rd36.swap1 hd35 (by simp only [List.length_cons]; omega)
   have rd38 := rd37.pop hd36 (by simp only [List.length_cons]; omega)
   have rd39 := rd38.dup2 hd37
@@ -381,7 +382,7 @@ def RDinvalid (code : ByteArray) (g : Sat256) (s0 : State) : Prop :=
 
 theorem rdInvalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
@@ -400,13 +401,13 @@ theorem rdInvalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     rw [hX, hfuel]
     exact Xstep_X_X_except (g.toNat - k) s (D_J code 0) _ hstep
 
-theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
+theorem RD.cureSrcsInBounds {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (h : RD cureBytecode I g s0 ⟨838⟩
       [UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩, ⟨4⟩, ⟨845⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat) :
-    RDret cureBytecode g s0 (cA, σ)
+    RDret cureBytecode g s0 σ
       (UInt256.toByteArray (UInt256.land (srcsRawWord σ I) solcAddrMask)) := by
   have rd839 := h.jumpdest (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -423,7 +424,7 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
   have rd3609' := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd3609
   have hlen :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
         srcsLenWord σ I := by
     rfl
   obtain ⟨_, _, rd845⟩ := RD.cureSrcsArrayGetterInBounds
@@ -431,8 +432,8 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     rd3609' (by unfold srcsArrayGetterInBoundsWf; repeat' first | apply And.intro | native_decide)
     hlt hlen (by jump_dest) (by jump_dest) (by simp)
   have hraw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (srcsDataSlot + srcsIndex I) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (srcsDataSlot + srcsIndex I) ⟨0⟩)) =
         srcsRawWord σ I := by
     rw [← srcsSlotFor_eq I]
     rfl
@@ -442,7 +443,7 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
   have hret := RD.solcReturnAddressFromMem
     (pc := ⟨845⟩) (val := masked) (ret := ⟨845⟩) (R := [sel])
     (memout := solcScratchReturnMem srcsBaseSlotMem masked)
-    (by simpa [masked, hraw] using rd845)
+    (by simpa only [masked, hraw] using rd845)
     (by unfold solcReturnAddressFromMemWf; repeat' first | apply And.intro | native_decide)
     (by
       exact mloadFreePtrValue
@@ -458,11 +459,11 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     (by simp)
   simpa [masked, hclean] using hret
 
-theorem RD.cureSrcsOutOfBoundsInvalid {cA σ I} {g : Sat256} {s0 : State}
+theorem RD.cureSrcsOutOfBoundsInvalid {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (h : RD cureBytecode I g s0 ⟨838⟩
       [UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩, ⟨4⟩, ⟨845⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hle : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat) :
     RDinvalid cureBytecode g s0 := by
   have rd839 := h.jumpdest (by native_decide)
@@ -492,7 +493,7 @@ theorem RD.cureSrcsOutOfBoundsInvalid {cA σ I} {g : Sat256} {s0 : State}
   have rd6 :
       RD cureBytecode I g s0 ⟨3615⟩
         [srcsLenWord σ I, srcsIndex I, ⟨2⟩, srcsIndex I, ⟨845⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6 C6 := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k6 C6 := by
     simpa [srcsLenWord, cureSlotWord, solcSlotWord, srcsIndex, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd6'
   have rd7 := rd6.dup2 (by native_decide)
@@ -509,27 +510,27 @@ theorem RD.cureSrcsOutOfBoundsInvalid {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact rdInvalidHalt rd3621 (by native_decide)
 
-private theorem Xi_error_of_X_sat_local {createdAccounts genesisBlockHeader blocks σ σ₀ A I}
+private theorem Xi_error_of_X_sat_local {σ σ₀ A I}
     {g : Sat256} {e : ExecutionException}
     (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) = .error e) :
-    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g.toUInt256 A I = .error e :=
+            (initState σ σ₀ g A I) = .error e) :
+    Ξ σ σ₀ g.toUInt256 A I = .error e :=
   Xi_error_of_X (g := g.toUInt256) (by
     simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
 theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
-    {t : TransitionDecl} {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {t : TransitionDecl} {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {callargs}
     (hcode : I.code = code)
-    (h : RDinvalid code g (initState cA gh bl σ_evm σ₀ g A I))
+    (h : RDinvalid code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
       (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-      (initState cA gh bl σ_solm σ₀ g A I) callargs t.body .reverted)
+      (initState σ σ₀ g A I) callargs t.body .reverted)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g.toUInt256 A I := by
+    runtimeEquivalenceFor cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | hinv
   · exact reEquiv_outOfGas (Xi_error_of_X_sat_local (by rw [← hcode] at hoog; exact hoog))
   · exact reEquiv_execution hd hdec hbody
@@ -539,7 +540,7 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
       hfallback hreceive
 
 theorem cureSrcsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some srcsTransition)
@@ -547,21 +548,20 @@ theorem cureSrcsBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (srcsTransition.params.map Param.name)
         (transitionSignature srcsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))))
-    (hlt : (srcsIndex I).toNat < (srcsLenWord σ_solm I).toNat)
+    (hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat)
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals srcsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [srcsAddressValue σ_solm I])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [srcsAddressValue σ I])) := by
     simpa [locals] using cureSrcsSourceBodyOk
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hwv hlt
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨816⟩) (ret := ⟨845⟩)
@@ -571,41 +571,34 @@ theorem cureSrcsBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have hlenWord :
-      srcsLenWord σ_evm I = srcsLenWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hltEvm : (srcsIndex I).toNat < (srcsLenWord σ_evm I).toNat := by
+  have hlenWord : srcsLenWord σ I = srcsLenWord σ I := rfl
+  have hltEvm : (srcsIndex I).toNat < (srcsLenWord σ I).toNat := by
     rwa [hlenWord]
-  have hret := RD.cureSrcsInBounds (cA := cA) (σ := σ_evm) (I := I)
+  have hret := RD.cureSrcsInBounds (σ := σ) (I := I)
     (g := Sat256.ofUInt256 g)
-    (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+    (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     hdecoded hltEvm
-  have hraw :
-      srcsRawWord σ_evm I = srcsRawWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (srcsSlotFor I) ⟨0⟩
-  have hval :
-      some [srcsAddressValue σ_solm I] =
-        some [srcsAddressValue σ_evm I] := by
-    simp [srcsAddressValue, srcsRawWord, hraw]
+  have hraw : srcsRawWord σ I = srcsRawWord σ I := rfl
+  have hval : some [srcsAddressValue σ I] = some [srcsAddressValue σ I] := rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (UInt256.land (srcsRawWord σ_evm I) solcAddrMask))
-        (some [srcsAddressValue σ_evm I]) srcsTransition.returnType := by
+      returnEquiv (UInt256.toByteArray (UInt256.land (srcsRawWord σ I) solcAddrMask))
+        (some [srcsAddressValue σ I]) srcsTransition.returnType := by
     rw [show srcsTransition.returnType = [addr] by rfl]
     exact returnEquiv_of_encode
       (by
         simpa [srcsAddressValue] using
-          solcAddressReturnEncoding (addrTy := addr) rfl (srcsRawWord σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+          solcAddressReturnEncoding (addrTy := addr) rfl (srcsRawWord σ I))
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem cureSrcsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some srcsTransition)
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -623,7 +616,7 @@ theorem cureSrcsBodyCoreDecodeFailed_short
     (cureDecode_srcs_none_short hshort)
 
 theorem cureSrcsBodyCoreOob
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some srcsTransition)
@@ -631,19 +624,18 @@ theorem cureSrcsBodyCoreOob
       decodeCalldataWithMode config.abiDecodeMode (srcsTransition.params.map Param.name)
         (transitionSignature srcsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))))
-    (hle : (srcsLenWord σ_solm I).toNat ≤ (srcsIndex I).toNat)
+    (hle : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat)
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨816⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat (srcsIndex I).toNat))
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         srcsTransition.body .reverted := by
     simpa [locals] using cureSrcsSourceBodyOob
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hwv hle
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨816⟩) (ret := ⟨845⟩)
@@ -653,39 +645,36 @@ theorem cureSrcsBodyCoreOob
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have hlenWord :
-      srcsLenWord σ_evm I = srcsLenWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hleEvm : (srcsLenWord σ_evm I).toNat ≤ (srcsIndex I).toNat := by
+  have hlenWord : srcsLenWord σ I = srcsLenWord σ I := rfl
+  have hleEvm : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat := by
     rwa [hlenWord]
-  have hinv := RD.cureSrcsOutOfBoundsInvalid (cA := cA) (σ := σ_evm) (I := I)
+  have hinv := RD.cureSrcsOutOfBoundsInvalid (σ := σ) (I := I)
     (g := Sat256.ofUInt256 g)
-    (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+    (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     hdecoded hleEvm
   exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
 
-theorem cureSrcsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureSrcsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 14))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 14)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some srcsTransition :=
     cureDispatchSrcs hsel
-  have hreach := cureReachSrcsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := cureReachSrcsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := cureDecode_srcs_ok hsz36
-    by_cases hlt : (srcsIndex I).toNat < (srcsLenWord σ_solm I).toNat
+    by_cases hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat
     · exact cureSrcsBodyCoreOk hcode hwv hsz36 hsize hdispatch hdecode
-        hlt hreach hAccounts
+        hlt hreach
     · exact cureSrcsBodyCoreOob hcode hwv hsz36 hsize hdispatch hdecode
-        (by omega) hreach hAccounts
+        (by omega) hreach
   · exact cureSrcsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

@@ -44,95 +44,95 @@ namespace Benchmarks.Dss.End
 theorem endCorrect :
     runtimeEquivalence config endBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)
-    · exact endWardsBody hcode hsize hperm hwv hwards hAccounts
+    · exact endWardsBody hcode hsize hperm hwv hwards
     · by_cases hvat : selIs I (selectorOf vatTransition)
-      · exact endVatBody hcode hsize hperm hwv hvat hAccounts
+      · exact endVatBody hcode hsize hperm hwv hvat
       · by_cases hcat : selIs I (selectorOf catTransition)
-        · exact endCatBody hcode hsize hperm hwv hcat hAccounts
+        · exact endCatBody hcode hsize hperm hwv hcat
         · by_cases hdog : selIs I (selectorOf dogTransition)
-          · exact endDogBody hcode hsize hperm hwv hdog hAccounts
+          · exact endDogBody hcode hsize hperm hwv hdog
           · by_cases hvow : selIs I (selectorOf vowTransition)
-            · exact endVowBody hcode hsize hperm hwv hvow hAccounts
+            · exact endVowBody hcode hsize hperm hwv hvow
             · by_cases hpot : selIs I (selectorOf potTransition)
-              · exact endPotBody hcode hsize hperm hwv hpot hAccounts
+              · exact endPotBody hcode hsize hperm hwv hpot
               · by_cases hspot : selIs I (selectorOf spotTransition)
-                · exact endSpotBody hcode hsize hperm hwv hspot hAccounts
+                · exact endSpotBody hcode hsize hperm hwv hspot
                 · by_cases hcure : selIs I (selectorOf cureTransition)
-                  · exact endCureBody hcode hsize hperm hwv hcure hAccounts
+                  · exact endCureBody hcode hsize hperm hwv hcure
                   · by_cases hlive : selIs I (selectorOf liveTransition)
-                    · exact endLiveBody hcode hsize hperm hwv hlive hAccounts
+                    · exact endLiveBody hcode hsize hperm hwv hlive
                     · by_cases hwhen : selIs I (selectorOf whenTransition)
-                      · exact endWhenBody hcode hsize hperm hwv hwhen hAccounts
+                      · exact endWhenBody hcode hsize hperm hwv hwhen
                       · by_cases hwait : selIs I (selectorOf waitTransition)
-                        · exact endWaitBody hcode hsize hperm hwv hwait hAccounts
+                        · exact endWaitBody hcode hsize hperm hwv hwait
                         · by_cases hdebt : selIs I (selectorOf debtTransition)
-                          · exact endDebtBody hcode hsize hperm hwv hdebt hAccounts
+                          · exact endDebtBody hcode hsize hperm hwv hdebt
                           · by_cases htag : selIs I (selectorOf tagTransition)
-                            · exact endTagBody hcode hsize hperm hwv htag hAccounts
+                            · exact endTagBody hcode hsize hperm hwv htag
                             · by_cases hgap : selIs I (selectorOf gapTransition)
-                              · exact endGapBody hcode hsize hperm hwv hgap hAccounts
+                              · exact endGapBody hcode hsize hperm hwv hgap
                               · by_cases hArt : selIs I (selectorOf ArtTransition)
-                                · exact endArtBody hcode hsize hperm hwv hArt hAccounts
+                                · exact endArtBody hcode hsize hperm hwv hArt
                                 · by_cases hfix : selIs I (selectorOf fixTransition)
-                                  · exact endFixBody hcode hsize hperm hwv hfix hAccounts
+                                  · exact endFixBody hcode hsize hperm hwv hfix
                                   · by_cases hbag : selIs I (selectorOf bagTransition)
-                                    · exact endBagBody hcode hsize hperm hwv hbag hAccounts
+                                    · exact endBagBody hcode hsize hperm hwv hbag
                                     · by_cases hout : selIs I (selectorOf outTransition)
-                                      · exact endOutBody hcode hsize hperm hwv hout hAccounts
+                                      · exact endOutBody hcode hsize hperm hwv hout
                                       · by_cases hrely : selIs I (selectorOf relyTransition)
-                                        · exact endRelyBody hcode hsize hperm hwv hrely hAccounts
+                                        · exact endRelyBody hcode hsize hperm hwv hrely
                                         · by_cases hdeny : selIs I (selectorOf denyTransition)
-                                          · exact endDenyBody hcode hsize hperm hwv hdeny hAccounts
+                                          · exact endDenyBody hcode hsize hperm hwv hdeny
                                           · by_cases hfileAddress :
                                                 selIs I (selectorOf fileAddressTransition)
                                             · exact endFileAddressBody hcode hsize hperm hwv
-                                                hfileAddress hAccounts
+                                                hfileAddress
                                             · by_cases hfileUint :
                                                   selIs I (selectorOf fileUintTransition)
                                               · exact endFileUintBody hcode hsize hperm hwv
-                                                  hfileUint hAccounts
+                                                  hfileUint
                                               · by_cases hcage : selIs I (selectorOf cageTransition)
                                                 · exact endCageBody hcode hsize hperm hwv
-                                                    hcage hAccounts
+                                                    hcage
                                                 · by_cases hcageIlk :
                                                       selIs I (selectorOf cageIlkTransition)
                                                   · exact endCageIlkBody hcode hsize hperm hwv
-                                                      hcageIlk hAccounts
+                                                      hcageIlk
                                                   · by_cases hsnip :
                                                         selIs I (selectorOf snipTransition)
                                                     · exact endSnipBody hcode hsize hperm hwv
-                                                        hsnip hAccounts
+                                                        hsnip
                                                     · by_cases hskip :
                                                           selIs I (selectorOf skipTransition)
                                                       · exact endSkipBody hcode hsize hperm hwv
-                                                          hskip hAccounts
+                                                          hskip
                                                       · by_cases hskim :
                                                             selIs I (selectorOf skimTransition)
                                                         · exact endSkimBody hcode hsize hperm hwv
-                                                            hskim hAccounts
+                                                            hskim
                                                         · by_cases hfree :
                                                               selIs I (selectorOf freeTransition)
                                                           · exact endFreeBody hcode hsize hperm hwv
-                                                              hfree hAccounts
+                                                              hfree
                                                           · by_cases hthaw :
                                                                 selIs I (selectorOf thawTransition)
                                                             · exact endThawBody hcode hsize hperm hwv
-                                                                hthaw hAccounts
+                                                                hthaw
                                                             · by_cases hflow :
                                                                   selIs I (selectorOf flowTransition)
                                                               · exact endFlowBody hcode hsize hperm hwv
-                                                                  hflow hAccounts
+                                                                  hflow
                                                               · by_cases hpack :
                                                                     selIs I (selectorOf packTransition)
                                                                 · exact endPackBody hcode hsize hperm hwv
-                                                                    hpack hAccounts
+                                                                    hpack
                                                                 · by_cases hcash :
                                                                       selIs I (selectorOf cashTransition)
                                                                   · exact endCashBody hcode hsize hperm
-                                                                      hwv hcash hAccounts
+                                                                      hwv hcash
                                                                   · exact endNoDispatch hcode hsize hperm
                                                                       hwv hwards hvat hcat hdog hvow
                                                                       hpot hspot hcure hlive hwhen hwait
@@ -140,7 +140,7 @@ theorem endCorrect :
                                                                       hout hrely hdeny hfileAddress
                                                                       hfileUint hcage hcageIlk hsnip
                                                                       hskip hskim hfree hthaw hflow
-                                                                      hpack hcash hAccounts
+                                                                      hpack hcash
   · exact endNonPayable hcode hwv
 
 theorem endContractCorrect :

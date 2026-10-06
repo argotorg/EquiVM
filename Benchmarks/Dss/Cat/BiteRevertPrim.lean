@@ -134,7 +134,7 @@ theorem RD.solcErrorStringRevertTailGrown {code : ByteArray} {g : Sat256} {s0 : 
     {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -222,7 +222,7 @@ theorem RD.solcCheckedSubStringRevertGrown {code : ByteArray} {g : Sat256} {s0 :
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hsub : solcCheckedSubSuccessWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (solcCheckedArithmeticRevertPc pc)
@@ -289,7 +289,7 @@ decodes to `INVALID`, the whole run halts either out-of-gas (reaching `pc`) or w
     stepping-semantics lemma `step_invalid`; the fuel-iterator short-circuit by `Xstep_X_X_except`. -/
 theorem RD.reachInvalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
     X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
@@ -309,13 +309,13 @@ theorem RD.reachInvalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} 
     `.error .InvalidInstruction`. The right disjunct is exactly the EVM-side argument
     `execResultsEquiv.invalidHalt` / `ctorResultEquiv.invalidHalt` consumes; the left feeds the
     `outOfGas` case. -/
-theorem RD.reachInvalidHaltXi {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.reachInvalidHaltXi {σ σ₀ A I} {g : Sat256}
     {ee : ExecutionEnv} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD I.code ee g (initState cA gh bl σ σ₀ g A I) pc stk mem aw rdata acc k C)
+    {rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
+    (h : RD I.code ee g (initState σ σ₀ g A I) pc stk mem aw rdata acc k C)
     (hdec : decode I.code pc = some (.INVALID, .none)) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .InvalidInstruction := by
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    ∨ Ξ σ σ₀ g.toUInt256 A I = .error .InvalidInstruction := by
   rcases RD.reachInvalidHalt h hdec with hoog | hinv
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256)
       (by simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
@@ -412,7 +412,7 @@ theorem RD.catBiteMilkErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 
     {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem ⟨10⟩ rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)

@@ -83,13 +83,13 @@ theorem weth9CtorMemName_read160 :
 /-! ## Segment 1: prologue + `name` setup, reaching the store subroutine at pc 122 -/
 
 set_option maxHeartbeats 2000000 in
-theorem weth9CtorReachName {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9CtorReachName {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) :
-    ∃ k C, RD weth9CreationBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨122⟩
+    ∃ k C, RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨122⟩
       [⟨13⟩, ⟨160⟩, ⟨0⟩, ⟨46⟩]
-      weth9CtorMemName (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C := by
-  have rd0 : RD weth9CreationBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
-      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 := RD.initState hcode
+      weth9CtorMemName (UInt256.ofNat 6) ByteArray.empty σ k C := by
+  have rd0 : RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := RD.initState hcode
   have rd4 := evm_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
     raw mstore 9 weth9CtorMemPrologue (UInt256.ofNat 3) (by native_decide) mem_cost rfl
@@ -171,7 +171,7 @@ def weth9StoreV (len : UInt256) (dataword : UInt256) : UInt256 :=
 
 def weth9OldWordsOf (σ : AccountMap) (cO : AccountAddress) (slot : UInt256) : Nat :=
   solidityBytesDataWordCount
-    (weth9DecodeLenWord (σ.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))).toNat
+    (weth9DecodeLenWord (σ.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))).toNat
 
 def weth9EvmNameMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   clearDataWordsForwardFrom cO
@@ -186,7 +186,7 @@ def weth9EvmSymMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
 def weth9EvmFinalMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   sstoreAccountMap cO (weth9EvmSymMap σ cO) ⟨2⟩
     (UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩)
-      ((weth9EvmSymMap σ cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩))))
+      ((weth9EvmSymMap σ cO).get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩))))
 
 def weth9CtorMemSymSub : ByteArray :=
   (⟨1⟩ : UInt256).toByteArray.write 0 weth9CtorMemSym 0 32
@@ -194,13 +194,13 @@ def weth9CtorMemSymSub : ByteArray :=
 /-! ## The EVM initcode trace: reach the callvalue guard at pc 105 -/
 
 set_option maxHeartbeats 4000000 in
-theorem weth9CtorReachGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9CtorReachGuard {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) :
-    ∃ k C, RD weth9CreationBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨105⟩
+    ∃ k C, RD weth9CreationBytecode I g (initState σ σ₀ g A I) ⟨105⟩
       [] weth9CtorMemSymSub (UInt256.ofNat 8) ByteArray.empty
-      (cA, weth9EvmFinalMap σ I.codeOwner) k C := by
+      (weth9EvmFinalMap σ I.codeOwner) k C := by
   -- Reach the name subroutine at pc 122, run it, reach pc 46.
-  obtain ⟨_, _, rdName⟩ := weth9CtorReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, rdName⟩ := weth9CtorReachName (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode
   obtain ⟨_, _, rd46⟩ := weth9StringStoreSubroutine ⟨13⟩ ⟨160⟩ ⟨0⟩ ⟨46⟩ weth9NameWord
     (Or.inl rfl) (by decide) hperm (by native_decide) (by decide)
@@ -261,11 +261,11 @@ theorem weth9CtorReturnMem_read : weth9CtorReturnMem.readWithPadding 0 1763 = we
   exact weth9CreationBytecode_runtime_window
 
 set_option maxHeartbeats 4000000 in
-theorem weth9CtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9CtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
-    RDret weth9CreationBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, weth9EvmFinalMap σ I.codeOwner) weth9Bytecode := by
-  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDret weth9CreationBytecode g (initState σ σ₀ g A I)
+      (weth9EvmFinalMap σ I.codeOwner) weth9Bytecode := by
+  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm
   have rd287 := evm_run rd105 with [
     callvalue, dup1, iszero, push2 ⟨116⟩,
@@ -278,10 +278,10 @@ theorem weth9CtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   exact rd287.ret 0 weth9Bytecode (by native_decide) mem_cost weth9CtorReturnMem_read (by evm_ov)
 
 set_option maxHeartbeats 4000000 in
-theorem weth9CtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9CtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9CreationBytecode) (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev weth9CreationBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9CreationBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd105⟩ := weth9CtorReachGuard (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm
   have rd114 := evm_run rd105 with [
     callvalue, dup1, iszero, push2 ⟨116⟩,
@@ -294,27 +294,35 @@ theorem weth9CtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem ulor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
   apply u256_inj; rw [u256_lor_toNat, u256_lor_toNat, nat_lor_comm]
 
-/-- A single compact-string write reconciles up to `accountMapEquiv`. -/
+/-- A single compact-string write reconciles equal starting maps. -/
 theorem weth9WriteReconcile (cO : AccountAddress) (τ_evm τ_solm : AccountMap)
     (slot len dataword sw : UInt256) (hslot : slot = ⟨0⟩ ∨ slot = ⟨1⟩)
-    (hsw : weth9StoreV len dataword = sw) (hτ : accountMapEquiv τ_evm τ_solm) :
-    accountMapEquiv
-      (clearDataWordsForwardFrom cO (sstoreAccountMap cO τ_evm slot (weth9StoreV len dataword))
-        (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ (weth9OldWordsOf τ_evm cO slot))
-      (sstoreAccountMap cO
+    (hsw : weth9StoreV len dataword = sw) (hτ : τ_evm = τ_solm) :
+    clearDataWordsForwardFrom cO (sstoreAccountMap cO τ_evm slot (weth9StoreV len dataword))
+        (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ (weth9OldWordsOf τ_evm cO slot)
+      = sstoreAccountMap cO
         (clearDataWordsForwardFrom cO τ_solm (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
-          (weth9OldWordsOf τ_solm cO slot)) slot sw) := by
-  have hload : (τ_evm.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)) =
-      (τ_solm.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)) :=
-    accountMapEquiv_storage_findD hτ cO slot ⟨0⟩
+          (weth9OldWordsOf τ_solm cO slot)) slot sw := by
+  have hload : (τ_evm.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)) =
+      (τ_solm.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)) :=
+    by rw [hτ]
   have how : weth9OldWordsOf τ_evm cO slot = weth9OldWordsOf τ_solm cO slot := by
     unfold weth9OldWordsOf; rw [hload]
   rw [how, ← hsw]
-  refine accountMapEquiv.trans
-    (weth9ClearStoreCommEquiv cO τ_evm slot (weth9StoreV len dataword) hslot
-      (weth9OldWordsOf τ_solm cO slot) (weth9NoOverflow slot hslot _)) ?_
-  exact accountMapEquiv_sstoreAccountMap cO slot (weth9StoreV len dataword)
-    (accountMapEquiv_clearDataWordsForwardFrom cO (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ _ hτ)
+  calc
+    clearDataWordsForwardFrom cO (sstoreAccountMap cO τ_evm slot (weth9StoreV len dataword))
+        (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ (weth9OldWordsOf τ_solm cO slot) =
+      sstoreAccountMap cO
+        (clearDataWordsForwardFrom cO τ_evm (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
+          (weth9OldWordsOf τ_solm cO slot)) slot (weth9StoreV len dataword) :=
+        weth9ClearStoreCommEquiv cO τ_evm slot (weth9StoreV len dataword) hslot
+          (weth9OldWordsOf τ_solm cO slot) (weth9NoOverflow slot hslot _)
+    _ = sstoreAccountMap cO
+        (clearDataWordsForwardFrom cO τ_solm (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
+          (weth9OldWordsOf τ_solm cO slot)) slot (weth9StoreV len dataword) := by
+        exact congrArg (fun τ => sstoreAccountMap cO
+          (clearDataWordsForwardFrom cO τ (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
+            (weth9OldWordsOf τ_solm cO slot)) slot (weth9StoreV len dataword)) hτ
 
 /-! ## The Solm final state's account map, unfolded to the clear/store form -/
 
@@ -347,46 +355,39 @@ theorem weth9SolmSymbolState_executionEnv (evm : EVM.State) :
   rw [weth9SolmSymbolState, storageStore_executionEnv, clearSolidityBytesDataWordsFrom_executionEnv,
     weth9SolmNameState_executionEnv]
 
-theorem weth9SolmFinalState_createdAccounts (evm : EVM.State) :
-    (weth9SolmFinalState evm).createdAccounts = evm.createdAccounts := by
-  rw [weth9SolmFinalState, storageStore_createdAccounts, weth9SolmSymbolState,
-    storageStore_createdAccounts, clearSolidityBytesDataWordsFrom_createdAccounts,
-    weth9SolmNameState, storageStore_createdAccounts,
-    clearSolidityBytesDataWordsFrom_createdAccounts]
-
 theorem weth9DecimalsWordComm (X : UInt256) :
     UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩) X) =
       UInt256.lor (UInt256.land X (UInt256.lnot ⟨255⟩)) ⟨18⟩ := by
   rw [uland_comm (UInt256.lnot ⟨255⟩) X, ulor_comm ⟨18⟩ (UInt256.land X (UInt256.lnot ⟨255⟩))]
 
 /-- The full three-write storage reconciliation between EVM and Solm final states. -/
-theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ_evm : AccountMap)
-    (hcO : evm0.executionEnv.codeOwner = cO) (hmap : accountMapEquiv σ_evm evm0.accountMap) :
-    accountMapEquiv (weth9EvmFinalMap σ_evm cO) (weth9SolmFinalState evm0).accountMap := by
-  have hName : accountMapEquiv (weth9EvmNameMap σ_evm cO)
-      (weth9SolmNameState evm0).accountMap := by
+theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : AccountMap)
+    (hcO : evm0.executionEnv.codeOwner = cO) (hmap : σ = evm0.accountMap) :
+    weth9EvmFinalMap σ cO = (weth9SolmFinalState evm0).accountMap := by
+  have hName : weth9EvmNameMap σ cO
+      = (weth9SolmNameState evm0).accountMap := by
     rw [weth9SolmNameState_map, hcO]
-    exact weth9WriteReconcile cO σ_evm evm0.accountMap ⟨0⟩ ⟨13⟩ weth9NameWord
+    exact weth9WriteReconcile cO σ evm0.accountMap ⟨0⟩ ⟨13⟩ weth9NameWord
       (solidityShortBytesWord (String.toByteArray "Wrapped Ether")) (Or.inl rfl)
       (by native_decide) hmap
-  have hSym : accountMapEquiv (weth9EvmSymMap σ_evm cO)
-      (weth9SolmSymbolState evm0).accountMap := by
+  have hSym : weth9EvmSymMap σ cO
+      = (weth9SolmSymbolState evm0).accountMap := by
     rw [weth9SolmSymbolState_map, hcO]
-    exact weth9WriteReconcile cO (weth9EvmNameMap σ_evm cO) (weth9SolmNameState evm0).accountMap
+    exact weth9WriteReconcile cO (weth9EvmNameMap σ cO) (weth9SolmNameState evm0).accountMap
       ⟨1⟩ ⟨4⟩ weth9SymWord (solidityShortBytesWord (String.toByteArray "WETH")) (Or.inr rfl)
       (by native_decide) hName
   have hload2 :
-      ((weth9EvmSymMap σ_evm cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
-        ((weth9SolmSymbolState evm0).accountMap.find? cO |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) :=
-    accountMapEquiv_storage_findD hSym cO ⟨2⟩ ⟨0⟩
+      ((weth9EvmSymMap σ cO).get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
+        ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) :=
+    by rw [hSym]
   rw [weth9EvmFinalMap, weth9SolmFinalState, storageStore_accountMap,
     weth9SolmSymbolState_executionEnv, hcO,
     show Solm.EVM.storageLoad (weth9SolmSymbolState evm0) cO ⟨2⟩ =
-      ((weth9SolmSymbolState evm0).accountMap.find? cO |>.option ⟨0⟩
-        (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) from rfl,
+      ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
+        (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) from rfl,
     ← hload2, weth9DecimalsWordComm]
-  exact accountMapEquiv_sstoreAccountMap cO ⟨2⟩ _ hSym
+  rw [← hSym]
 
 /-! ## Final assembly -/
 
@@ -394,7 +395,7 @@ set_option maxHeartbeats 1000000 in
 theorem weth9ConstructorCorrect :
     constructorEquivalence config weth9CreationBytecode contract weth9Bytecode := by
   refine constructorEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm hσ
+  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode weth9_selfDeployment_eq weth9_ctor_params_nil
     hdeploy
   rw [hdeployed] at hcode
@@ -404,31 +405,28 @@ theorem weth9ConstructorCorrect :
     exact List.eq_nil_of_length_eq_zero this
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- Success: EVM returns runtime; reconcile the final storage.
-    have hrd := weth9CtorInitcodeSuccess (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    have hrd := weth9CtorInitcodeSuccess (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hoog | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas (Xi_error_of_X (g := g) (by
         rw [← hcode] at hoog; simpa [Sat256.ofUInt256] using hoog))
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcode] at hX; simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
-      have hσ' : s.accountMap = weth9EvmFinalMap σ_evm I.codeOwner := congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+      have hσ' : s.accountMap = weth9EvmFinalMap σ I.codeOwner := hacc
+      rw [hσ'] at hsuccess
       refine constructorEquivalenceFor.execution hsuccess
-        (weth9SolmCtorExecSuccess (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (weth9SolmCtorExecSuccess (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · rw [weth9SolmFinalState_createdAccounts]; rfl
-      · exact weth9FinalReconcile I.codeOwner
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) σ_evm (by simp [initState])
-          (by simpa [initState] using hσ)
+      refine ctorResultEquiv.success rfl rfl ?_ rfl
+      exact weth9FinalReconcile I.codeOwner
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ rfl (by simp [initState])
   · -- Revert.
-    have hrd := weth9CtorInitcodeRevert (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    have hrd := weth9CtorInitcodeRevert (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd.xiResult hcode with hoog | ⟨g', o, hrev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hoog)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
-        (weth9SolmCtorExecReverts (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (weth9SolmCtorExecReverts (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
       exact ctorResultEquiv.revert rfl rfl
 

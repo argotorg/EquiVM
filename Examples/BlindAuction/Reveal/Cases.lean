@@ -12,7 +12,7 @@ structure RevealLoopCursor where
   refund : UInt256
   mem : ByteArray
   aw : UInt256
-  acc : Batteries.RBSet AccountAddress compare × AccountMap
+  acc : AccountMap
   fp : UInt256
   haw : 3 ≤ aw.toNat
   hawSmall : aw.toNat * 32 < UInt256.size
@@ -37,7 +37,7 @@ theorem RevealLoopCursor.fp_add128_lt_size_of_idx_le (a : RevealLoopCursor)
   omega
 
 def RevealLoopInv (loopLen : UInt256) (values fakes secrets : List Value)
-    (I : ExecutionEnv) (σ₀ : AccountMap) (gh : BlockHeader) (bl : ProcessedBlocks)
+    (I : ExecutionEnv) (σ₀ : AccountMap)
     (A : Substate) : ℕ → RevealLoopCursor → Store → EVM.State → Prop :=
   fun v a L evm =>
     L.get? "i" = some (.int (Int.ofNat a.idx.toNat)) ∧
@@ -51,16 +51,13 @@ def RevealLoopInv (loopLen : UInt256) (values fakes secrets : List Value)
     a.idx.toNat ≤ loopLen.toNat ∧
     evm.executionEnv = I ∧
     evm.σ₀ = σ₀ ∧
-    evm.genesisBlockHeader = gh ∧
-    evm.blocks = bl ∧
-    evm.createdAccounts = a.acc.1 ∧
     evm.substate = A ∧
-    accountMapEquiv a.acc.2 evm.accountMap
+    a.acc = evm.accountMap
 
 theorem RevealLoopInv_shape (loopLen : UInt256) (values fakes secrets : List Value)
-    (I : ExecutionEnv) (σ₀ : AccountMap) (gh : BlockHeader) (bl : ProcessedBlocks)
+    (I : ExecutionEnv) (σ₀ : AccountMap)
     (A : Substate) :
-    ∀ v a L evm, RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a L evm →
+    ∀ v a L evm, RevealLoopInv loopLen values fakes secrets I σ₀ A v a L evm →
       L.get? "i" = some (.int (Int.ofNat a.idx.toNat)) ∧
       L.get? "length" = some (.int (Int.ofNat loopLen.toNat)) ∧
       L.get? "refund" = some (.int (Int.ofNat a.refund.toNat)) ∧
@@ -69,7 +66,7 @@ theorem RevealLoopInv_shape (loopLen : UInt256) (values fakes secrets : List Val
   intro v a L evm hInv
   rcases hInv with
     ⟨hi, hlen, hrefund, _hbids, _hvalues, _hfakes, _hsecrets, hvariant, hidxLe,
-      _henv, _hσ0, _hgh, _hbl, _hcreated, _hsub, _haccounts⟩
+      _henv, _hσ0, _hsub, _haccountMap⟩
   exact ⟨hi, hlen, hrefund, hvariant, hidxLe⟩
 
 theorem scratch_reveal_aw_call_empty (aw fp : UInt256) :
@@ -82,33 +79,19 @@ theorem scratch_storageStore_σ0 (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage, h]
-
-theorem scratch_storageStore_genesisBlockHeader (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage, h]
-
-theorem scratch_storageStore_blocks (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).blocks = evm.blocks := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem scratch_storageStore_substate (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {L : Store} {evm : EVM.State}
     {values fakes secrets : List Value}
     {slot i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd
@@ -117,11 +100,11 @@ theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
     (rd : RD blindAuctionBytecode I g s0 ⟨1247⟩
       [secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd, secretsLen,
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (haw : 3 ≤ aw.toNat)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
     (hfakes : L.get? "fakes" = some (.array fakes))
@@ -170,8 +153,8 @@ theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
   obtain ⟨_, _, rd1253⟩ : ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1253⟩
       [deposit, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k' C' := by
-    exact ⟨_, _, by simpa [hdepositEvm] using rd1253₀⟩
+      mem aw rdata σ k' C' := by
+    exact ⟨_, _, by simpa only [hdepositEvm] using rd1253₀⟩
   have rd2045 := evm_run rd1253 with [push2 ⟨1262⟩, swap1, dup8, push2 ⟨2045⟩,
     jump (by jump_dest)]
   exact ⟨hsrc,
@@ -235,14 +218,14 @@ theorem scratch_revealThreeScratchWrites_preserve_fp {mem : ByteArray}
 
 theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {slot i refund len revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel value secret fakeWord fp : UInt256}
     {fake : Bool}
     (rd : RD blindAuctionBytecode I g s0 ⟨1069⟩
       [slot, i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (haw : 3 ≤ aw.toNat) (hawSmall : aw.toNat * 32 < UInt256.size)
     (hfit128 : fp.toNat + 128 < UInt256.size)
     (hmemle : mem.size ≤ fp.toNat + 32)
@@ -276,7 +259,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       RD blindAuctionBytecode I g s0 ⟨1207⟩
         [newFree, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
           secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-        memPacked awPacked rdata (cA, σ) k' C' ∧
+        memPacked awPacked rdata σ k' C' ∧
       3 ≤ awNext.toNat ∧
       awNext.toNat * 32 < UInt256.size ∧
       (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
@@ -444,7 +427,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
   obtain ⟨kLoad, CLoad, rd1987⟩ :=
     scratch_blindAuctionRevealX_loopBody_loads_toFakeDecoder
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-      (mem := mem) (aw := aw) (rdata := rdata) (acc := (cA, σ))
+      (mem := mem) (aw := aw) (rdata := rdata) (acc := σ)
       (slot := slot) (i := i) (refund := refund) (len := len)
       (revealEnd := revealEnd) (biddingEnd := biddingEnd) (secretsLen := secretsLen)
       (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
@@ -454,14 +437,14 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1135⟩
         [fakeWord, value, ⟨0⟩, ⟨0⟩, ⟨0⟩, slot, i, refund, len, revealEnd, biddingEnd,
           secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-        mem aw rdata (cA, σ) k' C' := by
+        mem aw rdata σ k' C' := by
     cases fake with
     | false =>
         simp at hfakeWord
         obtain ⟨kBool, CBool, rd1135⟩ :=
           scratch_blindAuctionRevealX_loopBody_fakeDecoder_zero_toBool
             (I := I) (g := g) (s0 := s0) (k := kLoad) (C := CLoad)
-            (mem := mem) (aw := aw) (rdata := rdata) (acc := (cA, σ))
+            (mem := mem) (aw := aw) (rdata := rdata) (acc := σ)
             (slot := slot) (i := i) (refund := refund) (len := len)
             (revealEnd := revealEnd) (biddingEnd := biddingEnd) (secretsLen := secretsLen)
             (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
@@ -473,7 +456,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
         obtain ⟨kBool, CBool, rd1135⟩ :=
           scratch_blindAuctionRevealX_loopBody_fakeDecoder_one_toBool
             (I := I) (g := g) (s0 := s0) (k := kLoad) (C := CLoad)
-            (mem := mem) (aw := aw) (rdata := rdata) (acc := (cA, σ))
+            (mem := mem) (aw := aw) (rdata := rdata) (acc := σ)
             (slot := slot) (i := i) (refund := refund) (len := len)
             (revealEnd := revealEnd) (biddingEnd := biddingEnd) (secretsLen := secretsLen)
             (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
@@ -483,7 +466,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
   obtain ⟨kSecret, CSecret, rd1167⟩ :=
     scratch_blindAuctionRevealX_loopBody_secret_toPacked
       (I := I) (g := g) (s0 := s0) (k := kBool) (C := CBool)
-      (mem := mem) (aw := aw) (rdata := rdata) (acc := (cA, σ))
+      (mem := mem) (aw := aw) (rdata := rdata) (acc := σ)
       (fakeWord := fakeWord) (value := value) (slot := slot) (i := i)
       (refund := refund) (len := len) (revealEnd := revealEnd) (biddingEnd := biddingEnd)
       (secretsLen := secretsLen) (secretsEnd := secretsEnd) (fakesLen := fakesLen)
@@ -492,7 +475,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
   obtain ⟨kPrefix, CPrefix, rd1207Let⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_prefix
       (I := I) (g := g) (s0 := s0) (k := kSecret) (C := CSecret)
-      (mem := mem) (aw := aw) (rdata := rdata) (acc := (cA, σ))
+      (mem := mem) (aw := aw) (rdata := rdata) (acc := σ)
       (secret := secret) (fakeWord := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -502,7 +485,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       RD blindAuctionBytecode I g s0 ⟨1207⟩
         [newFree, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
           secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-        memP3 awP4 rdata (cA, σ) kPrefix CPrefix := by
+        memP3 awP4 rdata σ kPrefix CPrefix := by
     simpa [awP1, base, fakeBase, secretBase, newFree, memP1, awP2, memP2, awP3,
       memP3, awP4] using rd1207Let
   refine ⟨newFree, memP3, awP4, memP5, awS5, kPrefix, CPrefix, rd1207, hawS5,
@@ -559,7 +542,7 @@ theorem scratch_placeBidPendingHashMem_preserve_fp {mem : ByteArray} {fp key : U
 
 theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel : UInt256}
     (rd : RD blindAuctionBytecode I g s0 ⟨1023⟩
@@ -576,8 +559,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
             32 32).readWithPadding 0 64)) =
         UInt256.toByteArray (revealScratchBidsLengthSlot I))
     (hlenLoad :
-      (acc.2.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hbound : i.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -642,7 +625,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       [curLen, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem2 aw rdata acc k' C' := by
-    exact ⟨_, _, by simpa [hlenLoad] using rd1039₀⟩
+    exact ⟨_, _, by simpa only [hlenLoad] using rd1039₀⟩
   have hlt : UInt256.lt i curLen = ⟨1⟩ := ult_one hbound
   have rd1047₀ := evm_run rd1039 with [dup4, swap1, dup2, lt]
   have rd1047 := rd1047₀
@@ -824,7 +807,7 @@ theorem scratch_normalizeRawBoolWord_revert_of_u256 {word : Nat}
 
 theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {L : Store} {evm : EVM.State}
     {values fakes secrets : List Value}
     {slot i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd
@@ -834,7 +817,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       [((⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp)), secret, fakeWord, value, slot,
         i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hfp :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
@@ -861,16 +844,16 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -921,7 +904,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
         RD blindAuctionBytecode I g s0 ⟨1014⟩
           (scratch_revealEvmLoopStack (i + ⟨1⟩) (deposit + refund) len revealEnd biddingEnd
             secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
-          mem5 aw5 rdata (cA, sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
+          mem5 aw5 rdata (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
   let base := (⟨32⟩ : UInt256) + fp
   let newFree := (⟨65⟩ : UInt256) + base
   let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
@@ -948,7 +931,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
   obtain ⟨k1, C1, rd1235⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_suffix
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-      (mem := mem) (aw := aw) (rdata := rdata) (cA := cA) (σ := σ)
+      (mem := mem) (aw := aw) (rdata := rdata) (σ := σ)
       (secret := secret) (fakeWord := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -962,7 +945,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
   obtain ⟨k2, C2, rd1247⟩ :=
     scratch_blindAuctionRevealX_hashGuard_match_to1247
       (I := I) (g := g) (s0 := s0) (k := k1) (C := C1)
-      (rdata := rdata) (acc := (cA, σ))
+      (rdata := rdata) (acc := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -971,7 +954,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
   obtain ⟨k3, C3, rd1265⟩ :=
     scratch_blindAuctionRevealX_refundAdd_toPlaceCond
       (I := I) (g := g) (s0 := s0) (k := k2) (C := C2)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -985,7 +968,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       · obtain ⟨k4, C4, rdNext⟩ :=
           scratch_blindAuctionRevealX_placeCond_depositLt_toNext
             (I := I) (g := g) (s0 := s0) (k := k3) (C := C3)
-            (rdata := rdata) (cA := cA) (σ := σ)
+            (rdata := rdata) (σ := σ)
             (secret := secret) (value := value) (slot := slot) (i := i)
             (refund := deposit + refund) (len := len) (revealEnd := revealEnd)
             (biddingEnd := biddingEnd) (secretsLen := secretsLen)
@@ -1000,7 +983,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       obtain ⟨k4, C4, rdNext⟩ :=
         scratch_blindAuctionRevealX_placeCond_fake_toNext
           (I := I) (g := g) (s0 := s0) (k := k3) (C := C3)
-          (rdata := rdata) (cA := cA) (σ := σ)
+          (rdata := rdata) (σ := σ)
           (secret := secret) (value := value) (slot := slot) (i := i)
           (refund := deposit + refund) (len := len) (revealEnd := revealEnd)
           (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -1029,14 +1012,14 @@ private theorem scratch_revealRefundAddedStoreOf_get_preserve_cases (locals : St
   · exact hrefund
 
 theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen slot revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel value secret deposit newFree : UInt256}
     {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State} {fake : Bool}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -1049,7 +1032,7 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
       (scratch_revealEvmLoopStack (a.idx + ⟨1⟩) (deposit + a.refund) loopLen
         revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       memNext awNext ByteArray.empty
-      (a.acc.1, sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩) k C)
+      (sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩) k C)
     (hslot : slot = bidsElemSlot (.address I.source) (.int (Int.ofNat a.idx.toNat)))
     (hfit : a.refund.toNat + deposit.toNat < UInt256.size)
     (hawNext : 3 ≤ awNext.toNat)
@@ -1075,14 +1058,14 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
   rcases hInv with
     ⟨hiL, hlenL, _hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
-      hvariant, hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩
+      hvariant, hidxLe, henv, hσ0, hsub, haccounts⟩
   have hidxFit : a.idx.toNat + 1 < UInt256.size := by
     have hloopLt : loopLen.toNat < UInt256.size := loopLen.val.isLt
     omega
@@ -1156,7 +1139,7 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
       refund := deposit + a.refund,
       mem := memNext,
       aw := awNext,
-      acc := (a.acc.1, sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩),
+      acc := sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩,
       fp := newFree,
       haw := hawNext,
       hawSmall := hawNextSmall,
@@ -1180,17 +1163,16 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
     simpa [L1, hcomm, hadd, Nat.add_comm] using
       scratch_revealRefundAddedStoreOf_refund_get L evm a.idx a.refund value secret deposit fake
   have haccountsNext :
-      accountMapEquiv (sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩)
+      sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩ =
         (scratch_revealZeroBlindedState evm a.idx).accountMap := by
     unfold scratch_revealZeroBlindedState
-    rw [storageStore_accountMap]
-    simpa [scratch_revealBidBlindedSlot, hslot, henv, EVM.Word.ofNat] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner slot (⟨0⟩ : UInt256) haccounts
+    rw [storageStore_accountMap, ← haccounts]
+    simp [scratch_revealBidBlindedSlot, hslot, henv, EVM.Word.ofNat, UInt256.ofNat, Id.run]
   have hInvNext :
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v nextCursor L2
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v nextCursor L2
         (scratch_revealZeroBlindedState evm a.idx) := by
     refine
-      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp [L2, nextIdx, nextCursor, store_get_self]
     · change (L1.insert "i" (.int (Int.ofNat nextIdx.toNat))).get? "length" =
         some (.int (Int.ofNat loopLen.toNat))
@@ -1229,18 +1211,10 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
       omega
     · simpa [scratch_revealZeroBlindedState, storageStore_executionEnv, henv] using henv
     · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+      cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
         simp [Option.option, State.setAccount, Account.updateStorage, h, hσ0]
     · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
-        simp [Option.option, State.setAccount, Account.updateStorage, h, hgh]
-    · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
-        simp [Option.option, State.setAccount, Account.updateStorage, h, hbl]
-    · simpa [nextCursor, scratch_revealZeroBlindedState, storageStore_createdAccounts]
-        using hcreated
-    · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+      cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
         simp [Option.option, State.setAccount, Account.updateStorage, h, hsub]
     · simpa [nextCursor] using haccountsNext
   exact
@@ -1249,14 +1223,14 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
         hpost, hInvNext, by simpa [nextCursor, nextIdx, L1] using rdNext⟩
 
 theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd
       sel newRefund newFree : UInt256}
     {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L L1 : Store}
-    {evm evm1 : EVM.State} {accNext : Batteries.RBSet AccountAddress compare × AccountMap}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    {evm evm1 : EVM.State} {accNext : AccountMap}
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts (.ok { contract := blindAuctionContract, locals := L1 } evm1))
@@ -1273,11 +1247,8 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
     (hsecretsL1 : L1.get? "secrets" = some (.array secrets))
     (henv1 : evm1.executionEnv = I)
     (hσ01 : evm1.σ₀ = σ₀)
-    (hgh1 : evm1.genesisBlockHeader = gh)
-    (hbl1 : evm1.blocks = bl)
-    (hcreated1 : evm1.createdAccounts = accNext.1)
     (hsub1 : evm1.substate = A)
-    (haccounts1 : accountMapEquiv accNext.2 evm1.accountMap)
+    (haccounts1 : accNext = evm1.accountMap)
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
@@ -1301,14 +1272,14 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1' } evm1'
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
   rcases hInv with
     ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
-      hvariant, hidxLe, _henv, _hσ0, _hgh, _hbl, _hcreated, _hsub, _haccounts⟩
+      hvariant, hidxLe, _henv, _hσ0, _hsub, _haccounts⟩
   have hidxFit : a.idx.toNat + 1 < UInt256.size := by
     have hloopLt : loopLen.toNat < UInt256.size := loopLen.val.isLt
     omega
@@ -1339,8 +1310,8 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
         rw [hnextFpNat, a.hfpIdx, hadd]
         omega }
   have hInvNext :
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v nextCursor L2 evm1 := by
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v nextCursor L2 evm1 := by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp [L2, nextIdx, nextCursor, store_get_self]
     · change (L1.insert "i" (.int (Int.ofNat nextIdx.toNat))).get? "length" =
         some (.int (Int.ofNat loopLen.toNat))
@@ -1379,9 +1350,6 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
       omega
     · exact henv1
     · exact hσ01
-    · exact hgh1
-    · exact hbl1
-    · simpa [nextCursor] using hcreated1
     · exact hsub1
     · simpa [nextCursor] using haccounts1
   exact
@@ -1389,14 +1357,14 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
       by simpa [nextCursor, nextIdx] using rdNext⟩
 
 theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen slot revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel value secret deposit newFree : UInt256}
     {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -1410,7 +1378,7 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
       (scratch_revealEvmLoopStack (a.idx + ⟨1⟩) (deposit + a.refund) loopLen
         revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       memNext awNext ByteArray.empty
-      (a.acc.1, sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩) k C)
+      (sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩) k C)
     (hslot : slot = bidsElemSlot (.address I.source) (.int (Int.ofNat a.idx.toNat)))
     (hfit : a.refund.toNat + deposit.toNat < UInt256.size)
     (hawNext : 3 ≤ awNext.toNat)
@@ -1436,7 +1404,7 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
@@ -1444,7 +1412,7 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
   have hInvOrig := hInv
   rcases hInv with
     ⟨hiL, hlenL, _hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
-      _hvariant, _hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩
+      _hvariant, _hidxLe, henv, hσ0, hsub, haccounts⟩
   let L1 : Store :=
     (scratch_revealRefundAddedStoreOf L evm a.idx a.refund value secret deposit false)
       |>.insert "ok" (.bool false)
@@ -1506,15 +1474,14 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
         deposit false secrets hsecretsL
     · decide
   have haccountsNext :
-      accountMapEquiv (sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩)
+      sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩ =
         (scratch_revealZeroBlindedState evm a.idx).accountMap := by
     unfold scratch_revealZeroBlindedState
-    rw [storageStore_accountMap]
-    simpa [scratch_revealBidBlindedSlot, hslot, henv, EVM.Word.ofNat] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner slot (⟨0⟩ : UInt256) haccounts
+    rw [storageStore_accountMap, ← haccounts]
+    simp [scratch_revealBidBlindedSlot, hslot, henv, EVM.Word.ofNat, UInt256.ofNat, Id.run]
   exact
     scratch_revealLoopAdvance_of_get
-      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
       (v := v) (k := k) (C := C) (loopLen := loopLen) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
       (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
@@ -1522,39 +1489,30 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
       (newFree := newFree) (memNext := memNext) (awNext := awNext)
       (values := values) (fakes := fakes) (secrets := secrets) (a := a) (L := L)
       (L1 := L1) (evm := evm) (evm1 := scratch_revealZeroBlindedState evm a.idx)
-      (accNext := (a.acc.1, sstoreAccountMap I.codeOwner a.acc.2 slot ⟨0⟩))
+      (accNext := sstoreAccountMap I.codeOwner a.acc slot ⟨0⟩)
       hInvOrig (by simpa [L1] using hbodyOk) rdNext hiL1 hlenL1 hrefundL1 hbidsL1
       hvaluesL1 hfakesL1 hsecretsL1
       (by simpa [scratch_revealZeroBlindedState, storageStore_executionEnv, henv] using henv)
       (by
         unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+        cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
           simp [Option.option, State.setAccount, Account.updateStorage, h, hσ0])
       (by
         unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
-          simp [Option.option, State.setAccount, Account.updateStorage, h, hgh])
-      (by
-        unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
-          simp [Option.option, State.setAccount, Account.updateStorage, h, hbl])
-      (by simpa [scratch_revealZeroBlindedState, storageStore_createdAccounts] using hcreated)
-      (by
-        unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+        cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
           simp [Option.option, State.setAccount, Account.updateStorage, h, hsub])
       haccountsNext hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
       hgapNext hnextFpNat
 
 theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd
       sel value secret deposit newFree : UInt256}
     {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
-    {evm evm1 : EVM.State} {accNext : Batteries.RBSet AccountAddress compare × AccountMap}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    {evm evm1 : EVM.State} {accNext : AccountMap}
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -1571,11 +1529,8 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (henv1 : evm1.executionEnv = I)
     (hσ01 : evm1.σ₀ = σ₀)
-    (hgh1 : evm1.genesisBlockHeader = gh)
-    (hbl1 : evm1.blocks = bl)
-    (hcreated1 : evm1.createdAccounts = accNext.1)
     (hsub1 : evm1.substate = A)
-    (haccounts1 : accountMapEquiv accNext.2 evm1.accountMap)
+    (haccounts1 : accNext = evm1.accountMap)
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
@@ -1599,7 +1554,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1'
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
@@ -1607,7 +1562,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
   have hInvOrig := hInv
   rcases hInv with
     ⟨hiL, hlenL, _hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
-      _hvariant, _hidxLe, _henv, _hσ0, _hgh, _hbl, _hcreated, _hsub, _haccounts⟩
+      _hvariant, _hidxLe, _henv, _hσ0, _hsub, _haccounts⟩
   let L1 : Store := scratch_revealRefundPlacedStoreOf L evm a.idx a.refund value secret deposit
   have hiL1 : L1.get? "i" = some (.int (Int.ofNat a.idx.toNat)) := by
     simpa [L1] using scratch_revealRefundPlacedStoreOf_i_get L evm a.idx a.refund value secret
@@ -1648,7 +1603,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
       secret deposit secrets hsecretsL
   exact
     scratch_revealLoopAdvance_of_get
-      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
       (v := v) (k := k) (C := C) (loopLen := loopLen) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
       (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
@@ -1657,19 +1612,18 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
       (memNext := memNext) (awNext := awNext) (values := values) (fakes := fakes)
       (secrets := secrets) (a := a) (L := L) (L1 := L1) (evm := evm) (evm1 := evm1)
       (accNext := accNext) hInvOrig (by simpa [L1] using hbodyOk) rdNext hiL1 hlenL1
-      hrefundL1 hbidsL1 hvaluesL1 hfakesL1 hsecretsL1 henv1 hσ01 hgh1 hbl1 hcreated1
-      hsub1 haccounts1 hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
+      hrefundL1 hbidsL1 hvaluesL1 hfakesL1 hsecretsL1 henv1 hσ01 hsub1 haccounts1 hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
       hgapNext hnextFpNat
 
 theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen slot revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel value secret deposit newFree : UInt256}
     {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -1684,8 +1638,8 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero {I} {g :
         (UInt256.sub (deposit + a.refund) value) loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       memNext awNext ByteArray.empty
-      (a.acc.1, sstoreAccountMap I.codeOwner
-        (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc.2 I value) I
+      (sstoreAccountMap I.codeOwner
+        (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc I value) I
           (UInt256.ofNat I.source.val)) slot ⟨0⟩) k C)
     (hslot : slot = bidsElemSlot (.address I.source) (.int (Int.ofNat a.idx.toNat)))
     (hfit : a.refund.toNat + deposit.toNat < UInt256.size)
@@ -1713,60 +1667,48 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero {I} {g :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
   rcases hInv with
     ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
-      _hvariant, _hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩
+      _hvariant, _hidxLe, henv, hσ0, hsub, haccounts⟩
   let evmPB : EVM.State :=
     scratch_placeBidAfterBidder (scratch_placeBidAfterHigh evm value) evm.executionEnv.source
   have hhighAccounts :
-      accountMapEquiv (scratch_placeBidStoreHighMap a.acc.2 I value)
+      scratch_placeBidStoreHighMap a.acc I value =
         (scratch_placeBidAfterHigh evm value).accountMap := by
     unfold scratch_placeBidStoreHighMap scratch_placeBidAfterHigh
-    rw [storageStore_accountMap]
-    simpa [henv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ value haccounts
+    rw [storageStore_accountMap, ← haccounts]
+    simp [henv]
   have hwordEq :
-      scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap a.acc.2 I value) I =
+      scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap a.acc I value) I =
         Solm.EVM.storageLoad (scratch_placeBidAfterHigh evm value)
           (scratch_placeBidAfterHigh evm value).executionEnv.codeOwner ⟨5⟩ := by
-    have hword :=
-      accountMapEquiv_storage_findD hhighAccounts I.codeOwner ⟨5⟩ (⟨0⟩ : UInt256)
     unfold scratch_placeBidHighestBidderWord
-    rw [hword]
+    rw [hhighAccounts]
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       scratch_placeBidAfterHigh, storageStore_executionEnv, henv]
   have hpbAccounts :
-      accountMapEquiv
-        (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc.2 I value) I
-          (UInt256.ofNat I.source.val))
-        evmPB.accountMap := by
+      scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc I value) I
+          (UInt256.ofNat I.source.val) = evmPB.accountMap := by
     unfold evmPB scratch_placeBidStoreBidderMap scratch_placeBidAfterBidder
-    rw [storageStore_accountMap]
-    rw [← hwordEq]
-    simpa [scratch_placeBidAfterHigh, storageStore_executionEnv, henv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩
-        (SimpleAuction.simpleAuctionSetAddressWord
-          (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap a.acc.2 I value) I)
-          (UInt256.ofNat I.source.val)) hhighAccounts
+    rw [storageStore_accountMap, ← hwordEq, ← hhighAccounts]
+    simp [scratch_placeBidAfterHigh, storageStore_executionEnv, henv]
   have haccountsNext :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner
-          (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc.2 I value) I
-            (UInt256.ofNat I.source.val)) slot ⟨0⟩)
+      sstoreAccountMap I.codeOwner
+          (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc I value) I
+            (UInt256.ofNat I.source.val)) slot ⟨0⟩ =
         (scratch_revealZeroBlindedState evmPB a.idx).accountMap := by
     unfold scratch_revealZeroBlindedState
-    rw [storageStore_accountMap]
-    simpa [evmPB, scratch_revealBidBlindedSlot, hslot, scratch_placeBidAfterBidder,
-      scratch_placeBidAfterHigh, storageStore_executionEnv, henv, EVM.Word.ofNat] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner slot (⟨0⟩ : UInt256) hpbAccounts
+    rw [storageStore_accountMap, ← hpbAccounts]
+    simp [evmPB, scratch_revealBidBlindedSlot, hslot, scratch_placeBidAfterBidder,
+      scratch_placeBidAfterHigh, storageStore_executionEnv, henv, EVM.Word.ofNat, UInt256.ofNat, Id.run]
   exact
     scratch_revealLoopAdvance_refundPlaced_of_get
-      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
       (v := v) (k := k) (C := C) (loopLen := loopLen) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
       (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
@@ -1775,44 +1717,32 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero {I} {g :
       (values := values) (fakes := fakes) (secrets := secrets) (a := a) (L := L)
       (evm := evm) (evm1 := scratch_revealZeroBlindedState evmPB a.idx)
       (accNext :=
-        (a.acc.1, sstoreAccountMap I.codeOwner
-          (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc.2 I value) I
-            (UInt256.ofNat I.source.val)) slot ⟨0⟩))
+        sstoreAccountMap I.codeOwner
+          (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap a.acc I value) I
+            (UInt256.ofNat I.source.val)) slot ⟨0⟩)
       (by
         refine
           ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
-            _hvariant, _hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩)
+            _hvariant, _hidxLe, henv, hσ0, hsub, haccounts⟩)
       (by simpa [evmPB] using hbodyOk) rdNext hfit hdepositGe
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
+      (by simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
           scratch_placeBidAfterHigh, storageStore_executionEnv, henv] using henv)
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
+      (by simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
           scratch_placeBidAfterHigh, scratch_storageStore_σ0] using hσ0)
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
-          scratch_placeBidAfterHigh, scratch_storageStore_genesisBlockHeader] using hgh)
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
-          scratch_placeBidAfterHigh, scratch_storageStore_blocks] using hbl)
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
-          scratch_placeBidAfterHigh, storageStore_createdAccounts] using hcreated)
-      (by
-        simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
+      (by simpa [evmPB, scratch_revealZeroBlindedState, scratch_placeBidAfterBidder,
           scratch_placeBidAfterHigh, scratch_storageStore_substate] using hsub)
       haccountsNext hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
       hgapNext hnextFpNat
 
 theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen slot revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd valuesLen
       valuesEnd sel value secret deposit high old pending newFree : UInt256}
     {oldAddr : AccountAddress} {memNext : ByteArray} {awNext : UInt256}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (hbodyOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts
@@ -1830,17 +1760,17 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {
         (UInt256.sub (deposit + a.refund) value) loopLen revealEnd biddingEnd
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       memNext awNext ByteArray.empty
-      (a.acc.1, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (scratch_placeBidStoreBidderMap
           (scratch_placeBidStoreHighMap
-            (scratch_placeBidStorePendingMap a.acc.2 I
-              (scratch_placeBidHighestBidWord a.acc.2 I +
-                scratch_placeBidPendingWord a.acc.2 I)) I value)
+            (scratch_placeBidStorePendingMap a.acc I
+              (scratch_placeBidHighestBidWord a.acc I +
+                scratch_placeBidPendingWord a.acc I)) I value)
           I (UInt256.ofNat I.source.val)) slot ⟨0⟩) k C)
     (hslot : slot = bidsElemSlot (.address I.source) (.int (Int.ofNat a.idx.toNat)))
-    (hhighWord : scratch_placeBidHighestBidWord a.acc.2 I = high)
-    (holdWord : scratch_placeBidHighestBidderWord a.acc.2 I = old)
-    (hpendingWord : scratch_placeBidPendingWord a.acc.2 I = pending)
+    (hhighWord : scratch_placeBidHighestBidWord a.acc I = high)
+    (holdWord : scratch_placeBidHighestBidderWord a.acc I = old)
+    (hpendingWord : scratch_placeBidPendingWord a.acc I = pending)
     (holdAddr : oldAddr = AccountAddress.ofNat (UInt256.land old solcAddrMask).toNat)
     (hfit : a.refund.toNat + deposit.toNat < UInt256.size)
     (hdepositGe : value.toNat ≤ deposit.toNat)
@@ -1868,109 +1798,88 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
         a'.mem a'.aw ByteArray.empty a'.acc k' C' := by
   rcases hInv with
     ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
-      _hvariant, _hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩
+      _hvariant, _hidxLe, henv, hσ0, hsub, haccounts⟩
   let evmPending : EVM.State :=
     scratch_placeBidAfterPending evm oldAddr (UInt256.ofNat (pending.toNat + high.toNat))
   let evmPB : EVM.State :=
     scratch_placeBidAfterBidder (scratch_placeBidAfterHigh evmPending value)
       evm.executionEnv.source
   have hpendingSlot :
-      scratch_placeBidPendingSlot a.acc.2 I = pendingReturnsSlot (.address oldAddr) := by
+      scratch_placeBidPendingSlot a.acc I = pendingReturnsSlot (.address oldAddr) := by
     unfold scratch_placeBidPendingSlot
     simp [holdWord, holdAddr]
   have hsumWord :
-      scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I =
+      scratch_placeBidHighestBidWord a.acc I + scratch_placeBidPendingWord a.acc I =
         UInt256.ofNat (pending.toNat + high.toNat) := by
     apply u256_inj
     rw [uadd_toNat, hhighWord, hpendingWord,
       Nat.add_comm high.toNat pending.toNat,
       Nat.mod_eq_of_lt hsum, ulit_toNat' (pending.toNat + high.toNat) hsum]
   have hpendingAccounts :
-      accountMapEquiv
-        (scratch_placeBidStorePendingMap a.acc.2 I
-          (scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I))
+      scratch_placeBidStorePendingMap a.acc I
+          (scratch_placeBidHighestBidWord a.acc I + scratch_placeBidPendingWord a.acc I) =
         evmPending.accountMap := by
     unfold evmPending scratch_placeBidStorePendingMap scratch_placeBidAfterPending
-    rw [storageStore_accountMap]
-    simpa [hpendingSlot, hsumWord, henv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (scratch_placeBidPendingSlot a.acc.2 I)
-        (scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I)
-        haccounts
+    rw [storageStore_accountMap, ← haccounts]
+    simp [hpendingSlot, hsumWord, henv]
   have hhighAccounts :
-      accountMapEquiv
-        (scratch_placeBidStoreHighMap
-          (scratch_placeBidStorePendingMap a.acc.2 I
-            (scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I))
-          I value)
+      scratch_placeBidStoreHighMap
+          (scratch_placeBidStorePendingMap a.acc I
+            (scratch_placeBidHighestBidWord a.acc I + scratch_placeBidPendingWord a.acc I))
+          I value =
         (scratch_placeBidAfterHigh evmPending value).accountMap := by
     have henvPending : evmPending.executionEnv = I := by
       simp [evmPending, scratch_placeBidAfterPending, storageStore_executionEnv, henv]
     unfold scratch_placeBidStoreHighMap scratch_placeBidAfterHigh
-    rw [storageStore_accountMap]
-    simpa [henvPending] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ value hpendingAccounts
+    rw [storageStore_accountMap, ← hpendingAccounts]
+    simp [evmPending, scratch_placeBidAfterPending, storageStore_executionEnv, henv]
   have hwordEq :
       scratch_placeBidHighestBidderWord
           (scratch_placeBidStoreHighMap
-            (scratch_placeBidStorePendingMap a.acc.2 I
-              (scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I))
+            (scratch_placeBidStorePendingMap a.acc I
+              (scratch_placeBidHighestBidWord a.acc I + scratch_placeBidPendingWord a.acc I))
             I value) I =
         Solm.EVM.storageLoad (scratch_placeBidAfterHigh evmPending value)
           (scratch_placeBidAfterHigh evmPending value).executionEnv.codeOwner ⟨5⟩ := by
-    have hword :=
-      accountMapEquiv_storage_findD hhighAccounts I.codeOwner ⟨5⟩ (⟨0⟩ : UInt256)
     unfold scratch_placeBidHighestBidderWord
-    rw [hword]
+    rw [hhighAccounts]
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       scratch_placeBidAfterHigh, storageStore_executionEnv, evmPending,
       scratch_placeBidAfterPending, henv]
   have hpbAccounts :
-      accountMapEquiv
-        (scratch_placeBidStoreBidderMap
+      scratch_placeBidStoreBidderMap
           (scratch_placeBidStoreHighMap
-            (scratch_placeBidStorePendingMap a.acc.2 I
-              (scratch_placeBidHighestBidWord a.acc.2 I + scratch_placeBidPendingWord a.acc.2 I))
-            I value) I (UInt256.ofNat I.source.val))
-        evmPB.accountMap := by
+            (scratch_placeBidStorePendingMap a.acc I
+              (scratch_placeBidHighestBidWord a.acc I + scratch_placeBidPendingWord a.acc I))
+            I value) I (UInt256.ofNat I.source.val) = evmPB.accountMap := by
     unfold evmPB scratch_placeBidStoreBidderMap scratch_placeBidAfterBidder
-    rw [storageStore_accountMap]
-    rw [← hwordEq]
-    simpa [scratch_placeBidAfterHigh, storageStore_executionEnv, evmPending,
-      scratch_placeBidAfterPending, henv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩
-        (SimpleAuction.simpleAuctionSetAddressWord
-          (scratch_placeBidHighestBidderWord
-            (scratch_placeBidStoreHighMap
-              (scratch_placeBidStorePendingMap a.acc.2 I
-                (scratch_placeBidHighestBidWord a.acc.2 I +
-                  scratch_placeBidPendingWord a.acc.2 I)) I value) I)
-          (UInt256.ofNat I.source.val)) hhighAccounts
+    rw [storageStore_accountMap, ← hwordEq, ← hhighAccounts]
+    simp [scratch_placeBidAfterHigh, evmPending, scratch_placeBidAfterPending,
+      storageStore_executionEnv, henv]
   have haccountsNext :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner
+      sstoreAccountMap I.codeOwner
           (scratch_placeBidStoreBidderMap
             (scratch_placeBidStoreHighMap
-              (scratch_placeBidStorePendingMap a.acc.2 I
-                (scratch_placeBidHighestBidWord a.acc.2 I +
-                  scratch_placeBidPendingWord a.acc.2 I)) I value)
-            I (UInt256.ofNat I.source.val)) slot ⟨0⟩)
+              (scratch_placeBidStorePendingMap a.acc I
+                (scratch_placeBidHighestBidWord a.acc I +
+                  scratch_placeBidPendingWord a.acc I)) I value)
+            I (UInt256.ofNat I.source.val)) slot ⟨0⟩ =
         (scratch_revealZeroBlindedState evmPB a.idx).accountMap := by
     unfold scratch_revealZeroBlindedState
-    rw [storageStore_accountMap]
-    simpa [evmPB, evmPending, scratch_revealBidBlindedSlot, hslot,
+    rw [storageStore_accountMap, ← hpbAccounts]
+    simp [evmPB, evmPending, scratch_revealBidBlindedSlot, hslot,
       scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
-      storageStore_executionEnv, henv, EVM.Word.ofNat] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner slot (⟨0⟩ : UInt256) hpbAccounts
+      storageStore_executionEnv, henv, EVM.Word.ofNat, UInt256.ofNat, Id.run]
   exact
     scratch_revealLoopAdvance_refundPlaced_of_get
-      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+      (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
       (v := v) (k := k) (C := C) (loopLen := loopLen) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
       (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
@@ -1979,40 +1888,25 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {
       (values := values) (fakes := fakes) (secrets := secrets) (a := a) (L := L)
       (evm := evm) (evm1 := scratch_revealZeroBlindedState evmPB a.idx)
       (accNext :=
-        (a.acc.1, sstoreAccountMap I.codeOwner
+        sstoreAccountMap I.codeOwner
           (scratch_placeBidStoreBidderMap
             (scratch_placeBidStoreHighMap
-              (scratch_placeBidStorePendingMap a.acc.2 I
-                (scratch_placeBidHighestBidWord a.acc.2 I +
-                  scratch_placeBidPendingWord a.acc.2 I)) I value)
-            I (UInt256.ofNat I.source.val)) slot ⟨0⟩))
+              (scratch_placeBidStorePendingMap a.acc I
+                (scratch_placeBidHighestBidWord a.acc I +
+                  scratch_placeBidPendingWord a.acc I)) I value)
+            I (UInt256.ofNat I.source.val)) slot ⟨0⟩)
       (by
         refine
           ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
-            _hvariant, _hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩)
+            _hvariant, _hidxLe, henv, hσ0, hsub, haccounts⟩)
       (by simpa [evmPB, evmPending] using hbodyOk) rdNext hfit hdepositGe
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
+      (by simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
           scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
           storageStore_executionEnv, henv] using henv)
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
+      (by simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
           scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
           scratch_storageStore_σ0] using hσ0)
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
-          scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
-          scratch_storageStore_genesisBlockHeader] using hgh)
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
-          scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
-          scratch_storageStore_blocks] using hbl)
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
-          scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
-          storageStore_createdAccounts] using hcreated)
-      (by
-        simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
+      (by simpa [evmPB, evmPending, scratch_revealZeroBlindedState,
           scratch_placeBidAfterBidder, scratch_placeBidAfterHigh, scratch_placeBidAfterPending,
           scratch_storageStore_substate] using hsub)
       haccountsNext hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
@@ -2020,7 +1914,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {
 
 theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {L : Store} {evm : EVM.State}
     {values fakes secrets : List Value}
     {slot i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd
@@ -2030,7 +1924,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
       [((⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp)), secret, fakeWord, value, slot,
         i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hfp :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
@@ -2057,16 +1951,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -2122,7 +2016,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
         RD blindAuctionBytecode I g s0 ⟨1014⟩
           (scratch_revealEvmLoopStack (i + ⟨1⟩) (deposit + refund) len revealEnd biddingEnd
             secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
-          mem5 aw5 rdata (cA, sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
+          mem5 aw5 rdata (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
   let base := (⟨32⟩ : UInt256) + fp
   let newFree := (⟨65⟩ : UInt256) + base
   let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
@@ -2150,7 +2044,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   obtain ⟨k1, C1, rd1235⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_suffix
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-      (mem := mem) (aw := aw) (rdata := rdata) (cA := cA) (σ := σ)
+      (mem := mem) (aw := aw) (rdata := rdata) (σ := σ)
       (secret := secret) (fakeWord := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2164,7 +2058,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   obtain ⟨k2, C2, rd1247⟩ :=
     scratch_blindAuctionRevealX_hashGuard_match_to1247
       (I := I) (g := g) (s0 := s0) (k := k1) (C := C1)
-      (rdata := rdata) (acc := (cA, σ))
+      (rdata := rdata) (acc := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2173,7 +2067,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   obtain ⟨k3, C3, rd1265⟩ :=
     scratch_blindAuctionRevealX_refundAdd_toPlaceCond
       (I := I) (g := g) (s0 := s0) (k := k2) (C := C2)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2182,7 +2076,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   obtain ⟨k4, C4, rdNext⟩ :=
     scratch_blindAuctionRevealX_placeCond_placeBid_false_toNext
       (I := I) (g := g) (s0 := s0) (k := k3) (C := C3)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (value := value) (slot := slot) (i := i)
       (refund := deposit + refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2195,7 +2089,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
 theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
     {g : Sat256} {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {L : Store} {evm : EVM.State}
     {values fakes secrets : List Value}
     {slot i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd
@@ -2205,7 +2099,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
       [((⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp)), secret, fakeWord, value, slot,
         i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hfp :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
@@ -2232,16 +2126,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -2303,7 +2197,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
             (UInt256.sub (deposit + refund) value) len revealEnd biddingEnd
             secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
           mem5 aw5 rdata
-          (cA, sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner
             (scratch_placeBidStoreBidderMap (scratch_placeBidStoreHighMap σ I value) I
               (UInt256.ofNat I.source.val)) slot ⟨0⟩) k' C' := by
   let base := (⟨32⟩ : UInt256) + fp
@@ -2333,7 +2227,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   obtain ⟨k1, C1, rd1235⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_suffix
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-      (mem := mem) (aw := aw) (rdata := rdata) (cA := cA) (σ := σ)
+      (mem := mem) (aw := aw) (rdata := rdata) (σ := σ)
       (secret := secret) (fakeWord := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2347,7 +2241,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   obtain ⟨k2, C2, rd1247⟩ :=
     scratch_blindAuctionRevealX_hashGuard_match_to1247
       (I := I) (g := g) (s0 := s0) (k := k1) (C := C1)
-      (rdata := rdata) (acc := (cA, σ))
+      (rdata := rdata) (acc := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2356,7 +2250,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   obtain ⟨k3, C3, rd1265⟩ :=
     scratch_blindAuctionRevealX_refundAdd_toPlaceCond
       (I := I) (g := g) (s0 := s0) (k := k2) (C := C2)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2372,7 +2266,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   obtain ⟨k4, C4, rdNext⟩ :=
     scratch_blindAuctionRevealX_placeCond_placeBid_true_zero_toNext
       (I := I) (g := g) (s0 := s0) (k := k3) (C := C3)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (value := value) (slot := slot) (i := i)
       (refund := deposit + refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2386,7 +2280,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
 theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
     {g : Sat256} {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {L : Store} {evm : EVM.State}
     {values fakes secrets : List Value}
     {slot i refund len curLen revealEnd biddingEnd secretsLen secretsEnd fakesLen fakesEnd
@@ -2396,7 +2290,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
       [((⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp)), secret, fakeWord, value, slot,
         i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen,
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hfp :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
@@ -2423,16 +2317,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -2509,7 +2403,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
             (UInt256.sub (deposit + refund) value) len revealEnd biddingEnd
             secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
           (scratch_placeBidPendingHashMem mem5 key) awPB3 rdata
-          (cA, sstoreAccountMap I.codeOwner
+          (sstoreAccountMap I.codeOwner
             (scratch_placeBidStoreBidderMap
               (scratch_placeBidStoreHighMap
                 (scratch_placeBidStorePendingMap σ I
@@ -2546,7 +2440,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   obtain ⟨k1, C1, rd1235⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_suffix
       (I := I) (g := g) (s0 := s0) (k := k) (C := C)
-      (mem := mem) (aw := aw) (rdata := rdata) (cA := cA) (σ := σ)
+      (mem := mem) (aw := aw) (rdata := rdata) (σ := σ)
       (secret := secret) (fakeWord := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2560,7 +2454,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   obtain ⟨k2, C2, rd1247⟩ :=
     scratch_blindAuctionRevealX_hashGuard_match_to1247
       (I := I) (g := g) (s0 := s0) (k := k1) (C := C1)
-      (rdata := rdata) (acc := (cA, σ))
+      (rdata := rdata) (acc := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2569,7 +2463,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   obtain ⟨k3, C3, rd1265⟩ :=
     scratch_blindAuctionRevealX_refundAdd_toPlaceCond
       (I := I) (g := g) (s0 := s0) (k := k2) (C := C2)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (fake := fakeWord) (value := value) (slot := slot)
       (i := i) (refund := refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
@@ -2585,7 +2479,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   obtain ⟨k4, C4, rdNext⟩ :=
     scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_toNext
       (I := I) (g := g) (s0 := s0) (k := k3) (C := C3)
-      (rdata := rdata) (cA := cA) (σ := σ)
+      (rdata := rdata) (σ := σ)
       (secret := secret) (value := value) (slot := slot) (i := i)
       (refund := deposit + refund) (len := len) (revealEnd := revealEnd)
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)

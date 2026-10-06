@@ -18,10 +18,10 @@ theorem wethBodyReturns (evm : EVM.State) (locals : Store)
       rw [wethRef, scalarRead evm locals "weth" .address (auctionAddrLoc ⟨202⟩)
         hbase (by native_decide) rfl, loadAddress])
 
-theorem wethX {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 4 cA gh bl σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+theorem wethX {σ σ₀ A I} {g : UInt256}
+    (hreach : EntryReached 4 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (UInt256.land (storedWord σ I ⟨202⟩) solcAddrMask)) := by
   obtain ⟨_, _, rd435⟩ := hreach
   obtain ⟨_, _, rd448⟩ := entryGuardZero 4 (by decide) rd435 hwv
@@ -39,13 +39,12 @@ theorem wethX {cA gh bl σ σ₀ A I} {g : UInt256}
     exact solcAddrMask_clean (solcAddrMask_result_canonical _)
   simpa only [hclean] using hret
 
-theorem wethBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem wethBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I (entryBytes 4))
-    (hreach : EntryReached 4 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 4 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract
+      σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 4) (entryBytes_size 4) hsel
     have hd := dispatchEntry 4 hsel
@@ -53,20 +52,18 @@ theorem wethBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (wethGetter.params.map Param.name)
         (transitionSignature wethGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hword := storedWord_equiv hAccounts I ⟨202⟩
     have hbody : ExecTransitionBody auctionConfig auctionContract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ wethGetter.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ wethGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [.address (AccountAddress.ofNat
-            (UInt256.land (storedWord σ_solm I ⟨202⟩) solcAddrMask).toNat)])) := by
+            (UInt256.land (storedWord σ I ⟨202⟩) solcAddrMask).toNat)])) := by
       simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
-        wethBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        wethBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
-    exact (wethX hreach hwv).reEquivExecutionTransport hcode hd hdec hbody
-      (by rw [hword]) hAccounts
+    exact (wethX hreach hwv).reEquivExecution hcode hd hdec hbody
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (storedWord σ_evm I ⟨202⟩)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (storedWord σ I ⟨202⟩)))
   · exact entryNonpayableRevert 4 (by decide) hcode hsel hreach hwv
 
 end Auction

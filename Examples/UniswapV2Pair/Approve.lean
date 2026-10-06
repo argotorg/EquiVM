@@ -150,14 +150,14 @@ theorem uniswapApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-- The optimized external wrapper for `approve(address,uint256)` accepts canonical calldata and
     jumps to the external approve routine at pc 2894. -/
-theorem uniswapApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2894⟩
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2894⟩
         [approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd775⟩ := RD.addressUint256ExternalLenOk
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩) hreach
     uniswap_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
@@ -173,13 +173,13 @@ theorem uniswapApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 This covers calldata with a selector present but fewer than two ABI words. The dispatcher-level
 `calldatasize < 4` branch remains in `Correct.lean`.
 -/
-theorem uniswapApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.addressUint256ExternalShort
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩)
     hreach uniswap_address_uint256_external_entry_wf hsz4 hsize hshort
@@ -188,14 +188,13 @@ theorem uniswapApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     routine call at pc 7412. -/
 theorem RD.uniswapApproveExternalToInternal {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
-    {σ : AccountMap}
+    {aw : UInt256} {rdata : ByteArray} {acc : AccountMap}
     (h : RD uniswapV2PairBytecode ee g s0 ⟨2894⟩ (value :: spender :: ret :: R)
-        mem aw rdata (cA, σ) k C)
+        mem aw rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: uniswapSourceWord ee :: ⟨2907⟩ :: ⟨0⟩ :: value :: spender :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata acc k' C' := by
   simpa [uniswapSourceWord] using
     RD.solcCallerTransferThunk
       (pc := ⟨2894⟩) (contPc := ⟨2907⟩) (routinePc := ⟨7412⟩) h
@@ -207,7 +206,7 @@ theorem RD.uniswapApproveExternalToInternal {g : Sat256} {s0 : State} {ee : Exec
 theorem RD.uniswapApproveExternalFinish {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender ret : UInt256} {R : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD uniswapV2PairBytecode ee g s0 ⟨2907⟩
         (⟨0⟩ :: value :: spender :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
@@ -219,15 +218,15 @@ theorem RD.uniswapApproveExternalFinish {g : Sat256} {s0 : State} {ee : Executio
 
 /-- Chained canonical-success prefix for `approve(address,uint256)`, from the dispatcher body pc
     to the shared internal `_approve` routine at pc 7412. -/
-theorem uniswapApproveX_toInternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_toInternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7412⟩
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7412⟩
       (approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
         ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd2894⟩ := uniswapApproveX_decoded (g := g)
     hsz68 hsize hreach
   obtain ⟨_, _, rd7412⟩ := RD.uniswapApproveExternalToInternal
@@ -237,18 +236,18 @@ theorem uniswapApproveX_toInternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
 
 /-- Chained canonical-success prefix for `approve(address,uint256)`, through the first
     nested-mapping hash inside the shared internal `_approve` routine. -/
-theorem uniswapApproveX_innerHash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_innerHash {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7441⟩
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7441⟩
       (mapSlot (uniswapSourceWord I) ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ ::
         uniswapSourceWord I :: solcAddrMask :: approveValueWord I :: approveSpenderMaskedWord I ::
         uniswapSourceWord I :: ⟨2907⟩ :: ⟨0⟩ :: approveValueWord I ::
         approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       (twoWordHashMem (uniswapSourceWord I) ⟨2⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd7412⟩ := uniswapApproveX_toInternal (g := g)
     hsz68 hsize hreach
   obtain ⟨_, _, rd7441⟩ := RD.uniswapApproveInternalInnerHash
@@ -261,20 +260,20 @@ theorem uniswapApproveX_innerHash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
 
 /-- Chained canonical-success prefix for `approve(address,uint256)`, through the exact
     `SSTORE` of `allowance[msg.sender][spender]`. -/
-theorem uniswapApproveX_store {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_store {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7457⟩
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: uniswapSourceWord I :: approveSpenderMaskedWord I ::
         approveValueWord I :: approveSpenderMaskedWord I :: uniswapSourceWord I :: ⟨2907⟩ ::
         ⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       (twoWordHashMem (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩)
         (twoWordHashMem (uniswapSourceWord I) ⟨2⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       k C := by
@@ -293,18 +292,18 @@ theorem uniswapApproveX_store {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
 
 /-- Chained canonical-success prefix for `approve(address,uint256)`, through the `Approval`
     event and back to the external approve continuation. -/
-theorem uniswapApproveX_emit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_emit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2907⟩
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2907⟩
       (⟨0⟩ :: approveValueWord I :: approveSpenderMaskedWord I :: ⟨797⟩ :: [sel])
       (uniswapApproveLogMem (uniswapSourceWord I) (approveSpenderMaskedWord I)
         (approveValueWord I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       k C := by
@@ -319,14 +318,14 @@ theorem uniswapApproveX_emit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   exact ⟨_, _, by simpa [uniswapApproveHashMem] using rd2907⟩
 
 /-- Complete EVM path for `approve(address,uint256)`, returning ABI `true`. -/
-theorem uniswapApproveX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapApproveX_success {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ
+      (initState σ σ₀ g A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ
         (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
         (approveValueWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
@@ -370,7 +369,7 @@ theorem uniswapApproveX_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 /- Success refinement slice for `approve(address,uint256)`. -/
 set_option maxHeartbeats 2000000 in
 theorem uniswapApproveBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -379,11 +378,10 @@ theorem uniswapApproveBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
         (transitionSignature approveTransition).paramTypes I.calldata = some (approveStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (approveStore I) approveTransition.body
         (.returned { contract := contract, locals := approveStore I }
@@ -394,49 +392,34 @@ theorem uniswapApproveBodyCoreOk
         mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩) := by
     simpa [evmS, initState, uniswapSourceWord] using
       approveStorageSlot_eq_mapSlot_masked evmS I
-  have hcreated :
-      (cA, sstoreAccountMap I.codeOwner σ_evm
-          (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
-          (approveValueWord I)).1 =
-        (approvePostState evmS I).createdAccounts := by
-    simp [approvePostState, evmS, initState, storageStore_createdAccounts]
-  have hAccountsPost :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner σ_evm
-          (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
-          (approveValueWord I))
-        (approvePostState evmS I).accountMap := by
+  have hstate : approvePostState evmS I =
+      initState (sstoreAccountMap I.codeOwner σ
+        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
+        (approveValueWord I)) σ₀ (Sat256.ofUInt256 g) A I := by
     unfold approvePostState
-    rw [storageStore_accountMap]
     rw [hslotS]
-    change accountMapEquiv
-      (sstoreAccountMap I.codeOwner σ_evm
-        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
-        (approveValueWord I))
-      (sstoreAccountMap I.codeOwner σ_solm
-        (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
-        (approveValueWord I))
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner
-      (mapSlot (approveSpenderMaskedWord I) (mapSlot (uniswapSourceWord I) ⟨2⟩))
-      (approveValueWord I) hAccounts
+    dsimp [EVM.storageStore, State.lookupAccount, evmS, initState]
+    cases hfind : σ.get? I.codeOwner <;>
+      simp_all [Std.ExtTreeMap.get?_eq_getElem?, Option.option, State.setAccount,
+        sstoreAccountMap, Account.updateStorage]
   exact (uniswapApproveX_success (g := Sat256.ofUInt256 g)
       hperm hsz68 hsize hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody hcreated
-      hAccountsPost (returnEquiv_of_encode boolTrueReturnEncoding)
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+      (by rw [hstate]; rfl) (returnEquiv_of_encode boolTrueReturnEncoding)
 
 /-- Short-calldata decode-failure refinement slice for `approve(address,uint256)`.
 
 The non-canonical branch is intentionally not claimed here; it remains explicit proof work.
 -/
 theorem uniswapApproveBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨753⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_approve_none_short (I := I) hsz4 hshort
   exact (uniswapApproveX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -445,46 +428,43 @@ theorem uniswapApproveBodyCoreDecodeFailed_short
 /-- Success `approve(address,uint256)` refinement slice, packaged from selector dispatch
 through the body core. -/
 theorem uniswapApproveBodyOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    : runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreOk hcode hsize hperm hwv hsz68
     hdispatch
     (uniswapDecode_approve_ok hsz68)
     (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    hAccounts
 
 /-- Short-calldata decode-failure `approve(address,uint256)` refinement slice, packaged from
 selector dispatch through the body core. -/
 theorem uniswapApproveBodyDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ rfl hsel
   exact uniswapApproveBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
     (uniswapReachApproveBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
 theorem uniswapApproveBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some approveTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    : runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch hAccounts
+  · exact uniswapApproveBodyOk hcode hsize hperm hwv hsel hsz68 hdispatch
   · exact uniswapApproveBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
 
 end UniswapV2Pair

@@ -13,10 +13,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee liquidity balance1 balance0 token1 token0 reserve1 reserve0 amount1 amount0 toWord ret : UInt256}
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨4933⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
-        amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata acc k C)
+        amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata σ k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 95 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
@@ -24,7 +24,7 @@ theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨5006⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
         amount1 :: amount0 :: toWord :: ret :: R)
-      (pairDynamicMem mem ptr amount0 amount1) aw rdata acc k' C' := by
+      (pairDynamicMem mem ptr amount0 amount1) aw rdata σ k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
   change memoryWordActiveWords aw ⟨64⟩ = aw at hw64
@@ -64,14 +64,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnUnlockAndJump {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee liquidity balance1 balance0 token1 token0 reserve1 reserve0 amount1 amount0 toWord ret : UInt256}
     {aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨5006⟩
       (supply :: fee :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
-        amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata (cA, σ) k C)
+        amount1 :: amount0 :: toWord :: ret :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ret (amount1 :: amount0 :: R) mem aw rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) k' C' := by
   have rd5021 := evm_run rd with [pop, pop, pop, pop, pop, pop, pop, pop, pop,
     push1 ⟨1⟩, push1 ⟨12⟩, dup2, swap1]
   obtain ⟨_, _, rd5022⟩ := rd5021.sstore hperm (by native_decide) (by evm_ov)

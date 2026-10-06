@@ -57,15 +57,15 @@ theorem dealHashMem1_eq_dealHashMem2 (I : ExecutionEnv) :
     (dealHashMem0_size I) (dealHashMem1_size I)
     (dealHashMem0_read64 I) (dealHashMem1_read64 I)
 
-theorem flipperDealX_ticExpired_catMem {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_ticExpired_catMem {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticLt : (bidTicWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd5558⟩ := flipperDealX_ticExpired hticNe hticLt h
   exact ⟨k', C', by simpa [dealHashMem1_eq_dealHashMem2 I] using rd5558⟩
 

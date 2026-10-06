@@ -35,16 +35,16 @@ instruction with the checked-mul operand frame `a :: b :: ret :: R` on top, step
 to land at pc `3720` with the frame intact — exactly the `RD.catBiteCheckedMul{,Revert}` entry shape.
 Parametric in the operands `a, b, ret` and the reach point `pc` (the `PUSH2 3720` pc); the six
 per-site wrappers below discharge the two decode facts by `native_decide` at their concrete `pc`. -/
-theorem RD.catBiteReachMul3720Tail {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteReachMul3720Tail {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {a b ret pc : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) pc
+    (rd : RD catBytecode I g (initState σ σ₀ g A I) pc
       (a :: b :: ret :: R) mem aw rdata acc k C)
     (hpush : decode catBytecode pc = some (.Push .PUSH2, some (⟨3720⟩, 2)))
     (hjump : decode catBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none))
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3720⟩
+    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨3720⟩
       (a :: b :: ret :: R) mem aw rdata acc k' C' := by
   have rd1 := rd.push2 ⟨3720⟩ hpush (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rd1.jump hjump (by jump_dest) (by simp only [List.length_cons]; omega)⟩
@@ -58,17 +58,17 @@ FIRST (`artRate`, `rd3720a`) is reached once `spot > 0` cleared the short-circui
 /-- **`artRate` mul-overflow guard** (`Seg5`, `@3720`): from the `1521` entry, past the `spot > 0`
 short-circuit, reach the `art*rate` `checkedMul` frame `iRate :: art :: 1542 :: …`.  Feeds
 `catBiteArtRateOverflowLeaf` / `catBiteMulOverflowRevertLeaf` (`a = iRate`, `b = art`). -/
-theorem catBiteReachGuardArtRate {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachGuardArtRate {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iRate :: art :: ⟨1542⟩ :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
   have rd1522 := rd.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
@@ -91,18 +91,18 @@ theorem catBiteReachGuardArtRate {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- **`inkSpot` mul-overflow guard** (`Seg5`, `@3720`): from the `1521` entry, past `spot > 0` and
 the (non-overflowing) `artRate` mul, reach the `ink*spot` `checkedMul` frame `iSpot :: ink :: 1552 ::
 …`.  Feeds `catBiteMulOverflowRevertLeaf` (`a = iSpot`, `b = ink`). -/
-theorem catBiteReachGuardInkSpot {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachGuardInkSpot {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iSpot :: ink :: ⟨1552⟩ :: UInt256.mul art iRate :: art :: ink :: iDust :: iSpot :: iRate ::
         ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -141,12 +141,12 @@ and pins the `min` output with `hDunkRoom`. -/
 /-- **`dunkRoomWad` mul-overflow guard** (`Seg7b`, `@3720`): reach the `dunkRoom*WAD` `checkedMul`
 frame `WAD :: dunkRoom :: 1851 :: …`.  Feeds `catBiteMulOverflowRevertLeaf` (`a = WAD`,
 `b = dunkRoom`). -/
-theorem catBiteReachGuardDunkRoomWad {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardDunkRoomWad {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk milkChop milkDunk dunkRoom : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
       (room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
@@ -159,7 +159,7 @@ theorem catBiteReachGuardDunkRoomWad {cA gh bl σ σ₀ A I} {g : UInt256}
     (hDunkRoom : (if UInt256.gt milkDunk room = ⟨0⟩ then milkDunk else room) = dunkRoom)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (⟨1000000000000000000⟩ :: dunkRoom :: ⟨1851⟩ :: iRate :: milkChop :: art :: ⟨1872⟩ :: room ::
         ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -204,17 +204,17 @@ pure stack shuffling). -/
 
 /-- **`inkDart` mul-overflow guard** (`Seg7c`, `@3720`): reach the `ink*dart` `checkedMul` frame
 `dart :: ink :: 1892 :: …`.  Feeds `catBiteMulOverflowRevertLeaf` (`a = dart`, `b = ink`). -/
-theorem catBiteReachGuardInkDart {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardInkDart {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk dart : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (dart :: ink :: ⟨1892⟩ :: art :: ink :: ⟨1899⟩ :: ⟨0⟩ :: dart :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -239,22 +239,22 @@ via the shared `@3720` `checkedMul` (while assembling the `fess` frame). -/
 /-- **`dartRate` mul-overflow guard** (`Seg7f`, `@3720`): from the `2193` (post-`grab`) entry, past
 the call-success guard, reach the `dart*rate` `checkedMul` frame `iRate :: dart :: 2242 :: …`.  Feeds
 `catBiteMulOverflowRevertLeaf` (`a = iRate`, `b = dart`). -/
-theorem catBiteReachGuardDartRate {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardDartRate {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status d0 d1 d2 dink dart q art ink iDust iSpot iRate urn ilk : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
       (status :: d0 :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
-        ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') k C)
+        ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 22 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (iRate :: dart :: ⟨2242⟩ :: ⟨1769929592⟩ ::
         UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have rd2194 := rd.iszero (by native_decide) (by evm_ov)
   rw [isZero_eq_zero_of_ne hstatus] at rd2194
   have rd2195 := rd2194.dup1 (by native_decide) (by evm_ov)
@@ -268,9 +268,9 @@ theorem catBiteReachGuardDartRate {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2214 := rd2212.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2215raw⟩ := rd2214.sload (by native_decide) (by evm_ov)
   have rd2215 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2215⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2215⟩
       (solcSlotWord σ' I ⟨4⟩ :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot ::
-        iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2215raw
+        iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd2215raw
   have rd2217 := rd2215.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2219 := rd2217.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2221 := rd2219.push1 ⟨160⟩ (by native_decide) (by evm_ov)
@@ -296,14 +296,14 @@ succeeded, so `hRateFit`) then computes `tabBase = dartRate*milkChop` via a SECO
 /-- **`tabBase` mul-overflow guard** (`Seg7i`, `@3720`): reach the `dartRate*milkChop` `checkedMul`
 frame `milkChop :: dartRate :: 2354 :: …`.  Feeds `catBiteMulOverflowRevertLeaf` (`a = milkChop`,
 `b = dartRate`). -/
-theorem catBiteReachGuardTabBase {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardTabBase {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dink dart milkChop dartRate : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
         = milkChop)
@@ -312,10 +312,10 @@ theorem catBiteReachGuardTabBase {cA gh bl σ σ₀ A I} {g : UInt256}
     (hDartRate : UInt256.mul dart iRate = dartRate)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3720⟩
       (milkChop :: dartRate :: ⟨2354⟩ :: ⟨1000000000000000000⟩ :: ⟨0⟩ :: dink :: dart :: q :: art ::
         ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have e32q : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
     catBiteAwMInv32 aw (by rw [e32q]; omega)
@@ -348,13 +348,13 @@ the leaf handles. -/
 /-- **`room` checkedSub-underflow guard** (`Seg6`, `@3762`): reach the `box.sub(litter)` `checkedSub`
 frame `litter :: box :: 1708 :: …` (with the `milk` struct in memory).  Feeds
 `catBiteRoomUnderflowRevertLeaf` (`b = litter`, `a = box`; underflow `box.toNat < litter.toNat`). -/
-theorem catBiteReachGuardRoomSub {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk fp q : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
-      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' k C)
     (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fp)
@@ -370,14 +370,14 @@ theorem catBiteReachGuardRoomSub {cA gh bl σ σ₀ A I} {g : UInt256}
     (hqsz : q.toNat + 96 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: ⟨1708⟩ :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink ::
         iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       (catBiteMilkMem mem fp ilk q
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩)))
-      aw o (cA', σ') k' C' := by
+      aw o σ' k' C' := by
   -- offset arithmetic
   have e32fp : (⟨32⟩ + fp).toNat = fp.toNat + 32 := uadd_lit32_toNat fp (by omega)
   have e64fp : (⟨32⟩ + (⟨32⟩ + fp)).toNat = fp.toNat + 64 := by
@@ -551,13 +551,13 @@ through to the `INVALID` at pc `1865`.  Feeds `catBiteMilkChopZeroRevertLeaf`. -
 /-- **`milkChop` div-by-zero `INVALID` guard** (`Seg7b`, `@1865`): from the `1810` entry, past the
 `dunkRoom*WAD` mul (`hFitWad`) and `rate != 0` guard (`hRatePos`), reach the `INVALID` at pc `1865` on
 the `milkChop = 0` branch.  Feeds `catBiteMilkChopZeroRevertLeaf` (`invalidPc := 1865`). -/
-theorem catBiteReachGuardMilkChopZero {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardMilkChopZero {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {milkChop milkDunk dunkRoom dunkRoomWad dartDenomRate : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
       (room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
@@ -575,7 +575,7 @@ theorem catBiteReachGuardMilkChopZero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hChopZero : milkChop = ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1865⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1865⟩
       (dartDenomRate :: milkChop :: art :: ⟨1872⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -639,26 +639,26 @@ follow-up. -/
 /-- **`live` require guard** (`Seg4`, `@1458`): `require(live == 1, "Cat/not-live")`.  Reach the
 guard `PUSH2 1521` with `cond = (1 == live)` on top.  Feeds `catBiteRequireStringRevertLeaf`
 (`guardPc := 1458`, `okPc := 1521`; `cond = ⟨0⟩ ⇔ live ≠ 1`). -/
-theorem catBiteReachGuardLive {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardLive {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1447⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1447⟩
       (art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1458⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1458⟩
       (UInt256.eq ⟨1⟩ (catSlotWord ⟨2⟩ σ' I) :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R)
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have rd1449 := rd.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1450, C1450, rd1450raw⟩ := rd1449.sload (by native_decide) (by evm_ov)
   have rd1450 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1450⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1450⟩
       (catSlotWord ⟨2⟩ σ' I :: art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
-        urn :: ilk :: R) mem aw o (cA', σ') k1450 C1450 := rd1450raw
+        urn :: ilk :: R) mem aw o σ' k1450 C1450 := rd1450raw
   have rd1451 := rd1450.swap2 (by native_decide) (by evm_ov)
   have rd1452 := rd1451.swap4 (by native_decide) (by evm_ov)
   have rd1453 := rd1452.pop (by native_decide) (by evm_ov)
@@ -672,19 +672,19 @@ theorem catBiteReachGuardLive {cA gh bl σ σ₀ A I} {g : UInt256}
 non-overflowing `checkedMul`s (`hfitArtRate`, `hfitInkSpot`), reach the guard `PUSH2 1620` with
 `cond = (ink*spot < art*rate)` on top.  Feeds `catBiteRequireStringRevertLeaf` (`guardPc := 1555`,
 `okPc := 1620`; `cond = ⟨0⟩ ⇔ ink*spot ≥ art*rate`). -/
-theorem catBiteReachGuardUnsafe {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachGuardUnsafe {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hspotPos : 0 < iSpot.toNat)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
       (UInt256.lt (UInt256.mul ink iSpot) (UInt256.mul art iRate) :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -724,36 +724,36 @@ theorem catBiteReachGuardUnsafe {cA gh bl σ σ₀ A I} {g : UInt256}
 "Cat/liquidation-limit-hit")`.  From the `1708` entry, past the `litter < box` short-circuit
 (`hlitterbox`), reach the guard `PUSH2 1810` with `cond = ¬(room < dust)` on top.  Feeds
 `catBiteRequireStringRevertLeaf` (`guardPc := 1730`, `okPc := 1810`; `cond = ⟨0⟩ ⇔ room < dust`). -/
-theorem catBiteReachGuardRoomDust {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardRoomDust {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hlitterbox : (solcSlotWord σ' I ⟨6⟩).toNat < (solcSlotWord σ' I ⟨5⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
       (UInt256.isZero (UInt256.lt room iDust) :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have rd1709 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1710 := rd1709.swap1 (by native_decide) (by evm_ov)
   have rd1711 := rd1710.pop (by native_decide) (by evm_ov)
   have rd1713 := rd1711.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by native_decide) (by evm_ov)
   have rd1714 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
       (solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
-        urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1714raw
+        urn :: ilk :: R) mem aw o σ' _ _ := rd1714raw
   have rd1716 := rd1714.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by native_decide) (by evm_ov)
   have rd1717 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
-        iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1717raw
+        iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd1717raw
   have rd1718 := rd1717.lt (by native_decide) (by evm_ov)
   rw [ult_one hlitterbox] at rd1718
   have rd1719 := rd1718.dup1 (by native_decide) (by evm_ov)
@@ -773,13 +773,13 @@ theorem catBiteReachGuardRoomDust {cA gh bl σ σ₀ A I} {g : UInt256}
 DSMath chain and the `dart > 0` short-circuit (`hDartPos`), reach the guard `PUSH2 1985` with
 `cond = (dink > 0)` on top.  Feeds `catBiteRequireStringRevertLeaf` (`guardPc := 1918`,
 `okPc := 1985`; `cond = ⟨0⟩ ⇔ dink = 0`). -/
-theorem catBiteReachGuardDinkPos {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardDinkPos {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {dart inkDart dinkCandidate dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hArtPos : art ≠ ⟨0⟩)
@@ -790,7 +790,7 @@ theorem catBiteReachGuardDinkPos {cA gh bl σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (UInt256.gt dink ⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -842,18 +842,18 @@ theorem catBiteReachGuardDinkPos {cA gh bl σ σ₀ A I} {g : UInt256}
 "Cat/overflow")`.  From the `1985` entry, past the `dart <= 2**255` short-circuit (`hDartLim`), reach
 the guard `PUSH2 2073` with `cond = (dink <= 2**255)` on top.  Feeds
 `catBiteRequireStringRevertLeaf` (`guardPc := 2010`, `okPc := 2073`; `cond = ⟨0⟩ ⇔ dink > 2**255`). -/
-theorem catBiteReachGuardDinkLimit {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardDinkLimit {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
       (UInt256.isZero (UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩)) :: dink :: dart ::
         q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
@@ -892,17 +892,17 @@ side — both landing the require leaf's cursor at the same `guardPc`. -/
 /-- **`spot > 0` short-circuit guard** (`Seg5`, `@1555`): the `spot = 0` first-conjunct failure of
 `require(spot > 0 && …)`.  Reaches the `unsafe` guard `PUSH2 1620` with `cond = ⟨0⟩`.  Feeds
 `catBiteRequireStringRevertLeaf` (`guardPc := 1555`, `okPc := 1620`, `cond = ⟨0⟩` by `rfl`). -/
-theorem catBiteReachGuardSpot {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachGuardSpot {σ σ₀ A I} {g : UInt256}
     {art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k C)
     (hSpotZero : iSpot = ⟨0⟩)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1555⟩
       (⟨0⟩ :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
   have rd1522 := rd.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
@@ -922,35 +922,35 @@ theorem catBiteReachGuardSpot {cA gh bl σ σ₀ A I} {g : UInt256}
 failure of `require(litter < box && …)` (reachable only at `litter = box`, since `litter > box`
 already underflowed the `Seg6` `checkedSub`).  Reaches the `room ≥ dust` guard `PUSH2 1810` with
 `cond = ⟨0⟩`.  Feeds `catBiteRequireStringRevertLeaf` (`guardPc := 1730`, `okPc := 1810`). -/
-theorem catBiteReachGuardLitter {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGuardLitter {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hLitterFail : (solcSlotWord σ' I ⟨5⟩).toNat ≤ (solcSlotWord σ' I ⟨6⟩).toNat)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1730⟩
       (⟨0⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have rd1709 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1710 := rd1709.swap1 (by native_decide) (by evm_ov)
   have rd1711 := rd1710.pop (by native_decide) (by evm_ov)
   have rd1713 := rd1711.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by native_decide) (by evm_ov)
   have rd1714 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
       (solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
-        urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1714raw
+        urn :: ilk :: R) mem aw o σ' _ _ := rd1714raw
   have rd1716 := rd1714.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by native_decide) (by evm_ov)
   have rd1717 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
-        iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1717raw
+        iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd1717raw
   have rd1718 := rd1717.lt (by native_decide) (by evm_ov)
   rw [ult_zero hLitterFail] at rd1718
   have rd1719 := rd1718.dup1 (by native_decide) (by evm_ov)
@@ -964,13 +964,13 @@ theorem catBiteReachGuardLitter {cA gh bl σ σ₀ A I} {g : UInt256}
 `require(dart > 0 && dink > 0)`.  Reaches the `dink > 0` guard `PUSH2 1985` with `cond = ⟨0⟩` (via
 the `inkDart`/`dinkCandidate`/`dink = min(…)` chain, then the short-circuit).  Feeds
 `catBiteRequireStringRevertLeaf` (`guardPc := 1918`, `okPc := 1985`). -/
-theorem catBiteReachGuardDartPos {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardDartPos {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {room q art ink iDust iSpot iRate urn ilk : UInt256}
     {dart inkDart dinkCandidate dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1872⟩
       (dart :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hArtPos : art ≠ ⟨0⟩)
@@ -981,7 +981,7 @@ theorem catBiteReachGuardDartPos {cA gh bl σ σ₀ A I} {g : UInt256}
     (hDartZero : dart = ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
   have rd1873 := rd.jumpdest (by native_decide) (by evm_ov)
@@ -1028,18 +1028,18 @@ theorem catBiteReachGuardDartPos {cA gh bl σ σ₀ A I} {g : UInt256}
 failure of `require(dart <= 2**255 && dink <= 2**255)`.  Reaches the `dink ≤ 2**255` guard
 `PUSH2 2073` with `cond = ⟨0⟩`.  Feeds `catBiteRequireStringRevertLeaf` (`guardPc := 2010`,
 `okPc := 2073`). -/
-theorem catBiteReachGuardDartLimit {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReachGuardDartLimit {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k C)
     (hDartLimFail : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat < dart.toNat)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2010⟩
       (⟨0⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
   have rd1986 := rd.jumpdest (by native_decide) (by evm_ov)

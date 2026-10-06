@@ -7,7 +7,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnAfterUpdateFeeOff {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata acc k C)
     (hfee : fee = ⟨0⟩) (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata acc k' C' := by
@@ -19,14 +19,14 @@ theorem RD.uniswapBurnAfterUpdateFeeOff {g : Sat256} {s0 : State} {I : Execution
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnAfterUpdateFeeOn {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply fee aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩ (supply :: fee :: R) mem aw rdata σ k C)
     (hfee : fee ≠ ⟨0⟩)
     (hfit : (UInt256.land (uniswapSlotWord ⟨8⟩ σ I) reserve112Mask).toNat *
       (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ I) reserve112Shift) reserve112Mask).toNat < UInt256.size)
     (hperm : I.perm = true) (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4933⟩ (supply :: fee :: R) mem aw rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨11⟩
+      (sstoreAccountMap I.codeOwner σ ⟨11⟩
         (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σ I) reserve112Mask)
           (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ I) reserve112Shift) reserve112Mask))) k' C' := by
   let slot8 := uniswapSlotWord ⟨8⟩ σ I
@@ -37,7 +37,7 @@ theorem RD.uniswapBurnAfterUpdateFeeOn {g : Sat256} {s0 : State} {I : ExecutionE
   have rd4894 := evm_run rd4891 with [jumpiNT (by native_decide), push1 ⟨8⟩]
   obtain ⟨k4895, C4895, rd4895₀⟩ := rd4894.sload (by native_decide) (by evm_ov)
   have rd4895 : RD uniswapV2PairBytecode I g s0 ⟨4895⟩
-      (slot8 :: supply :: fee :: R) mem aw rdata (cA, σ) k4895 C4895 := by
+      (slot8 :: supply :: fee :: R) mem aw rdata σ k4895 C4895 := by
     simpa only [slot8, uniswapSlotWord] using rd4895₀
   have rd4928 := evm_run rd4895 with [
     push2 ⟨4929⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3,

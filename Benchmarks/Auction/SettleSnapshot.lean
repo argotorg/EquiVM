@@ -4,13 +4,13 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem settleSnapshotPrefix {I g s0 ret R mem aw ptr rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata (cA, σ) k C)
+theorem settleSnapshotPrefix {I g s0 ret R mem aw ptr rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4086⟩ (ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 192 ≤ 2 ^ 200)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4162⟩
       (ptr :: (snapshotOf σ I).startTime :: ret :: R)
-      ((snapshotOf σ I).mem mem ptr) (snapshotWords aw ptr) rdata (cA, σ) k' C' := by
+      ((snapshotOf σ I).mem mem ptr) (snapshotWords aw ptr) rdata σ k' C' := by
   have h32 : (ptr + ⟨32⟩).toNat = ptr.toNat + 32 :=
     addWord_toNat ptr ⟨32⟩ (by change ptr.toNat + 32 < 2 ^ 256; omega)
   have h64 : (ptr + ⟨64⟩).toNat = ptr.toNat + 64 :=

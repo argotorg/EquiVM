@@ -283,16 +283,16 @@ theorem daiDecode_transferFrom_none_short {I : ExecutionEnv}
   simpa using decodeCalldata_legacyAddress_legacyAddress_uint256_none_short
     (cd := I.calldata) (x := "src") (y := "dst") (z := "wad") hsz4 hshort
 
-theorem daiTransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiTransferFromX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsel : selIs I (daiSelBytes 19))
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨542⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1411⟩
+      (initState σ σ₀ g A I) ⟨542⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1411⟩
         [transferFromWadWord I, transferFromDstMaskedWord I,
           transferFromSrcMaskedWord I, ⟨496⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd564⟩ := RD.daiAddressAddressUint256ExternalLenOk
     (entry := ⟨542⟩) (ret := ⟨496⟩) (routine := ⟨1411⟩) hreach
     dai_address_address_uint256_external_entry_wf (by jump_dest) hsz100 hsize
@@ -306,13 +306,13 @@ theorem daiTransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       transferFromSrcMaskedWord, transferFromSrcWord_of_transferFrom I hsel]
     simpa [calldataWord] using rd1411⟩
 
-theorem daiTransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiTransferFromX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨542⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨542⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressAddressUint256ExternalShort
     (entry := ⟨542⟩) (ret := ⟨496⟩) (routine := ⟨1411⟩)
     hreach dai_address_address_uint256_external_entry_wf hsz4 hsize hshort
@@ -748,7 +748,7 @@ abbrev transferFromEvmTailPostAccountMap (σ : AccountMap) (I : ExecutionEnv) :
     (transferFromEvmDstSlot I) (transferFromEvmTailDstCreditWord σ I)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_logAndJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256} {scratch rdata : ByteArray}
     (hperm : I.perm = true)
     (hscratch : scratch.size = 96)
@@ -759,10 +759,10 @@ theorem daiTransferFromX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : �
       (⟨64⟩ :: transferFromDstMaskedWord I :: solcAddrMask :: ⟨32⟩ :: ⟨0⟩ ::
         transferFromWadWord I :: transferFromDstMaskedWord I :: transferFromSrcMaskedWord I ::
         ret :: S)
-      scratch (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      scratch (UInt256.ofNat 3) rdata σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem scratch (transferFromWadWord I)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have hsrcMask : UInt256.land (transferFromSrcMaskedWord I) solcAddrMask =
       transferFromSrcMaskedWord I :=
     solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
@@ -818,7 +818,7 @@ theorem daiTransferFromX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : �
   exact ⟨_, _, rdRet⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_logAndReturn {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_logAndReturn {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {scratch rdata : ByteArray}
     (hperm : I.perm = true)
     (hscratch : scratch.size = 96)
@@ -827,8 +827,8 @@ theorem daiTransferFromX_logAndReturn {cA σ I} {g : Sat256} {s0 : State} {k C :
       [⟨64⟩, transferFromDstMaskedWord I, solcAddrMask, ⟨32⟩, ⟨0⟩,
         transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨496⟩, sel]
-      scratch (UInt256.ofNat 3) rdata (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, σ) (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
+      scratch (UInt256.ofNat 3) rdata σ k C) :
+    RDret daiBytecode g s0 σ (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd496⟩ := daiTransferFromX_logAndJump
     (I := I) (ret := ⟨496⟩) (S := [sel]) (scratch := scratch)
     hperm hscratch hread64 (by simp only [List.length_cons, List.length_nil]; omega)
@@ -856,29 +856,29 @@ def transferFromDstBalanceWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
 def transferFromAllowanceWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (transferFromAllowanceSlot evm I)
 
-theorem transferFromSrcBalanceWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    transferFromSrcBalanceWord (initState cA gh bl σ σ₀ g A I) I =
+theorem transferFromSrcBalanceWord_initState {σ σ₀ A I} {g : Sat256} :
+    transferFromSrcBalanceWord (initState σ σ₀ g A I) I =
       transferFromEvmTailSrcBalanceWord σ I := by
   simp [transferFromSrcBalanceWord, transferFromEvmTailSrcBalanceWord,
     transferFromEvmSrcSlot, transferFromSrcSlot_eq_mapSlot_masked, initState,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
 
-theorem transferFromDstBalanceWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    transferFromDstBalanceWord (initState cA gh bl σ σ₀ g A I) I =
+theorem transferFromDstBalanceWord_initState {σ σ₀ A I} {g : Sat256} :
+    transferFromDstBalanceWord (initState σ σ₀ g A I) I =
       solcSlotWord σ I (transferFromEvmDstSlot I) := by
   simp [transferFromDstBalanceWord, transferFromEvmDstSlot,
     transferFromDstSlot_eq_mapSlot_masked, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, solcSlotWord]
 
-theorem transferFromAllowanceWord_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
-    transferFromAllowanceWord (initState cA gh bl σ σ₀ g A I) I =
+theorem transferFromAllowanceWord_initState {σ σ₀ A I} {g : Sat256} :
+    transferFromAllowanceWord (initState σ σ₀ g A I) I =
       transferFromEvmAllowanceWord σ I := by
   unfold transferFromAllowanceWord
-  rw [show transferFromAllowanceSlot (initState cA gh bl σ σ₀ g A I) I =
+  rw [show transferFromAllowanceSlot (initState σ σ₀ g A I) I =
       transferFromEvmAllowanceSlot I by
     simpa [initState, transferFromEvmAllowanceSlot] using
       transferFromAllowanceSlot_eq_mapSlot_masked
-        (initState cA gh bl σ σ₀ g A I) I (by simp [initState])]
+        (initState σ σ₀ g A I) I (by simp [initState])]
   simp [transferFromEvmAllowanceWord, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, solcSlotWord]
 
@@ -2654,7 +2654,7 @@ theorem daiTransferFromCallBodyReverts_dstOverflow_skipMax (evm : EVM.State) (I 
 
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_initialBalanceOkCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (henough :
       (transferFromWadWord I).toNat ≤
@@ -2663,11 +2663,11 @@ theorem daiTransferFromX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State
     (h : RD daiBytecode I g s0 ⟨1411⟩
       (transferFromWadWord I :: transferFromDstMaskedWord I :: transferFromSrcMaskedWord I ::
         ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((transferFromSrcHashMem I).readWithPadding 0 64))) =
@@ -2721,6 +2721,7 @@ theorem daiTransferFromX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State
   have rdGt := evm_run rdLoaded with [
     raw dup3 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdIszero
@@ -2728,7 +2729,7 @@ theorem daiTransferFromX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State
   exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_initialBalanceOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_initialBalanceOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (henough :
       (transferFromWadWord I).toNat ≤
@@ -2736,11 +2737,11 @@ theorem daiTransferFromX_initialBalanceOk {cA σ I} {g : Sat256} {s0 : State} {k
     (h : RD daiBytecode I g s0 ⟨1411⟩
       [transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨496⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiTransferFromX_initialBalanceOkCont (I := I) (ret := ⟨496⟩) (S := [sel])
     henough (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
@@ -2751,7 +2752,7 @@ theorem transferFromInsufficientBalanceWord :
   native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_initialBalanceRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hlt :
       (solcSlotWord σ I (mapSlot (transferFromSrcMaskedWord I) ⟨2⟩)).toNat <
@@ -2760,7 +2761,7 @@ theorem daiTransferFromX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : S
     (h : RD daiBytecode I g s0 ⟨1411⟩
       (transferFromWadWord I :: transferFromDstMaskedWord I :: transferFromSrcMaskedWord I ::
         ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -2815,6 +2816,7 @@ theorem daiTransferFromX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : S
   have rdGt := evm_run rdLoaded with [
     raw dup3 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdIszero
@@ -2840,7 +2842,7 @@ theorem daiTransferFromX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : S
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_initialBalanceRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_initialBalanceRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hlt :
       (solcSlotWord σ I (mapSlot (transferFromSrcMaskedWord I) ⟨2⟩)).toNat <
@@ -2848,24 +2850,24 @@ theorem daiTransferFromX_initialBalanceRevert {cA σ I} {g : Sat256} {s0 : State
     (h : RD daiBytecode I g s0 ⟨1411⟩
       [transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨496⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiTransferFromX_initialBalanceRevertCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hlt (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSkipSenderCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSkipSenderCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -2906,35 +2908,35 @@ theorem daiTransferFromX_allowanceSkipSenderCont {cA σ I} {g : Sat256} {s0 : St
   exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSkipSender {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSkipSender {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiTransferFromX_allowanceSkipSenderCont (I := I) (ret := ⟨496⟩) (S := [sel])
     heq (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceLoadedCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hSlen : S.length + 16 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1577⟩
       ((UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (transferFromEvmAllowanceWord σ I)))
         :: ⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
           transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3044,24 +3046,24 @@ theorem daiTransferFromX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, by simpa [UInt256.lnot] using rdMaxCheck⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceLoaded {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceLoaded {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1577⟩
       [UInt256.isZero (UInt256.eq (UInt256.lnot (⟨0⟩ : UInt256))
           (transferFromEvmAllowanceWord σ I)),
         ⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiTransferFromX_allowanceLoadedCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hne (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSkipMaxCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSkipMaxCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hmax : (transferFromEvmAllowanceWord σ I).toNat = UInt256.size - 1)
@@ -3069,11 +3071,11 @@ theorem daiTransferFromX_allowanceSkipMaxCont {cA σ I} {g : Sat256} {s0 : State
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiTransferFromX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -3096,23 +3098,23 @@ theorem daiTransferFromX_allowanceSkipMaxCont {cA σ I} {g : Sat256} {s0 : State
   exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSkipMax {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSkipMax {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hmax : (transferFromEvmAllowanceWord σ I).toNat = UInt256.size - 1)
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiTransferFromX_allowanceSkipMaxCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hne hmax (by simp only [List.length_cons, List.length_nil]; omega) (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSpendCheckOkCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -3121,11 +3123,11 @@ theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : 
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1702⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiTransferFromX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
   have hlnot0 : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
@@ -3230,6 +3232,8 @@ theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : 
   have rdGt := evm_run rdReloaded with [
     raw dup3 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [transferFromEvmAllowanceWord, solcSlotWord,
+    Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdOk := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -3238,7 +3242,7 @@ theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : 
   exact ⟨_, _, rdOk.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceSpendCheckOk {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceSpendCheckOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -3246,17 +3250,17 @@ theorem daiTransferFromX_allowanceSpendCheckOk {cA σ I} {g : Sat256} {s0 : Stat
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1702⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (transferFromAllowanceReloadHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact daiTransferFromX_allowanceSpendCheckOkCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hne hnotMax hallowEnough (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -3271,10 +3275,10 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
     (h : RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (transferFromTailDstStoreMem mem I) (transferFromWadWord I))
-      (UInt256.ofNat 5) rdata (cA, transferFromEvmTailPostAccountMap σ I) k' C' := by
+      (UInt256.ofNat 5) rdata (transferFromEvmTailPostAccountMap σ I) k' C' := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3503,7 +3507,7 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
     rdAfterDstSstore
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_tailSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -3516,8 +3520,8 @@ theorem daiTransferFromX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (h : RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, transferFromEvmTailPostAccountMap σ I)
+      mem (UInt256.ofNat 3) rdata σ k C) :
+    RDret daiBytecode g s0 (transferFromEvmTailPostAccountMap σ I)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd496⟩ := daiTransferFromX_tailSuccessJump
     (I := I) (ret := ⟨496⟩) (S := [sel])
@@ -3543,7 +3547,7 @@ theorem daiTransferFromX_tailSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : 
       (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_spendSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_spendSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -3559,9 +3563,9 @@ theorem daiTransferFromX_spendSuccess {cA σ I} {g : Sat256} {s0 : State} {k C :
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret daiBytecode g s0
-      (cA, transferFromEvmTailPostAccountMap (transferFromEvmAfterAllowanceAccountMap σ I) I)
+      (transferFromEvmTailPostAccountMap (transferFromEvmAfterAllowanceAccountMap σ I) I)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd1702⟩ :=
     daiTransferFromX_allowanceSpendCheckOk (I := I) hne hnotMax hallowEnough h
@@ -3693,7 +3697,7 @@ theorem daiTransferFromX_spendSuccess {cA σ I} {g : Sat256} {s0 : State} {k C :
     hsrcDebitEnough hfit rd1785
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_skipSenderSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_skipSenderSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
@@ -3705,8 +3709,8 @@ theorem daiTransferFromX_skipSenderSuccess {cA σ I} {g : Sat256} {s0 : State} {
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, transferFromEvmTailPostAccountMap σ I)
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g s0 (transferFromEvmTailPostAccountMap σ I)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd1785⟩ := daiTransferFromX_allowanceSkipSender (I := I) heq h
   exact daiTransferFromX_tailSuccess (I := I) (σ := σ) (sel := sel)
@@ -3714,7 +3718,7 @@ theorem daiTransferFromX_skipSenderSuccess {cA σ I} {g : Sat256} {s0 : State} {
     hsrcEnough hfit rd1785
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_skipMaxSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_skipMaxSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -3727,8 +3731,8 @@ theorem daiTransferFromX_skipMaxSuccess {cA σ I} {g : Sat256} {s0 : State} {k C
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, transferFromEvmTailPostAccountMap σ I)
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g s0 (transferFromEvmTailPostAccountMap σ I)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd1785⟩ := daiTransferFromX_allowanceSkipMax (I := I) hne hmax h
   exact daiTransferFromX_tailSuccess (I := I) (σ := σ) (sel := sel)
@@ -3739,12 +3743,12 @@ abbrev transferFromInsufficientAllowanceWord : UInt256 :=
   ⟨0x4461692f696e73756666696369656e742d616c6c6f77616e6365000000000000⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_insufficientAllowanceTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : stk.length + 5 ≤ 1024)
-    (h : RD daiBytecode I g s0 ⟨1626⟩ stk mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+    (h : RD daiBytecode I g s0 ⟨1626⟩ stk mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3798,7 +3802,7 @@ theorem daiTransferFromX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : 
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -3807,7 +3811,7 @@ theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rdLoaded⟩ :=
     daiTransferFromX_allowanceLoadedCont (I := I) (ret := ret) (S := S) hne hSlen h
@@ -3914,6 +3918,8 @@ theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdReloaded with [
     raw dup3 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [transferFromEvmAllowanceWord, solcSlotWord,
+    Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdFail := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -3930,7 +3936,7 @@ theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     rdTail
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_allowanceRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_allowanceRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
@@ -3938,14 +3944,14 @@ theorem daiTransferFromX_allowanceRevert {cA σ I} {g : Sat256} {s0 : State}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiTransferFromX_allowanceRevertCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hne hnotMax hlt (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_tailSrcDebitRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -3955,7 +3961,7 @@ theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : Sta
     (h : RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
@@ -4045,6 +4051,8 @@ theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : Sta
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw gt hd6 (by evm_ov)]
+  simp only [transferFromEvmTailSrcBalanceWord, solcSlotWord,
+    Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
@@ -4056,7 +4064,7 @@ theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : Sta
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailSrcDebitRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_tailSrcDebitRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -4065,14 +4073,14 @@ theorem daiTransferFromX_tailSrcDebitRevert {cA σ I} {g : Sat256} {s0 : State}
     (h : RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiTransferFromX_tailSrcDebitRevertCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
     hlt (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_tailDstOverflowRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -4086,7 +4094,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
     (h : RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
@@ -4285,6 +4293,8 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw lt hd6 (by evm_ov)]
+  simp only [transferFromEvmTailDstBalanceWord, solcSlotWord,
+    Std.ExtTreeMap.get?_eq_getElem?] at hlt
   rw [hlt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
@@ -4296,7 +4306,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailDstOverflowRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_tailDstOverflowRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} {mem rdata : ByteArray}
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
@@ -4309,7 +4319,7 @@ theorem daiTransferFromX_tailDstOverflowRevert {cA σ I} {g : Sat256} {s0 : Stat
     (h : RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   exact daiTransferFromX_tailDstOverflowRevertCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hperm hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
@@ -4331,7 +4341,7 @@ theorem transferFromAllowancePostStoreHashMem_read64 (I : ExecutionEnv) :
     (transferFromAllowanceStoreHashMem_size I) (transferFromAllowanceStoreHashMem_read64 I)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4341,12 +4351,12 @@ theorem daiTransferFromX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k 
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
       (transferFromAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, transferFromEvmAfterAllowanceAccountMap σ I) k' C' := by
+      (transferFromEvmAfterAllowanceAccountMap σ I) k' C' := by
   obtain ⟨_, _, rd1702⟩ :=
     daiTransferFromX_allowanceSpendCheckOkCont (I := I) (ret := ret) (S := S)
       hne hnotMax hallowEnough hSlen h
@@ -4470,7 +4480,7 @@ theorem daiTransferFromX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k 
       solcMappingSlot] using rd1785Raw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_spendToTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_spendToTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4479,18 +4489,18 @@ theorem daiTransferFromX_spendToTail {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
       (transferFromAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, transferFromEvmAfterAllowanceAccountMap σ I) k' C' := by
+      (transferFromEvmAfterAllowanceAccountMap σ I) k' C' := by
   exact daiTransferFromX_spendToTailCont (I := I) (ret := ⟨496⟩) (S := [sel])
     hperm hne hnotMax hallowEnough
     (by simp only [List.length_cons, List.length_nil]; omega)
     (by simpa using h)
 
-theorem daiTransferFromX_skipSenderSuccessJump {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_skipSenderSuccessJump {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
@@ -4504,11 +4514,11 @@ theorem daiTransferFromX_skipSenderSuccessJump {cA σ I} {g : Sat256} {s0 : Stat
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (transferFromTailDstStoreMem (transferFromSrcHashMem I) I)
         (transferFromWadWord I))
-      (UInt256.ofNat 5) ByteArray.empty (cA, transferFromEvmTailPostAccountMap σ I) k' C' := by
+      (UInt256.ofNat 5) ByteArray.empty (transferFromEvmTailPostAccountMap σ I) k' C' := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_allowanceSkipSenderCont (I := I) (ret := ret) (S := S)
       heq hSlen h
@@ -4516,7 +4526,7 @@ theorem daiTransferFromX_skipSenderSuccessJump {cA σ I} {g : Sat256} {s0 : Stat
     hperm (transferFromSrcHashMem_size I) (transferFromSrcHashMem_read64 I)
     hSlen hretDest hsrcEnough hfit rd1785
 
-theorem daiTransferFromX_skipMaxSuccessJump {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_skipMaxSuccessJump {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4531,11 +4541,11 @@ theorem daiTransferFromX_skipMaxSuccessJump {cA σ I} {g : Sat256} {s0 : State}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (transferFromTailDstStoreMem (transferFromAllowanceHashMem I) I)
         (transferFromWadWord I))
-      (UInt256.ofNat 5) ByteArray.empty (cA, transferFromEvmTailPostAccountMap σ I) k' C' := by
+      (UInt256.ofNat 5) ByteArray.empty (transferFromEvmTailPostAccountMap σ I) k' C' := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_allowanceSkipMaxCont (I := I) (ret := ret) (S := S)
       hne hmax hSlen h
@@ -4543,7 +4553,7 @@ theorem daiTransferFromX_skipMaxSuccessJump {cA σ I} {g : Sat256} {s0 : State}
     hperm (transferFromAllowanceHashMem_size I) (transferFromAllowanceHashMem_read64 I)
     hSlen hretDest hsrcEnough hfit rd1785
 
-theorem daiTransferFromX_spendSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_spendSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4561,12 +4571,12 @@ theorem daiTransferFromX_spendSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (transferFromTailDstStoreMem (transferFromAllowancePostStoreHashMem I) I)
         (transferFromWadWord I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromEvmTailPostAccountMap (transferFromEvmAfterAllowanceAccountMap σ I) I)
+      (transferFromEvmTailPostAccountMap (transferFromEvmAfterAllowanceAccountMap σ I) I)
       k' C' := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_spendToTailCont (I := I) (ret := ret) (S := S)
@@ -4577,7 +4587,7 @@ theorem daiTransferFromX_spendSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k
     (transferFromAllowancePostStoreHashMem_read64 I)
     hSlen hretDest hsrcDebitEnough hfit rd1785
 
-theorem daiTransferFromX_spendSrcDebitRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_spendSrcDebitRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4589,7 +4599,7 @@ theorem daiTransferFromX_spendSrcDebitRevert {cA σ I} {g : Sat256} {s0 : State}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_spendToTail hperm hne hnotMax hallowEnough h
@@ -4600,7 +4610,7 @@ theorem daiTransferFromX_spendSrcDebitRevert {cA σ I} {g : Sat256} {s0 : State}
     (transferFromAllowancePostStoreHashMem_read64 I)
     hltDebit rd1785
 
-theorem daiTransferFromX_spendDstOverflowRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_spendDstOverflowRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4616,7 +4626,7 @@ theorem daiTransferFromX_spendDstOverflowRevert {cA σ I} {g : Sat256} {s0 : Sta
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_spendToTail hperm hne hnotMax hallowEnough h
@@ -4627,7 +4637,7 @@ theorem daiTransferFromX_spendDstOverflowRevert {cA σ I} {g : Sat256} {s0 : Sta
     (transferFromAllowancePostStoreHashMem_read64 I)
     hsrcDebitEnough hover rd1785
 
-theorem daiTransferFromX_skipSenderDstOverflowRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_skipSenderDstOverflowRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hperm : I.perm = true)
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
@@ -4639,14 +4649,14 @@ theorem daiTransferFromX_skipSenderDstOverflowRevert {cA σ I} {g : Sat256} {s0 
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ := daiTransferFromX_allowanceSkipSender (I := I) heq h
   exact daiTransferFromX_tailDstOverflowRevert (I := I) (σ := σ) (sel := sel)
     hperm (transferFromSrcHashMem_size I) (transferFromSrcHashMem_read64 I)
     hsrcEnough hover rd1785
 
-theorem daiTransferFromX_skipMaxDstOverflowRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_skipMaxDstOverflowRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4659,14 +4669,14 @@ theorem daiTransferFromX_skipMaxDstOverflowRevert {cA σ I} {g : Sat256} {s0 : S
     (h : RD daiBytecode I g s0 ⟨1515⟩
       [⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I,
         transferFromSrcMaskedWord I, ⟨496⟩, sel]
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ := daiTransferFromX_allowanceSkipMax (I := I) hne hmax h
   exact daiTransferFromX_tailDstOverflowRevert (I := I) (σ := σ) (sel := sel)
     hperm (transferFromAllowanceHashMem_size I) (transferFromAllowanceHashMem_read64 I)
     hsrcEnough hover rd1785
 
-theorem daiTransferFromX_spendSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_spendSrcDebitRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4679,7 +4689,7 @@ theorem daiTransferFromX_spendSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : St
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_spendToTailCont (I := I) (ret := ret) (S := S)
@@ -4690,7 +4700,7 @@ theorem daiTransferFromX_spendSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : St
     (transferFromAllowancePostStoreHashMem_read64 I)
     hSlen hltDebit rd1785
 
-theorem daiTransferFromX_spendDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : State}
+theorem daiTransferFromX_spendDstOverflowRevertCont {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4707,7 +4717,7 @@ theorem daiTransferFromX_spendDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 :
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_spendToTailCont (I := I) (ret := ret) (S := S)
@@ -4718,7 +4728,7 @@ theorem daiTransferFromX_spendDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 :
     (transferFromAllowancePostStoreHashMem_read64 I)
     hSlen hsrcDebitEnough hover rd1785
 
-theorem daiTransferFromX_skipSenderDstOverflowRevertCont {cA σ I} {g : Sat256}
+theorem daiTransferFromX_skipSenderDstOverflowRevertCont {σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (heq : transferFromSrcMaskedWord I = solcSourceWord I)
@@ -4731,7 +4741,7 @@ theorem daiTransferFromX_skipSenderDstOverflowRevertCont {cA σ I} {g : Sat256}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_allowanceSkipSenderCont (I := I) (ret := ret) (S := S)
@@ -4740,7 +4750,7 @@ theorem daiTransferFromX_skipSenderDstOverflowRevertCont {cA σ I} {g : Sat256}
     hperm (transferFromSrcHashMem_size I) (transferFromSrcHashMem_read64 I)
     hSlen hsrcEnough hover rd1785
 
-theorem daiTransferFromX_skipMaxDstOverflowRevertCont {cA σ I} {g : Sat256}
+theorem daiTransferFromX_skipMaxDstOverflowRevertCont {σ I} {g : Sat256}
     {s0 : State} {k C : ℕ} {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
@@ -4754,7 +4764,7 @@ theorem daiTransferFromX_skipMaxDstOverflowRevertCont {cA σ I} {g : Sat256}
     (h : RD daiBytecode I g s0 ⟨1515⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rd1785⟩ :=
     daiTransferFromX_allowanceSkipMaxCont (I := I) (ret := ret) (S := S)
@@ -4763,33 +4773,15 @@ theorem daiTransferFromX_skipMaxDstOverflowRevertCont {cA σ I} {g : Sat256}
     hperm (transferFromAllowanceHashMem_size I) (transferFromAllowanceHashMem_read64 I)
     hSlen hsrcEnough hover rd1785
 
-theorem transferFromAllowanceWord_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
+theorem transferFromAfterAllowanceAccountMapEq {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hsource : evm.executionEnv.source = I.source)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
-    transferFromEvmAllowanceWord σ I = transferFromAllowanceWord evm I := by
-  have hread :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (transferFromEvmAllowanceSlot I)
-      (⟨0⟩ : UInt256)
-  unfold transferFromAllowanceWord
-  rw [show transferFromAllowanceSlot evm I = transferFromEvmAllowanceSlot I by
-    simpa [transferFromEvmAllowanceSlot] using
-      transferFromAllowanceSlot_eq_mapSlot_masked evm I hsource]
-  simpa [transferFromEvmAllowanceWord, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, solcSlotWord, howner] using hread
-
-theorem transferFromAfterAllowance_accountMapEquiv {σ : AccountMap} {evm : EVM.State}
-    {I : ExecutionEnv}
-    (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hsource : evm.executionEnv.source = I.source)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
+    (hallowWord : transferFromEvmAllowanceWord σ I = transferFromAllowanceWord evm I)
     (hallowEnough : (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ I).toNat) :
-    accountMapEquiv (transferFromEvmAfterAllowanceAccountMap σ I)
+    transferFromEvmAfterAllowanceAccountMap σ I =
       (transferFromAfterAllowanceState evm I).accountMap := by
-  have hallowWord :=
-    transferFromAllowanceWord_accountMapEquiv (σ := σ) (evm := evm) (I := I)
-      howner hsource hAccounts
   have hallowDebitEq :
       transferFromEvmAllowanceDebitWord σ I = transferFromAllowanceDebitWord evm I := by
     apply u256_inj
@@ -4809,31 +4801,26 @@ theorem transferFromAfterAllowance_accountMapEquiv {σ : AccountMap} {evm : EVM.
       transferFromAllowanceSlot evm I = transferFromEvmAllowanceSlot I := by
     simpa [transferFromEvmAllowanceSlot] using
       transferFromAllowanceSlot_eq_mapSlot_masked evm I hsource
-  simpa [transferFromEvmAfterAllowanceAccountMap, transferFromAfterAllowanceState,
-    storageStore_accountMap, howner, hslot, hallowDebitEq] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (transferFromEvmAllowanceSlot I)
-      (transferFromEvmAllowanceDebitWord σ I) hAccounts
+  simp [transferFromEvmAfterAllowanceAccountMap, transferFromAfterAllowanceState,
+    storageStore_accountMap, howner, hslot, hallowDebitEq, hmap]
 
 set_option maxHeartbeats 1000000 in
 theorem transferFromTailSolmPrefixBridge {σ : AccountMap} {evm : EVM.State}
     {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (hsrcEnough :
       (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat) :
     (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat ∧
     transferFromDstCreditNat (transferFromAfterSrcDebitState evm I) I =
       (transferFromEvmTailDstBalanceWord σ I).toNat + (transferFromWadWord I).toNat ∧
-    accountMapEquiv (transferFromEvmTailAfterSrcAccountMap σ I)
+    transferFromEvmTailAfterSrcAccountMap σ I =
       (transferFromAfterSrcDebitState evm I).accountMap := by
   have hsrcWord :
       transferFromEvmTailSrcBalanceWord σ I = transferFromSrcBalanceWord evm I := by
-    have hread :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (transferFromEvmSrcSlot I)
-        (⟨0⟩ : UInt256)
     simpa [transferFromEvmTailSrcBalanceWord, transferFromSrcBalanceWord,
       transferFromEvmSrcSlot, transferFromSrcSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, solcSlotWord, howner] using hread
+      State.lookupAccount, Account.lookupStorage, solcSlotWord, howner, hmap]
   have hsrcEnoughSolm :
       (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat := by
     rw [← hsrcWord]
@@ -4850,25 +4837,20 @@ theorem transferFromTailSolmPrefixBridge {σ : AccountMap} {evm : EVM.State}
     rw [ulit_toNat' _ hlt]
     rw [← hsrcWord]
   have hsrcMap :
-      accountMapEquiv (transferFromEvmTailAfterSrcAccountMap σ I)
+      transferFromEvmTailAfterSrcAccountMap σ I =
         (transferFromAfterSrcDebitState evm I).accountMap := by
-    simpa [transferFromEvmTailAfterSrcAccountMap, transferFromAfterSrcDebitState,
+    simp [transferFromEvmTailAfterSrcAccountMap, transferFromAfterSrcDebitState,
       storageStore_accountMap, transferFromEvmSrcSlot, transferFromSrcSlot_eq_mapSlot_masked,
-      howner, hsrcDebitEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (transferFromEvmSrcSlot I)
-        (transferFromEvmTailSrcDebitWord σ I) hAccounts
+      howner, hsrcDebitEq, hmap]
   have hdstWord :
       transferFromEvmTailDstBalanceWord σ I =
         transferFromDstBalanceWord (transferFromAfterSrcDebitState evm I) I := by
-    have hread :=
-      accountMapEquiv_storage_findD hsrcMap I.codeOwner (transferFromEvmDstSlot I)
-        (⟨0⟩ : UInt256)
     have hownerAfter :
         (transferFromAfterSrcDebitState evm I).executionEnv.codeOwner = I.codeOwner := by
       simpa [transferFromAfterSrcDebit_codeOwner evm I] using howner
     simpa [transferFromEvmTailDstBalanceWord, transferFromDstBalanceWord,
       transferFromEvmDstSlot, transferFromDstSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter] using hread
+      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter, hsrcMap]
   have hcreditNat :
       transferFromDstCreditNat (transferFromAfterSrcDebitState evm I) I =
         (transferFromEvmTailDstBalanceWord σ I).toNat + (transferFromWadWord I).toNat := by
@@ -4879,7 +4861,7 @@ theorem transferFromTailSolmPrefixBridge {σ : AccountMap} {evm : EVM.State}
 set_option maxHeartbeats 1000000 in
 theorem transferFromTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (hsrcEnough :
       (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat)
     (hfit :
@@ -4887,16 +4869,13 @@ theorem transferFromTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : Exec
         UInt256.size) :
     (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat ∧
     transferFromDstCreditNat (transferFromAfterSrcDebitState evm I) I < UInt256.size ∧
-    accountMapEquiv (transferFromEvmTailPostAccountMap σ I)
+    transferFromEvmTailPostAccountMap σ I =
       (transferFromPostStateFrom evm I).accountMap := by
   have hsrcWord :
       transferFromEvmTailSrcBalanceWord σ I = transferFromSrcBalanceWord evm I := by
-    have hread :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (transferFromEvmSrcSlot I)
-        (⟨0⟩ : UInt256)
     simpa [transferFromEvmTailSrcBalanceWord, transferFromSrcBalanceWord,
       transferFromEvmSrcSlot, transferFromSrcSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, solcSlotWord, howner] using hread
+      State.lookupAccount, Account.lookupStorage, solcSlotWord, howner, hmap]
   have hsrcEnoughSolm :
       (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat := by
     rw [← hsrcWord]
@@ -4913,25 +4892,20 @@ theorem transferFromTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : Exec
     rw [ulit_toNat' _ hlt]
     rw [← hsrcWord]
   have hsrcMap :
-      accountMapEquiv (transferFromEvmTailAfterSrcAccountMap σ I)
+      transferFromEvmTailAfterSrcAccountMap σ I =
         (transferFromAfterSrcDebitState evm I).accountMap := by
-    simpa [transferFromEvmTailAfterSrcAccountMap, transferFromAfterSrcDebitState,
+    simp [transferFromEvmTailAfterSrcAccountMap, transferFromAfterSrcDebitState,
       storageStore_accountMap, transferFromEvmSrcSlot, transferFromSrcSlot_eq_mapSlot_masked,
-      howner, hsrcDebitEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (transferFromEvmSrcSlot I)
-        (transferFromEvmTailSrcDebitWord σ I) hAccounts
+      howner, hsrcDebitEq, hmap]
   have hdstWord :
       transferFromEvmTailDstBalanceWord σ I =
         transferFromDstBalanceWord (transferFromAfterSrcDebitState evm I) I := by
-    have hread :=
-      accountMapEquiv_storage_findD hsrcMap I.codeOwner (transferFromEvmDstSlot I)
-        (⟨0⟩ : UInt256)
     have hownerAfter :
         (transferFromAfterSrcDebitState evm I).executionEnv.codeOwner = I.codeOwner := by
       simpa [transferFromAfterSrcDebit_codeOwner evm I] using howner
     simpa [transferFromEvmTailDstBalanceWord, transferFromDstBalanceWord,
       transferFromEvmDstSlot, transferFromDstSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter] using hread
+      State.lookupAccount, Account.lookupStorage, solcSlotWord, hownerAfter, hsrcMap]
   have hfitSolm :
       transferFromDstCreditNat (transferFromAfterSrcDebitState evm I) I < UInt256.size := by
     unfold transferFromDstCreditNat
@@ -4946,31 +4920,29 @@ theorem transferFromTailSolmBridge {σ : AccountMap} {evm : EVM.State} {I : Exec
     rw [ulit_toNat' _ (by simpa [transferFromDstCreditNat] using hfitSolm)]
     rw [← hdstWord]
   have hfinal :
-      accountMapEquiv (transferFromEvmTailPostAccountMap σ I)
+      transferFromEvmTailPostAccountMap σ I =
         (transferFromPostStateFrom evm I).accountMap := by
-    simpa [transferFromEvmTailPostAccountMap, transferFromPostStateFrom,
+    simp [transferFromEvmTailPostAccountMap, transferFromPostStateFrom,
       storageStore_accountMap, transferFromEvmDstSlot, transferFromDstSlot_eq_mapSlot_masked,
-      howner, hcreditEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (transferFromEvmDstSlot I)
-        (transferFromEvmTailDstCreditWord σ I) hsrcMap
+      howner, hcreditEq, hsrcMap]
   exact ⟨hsrcEnoughSolm, hfitSolm, hfinal⟩
 
 theorem daiTransferFromBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨542⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨542⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_transferFrom_none_short (I := I) hsz4 hshort
   exact (daiTransferFromX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 set_option maxHeartbeats 2000000 in
 theorem daiTransferFromInternalCallRuntimeCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {t : TransitionDecl} {callargs : Store} {ret : UInt256} {S : List UInt256}
     {out : ByteArray} {retVal : Option (List Value)} {k C : ℕ}
     (hcode : I.code = daiBytecode)
@@ -4981,52 +4953,49 @@ theorem daiTransferFromInternalCallRuntimeCore
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hSlen : S.length + 16 ≤ 1024)
     (hretDest : (D_J daiBytecode 0).contains ret = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (rd1411 : RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1411⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1411⟩
       (transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hfinish : ∀ {σ' scratch k' C'},
       scratch.size = 96 →
       scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ →
       RD daiBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ret (⟨1⟩ :: S)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ret (⟨1⟩ :: S)
         (solcScratchReturnMem scratch (transferFromWadWord I)) (UInt256.ofNat 5)
-        ByteArray.empty (cA, σ') k' C' →
+        ByteArray.empty σ' k' C' →
       RDret daiBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ') out)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ' out)
     (hwrapReturn : ∀ {evmPost},
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (transferFromCallStore I) transferFromTransition.body
         (.returned { contract := contract, locals := transferFromCallStore I } evmPost
           (some [.bool true])) →
       ∃ cs, ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         callargs t.body (.returned cs evmPost retVal))
     (hwrapRevert :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (transferFromCallStore I) transferFromTransition.body .reverted →
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         callargs t.body .reverted)
     (henc : returnEquiv out retVal t.returnType) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hownerSolm : evmSolm.executionEnv.codeOwner = I.codeOwner := by
     simp [evmSolm, initState]
   have hsourceSolm : evmSolm.executionEnv.source = I.source := by
     simp [evmSolm, initState]
   have hsrcWord :
-      transferFromEvmTailSrcBalanceWord σ_evm I =
+      transferFromEvmTailSrcBalanceWord σ I =
         transferFromSrcBalanceWord evmSolm I := by
-    rw [transferFromSrcBalanceWord_initState (σ := σ_solm)]
-    exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-      (transferFromEvmSrcSlot I) (⟨0⟩ : UInt256)
+    exact (transferFromSrcBalanceWord_initState (σ := σ)).symm
   by_cases hsrcEnough :
-      (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ_evm I).toNat
+      (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat
   · obtain ⟨_, _, rd1515⟩ :=
       daiTransferFromX_initialBalanceOkCont
         (I := I) (ret := ret) (S := S) hsrcEnough hSlen rd1411
@@ -5039,9 +5008,10 @@ theorem daiTransferFromInternalCallRuntimeCore
     · have heqWord :=
         transferFromSrcMaskedWord_eq_solcSourceWord_of_address_eq I hsrcIsSender
       by_cases hfit :
-          (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+          (transferFromEvmTailDstBalanceWord σ I).toNat +
               (transferFromWadWord I).toNat < UInt256.size
-      · rcases transferFromTailSolmBridge hownerSolm hAccounts hsrcEnough hfit with
+      · rcases transferFromTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+          hsrcEnough hfit with
           ⟨hsrcEnoughBody, hfitBody, hfinal⟩
         have hbodyTf :
             ExecTransitionBody config contract evmSolm (transferFromCallStore I)
@@ -5057,7 +5027,7 @@ theorem daiTransferFromInternalCallRuntimeCore
         obtain ⟨cs, hbody⟩ := hwrapReturn (by simpa [evmSolm] using hbodyTf)
         obtain ⟨_, _, rdret⟩ :=
           daiTransferFromX_skipSenderSuccessJump
-            (I := I) (σ := σ_evm) (ret := ret) (S := S)
+            (I := I) (σ := σ) (ret := ret) (S := S)
             hperm heqWord hsrcEnough hfit hSlen hretDest rd1515
         have hrdret :=
           hfinish
@@ -5065,17 +5035,15 @@ theorem daiTransferFromInternalCallRuntimeCore
             (transferFromTailDstStoreMem_read64 I (transferFromSrcHashMem_size I)
               (transferFromSrcHashMem_read64 I))
             rdret
-        exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-          (by
-            simp [transferFromPostStateFrom, transferFromAfterSrcDebitState, evmSolm,
-              initState, storageStore_createdAccounts])
+        exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
           hfinal
           henc
       · have hover :
           UInt256.size ≤
-            (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+            (transferFromEvmTailDstBalanceWord σ I).toNat +
               (transferFromWadWord I).toNat := by omega
-        rcases transferFromTailSolmPrefixBridge hownerSolm hAccounts hsrcEnough with
+        rcases transferFromTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+          hsrcEnough with
           ⟨hsrcEnoughBody, hcreditNat, _⟩
         have hoverBody :
             UInt256.size ≤
@@ -5093,7 +5061,7 @@ theorem daiTransferFromInternalCallRuntimeCore
               hoverBody
         exact
           (daiTransferFromX_skipSenderDstOverflowRevertCont
-              (I := I) (σ := σ_evm) (ret := ret) (S := S)
+              (I := I) (σ := σ) (ret := ret) (S := S)
               hperm heqWord hsrcEnough hover hSlen rd1515)
           |>.reEquivExecutionRevert hcode hdispatch hdecode
             (hwrapRevert (by simpa [evmSolm] using hbodyTf))
@@ -5101,17 +5069,18 @@ theorem daiTransferFromInternalCallRuntimeCore
         intro hbad
         exact hsrcIsSender (transferFrom_address_eq_of_srcMaskedWord_eq I hbad)
       have hallowWord :=
-        transferFromAllowanceWord_accountMapEquiv (σ := σ_evm) (evm := evmSolm) (I := I)
-          hownerSolm hsourceSolm hAccounts
+        (transferFromAllowanceWord_initState (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+          (g := Sat256.ofUInt256 g)).symm
       by_cases hmax :
-          (transferFromEvmAllowanceWord σ_evm I).toNat = UInt256.size - 1
+          (transferFromEvmAllowanceWord σ I).toNat = UInt256.size - 1
       · have hmaxBody : (transferFromAllowanceWord evmSolm I).toNat = UInt256.size - 1 := by
           rw [← hallowWord]
           exact hmax
         by_cases hfit :
-            (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+            (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat < UInt256.size
-        · rcases transferFromTailSolmBridge hownerSolm hAccounts hsrcEnough hfit with
+        · rcases transferFromTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+            hsrcEnough hfit with
             ⟨hsrcEnoughBody, hfitBody, hfinal⟩
           have hbodyTf :
               ExecTransitionBody config contract evmSolm (transferFromCallStore I)
@@ -5128,7 +5097,7 @@ theorem daiTransferFromInternalCallRuntimeCore
           obtain ⟨cs, hbody⟩ := hwrapReturn (by simpa [evmSolm] using hbodyTf)
           obtain ⟨_, _, rdret⟩ :=
             daiTransferFromX_skipMaxSuccessJump
-              (I := I) (σ := σ_evm) (ret := ret) (S := S)
+              (I := I) (σ := σ) (ret := ret) (S := S)
               hperm hneWord hmax hsrcEnough hfit hSlen hretDest rd1515
           have hrdret :=
             hfinish
@@ -5136,17 +5105,15 @@ theorem daiTransferFromInternalCallRuntimeCore
               (transferFromTailDstStoreMem_read64 I (transferFromAllowanceHashMem_size I)
                 (transferFromAllowanceHashMem_read64 I))
               rdret
-          exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-            (by
-              simp [transferFromPostStateFrom, transferFromAfterSrcDebitState, evmSolm,
-                initState, storageStore_createdAccounts])
+          exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
             hfinal
             henc
         · have hover :
             UInt256.size ≤
-              (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+              (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat := by omega
-          rcases transferFromTailSolmPrefixBridge hownerSolm hAccounts hsrcEnough with
+          rcases transferFromTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+            hsrcEnough with
             ⟨hsrcEnoughBody, hcreditNat, _⟩
           have hoverBody :
               UInt256.size ≤
@@ -5165,12 +5132,12 @@ theorem daiTransferFromInternalCallRuntimeCore
                 hoverBody
           exact
             (daiTransferFromX_skipMaxDstOverflowRevertCont
-                (I := I) (σ := σ_evm) (ret := ret) (S := S)
+                (I := I) (σ := σ) (ret := ret) (S := S)
                 hperm hneWord hmax hsrcEnough hover hSlen rd1515)
             |>.reEquivExecutionRevert hcode hdispatch hdecode
               (hwrapRevert (by simpa [evmSolm] using hbodyTf))
       · by_cases hallowEnough :
-            (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ_evm I).toNat
+            (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ I).toNat
         · have hnotMaxBody :
               (transferFromAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
             rw [← hallowWord]
@@ -5180,9 +5147,9 @@ theorem daiTransferFromInternalCallRuntimeCore
             rw [← hallowWord]
             exact hallowEnough
           have hallowAcc :=
-            transferFromAfterAllowance_accountMapEquiv
-              (σ := σ_evm) (evm := evmSolm) (I := I)
-              hownerSolm hsourceSolm hAccounts hallowEnough
+            transferFromAfterAllowanceAccountMapEq
+              (σ := σ) (evm := evmSolm) (I := I)
+              hownerSolm hsourceSolm (by simp [evmSolm, initState]) hallowWord hallowEnough
           let evmAfterAllowance := transferFromAfterAllowanceState evmSolm I
           have hownerAfterAllowance :
               evmAfterAllowance.executionEnv.codeOwner = I.codeOwner := by
@@ -5191,12 +5158,12 @@ theorem daiTransferFromInternalCallRuntimeCore
           by_cases hsrcDebitEnough :
               (transferFromWadWord I).toNat ≤
                 (transferFromEvmTailSrcBalanceWord
-                  (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat
+                  (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat
           · by_cases hfit :
               (transferFromEvmTailDstBalanceWord
-                  (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat +
+                  (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat +
                   (transferFromWadWord I).toNat < UInt256.size
-            · rcases transferFromTailSolmBridge hownerAfterAllowance hallowAcc
+            · rcases transferFromTailSolmBridge hownerAfterAllowance hallowAcc.symm
                   hsrcDebitEnough hfit with
                 ⟨hsrcDebitEnoughBody, hfitBody, hfinal⟩
               have hbodyTf :
@@ -5217,7 +5184,7 @@ theorem daiTransferFromInternalCallRuntimeCore
               obtain ⟨cs, hbody⟩ := hwrapReturn (by simpa [evmSolm] using hbodyTf)
               obtain ⟨_, _, rdret⟩ :=
                 daiTransferFromX_spendSuccessJump
-                  (I := I) (σ := σ_evm) (ret := ret) (S := S)
+                  (I := I) (σ := σ) (ret := ret) (S := S)
                   hperm hneWord hmax hallowEnough hsrcDebitEnough hfit hSlen hretDest rd1515
               have hrdret :=
                 hfinish
@@ -5227,19 +5194,15 @@ theorem daiTransferFromInternalCallRuntimeCore
                     (transferFromAllowancePostStoreHashMem_size I)
                     (transferFromAllowancePostStoreHashMem_read64 I))
                   rdret
-              exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                (by
-                  simp [transferFromPostStateFrom, transferFromAfterSrcDebitState,
-                    evmAfterAllowance, transferFromAfterAllowanceState, evmSolm, initState,
-                    storageStore_createdAccounts])
+              exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 henc
             · have hover :
                 UInt256.size ≤
                   (transferFromEvmTailDstBalanceWord
-                    (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat +
+                    (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat +
                     (transferFromWadWord I).toNat := by omega
-              rcases transferFromTailSolmPrefixBridge hownerAfterAllowance hallowAcc
+              rcases transferFromTailSolmPrefixBridge hownerAfterAllowance hallowAcc.symm
                   hsrcDebitEnough with
                 ⟨hsrcDebitEnoughBody, hcreditNat, _⟩
               have hoverBody :
@@ -5262,26 +5225,23 @@ theorem daiTransferFromInternalCallRuntimeCore
                     hoverBody
               exact
                 (daiTransferFromX_spendDstOverflowRevertCont
-                    (I := I) (σ := σ_evm) (ret := ret) (S := S)
+                    (I := I) (σ := σ) (ret := ret) (S := S)
                     hperm hneWord hmax hallowEnough hsrcDebitEnough hover hSlen rd1515)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode
                   (hwrapRevert (by simpa [evmSolm] using hbodyTf))
           · have hltDebit :
               (transferFromEvmTailSrcBalanceWord
-                  (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat <
+                  (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat <
                 (transferFromWadWord I).toNat := by omega
             have hsrcAfterWord :
                 transferFromEvmTailSrcBalanceWord
-                    (transferFromEvmAfterAllowanceAccountMap σ_evm I) I =
+                    (transferFromEvmAfterAllowanceAccountMap σ I) I =
                   transferFromSrcBalanceWord evmAfterAllowance I := by
-              have hread :=
-                accountMapEquiv_storage_findD hallowAcc I.codeOwner
-                  (transferFromEvmSrcSlot I) (⟨0⟩ : UInt256)
               simpa [evmAfterAllowance, transferFromEvmTailSrcBalanceWord,
                 transferFromSrcBalanceWord, transferFromEvmSrcSlot,
                 transferFromSrcSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage, solcSlotWord,
-                hownerAfterAllowance] using hread
+                hownerAfterAllowance, hallowAcc]
             have hltDebitBody :
                 (transferFromSrcBalanceWord evmAfterAllowance I).toNat <
                   (transferFromWadWord I).toNat := by
@@ -5300,12 +5260,12 @@ theorem daiTransferFromInternalCallRuntimeCore
                   hltDebitBody
             exact
               (daiTransferFromX_spendSrcDebitRevertCont
-                  (I := I) (σ := σ_evm) (ret := ret) (S := S)
+                  (I := I) (σ := σ) (ret := ret) (S := S)
                   hperm hneWord hmax hallowEnough hltDebit hSlen rd1515)
               |>.reEquivExecutionRevert hcode hdispatch hdecode
                 (hwrapRevert (by simpa [evmSolm] using hbodyTf))
         · have hltAllow :
-              (transferFromEvmAllowanceWord σ_evm I).toNat <
+              (transferFromEvmAllowanceWord σ I).toNat <
                 (transferFromWadWord I).toNat := by omega
           have hnotMaxBody :
               (transferFromAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
@@ -5328,12 +5288,12 @@ theorem daiTransferFromInternalCallRuntimeCore
                 hltAllowBody
           exact
             (daiTransferFromX_allowanceRevertCont
-                (I := I) (σ := σ_evm) (ret := ret) (S := S)
+                (I := I) (σ := σ) (ret := ret) (S := S)
                 hneWord hmax hltAllow hSlen rd1515)
             |>.reEquivExecutionRevert hcode hdispatch hdecode
               (hwrapRevert (by simpa [evmSolm] using hbodyTf))
   · have hlt :
-        (transferFromEvmTailSrcBalanceWord σ_evm I).toNat < (transferFromWadWord I).toNat := by
+        (transferFromEvmTailSrcBalanceWord σ I).toNat < (transferFromWadWord I).toNat := by
       omega
     have hltBody :
         (transferFromSrcBalanceWord evmSolm I).toNat < (transferFromWadWord I).toNat := by
@@ -5348,42 +5308,39 @@ theorem daiTransferFromInternalCallRuntimeCore
           hltBody
     exact
       (daiTransferFromX_initialBalanceRevertCont
-          (I := I) (σ := σ_evm) (ret := ret) (S := S)
+          (I := I) (σ := σ) (ret := ret) (S := S)
           hlt hSlen rd1411)
       |>.reEquivExecutionRevert hcode hdispatch hdecode
         (hwrapRevert (by simpa [evmSolm] using hbodyTf))
 
 /-- `transferFrom(address,address,uint256)` body refines its Solm transition. -/
-theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 19))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 19)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 19) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some transferFromTransition :=
     daiDispatchTransferFrom hsel
-  have hreach := daiReachTransferFromBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachTransferFromBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hdecode := daiDecode_transferFrom_ok (I := I) hsel hsz100
     obtain ⟨_, _, rd1411⟩ :=
       daiTransferFromX_decoded (g := Sat256.ofUInt256 g) hsel hsz100 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hownerSolm : evmSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmSolm, initState]
     have hsourceSolm : evmSolm.executionEnv.source = I.source := by
       simp [evmSolm, initState]
     have hsrcWord :
-        transferFromEvmTailSrcBalanceWord σ_evm I =
+        transferFromEvmTailSrcBalanceWord σ I =
           transferFromSrcBalanceWord evmSolm I := by
-      rw [transferFromSrcBalanceWord_initState (σ := σ_solm)]
-      exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-        (transferFromEvmSrcSlot I) (⟨0⟩ : UInt256)
+      exact (transferFromSrcBalanceWord_initState (σ := σ)).symm
     by_cases hsrcEnough :
-        (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ_evm I).toNat
+        (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat
     · obtain ⟨_, _, rd1515⟩ := daiTransferFromX_initialBalanceOk hsrcEnough rd1411
       have hsrcEnoughSolm :
           (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evmSolm I).toNat := by
@@ -5394,10 +5351,11 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       · have heqWord :=
           transferFromSrcMaskedWord_eq_solcSourceWord_of_address_eq I hsrcIsSender
         by_cases hfit :
-            (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+            (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat < UInt256.size
-        · rcases transferFromTailSolmBridge hownerSolm hAccounts hsrcEnough hfit with
-            ⟨hsrcEnoughBody, hfitBody, hfinal⟩
+        · rcases transferFromTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+            hsrcEnough hfit with
+              ⟨hsrcEnoughBody, hfitBody, hfinal⟩
           have hbody :
               ExecTransitionBody config contract evmSolm (transferFromStore I)
                 transferFromTransition.body
@@ -5410,19 +5368,17 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                 (by simpa [evmSolm, initState] using hsrcIsSender)
                 hfitBody
           exact (daiTransferFromX_skipSenderSuccess hperm heqWord hsrcEnough hfit rd1515)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-              (by
-                simp [transferFromPostStateFrom, transferFromAfterSrcDebitState, evmSolm,
-                  initState, storageStore_createdAccounts])
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (returnEquiv_of_encode
                 (by simpa [boolTy] using boolTrueReturnEncoding))
         · have hover :
             UInt256.size ≤
-              (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+              (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat := by omega
-          rcases transferFromTailSolmPrefixBridge hownerSolm hAccounts hsrcEnough with
-            ⟨hsrcEnoughBody, hcreditNat, _⟩
+          rcases transferFromTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+              hsrcEnough with
+                ⟨hsrcEnoughBody, hcreditNat, _⟩
           have hoverBody :
               UInt256.size ≤
                 transferFromDstCreditNat (transferFromAfterSrcDebitState evmSolm I) I := by
@@ -5444,18 +5400,19 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
           intro hbad
           exact hsrcIsSender (transferFrom_address_eq_of_srcMaskedWord_eq I hbad)
         have hallowWord :=
-          transferFromAllowanceWord_accountMapEquiv (σ := σ_evm) (evm := evmSolm) (I := I)
-            hownerSolm hsourceSolm hAccounts
+          (transferFromAllowanceWord_initState (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+            (g := Sat256.ofUInt256 g)).symm
         by_cases hmax :
-            (transferFromEvmAllowanceWord σ_evm I).toNat = UInt256.size - 1
+            (transferFromEvmAllowanceWord σ I).toNat = UInt256.size - 1
         · have hmaxBody : (transferFromAllowanceWord evmSolm I).toNat = UInt256.size - 1 := by
             rw [← hallowWord]
             exact hmax
           by_cases hfit :
-              (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+              (transferFromEvmTailDstBalanceWord σ I).toNat +
                   (transferFromWadWord I).toNat < UInt256.size
-          · rcases transferFromTailSolmBridge hownerSolm hAccounts hsrcEnough hfit with
-              ⟨hsrcEnoughBody, hfitBody, hfinal⟩
+          · rcases transferFromTailSolmBridge hownerSolm (by simp [evmSolm, initState])
+              hsrcEnough hfit with
+                ⟨hsrcEnoughBody, hfitBody, hfinal⟩
             have hbody :
                 ExecTransitionBody config contract evmSolm (transferFromStore I)
                   transferFromTransition.body
@@ -5469,19 +5426,17 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                   hmaxBody
                   hfitBody
             exact (daiTransferFromX_skipMaxSuccess hperm hneWord hmax hsrcEnough hfit rd1515)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                (by
-                  simp [transferFromPostStateFrom, transferFromAfterSrcDebitState, evmSolm,
-                    initState, storageStore_createdAccounts])
+              |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 (returnEquiv_of_encode
                   (by simpa [boolTy] using boolTrueReturnEncoding))
           · have hover :
               UInt256.size ≤
-                (transferFromEvmTailDstBalanceWord σ_evm I).toNat +
+                (transferFromEvmTailDstBalanceWord σ I).toNat +
                   (transferFromWadWord I).toNat := by omega
-            rcases transferFromTailSolmPrefixBridge hownerSolm hAccounts hsrcEnough with
-              ⟨hsrcEnoughBody, hcreditNat, _⟩
+            rcases transferFromTailSolmPrefixBridge hownerSolm (by simp [evmSolm, initState])
+                hsrcEnough with
+                  ⟨hsrcEnoughBody, hcreditNat, _⟩
             have hoverBody :
                 UInt256.size ≤
                   transferFromDstCreditNat (transferFromAfterSrcDebitState evmSolm I) I := by
@@ -5501,7 +5456,7 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                 rd1515)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · by_cases hallowEnough :
-              (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ_evm I).toNat
+              (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ I).toNat
           · have hnotMaxBody :
                 (transferFromAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
               rw [← hallowWord]
@@ -5511,9 +5466,9 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
               rw [← hallowWord]
               exact hallowEnough
             have hallowAcc :=
-              transferFromAfterAllowance_accountMapEquiv
-                (σ := σ_evm) (evm := evmSolm) (I := I)
-                hownerSolm hsourceSolm hAccounts hallowEnough
+              transferFromAfterAllowanceAccountMapEq
+                (σ := σ) (evm := evmSolm) (I := I)
+                hownerSolm hsourceSolm (by simp [evmSolm, initState]) hallowWord hallowEnough
             let evmAfterAllowance := transferFromAfterAllowanceState evmSolm I
             have hownerAfterAllowance :
                 evmAfterAllowance.executionEnv.codeOwner = I.codeOwner := by
@@ -5522,12 +5477,12 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
             by_cases hsrcDebitEnough :
                 (transferFromWadWord I).toNat ≤
                   (transferFromEvmTailSrcBalanceWord
-                    (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat
+                    (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat
             · by_cases hfit :
                 (transferFromEvmTailDstBalanceWord
-                    (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat +
+                    (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat +
                     (transferFromWadWord I).toNat < UInt256.size
-              · rcases transferFromTailSolmBridge hownerAfterAllowance hallowAcc
+              · rcases transferFromTailSolmBridge hownerAfterAllowance hallowAcc.symm
                     hsrcDebitEnough hfit with
                   ⟨hsrcDebitEnoughBody, hfitBody, hfinal⟩
                 have hbody :
@@ -5547,20 +5502,16 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                       hfitBody
                 exact (daiTransferFromX_spendSuccess hperm hneWord hmax hallowEnough
                     hsrcDebitEnough hfit rd1515)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                    (by
-                      simp [transferFromPostStateFrom, transferFromAfterSrcDebitState,
-                        evmAfterAllowance, transferFromAfterAllowanceState, evmSolm, initState,
-                        storageStore_createdAccounts])
+                  |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                     hfinal
                     (returnEquiv_of_encode
                       (by simpa [boolTy] using boolTrueReturnEncoding))
               · have hover :
                   UInt256.size ≤
                     (transferFromEvmTailDstBalanceWord
-                      (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat +
+                      (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat +
                       (transferFromWadWord I).toNat := by omega
-                rcases transferFromTailSolmPrefixBridge hownerAfterAllowance hallowAcc
+                rcases transferFromTailSolmPrefixBridge hownerAfterAllowance hallowAcc.symm
                     hsrcDebitEnough with
                   ⟨hsrcDebitEnoughBody, hcreditNat, _⟩
                 have hoverBody :
@@ -5586,20 +5537,17 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
             · have hltDebit :
                 (transferFromEvmTailSrcBalanceWord
-                    (transferFromEvmAfterAllowanceAccountMap σ_evm I) I).toNat <
+                    (transferFromEvmAfterAllowanceAccountMap σ I) I).toNat <
                   (transferFromWadWord I).toNat := by omega
               have hsrcAfterWord :
                   transferFromEvmTailSrcBalanceWord
-                      (transferFromEvmAfterAllowanceAccountMap σ_evm I) I =
+                      (transferFromEvmAfterAllowanceAccountMap σ I) I =
                     transferFromSrcBalanceWord evmAfterAllowance I := by
-                have hread :=
-                  accountMapEquiv_storage_findD hallowAcc I.codeOwner
-                    (transferFromEvmSrcSlot I) (⟨0⟩ : UInt256)
                 simpa [evmAfterAllowance, transferFromEvmTailSrcBalanceWord,
                   transferFromSrcBalanceWord, transferFromEvmSrcSlot,
                   transferFromSrcSlot_eq_mapSlot_masked, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, solcSlotWord,
-                  hownerAfterAllowance] using hread
+                  hownerAfterAllowance, hallowAcc]
               have hltDebitBody :
                   (transferFromSrcBalanceWord evmAfterAllowance I).toNat <
                     (transferFromWadWord I).toNat := by
@@ -5620,7 +5568,7 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
                   hltDebit rd1515)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hltAllow :
-                (transferFromEvmAllowanceWord σ_evm I).toNat <
+                (transferFromEvmAllowanceWord σ I).toNat <
                   (transferFromWadWord I).toNat := by omega
             have hnotMaxBody :
                 (transferFromAllowanceWord evmSolm I).toNat ≠ UInt256.size - 1 := by
@@ -5644,7 +5592,7 @@ theorem daiTransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
             exact (daiTransferFromX_allowanceRevert hneWord hmax hltAllow rd1515)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hlt :
-          (transferFromEvmTailSrcBalanceWord σ_evm I).toNat < (transferFromWadWord I).toNat := by
+          (transferFromEvmTailSrcBalanceWord σ I).toNat < (transferFromWadWord I).toNat := by
         omega
       have hltBody :
           (transferFromSrcBalanceWord evmSolm I).toNat < (transferFromWadWord I).toNat := by

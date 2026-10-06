@@ -48,7 +48,7 @@ theorem cureDecode_amt_none_short {I : ExecutionEnv}
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
 theorem cureAmtBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some amtTransition)
@@ -57,10 +57,9 @@ theorem cureAmtBodyCoreOk
         (transitionSignature amtTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (amtMappingArg I))))
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := amtMappingKey I
   let slot := solcMappingSlot ⟨6⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (amtMappingArg I))
@@ -68,14 +67,14 @@ theorem cureAmtBodyCoreOk
     simp [slot, key, amtMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals amtTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals amtTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (cureSlotWord (amtMappingSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (cureSlotWord (amtMappingSlotFor I) σ I).toNat))])) := by
     simpa [amtTransition, amtMappingSlotFor, cureSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       cureUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := amtRef (.var "arg0")) (er := amtMappingEvaledRef I)
         (slot := amtMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, amtRef])
@@ -108,12 +107,12 @@ theorem cureAmtBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret cureBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (cureSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (cureSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨343⟩) (val := cureSlotWord slot σ_evm I) (ret := ⟨343⟩) (R := [sel])
+      (pc := ⟨343⟩) (val := cureSlotWord slot σ I) (ret := ⟨343⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨6⟩ key)
-        (cureSlotWord slot σ_evm I))
+        (cureSlotWord slot σ I))
       (by simpa [slot, cureSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -121,37 +120,32 @@ theorem cureAmtBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨6⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (cureSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (cureSlotWord slot σ I)
           (solcMappingHashMem_size ⟨6⟩ key) (solcMappingHashMem_read64 ⟨6⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (cureSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (cureSlotWord slot σ I)
           (solcMappingHashMem_size ⟨6⟩ key))
       (by simp)
     simpa [slot, cureSlotWord] using hret'
-  have hword : cureSlotWord slot σ_evm I = cureSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (cureSlotWord (amtMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (cureSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (cureSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ I))
+        (some [(.int (Int.ofNat (cureSlotWord (amtMappingSlotFor I) σ I).toNat))])
         amtTransition.returnType := by
+    rw [hslot]
     rw [show amtTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ I))
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody rfl henc
 
 theorem cureAmtBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some amtTransition)
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -168,24 +162,23 @@ theorem cureAmtBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (cureDecode_amt_none_short hsz4 hshort)
 
-theorem cureAmtBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureAmtBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 0) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some amtTransition :=
     cureDispatchAmt hsel
-  have hreach := cureReachAmtBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := cureReachAmtBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact cureAmtBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (cureDecode_amt_ok hsz36) hreach hAccounts
+      (cureDecode_amt_ok hsz36) hreach
   · exact cureAmtBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Cure

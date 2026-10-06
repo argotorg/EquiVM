@@ -69,9 +69,9 @@ theorem tlcDepth_ne_1024_of_lt {d : Fin 1025} (h : d.val < 1024) : d ≠ 1024 :=
   have h1024 : (1024 : Fin 1025).val = 1024 := by decide
   omega
 
-theorem tlcInitStateDepth_ne_1024_of_lt {cA gh bl σ σ₀ A I g}
+theorem tlcInitStateDepth_ne_1024_of_lt {σ σ₀ A I g}
     (h : I.depth.val < 1024) :
-    (initState cA gh bl σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
+    (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
   simpa [initState] using tlcDepth_ne_1024_of_lt h
 
 end OpenZeppelinBench.TimelockController

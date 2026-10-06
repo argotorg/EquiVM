@@ -10,7 +10,7 @@ namespace SimpleAuction
 /-! ## `auctionEndTime()` getter -/
 
 def auctionEndTimeWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)
@@ -32,12 +32,12 @@ theorem simpleAuctionAuctionEndTimeBodyReturns (evm : EVM.State) (locals : Store
         (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime),
         simpleAuctionStorageLocLoad_uint256])
 
-theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_auctionEndTime {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨239⟩
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDret simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      σ k C) :
+    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (auctionEndTimeWord σ I)) := by
   obtain ⟨_, _, rd239⟩ := hreach
   have rd257 := evm_run rd239 with [
@@ -46,9 +46,9 @@ theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, push2 ⟨260⟩, push1 ⟨1⟩ ]
   obtain ⟨_, _, rd258₀⟩ := rd257.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd258⟩ :
-      ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨258⟩
+      ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨258⟩
         [auctionEndTimeWord σ I, ⟨260⟩, simpleAuctionSelWord I]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [auctionEndTimeWord, initState] using rd258₀⟩
   have rd260 := evm_run rd258 with [
     dup2, jump (by jump_dest) ]
@@ -79,12 +79,12 @@ theorem simpleAuctionX_auctionEndTime {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa using solcReturnMem_read128 (auctionEndTimeWord σ I))
       (by evm_ov) ]
 
-theorem simpleAuctionX_auctionEndTime_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_auctionEndTime_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨239⟩
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd239⟩ := hreach
   have rd247 := evm_run rd239 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨250⟩,
@@ -123,44 +123,41 @@ theorem simpleAuctionDecode_auctionEndTime {I : ExecutionEnv} (hsz : 4 ≤ I.cal
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem simpleAuctionAuctionEndTimeBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem simpleAuctionAuctionEndTimeBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨239⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+      σ σ₀ g A I := by
   have hsz := simpleAuctionAuctionEndTimeSelector_size hsel
   have hd := simpleAuctionDispatch_auctionEndTime (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_auctionEndTime (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hword : auctionEndTimeWord σ_evm I = auctionEndTimeWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-          auctionEndTimeGetter.body
-          (.returned { contract := simpleAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some [(.int (Int.ofNat (auctionEndTimeWord σ_solm I).toNat))])) := by
-      simpa [auctionEndTimeWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
-        simpleAuctionAuctionEndTimeBodyReturns
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-          (by simp only [initState]; exact hwv) (by simp)
-    exact (simpleAuctionX_auctionEndTime (g := Sat256.ofUInt256 g) hwv hreach)
-      |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
-        (returnEquiv_of_encode (uint256ReturnEncoding (auctionEndTimeWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          auctionEndTimeGetter.body
+          (.returned { contract := simpleAuctionContract, locals := ∅ }
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (some [(.int (Int.ofNat (auctionEndTimeWord σ I).toNat))])) := by
+      simpa [auctionEndTimeWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+        simpleAuctionAuctionEndTimeBodyReturns
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (by simp only [initState]; exact hwv) (by simp)
+    exact (simpleAuctionX_auctionEndTime (g := Sat256.ofUInt256 g) hwv hreach)
+      |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
+        (returnEquiv_of_encode (uint256ReturnEncoding (auctionEndTimeWord σ I)))
+  · have hbody :
+        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           auctionEndTimeGetter.body .reverted := by
       simpa [auctionEndTimeGetter] using
         bodyReverts_nonPayable (cfg := simpleAuctionConfig) (contract := simpleAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store)) (rest := [.return [(.storage auctionEndTimeRef)]])
           (by simp only [initState]; exact hwv)
     exact (simpleAuctionX_auctionEndTime_nonpayable (g := Sat256.ofUInt256 g) hwv hreach)

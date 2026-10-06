@@ -57,9 +57,9 @@ theorem jugDepth_ne_1024_of_lt {d : Fin 1025} (h : d.val < 1024) : d ≠ 1024 :=
     decide
   omega
 
-theorem jugInitStateDepth_ne_1024_of_lt {cA gh bl σ σ₀ A I g}
+theorem jugInitStateDepth_ne_1024_of_lt {σ σ₀ A I g}
     (h : I.depth.val < 1024) :
-    (initState cA gh bl σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
+    (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
   simpa [initState] using jugDepth_ne_1024_of_lt h
 
 theorem jugStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
@@ -113,7 +113,7 @@ theorem jugUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (jugStorageLocLoad_uint256 evm slot))
 
 theorem jugAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = jugBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -121,9 +121,8 @@ theorem jugAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf jugBytecode entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf jugBytecode routine slot)
     (hroutine : (D_J jugBytecode 0).contains routine = true)
@@ -132,39 +131,32 @@ theorem jugAddressGetterBodyCore
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (jugAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : jugSlotWord slot σ_evm I = jugSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.address (AccountAddress.ofNat (jugAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (jugAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : jugSlotWord slot σ_solm I = jugSlotWord slot σ_evm I := hword.symm
-    simp [jugAddressReturnWord, hslot]
+            (jugAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (jugAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (jugAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (jugAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (jugAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [jugAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (jugSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (jugSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := jugBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret jugBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (jugAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (jugAddressReturnWord slot σ I)) := by
     simpa [jugAddressReturnWord, jugSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl henc
 
 theorem jugUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = jugBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -172,9 +164,8 @@ theorem jugUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf jugBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf jugBytecode routine slot)
     (hroutine : (D_J jugBytecode 0).contains routine = true)
@@ -183,33 +174,27 @@ theorem jugUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (jugSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : jugSlotWord slot σ_evm I = jugSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (jugSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (jugSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (jugSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (jugSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (jugSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (jugSlotWord slot σ I))
+        (some [(.int (Int.ofNat (jugSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (jugSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (jugSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := jugBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret jugBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (jugSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (jugSlotWord slot σ I)) := by
     simpa [jugSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl henc
 
 -- LIBRARY CANDIDATE: generic solc getter for a mapping stored at slot zero.
 @[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
@@ -245,15 +230,15 @@ theorem jugUint256GetterBodyCore
 
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩

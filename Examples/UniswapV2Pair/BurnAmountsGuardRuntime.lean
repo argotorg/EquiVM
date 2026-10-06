@@ -9,13 +9,13 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeAmountsGuardCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4533 : RD uniswapV2PairBytecode I g s0 ⟨4533⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
-      mem feeToStaticcallActiveWords rdata acc k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 24 ≤ 1024) :
@@ -25,12 +25,12 @@ theorem uniswapBurnRuntimeAmountsGuardCases
         (liquidity :: UInt256.ofNat I.codeOwner.val :: ⟨4617⟩ ::
           totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: amount1 :: amount0 :: R)
-        mem feeToStaticcallActiveWords rdata acc k' C' := by
+        mem feeToStaticcallActiveWords rdata σ k' C' := by
   have hto4548 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨4548⟩
       ((if 0 < amount0.toNat ∧ 0 < amount1.toNat then ⟨1⟩ else ⟨0⟩) ::
         totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: amount1 :: amount0 :: R)
-      mem feeToStaticcallActiveWords rdata acc k' C' := by
+      mem feeToStaticcallActiveWords rdata σ k' C' := by
     have rd4542 := evm_run rd4533 with [push1 ⟨0⟩, dup12, gt, dup1, iszero, push2 ⟨4548⟩]
     by_cases hp0 : 0 < amount0.toNat
     · rw [ugt_one (by exact hp0)] at rd4542

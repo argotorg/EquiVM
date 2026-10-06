@@ -815,15 +815,15 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimExcessSuccessToSafeTransferEntry {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {balance reserve toWord token safeRet : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩
       (reserve :: balance :: ⟨5325⟩ :: toWord :: token :: safeRet :: R)
-      mem aw rdata acc k C)
+      mem aw rdata σ k C)
     (hle : reserve.toNat ≤ balance.toNat)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (UInt256.sub balance reserve :: toWord :: token :: safeRet :: R)
-      mem aw rdata acc k' C' := by
+      mem aw rdata σ k' C' := by
   obtain ⟨_, _, rd5325⟩ :=
     RD.uniswapSafeMathSubSuccess h hle (by jump_dest)
       (by simp only [List.length_cons]; omega)
@@ -1143,34 +1143,34 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out2 : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {o out2 : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondBalanceStaticcallMem self o toWord prevValue out2) (UInt256.ofNat 13) out2
-      (cA, σ) k C)
+      σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size)
     (hdepth : ee.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
-      (z : Bool) (out : ByteArray) (A_in : Substate) (callGas gasArg : UInt256)
+    ∃ (σ' : AccountMap) (z : Bool) (out : ByteArray) (A_in : Substate)
+      (callGas gasArg : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.blobVersionedHashes cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
             (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
               |>.readWithPadding 456 68)
-            (ee.depth + 1) ee.header ee.perm)
+            (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨524⟩ ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
             sel :: [])
           (skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value)
-          (UInt256.ofNat 18) out (cA', σ') k' C'
+          (UInt256.ofNat 18) out σ' k' C'
       ∧ out.size < UInt256.size := by
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
@@ -1361,9 +1361,9 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade {g : Sat256} {s0 : State
   rw [show (⟨68⟩ : UInt256) + ⟨456⟩ = ⟨524⟩ by native_decide,
     show UInt256.sub (⟨524⟩ : UInt256) ⟨456⟩ = ⟨68⟩ by native_decide]
     at rd6594
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize'⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize'⟩ :=
     rd6594.call (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize'⟩
+  refine ⟨σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize'⟩
   · simpa using hΘ
   · have hlen :
         (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by

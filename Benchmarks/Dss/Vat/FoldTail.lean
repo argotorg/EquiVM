@@ -815,13 +815,13 @@ theorem vatDispatchFold {I : ExecutionEnv}
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes]
   native_decide
 
-theorem vatReachFoldBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachFoldBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 9)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨1245⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0xb65337df⟩ :=
     vatSelWord_eq_of_beq I hsz 0xb6 0x53 0x37 0xdf ⟨0xb65337df⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -849,13 +849,13 @@ theorem vatReachFoldBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact vatReachArms163Body 2 (by omega) ⟨1245⟩ hcode hwv hsz hsize
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatFoldX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatFoldX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1245⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1245⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -871,26 +871,26 @@ theorem vatFoldX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem vatFoldBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsel : selIs I (vatSelBytes 9))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1245⟩ [vatSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1245⟩ [vatSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (vatFoldX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchFold hsel)
       (vatDecode_fold_none_short hsz4 hshort)
 
-theorem vatFoldX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatFoldX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1245⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5581⟩
+      (initState σ σ₀ g A I) ⟨1245⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨5581⟩
         [foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1245⟩) (ret := ⟨524⟩)
     (decoded := ⟨1267⟩) (need := ⟨96⟩) hreach

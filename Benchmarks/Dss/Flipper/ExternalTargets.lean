@@ -20,74 +20,6 @@ abbrev flipperVatAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :
 abbrev flipperCatAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (flipperCatTargetWord σ I).toNat
 
-theorem flipperVatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    flipperVatTargetWord σ I = flipperVatTargetWord τ I := by
-  have hslot : flipperSlotWord ⟨2⟩ σ I = flipperSlotWord ⟨2⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  simp [flipperVatTargetWord, flipperAddressReturnWord, hslot]
-
-theorem flipperCatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    flipperCatTargetWord σ I = flipperCatTargetWord τ I := by
-  have hslot : flipperSlotWord ⟨7⟩ σ I = flipperSlotWord ⟨7⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩
-  simp [flipperCatTargetWord, flipperAddressReturnWord, hslot]
-
-theorem flipperVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    flipperVatAddress σ I = flipperVatAddress τ I := by
-  apply Fin.ext
-  simp [flipperVatAddress, flipperVatTargetWord_accountMapEquiv hAccounts]
-
-theorem flipperCatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    flipperCatAddress σ I = flipperCatAddress τ I := by
-  apply Fin.ext
-  simp [flipperCatAddress, flipperCatTargetWord_accountMapEquiv hAccounts]
-
-theorem flipperVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flipperVatTargetWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flipperVatTargetWord σ I)
-  have htarget : flipperVatTargetWord σ I = flipperVatTargetWord τ I :=
-    flipperVatTargetWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem flipperCatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flipperCatTargetWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flipperCatTargetWord σ I)
-  have htarget : flipperCatTargetWord σ I = flipperCatTargetWord τ I :=
-    flipperCatTargetWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem flipperVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flipperVatTargetWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  exact hne (flipperVatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
-
-theorem flipperCatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flipperCatTargetWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  exact hne (flipperCatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
-
 theorem flipperVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     flipperVatAddress σ I = AccountAddress.ofUInt256 (flipperVatTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
@@ -103,34 +35,16 @@ theorem flipperEvmAddress_accountAddress (a : AccountAddress) :
   rw [show EVM.addressModulus = AccountAddress.size from by decide]
   exact Nat.mod_eq_of_lt a.isLt
 
-theorem flipperVatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    EVM.address (flipperVatAddress σ_solm I) =
-      AccountAddress.ofUInt256 (flipperVatTargetWord σ_evm I) := by
-  have haddr :
-      flipperVatAddress σ_solm I =
-        AccountAddress.ofUInt256 (flipperVatTargetWord σ_evm I) := by
-    calc
-      flipperVatAddress σ_solm I = flipperVatAddress σ_evm I :=
-        (flipperVatAddress_accountMapEquiv hAccounts).symm
-      _ = AccountAddress.ofUInt256 (flipperVatTargetWord σ_evm I) :=
-        flipperVatAddress_eq_target σ_evm I
-  rw [haddr]
+theorem flipperVatEvmAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
+    EVM.address (flipperVatAddress σ I) =
+      AccountAddress.ofUInt256 (flipperVatTargetWord σ I) := by
+  rw [flipperVatAddress_eq_target]
   exact flipperEvmAddress_accountAddress _
 
-theorem flipperCatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    EVM.address (flipperCatAddress σ_solm I) =
-      AccountAddress.ofUInt256 (flipperCatTargetWord σ_evm I) := by
-  have haddr :
-      flipperCatAddress σ_solm I =
-        AccountAddress.ofUInt256 (flipperCatTargetWord σ_evm I) := by
-    calc
-      flipperCatAddress σ_solm I = flipperCatAddress σ_evm I :=
-        (flipperCatAddress_accountMapEquiv hAccounts).symm
-      _ = AccountAddress.ofUInt256 (flipperCatTargetWord σ_evm I) :=
-        flipperCatAddress_eq_target σ_evm I
-  rw [haddr]
+theorem flipperCatEvmAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
+    EVM.address (flipperCatAddress σ I) =
+      AccountAddress.ofUInt256 (flipperCatTargetWord σ I) := by
+  rw [flipperCatAddress_eq_target]
   exact flipperEvmAddress_accountAddress _
 
 theorem flipper_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
@@ -138,16 +52,16 @@ theorem flipper_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target 
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem flipper_extCodeSizeWord_pos_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
@@ -155,103 +69,70 @@ theorem flipper_extCodeSizeWord_pos_lookup_code_pos {σ : AccountMap} {target : 
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
-        ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+        ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   by_contra hnot
   have hnat :
       (UInt256.ofNat
-        ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 :=
+        ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 :=
     Nat.eq_zero_of_not_pos hnot
   have hwordZero :
-      UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
+      UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
     uint256_toNat_eq_zero hnat
   have hword :
-      UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size)) =
+      UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord σ target := by
     subst addr
-    cases hacc : σ.find? (AccountAddress.ofUInt256 target) <;>
-      simp [Reasoning.Theory.extCodeSizeWord, hacc, Option.option] <;>
+    cases hacc : σ.get? (AccountAddress.ofUInt256 target) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Reasoning.Theory.extCodeSizeWord,
+        hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])
 
-theorem flipperVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     flipper_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := flipperVatTargetWord σ I) (addr := flipperVatAddress σ I)
       (flipperVatAddress_eq_target σ I) hzero
 
-theorem flipperCatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperCatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     flipper_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := flipperCatTargetWord σ I) (addr := flipperCatAddress σ I)
       (flipperCatAddress_eq_target σ I) hzero
 
-theorem flipperVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperVatCode_pos_of_codeSize_ne_zero {σ σ₀ A I} {g : UInt256}
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat := by
-  by_contra hnot
-  have hnat :
-      (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 :=
-    Nat.eq_zero_of_not_pos hnot
-  have hwordZero :
-      UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
-    uint256_toNat_eq_zero hnat
-  have hword :
-      UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size)) =
-        Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) := by
-    cases hacc : σ.find? (AccountAddress.ofUInt256 (flipperVatTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
-        flipperVatAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
-  exact hne (by rw [← hword, hwordZero])
+  simpa [initState, State.lookupAccount] using
+    flipper_extCodeSizeWord_pos_lookup_code_pos
+      (σ := σ) (target := flipperVatTargetWord σ I) (addr := flipperVatAddress σ I)
+      (flipperVatAddress_eq_target σ I) hne
 
-theorem flipperCatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperCatCode_pos_of_codeSize_ne_zero {σ σ₀ A I} {g : UInt256}
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat := by
-  by_contra hnot
-  have hnat :
-      (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 :=
-    Nat.eq_zero_of_not_pos hnot
-  have hwordZero :
-      UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
-    uint256_toNat_eq_zero hnat
-  have hword :
-      UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size)) =
-        Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) := by
-    cases hacc : σ.find? (AccountAddress.ofUInt256 (flipperCatTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
-        flipperCatAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
-  exact hne (by rw [← hword, hwordZero])
+  simpa [initState, State.lookupAccount] using
+    flipper_extCodeSizeWord_pos_lookup_code_pos
+      (σ := σ) (target := flipperCatTargetWord σ I) (addr := flipperCatAddress σ I)
+      (flipperCatAddress_eq_target σ I) hne
 
 theorem evalExpr_flipperStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :

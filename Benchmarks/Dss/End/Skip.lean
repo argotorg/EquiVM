@@ -257,26 +257,11 @@ def endSkipPostArtAccountMap (σ : AccountMap) (I : ExecutionEnv) (artNew : UInt
     AccountMap :=
   sstoreAccountMap I.codeOwner σ (endSkipArtSlot I) artNew
 
-theorem endSkip_storageStore_blocks (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
-    Account.updateStorage]
-
-theorem endSkip_storageStore_genesisBlockHeader (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
-    Account.updateStorage]
-
 theorem endSkip_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount,
     Account.updateStorage]
 
 def endSkipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
@@ -2981,7 +2966,7 @@ set_option maxHeartbeats 1000000 in
 theorem endSkip_solcErrorStringRevertTail_aw12 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 12) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -3171,19 +3156,19 @@ theorem endDecode_skip_none_short {I : ExecutionEnv}
     (endDecode_legacyBytes32_uint256_none_short (cd := I.calldata) (x := "ilk")
       (y := "id") hsz4 hshort)
 
-theorem endReachSkipBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachSkipBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endSkipConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endSkipEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x503ecf06⟩ :=
     endSelWord_eq_of_beq I hsz 0x50 0x3e 0xcf 0x06 ⟨0x503ecf06⟩
       (by native_decide)
       (by simpa [selIs, endSkipConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup403FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -3205,7 +3190,7 @@ theorem endReachSkipBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.endSkipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 endSkipDecodedPc (de :: ⟨4⟩ :: ret :: sel :: R)
         mem aw rdata acc k C)
     (hwf : code = endBytecode)
@@ -3230,15 +3215,15 @@ theorem RD.endSkipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd703.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem endSkipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSkipX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endSkipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) endSkipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD endBytecode I g
-        (initState cA gh bl σ σ₀ g A I) endSkipBodyPc
+        (initState σ σ₀ g A I) endSkipBodyPc
         [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := endBytecode) (sel := sel)
     (entry := endSkipEntryPc) (ret := endSkipReturnPc)
@@ -3252,14 +3237,14 @@ theorem endSkipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endSkipIdWord, endSkipIlkWord] using hroutine⟩
 
-theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSkipX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endSkipBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endSkipBodyPc
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let key := endSkipIlkWord I
   have hslot : endSkipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSkipTagSlot_eq (I := I) hsz68
@@ -3295,27 +3280,27 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
-    simpa [key, endSkipTagWord, endSlotWord] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSkipTagWord, endSlotWord] using htag
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
-    simpa [solcSlotWord] using htagRaw
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd3240zero := rd3240raw
   rw [htagRaw'] at rd3240zero
   obtain ⟨_, _, rd3240⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3240⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3240⟩
         (⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [endSkipBodyPc, key] using rd3240zero⟩
   have rd3243pre := rd3240.push2 ⟨3314⟩ (by native_decide) (by evm_ov)
   have rd3244pre := rd3243pre.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rd3244⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3244⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3244⟩
         [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa using rd3244pre⟩
   exact RD.solcErrorStringRevertTail
     (pc := ⟨3244⟩) (len := ⟨23⟩)
@@ -3333,17 +3318,17 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (twoWordHashMem_read64 key ⟨12⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSkipX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endSkipBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endSkipBodyPc
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3314⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3314⟩
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
       (twoWordHashMem (endSkipIlkWord I) ⟨12⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let key := endSkipIlkWord I
   have hslot : endSkipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSkipTagSlot_eq (I := I) hsz68
@@ -3381,35 +3366,35 @@ theorem endSkipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [← hslot]
     simp [endSkipTagWord, endSlotWord]
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
           endSkipTagWord σ I := by
-    simpa [solcSlotWord] using htagRaw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd3240nzRaw := rd3240raw
   rw [htagRaw'] at rd3240nzRaw
   obtain ⟨_, _, rd3240nz⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3240⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3240⟩
         (endSkipTagWord σ I :: endSkipIdWord I :: endSkipIlkWord I ::
           endSkipReturnPc :: sel :: [])
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [endSkipBodyPc, key] using rd3240nzRaw⟩
   have rd3243pre := rd3240nz.push2 ⟨3314⟩ (by native_decide) (by evm_ov)
   have rd3314pre := rd3243pre.jumpiT (by native_decide) htag (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd3314pre⟩
 
-theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3314⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3314⟩
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3379⟩
+      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3379⟩
       (endSkipCatWord σ I :: endSkipCatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipCatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSkipCatWord σ I ::
         ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksBaseMem I).size then ⟨0⟩
         else UInt256.ofNat
@@ -3452,12 +3437,12 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3318raw⟩ := rd3317.sload (by native_decide) (by evm_ov)
   have rd3318 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3318⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3318⟩
         (endSlotWord ⟨2⟩ σ I :: endSkipIdWord I :: endSkipIlkWord I ::
           endSkipReturnPc :: sel :: [])
         (endSkipCatIlksBaseMem I) (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3318raw⟩
+        ByteArray.empty σ k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3318raw⟩
   obtain ⟨_, _, rd3318⟩ := rd3318
   have rd3379 := evm_run rd3318 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3524,14 +3509,14 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         endSkipCatIlksOutSize, endFlowVatIlksEndPtr, hcatMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSkipX_catIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksNoCode {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3314⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3314⟩
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3379⟩ := endSkipX_catIlksExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
     hcodeSize
@@ -3539,20 +3524,20 @@ theorem endSkipX_catIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksCallReady {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3314⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3314⟩
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
-      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3394⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3394⟩
       (gasWord :: endSkipCatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipCatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSkipCatWord σ I ::
         ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd3379⟩ := endSkipX_catIlksExtcodesizeGuard h
   obtain ⟨gasWord, k', C', rd3394⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
@@ -3562,36 +3547,36 @@ theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3394⟩
 
-theorem endSkipX_catIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksPostCall {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3394⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3394⟩
       (gasWord :: endSkipCatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipCatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSkipCatWord σ I ::
         ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSkipCatWord σ I))
           (toExecute σ (AccountAddress.ofUInt256 (endSkipCatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipCatIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3395⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨3395⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endFlowVatIlksSelectorWord :: endSkipCatWord σ I :: ⟨0⟩ ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-          (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out (cA', σ') k' C'
+          (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd3395raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd3395raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSkipCatIlksWriteLen_eq (out := out) hout
     have haw :
@@ -3603,22 +3588,22 @@ theorem endSkipX_catIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endSkipCatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSkipCatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3395raw
 
-theorem endSkipX_catIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksCallDepthLimit {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3394⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3394⟩
       (gasWord :: endSkipCatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipCatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSkipCatWord σ I ::
         ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3395⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3395⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSkipCatWord σ I :: ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 7)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd3395raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3634,15 +3619,15 @@ theorem endSkipX_catIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSkipCatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3395raw
 
-theorem endSkipX_catIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksCallFailed {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3395⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3395⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSkipCatWord σ I :: ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 7) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 7) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3650,16 +3635,16 @@ theorem endSkipX_catIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_catIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSkipX_catIlksCallSucceeded {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3395⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3395⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSkipCatWord σ I :: ⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 7) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3416⟩
+      mem (UInt256.ofNat 7) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3416⟩
       (⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 7) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 7) rdata σ' k' C' := by
   obtain ⟨_, _, rd3413⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -3672,16 +3657,16 @@ theorem endSkipX_catIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3416⟩
 
-theorem endSkipX_catIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_catIlksReturnDecodeOk {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3416⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3416⟩
       (⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out (cA', σ') k C)
+      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out σ' k C)
     (hlo : 96 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3436⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3436⟩
       (endSkipCatIlkFlipWord out :: ⟨0⟩ :: endSkipIdWord I ::
         endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out (cA', σ') k' C' := by
+      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out σ' k' C' := by
   have hmload64 := endSkipCatIlksPostCallMem_mload64 I out
   have hmload128 := endSkipCatIlksPostCallMem_mload128_long I out hlo
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨96⟩ : UInt256) = ⟨0⟩ := by
@@ -3709,13 +3694,13 @@ theorem endSkipX_catIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3436⟩
 
-theorem endSkipX_catIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_catIlksReturnDecodeShort {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3416⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3416⟩
       (⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out (cA', σ') k C)
+      (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out σ' k C)
     (hshort : out.size < 96) (hout : out.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSkipCatIlksPostCallMem_mload64 I out
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨96⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -3739,22 +3724,22 @@ theorem endSkipX_catIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_vatIlksExtcodesizeGuard {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3436⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3436⟩
       (endSkipCatIlkFlipWord catOut :: ⟨0⟩ :: endSkipIdWord I ::
         endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksPostCallMem I catOut) (UInt256.ofNat 7) catOut
-      (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3505⟩
+      σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3505⟩
       (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ' I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 7)
-      catOut (cA', σ') k' C' := by
+      catOut σ' k' C' := by
   have hmload64Base := endSkipCatIlksPostCallMem_mload64 I catOut
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥ (endSkipVatIlksCalldataMem I catOut).size then ⟨0⟩
@@ -3791,12 +3776,12 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3439raw⟩ := rd3438.sload (by native_decide) (by evm_ov)
   have rd3439 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3439⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3439⟩
         (endSlotWord ⟨1⟩ σ' I :: endSkipCatIlkFlipWord catOut :: ⟨0⟩ ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipCatIlksPostCallMem I catOut) (UInt256.ofNat 7)
-        catOut (cA', σ') k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3439raw⟩
+        catOut σ' k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3439raw⟩
   obtain ⟨_, _, rd3439⟩ := rd3439
   have rd3505 := evm_run rd3439 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3867,17 +3852,17 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksEndPtr, hvatMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSkipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSkipX_vatIlksNoCode {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {catOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3436⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3436⟩
       (endSkipCatIlkFlipWord catOut :: ⟨0⟩ :: endSkipIdWord I ::
         endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksPostCallMem I catOut) (UInt256.ofNat 7) catOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3505⟩ := endSkipX_vatIlksExtcodesizeGuard hloCat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
     hcodeSize
@@ -3885,24 +3870,24 @@ theorem endSkipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSkipX_vatIlksCallReady {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {catOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3436⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3436⟩
       (endSkipCatIlkFlipWord catOut :: ⟨0⟩ :: endSkipIdWord I ::
         endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipCatIlksPostCallMem I catOut) (UInt256.ofNat 7) catOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3520⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3520⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ' I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 7)
-      catOut (cA', σ') k' C' := by
+      catOut σ' k' C' := by
   obtain ⟨_, _, rd3505⟩ := endSkipX_vatIlksExtcodesizeGuard hloCat h
   obtain ⟨gasWord, k', C', rd3520⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
@@ -3912,39 +3897,38 @@ theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3520⟩
 
-theorem endSkipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSkipX_vatIlksPostCall {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3520⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3520⟩
       (gasWord :: endPackVatWord σcur I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 7)
-      catOut (cAcur, σcur) k C)
+      catOut σcur k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cAcur gh bl
-          σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σcur I))
           (toExecute σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipVatIlksCalldataMem I catOut).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3521⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨3521⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endFlowVatIlksSelectorWord :: endPackVatWord σcur I :: ⟨0⟩ ::
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipVatIlksPostCallMem I catOut out) (UInt256.ofNat 9) out
-          (cA', σ') k' C'
+          σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd3521raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd3521raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSkipVatIlksWriteLen_eq (out := out) hout
     have haw :
@@ -3956,24 +3940,24 @@ theorem endSkipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I}
     simpa [endSkipVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3521raw
 
-theorem endSkipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSkipX_vatIlksCallDepthLimit {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3520⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3520⟩
       (gasWord :: endPackVatWord σcur I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 7)
-      catOut (cAcur, σcur) k C)
+      catOut σcur k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3521⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3521⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 9) ByteArray.empty
-      (cAcur, σcur) k' C' := by
+      σcur k' C' := by
   obtain ⟨k', C', rd3521raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3989,17 +3973,17 @@ theorem endSkipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3521raw
 
-theorem endSkipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSkipX_vatIlksCallFailed {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3521⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3521⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 9) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4007,42 +3991,42 @@ theorem endSkipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSkipX_vatIlksCallSucceeded {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3521⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3521⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3539⟩
+      mem (UInt256.ofNat 9) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3539⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 9) rdata σ' k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp)
 
-theorem endSkipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSkipX_vatIlksReturnDecodeOk {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3539⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3539⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hout : vatOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3565⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3565⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   have hmload64 := endSkipVatIlksPostCallMem_mload64 I catOut vatOut hloCat
   have hmload160 := endSkipVatIlksPostCallMem_mload160_long I catOut vatOut hloCat hloVat
   have hlt : UInt256.lt (UInt256.ofNat vatOut.size) (⟨160⟩ : UInt256) = ⟨0⟩ := by
@@ -4078,17 +4062,17 @@ theorem endSkipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
       endFlowVatIlksInSize, endFlowVatIlksOutSize] using rd3565⟩
 
-theorem endSkipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSkipX_vatIlksReturnDecodeShort {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3539⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3539⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size) (hshort : vatOut.size < 160)
     (hout : vatOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSkipVatIlksPostCallMem_mload64 I catOut vatOut hloCat
   have hlt : UInt256.lt (UInt256.ofNat vatOut.size) (⟨160⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -4116,16 +4100,16 @@ theorem endSkipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsExtcodesizeGuard {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3565⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3565⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3637⟩
+      σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3637⟩
       (endSkipCatIlkFlipTargetWord catOut :: endSkipCatIlkFlipTargetWord catOut ::
         endFlowVatIlksOutPtr :: endFlowVatIlksInSize :: endFlowVatIlksOutPtr ::
         endSkipBidsOutSize :: endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
@@ -4134,7 +4118,7 @@ theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 9)
-      vatOut (cA', σ') k' C' := by
+      vatOut σ' k' C' := by
   have hmload64Base := endSkipVatIlksPostCallMem_mload64 I catOut vatOut hloCat
   have hmload64Call :=
     endSkipBidsCalldataMem_mload64_long I catOut vatOut hloCat hloVat
@@ -4231,19 +4215,19 @@ theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksEndPtr, hflipMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSkipX_bidsNoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsNoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3565⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3565⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ'
         (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3637⟩ := endSkipX_bidsExtcodesizeGuard hloCat hloVat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
     hcodeSize
@@ -4251,19 +4235,19 @@ theorem endSkipX_bidsNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsCallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3565⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3565⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipVatIlksPostCallMem I catOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ'
         (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3652⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3652⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipBidsOutSize ::
         endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
@@ -4272,7 +4256,7 @@ theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 9)
-      vatOut (cA', σ') k' C' := by
+      vatOut σ' k' C' := by
   obtain ⟨_, _, rd3637⟩ := endSkipX_bidsExtcodesizeGuard hloCat hloVat h
   obtain ⟨gasWord, k', C', rd3652⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
@@ -4282,9 +4266,9 @@ theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3652⟩
 
-theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSkipX_bidsPostStaticcall {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3652⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3652⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipBidsOutSize ::
         endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
@@ -4293,14 +4277,14 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 9)
-      vatOut (cAcur, σcur) k C)
+      vatOut σcur k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (bidOut : ByteArray) (Ain : Substate) (callGas : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, bidOut) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cAcur gh bl σcur σ₀ Ain
+        (σ', g'', A', z, bidOut) =
+          Ethereum.EVM.Θ σcur σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut))
             (toExecute σcur
@@ -4308,20 +4292,20 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endSkipBidsCalldataMem I catOut vatOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-            (I.depth + 1) I.header false)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3653⟩
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨3653⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endSkipBidsSelectorWord :: endSkipCatIlkFlipTargetWord catOut ::
             ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-          bidOut (cA', σ') k' C'
+          bidOut σ' k' C'
       ∧ bidOut.size < UInt256.size := by
-  obtain ⟨cA', σ', z, bidOut, Ain, callGas, k', C', hΘ, rd3653raw, hout⟩ :=
+  obtain ⟨σ', z, bidOut, Ain, callGas, k', C', hΘ, rd3653raw, hout⟩ :=
     RD.solcStaticcall h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
-  refine ⟨cA', σ', z, bidOut, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, bidOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSkipBidsWriteLen_eq (out := bidOut) hout
     have haw :
@@ -4333,9 +4317,9 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
     simpa [endSkipBidsPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSkipBidsOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3653raw
 
-theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSkipX_bidsStaticcallDepthLimit {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3652⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3652⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipBidsOutSize ::
         endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
@@ -4344,16 +4328,16 @@ theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 9)
-      vatOut (cAcur, σcur) k C)
+      vatOut σcur k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3653⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3653⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 12) ByteArray.empty
-      (cAcur, σcur) k' C' := by
+      σcur k' C' := by
   obtain ⟨k', C', rd3653raw⟩ :=
     RD.solcStaticcallDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -4369,18 +4353,18 @@ theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSkipBidsOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3653raw
 
-theorem endSkipX_bidsCallFailed {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsCallFailed {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3653⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3653⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 12) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4388,21 +4372,21 @@ theorem endSkipX_bidsCallFailed {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_bidsCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsCallSucceeded {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3653⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3653⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endSkipBidsSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3674⟩
+      mem (UInt256.ofNat 12) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3674⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 12) rdata σ' k' C' := by
   obtain ⟨_, _, rd3671⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -4415,24 +4399,24 @@ theorem endSkipX_bidsCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3674⟩
 
-theorem endSkipX_bidsReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsReturnDecodeOk {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3674⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3674⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k C)
+      bidOut σ' k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size) (hout : bidOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3712⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3712⟩
       (endSkipTabWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endSkipUsrWord bidOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k' C' := by
+      bidOut σ' k' C' := by
   have hmload64 := endSkipBidsPostCallMem_mload64 I catOut vatOut bidOut hloCat hloVat
   have hmload128 :=
     endSkipBidsPostCallMem_mload128_long I catOut vatOut bidOut hloCat hloVat hloBid
@@ -4485,17 +4469,17 @@ theorem endSkipX_bidsReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       mem_cost hmload352 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3712⟩
 
-theorem endSkipX_bidsReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_bidsReturnDecodeShort {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3674⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3674⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k C)
+      bidOut σ' k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hshort : bidOut.size < 256) (hout : bidOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSkipBidsPostCallMem_mload64 I catOut vatOut bidOut hloCat hloVat
   have hlt : UInt256.lt (UInt256.ofNat bidOut.size) (⟨256⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -4520,19 +4504,19 @@ theorem endSkipX_bidsReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_suck1ExtcodesizeGuard {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3712⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3712⟩
       (endSkipTabWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endSkipUsrWord bidOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3805⟩
+      bidOut σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3805⟩
       (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -4541,7 +4525,7 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1CalldataMem σ' I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k' C' := by
+      bidOut σ' k' C' := by
   have hmload64Base :=
     endSkipBidsPostCallMem_mload64 I catOut vatOut bidOut hloCat hloVat
   have hmload64Call :=
@@ -4572,21 +4556,21 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3715raw⟩ := rd3714.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3715⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3715⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3715⟩
         (endSlotWord ⟨1⟩ σ' I :: endSkipTabWord bidOut ::
           endSkipLotWord bidOut :: endSkipBidWord bidOut :: endSkipUsrWord bidOut ::
           ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-        bidOut (cA', σ') k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3715raw⟩
+        bidOut σ' k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3715raw⟩
   have rd3718 := evm_run rd3715 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3719raw⟩ := rd3718.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3719⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3719⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3719⟩
         (endSlotWord ⟨4⟩ σ' I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ' I ::
           endSkipTabWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
           endSkipUsrWord bidOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
@@ -4594,8 +4578,8 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
           endSkipReturnPc :: sel :: [])
         (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-        bidOut (cA', σ') k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3719raw⟩
+        bidOut σ' k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3719raw⟩
   have rd3770 := evm_run rd3719 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -4724,21 +4708,21 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         hvowMask, hvowMaskLeft]
       try native_decide⟩
 
-theorem endSkipX_suck1NoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_suck1NoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3712⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3712⟩
       (endSkipTabWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endSkipUsrWord bidOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k C)
+      bidOut σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3805⟩ := endSkipX_suck1ExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
     hcodeSize
@@ -4746,21 +4730,21 @@ theorem endSkipX_suck1NoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSkipX_suck1CallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3712⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3712⟩
       (endSkipTabWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endSkipUsrWord bidOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k C)
+      bidOut σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3820⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3820⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -4769,7 +4753,7 @@ theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1CalldataMem σ' I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σ') k' C' := by
+      bidOut σ' k' C' := by
   obtain ⟨_, _, rd3805⟩ := endSkipX_suck1ExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd3820⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
@@ -4779,9 +4763,9 @@ theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3820⟩
 
-theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
+theorem endSkipX_suck1PostCall {σ σpre σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3820⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3820⟩
       (gasWord :: endPackVatWord σpre I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -4790,20 +4774,20 @@ theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1CalldataMem σpre I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σpre) k C)
+      bidOut σpre k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σpre σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpre σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpre I))
           (toExecute σpre (AccountAddress.ofUInt256 (endPackVatWord σpre I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipSuck1CalldataMem σpre I catOut vatOut bidOut).readWithPadding
             endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3821⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨3821⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSkipSuckEndPtr ::
             endSkipSuckSelectorWord :: endPackVatWord σpre I ::
             endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -4811,11 +4795,11 @@ theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipSuck1PostCallMem σpre I catOut vatOut bidOut ret)
-          (UInt256.ofNat 12) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 12) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd3821raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd3821raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -4832,9 +4816,9 @@ theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
       endSkipSuckOutSize, endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd3821raw
 
-theorem endSkipX_suck1CallDepthLimit {cA cA' gh bl σ σpre σ₀ A I}
+theorem endSkipX_suck1CallDepthLimit {σ σpre σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3820⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3820⟩
       (gasWord :: endPackVatWord σpre I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -4843,16 +4827,16 @@ theorem endSkipX_suck1CallDepthLimit {cA cA' gh bl σ σpre σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1CalldataMem σpre I catOut vatOut bidOut) (UInt256.ofNat 12)
-      bidOut (cA', σpre) k C)
+      bidOut σpre k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3821⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3821⟩
       (⟨0⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
         endPackVatWord σpre I :: endSkipTabWord bidOut :: endSkipUsrWord bidOut ::
         endSkipLotWord bidOut :: endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1CalldataMem σpre I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ByteArray.empty (cA', σpre) k' C' := by
+      ByteArray.empty σpre k' C' := by
   obtain ⟨k', C', rd3821raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -4868,17 +4852,17 @@ theorem endSkipX_suck1CallDepthLimit {cA cA' gh bl σ σpre σ₀ A I}
   simpa [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
     endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd3821raw
 
-theorem endSkipX_suck1CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_suck1CallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3821⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3821⟩
       (⟨0⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 12) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4886,22 +4870,22 @@ theorem endSkipX_suck1CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_suck1CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_suck1CallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3821⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3821⟩
       (⟨1⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3840⟩
+      mem (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3840⟩
       (endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd3839⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -4912,19 +4896,19 @@ theorem endSkipX_suck1CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3840⟩
 
-theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSkipX_suck2ExtcodesizeGuard {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3840⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3840⟩
       (endSkipSuckSelectorWord :: endPackVatWord σmem I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3924⟩
+      (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3924⟩
       (endPackVatWord σpost I :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -4933,7 +4917,7 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata).size then ⟨0⟩
@@ -4975,21 +4959,21 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3843raw⟩ := rd3842.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3843⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3843⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3843⟩
         (endSlotWord ⟨1⟩ σpost I :: endSkipSuckSelectorWord ::
           endPackVatWord σmem I :: endSkipTabWord bidOut :: endSkipUsrWord bidOut ::
           endSkipLotWord bidOut :: endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
-        (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3843raw⟩
+        (UInt256.ofNat 12) rdata σpost k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3843raw⟩
   have rd3846 := evm_run rd3843 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3847raw⟩ := rd3846.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3847⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3847⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3847⟩
         (endSlotWord ⟨4⟩ σpost I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σpost I ::
           endSkipSuckSelectorWord :: endPackVatWord σmem I ::
           endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -4997,8 +4981,8 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
-        (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3847raw⟩
+        (UInt256.ofNat 12) rdata σpost k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3847raw⟩
   have rd3879 := evm_run rd3847 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -5129,21 +5113,21 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         hvowMask, hvowMaskLeft]
       try native_decide⟩
 
-theorem endSkipX_suck2NoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSkipX_suck2NoCode {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3840⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3840⟩
       (endSkipSuckSelectorWord :: endPackVatWord σmem I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3924⟩ := endSkipX_suck2ExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
     hcodeSize
@@ -5151,21 +5135,21 @@ theorem endSkipX_suck2NoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSkipX_suck2CallReady {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3840⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3840⟩
       (endSkipSuckSelectorWord :: endPackVatWord σmem I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3939⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3939⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -5174,7 +5158,7 @@ theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd3924⟩ := endSkipX_suck2ExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd3939⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
@@ -5184,10 +5168,10 @@ theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3939⟩
 
-theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSkipX_suck2PostCall {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3939⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3939⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -5196,20 +5180,20 @@ theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpost I))
           (toExecute σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut).readWithPadding
             endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3940⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨3940⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSkipSuckEndPtr ::
             endSkipSuckSelectorWord :: endPackVatWord σpost I ::
             endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -5217,11 +5201,11 @@ theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipSuck2PostCallMemFor σmem σpost I catOut vatOut bidOut ret)
-          (UInt256.ofNat 12) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 12) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd3940raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd3940raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -5238,10 +5222,10 @@ theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
       endSkipSuckOutSize, endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd3940raw
 
-theorem endSkipX_suck2CallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSkipX_suck2CallDepthLimit {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3939⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3939⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
         endSkipSuckOutSize :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
@@ -5250,16 +5234,16 @@ theorem endSkipX_suck2CallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3940⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3940⟩
       (⟨0⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord ::
         endPackVatWord σpost I :: endSkipTabWord bidOut :: endSkipUsrWord bidOut ::
         endSkipLotWord bidOut :: endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) ByteArray.empty σpost k' C' := by
   obtain ⟨k', C', rd3940raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5275,17 +5259,17 @@ theorem endSkipX_suck2CallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
   simpa [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
     endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd3940raw
 
-theorem endSkipX_suck2CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_suck2CallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3940⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3940⟩
       (⟨0⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 12) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5293,22 +5277,22 @@ theorem endSkipX_suck2CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_suck2CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_suck2CallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3940⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3940⟩
       (⟨1⟩ :: endSkipSuckEndPtr :: endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3959⟩
+      mem (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3959⟩
       (endSkipSuckSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd3958⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -5319,19 +5303,19 @@ theorem endSkipX_suck2CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3959⟩
 
-theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_hopeExtcodesizeGuard {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3959⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3959⟩
       (endSkipSuckSelectorWord :: endPackVatWord σcall I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4026⟩
+      (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4026⟩
       (endPackVatWord σpost I :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipHopeOutPtr :: endSkipHopeInSize :: endSkipHopeOutPtr ::
         endSkipHopeOutSize :: endSkipHopeEndPtr :: endSkipHopeSelectorWord ::
@@ -5340,7 +5324,7 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size then ⟨0⟩
@@ -5384,15 +5368,15 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3962raw⟩ := rd3961.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3962⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3962⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3962⟩
         (endSlotWord ⟨1⟩ σpost I :: endSkipSuckSelectorWord ::
           endPackVatWord σcall I :: endSkipTabWord bidOut :: endSkipUsrWord bidOut ::
           endSkipLotWord bidOut :: endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-        (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3962raw⟩
+        (UInt256.ofNat 12) rdata σpost k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3962raw⟩
   have rd4026raw := evm_run rd3962 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -5474,21 +5458,21 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         hflipMaskLeft, hflipMaskRight]
       try native_decide⟩
 
-theorem endSkipX_hopeNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_hopeNoCode {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3959⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3959⟩
       (endSkipSuckSelectorWord :: endPackVatWord σcall I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4026⟩ := endSkipX_hopeExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
     hcodeSize
@@ -5496,21 +5480,21 @@ theorem endSkipX_hopeNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_hopeCallReady {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3959⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3959⟩
       (endSkipSuckSelectorWord :: endPackVatWord σcall I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4041⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4041⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipHopeOutPtr :: endSkipHopeInSize :: endSkipHopeOutPtr ::
         endSkipHopeOutSize :: endSkipHopeEndPtr :: endSkipHopeSelectorWord ::
@@ -5519,7 +5503,7 @@ theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd4026⟩ := endSkipX_hopeExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4041⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
@@ -5529,10 +5513,10 @@ theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4041⟩
 
-theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_hopePostCall {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4041⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4041⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipHopeOutPtr :: endSkipHopeInSize :: endSkipHopeOutPtr ::
         endSkipHopeOutSize :: endSkipHopeEndPtr :: endSkipHopeSelectorWord ::
@@ -5541,20 +5525,20 @@ theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σpost I))
           (toExecute σpost (AccountAddress.ofUInt256 (endPackVatWord σpost I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
             endSkipHopeOutPtr.toNat endSkipHopeInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4042⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨4042⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSkipHopeEndPtr ::
             endSkipHopeSelectorWord :: endPackVatWord σpost I ::
             endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -5562,11 +5546,11 @@ theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut ret)
-          (UInt256.ofNat 12) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 12) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4042raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd4042raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipHopeOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -5583,10 +5567,10 @@ theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       endSkipHopeOutSize, endSkipHopeEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4042raw
 
-theorem endSkipX_hopeCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_hopeCallDepthLimit {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4041⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4041⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipHopeOutPtr :: endSkipHopeInSize :: endSkipHopeOutPtr ::
         endSkipHopeOutSize :: endSkipHopeEndPtr :: endSkipHopeSelectorWord ::
@@ -5595,16 +5579,16 @@ theorem endSkipX_hopeCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4042⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4042⟩
       (⟨0⟩ :: endSkipHopeEndPtr :: endSkipHopeSelectorWord ::
         endPackVatWord σpost I :: endSkipTabWord bidOut :: endSkipUsrWord bidOut ::
         endSkipLotWord bidOut :: endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) ByteArray.empty σpost k' C' := by
   obtain ⟨k', C', rd4042raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5620,17 +5604,17 @@ theorem endSkipX_hopeCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
   simpa [endSkipHopeOutPtr, endSkipHopeInSize, endSkipHopeOutSize,
     endSkipHopeEndPtr, hmin, byteArray_write_len_zero, haw] using rd4042raw
 
-theorem endSkipX_hopeCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_hopeCallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4042⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4042⟩
       (⟨0⟩ :: endSkipHopeEndPtr :: endSkipHopeSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 12) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5638,21 +5622,21 @@ theorem endSkipX_hopeCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_hopeCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_hopeCallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4042⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4042⟩
       (⟨1⟩ :: endSkipHopeEndPtr :: endSkipHopeSelectorWord :: endPackVatWord σpre I ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4063⟩
+      mem (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4063⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd4060⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -5665,18 +5649,18 @@ theorem endSkipX_hopeCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4063⟩
 
-theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_yankExtcodesizeGuard {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4063⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4063⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4120⟩
+      (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4120⟩
       (endSkipCatIlkFlipTargetWord catOut :: endSkipCatIlkFlipTargetWord catOut ::
         ⟨0⟩ :: endSkipYankOutPtr :: endSkipYankInSize :: endSkipYankOutPtr ::
         endSkipYankOutSize :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
@@ -5686,7 +5670,7 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size then ⟨0⟩
@@ -5785,21 +5769,21 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
       endSkipYankEndPtr, endSkipYankSelectorWord, haddrMask, hflipMaskLeft,
       hflipMaskRight] using rd4120raw⟩
 
-theorem endSkipX_yankNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_yankNoCode {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4063⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4063⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost
         (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4120⟩ := endSkipX_yankExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
     hcodeSize
@@ -5807,21 +5791,21 @@ theorem endSkipX_yankNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_yankCallReady {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4063⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4063⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost
         (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4135⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4135⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ ::
         endSkipYankOutPtr :: endSkipYankInSize :: endSkipYankOutPtr ::
         endSkipYankOutSize :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
@@ -5831,7 +5815,7 @@ theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd4120⟩ := endSkipX_yankExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4135⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
@@ -5841,10 +5825,10 @@ theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4135⟩
 
-theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_yankPostCall {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4135⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4135⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ ::
         endSkipYankOutPtr :: endSkipYankInSize :: endSkipYankOutPtr ::
         endSkipYankOutSize :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
@@ -5854,20 +5838,20 @@ theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut))
           (toExecute σpost (AccountAddress.ofUInt256 (endSkipCatIlkFlipTargetWord catOut)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
             endSkipYankOutPtr.toNat endSkipYankInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4136⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨4136⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSkipYankEndPtr ::
             endSkipYankSelectorWord :: endSkipCatIlkFlipTargetWord catOut ::
             endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -5875,11 +5859,11 @@ theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
             endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
             endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
           (endSkipYankPostCallMemFor σmem σcall I catOut vatOut bidOut ret)
-          (UInt256.ofNat 12) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 12) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4136raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd4136raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipYankOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -5896,10 +5880,10 @@ theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       endSkipYankOutSize, endSkipYankEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4136raw
 
-theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_yankCallDepthLimit {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4135⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4135⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ ::
         endSkipYankOutPtr :: endSkipYankInSize :: endSkipYankOutPtr ::
         endSkipYankOutSize :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
@@ -5909,9 +5893,9 @@ theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      (UInt256.ofNat 12) rdata σpost k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4136⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4136⟩
       (⟨0⟩ :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
@@ -5919,7 +5903,7 @@ theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
+      (UInt256.ofNat 12) ByteArray.empty σpost k' C' := by
   obtain ⟨k', C', rd4136raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5935,18 +5919,18 @@ theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
   simpa [endSkipYankOutPtr, endSkipYankInSize, endSkipYankOutSize,
     endSkipYankEndPtr, hmin, byteArray_write_len_zero, haw] using rd4136raw
 
-theorem endSkipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
+theorem endSkipX_yankCallFailed {σ σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4136⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4136⟩
       (⟨0⟩ :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 12) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5954,22 +5938,22 @@ theorem endSkipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
+theorem endSkipX_yankCallSucceeded {σ σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4136⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4136⟩
       (⟨1⟩ :: endSkipYankEndPtr :: endSkipYankSelectorWord ::
         endSkipCatIlkFlipTargetWord catOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4157⟩
+      mem (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4157⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 12) rdata σpost k' C' := by
   obtain ⟨_, _, rd4154⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -5982,20 +5966,20 @@ theorem endSkipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4157⟩
 
-theorem endSkipX_artDivZeroInvalid {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artDivZeroInvalid {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hrate : endFlowVatIlkRateWord vatOut = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4157⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4157⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipYankPostCallMemFor σmem σcall I catOut vatOut bidOut ret)
-      (UInt256.ofNat 12) ret (cA', σpost) k C) :
+      (UInt256.ofNat 12) ret σpost k C) :
     X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass ∨
+        (initState σ σ₀ g A I) = .error .OutOfGass ∨
       X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
+        (initState σ σ₀ g A I) = .error .InvalidInstruction := by
   have rd4165 := evm_run h with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -6005,20 +5989,20 @@ theorem endSkipX_artDivZeroInvalid {cA cA' gh bl σ σmem σcall σpost σ₀ A 
   have rd4166 := rd4165.jumpiNT (by native_decide) (by simpa using hrate) (by evm_ov)
   exact endFlowInvalidError rd4166 (by native_decide)
 
-theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artAddEntry {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
     (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4157⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4157⟩
       (endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipYankPostCallMemFor σmem σcall I catOut vatOut bidOut ret)
-      (UInt256.ofNat 12) ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+      (UInt256.ofNat 12) ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSkipArtWord vatOut bidOut :: endSkipArtOldWord σpost I :: ⟨4197⟩ ::
         endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
@@ -6026,7 +6010,7 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k' C' := by
+      ret σpost k' C' := by
   let key := endSkipIlkWord I
   let mem0 := endSkipYankPostCallMemFor σmem σcall I catOut vatOut bidOut ret
   let mem14 := endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut
@@ -6077,16 +6061,16 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4183raw⟩ := rd4182.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4183⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4183⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4183⟩
         (endSkipArtOldWord σpost I :: endSkipTabWord bidOut ::
           endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSkipTabWord bidOut ::
           endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
           endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
           endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
           endSkipReturnPc :: sel :: [])
-        mem14 (UInt256.ofNat 12) ret (cA', σpost) k' C' := by
+        mem14 (UInt256.ofNat 12) ret σpost k' C' := by
     exact ⟨_, _, by
-      simpa [endSkipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd4183raw⟩
   have rd4196 := evm_run rd4183 with [
     raw swap2 (by native_decide) (by evm_ov),
@@ -6102,12 +6086,12 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     simpa [endSkipArtWord, mem14] using
       rd4196.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem endSkipX_artAddReturns {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artAddReturns {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hfit :
       (endSkipArtOldWord σpost I).toNat + (endSkipArtWord vatOut bidOut).toNat <
         UInt256.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSkipArtWord vatOut bidOut :: endSkipArtOldWord σpost I :: ⟨4197⟩ ::
         endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
@@ -6115,15 +6099,15 @@ theorem endSkipX_artAddReturns {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4197⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
       (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k' C' := by
+      ret σpost k' C' := by
   let old := endSkipArtOldWord σpost I
   let art := endSkipArtWord vatOut bidOut
   have hfit' : art.toNat + old.toNat < UInt256.size := by
@@ -6161,12 +6145,12 @@ theorem endSkipX_artAddReturns {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   have hcomm : art + old = old + art := u256_add_comm art old
   exact ⟨_, _, by simpa [endSkipArtNewWord, old, art, hcomm] using rd4197⟩
 
-theorem endSkipX_artAddOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artAddOverflow {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hover :
       UInt256.size ≤
         (endSkipArtOldWord σpost I).toNat + (endSkipArtWord vatOut bidOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSkipArtWord vatOut bidOut :: endSkipArtOldWord σpost I :: ⟨4197⟩ ::
         endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
@@ -6174,8 +6158,8 @@ theorem endSkipX_artAddOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let old := endSkipArtOldWord σpost I
   let art := endSkipArtWord vatOut bidOut
   have hover' : UInt256.size ≤ art.toNat + old.toNat := by
@@ -6218,28 +6202,28 @@ theorem endSkipX_artAddOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_artStoreAtHash {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreAtHash {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4197⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
       (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4216⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4216⟩
       (⟨0⟩ :: endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', endSkipPostArtAccountMap σpost I
+      ret (endSkipPostArtAccountMap σpost I
         (endSkipArtNewWord σpost I vatOut bidOut)) k' C' := by
   let key := endSkipIlkWord I
   let mem14 := endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut
@@ -6298,7 +6282,7 @@ theorem endSkipX_artStoreAtHash {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSkipPostArtAccountMap, memStore] using rd4216raw⟩
 
-theorem endSkipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardOk {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -6306,22 +6290,22 @@ theorem endSkipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σcall σpost σ₀ A
     (hloBid : 256 ≤ bidOut.size)
     (hlot : (endSkipLotWord bidOut).toNat < 2 ^ 255)
     (hart : (endSkipArtWord vatOut bidOut).toNat < 2 ^ 255)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4197⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
       (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4295⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
       (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', endSkipPostArtAccountMap σpost I
+      ret (endSkipPostArtAccountMap σpost I
         (endSkipArtNewWord σpost I vatOut bidOut)) k' C' := by
   obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
   have hsltLot :
@@ -6358,22 +6342,22 @@ theorem endSkipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σcall σpost σ₀ A
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4295⟩
 
-theorem endSkipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardLotOverflow {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
     (hlot : 2 ^ 255 ≤ (endSkipLotWord bidOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4197⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
       (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
   have hsltLot :
       UInt256.slt (endSkipLotWord bidOut) (⟨0⟩ : UInt256) = ⟨1⟩ := by
@@ -6411,7 +6395,7 @@ theorem endSkipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σcall σpos
       hloCat hloVat hloBid)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardArtOverflow {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -6419,15 +6403,15 @@ theorem endSkipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σcall σpos
     (hloBid : 256 ≤ bidOut.size)
     (hlot : (endSkipLotWord bidOut).toNat < 2 ^ 255)
     (hart : 2 ^ 255 ≤ (endSkipArtWord vatOut bidOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4197⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
       (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
   have hsltLot :
       UInt256.slt (endSkipLotWord bidOut) (⟨0⟩ : UInt256) = ⟨0⟩ := by
@@ -6477,19 +6461,19 @@ theorem endSkipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σcall σpos
       hloCat hloVat hloBid)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
+theorem endSkipX_grabExtcodesizeGuard {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4295⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
       (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      rdata (cA', σCall) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4397⟩
+      rdata σCall k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4397⟩
       (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
         endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
         endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -6499,7 +6483,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
+      (UInt256.ofNat 12) rdata σCall k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
@@ -6560,22 +6544,22 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4299raw⟩ := rd4298.sload (by native_decide) (by evm_ov)
   have rd4299 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4299⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4299⟩
         (endSlotWord ⟨1⟩ σCall I :: endSkipArtWord vatOut bidOut ::
           endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
           endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
-        (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4299raw⟩
+        (UInt256.ofNat 12) rdata σCall k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd4299raw⟩
   obtain ⟨_, _, rd4299⟩ := rd4299
   have rd4302 := evm_run rd4299 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4303raw⟩ := rd4302.sload (by native_decide) (by evm_ov)
   have rd4303 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4303⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4303⟩
         (endSlotWord ⟨4⟩ σCall I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σCall I ::
           endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
           endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
@@ -6583,8 +6567,8 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
           endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
           endSkipReturnPc :: sel :: [])
         (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
-        (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4303raw⟩
+        (UInt256.ofNat 12) rdata σCall k' C' := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd4303raw⟩
   obtain ⟨_, _, rd4303⟩ := rd4303
   have rd4397raw := evm_run rd4303 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -6694,7 +6678,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd4397 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4397⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4397⟩
         (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
           endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
           endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -6704,7 +6688,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
           endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipGrabMem7Trace σCall σmem σcall I catOut vatOut bidOut)
-        (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
+        (UInt256.ofNat 12) rdata σCall k' C' := by
     exact ⟨_, _, by
       simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
         endFreeGrabEndPtr, endFreeGrabSelectorWord, endPackVatWord, endPackVowWord,
@@ -6713,21 +6697,21 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
   obtain ⟨k', C', rd4397⟩ := rd4397
   exact ⟨k', C', by simpa [endSkipGrabMem7Trace_eq] using rd4397⟩
 
-theorem endSkipX_grabNoCode {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
+theorem endSkipX_grabNoCode {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4295⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
       (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      rdata (cA', σCall) k C)
+      rdata σCall k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd4397⟩ := endSkipX_grabExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
     hcodeSize
@@ -6735,21 +6719,21 @@ theorem endSkipX_grabNoCode {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
+theorem endSkipX_grabCallReady {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4295⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
       (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      rdata (cA', σCall) k C)
+      rdata σCall k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4412⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4412⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -6759,7 +6743,7 @@ theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
+      (UInt256.ofNat 12) rdata σCall k' C' := by
   obtain ⟨_, _, rd4397⟩ := endSkipX_grabExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4412⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
@@ -6769,10 +6753,10 @@ theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4412⟩
 
-theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
+theorem endSkipX_grabPostCall {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4412⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4412⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -6782,20 +6766,20 @@ theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σCall) k C)
+      (UInt256.ofNat 12) rdata σCall k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σCall σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σCall σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σCall I))
           (toExecute σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
             |>.readWithPadding endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4413⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨4413⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFreeGrabEndPtr ::
             endFreeGrabSelectorWord :: endPackVatWord σCall I ::
             endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
@@ -6804,11 +6788,11 @@ theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
             endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
             endSkipReturnPc :: sel :: [])
           (endSkipGrabPostCallMemForTrace σCall σmem σcall I catOut vatOut bidOut ret)
-          (UInt256.ofNat 12) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 12) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4413raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd4413raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -6825,10 +6809,10 @@ theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
       endFreeGrabOutSize, endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4413raw
 
-theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
+theorem endSkipX_grabCallDepthLimit {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {catOut vatOut bidOut rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4412⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4412⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -6838,9 +6822,9 @@ theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) rdata (cA', σCall) k C)
+      (UInt256.ofNat 12) rdata σCall k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4413⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4413⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σCall I :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
@@ -6848,7 +6832,7 @@ theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) ByteArray.empty (cA', σCall) k' C' := by
+      (UInt256.ofNat 12) ByteArray.empty σCall k' C' := by
   obtain ⟨k', C', rd4413raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -6864,19 +6848,19 @@ theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A
   simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
     endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw] using rd4413raw
 
-theorem endSkipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_grabCallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4413⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4413⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σpre I :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 12) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6884,25 +6868,25 @@ theorem endSkipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSkipX_grabCallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4413⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4413⟩
       (⟨1⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σpre I :: endSkipArtWord vatOut bidOut ::
         endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
         endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
         endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4431⟩
+      mem (UInt256.ofNat 12) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4431⟩
       (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σpre I ::
         endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
         endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
         endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 12) rdata σpost k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6912,7 +6896,7 @@ theorem endSkipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
 theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σCall σmem σcall : AccountMap}
     {catOut vatOut bidOut ret : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hperm : I.perm = true) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size)
     (h : RD endBytecode I g s0 ⟨4431⟩
@@ -7201,57 +7185,25 @@ theorem evalExpr_endSkip_tag_ne_true (evm : EVM.State) (I : ExecutionEnv)
   intro hbad
   exact htag (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
 
-theorem endSkipCatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    endSkipCatWord σ I = endSkipCatWord τ I := by
-  simp [endSkipCatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩]
-
 theorem endSkipCatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endSkipCatAddr σ I = AccountAddress.ofUInt256 (endSkipCatWord σ I) := by
   simpa [endSkipCatAddr] using
     (accountAddress_ofUInt256_eq_ofNat_toNat (endSkipCatWord σ I)).symm
 
-theorem endSkipCatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endSkipCatWord σ I)
-  have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
-    endSkipCatWord_accountMapEquiv hAccounts
-  rw [hsame, htarget]
-  exact hzero
-
-theorem endSkipCatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endSkipCatWord σ I)
-  have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
-    endSkipCatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endSkipCatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endSkipCatWord σ I) (addr := endSkipCatAddr σ I)
       (endSkipCatAddr_eq_ofUInt256 σ I) hzero
 
-theorem endSkipCatCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCatCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     (hne : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
@@ -7283,10 +7235,10 @@ theorem evalExpr_endSkip_cat {locals : Store} (evm : EVM.State)
     (hloc := by rfl)
     (hload := endStorageLocLoad_address_offset0 evm ⟨2⟩)
 
-theorem endSkipCheckedCatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCheckedCatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
         "catIlk") .reverted := by
@@ -7305,7 +7257,7 @@ theorem endSkipCheckedCatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         0 := by
     simpa [evm0] using
       endSkipCatCode_zero_of_codeSize_zero
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSkipStore I } evm0
@@ -7318,16 +7270,16 @@ theorem endSkipCheckedCatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
       (retVar := "catIlk") (name := "catIlks") (sendVal := 0)
       (args := [.var "ilk"]) (perm := true) hguard
 
-theorem endSkipCheckedCatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCheckedCatIlksFailure {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmCat, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
         "catIlk") .reverted := by
@@ -7345,7 +7297,7 @@ theorem endSkipCheckedCatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSkipCatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSkipStore I } evm0
@@ -7365,17 +7317,17 @@ theorem endSkipCheckedCatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
       (argVals := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
       (out := out) (perm := true) hguard hreceiver hargs (by simpa [evm0] using hcall)
 
-theorem endSkipCheckedCatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCheckedCatIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmCat, out) true)
     (hshort : out.size < 96) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
         "catIlk") .reverted := by
@@ -7393,7 +7345,7 @@ theorem endSkipCheckedCatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSkipCatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSkipStore I } evm0
@@ -7414,17 +7366,17 @@ theorem endSkipCheckedCatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       (out := out) (perm := true) hguard hreceiver hargs
       (by simpa [evm0] using hcall) (endSkipCatIlksDecode_none_short hshort)
 
-theorem endSkipCheckedCatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipCheckedCatIlksSuccess {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmCat, out) true)
     (hlo : 96 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
         "catIlk")
@@ -7443,7 +7395,7 @@ theorem endSkipCheckedCatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSkipCatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSkipStore I } evm0
@@ -7498,15 +7450,15 @@ theorem endSkipStmtFlip (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
   simpa [endSkipStoreFlip] using
     ExecStmt.letDecl (evalExpr_endSkip_catIlk_flip evm I out)
 
-theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipBodyReverts_catIlksBlock {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcatBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
           "catIlk") .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
   have htagLoad :
@@ -7596,85 +7548,85 @@ theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [checkedExternalCallStmts, List.append_assoc] using hcatWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endSkipBodyReverts_catIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipBodyReverts_catIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
   exact endSkipBodyReverts_catIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSkipCheckedCatIlksNoCode
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcodeSize))
 
-theorem endSkipBodyReverts_catIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipBodyReverts_catIlksCallFailed {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmCat, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
   exact endSkipBodyReverts_catIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSkipCheckedCatIlksFailure
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmCat := evmCat) (out := out)
           hcodeSize hcall))
 
-theorem endSkipBodyReverts_catIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipBodyReverts_catIlksDecodeShort {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmCat, out) true)
     (hshort : out.size < 96) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
   exact endSkipBodyReverts_catIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSkipCheckedCatIlksDecodeRevert
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmCat := evmCat) (out := out)
           hcodeSize hcall hshort))
 
-theorem endSkipPrefixFlipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipPrefixFlipSuccess {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmCat, out) true)
     (hlo : 96 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (nonpayable ++
         [ .require (.binary .ne (.storage (tagRef (.var "ilk"))) (.intLit 0)) ] ++
@@ -7700,7 +7652,7 @@ theorem endSkipPrefixFlipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := endSkipStoreCatIlk I out } evmCat) := by
     simpa [evm0] using
       endSkipCheckedCatIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmCat := evmCat) (out := out)
         hcodeSize hcall hlo
   have hflip :
@@ -8079,29 +8031,6 @@ theorem endSkipBidsCode_pos_afterRate {σ : AccountMap} {catOut : ByteArray}
       (σ := σ) (target := endSkipCatIlkFlipTargetWord catOut)
       (addr := endSkipCatIlkFlipAddr catOut)
       (endSkipCatIlkFlipAddr_eq_ofUInt256 catOut) hne
-
-theorem endSkipBidsCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) (catOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
-        ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) =
-      ⟨0⟩ := by
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endSkipCatIlkFlipTargetWord catOut)]
-  exact hcode
-
-theorem endSkipBidsCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) (catOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
-        ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) ≠
-      ⟨0⟩ := by
-  intro hbad
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endSkipCatIlkFlipTargetWord catOut)] at hbad
-  exact hcode hbad
 
 theorem evalExprs_endSkip_bidsArgs_afterRate (evm : EVM.State)
     (I : ExecutionEnv) (catOut vatOut : ByteArray) :
@@ -10240,10 +10169,10 @@ theorem endSkipBodyReturns_afterTabTailGrabSuccess {I σLoc}
   rw [ExecTransitionBody]
   exact ExecFuncBody.execBlockOK hblock
 
-theorem endSkipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSkipBodyReverts_tagZero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
   have htagLoad :
@@ -10294,13 +10223,13 @@ theorem endSkipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
-theorem endSkipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSkipX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endSkipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) endSkipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -10317,65 +10246,57 @@ theorem endSkipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem endSkipBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some skipTransition)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endSkipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endSkipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (endSkipX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_skip_none_short hsz4 hshort)
 
-theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endSkipBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf skipTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf skipTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endSkipConcreteSelector := by
     simpa [endSkipSelectorBytes, endSkipConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endSkipConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some skipTransition :=
     endDispatchSkip hsel
-  have hreach := endReachSkipBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := endReachSkipBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := endDecode_skip_ok (I := I) hsz68
     obtain ⟨_, _, hbodyReach⟩ :=
       endSkipX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    have htagCouple : endSkipTagWord σ_evm I = endSkipTagWord σ_solm I := by
-      simpa [endSkipTagWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (endSkipTagSlot I) ⟨0⟩
-    by_cases htag : endSkipTagWord σ_evm I = ⟨0⟩
-    · have htagSolm : endSkipTagWord σ_solm I = ⟨0⟩ := by
-        rw [← htagCouple]
-        exact htag
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    by_cases htag : endSkipTagWord σ I = ⟨0⟩
+    · have htagSolm : endSkipTagWord σ I = ⟨0⟩ := htag
       have hbody :
           ExecTransitionBody config contract evmSolm (endSkipStore I)
             skipTransition.body .reverted := by
         simpa [evmSolm] using
           endSkipBodyReverts_tagZero
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hsz68 htagSolm
       exact (endSkipX_tagZero (g := Sat256.ofUInt256 g) hsz68 htag hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have htagNE : endSkipTagWord σ_evm I ≠ ⟨0⟩ := htag
-      have htagSolmNE : endSkipTagWord σ_solm I ≠ ⟨0⟩ := by
-        intro hbad
-        exact htagNE (by rw [htagCouple, hbad])
+    · have htagNE : endSkipTagWord σ I ≠ ⟨0⟩ := htag
+      have htagSolmNE : endSkipTagWord σ I ≠ ⟨0⟩ := htagNE
       obtain ⟨kTag, CTag, htagPcRaw⟩ :=
         endSkipX_tagNonzero (g := Sat256.ofUInt256 g) hsz68 htagNE hbodyReach
       have htagPc :
           RD endBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3314⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3314⟩
             [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, endSelWord I]
             (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty
-            (cA, σ_evm) kTag CTag := by
+            σ kTag CTag := by
         simpa [endSkipCatIlksBaseMem] using htagPcRaw
       have hAddressId (a : AccountAddress) : EVM.address a = a := by
         apply Fin.ext
@@ -10383,38 +10304,38 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [Nat.mod_eq_of_lt]
         exact a.isLt
       by_cases hcatCode :
-          Reasoning.Theory.extCodeSizeWord σ_evm (endSkipCatWord σ_evm I) =
+          Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) =
             ⟨0⟩
       · have hcatCodeSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endSkipCatWord σ_solm I) = ⟨0⟩ :=
-          endSkipCatCodeSize_zero_accountMapEquiv hAccounts hcatCode
+            Reasoning.Theory.extCodeSizeWord σ
+              (endSkipCatWord σ I) = ⟨0⟩ :=
+          hcatCode
         have hbody :
             ExecTransitionBody config contract evmSolm (endSkipStore I)
               skipTransition.body .reverted := by
           simpa [evmSolm] using
             endSkipBodyReverts_catIlksNoCode
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) hwv hsz68 htagSolmNE hcatCodeSolm
         exact (endSkipX_catIlksNoCode (g := Sat256.ofUInt256 g) htagPc hcatCode)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hcatCodeNE :
-            Reasoning.Theory.extCodeSizeWord σ_evm (endSkipCatWord σ_evm I) ≠
+            Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠
               ⟨0⟩ := hcatCode
         have hcatCodeSolmNE :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endSkipCatWord σ_solm I) ≠ ⟨0⟩ :=
-          endSkipCatCodeSize_ne_accountMapEquiv hAccounts hcatCodeNE
+            Reasoning.Theory.extCodeSizeWord σ
+              (endSkipCatWord σ I) ≠ ⟨0⟩ :=
+          hcatCodeNE
         obtain ⟨catGasWord, _, _, hcatReady⟩ :=
           endSkipX_catIlksCallReady
             (g := Sat256.ofUInt256 g) htagPc hcatCodeNE
         by_cases hdepthLt : I.depth.val < 1024
-        · obtain ⟨cA_cat, σ_cat, zCat, catOut, AinCat, callGasCat, _, _, hΘCat,
+        · obtain ⟨σ_cat, zCat, catOut, AinCat, callGasCat, _, _, hΘCat,
               rd3395, hcatOutSize⟩ :=
             endSkipX_catIlksPostCall hcatReady hdepthLt
           rcases hΘCat with ⟨gCat'', ACat, hΘCatEq⟩
           have hdepthNe :
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
               1024 := by
             intro hbad
             have hbadI : I.depth = 1024 := by
@@ -10422,26 +10343,25 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
             omega
           have htgtCat :
-              EVM.address (endSkipCatAddr σ_evm I) =
-              AccountAddress.ofUInt256 (endSkipCatWord σ_evm I) := by
+              EVM.address (endSkipCatAddr σ I) =
+              AccountAddress.ofUInt256 (endSkipCatWord σ I) := by
             calc
-              EVM.address (endSkipCatAddr σ_evm I)
+              EVM.address (endSkipCatAddr σ I)
                   = EVM.address
-                      (AccountAddress.ofUInt256 (endSkipCatWord σ_evm I)) := by
+                      (AccountAddress.ofUInt256 (endSkipCatWord σ I)) := by
                     rw [endSkipCatAddr_eq_ofUInt256]
-              _ = AccountAddress.ofUInt256 (endSkipCatWord σ_evm I) :=
-                    hAddressId (AccountAddress.ofUInt256 (endSkipCatWord σ_evm I))
+              _ = AccountAddress.ofUInt256 (endSkipCatWord σ I) :=
+                    hAddressId (AccountAddress.ofUInt256 (endSkipCatWord σ I))
           obtain ⟨σ_cat_solm, A_cat_solm, hcallCatSolmRaw, hAccountsCat,
               hSubstateCat⟩ :=
-            endCallMade_accountMapEquiv_with_substate
+            endCallMade_accountMapEq_with_substate
               (cfg := config)
-              (evm_evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+              (evm_evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (evm_solm := evmSolm)
-              (tgt := EVM.address (endSkipCatAddr σ_evm I))
-              (targetWord := endSkipCatWord σ_evm I)
+              (tgt := EVM.address (endSkipCatAddr σ I))
+              (targetWord := endSkipCatWord σ I)
               (name := "catIlks")
-              (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
-              (cA' := cA_cat) (σ' := σ_cat) (A' := ACat) (A_in := AinCat)
+              (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)]) (σ' := σ_cat) (A' := ACat) (A_in := AinCat)
               (z := zCat) (out := catOut) (g'' := gCat'')
               (callGas := callGasCat)
               (mem := endSkipCatIlksCalldataMem I)
@@ -10450,23 +10370,19 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               hdepthNe htgtCat
               (endSkipCatIlksEncode_eq I hsz68 (endSkipCatIlksBaseMem_size I))
               (by simpa [initState, hperm] using hΘCatEq)
-              (by simpa [initState] using hAccounts)
+              rfl
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-          have hCatAddr : endSkipCatAddr σ_evm I = endSkipCatAddr σ_solm I := by
-            simp [endSkipCatAddr, endSkipCatWord_accountMapEquiv hAccounts]
+          have hCatAddr : endSkipCatAddr σ I = endSkipCatAddr σ I := rfl
           have hcallCatSolm :
               typedCallViaEVM config evmSolm
-              (EVM.address (endSkipCatAddr σ_solm I)) "catIlks" 0
+              (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
               [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
               (zCat,
                 { evmSolm with
                   accountMap := σ_cat_solm
                   substate := A_cat_solm
-                  createdAccounts := cA_cat },
+ },
                 catOut) true := by
             simpa [evmSolm, hCatAddr] using hcallCatSolmRaw
           cases zCat
@@ -10475,30 +10391,30 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 skipTransition.body .reverted := by
               simpa [evmSolm] using
                 endSkipBodyReverts_catIlksCallFailed
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g)
                   (evmCat :=
                     { evmSolm with
                       accountMap := σ_cat_solm
                       substate := A_cat_solm
-                      createdAccounts := cA_cat })
+ })
                   (out := catOut)
                   hwv hsz68 htagSolmNE hcatCodeSolmNE
                   (by simpa [evmSolm] using hcallCatSolm)
             exact (endSkipX_catIlksCallFailed rd3395 hcatOutSize)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · let evmCatEvm :=
-              { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+              { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ_cat
               substate := ACat
-              createdAccounts := cA_cat }
+ }
             let evmCatSolm :=
               { evmSolm with
               accountMap := σ_cat_solm
               substate := A_cat_solm
-              createdAccounts := cA_cat }
+ }
             have hStateCat : EVMStateEquiv evmCatEvm evmCatSolm := by
-              refine ⟨rfl, rfl, ?_⟩
+              refine ⟨rfl, ?_⟩
               simpa [evmCatEvm, evmCatSolm] using hAccountsCat
             obtain ⟨_, _, rd3416⟩ :=
               endSkipX_catIlksCallSucceeded (g := Sat256.ofUInt256 g) rd3395
@@ -10508,7 +10424,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   skipTransition.body .reverted := by
                 simpa [evmCatSolm, evmSolm] using
                   endSkipBodyReverts_catIlksDecodeShort
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g)
                     (evmCat := evmCatSolm) (out := catOut)
                     hwv hsz68 htagSolmNE hcatCodeSolmNE
@@ -10532,7 +10448,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     evmCatSolm) := by
                 simpa [evmCatSolm, evmSolm] using
                   endSkipPrefixFlipSuccess
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g)
                     (evmCat := evmCatSolm) (out := catOut)
                     hwv hsz68 htagSolmNE hcatCodeSolmNE
@@ -10544,7 +10460,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               · have hvatCodeSolm :
                     Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) = ⟨0⟩ :=
-                  endPackVatCodeSize_zero_accountMapEquiv hAccountsCat hvatCode
+                  (by simpa only [hAccountsCat] using hvatCode)
                 have hvatBlock :
                     ExecBlock config
                       { contract := contract, locals := endSkipStoreFlip I catOut }
@@ -10568,10 +10484,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 have hvatCodeSolmNE :
                     Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) ≠ ⟨0⟩ :=
-                  endPackVatCodeSize_ne_accountMapEquiv hAccountsCat hvatCodeNE
+                  (by simpa only [hAccountsCat] using hvatCodeNE)
                 obtain ⟨gasWordVat, _, _, hvatReady⟩ :=
                   endSkipX_vatIlksCallReady rd3436 hloCat hvatCodeNE
-                obtain ⟨cA_vat, σ_vat, zVat, vatOut, AinVat, callGasVat, _, _,
+                obtain ⟨σ_vat, zVat, vatOut, AinVat, callGasVat, _, _,
                     hΘVat, rd3521, hvatOutSize⟩ :=
                   endSkipX_vatIlksPostCall hvatReady hdepthLt
                 rcases hΘVat with ⟨gVat'', AVat, hΘVatEq⟩
@@ -10587,15 +10503,14 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ_cat I))
                 obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, hAccountsVat,
                     hSubstateVat⟩ :=
-                  endCallMade_accountMapEquiv_with_substate
+                  endCallMade_accountMapEq_with_substate
                     (cfg := config)
                     (evm_evm := evmCatEvm)
                     (evm_solm := evmCatSolm)
                     (tgt := EVM.address (endPackVatAddr σ_cat I))
                     (targetWord := endPackVatWord σ_cat I)
                     (name := "vatIlks")
-                    (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
-                    (cA' := cA_vat) (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
+                    (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)]) (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
                     (z := zVat) (out := vatOut) (g'' := gVat'')
                     (callGas := callGasVat)
                     (mem := endSkipVatIlksCalldataMem I catOut)
@@ -10607,12 +10522,9 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by simpa [evmCatEvm, initState, hperm] using hΘVatEq)
                     (by simpa [evmCatEvm, evmCatSolm] using hAccountsCat)
                     (by rfl)
-                    (by simpa using hStateCat.createdAccounts.symm)
-                    (by rfl)
-                    (by rfl)
                     (by simpa using hStateCat.executionEnv.symm)
                 have hVatAddr : endPackVatAddr σ_cat I = endPackVatAddr σ_cat_solm I := by
-                  simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccountsCat]
+                  simp [endPackVatAddr, hAccountsCat]
                 have hcallVatSolm :
                     typedCallViaEVM config evmCatSolm
                     (EVM.address (endPackVatAddr σ_cat_solm I)) "vatIlks" 0
@@ -10621,7 +10533,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       { evmCatSolm with
                         accountMap := σ_vat_solm
                         substate := A_vat_solm
-                        createdAccounts := cA_vat },
+ },
                       vatOut) true := by
                   simpa [evmCatSolm, hVatAddr] using hcallVatSolmRaw
                 cases zVat
@@ -10638,7 +10550,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         { evmCatSolm with
                           accountMap := σ_vat_solm
                           substate := A_vat_solm
-                          createdAccounts := cA_vat })
+ })
                       (by simp [evmCatSolm])
                       (by simp [evmCatSolm, evmSolm, initState])
                       hvatCodeSolmNE
@@ -10653,14 +10565,14 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     { evmCatEvm with
                     accountMap := σ_vat
                     substate := AVat
-                    createdAccounts := cA_vat }
+ }
                   let evmVatSolm :=
                     { evmCatSolm with
                     accountMap := σ_vat_solm
                     substate := A_vat_solm
-                    createdAccounts := cA_vat }
+ }
                   have hStateVat : EVMStateEquiv evmVatEvm evmVatSolm := by
-                    refine ⟨rfl, rfl, ?_⟩
+                    refine ⟨rfl, ?_⟩
                     simpa [evmVatEvm, evmVatSolm] using hAccountsVat
                   obtain ⟨_, _, rd3541⟩ :=
                     endSkipX_vatIlksCallSucceeded (g := Sat256.ofUInt256 g) rd3521
@@ -10719,9 +10631,8 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩
                     · have hbidsCodeSolm :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                            (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
-                        endSkipBidsCodeSize_zero_accountMapEquiv
-                          hAccountsVat catOut hbidsCode
+                            (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ := by
+                        simpa only [hAccountsVat] using hbidsCode
                       have hbidsBlock :
                           ExecBlock config
                             { contract := contract,
@@ -10745,12 +10656,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := hbidsCode
                       have hbidsCodeSolmNE :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                            (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
-                        endSkipBidsCodeSize_ne_accountMapEquiv
-                          hAccountsVat catOut hbidsCodeNE
+                            (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := by
+                        simpa only [hAccountsVat] using hbidsCodeNE
                       obtain ⟨gasWordBids, _, _, hbidsReady⟩ :=
                         endSkipX_bidsCallReady rd3565 hloCat hloVat hbidsCodeNE
-                      obtain ⟨cA_bids, σ_bids, zBids, bidOut, AinBids,
+                      obtain ⟨σ_bids, zBids, bidOut, AinBids,
                           callGasBids, _, _, hΘBids, rd3653, hbidOutSize⟩ :=
                         endSkipX_bidsPostStaticcall hbidsReady hdepthLt
                       rcases hΘBids with ⟨gBids'', ABids, hΘBidsEq⟩
@@ -10770,15 +10680,14 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (endSkipCatIlkFlipTargetWord catOut))
                       obtain ⟨σ_bids_solm, A_bids_solm, hcallBidsSolmRaw,
                           hAccountsBids, hSubstateBids⟩ :=
-                        endCallMade_accountMapEquiv_with_substate
+                        endCallMade_accountMapEq_with_substate
                           (cfg := config)
                           (evm_evm := evmVatEvm)
                           (evm_solm := evmVatSolm)
                           (tgt := EVM.address (endSkipCatIlkFlipAddr catOut))
                           (targetWord := endSkipCatIlkFlipTargetWord catOut)
                           (name := "bids")
-                          (args := [.int (Int.ofNat (endSkipIdWord I).toNat)])
-                          (cA' := cA_bids) (σ' := σ_bids) (A' := ABids)
+                          (args := [.int (Int.ofNat (endSkipIdWord I).toNat)]) (σ' := σ_bids) (A' := ABids)
                           (A_in := AinBids) (z := zBids) (out := bidOut)
                           (g'' := gBids'') (callGas := callGasBids)
                           (mem := endSkipBidsCalldataMem I catOut vatOut)
@@ -10791,15 +10700,12 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (by simpa [evmVatEvm, evmCatEvm, initState] using hΘBidsEq)
                           (by simpa [evmVatEvm, evmVatSolm] using hAccountsVat)
                           (by rfl)
-                          (by simpa using hStateVat.createdAccounts.symm)
-                          (by rfl)
-                          (by rfl)
                           (by simpa using hStateVat.executionEnv.symm)
                       let evmBidsSolm :=
                         { evmVatSolm with
                           accountMap := σ_bids_solm
                           substate := A_bids_solm
-                          createdAccounts := cA_bids }
+ }
                       have hcallBidsSolm :
                           typedCallViaEVM config evmVatSolm
                           (EVM.address (endSkipCatIlkFlipAddr catOut)) "bids" 0
@@ -10812,7 +10718,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             { evmVatSolm with
                               accountMap := σ_bids_solm
                               substate := A_bids_solm
-                              createdAccounts := cA_bids },
+ },
                             bidOut) false
                         exact hcallBidsSolmRaw
                       cases zBids
@@ -10843,9 +10749,9 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           { evmVatEvm with
                           accountMap := σ_bids
                           substate := ABids
-                          createdAccounts := cA_bids }
+ }
                         have hStateBids : EVMStateEquiv evmBidsEvm evmBidsSolm := by
-                          refine ⟨rfl, rfl, ?_⟩
+                          refine ⟨rfl, ?_⟩
                           simpa [evmBidsEvm, evmBidsSolm] using hAccountsBids
                         have rd3653Success := by
                           simpa only [if_true] using rd3653
@@ -10910,8 +10816,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           · have hsuck1CodeSolm :
                                 Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) = ⟨0⟩ :=
-                              endPackVatCodeSize_zero_accountMapEquiv hAccountsBids
-                                hsuck1Code
+                              (by simpa only [hAccountsBids] using hsuck1Code)
                             have hsuck1Block :=
                               endSkipCheckedSuck1NoCode
                                 (σ := σ_bids_solm) (I := I) (catOut := catOut)
@@ -10935,13 +10840,12 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             have hsuck1CodeSolmNE :
                                 Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) ≠ ⟨0⟩ :=
-                              endPackVatCodeSize_ne_accountMapEquiv hAccountsBids
-                                hsuck1CodeNE
+                              (by simpa only [hAccountsBids] using hsuck1CodeNE)
                             obtain ⟨suck1GasWord, _, _, rdSuck1Ready⟩ :=
                               endSkipX_suck1CallReady
                                 (g := Sat256.ofUInt256 g) hloCat hloVat hloBid
                                 rd3712 hsuck1CodeNE
-                            obtain ⟨cA_suck1, σ_suck1, zSuck1, suck1Out, AinSuck1,
+                            obtain ⟨σ_suck1, zSuck1, suck1Out, AinSuck1,
                                 callGasSuck1, _, _, hΘSuck1, rd3821,
                                 hsuck1OutSize⟩ :=
                               endSkipX_suck1PostCall rdSuck1Ready hdepthLt
@@ -10968,7 +10872,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         (AccountAddress.ofUInt256 (endPackVatWord σ_bids I))
                             obtain ⟨σ_suck1_solm, A_suck1_solm, hcallSuck1SolmRaw,
                                 hAccountsSuck1, hSubstateSuck1⟩ :=
-                              endCallMade_accountMapEquiv_with_substate
+                              endCallMade_accountMapEq_with_substate
                                 (cfg := config) (evm_evm := evmBidsEvm)
                                 (evm_solm := evmBidsSolm)
                                 (tgt := EVM.address (endPackVatAddr σ_bids I))
@@ -10977,8 +10881,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 (args :=
                                   [.address (endPackVowAddr σ_bids I),
                                     .address (endPackVowAddr σ_bids I),
-                                    .int (Int.ofNat (endSkipTabWord bidOut).toNat)])
-                                (cA' := cA_suck1) (σ' := σ_suck1) (A' := ASuck1)
+                                    .int (Int.ofNat (endSkipTabWord bidOut).toNat)]) (σ' := σ_suck1) (A' := ASuck1)
                                 (A_in := AinSuck1) (z := zSuck1) (out := suck1Out)
                                 (g'' := gSuck1'') (callGas := callGasSuck1)
                                 (mem := endSkipSuck1CalldataMem σ_bids I catOut vatOut
@@ -10992,14 +10895,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   hperm] using hΘSuck1Eq)
                                 (by simpa [evmBidsEvm, evmBidsSolm] using hAccountsBids)
                                 (by rfl)
-                                (by simpa using hStateBids.createdAccounts.symm)
-                                (by rfl)
-                                (by rfl)
                                 (by simpa using hStateBids.executionEnv.symm)
                             have hVatWordSuck1 :
                                 endPackVatWord σ_bids I =
                                   endPackVatWord σ_bids_solm I :=
-                              endPackVatWord_accountMapEquiv hAccountsBids
+                              congrArg (fun m => endPackVatWord m I) hAccountsBids
                             have hVatAddrSuck1 :
                                 endPackVatAddr σ_bids I =
                                   endPackVatAddr σ_bids_solm I := by
@@ -11007,7 +10907,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             have hVowWordSuck1 :
                                 endPackVowWord σ_bids I =
                                   endPackVowWord σ_bids_solm I :=
-                              endPackVowWord_accountMapEquiv hAccountsBids
+                              (congrArg (fun m => endPackVowWord m I) hAccountsBids)
                             have hVowAddrSuck1 :
                                 endPackVowAddr σ_bids I =
                                   endPackVowAddr σ_bids_solm I := by
@@ -11016,7 +10916,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               { evmBidsSolm with
                                 accountMap := σ_suck1_solm
                                 substate := A_suck1_solm
-                                createdAccounts := cA_suck1 }
+ }
                             have hcallSuck1Solm :
                                 typedCallViaEVM config evmBidsSolm
                                   (EVM.address (endPackVatAddr σ_bids_solm I)) "suck" 0
@@ -11033,7 +10933,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   { evmBidsSolm with
                                     accountMap := σ_suck1_solm
                                     substate := A_suck1_solm
-                                    createdAccounts := cA_suck1 },
+ },
                                   suck1Out) true
                               rw [← hVatAddrSuck1, ← hVowAddrSuck1]
                               exact hcallSuck1SolmRaw
@@ -11060,9 +10960,9 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 { evmBidsEvm with
                                   accountMap := σ_suck1
                                   substate := ASuck1
-                                  createdAccounts := cA_suck1 }
+ }
                               have hStateSuck1 : EVMStateEquiv evmSuck1Evm evmSuck1Solm := by
-                                refine ⟨rfl, rfl, ?_⟩
+                                refine ⟨rfl, ?_⟩
                                 simpa [evmSuck1Evm, evmSuck1Solm] using hAccountsSuck1
                               have hmapSuck1Solm :
                                   evmSuck1Solm.accountMap = σ_suck1_solm := by
@@ -11088,8 +10988,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               · have hsuck2CodeSolm :
                                     Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) = ⟨0⟩ :=
-                                  endPackVatCodeSize_zero_accountMapEquiv hAccountsSuck1
-                                    hsuck2Code
+                                  (by simpa only [hAccountsSuck1] using hsuck2Code)
                                 have hsuck2Block :=
                                   endSkipCheckedSuck2NoCode
                                     (σ := σ_suck1_solm) (I := I) (catOut := catOut)
@@ -11114,14 +11013,13 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 have hsuck2CodeSolmNE :
                                     Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) ≠ ⟨0⟩ :=
-                                  endPackVatCodeSize_ne_accountMapEquiv hAccountsSuck1
-                                    hsuck2CodeNE
+                                  (by simpa only [hAccountsSuck1] using hsuck2CodeNE)
                                 obtain ⟨suck2GasWord, _, _, rdSuck2Ready⟩ :=
                                   endSkipX_suck2CallReady
                                     (g := Sat256.ofUInt256 g)
                                     (σmem := σ_bids) (σpost := σ_suck1)
                                     hloCat hloVat hloBid rd3840 hsuck2CodeNE
-                                obtain ⟨cA_suck2, σ_suck2, zSuck2, suck2Out,
+                                obtain ⟨σ_suck2, zSuck2, suck2Out,
                                     AinSuck2, callGasSuck2, _, _, hΘSuck2, rd3940,
                                     hsuck2OutSize⟩ :=
                                   endSkipX_suck2PostCall
@@ -11155,7 +11053,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 obtain ⟨σ_suck2_solm, A_suck2_solm,
                                     hcallSuck2SolmRaw, hAccountsSuck2,
                                     hSubstateSuck2⟩ :=
-                                  endCallMade_accountMapEquiv_with_substate
+                                  endCallMade_accountMapEq_with_substate
                                     (cfg := config) (evm_evm := evmSuck1Evm)
                                     (evm_solm := evmSuck1Solm)
                                     (tgt := EVM.address (endPackVatAddr σ_suck1 I))
@@ -11164,8 +11062,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (args :=
                                       [.address (endPackVowAddr σ_suck1 I),
                                         .address I.codeOwner,
-                                        .int (Int.ofNat (endSkipBidWord bidOut).toNat)])
-                                    (cA' := cA_suck2) (σ' := σ_suck2) (A' := ASuck2)
+                                        .int (Int.ofNat (endSkipBidWord bidOut).toNat)]) (σ' := σ_suck2) (A' := ASuck2)
                                     (A_in := AinSuck2) (z := zSuck2) (out := suck2Out)
                                     (g'' := gSuck2'') (callGas := callGasSuck2)
                                     (mem := endSkipSuck2CalldataMemFor σ_bids σ_suck1
@@ -11180,14 +11077,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (by simpa [evmSuck1Evm, evmSuck1Solm] using
                                       hAccountsSuck1)
                                     (by rfl)
-                                    (by simpa using hStateSuck1.createdAccounts.symm)
-                                    (by rfl)
-                                    (by rfl)
                                     (by simpa using hStateSuck1.executionEnv.symm)
                                 have hVatWordSuck2 :
                                     endPackVatWord σ_suck1 I =
                                       endPackVatWord σ_suck1_solm I :=
-                                  endPackVatWord_accountMapEquiv hAccountsSuck1
+                                  congrArg (fun m => endPackVatWord m I) hAccountsSuck1
                                 have hVatAddrSuck2 :
                                     endPackVatAddr σ_suck1 I =
                                       endPackVatAddr σ_suck1_solm I := by
@@ -11195,7 +11089,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 have hVowWordSuck2 :
                                     endPackVowWord σ_suck1 I =
                                       endPackVowWord σ_suck1_solm I :=
-                                  endPackVowWord_accountMapEquiv hAccountsSuck1
+                                  (congrArg (fun m => endPackVowWord m I) hAccountsSuck1)
                                 have hVowAddrSuck2 :
                                     endPackVowAddr σ_suck1 I =
                                       endPackVowAddr σ_suck1_solm I := by
@@ -11204,7 +11098,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   { evmSuck1Solm with
                                     accountMap := σ_suck2_solm
                                     substate := A_suck2_solm
-                                    createdAccounts := cA_suck2 }
+ }
                                 have hcallSuck2Solm :
                                     typedCallViaEVM config evmSuck1Solm
                                       (EVM.address (endPackVatAddr σ_suck1_solm I))
@@ -11223,7 +11117,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       { evmSuck1Solm with
                                         accountMap := σ_suck2_solm
                                         substate := A_suck2_solm
-                                        createdAccounts := cA_suck2 },
+ },
                                       suck2Out) true
                                   rw [← hVatAddrSuck2, ← hVowAddrSuck2]
                                   exact hcallSuck2SolmRaw
@@ -11254,10 +11148,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     { evmSuck1Evm with
                                       accountMap := σ_suck2
                                       substate := ASuck2
-                                      createdAccounts := cA_suck2 }
+ }
                                   have hStateSuck2 :
                                       EVMStateEquiv evmSuck2Evm evmSuck2Solm := by
-                                    refine ⟨rfl, rfl, ?_⟩
+                                    refine ⟨rfl, ?_⟩
                                     simpa [evmSuck2Evm, evmSuck2Solm] using
                                       hAccountsSuck2
                                   have hmapSuck2Solm :
@@ -11285,8 +11179,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) = ⟨0⟩ :=
-                                      endPackVatCodeSize_zero_accountMapEquiv
-                                        hAccountsSuck2 hhopeCode
+                                      (by simpa only [hAccountsSuck2] using hhopeCode)
                                     have hhopeBlock :=
                                       endSkipCheckedHopeNoCode
                                         (σ := σ_suck2_solm) (I := I) (catOut := catOut)
@@ -11317,15 +11210,14 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) ≠ ⟨0⟩ :=
-                                      endPackVatCodeSize_ne_accountMapEquiv
-                                        hAccountsSuck2 hhopeCodeNE
+                                      (by simpa only [hAccountsSuck2] using hhopeCodeNE)
                                     obtain ⟨hopeGasWord, _, _, rdHopeReady⟩ :=
                                       endSkipX_hopeCallReady
                                         (g := Sat256.ofUInt256 g)
                                         (σmem := σ_bids) (σcall := σ_suck1)
                                         (σpost := σ_suck2)
                                         hloCat hloVat hloBid rd3959 hhopeCodeNE
-                                    obtain ⟨cA_hope, σ_hope, zHope, hopeOut, AinHope,
+                                    obtain ⟨σ_hope, zHope, hopeOut, AinHope,
                                         callGasHope, _, _, hΘHope, rd4042,
                                         hhopeOutSize⟩ :=
                                       endSkipX_hopePostCall
@@ -11359,14 +11251,13 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (endPackVatWord σ_suck2 I))
                                     obtain ⟨σ_hope_solm, A_hope_solm, hcallHopeSolmRaw,
                                         hAccountsHope, hSubstateHope⟩ :=
-                                      endCallMade_accountMapEquiv_with_substate
+                                      endCallMade_accountMapEq_with_substate
                                         (cfg := config) (evm_evm := evmSuck2Evm)
                                         (evm_solm := evmSuck2Solm)
                                         (tgt := EVM.address (endPackVatAddr σ_suck2 I))
                                         (targetWord := endPackVatWord σ_suck2 I)
                                         (name := "hope")
-                                        (args := [.address (endSkipCatIlkFlipAddr catOut)])
-                                        (cA' := cA_hope) (σ' := σ_hope) (A' := AHope)
+                                        (args := [.address (endSkipCatIlkFlipAddr catOut)]) (σ' := σ_hope) (A' := AHope)
                                         (A_in := AinHope) (z := zHope) (out := hopeOut)
                                         (g'' := gHope'') (callGas := callGasHope)
                                         (mem := endSkipHopeCalldataMemFor σ_bids σ_suck1
@@ -11382,14 +11273,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         (by simpa [evmSuck2Evm, evmSuck2Solm] using
                                           hAccountsSuck2)
                                         (by rfl)
-                                        (by simpa using hStateSuck2.createdAccounts.symm)
-                                        (by rfl)
-                                        (by rfl)
                                         (by simpa using hStateSuck2.executionEnv.symm)
                                     have hVatWordHope :
                                         endPackVatWord σ_suck2 I =
                                           endPackVatWord σ_suck2_solm I :=
-                                      endPackVatWord_accountMapEquiv hAccountsSuck2
+                                      congrArg (fun m => endPackVatWord m I) hAccountsSuck2
                                     have hVatAddrHope :
                                         endPackVatAddr σ_suck2 I =
                                           endPackVatAddr σ_suck2_solm I := by
@@ -11398,7 +11286,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       { evmSuck2Solm with
                                         accountMap := σ_hope_solm
                                         substate := A_hope_solm
-                                        createdAccounts := cA_hope }
+ }
                                     have hcallHopeSolm :
                                         typedCallViaEVM config evmSuck2Solm
                                           (EVM.address (endPackVatAddr σ_suck2_solm I))
@@ -11413,7 +11301,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           { evmSuck2Solm with
                                             accountMap := σ_hope_solm
                                             substate := A_hope_solm
-                                            createdAccounts := cA_hope },
+ },
                                           hopeOut) true
                                       rw [← hVatAddrHope]
                                       exact hcallHopeSolmRaw
@@ -11446,10 +11334,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         { evmSuck2Evm with
                                           accountMap := σ_hope
                                           substate := AHope
-                                          createdAccounts := cA_hope }
+ }
                                       have hStateHope :
                                           EVMStateEquiv evmHopeEvm evmHopeSolm := by
-                                        refine ⟨rfl, rfl, ?_⟩
+                                        refine ⟨rfl, ?_⟩
                                         simpa [evmHopeEvm, evmHopeSolm] using
                                           hAccountsHope
                                       have hmapHopeSolm :
@@ -11473,9 +11361,8 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       · have hyankCodeSolm :
                                             Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
-                                              (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
-                                          endSkipBidsCodeSize_zero_accountMapEquiv
-                                            hAccountsHope catOut hyankCode
+                                              (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ := by
+                                          simpa only [hAccountsHope] using hyankCode
                                         have hyankBlock :=
                                           endSkipCheckedYankNoCode
                                             (σ := σ_hope_solm) (I := I) (catOut := catOut)
@@ -11506,16 +11393,15 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         have hyankCodeSolmNE :
                                             Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
-                                              (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
-                                          endSkipBidsCodeSize_ne_accountMapEquiv
-                                            hAccountsHope catOut hyankCodeNE
+                                              (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := by
+                                          simpa only [hAccountsHope] using hyankCodeNE
                                         obtain ⟨yankGasWord, _, _, rdYankReady⟩ :=
                                           endSkipX_yankCallReady
                                             (g := Sat256.ofUInt256 g)
                                             (σmem := σ_bids) (σcall := σ_suck1)
                                             (σpost := σ_hope)
                                             hloCat hloVat hloBid rd4063 hyankCodeNE
-                                        obtain ⟨cA_yank, σ_yank, zYank, yankOut, AinYank,
+                                        obtain ⟨σ_yank, zYank, yankOut, AinYank,
                                             callGasYank, _, _, hΘYank, rd4136,
                                             hyankOutSize⟩ :=
                                           endSkipX_yankPostCall
@@ -11536,14 +11422,13 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         obtain ⟨σ_yank_solm, A_yank_solm,
                                             hcallYankSolmRaw, hAccountsYank,
                                             hSubstateYank⟩ :=
-                                          endCallMade_accountMapEquiv_with_substate
+                                          endCallMade_accountMapEq_with_substate
                                             (cfg := config) (evm_evm := evmHopeEvm)
                                             (evm_solm := evmHopeSolm)
                                             (tgt := EVM.address (endSkipCatIlkFlipAddr catOut))
                                             (targetWord := endSkipCatIlkFlipTargetWord catOut)
                                             (name := "yank")
-                                            (args := [.int (Int.ofNat (endSkipIdWord I).toNat)])
-                                            (cA' := cA_yank) (σ' := σ_yank) (A' := AYank)
+                                            (args := [.int (Int.ofNat (endSkipIdWord I).toNat)]) (σ' := σ_yank) (A' := AYank)
                                             (A_in := AinYank) (z := zYank) (out := yankOut)
                                             (g'' := gYank'') (callGas := callGasYank)
                                             (mem := endSkipYankCalldataMemFor σ_bids
@@ -11560,15 +11445,12 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             (by simpa [evmHopeEvm, evmHopeSolm] using
                                               hAccountsHope)
                                             (by rfl)
-                                            (by simpa using hStateHope.createdAccounts.symm)
-                                            (by rfl)
-                                            (by rfl)
                                             (by simpa using hStateHope.executionEnv.symm)
                                         let evmYankSolm :=
                                           { evmHopeSolm with
                                             accountMap := σ_yank_solm
                                             substate := A_yank_solm
-                                            createdAccounts := cA_yank }
+ }
                                         have hcallYankSolm :
                                             typedCallViaEVM config evmHopeSolm
                                               (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -11583,7 +11465,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               { evmHopeSolm with
                                                 accountMap := σ_yank_solm
                                                 substate := A_yank_solm
-                                                createdAccounts := cA_yank },
+ },
                                               yankOut) true
                                           exact hcallYankSolmRaw
                                         cases zYank
@@ -11614,7 +11496,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             { evmHopeEvm with
                                               accountMap := σ_yank
                                               substate := AYank
-                                              createdAccounts := cA_yank }
+ }
                                           have hyankBlock :=
                                             endSkipCheckedYankSuccess
                                               (σ := σ_hope_solm) (I := I) (catOut := catOut)
@@ -11629,7 +11511,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               (σpost := σ_yank) rd4136Succ
                                           have hStateYank :
                                               EVMStateEquiv evmYankEvm evmYankSolm := by
-                                            refine ⟨?_, rfl, ?_⟩
+                                            refine ⟨?_, ?_⟩
                                             · simpa [evmYankEvm, evmYankSolm] using
                                                 hStateHope.executionEnv
                                             · simpa [evmYankEvm, evmYankSolm] using
@@ -11637,9 +11519,8 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           have hArtCoupleYank :
                                               endSkipArtOldWord σ_yank I =
                                                 endSkipArtOldWord σ_yank_solm I := by
-                                            simpa [endSkipArtOldWord, endSlotWord] using
-                                              accountMapEquiv_storage_findD hAccountsYank
-                                                I.codeOwner (endSkipArtSlot I) ⟨0⟩
+                                            exact congrArg (fun m => endSkipArtOldWord m I)
+                                              hAccountsYank
                                           have hArtLoadSolm :
                                               Solm.EVM.storageLoad evmYankSolm
                                                 evmYankSolm.executionEnv.codeOwner
@@ -11674,7 +11555,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 simpa [initState, Sat256.ofUInt256] using
                                                   hoog))
                                             · have hxi :
-                                                  Ξ cA gh bl σ_evm σ₀ g A I =
+                                                  Ξ σ σ₀ g A I =
                                                     .error .InvalidInstruction :=
                                                 Xi_error_of_X (g := g) (by
                                                   rw [← hcode] at hinvalid
@@ -11786,7 +11667,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                       hStateYank.storageStore_codeOwner
                                                         (endSkipArtSlot I) hArtNewCouple
                                                   have hAccountsPost :
-                                                      accountMapEquiv σ_post σ_post_solm := by
+                                                      Eq σ_post σ_post_solm := by
                                                     simpa [evmPostEvm, evmPostSolm, σ_post,
                                                       σ_post_solm, endSkipPostArtState,
                                                       endSkipPostArtAccountMap,
@@ -11794,120 +11675,118 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                       hStatePost.accountMap
                                                   have hmapPostSolm :
                                                       evmPostSolm.accountMap = σ_post_solm := by
-                                                    simp [evmPostSolm, σ_post_solm,
-                                                      endSkipPostArtState,
-                                                      endSkipPostArtAccountMap,
-                                                      storageStore_accountMap, evmYankSolm,
-                                                      evmHopeSolm, evmSuck2Solm,
-                                                      evmSuck1Solm, evmBidsSolm, evmVatSolm,
-                                                      evmCatSolm, evmSolm, initState]
+                                                    calc
+                                                      evmPostSolm.accountMap =
+                                                          evmPostEvm.accountMap :=
+                                                        hStatePost.accountMap.symm
+                                                      _ = σ_post := by
+                                                        simp [evmPostEvm, endSkipPostArtState,
+                                                          endSkipPostArtAccountMap, σ_post,
+                                                          evmYankEvm, evmHopeEvm, evmSuck2Evm,
+                                                          evmSuck1Evm, evmBidsEvm, evmVatEvm,
+                                                          evmCatEvm, evmSolm, initState,
+                                                          storageStore_accountMap]
+                                                      _ = σ_post_solm := hAccountsPost
                                                   have hownerPostSolm :
                                                       evmPostSolm.executionEnv.codeOwner =
                                                         I.codeOwner := by
                                                     simp [evmPostSolm, endSkipPostArtState,
-                                                      storageStore_executionEnv, evmYankSolm,
-                                                      evmHopeSolm, evmSuck2Solm,
+                                                      evmYankSolm, evmHopeSolm, evmSuck2Solm,
                                                       evmSuck1Solm, evmBidsSolm, evmVatSolm,
-                                                      evmCatSolm, evmSolm, initState]
+                                                      evmCatSolm, evmSolm, initState,
+                                                      storageStore_executionEnv]
                                                   by_cases hgrabCode :
-                                                      Reasoning.Theory.extCodeSizeWord
-                                                        σ_post (endPackVatWord σ_post I) = ⟨0⟩
+                                                      Reasoning.Theory.extCodeSizeWord σ_post
+                                                        (endPackVatWord σ_post I) = ⟨0⟩
                                                   · have hgrabCodeSolm :
                                                         Reasoning.Theory.extCodeSizeWord
                                                           σ_post_solm
-                                                          (endPackVatWord σ_post_solm I) = ⟨0⟩ :=
-                                                      endPackVatCodeSize_zero_accountMapEquiv
-                                                        hAccountsPost hgrabCode
-                                                    have hgrab :=
+                                                          (endPackVatWord σ_post_solm I) =
+                                                            ⟨0⟩ := by
+                                                      exact (by simpa only [hAccountsPost] using hgrabCode)
+                                                    have hgrabBlock :=
                                                       endSkipGrabTailReverts_noCodeFor
                                                         (σCall := σ_post_solm)
                                                         (σLoc := σ_yank_solm) (I := I)
                                                         (catOut := catOut) (vatOut := vatOut)
                                                         (bidOut := bidOut) (evm := evmPostSolm)
-                                                        hmapPostSolm hownerPostSolm
-                                                        hgrabCodeSolm
+                                                        hmapPostSolm hownerPostSolm hgrabCodeSolm
                                                     have hbody :
-                                                        ExecTransitionBody config contract
-                                                          evmSolm (endSkipStore I)
-                                                          skipTransition.body .reverted := by
+                                                        ExecTransitionBody config contract evmSolm
+                                                          (endSkipStore I) skipTransition.body
+                                                          .reverted := by
                                                       exact
-                                                        endSkipBodyReverts_afterTabTailGrabReverted
-                                                          hprefixTab htailOk hgrab
+                                                          endSkipBodyReverts_afterTabTailGrabReverted
+                                                          hprefixTab htailOk hgrabBlock
                                                     exact
-                                                      (endSkipX_grabNoCode
-                                                        (g := Sat256.ofUInt256 g)
-                                                        (σCall := σ_post) (σmem := σ_bids)
-                                                        (σcall := σ_suck1)
-                                                        hloCat hloVat hloBid rd4295
-                                                        hgrabCode)
-                                                        |>.reEquivExecutionRevert hcode
-                                                          hdispatch hdecode hbody
+                                                      (endSkipX_grabNoCode hloCat hloVat hloBid
+                                                        rd4295 hgrabCode)
+                                                        |>.reEquivExecutionRevert hcode hdispatch
+                                                          hdecode hbody
                                                   · have hgrabCodeNE :
-                                                        Reasoning.Theory.extCodeSizeWord
-                                                          σ_post (endPackVatWord σ_post I) ≠
-                                                            ⟨0⟩ := hgrabCode
+                                                        Reasoning.Theory.extCodeSizeWord σ_post
+                                                          (endPackVatWord σ_post I) ≠ ⟨0⟩ :=
+                                                      hgrabCode
                                                     have hgrabCodeSolmNE :
                                                         Reasoning.Theory.extCodeSizeWord
                                                           σ_post_solm
                                                           (endPackVatWord σ_post_solm I) ≠
-                                                            ⟨0⟩ :=
-                                                      endPackVatCodeSize_ne_accountMapEquiv
-                                                        hAccountsPost hgrabCodeNE
-                                                    obtain ⟨grabGasWord, _, _, rdGrabReady⟩ :=
-                                                      endSkipX_grabCallReady
-                                                        (g := Sat256.ofUInt256 g)
-                                                        (σCall := σ_post) (σmem := σ_bids)
-                                                        (σcall := σ_suck1)
-                                                        hloCat hloVat hloBid rd4295
-                                                        hgrabCodeNE
-                                                    obtain ⟨cA_grab, σ_grab, zGrab, ret,
-                                                        AinGrab, callGasGrab, _, _, hΘGrab,
-                                                        rd4413, hretSize⟩ :=
-                                                      endSkipX_grabPostCall
-                                                        (g := Sat256.ofUInt256 g)
-                                                        (σCall := σ_post) (σmem := σ_bids)
-                                                        (σcall := σ_suck1)
-                                                        rdGrabReady hdepthLt
-                                                    rcases hΘGrab with ⟨gGrab'', AGrab,
-                                                      hΘGrabEq⟩
+                                                            ⟨0⟩ := by
+                                                      exact (by simpa only [hAccountsPost] using hgrabCodeNE)
+                                                    obtain ⟨_, _, _, rd4412⟩ :=
+                                                      endSkipX_grabCallReady hloCat hloVat hloBid
+                                                        rd4295 hgrabCodeNE
+                                                    obtain ⟨σ_grab, zGrab, ret, AinGrab,
+                                                        callGasGrab, _, _, hΘGrab, rd4413,
+                                                        hretSize⟩ :=
+                                                      endSkipX_grabPostCall rd4412 hdepthLt
+                                                    rcases hΘGrab with
+                                                      ⟨gGrab'', AGrab, hΘGrabEq⟩
                                                     have hdepthNeGrab :
-                                                        evmPostEvm.executionEnv.depth ≠
-                                                          1024 := by
-                                                      intro hbad
-                                                      have hbadI : I.depth = 1024 := by
-                                                        simpa [evmPostEvm, endSkipPostArtState,
-                                                          storageStore_executionEnv,
-                                                          evmYankEvm, evmHopeEvm,
-                                                          evmSuck2Evm, evmSuck1Evm,
-                                                          evmBidsEvm, evmVatEvm, evmCatEvm,
-                                                          initState] using hbad
-                                                      have hbadVal : I.depth.val = 1024 :=
-                                                        congrArg Fin.val hbadI
-                                                      omega
+                                                        evmPostEvm.executionEnv.depth ≠ 1024 := by
+                                                      simpa [evmPostEvm, endSkipPostArtState,
+                                                        evmYankEvm, evmHopeEvm, evmSuck2Evm,
+                                                        evmSuck1Evm, evmBidsEvm, evmVatEvm,
+                                                        evmCatEvm, evmSolm, initState,
+                                                        storageStore_executionEnv] using hdepthNe
                                                     have htgtGrab :
                                                         EVM.address (endPackVatAddr σ_post I) =
                                                           AccountAddress.ofUInt256
                                                             (endPackVatWord σ_post I) := by
                                                       calc
-                                                        EVM.address (endPackVatAddr σ_post I)
-                                                            = EVM.address
-                                                                (AccountAddress.ofUInt256
-                                                                  (endPackVatWord σ_post I)) := by
-                                                              rw [endPackVatAddr_eq_ofUInt256]
+                                                        EVM.address (endPackVatAddr σ_post I) =
+                                                            EVM.address
+                                                              (AccountAddress.ofUInt256
+                                                                (endPackVatWord σ_post I)) := by
+                                                          rw [endPackVatAddr_eq_ofUInt256]
                                                         _ = AccountAddress.ofUInt256
                                                               (endPackVatWord σ_post I) :=
-                                                              hAddressId
-                                                                (AccountAddress.ofUInt256
-                                                                  (endPackVatWord σ_post I))
+                                                          hAddressId _
+                                                    have hVatWordGrab :
+                                                          endPackVatWord σ_post I =
+                                                            endPackVatWord σ_post_solm I :=
+                                                        congrArg (fun m => endPackVatWord m I) hAccountsPost
+                                                    have hVatAddrGrab :
+                                                          endPackVatAddr σ_post I =
+                                                            endPackVatAddr σ_post_solm I := by
+                                                        simp [endPackVatAddr, hVatWordGrab]
+                                                    have hVowWordGrab :
+                                                          endPackVowWord σ_post I =
+                                                            endPackVowWord σ_post_solm I :=
+                                                        (congrArg (fun m => endPackVowWord m I) hAccountsPost)
+                                                    have hVowAddrGrab :
+                                                          endPackVowAddr σ_post I =
+                                                            endPackVowAddr σ_post_solm I := by
+                                                        simp [endPackVowAddr, hVowWordGrab]
                                                     obtain ⟨σ_grab_solm, A_grab_solm,
                                                         hgrabCallSolmRaw, hAccountsGrab,
                                                         hSubstateGrab⟩ :=
-                                                      endCallMade_accountMapEquiv_with_substate
+                                                      endCallMade_accountMapEq_with_substate
                                                         (cfg := config)
                                                         (evm_evm := evmPostEvm)
                                                         (evm_solm := evmPostSolm)
-                                                        (tgt :=
-                                                          EVM.address (endPackVatAddr σ_post I))
+                                                        (tgt := EVM.address
+                                                          (endPackVatAddr σ_post I))
                                                         (targetWord := endPackVatWord σ_post I)
                                                         (name := "grab")
                                                         (args :=
@@ -11920,136 +11799,94 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                               (endSkipLotWord bidOut).toNat),
                                                             .int (Int.ofNat
                                                               (endSkipArtWord vatOut bidOut).toNat)])
-                                                        (cA' := cA_grab) (σ' := σ_grab)
-                                                        (A' := AGrab) (A_in := AinGrab)
-                                                        (z := zGrab) (out := ret)
-                                                        (g'' := gGrab'')
+                                                        (σ' := σ_grab) (A' := AGrab)
+                                                        (A_in := AinGrab) (z := zGrab)
+                                                        (out := ret) (g'' := gGrab'')
                                                         (callGas := callGasGrab)
-                                                        (mem :=
-                                                          endSkipGrabCalldataMemForTrace
-                                                            σ_post σ_bids σ_suck1 I catOut
-                                                            vatOut bidOut)
+                                                        (mem := endSkipGrabCalldataMemForTrace
+                                                          σ_post σ_bids σ_suck1 I catOut vatOut
+                                                          bidOut)
                                                         (inOff := endFreeGrabOutPtr)
                                                         (inSize := endFreeGrabInSize)
                                                         (callPerm := true)
                                                         hdepthNeGrab htgtGrab
                                                         (endSkipGrabEncodeForTrace_eq σ_post
-                                                          σ_bids σ_suck1 I catOut vatOut
-                                                          bidOut hsz68 hloCat hloVat hloBid
-                                                          hlot hart)
-                                                        (by simpa [evmPostEvm,
+                                                          σ_bids σ_suck1 I catOut vatOut bidOut
+                                                          hsz68 hloCat hloVat hloBid hlot hart)
+                                                        (by simpa [evmPostEvm, evmPostSolm,
                                                           endSkipPostArtState,
-                                                          storageStore_executionEnv,
-                                                          storageStore_createdAccounts,
-                                                          storageStore_accountMap,
-                                                          endSkip_storageStore_σ₀,
-                                                          endSkip_storageStore_genesisBlockHeader,
-                                                          endSkip_storageStore_blocks, σ_post,
                                                           endSkipPostArtAccountMap, evmYankEvm,
-                                                          evmHopeEvm, evmSuck2Evm,
-                                                          evmSuck1Evm, evmBidsEvm, evmVatEvm,
-                                                          evmCatEvm, initState, hperm] using
+                                                          evmYankSolm, evmHopeEvm, evmHopeSolm,
+                                                          evmSuck2Evm, evmSuck2Solm,
+                                                          evmSuck1Evm, evmSuck1Solm,
+                                                          evmBidsEvm, evmBidsSolm, evmVatEvm,
+                                                          evmVatSolm, evmCatEvm, evmCatSolm,
+                                                          evmSolm, initState, σ_post, hperm,
+                                                          storageStore_accountMap,
+                                                          storageStore_executionEnv,
+                                                          endSkip_storageStore_σ₀] using
                                                           hΘGrabEq)
-                                                        hStatePost.accountMap
+                                                        (by simpa [evmPostEvm, evmPostSolm] using
+                                                          hStatePost.accountMap)
                                                         (by simp [evmPostEvm, evmPostSolm,
                                                           endSkipPostArtState,
-                                                          endSkip_storageStore_σ₀, evmYankEvm,
-                                                          evmYankSolm, evmHopeEvm,
-                                                          evmHopeSolm, evmSuck2Evm,
-                                                          evmSuck2Solm, evmSuck1Evm,
-                                                          evmSuck1Solm, evmBidsEvm,
-                                                          evmBidsSolm, evmVatEvm, evmVatSolm,
-                                                          evmCatEvm, evmCatSolm, evmSolm,
-                                                          initState])
-                                                        (by simpa [evmPostEvm, evmPostSolm]
-                                                          using hStatePost.createdAccounts.symm)
-                                                        (by simp [evmPostEvm, evmPostSolm,
-                                                          endSkipPostArtState,
-                                                          endSkip_storageStore_genesisBlockHeader,
                                                           evmYankEvm, evmYankSolm,
                                                           evmHopeEvm, evmHopeSolm,
                                                           evmSuck2Evm, evmSuck2Solm,
                                                           evmSuck1Evm, evmSuck1Solm,
                                                           evmBidsEvm, evmBidsSolm, evmVatEvm,
                                                           evmVatSolm, evmCatEvm, evmCatSolm,
-                                                          evmSolm, initState])
-                                                        (by simp [evmPostEvm, evmPostSolm,
-                                                          endSkipPostArtState,
-                                                          endSkip_storageStore_blocks,
-                                                          evmYankEvm, evmYankSolm,
-                                                          evmHopeEvm, evmHopeSolm,
-                                                          evmSuck2Evm, evmSuck2Solm,
-                                                          evmSuck1Evm, evmSuck1Solm,
-                                                          evmBidsEvm, evmBidsSolm, evmVatEvm,
-                                                          evmVatSolm, evmCatEvm, evmCatSolm,
-                                                          evmSolm, initState])
-                                                        (by simpa [evmPostEvm, evmPostSolm]
-                                                          using hStatePost.executionEnv.symm)
-                                                    have hVatWordGrab :
-                                                        endPackVatWord σ_post I =
-                                                          endPackVatWord σ_post_solm I :=
-                                                      endPackVatWord_accountMapEquiv
-                                                        hAccountsPost
-                                                    have hVatAddrGrab :
-                                                        endPackVatAddr σ_post I =
-                                                          endPackVatAddr σ_post_solm I := by
-                                                      simp [endPackVatAddr, hVatWordGrab]
-                                                    have hVowWordGrab :
-                                                        endPackVowWord σ_post I =
-                                                          endPackVowWord σ_post_solm I :=
-                                                      endPackVowWord_accountMapEquiv
-                                                        hAccountsPost
-                                                    have hVowAddrGrab :
-                                                        endPackVowAddr σ_post I =
-                                                          endPackVowAddr σ_post_solm I := by
-                                                      simp [endPackVowAddr, hVowWordGrab]
+                                                          evmSolm, initState,
+                                                          endSkip_storageStore_σ₀])
+                                                        (by simpa [evmPostEvm, evmPostSolm] using
+                                                          hStatePost.executionEnv.symm)
                                                     have hgrabCallSolm :
-                                                        typedCallViaEVM config evmPostSolm
-                                                          (EVM.address
-                                                            (endPackVatAddr σ_post_solm I))
-                                                          "grab" 0
-                                                          [.fixedBytes bytes32Width
-                                                              (endBytes32ArgBytes I),
-                                                            .address (endSkipUsrAddr bidOut),
-                                                            .address I.codeOwner,
-                                                            .address
-                                                              (endPackVowAddr σ_post_solm I),
-                                                            .int (Int.ofNat
-                                                              (endSkipLotWord bidOut).toNat),
-                                                            .int (Int.ofNat
-                                                              (endSkipArtWord vatOut bidOut).toNat)]
-                                                          (zGrab,
-                                                            { evmPostSolm with
-                                                              accountMap := σ_grab_solm
-                                                              substate := A_grab_solm
-                                                              createdAccounts := cA_grab },
-                                                            ret) true := by
-                                                      simpa [hVatAddrGrab, hVowAddrGrab] using
-                                                        hgrabCallSolmRaw
+                                                          typedCallViaEVM config evmPostSolm
+                                                            (EVM.address
+                                                              (endPackVatAddr σ_post_solm I))
+                                                            "grab" 0
+                                                            [.fixedBytes bytes32Width
+                                                                (endBytes32ArgBytes I),
+                                                              .address (endSkipUsrAddr bidOut),
+                                                              .address I.codeOwner,
+                                                              .address
+                                                                (endPackVowAddr σ_post_solm I),
+                                                              .int (Int.ofNat
+                                                                (endSkipLotWord bidOut).toNat),
+                                                              .int (Int.ofNat
+                                                                (endSkipArtWord vatOut bidOut).toNat)]
+                                                            (zGrab,
+                                                              { evmPostSolm with
+                                                                accountMap := σ_grab_solm
+                                                                substate := A_grab_solm
+   },
+                                                              ret) true := by
+                                                        simpa [hVatAddrGrab, hVowAddrGrab] using
+                                                          hgrabCallSolmRaw
                                                     cases zGrab
                                                     · have hgrab :=
-                                                        endSkipGrabTailReverts_callFailedFor
-                                                          (σCall := σ_post_solm)
-                                                          (σLoc := σ_yank_solm) (I := I)
-                                                          (catOut := catOut) (vatOut := vatOut)
-                                                          (bidOut := bidOut) (grabOut := ret)
-                                                          (evm := evmPostSolm)
-                                                          (evmGrab :=
-                                                            { evmPostSolm with
-                                                              accountMap := σ_grab_solm
-                                                              substate := A_grab_solm
-                                                              createdAccounts := cA_grab })
-                                                          hmapPostSolm hownerPostSolm
-                                                          hlot hart
-                                                          hgrabCodeSolmNE
-                                                          (by simpa using hgrabCallSolm)
+                                                          endSkipGrabTailReverts_callFailedFor
+                                                            (σCall := σ_post_solm)
+                                                            (σLoc := σ_yank_solm) (I := I)
+                                                            (catOut := catOut) (vatOut := vatOut)
+                                                            (bidOut := bidOut) (grabOut := ret)
+                                                            (evm := evmPostSolm)
+                                                            (evmGrab :=
+                                                              { evmPostSolm with
+                                                                accountMap := σ_grab_solm
+                                                                substate := A_grab_solm
+   })
+                                                            hmapPostSolm hownerPostSolm
+                                                            hlot hart
+                                                            hgrabCodeSolmNE
+                                                            (by simpa using hgrabCallSolm)
                                                       have hbody :
-                                                          ExecTransitionBody config contract
-                                                            evmSolm (endSkipStore I)
-                                                            skipTransition.body .reverted := by
+                                                        ExecTransitionBody config contract
+                                                          evmSolm (endSkipStore I)
+                                                          skipTransition.body .reverted := by
                                                         exact
-                                                          endSkipBodyReverts_afterTabTailGrabReverted
-                                                            hprefixTab htailOk hgrab
+                                                        endSkipBodyReverts_afterTabTailGrabReverted
+                                                          hprefixTab htailOk hgrab
                                                       have rd4413Fail := by
                                                         simpa only [if_false] using rd4413
                                                       exact
@@ -12061,19 +11898,18 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                         { evmPostEvm with
                                                           accountMap := σ_grab
                                                           substate := AGrab
-                                                          createdAccounts := cA_grab }
+ }
                                                       let evmGrabSolm :=
                                                         { evmPostSolm with
                                                           accountMap := σ_grab_solm
                                                           substate := A_grab_solm
-                                                          createdAccounts := cA_grab }
+ }
                                                       have hStateGrab :
                                                           EVMStateEquiv evmGrabEvm
                                                             evmGrabSolm := by
-                                                        refine ⟨?_, ?_, ?_⟩
+                                                        refine ⟨?_, ?_⟩
                                                         · simpa [evmGrabEvm, evmGrabSolm] using
                                                             hStatePost.executionEnv
-                                                        · simp [evmGrabEvm, evmGrabSolm]
                                                         · simpa [evmGrabEvm, evmGrabSolm] using
                                                             hAccountsGrab
                                                       have rd4413Succ := by
@@ -12114,15 +11950,14 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                         exact
                                                           endSkipBodyReturns_afterTabTailGrabSuccess
                                                             hprefixTab htailOk hgrab
-                                                      exact hretEvm.reEquivExecutionGenEVMStateEquiv
-                                                        (evm'_evm := evmGrabEvm)
-                                                        (evm'_solm := evmGrabSolm)
+                                                      exact hretEvm.reEquivExecutionGen
                                                         hcode hdispatch hdecode hbody
-                                                        (by simp [evmGrabEvm])
                                                         (by
-                                                          simpa [evmGrabEvm] using
-                                                            accountMapEquiv.refl σ_grab)
-                                                        hStateGrab
+                                                          calc
+                                                            _ = evmGrabEvm.accountMap := by
+                                                              simp [evmGrabEvm]
+                                                            _ = evmGrabSolm.accountMap :=
+                                                              hStateGrab.accountMap)
                                                         (by
                                                           simpa [skipTransition] using
                                                             (returnEquiv.fallthrough
@@ -12194,15 +12029,15 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (g := Sat256.ofUInt256 g) hcatReady hdepthEq
           let A_cat :=
             (evmSolm.addAccessedAccount
-              (EVM.address (endSkipCatAddr σ_solm I))).substate
+              (EVM.address (endSkipCatAddr σ I))).substate
           have hcallSolm :
               typedCallViaEVM config evmSolm
-                (EVM.address (endSkipCatAddr σ_solm I)) "catIlks" 0
+                (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
                 [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                 (false, { evmSolm with substate := A_cat }, ByteArray.empty) true := by
             simpa [A_cat] using
               (callNotMade_depthLimit (cfg := config) (evm := evmSolm)
-                (tgt := EVM.address (endSkipCatAddr σ_solm I))
+                (tgt := EVM.address (endSkipCatAddr σ I))
                 (name := "catIlks")
                 (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
                 (callPerm := true)
@@ -12213,7 +12048,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 skipTransition.body .reverted := by
             simpa [evmSolm] using
               endSkipBodyReverts_catIlksCallFailed
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g)
                 (evmCat := { evmSolm with substate := A_cat })
                 (out := ByteArray.empty)

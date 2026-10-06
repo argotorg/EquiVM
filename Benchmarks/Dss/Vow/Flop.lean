@@ -99,13 +99,13 @@ theorem vowDecode_flop {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem vowReachFlopBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachFlopBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨646⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨3149598075⟩ :=
     vowSelWord_eq_of_beq I hsz 0xbb 0xbb 0x0d 0x7b ⟨3149598075⟩
       (by native_decide) hsel
@@ -129,16 +129,16 @@ theorem vowReachFlopBody {cA gh bl σ σ₀ A I} {g : Sat256}
     htake (by jump_dest) (by native_decide)
 
 theorem RD.vowFlopToSin0ExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3663⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3663⟩
       (kissDaiTargetWord σ I :: kissDaiTargetWord σ I :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
-      (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C := by
+      (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty σ k C := by
   let target := kissDaiTargetWord σ I
   let rawTarget := vowSlotWord ⟨1⟩ σ I
   obtain ⟨_, _, rd646⟩ := hreach
@@ -151,9 +151,9 @@ theorem RD.vowFlopToSin0ExtcodesizeGuard
   have rd3592 := rd3590.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3592, C3592, rd3593₀⟩ := rd3592.sload (by native_decide) (by evm_ov)
   have rd3593 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3593⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3593⟩
       (rawTarget :: ⟨357⟩ :: sel :: []) solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k3592 C3592 := by
+      ByteArray.empty σ k3592 C3592 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd3593₀
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
@@ -235,14 +235,14 @@ theorem RD.vowFlopToSin0ExtcodesizeGuard
       vowSlotWord, solcSlotWord, solcAddrMask] using rd3663⟩
 
 theorem RD.vowFlopVatSin0NoCode
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3663⟩ := RD.vowFlopToSin0ExtcodesizeGuard hreach
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
     hcodeSize
@@ -251,18 +251,18 @@ theorem RD.vowFlopVatSin0NoCode
     (by native_decide) (by simp)
 
 theorem RD.vowFlopToSin0Staticcall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
       (gasWord :: kissDaiTargetWord σ I :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
         kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
-      (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C := by
+      (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd3663⟩ := RD.vowFlopToSin0ExtcodesizeGuard hreach
   obtain ⟨gasWord, k, C, rd1276⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
@@ -273,33 +273,33 @@ theorem RD.vowFlopToSin0Staticcall
   exact ⟨gasWord, k, C, rd1276⟩
 
 theorem RD.vowFlopSin0PostCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k C : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (o.write 0 (healSinCalldataMem I solcFreePtrMem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
-        (UInt256.ofNat 6) o (cA', σ') k C
-    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (UInt256.ofNat 6) o σ' k C
+    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o) false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o) false
     ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1276⟩ :=
     RD.vowFlopToSin0Staticcall hreach hcodeSize
-  obtain ⟨cA', σ', z, o, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, hosz⟩ :=
     RD.solcStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o, A', k1277, C1277, ?_, ?_, hosz⟩
+  refine ⟨σ', z, o, A', k1277, C1277, ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           healSinOutPtr.toNat healSinInSize.toNat)
@@ -309,12 +309,12 @@ theorem RD.vowFlopSin0PostCall
     have hoff : healSinOutPtr.toNat = 128 := by
       native_decide
     have rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σ I :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (o.write 0 (healSinCalldataMem I solcFreePtrMem) healSinOutPtr.toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
-        (UInt256.ofNat 6) o (cA', σ') k1277 C1277 :=
+        (UInt256.ofNat 6) o σ' k1277 C1277 :=
       haw ▸ rd1277raw
     rw [hoff] at rd1277
     exact rd1277
@@ -327,14 +327,14 @@ theorem RD.vowFlopSin0PostCall
     simpa [initState] using hΘ
 
 theorem vowFlopSourceVatSin0NoCode
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatNoCode :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   have hvat :
@@ -356,18 +356,18 @@ theorem vowFlopSourceVatSin0NoCode
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlopSourceVatSin0CallFailure
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State} {outSin : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State} {outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (false, evmSin, outSin) false) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   have hvat :
@@ -400,11 +400,11 @@ theorem vowFlopSourceVatSin0CallFailure
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem RD.vowFlopSin0ReturnDecodeShortReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hshort : o.size < 32)
@@ -415,7 +415,7 @@ theorem RD.vowFlopSin0ReturnDecodeShortReverts
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -425,11 +425,11 @@ theorem RD.vowFlopSin0ReturnDecodeShortReverts
     (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem RD.vowFlopSin0ReturnDecodeOk
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hlo : 32 ≤ o.size)
@@ -445,7 +445,7 @@ theorem RD.vowFlopSin0ReturnDecodeOk
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (retWord :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
@@ -457,21 +457,21 @@ theorem RD.vowFlopSin0ReturnDecodeOk
     (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 theorem RD.vowFlopFreeSinSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc.2 I).toNat) :
+    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -489,24 +489,24 @@ theorem RD.vowFlopFreeSinSubUnderflow
     (by simp)
 
 theorem RD.vowFlopFreeSinSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat) :
+    (hle : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
-      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I) ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I) ::
         ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -524,22 +524,22 @@ theorem RD.vowFlopFreeSinSubSuccess
   exact ⟨k1325, C1325, by simpa [SinVal] using rd1325⟩
 
 theorem RD.vowFlopDebtSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc.2 I).toNat) :
+    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -557,24 +557,24 @@ theorem RD.vowFlopDebtSubUnderflow
     (by simp)
 
 theorem RD.vowFlopDebtSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat) :
+    (hle : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
-      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I) :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I) :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -593,24 +593,24 @@ theorem RD.vowFlopDebtSubSuccess
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowFlopInsufficientDebt
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel flopDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hinsuff : flopDebt.toNat < (vowSlotWord ⟨9⟩ acc.2 I).toNat)
+    (hinsuff : flopDebt.toNat < (vowSlotWord ⟨9⟩ acc I).toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let SumpVal := vowSlotWord ⟨9⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let SumpVal := vowSlotWord ⟨9⟩ acc I
   have rd3676 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd3678 := rd3676.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3679, C3679, rd3679Raw⟩ := rd3678.sload (by native_decide) (by evm_ov)
   have rd3679 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3679⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3679⟩
       (SumpVal :: flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3679 C3679 := by
     simpa [SumpVal, vowSlotWord, solcSlotWord] using rd3679Raw
@@ -683,23 +683,23 @@ theorem RD.vowFlopInsufficientDebt
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem RD.vowFlopDebtEnough
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel flopDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (henough : (vowSlotWord ⟨9⟩ acc.2 I).toNat ≤ flopDebt.toNat) :
+    (henough : (vowSlotWord ⟨9⟩ acc I).toNat ≤ flopDebt.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3753⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3753⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k' C' := by
-  let SumpVal := vowSlotWord ⟨9⟩ acc.2 I
+  let SumpVal := vowSlotWord ⟨9⟩ acc I
   have rd3676 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd3678 := rd3676.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3679, C3679, rd3679Raw⟩ := rd3678.sload (by native_decide) (by evm_ov)
   have rd3679 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3679⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3679⟩
       (SumpVal :: flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3679 C3679 := by
     simpa [SumpVal, vowSlotWord, solcSlotWord] using rd3679Raw
@@ -716,30 +716,30 @@ theorem RD.vowFlopDebtEnough
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlopToDai1ExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g sel flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel flopDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (henough : (vowSlotWord ⟨9⟩ acc.2 I).toNat ≤ flopDebt.toNat)
+    (henough : (vowSlotWord ⟨9⟩ acc I).toNat ≤ flopDebt.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3816⟩
-      (kissDaiTargetWord acc.2 I :: kissDaiTargetWord acc.2 I :: ⟨128⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3816⟩
+      (kissDaiTargetWord acc I :: kissDaiTargetWord acc I :: ⟨128⟩ ::
         ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
-        kissDaiTargetWord acc.2 I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+        kissDaiTargetWord acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (vatDaiCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
-  let target := kissDaiTargetWord acc.2 I
-  let rawTarget := vowSlotWord ⟨1⟩ acc.2 I
+  let target := kissDaiTargetWord acc I
+  let rawTarget := vowSlotWord ⟨1⟩ acc I
   obtain ⟨_, _, rd3753⟩ := RD.vowFlopDebtEnough rd henough
   have rd3754 := rd3753.jumpdest (by native_decide) (by evm_ov)
   have rd3756 := rd3754.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3757, C3757, rd3757Raw⟩ := rd3756.sload (by native_decide) (by evm_ov)
   have rd3757 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3757⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3757⟩
       (rawTarget :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3757 C3757 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd3757Raw
@@ -815,20 +815,20 @@ theorem RD.vowFlopToDai1ExtcodesizeGuard
       using rd3816⟩
 
 theorem RD.vowFlopDai1NoCode
-    {cA gh bl σ σ₀ A I} {g sel flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel flopDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (henough : (vowSlotWord ⟨9⟩ acc.2 I).toNat ≤ flopDebt.toNat)
+    (henough : (vowSlotWord ⟨9⟩ acc I).toNat ≤ flopDebt.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3816⟩ :=
     RD.vowFlopToDai1ExtcodesizeGuard rd henough hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3816⟩) (okPc := ⟨3828⟩) rd3816
@@ -838,23 +838,23 @@ theorem RD.vowFlopDai1NoCode
     (by native_decide) (by simp)
 
 theorem RD.vowFlopToDai1Staticcall
-    {cA gh bl σ σ₀ A I} {g sel flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel flopDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (henough : (vowSlotWord ⟨9⟩ acc.2 I).toNat ≤ flopDebt.toNat)
+    (henough : (vowSlotWord ⟨9⟩ acc I).toNat ≤ flopDebt.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3831⟩
-      (gasWord :: kissDaiTargetWord acc.2 I :: ⟨128⟩ :: ⟨36⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3831⟩
+      (gasWord :: kissDaiTargetWord acc I :: ⟨128⟩ :: ⟨36⟩ ::
         ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
-        kissDaiTargetWord acc.2 I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+        kissDaiTargetWord acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (vatDaiCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd3816⟩ :=
     RD.vowFlopToDai1ExtcodesizeGuard rd henough hmem hread64
@@ -867,19 +867,19 @@ theorem RD.vowFlopToDai1Staticcall
   exact ⟨gasWord, k3831, C3831, rd3831⟩
 
 theorem vowFlopSourceVatSin0DecodeRevert
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State} {outSin : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State} {outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin : config.externalABI.decode? "sin" outSin = none) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   have hvat :
@@ -913,15 +913,15 @@ theorem vowFlopSourceVatSin0DecodeRevert
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlopSourceFreeSinUnderflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
     {outSin : ByteArray} {vatSin SinVal : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -931,7 +931,7 @@ theorem vowFlopSourceFreeSinUnderflow
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ = SinVal)
     (hlt : vatSin.toNat < SinVal.toNat) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals1 := flopLocalsVatSin vatSin
@@ -1000,15 +1000,15 @@ theorem vowFlopSourceFreeSinUnderflow
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlopSourceDebtUnderflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
     {outSin : ByteArray} {vatSin SinVal freeSin AshVal : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1022,7 +1022,7 @@ theorem vowFlopSourceDebtUnderflow
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ = AshVal)
     (hlt : freeSin.toNat < AshVal.toNat) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals1 := flopLocalsVatSin vatSin
@@ -1132,16 +1132,16 @@ theorem vowFlopSourceDebtUnderflow
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlopSourceInsufficientDebt
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
     {outSin : ByteArray}
     {vatSin SinVal freeSin AshVal flopDebt SumpVal : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -1159,7 +1159,7 @@ theorem vowFlopSourceInsufficientDebt
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨9⟩ = SumpVal)
     (hinsuff : flopDebt.toNat < SumpVal.toNat) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flopTransition.body .reverted := by
   intro locals evm0
   let locals1 := flopLocalsVatSin vatSin
@@ -1294,50 +1294,40 @@ theorem vowFlopSourceInsufficientDebt
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlopVatSin0NoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flopTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopVatSin0NoCode hreach hcodeSize
-  have hVat : vowSlotWord ⟨1⟩ σ_evm I = vowSlotWord ⟨1⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-  have hTarget : kissDaiTargetWord σ_evm I = kissDaiTargetWord σ_solm I := by
-    simp [kissDaiTargetWord, hVat]
   have hcodeSizeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) = ⟨0⟩ := by
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (kissDaiTargetWord σ_evm I)
-    rw [← hTarget, ← hsame]
-    exact hcodeSize
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩ := hcodeSize
   have haddr :
-      kissVatAddress σ_solm I =
-        AccountAddress.ofUInt256 (kissDaiTargetWord σ_solm I) :=
-    kissVatAddress_eq_daiTarget_account σ_solm I
+      kissVatAddress σ I =
+        AccountAddress.ofUInt256 (kissDaiTargetWord σ I) :=
+    kissVatAddress_eq_daiTarget_account σ I
   have hvatNoCode :
       (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
     simpa [initState, State.lookupAccount] using
       extCodeSizeWord_zero_lookup_code_zero
-        (σ := σ_solm) (target := kissDaiTargetWord σ_solm I)
-        (addr := kissVatAddress σ_solm I) haddr hcodeSizeSolm
-  have hbody := vowFlopSourceVatSin0NoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hvatNoCode
+        (σ := σ) (target := kissDaiTargetWord σ I)
+        (addr := kissVatAddress σ I) haddr hcodeSizeSolm
+  have hbody := vowFlopSourceVatSin0NoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hvatNoCode
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode (by simpa using hbody)
 
 theorem vowFlopSin0CallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel target : UInt256}
+    {acc : AccountMap}
     {evmSin : EVM.State} {mem outSin rdata : ByteArray}
     {aw : UInt256} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1346,29 +1336,29 @@ theorem vowFlopSin0CallFailureBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (false, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealSinCallFailure rd1277 hrdataSize (by simp)
-  have hbody := vowFlopSourceVatSin0CallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowFlopSourceVatSin0CallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (outSin := outSin) hwv hvatCode hcallSin
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlopSin0DecodeShortBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ'_evm : AccountMap}
+    {σ σ₀ A I} {g sel target : UInt256}
+    {σ'_evm : AccountMap}
     {A'_evm : Substate} {outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flopTransition)
@@ -1376,28 +1366,27 @@ theorem vowFlopSin0DecodeShortBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat)
-      (UInt256.ofNat 6) outSin (cA', σ'_evm) k C)
+      (UInt256.ofNat 6) outSin σ'_evm k C)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true,
-          { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ'_evm
-              substate := A'_evm
-              createdAccounts := cA' },
+              substate := A'_evm },
           outSin) false)
     (hosz : outSin.size < UInt256.size)
     (hshort : outSin.size < 32)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = outSin.size :=
     kissDaiMin32_toNat_of_lt hshort
   have rd1277' := rd1277
@@ -1423,19 +1412,18 @@ theorem vowFlopSin0DecodeShortBodyCore
   have hrev := RD.vowFlopSin0ReturnDecodeShortReverts rd1295 hshort hosz hmload64
   have hdecSin : config.externalABI.decode? "sin" outSin = none :=
     vatSinDecode_none_short hshort
-  have hbody := vowFlopSourceVatSin0DecodeRevert (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowFlopSourceVatSin0DecodeRevert
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin :=
-      { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σ'_evm
-          substate := A'_evm
-          createdAccounts := cA' })
+          substate := A'_evm })
     (outSin := outSin) hwv hvatCode hcallSin hdecSin
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlopFreeSinUnderflowBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatSin SinVal : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ'_evm : AccountMap}
+    {σ σ₀ A I} {g sel target vatSin SinVal : UInt256}
+    {σ'_evm : AccountMap}
     {evmSin : EVM.State} {outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flopTransition)
@@ -1443,29 +1431,29 @@ theorem vowFlopFreeSinUnderflowBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat)
-      (UInt256.ofNat 6) outSin (cA', σ'_evm) k C)
+      (UInt256.ofNat 6) outSin σ'_evm k C)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hosz : outSin.size < UInt256.size)
     (ho32 : 32 ≤ outSin.size)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ = SinVal)
     (hSinEvm : vowSlotWord ⟨5⟩ σ'_evm I = SinVal)
     (hlt : vatSin.toNat < SinVal.toNat)
     (hvatSin :
       vatSin = UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = 32 :=
     kissDaiMin32_toNat_of_ge ho32 hosz
   have rd1277' := rd1277
@@ -1513,15 +1501,15 @@ theorem vowFlopFreeSinUnderflowBodyCore
   have hdecSin :
       config.externalABI.decode? "sin" outSin = some [.int (Int.ofNat vatSin.toNat)] := by
     simpa [hvatSin] using vatSinDecode_ok (o := outSin) ho32
-  have hbody := vowFlopSourceFreeSinUnderflow (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowFlopSourceFreeSinUnderflow
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (outSin := outSin) (vatSin := vatSin) (SinVal := SinVal)
     hwv hvatCode hcallSin hdecSin hSinLoad hlt
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlopDebtUnderflowBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatSin freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin freeSin : UInt256}
+    {acc : AccountMap}
     {evmSin : EVM.State} {mem outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flopTransition)
@@ -1529,42 +1517,42 @@ theorem vowFlopDebtUnderflowBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (rd1325 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨3675⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
-    (hunder : freeSin.toNat < (vowSlotWord ⟨6⟩ acc.2 I).toNat)
+    (hunder : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ acc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ acc.2 I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        vowSlotWord ⟨6⟩ acc I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopDebtSubUnderflow rd1325 hunder
-  have hbody := vowFlopSourceDebtUnderflow (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowFlopSourceDebtUnderflow
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (outSin := outSin) (vatSin := vatSin)
-    (SinVal := vowSlotWord ⟨5⟩ acc.2 I) (freeSin := freeSin)
-    (AshVal := vowSlotWord ⟨6⟩ acc.2 I)
+    (SinVal := vowSlotWord ⟨5⟩ acc I) (freeSin := freeSin)
+    (AshVal := vowSlotWord ⟨6⟩ acc I)
     hwv hvatCode hcallSin hdecSin hSinLoad hfree hfreeOk hAshLoad hunder
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlopInsufficientDebtBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatSin freeSin flopDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin freeSin flopDebt : UInt256}
+    {acc : AccountMap}
     {evmSin : EVM.State} {mem outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flopTransition)
@@ -1572,44 +1560,44 @@ theorem vowFlopInsufficientDebtBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flopTransition.params.map Param.name)
         (transitionSignature flopTransition).paramTypes I.calldata = some ∅)
     (rd3675 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3675⟩
       (flopDebt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
-    (hinsuff : flopDebt.toNat < (vowSlotWord ⟨9⟩ acc.2 I).toNat)
+    (hinsuff : flopDebt.toNat < (vowSlotWord ⟨9⟩ acc I).toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ acc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ acc.2 I)
-    (hdebt : flopDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I))
-    (hdebtOk : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat)
+        vowSlotWord ⟨6⟩ acc I)
+    (hdebt : flopDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I))
+    (hdebtOk : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat)
     (hSumpLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨9⟩ =
-        vowSlotWord ⟨9⟩ acc.2 I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        vowSlotWord ⟨9⟩ acc I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlopInsufficientDebt rd3675 hinsuff hmem hread64
-  have hbody := vowFlopSourceInsufficientDebt (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowFlopSourceInsufficientDebt
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (outSin := outSin) (vatSin := vatSin)
-    (SinVal := vowSlotWord ⟨5⟩ acc.2 I) (freeSin := freeSin)
-    (AshVal := vowSlotWord ⟨6⟩ acc.2 I) (flopDebt := flopDebt)
-    (SumpVal := vowSlotWord ⟨9⟩ acc.2 I)
+    (SinVal := vowSlotWord ⟨5⟩ acc I) (freeSin := freeSin)
+    (AshVal := vowSlotWord ⟨6⟩ acc I) (flopDebt := flopDebt)
+    (SumpVal := vowSlotWord ⟨9⟩ acc I)
     hwv hvatCode hcallSin hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk
     hSumpLoad hinsuff
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

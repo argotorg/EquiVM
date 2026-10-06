@@ -599,26 +599,19 @@ theorem permitRecoveredPaddedAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o :
   rw [Nat.mod_eq_of_lt hcanonRecovered, Nat.mod_eq_of_lt hcanonOwner] at hval
   exact hval
 
-theorem permitApprovePostState_createdAccounts (evm : EVM.State) (I : ExecutionEnv) :
-    (permitApprovePostState evm I).createdAccounts = evm.createdAccounts := by
-  simp [permitApprovePostState, storageStore_createdAccounts]
-
-theorem permitApprovePostState_accountMap_equiv {evm : EVM.State} {I : ExecutionEnv}
+theorem permitApprovePostState_accountMap_eq {evm : EVM.State} {I : ExecutionEnv}
     {σ : AccountMap}
     (henv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
-    accountMapEquiv
-      (sstoreAccountMap I.codeOwner σ
+    (hAccounts : σ = evm.accountMap) :
+    sstoreAccountMap I.codeOwner σ
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
-        (permitValueWord I))
+        (permitValueWord I) =
       (permitApprovePostState evm I).accountMap := by
   unfold permitApprovePostState
   rw [storageStore_accountMap]
   rw [show evm.executionEnv.codeOwner = I.codeOwner by rw [henv]]
   rw [permitApproveStorageSlot_eq_mapSlot_masked]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner
-    (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
-    (permitValueWord I) hAccounts
+  rw [hAccounts]
 
 abbrev permitApproveCallStore (I : ExecutionEnv) : Store :=
   let s0 : Store := ∅
@@ -638,21 +631,7 @@ theorem permitStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem permitStorageStore_genesisBlockHeader (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem permitStorageStore_blocks (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).blocks = evm.blocks := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;>
+  cases evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
 abbrev permitNonceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
@@ -759,41 +738,23 @@ theorem uniswapEcrecoverEncode_eq (σ : AccountMap) (I : ExecutionEnv)
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, hdlen, hrlen, hslen, hv8, hword,
     zeroBytes, word_toBytesBE_toByteArray_eq_toByteArray, ByteArray.append_assoc]
 
-theorem permitDomainSeparatorWord_equiv {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitDomainSeparatorWord σ_evm I = permitDomainSeparatorWord σ_solm I :=
-  accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
+theorem permitDomainSeparatorWord_equiv {σ : AccountMap} {I : ExecutionEnv} :
+    permitDomainSeparatorWord σ I = permitDomainSeparatorWord σ I := rfl
 
-theorem permitNonceWord_equiv {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitNonceWord σ_evm I = permitNonceWord σ_solm I :=
-  accountMapEquiv_storage_findD hAccounts I.codeOwner
-    (mapSlot (permitOwnerMaskedWord I) ⟨4⟩) ⟨0⟩
+theorem permitNonceWord_equiv {σ : AccountMap} {I : ExecutionEnv} :
+    permitNonceWord σ I = permitNonceWord σ I := rfl
 
-theorem permitStructHashWord_equiv {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitStructHashWord σ_evm I = permitStructHashWord σ_solm I := by
-  have hnonce : permitNonceWord σ_evm I = permitNonceWord σ_solm I :=
-    permitNonceWord_equiv hAccounts
-  simp [permitStructHashWord, hnonce]
+theorem permitStructHashWord_equiv {σ : AccountMap} {I : ExecutionEnv} :
+    permitStructHashWord σ I = permitStructHashWord σ I := by
+  rfl
 
-theorem permitStructHashMem_equiv {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitStructHashMem σ_evm I = permitStructHashMem σ_solm I := by
-  have hnonce : permitNonceWord σ_evm I = permitNonceWord σ_solm I :=
-    permitNonceWord_equiv hAccounts
-  simp [permitStructHashMem, hnonce]
+theorem permitStructHashMem_equiv {σ : AccountMap} {I : ExecutionEnv} :
+    permitStructHashMem σ I = permitStructHashMem σ I := by
+  rfl
 
-theorem permitDigestWord_equiv {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitDigestWord σ_evm I = permitDigestWord σ_solm I := by
-  have hdomain : permitDomainSeparatorWord σ_evm I = permitDomainSeparatorWord σ_solm I :=
-    permitDomainSeparatorWord_equiv hAccounts
-  have hstruct : permitStructHashWord σ_evm I = permitStructHashWord σ_solm I :=
-    permitStructHashWord_equiv hAccounts
-  have hstructMem : permitStructHashMem σ_evm I = permitStructHashMem σ_solm I :=
-    permitStructHashMem_equiv hAccounts
-  simp [permitDigestWord, hdomain, hstruct, hstructMem]
+theorem permitDigestWord_equiv {σ : AccountMap} {I : ExecutionEnv} :
+    permitDigestWord σ I = permitDigestWord σ I := by
+  rfl
 
 theorem permitDecodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
@@ -996,13 +957,13 @@ theorem uniswapDecode_permit_none_short {I : ExecutionEnv}
 
 This covers calldata with a selector present but fewer than the seven static ABI words expected by
 the optimized external wrapper. -/
-theorem uniswapPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 228)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1340⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1340⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨224⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1021,15 +982,15 @@ theorem uniswapPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 
 /-- The optimized external wrapper for `permit` decodes the seven static ABI words and jumps to
 the shared permit routine at pc 5473. Legacy address words are masked before the jump. -/
-theorem uniswapPermitX_decoded_masked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz228 : 228 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1340⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5473⟩
+      (initState σ σ₀ g A I) ⟨1340⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨5473⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨224⟩ = ⟨0⟩ := by
     exact solcDecodeLenCheckOkUnsigned (by simpa using hsz228) hsize

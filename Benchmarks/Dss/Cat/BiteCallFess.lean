@@ -147,30 +147,30 @@ the incoming stack tail `R` and the CALL argument words; the trace agent binds
 
 /-- `fess` `EXTCODESIZE` guard + `CALL` (target has code, depth ok): from pc `2284` step through to
     pc `2300`, emitting the `Θ` witness and the post-call RD (status flag on top). -/
-theorem RD.catBiteFessCall {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteFessCall {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {R : List UInt256}
     {target inOff inSize outOff outSize : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2284⟩
+    (rd : RD catBytecode I g (initState σ σ₀ g A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 9 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2300⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD catBytecode I g (initState σ σ₀ g A I) ⟨2300⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: R)
           (o.write 0 mem outOff.toNat (min outSize (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOff.toNat inSize.toNat)
             outOff.toNat outSize.toNat))
-          o (cA', σ') k' C'
+          o σ' k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
@@ -178,22 +178,22 @@ theorem RD.catBiteFessCall {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o, Ain, callGas, k', C', hΘ, rd2300, hout⟩ :=
+  obtain ⟨σ', z, o, Ain, callGas, k', C', hΘ, rd2300, hout⟩ :=
     RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by omega)
-  refine ⟨cA', σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · exact rd2300
 
 /-- `fess` `EXTCODESIZE` guard, target has no code: the guard reverts. -/
-theorem RD.catBiteFessNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteFessNoCode {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {R : List UInt256}
     {target inOff inSize outOff outSize : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2284⟩
+    (rd : RD catBytecode I g (initState σ σ₀ g A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -201,33 +201,33 @@ theorem RD.catBiteFessNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- `fess` `CALL` at maximum call depth (`depth = 1024`): the `CALL` yields status `0` without
     invoking `Θ`. -/
-theorem RD.catBiteFessCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteFessCallDepthLimit {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw gasWord : UInt256} {R : List UInt256}
     {target inOff inSize outOff outSize : UInt256} {k C : ℕ}
-    (rd2299 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2299⟩
+    (rd2299 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2299⟩
       (gasWord :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hdepth : I.depth = 1024)
     (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2300⟩
+    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨2300⟩
       (⟨0⟩ :: R)
       (ByteArray.empty.write 0 mem outOff.toNat
         (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOff.toNat inSize.toNat)
         outOff.toNat outSize.toNat))
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd2300⟩ :=
     RD.callDepthLimit (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by omega)
   exact ⟨k', C', rd2300⟩
 
 /-- `fess` success guard, `CALL` returned status `0`: the revert-data bubbling tail reverts. -/
-theorem RD.catBiteFessCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem RD.catBiteFessCallFailed {σ σ' σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd2300 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2300⟩
-      (⟨0⟩ :: R) mem aw rdata (cA', σ') k C)
+    (rd2300 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2300⟩
+      (⟨0⟩ :: R) mem aw rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300 rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -236,13 +236,13 @@ theorem RD.catBiteFessCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
 
 /-- `fess` success guard, `CALL` returned nonzero status: step past the guard (void call — the
     return data is discarded), leaving pc `2318` with the tail `R`. -/
-theorem RD.catBiteFessCallSucceeded {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteFessCallSucceeded {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256} {R : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (rd2300 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2300⟩
+    {acc : AccountMap} {k C : ℕ}
+    (rd2300 : RD catBytecode I g (initState σ σ₀ g A I) ⟨2300⟩
       (⟨1⟩ :: R) mem aw rdata acc k C)
     (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2318⟩
+    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨2318⟩
       R mem aw rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)

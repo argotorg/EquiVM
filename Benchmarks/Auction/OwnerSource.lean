@@ -22,10 +22,6 @@ theorem ownerWord_canonical (σ : AccountMap) (I : ExecutionEnv) :
   rw [ownerWord, u256_land_comm]
   exact solcAddrMask_result_canonical _
 
-theorem ownerWord_equiv {σ₁ σ₂ : AccountMap} (h : accountMapEquiv σ₁ σ₂)
-    (I : ExecutionEnv) : ownerWord σ₁ I = ownerWord σ₂ I := by
-  rw [ownerWord, ownerWord, storedWord_equiv h]
-
 theorem ownerRead (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_owner" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm

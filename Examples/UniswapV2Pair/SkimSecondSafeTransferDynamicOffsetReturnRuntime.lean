@@ -1110,14 +1110,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel status : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
@@ -1126,7 +1126,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
       (skimSecondSafeTransferDynamicCallPtr out1 :: status :: value :: toWord :: token :: ret ::
         token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
-      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out acc k' C' := by
+      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out σ k' C' := by
   let rdsz : UInt256 := UInt256.ofNat out.size
   have hrdsz_toNat : rdsz.toNat = out.size := by
     dsimp [rdsz]
@@ -1242,14 +1242,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (houtSmall : out.size < 2 ^ 138)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
@@ -1262,7 +1262,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
-      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out acc k' C' := by
+      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out σ k' C' := by
   obtain ⟨k6652, C6652, rd6652⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
       (self := self) (value := value) (toWord := toWord) (prevValue := prevValue)
@@ -1310,14 +1310,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyShortReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (hshort : out.size < 32) (houtSize : out.size < 2 ^ 255)
     (houtSmall : out.size < 2 ^ 138)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
@@ -1347,11 +1347,11 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token token0 ret sel status retDataPtr : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
       (retDataPtr :: status :: value :: toWord :: token :: ret :: token :: token0 :: toWord ::
         ⟨570⟩ :: sel :: [])
-      mem aw out acc k C) :
+      mem aw out σ k C) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
     if (⟨64⟩ : UInt256).toNat ≥ mem.size then
@@ -1442,14 +1442,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (houtSmall : out.size < 2 ^ 138)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩)
@@ -1492,7 +1492,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
         (skimSecondSafeTransferDynamicCallPtr out1 :: ⟨1⟩ :: value :: toWord ::
           token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
         (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
-        (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out acc k' C' := by
+        (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out σ k' C' := by
     exact ⟨_, _, by simpa using rd6697⟩
   exact RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic rd6697'
 
@@ -1500,14 +1500,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (houtSmall : out.size < 2 ^ 138)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩)
@@ -1519,7 +1519,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicReturnDataMem self o toWord prevValue out1 out2 value out)
-      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out acc k' C' := by
+      (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) out σ k' C' := by
   obtain ⟨k6676, C6676, rd6676⟩ :=
     RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic_offset
       h houtNe houtSize houtSmall ho32 hoSize hout1Ne hout1Size hout1Small
@@ -1555,14 +1555,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (hout : out.size = 0)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
@@ -1571,7 +1571,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k' C' := by
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k' C' := by
   have rd6607 := evm_run h with [
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
@@ -1610,14 +1610,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEmptyReturnTo5433_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ⟨5433⟩ :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (hout : out.size = 0)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
@@ -1625,7 +1625,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnTo5433_dynamic_offset
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5433⟩
       (token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k' C' := by
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k' C' := by
   exact RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     h hout ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size (by jump_dest)
 
@@ -1633,14 +1633,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferNonemptyFailureReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
@@ -1662,14 +1662,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out1 out2 out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: skimSecondSafeTransferDynamicRetEnd out1 ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
         sel :: [])
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall2 out1) out acc k C)
+      (skimSecondSafeTransferDynamicWordsCall2 out1) out σ k C)
     (hout : out.size = 0) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6607 := evm_run h with [

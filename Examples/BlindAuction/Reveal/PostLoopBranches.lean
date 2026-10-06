@@ -9,9 +9,7 @@ namespace BlindAuction
 
 section Branches
 
-variable {cA : Batteries.RBSet AccountAddress compare}
-variable {gh : BlockHeader} {bl : ProcessedBlocks}
-variable {σ_evm σ_solm σ₀ : AccountMap} {A : Substate}
+variable {σ σ₀ : AccountMap} {A : Substate}
 variable {I : ExecutionEnv} {g : UInt256}
 variable {callargs : Store} {values fakes secrets : List Value}
 variable {loopLen secretsLenWord fakesLenWord valuesLenWord : UInt256}
@@ -29,7 +27,7 @@ variable (hstore :
     (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
       "secrets" (.array secrets))
 variable (hperm : I.perm = true)
-variable (hevmSolm : evmSolm = initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+variable (hevmSolm : evmSolm = initState σ σ₀ (Sat256.ofUInt256 g) A I)
 variable (hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩)
 variable (hafterBody :
   (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
@@ -60,10 +58,10 @@ variable (hloop :
     (.ok { contract := blindAuctionContract, locals := LDone } evmDone))
 variable (rd1349 :
   RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1349⟩
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1349⟩
     [gasArg, revealScratchSenderWord I, aDone.refund, aDone.fp, ⟨0⟩, aDone.fp, ⟨0⟩,
       aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund, loopLen,
-      revealScratchRevealEndWord σ_evm I, revealScratchBiddingEndWord σ_evm I,
+      revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
       secretsLenWord, ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩,
       fakesLenWord, ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩,
       valuesLenWord, ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩,
@@ -83,8 +81,8 @@ include hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
     (hdepthEq : I.depth = 1024) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
     RD.callValueDepthLimitEmptyInOut rd1349 hperm (by decide) hdepthEq (by simp)
   have hawCall' :
@@ -95,10 +93,10 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
   have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
   have rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
-        loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
@@ -129,9 +127,9 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
       hrefundDone hloop hcallS
   obtain ⟨k1405, C1405, rd1405⟩ : ∃ k' C',
       RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
-        [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-          revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
+        [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+          revealScratchBiddingEndWord σ I, secretsLenWord,
           ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
           ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
           ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
@@ -141,7 +139,7 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
       jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩, swap2, pop,
       jumpdest, pop, pop, swap1, pop]⟩
   have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     have rd1410 := evm_run rd1405 with [
       dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
     exact RD.rev _ rd1410 (by decide)
@@ -154,16 +152,13 @@ theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
     (hσ0Done : evmDone.σ₀ = σ₀)
-    (hghDone : evmDone.genesisBlockHeader = gh)
-    (hblDone : evmDone.blocks = bl)
-    (hcreatedDone : evmDone.createdAccounts = aDone.acc.1)
     (hsubDone : evmDone.substate = A)
-    (haccountsDone : accountMapEquiv aDone.acc.2 evmDone.accountMap)
+    (haccountsDone : aDone.acc = evmDone.accountMap)
     (hdepthLt : I.depth.val < 1024)
     (hbalance :
-      ¬ aDone.refund ≤ (aDone.acc.2.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      ¬ aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
     RD.callValueInsufficientBalanceEmptyInOut rd1349 hperm (by decide) hbalance hdepthLt
       (by simp)
@@ -175,19 +170,19 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
   have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
   have rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
-        loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       aDone.mem aDone.aw ByteArray.empty aDone.acc k1350 C1350 := by
     simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
   let evmEDone : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := aDone.acc.2,
-      createdAccounts := aDone.acc.1 }
+    { evmDone with accountMap := aDone.acc }
+  have hevmEDone : evmEDone = evmDone := by
+    cases evmDone <;> simp_all [evmEDone]
   have hAddressId (a : AccountAddress) : EVM.address a = a := by
     apply Fin.ext
     simp [EVM.address, EVM.uintN]
@@ -200,34 +195,6 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
         simpa [revealScratchSenderWord] using accountAddress_roundtrip I.source
       _ = EVM.address evmDone.executionEnv.source := by
         simp [henvDone, hAddressId]
-  have htransport
-      {evmECall : EVM.State} {z : Bool} {out : ByteArray}
-      (hcallE :
-        callViaEVM evmEDone
-          (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (Int.ofNat aDone.refund.toNat) ByteArray.empty
-          (z, evmECall, out)) :
-      ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-        callViaEVM evmDone
-          (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (Int.ofNat aDone.refund.toNat) ByteArray.empty
-          (z,
-            { evmDone with
-              accountMap := σ'_solm,
-              substate := A'_solm,
-              createdAccounts := evmECall.createdAccounts },
-            out) ∧
-        accountMapEquiv evmECall.accountMap σ'_solm := by
-    exact callViaEVM_accountMapEquiv
-      (storage := blindAuctionConfig.storage)
-      (evm_solm := evmDone) hcallE
-      (by simpa [evmEDone] using haccountsDone)
-      (by simpa [evmEDone, initState] using hσ0Done.symm)
-      (by simpa [evmEDone, initState] using hcreatedDone)
-      (by simpa [evmEDone, initState] using hghDone)
-      (by simpa [evmEDone, initState] using hblDone)
-      (by simpa [evmEDone, initState] using hsubDone)
-      (by simpa [evmEDone, initState] using henvDone)
   let evmEFail : EVM.State :=
     { evmEDone with
       substate := (evmEDone.addAccessedAccount
@@ -242,19 +209,14 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
     · rfl
     · rintro ⟨hvalueBal, _⟩
       rw [wordOfInt_ofNat_toNat] at hvalueBal
-      exact hbalance (by simpa [evmEDone, initState] using hvalueBal)
-  obtain ⟨σ'_solm, A'_solm, hcallSRaw, _hPostAccounts⟩ :=
-    htransport hcallE
-  let evmSFail : EVM.State :=
-    { evmDone with
-      accountMap := σ'_solm,
-      substate := A'_solm,
-      createdAccounts := evmEFail.createdAccounts }
+      exact hbalance (by simpa [evmEDone, haccountsDone, henvDone] using hvalueBal)
+  let evmSFail : EVM.State := evmEFail
   have hcallS :
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (false, evmSFail, ByteArray.empty) := by
-    simpa [evmSFail, hTargetEq] using hcallSRaw
+    rw [hevmEDone] at hcallE
+    simpa [evmSFail, hTargetEq] using hcallE
   have hbody :
       ExecTransitionBody blindAuctionConfig blindAuctionContract evmSolm
         callargs revealTransition.body .reverted := by
@@ -268,9 +230,9 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
         hrefundDone hloop hcallS
   obtain ⟨k1405, C1405, rd1405⟩ : ∃ k' C',
       RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
-        [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-          revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
+        [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+          revealScratchBiddingEndWord σ I, secretsLenWord,
           ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
           ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
           ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
@@ -280,7 +242,7 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
       jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩, swap2, pop,
       jumpdest, pop, pop, swap1, pop]⟩
   have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     have rd1410 := evm_run rd1405 with [
       dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
     exact RD.rev _ rd1410 (by decide)
@@ -296,28 +258,27 @@ omit hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
 theorem scratch_blindAuctionReveal_postLoop_callMade_step
     (hdepthLt : I.depth.val < 1024)
     (hbalance :
-      aDone.refund ≤ (aDone.acc.2.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k1350 C1350 : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes aDone.acc.1
-          gh bl aDone.acc.2 σ₀ A_in
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ aDone.acc σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (toExecute aDone.acc.2 (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
+          (toExecute aDone.acc (AccountAddress.ofUInt256 (revealScratchSenderWord I)))
           callGas (UInt256.ofNat I.gasPrice) aDone.refund aDone.refund
-          ByteArray.empty (I.depth + 1) I.header I.perm)
+          ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ out.size < UInt256.size
       ∧ RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
           [(if z then ⟨1⟩ else ⟨0⟩), aDone.fp, aDone.refund,
             revealScratchSenderWord I, ⟨0⟩, aDone.refund, loopLen,
-            revealScratchRevealEndWord σ_evm I, revealScratchBiddingEndWord σ_evm I,
+            revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I,
             secretsLenWord, ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-          aDone.mem aDone.aw out (cA', σ') k1350 C1350 := by
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, hThetaRaw, rd1350₀,
+          aDone.mem aDone.aw out σ' k1350 C1350 := by
+  obtain ⟨σ', z, out, A_in, callGas, k1350, C1350, hThetaRaw, rd1350₀,
       houtSize⟩ :=
     RD.callValueMadeEmptyInOut rd1349 (by decide) hperm hbalance hdepthLt (by simp)
   have hawCall' :
@@ -327,7 +288,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_step
     simpa using hawCall
   have hpc : (⟨1349⟩ : UInt256) + ⟨1⟩ = ⟨1350⟩ := by
     decide
-  refine ⟨cA', σ', z, out, A_in, callGas, k1350, C1350, ?_, houtSize, ?_⟩
+  refine ⟨σ', z, out, A_in, callGas, k1350, C1350, ?_, houtSize, ?_⟩
   · simpa [initState] using hThetaRaw
   · simpa [revealScratchSenderWord, hpc, hawCall'] using rd1350₀
 
@@ -335,26 +296,26 @@ omit hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody hbidding
   hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
   hfakesLenLoop hsecretsLenLoop hrefundDone henvDone hloop rd1349 hawCall in
 theorem scratch_blindAuctionReveal_postLoop_postCallNonempty
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {out : ByteArray} {k C : ℕ} {z : UInt256}
     (rd : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [z, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
-        loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      aDone.mem aDone.aw out (cA', σ') k C)
+      aDone.mem aDone.aw out σ' k C)
     (ho0 : out.size ≠ 0) (hosz : out.size < UInt256.size) :
     ∃ mem' aw' k' C', RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
-      [z, aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
+      [z, aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      mem' aw' out (cA', σ') k' C' := by
+      mem' aw' out σ' k' C' := by
   let rdsz : UInt256 := UInt256.ofNat out.size
   have hrdsz_toNat : rdsz.toNat = out.size := by
     simpa [rdsz] using UInt256.toNat_ofNat_of_lt hosz
@@ -415,24 +376,24 @@ theorem scratch_blindAuctionReveal_postLoop_postCallNonempty
 
 omit hperm henvDone rd1349 hawCall in
 theorem scratch_blindAuctionReveal_postLoop_callMade_failure
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {out : ByteArray} {k1350 C1350 : ℕ} {evmSCall : EVM.State}
     (houtSize : out.size < UInt256.size)
     (rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
-        loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      aDone.mem aDone.aw out (cA', σ') k1350 C1350)
+      aDone.mem aDone.aw out σ' k1350 C1350)
     (hcallS :
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (false, evmSCall, out)) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody blindAuctionConfig blindAuctionContract
         evmSolm callargs revealTransition.body .reverted := by
@@ -454,29 +415,29 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
         exact hout0)
     obtain ⟨k1405, C1405, rd1405⟩ : ∃ k' C',
         RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
-          [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-            revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
+          [⟨0⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+            revealScratchBiddingEndWord σ I, secretsLenWord,
             ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-          aDone.mem aDone.aw ByteArray.empty (cA', σ') k' C' := by
+          aDone.mem aDone.aw ByteArray.empty σ' k' C' := by
       have rd1350Empty : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
           [⟨0⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩,
-            aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-            revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+            aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+            revealScratchBiddingEndWord σ I, secretsLenWord,
             ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-          aDone.mem aDone.aw ByteArray.empty (cA', σ') k1350 C1350 := by
+          aDone.mem aDone.aw ByteArray.empty σ' k1350 C1350 := by
         simpa [houtEmpty] using rd1350
       refine ⟨_, _, evm_run rd1350Empty with [
         swap3, pop, pop, pop, returndatasize, dup1, push0, dup2, eq,
         push2 ⟨1395⟩, jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩,
         swap2, pop, jumpdest, pop, pop, swap1, pop]⟩
     have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
       have rd1410 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
       exact RD.rev _ rd1410 (by decide)
@@ -488,14 +449,14 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
   · as_aux_lemma =>
     obtain ⟨mem1405, aw1405, k1405, C1405, rd1405⟩ :=
       scratch_blindAuctionReveal_postLoop_postCallNonempty
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (loopLen := loopLen)
         (secretsLenWord := secretsLenWord) (fakesLenWord := fakesLenWord)
         (valuesLenWord := valuesLenWord) (aDone := aDone)
-        (cA' := cA') (σ' := σ') (out := out) (k := k1350) (C := C1350)
+        (σ' := σ') (out := out) (k := k1350) (C := C1350)
         (z := ⟨0⟩) rd1350 hout0 houtSize
     have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
       have rd1410 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
       exact RD.rev _ rd1410 (by decide)
@@ -507,26 +468,25 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
 
 omit hperm henvDone rd1349 hawCall in
 theorem scratch_blindAuctionReveal_postLoop_callMade_success
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {out : ByteArray} {k1350 C1350 : ℕ} {evmSCall : EVM.State}
     (houtSize : out.size < UInt256.size)
-    (hCreated : cA' = evmSCall.createdAccounts)
-    (hAccounts : accountMapEquiv σ' evmSCall.accountMap)
+    (hAccounts : σ' = evmSCall.accountMap)
     (rd1350 : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
       [⟨1⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩, aDone.refund,
-        loopLen, revealScratchRevealEndWord σ_evm I,
-        revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+        loopLen, revealScratchRevealEndWord σ I,
+        revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      aDone.mem aDone.aw out (cA', σ') k1350 C1350)
+      aDone.mem aDone.aw out σ' k1350 C1350)
     (hcallS :
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (true, evmSCall, out)) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody blindAuctionConfig blindAuctionContract
         evmSolm callargs revealTransition.body
@@ -553,97 +513,92 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         exact hout0)
     obtain ⟨k1405, C1405, rd1405⟩ : ∃ k' C',
         RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
-          [⟨1⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-            revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1405⟩
+          [⟨1⟩, aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+            revealScratchBiddingEndWord σ I, secretsLenWord,
             ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-          aDone.mem aDone.aw ByteArray.empty (cA', σ') k' C' := by
+          aDone.mem aDone.aw ByteArray.empty σ' k' C' := by
       have rd1350Empty : RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1350⟩
           [⟨1⟩, aDone.fp, aDone.refund, revealScratchSenderWord I, ⟨0⟩,
-            aDone.refund, loopLen, revealScratchRevealEndWord σ_evm I,
-            revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+            aDone.refund, loopLen, revealScratchRevealEndWord σ I,
+            revealScratchBiddingEndWord σ I, secretsLenWord,
             ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
             ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
             ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-          aDone.mem aDone.aw ByteArray.empty (cA', σ') k1350 C1350 := by
+          aDone.mem aDone.aw ByteArray.empty σ' k1350 C1350 := by
         simpa [houtEmpty] using rd1350
       refine ⟨_, _, evm_run rd1350Empty with [
         swap3, pop, pop, pop, returndatasize, dup1, push0, dup2, eq,
         push2 ⟨1395⟩, jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨96⟩,
         swap2, pop, jumpdest, pop, pop, swap1, pop]⟩
     have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA', σ') ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' ByteArray.empty := by
       have rd1413 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiT one_ne_zero_uint (by jump_dest)]
       have rd276 := evm_run rd1413 with [
         jumpdest, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop,
         jump (by jump_dest), jumpdest]
       exact rd276.stop (by decide) (by evm_ov)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+    exact hret.reEquivExecutionGen hcode hd hdec
       (by
         rw [hevmSolm] at hbody
         exact hbody)
-      hCreated
       hAccounts
       (returnEquiv.fallthrough rfl rfl (by native_decide))
   · as_aux_lemma =>
     obtain ⟨mem1405, aw1405, k1405, C1405, rd1405⟩ :=
       scratch_blindAuctionReveal_postLoop_postCallNonempty
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (loopLen := loopLen)
         (secretsLenWord := secretsLenWord) (fakesLenWord := fakesLenWord)
         (valuesLenWord := valuesLenWord) (aDone := aDone)
-        (cA' := cA') (σ' := σ') (out := out) (k := k1350) (C := C1350)
+        (σ' := σ') (out := out) (k := k1350) (C := C1350)
         (z := ⟨1⟩) rd1350 hout0 houtSize
     have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA', σ') ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' ByteArray.empty := by
       have rd1413 := evm_run rd1405 with [
         dup1, push2 ⟨1413⟩, jumpiT one_ne_zero_uint (by jump_dest)]
       have rd276 := evm_run rd1413 with [
         jumpdest, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop,
         jump (by jump_dest), jumpdest]
       exact rd276.stop (by decide) (by evm_ov)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+    exact hret.reEquivExecutionGen hcode hd hdec
       (by
         rw [hevmSolm] at hbody
         exact hbody)
-      hCreated
       hAccounts
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
     (hσ0Done : evmDone.σ₀ = σ₀)
-    (hghDone : evmDone.genesisBlockHeader = gh)
-    (hblDone : evmDone.blocks = bl)
-    (hcreatedDone : evmDone.createdAccounts = aDone.acc.1)
     (hsubDone : evmDone.substate = A)
-    (haccountsDone : accountMapEquiv aDone.acc.2 evmDone.accountMap)
+    (haccountsDone : aDone.acc = evmDone.accountMap)
     (hdepthLt : I.depth.val < 1024)
     (hdepthNe : ¬ I.depth = 1024)
     (hbalance :
-      aDone.refund ≤ (aDone.acc.2.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1350, C1350,
+      aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
+  obtain ⟨σ', z, out, A_in, callGas, k1350, C1350,
       hTheta, houtSize, rd1350⟩ :=
     scratch_blindAuctionReveal_postLoop_callMade_step
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ₀ := σ₀) (A := A)
+
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
       (loopLen := loopLen) (secretsLenWord := secretsLenWord)
       (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
       (aDone := aDone) (gasArg := gasArg) (k1349 := k1349) (C1349 := C1349)
       hperm rd1349 hawCall hdepthLt hbalance
   let evmEDone : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := aDone.acc.2,
-      createdAccounts := aDone.acc.1 }
+    { evmDone with accountMap := aDone.acc }
+  have hevmEDone : evmEDone = evmDone := by
+    cases evmDone <;> simp_all [evmEDone]
   have hAddressId (a : AccountAddress) : EVM.address a = a := by
     apply Fin.ext
     simp [EVM.address, EVM.uintN]
@@ -656,40 +611,11 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
         simpa [revealScratchSenderWord] using accountAddress_roundtrip I.source
       _ = EVM.address evmDone.executionEnv.source := by
         simp [henvDone, hAddressId]
-  have htransport
-      {evmECall : EVM.State} {z' : Bool} {out' : ByteArray}
-      (hcallE :
-        callViaEVM evmEDone
-          (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (Int.ofNat aDone.refund.toNat) ByteArray.empty
-          (z', evmECall, out')) :
-      ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-        callViaEVM evmDone
-          (AccountAddress.ofUInt256 (revealScratchSenderWord I))
-          (Int.ofNat aDone.refund.toNat) ByteArray.empty
-          (z',
-            { evmDone with
-              accountMap := σ'_solm,
-              substate := A'_solm,
-              createdAccounts := evmECall.createdAccounts },
-            out') ∧
-        accountMapEquiv evmECall.accountMap σ'_solm := by
-    exact callViaEVM_accountMapEquiv
-      (storage := blindAuctionConfig.storage)
-      (evm_solm := evmDone) hcallE
-      (by simpa [evmEDone] using haccountsDone)
-      (by simpa [evmEDone, initState] using hσ0Done.symm)
-      (by simpa [evmEDone, initState] using hcreatedDone)
-      (by simpa [evmEDone, initState] using hghDone)
-      (by simpa [evmEDone, initState] using hblDone)
-      (by simpa [evmEDone, initState] using hsubDone)
-      (by simpa [evmEDone, initState] using henvDone)
   obtain ⟨g'', A', hThetaEq⟩ := hTheta
   let evmECall : EVM.State :=
     { evmEDone with
       accountMap := σ',
-      substate := A',
-      createdAccounts := cA' }
+      substate := A' }
   have hcallE :
       callViaEVM evmEDone
         (AccountAddress.ofUInt256 (revealScratchSenderWord I))
@@ -697,61 +623,54 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
         (z, evmECall, out) := by
     refine callViaEVM.callMade
       (valueWord := aDone.refund)
-      (cA' := cA') (σ' := σ') (g' := g'') (A' := A')
+      (σ' := σ') (g' := g'') (A' := A')
       ?_ ?_ ?_ ?_ ?_
     · exact (wordOfInt_ofNat_toNat aDone.refund).symm
     · refine ⟨callGas, A_in, ?_⟩
-      simpa [evmEDone, evmECall, initState, hperm,
+      simpa [evmEDone, evmECall, haccountsDone, hσ0Done, henvDone, hperm,
         revealScratchSenderWord, accountAddress_roundtrip] using hThetaEq
     · simp [evmECall]
-    · simpa [evmEDone, initState] using hbalance
+    · simpa [evmEDone, haccountsDone, henvDone] using hbalance
     · intro hd'
-      exact hdepthNe (by simpa [evmEDone, initState] using hd')
-  obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
-    htransport hcallE
-  let evmSCall : EVM.State :=
-    { evmDone with
-      accountMap := σ'_solm,
-      substate := A'_solm,
-      createdAccounts := evmECall.createdAccounts }
+      exact hdepthNe (by simpa [evmEDone, henvDone] using hd')
+  let evmSCall : EVM.State := evmECall
   have hcallS :
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (z, evmSCall, out) := by
-    simpa [evmSCall, hTargetEq] using hcallSRaw
+    rw [hevmEDone] at hcallE
+    simpa [evmSCall, hTargetEq] using hcallE
   cases z
   · exact scratch_blindAuctionReveal_postLoop_callMade_failure
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
       (callargs := callargs) (values := values) (fakes := fakes) (secrets := secrets)
       (loopLen := loopLen) (secretsLenWord := secretsLenWord)
       (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
       (aDone := aDone) (LDone := LDone) (evmSolm := evmSolm) (evmDone := evmDone)
-      (cA' := cA') (σ' := σ') (out := out) (k1350 := k1350) (C1350 := C1350)
+      (σ' := σ') (out := out) (k1350 := k1350) (C1350 := C1350)
       (evmSCall := evmSCall)
       hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
       hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
       hfakesLenLoop hsecretsLenLoop hrefundDone hloop houtSize
       (by simpa using rd1350)
       (by simpa using hcallS)
-  · have hCreated : cA' = evmSCall.createdAccounts := by
+  · have hAccounts : σ' = evmSCall.accountMap := by
       simp [evmSCall, evmECall]
-    have hAccounts : accountMapEquiv σ' evmSCall.accountMap := by
-      simpa [evmSCall, evmECall] using hPostAccounts
     exact scratch_blindAuctionReveal_postLoop_callMade_success
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
       (callargs := callargs) (values := values) (fakes := fakes) (secrets := secrets)
       (loopLen := loopLen) (secretsLenWord := secretsLenWord)
       (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
       (aDone := aDone) (LDone := LDone) (evmSolm := evmSolm) (evmDone := evmDone)
-      (cA' := cA') (σ' := σ') (out := out) (k1350 := k1350) (C1350 := C1350)
+      (σ' := σ') (out := out) (k1350 := k1350) (C1350 := C1350)
       (evmSCall := evmSCall)
       hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
       hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop hvaluesLenLoop
-      hfakesLenLoop hsecretsLenLoop hrefundDone hloop houtSize hCreated hAccounts
+      hfakesLenLoop hsecretsLenLoop hrefundDone hloop houtSize hAccounts
       (by simpa using rd1350)
       (by simpa using hcallS)
 

@@ -189,13 +189,13 @@ theorem potCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ### EVM-side trace -/
 
-theorem potReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 1)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨500⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : potSelWord I = ⟨0x69245009⟩ :=
     potSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
       (by native_decide) (by simpa [potSelBytes] using hsel)
@@ -214,11 +214,11 @@ theorem potReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 /-- Entry `@500`: no decode — push return addr `301`, push logic `1490`, jump. -/
-theorem potCageX_entered {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
+theorem potCageX_entered {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
     (hreach : ∃ k C, RD potBytecode I g s0 ⟨500⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1490⟩ [⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k, C, h⟩ := hreach
   have rd501 := h.jumpdest (by native_decide) (by evm_ov)
   have rd504 := rd501.push2 ⟨301⟩ (by native_decide) (by evm_ov)
@@ -226,14 +226,14 @@ theorem potCageX_entered {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
   exact ⟨_, _, rd507.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨1490⟩
       [⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1579⟩
       [⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -264,7 +264,7 @@ theorem potCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1507, C1507, rd1507raw⟩ := rd1506.sload (by native_decide) (by evm_ov)
   have rd1507 : RD potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1507 C1507 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
   have rd1510pre := evm_run rd1507 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -276,11 +276,11 @@ theorem potCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨1490⟩
       [⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -312,7 +312,7 @@ theorem potCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1507, C1507, rd1507raw⟩ := rd1506.sload (by native_decide) (by evm_ov)
   have rd1507 : RD potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1507 C1507 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
   have rd1510pre := evm_run rd1507 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -342,13 +342,13 @@ theorem potCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem potCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD potBytecode I g s0 ⟨1579⟩
       [⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret potBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨8⟩ ⟨0⟩) ⟨3⟩ potRay)
       ByteArray.empty := by
   have rd1580 := h.jumpdest (by native_decide) (by evm_ov)
@@ -365,48 +365,43 @@ theorem potCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd302 := rd301.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd302 (by native_decide) (by evm_ov)
 
-theorem potX_cage_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem potX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD potBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨500⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret potBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I) ⟨500⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret potBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨8⟩ ⟨0⟩) ⟨3⟩ potRay)
       ByteArray.empty := by
   obtain ⟨_, _, rd1490⟩ := potCageX_entered hreach
   obtain ⟨_, _, rd1579⟩ := potCageX_authorized (I := I) hauth rd1490
   exact potCageX_storeAuthorized hperm rd1579
 
-theorem potX_cage_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem potX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD potBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨500⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev potBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨500⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev potBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1490⟩ := potCageX_entered hreach
   exact potCageX_unauthorized (I := I) hauth rd1490
 
 theorem potCageBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := (∅ : Store) } (cagePostState evmSolm) none) := by
@@ -417,38 +412,29 @@ theorem potCageBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (potX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [cagePostState, evmSolm, initState, storageStore_createdAccounts])
-      (by
-        simpa [cagePostState, evmSolm, initState, storageStore_accountMap,
-          storageStore_executionEnv] using
-          accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner ⟨8⟩ ⟨0⟩ ⟨3⟩ potRay
-            hAccounts)
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+      (by simp [cagePostState, evmSolm, initState, storageStore_accountMap,
+        storageStore_executionEnv])
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem potCageBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨500⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
     simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
@@ -460,25 +446,24 @@ theorem potCageBodyCoreUnauthorized
   exact (potX_cage_unauthorized (g := Sat256.ofUInt256 g) hauth hreach)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem potCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem potCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (potSelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (potSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (potSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     potDispatchCage hsel
-  have hreach := potReachCageBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := potReachCageBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
-  by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
+  by_cases hauth : relyAuthWord σ I = ⟨1⟩
   · exact potCageBodyCoreOk hcode hsize _hperm hwv hauth hdispatch
-      (potDecode_cage hsz4) hreach hAccounts
+      (potDecode_cage hsz4) hreach
   · exact potCageBodyCoreUnauthorized hcode hsize hwv hauth hdispatch
-      (potDecode_cage hsz4) hreach hAccounts
+      (potDecode_cage hsz4) hreach
 
 end Benchmarks.Dss.Pot

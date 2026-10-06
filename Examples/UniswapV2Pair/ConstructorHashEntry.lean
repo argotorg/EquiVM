@@ -9,7 +9,7 @@ set_option maxRecDepth 2000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorTypeHash {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {R : List UInt256} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd23 : RD uniswapV2PairInitcode I g s0 ⟨23⟩ R solcFreePtrMem ⟨3⟩ ByteArray.empty acc k C)
     (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairInitcode I g s0 ⟨49⟩

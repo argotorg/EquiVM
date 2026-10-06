@@ -13,7 +13,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
     (h : RD (flapperCtorCode vat gem) I g s0 ⟨79⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
@@ -58,7 +58,7 @@ theorem flapperCtorArgCopyTrace
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
     (h : RD (flapperCtorCode vat gem) I g s0 ⟨99⟩
       [(UInt256.ofNat (flapperCtorCode vat gem).size).sub ⟨5216⟩, ⟨128⟩]
@@ -86,22 +86,19 @@ theorem flapperCtorArgSizeGuardTrace
         from by native_decide] using rd122⟩
 
 theorem flapperCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flapperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨122⟩
+      (initState σ σ₀ g A I) ⟨122⟩
       [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
       (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, flapperCtorAfterKicksMap σ I) k C := by
+      (flapperCtorAfterKicksMap σ I) k C := by
   obtain ⟨_, _, rd79⟩ :=
     flapperCtorGuardSuccessReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm hwv
   obtain ⟨_, _, rd99⟩ := flapperCtorArgCopyTrace vat gem rd79
   exact flapperCtorArgSizeGuardTrace vat gem rd99

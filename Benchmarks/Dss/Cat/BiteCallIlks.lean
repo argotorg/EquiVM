@@ -20,7 +20,7 @@ This file provides:
   `config.externalABI.encode? "ilks" [ilk]`;
 * the **reusable call combinators** (`RD.catBiteIlks*`) that step guard + `STATICCALL` and produce
   the `Θ`/`typedCallViaEVM` witness (STATICCALL preserves this-storage via
-  `typedCallViaEVM_static_storage_findD_of_accountMapEquiv`), or `RDrev` on the missing-code / call-
+  `typedCallViaEVM_static_storage_getD_of_accounts_eq`), or `RDrev` on the missing-code / call-
   failure branches.
 
 The definitions are parametrised over the ilk word `ilk : UInt256`, so the trace agent can apply the
@@ -151,19 +151,19 @@ theorem catBiteIlksEncode_eq (ilk : UInt256) (ilkBytes : List UInt8) {mem : Byte
 (`pc 1163`, stack `[urn, ilk] ++ R`, memory `solcFreePtrMem`) to the `EXTCODESIZE` @1233 with the
 target duplicated on top and the `STATICCALL` argument frame assembled below. -/
 theorem RD.catBiteIlksToStaticcallGuard
-    {cA gh bl σ σ₀ A I} {g : UInt256} {urn ilk : UInt256} {R : List UInt256} {k C : ℕ}
+    {σ σ₀ A I} {g : UInt256} {urn ilk : UInt256} {R : List UInt256} {k C : ℕ}
     (hR : R.length + 16 ≤ 1024)
     (rd1163 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
-      (urn :: ilk :: R) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
+      (urn :: ilk :: R) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (catBiteVatTargetWord σ I :: catBiteVatTargetWord σ I ::
         catBiteIlksOutPtr :: catBiteIlksInSize :: catBiteIlksOutPtr :: catBiteIlksOutSize ::
         catBiteIlksEndPtr :: catBiteIlksSelectorWord :: catBiteVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: ilk :: R)
       (catBiteIlksCalldataMem ilk solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have htargetMask :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
         (catSlotWord ⟨3⟩ σ I) = catBiteVatTargetWord σ I := by
@@ -197,9 +197,9 @@ theorem RD.catBiteIlksToStaticcallGuard
   have rd1166 := rd1164.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by native_decide) (by evm_ov)
   have rd1167 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1167⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1167⟩
       (catSlotWord ⟨3⟩ σ I :: urn :: ilk :: R)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1167 C1167 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1167 C1167 := by
     simpa [catSlotWord, solcSlotWord] using rd1167raw
   have rd1233 := evm_run rd1167 with [
     push1 ⟨64⟩,

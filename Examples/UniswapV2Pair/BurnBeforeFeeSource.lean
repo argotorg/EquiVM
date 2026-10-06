@@ -70,7 +70,7 @@ theorem uniswapBurnLiquidityLoaded
 
 theorem burnLiquidityWord_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State} {mem : ByteArray}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hmem : 64 ≤ mem.size) :
     burnLiquidityWord evm = uniswapCodeOwnerStorageWord I σ
       (uniswapInternalMintBalanceHashSlot (UInt256.ofNat I.codeOwner.val) mem) := by

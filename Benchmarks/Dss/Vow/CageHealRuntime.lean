@@ -9,14 +9,14 @@ namespace Benchmarks.Dss.Vow
 /-! ## `cage()` min/heal tail runtime helpers -/
 
 theorem cageSourceVatSinSuccessTailRevertFromBlock
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -24,7 +24,7 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -71,10 +71,10 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
         { contract := contract, locals := cageLocalsAfterVatSin flapperDai vatDai vatSin }
         evmSin (cageMinStmts ++ cageVatHealStmts) .reverted) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -88,7 +88,7 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin0, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -144,14 +144,14 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
     List.append_assoc] using hbody
 
 theorem cageSourceVatSinSuccessTailOkFromBlock
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin healRad : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin healRad : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -159,7 +159,7 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -207,14 +207,14 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
         evmSin (cageMinStmts ++ cageVatHealStmts)
         (.ok { contract := contract, locals := cageLocalsAfterHealRet flapperDai vatDai vatSin healRad } evmHeal)) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body
       (.returned
         { contract := contract,
           locals := cageLocalsAfterHealRet flapperDai vatDai vatSin healRad }
         evmHeal none) := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -228,7 +228,7 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin0, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -284,14 +284,14 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
     List.append_assoc] using hbody
 
 theorem cageSourceMinHealLeftNoCode
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -299,7 +299,7 @@ theorem cageSourceMinHealLeftNoCode
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -352,7 +352,7 @@ theorem cageSourceMinHealLeftNoCode
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -369,7 +369,7 @@ theorem cageSourceMinHealLeftNoCode
         evmSin (cageMinStmts ++ cageVatHealStmts) .reverted :=
     cageMinHealLeftNoCode (evm := evmSin) (flapperDai := flapperDai)
       (vatDai := vatDai) (vatSin := vatSin) hle hvatNoCode
-  exact cageSourceVatSinSuccessTailRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (evmSin := evmSin)
@@ -379,14 +379,14 @@ theorem cageSourceMinHealLeftNoCode
     hdecDai2 hsin htail
 
 theorem cageSourceMinHealRightNoCode
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -394,7 +394,7 @@ theorem cageSourceMinHealRightNoCode
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -447,7 +447,7 @@ theorem cageSourceMinHealRightNoCode
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -464,7 +464,7 @@ theorem cageSourceMinHealRightNoCode
         evmSin (cageMinStmts ++ cageVatHealStmts) .reverted :=
     cageMinHealRightNoCode (evm := evmSin) (flapperDai := flapperDai)
       (vatDai := vatDai) (vatSin := vatSin) hlt hvatNoCode
-  exact cageSourceVatSinSuccessTailRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (evmSin := evmSin)
@@ -474,14 +474,14 @@ theorem cageSourceMinHealRightNoCode
     hdecDai2 hsin htail
 
 theorem cageSourceMinHealLeftCallFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {outDai outFlap outFlop outDai2 outSin outHeal : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -489,7 +489,7 @@ theorem cageSourceMinHealLeftCallFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -545,7 +545,7 @@ theorem cageSourceMinHealLeftCallFailure
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (false, evmHeal, outHeal) true) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -563,7 +563,7 @@ theorem cageSourceMinHealLeftCallFailure
     cageMinHealLeftCallFailure (evm := evmSin) (evmHeal := evmHeal)
       (outHeal := outHeal) (flapperDai := flapperDai) (vatDai := vatDai)
       (vatSin := vatSin) hle hvatCodeHeal hcallHeal
-  exact cageSourceVatSinSuccessTailRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (evmSin := evmSin)
@@ -572,14 +572,14 @@ theorem cageSourceMinHealLeftCallFailure
     hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin htail
 
 theorem cageSourceMinHealRightCallFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {outDai outFlap outFlop outDai2 outSin outHeal : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -587,7 +587,7 @@ theorem cageSourceMinHealRightCallFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -643,7 +643,7 @@ theorem cageSourceMinHealRightCallFailure
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (false, evmHeal, outHeal) true) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -661,7 +661,7 @@ theorem cageSourceMinHealRightCallFailure
     cageMinHealRightCallFailure (evm := evmSin) (evmHeal := evmHeal)
       (outHeal := outHeal) (flapperDai := flapperDai) (vatDai := vatDai)
       (vatSin := vatSin) hlt hvatCodeHeal hcallHeal
-  exact cageSourceVatSinSuccessTailRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (evmSin := evmSin)
@@ -670,14 +670,14 @@ theorem cageSourceMinHealRightCallFailure
     hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin htail
 
 theorem cageSourceMinHealLeftSuccess
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {outDai outFlap outFlop outDai2 outSin outHeal : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -685,7 +685,7 @@ theorem cageSourceMinHealLeftSuccess
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -741,7 +741,7 @@ theorem cageSourceMinHealLeftSuccess
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (true, evmHeal, outHeal) true) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body
       (.returned
         { contract := contract,
@@ -764,7 +764,7 @@ theorem cageSourceMinHealLeftSuccess
     cageMinHealLeftSuccess (evm := evmSin) (evmHeal := evmHeal) (outHeal := outHeal)
       (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
       hle hvatCodeHeal hcallHeal
-  exact cageSourceVatSinSuccessTailOkFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailOkFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (healRad := vatDai) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
@@ -774,14 +774,14 @@ theorem cageSourceMinHealLeftSuccess
     hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin htail
 
 theorem cageSourceMinHealRightSuccess
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {outDai outFlap outFlop outDai2 outSin outHeal : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -789,7 +789,7 @@ theorem cageSourceMinHealRightSuccess
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -845,7 +845,7 @@ theorem cageSourceMinHealRightSuccess
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (true, evmHeal, outHeal) true) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body
       (.returned
         { contract := contract,
@@ -868,7 +868,7 @@ theorem cageSourceMinHealRightSuccess
     cageMinHealRightSuccess (evm := evmSin) (evmHeal := evmHeal) (outHeal := outHeal)
       (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
       hlt hvatCodeHeal hcallHeal
-  exact cageSourceVatSinSuccessTailOkFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinSuccessTailOkFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (vatSin := vatSin) (healRad := vatSin) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
@@ -878,31 +878,31 @@ theorem cageSourceMinHealRightSuccess
     hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin htail
 
 theorem vowCageMinHealLeftNoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin rdata : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3234 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3234⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3234⟩
       (vatSin :: vatDai :: ⟨3238⟩ :: kissHealSelector ::
-        kissDaiTargetWord acc.2 I :: R)
+        kissDaiTargetWord acc I :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) =
         ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -910,7 +910,7 @@ theorem vowCageMinHealLeftNoCodeBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -962,13 +962,13 @@ theorem vowCageMinHealLeftNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd3238⟩ := RD.vowCageMinReturnLeft rd3234 hle (by simp; omega)
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealNoCode rd3238 hmem hread64 hcodeSize (by simp; omega)
-  have hbody := cageSourceMinHealLeftNoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealLeftNoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (outDai := outDai)
@@ -979,31 +979,31 @@ theorem vowCageMinHealLeftNoCodeBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageMinHealRightNoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin rdata : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3234 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3234⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3234⟩
       (vatSin :: vatDai :: ⟨3238⟩ :: kissHealSelector ::
-        kissDaiTargetWord acc.2 I :: R)
+        kissDaiTargetWord acc I :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) =
         ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1011,7 +1011,7 @@ theorem vowCageMinHealRightNoCodeBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1063,13 +1063,13 @@ theorem vowCageMinHealRightNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd3238⟩ := RD.vowCageMinReturnRight rd3234 hlt (by simp; omega)
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealNoCode rd3238 hmem hread64 hcodeSize (by simp; omega)
-  have hbody := cageSourceMinHealRightNoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealRightNoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (outDai := outDai)
@@ -1080,26 +1080,26 @@ theorem vowCageMinHealRightNoCodeBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageMinHealLeftCallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin outHeal : ByteArray} {aw target : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
       (⟨0⟩ :: kissHealEndPtr :: kissHealSelector :: target :: R)
       mem aw outHeal acc k C)
     (houtHealSize : outHeal.size < UInt256.size)
     (hov : R.length + 8 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1107,7 +1107,7 @@ theorem vowCageMinHealLeftCallFailureBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1162,12 +1162,12 @@ theorem vowCageMinHealLeftCallFailureBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealCallFailure rd3296 houtHealSize (by simp; omega)
-  have hbody := cageSourceMinHealLeftCallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealLeftCallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (evmHeal := evmHeal)
@@ -1179,26 +1179,26 @@ theorem vowCageMinHealLeftCallFailureBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageMinHealRightCallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin outHeal : ByteArray} {aw target : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
       (⟨0⟩ :: kissHealEndPtr :: kissHealSelector :: target :: R)
       mem aw outHeal acc k C)
     (houtHealSize : outHeal.size < UInt256.size)
     (hov : R.length + 8 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1206,7 +1206,7 @@ theorem vowCageMinHealRightCallFailureBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1261,12 +1261,12 @@ theorem vowCageMinHealRightCallFailureBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealCallFailure rd3296 houtHealSize (by simp; omega)
-  have hbody := cageSourceMinHealRightCallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealRightCallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (evmHeal := evmHeal)
@@ -1278,24 +1278,24 @@ theorem vowCageMinHealRightCallFailureBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageMinHealLeftSuccessBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin sel target : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin sel target : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin outHeal : ByteArray} {aw : UInt256}
     {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target :: ⟨412⟩ :: sel :: [])
       mem aw outHeal acc k C)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1303,7 +1303,7 @@ theorem vowCageMinHealLeftSuccessBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1358,14 +1358,13 @@ theorem vowCageMinHealLeftSuccessBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (true, evmHeal, outHeal) true)
-    (hcreated : acc.1 = evmHeal.createdAccounts)
-    (hAccountsFinal : accountMapEquiv acc.2 evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hAccountsFinal : Eq acc evmHeal.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hret : RDret vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
     RD.vowCageHealCallSuccess rd3296
-  have hbody := cageSourceMinHealLeftSuccess (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealLeftSuccess
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (evmHeal := evmHeal)
@@ -1377,28 +1376,28 @@ theorem vowCageMinHealLeftSuccessBodyCore
   have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
     rw [show cageTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    hcreated hAccountsFinal henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    hAccountsFinal henc
 
 theorem vowCageMinHealRightSuccessBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai vatSin sel target : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai vatSin sel target : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin evmHeal : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin outHeal : ByteArray} {aw : UInt256}
     {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target :: ⟨412⟩ :: sel :: [])
       mem aw outHeal acc k C)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1406,7 +1405,7 @@ theorem vowCageMinHealRightSuccessBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin0 := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin0 I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1461,14 +1460,13 @@ theorem vowCageMinHealRightSuccessBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (true, evmHeal, outHeal) true)
-    (hcreated : acc.1 = evmHeal.createdAccounts)
-    (hAccountsFinal : accountMapEquiv acc.2 evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hAccountsFinal : Eq acc evmHeal.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hret : RDret vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
     RD.vowCageHealCallSuccess rd3296
-  have hbody := cageSourceMinHealRightSuccess (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceMinHealRightSuccess
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (vatSin := vatSin)
     (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
     (evmDai2 := evmDai2) (evmSin := evmSin) (evmHeal := evmHeal)
@@ -1480,7 +1478,7 @@ theorem vowCageMinHealRightSuccessBodyCore
   have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
     rw [show cageTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    hcreated hAccountsFinal henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    hAccountsFinal henc
 
 end Benchmarks.Dss.Vow

@@ -88,26 +88,24 @@ private theorem cureBytecode_size : cureBytecode.size = 3875 := by
   native_decide
 
 theorem cureCtorNonpayableRDrev
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (hcode : I.code = cureCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev cureCreationBytecode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd8 :
       RD cureCreationBytecode I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+        (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := cureCreationBytecode) hcode
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
   have rd12 :
       RD cureCreationBytecode I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨12⟩
+        (initState σ σ₀ g A I) ⟨12⟩
         [I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, σ) (6 + 2) (26 + 13) := by
+        σ (6 + 2) (26 + 13) := by
     exact (rd8
       |>.push2 ⟨16⟩ (by ctor_decode) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpiNT (by ctor_decode) (isZero_eq_zero_of_ne hwv)
@@ -115,26 +113,24 @@ theorem cureCtorNonpayableRDrev
   simpa [show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
     using
       RD.solcPush1Dup1Revert0 (code := cureCreationBytecode) (ee := I) (g := g)
-        (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
+        (s0 := initState σ σ₀ g A I) rd12
         (by ctor_decode) (by ctor_decode) (by ctor_decode)
         (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem cureCtorSuccessRDret
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (hcode : I.code = cureCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret cureCreationBytecode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts, cureCtorFinalMap σ I) cureBytecode := by
+      (initState σ σ₀ g A I)
+      (cureCtorFinalMap σ I) cureBytecode := by
   have rd8 :
       RD cureCreationBytecode I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+        (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := cureCreationBytecode) hcode
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
@@ -144,8 +140,8 @@ theorem cureCtorSuccessRDret
       (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_jump_dest)
   have rd18 :
       RD cureCreationBytecode I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
       using rd18₀
   have rd22 := evm_run rd18 with [
@@ -270,19 +266,17 @@ theorem assign_cureCtorWardsStorage (evm : EVM.State) (I : ExecutionEnv) {locals
     (hstore := hstore)
 
 theorem cureCtorSolmExecOk
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+    solmCtorExec config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := (∅ : Store) }
         (cureCtorAfterWardsState
           (cureCtorAfterLiveState
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           I)
         none) := by
-  let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := cureCtorAfterLiveState evm0
   let evm2 := cureCtorAfterWardsState evm1 I
   have hassignLive :
@@ -320,15 +314,13 @@ theorem cureCtorSolmExecOk
       ExecFuncBody.execBlockOK hblock
 
 theorem cureCtorSolmExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+    solmCtorExec config contract [] σ σ₀ g A I
       .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := (∅ : Store))
     ?_ rfl ?_ ?_
@@ -336,93 +328,77 @@ theorem cureCtorSolmExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := (∅ : Store)) hwv
 
 theorem cureCtorRDretXiResult
-    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     {σFinal : AccountMap} {o : ByteArray}
     (hcode : I.code = cureCreationBytecode)
     (h : RDret cureCreationBytecode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts, σFinal) o) :
-    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g.toUInt256 A I = .error .OutOfGass
+      (initState σ σ₀ g A I)
+      σFinal o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g.toUInt256 A I =
-          .ok (.success (createdAccounts, σFinal, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I =
+          .ok (.success (σFinal, g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using
         (by rw [← hcode] at hoog; exact hoog)))
-  · have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
-    have hσ : s.accountMap = σFinal := congrArg Prod.snd hacc
+  · have hσ : s.accountMap = σFinal := hacc
     have hxi := Xi_success_of_X (g := g.toUInt256) (by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using
         (by rw [← hcode] at hX; exact hX))
-    rw [hcA, hσ] at hxi
+    rw [hσ] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem cureConstructorBodyCore :
     constructorEquivalence config cureCreationBytecode contract cureBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I
+      args deployedInitcode hdeploy hcode _hcalldata hperm
   obtain ⟨hargs, hdeployed⟩ := cureCtorDeployment_eq_initcode hdeploy
   subst args
   rw [hdeployed] at hcode
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hrd := cureCtorSuccessRDret (createdAccounts := createdAccounts)
-      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+  · have hrd := cureCtorSuccessRDret
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases cureCtorRDretXiResult hcode hrd with hOOG | hSuccess
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hSuccess with ⟨g', A', hXi⟩
       have hSolm := cureCtorSolmExecOk
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
-      have hcA :
-          createdAccounts =
-            (cureCtorAfterWardsState
-              (cureCtorAfterLiveState
-                (initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
-                  (Sat256.ofUInt256 g) A I))
-              I).createdAccounts := by
-        simp [cureCtorAfterWardsState, cureCtorAfterLiveState, storageStore_createdAccounts,
-          initState]
       have hmapSolm :
           (cureCtorAfterWardsState
               (cureCtorAfterLiveState
-                (initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
+                (initState σ σ₀
                   (Sat256.ofUInt256 g) A I))
               I).accountMap =
-            cureCtorFinalMap σ_solm I := by
+            cureCtorFinalMap σ I := by
         simp [cureCtorAfterWardsState, cureCtorAfterLiveState, cureCtorFinalMap,
           cureCtorLiveMap, storageStore_accountMap, storageStore_executionEnv, initState]
       have hmap :
-          accountMapEquiv (cureCtorFinalMap σ_evm I)
+          cureCtorFinalMap σ I =
             (cureCtorAfterWardsState
               (cureCtorAfterLiveState
-                (initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
+                (initState σ σ₀
                   (Sat256.ofUInt256 g) A I))
               I).accountMap := by
         rw [hmapSolm]
-        exact accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner
-          ⟨1⟩ ⟨1⟩ (cureCtorWardsSlot I) ⟨1⟩ hAccounts
       refine constructorEquivalenceFor.execution hXi hSolm ?_
-      exact ctorResultEquiv.success rfl rfl hcA hmap rfl
-  · have hrd := cureCtorNonpayableRDrev (createdAccounts := createdAccounts)
-      (genesisBlockHeader := genesisBlockHeader) (blocks := blocks)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      exact ctorResultEquiv.success rfl rfl hmap rfl
+  · have hrd := cureCtorNonpayableRDrev
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | hRev
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hRev with ⟨g', o, hXi⟩
       have hSolm := cureCtorSolmExecReverts_nonpayable
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
       refine constructorEquivalenceFor.execution hXi hSolm ?_
       exact ctorResultEquiv.revert rfl rfl

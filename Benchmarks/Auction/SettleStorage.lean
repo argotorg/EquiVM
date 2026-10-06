@@ -78,28 +78,27 @@ theorem settleStoreSource {evm locals} (ha : locals.get? "auction" = none) :
   · exact storageLocStore_settled evm ⟨211⟩
 
 -- LIBRARY CANDIDATE: transport the source/RD relation across a storage write.
-theorem SourceState.storageWrite {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm)
+theorem SourceState.storageWrite {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (slot value : UInt256) :
-    SourceState s0 I cA (sstoreAccountMap I.codeOwner σ slot value)
+    SourceState s0 I (sstoreAccountMap I.codeOwner σ slot value)
       (Solm.EVM.storageStore evm I.codeOwner slot value) := by
-  refine ⟨?_, (storageStore_executionEnv _ _ _ _).trans hs.env,
-    (storageStore_createdAccounts _ _ _ _).trans hs.created, ?_⟩
+  refine ⟨?_, (storageStore_executionEnv _ _ _ _).trans hs.env, ?_⟩
   · unfold Solm.EVM.storageStore
     cases evm.lookupAccount I.codeOwner <;> exact hs.world
   · rw [storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap _ _ _ hs.accounts
+    rw [hs.accounts]
 
 -- LIBRARY CANDIDATE: transport a read-modify-write through the source/RD relation.
-theorem SourceState.readModifyWrite {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm)
+theorem SourceState.readModifyWrite {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (slot : UInt256) (f : UInt256 → UInt256) :
-    SourceState s0 I cA (sstoreAccountMap I.codeOwner σ slot (f (storedWord σ I slot)))
+    SourceState s0 I (sstoreAccountMap I.codeOwner σ slot (f (storedWord σ I slot)))
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (f (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
   rw [hs.storageRead, hs.env]
   exact hs.storageWrite _ _
 
-theorem SourceState.settled {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
-    SourceState s0 I cA (settledAccounts σ I) (settledState evm) := by
+theorem SourceState.settled {s0 I σ evm} (hs : SourceState s0 I σ evm) :
+    SourceState s0 I (settledAccounts σ I) (settledState evm) := by
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨211⟩ =
       storedWord σ I ⟨211⟩ := by
     exact hs.storageRead _

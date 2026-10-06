@@ -750,62 +750,40 @@ theorem fileIlkClipClip_eq_clipKey (I : ExecutionEnv) :
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
   exact Value.address.inj (fileIlkClipClip_value_masked I)
 
-theorem fileIlkClipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (fileIlkClipClipKey I)
-  rw [← hsame]
-  exact hzero
-
-theorem fileIlkClipCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (fileIlkClipClipKey I)
-  rw [hsame]
-  exact hzero
-
-theorem fileIlkClipCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem fileIlkClipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [fileIlkClipClip_eq_clipKey I]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
-      simpa [initState, State.lookupAccount, hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [initState, State.lookupAccount, hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc] using hword
 
-theorem fileIlkClipCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem fileIlkClipCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [fileIlkClipClip_eq_clipKey I]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -814,7 +792,8 @@ theorem fileIlkClipCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [initState, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem fileIlkClipClipKey_canonical (I : ExecutionEnv) :
     (fileIlkClipClipKey I).toNat < EVM.addressModulus := by
@@ -866,7 +845,7 @@ theorem assign_fileIlkClipClipStorage (v : DogImmutables) (evm : EVM.State)
     (hscalar := by trivial)
     (hstore := hstore)
 
-theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
@@ -874,16 +853,16 @@ theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
     (hdec : (config v).externalABI.decode? "ilk" out = some [fileIlkClipIlkValue I]) :
     let locals := fileIlkClipLocals I
     let locals1 := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evmCall evmCall.executionEnv.codeOwner
       (fileIlkClipSlotFor I)
       (setAddressOffset0Word
@@ -892,7 +871,7 @@ theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       (.returned { contract := contract v, locals := locals1 } evm1 none) := by
   intro locals locals1 evm0 evm1
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -984,25 +963,25 @@ theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
   simpa [ExecTransitionBody, evm0, evm1, locals, locals1] using
     ExecFuncBody.execBlockOK hblock
 
-theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (false, evmCall, out) false) :
     let locals := fileIlkClipLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       .reverted := by
   intro locals evm0
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -1060,26 +1039,26 @@ theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {cA gh bl σ σ₀ 
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
     (hdec : (config v).externalABI.decode? "ilk" out = none) :
     let locals := fileIlkClipLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       .reverted := by
   intro locals evm0
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -1137,21 +1116,21 @@ theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {cA gh bl σ σ₀
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodeZero :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := fileIlkClipLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       .reverted := by
   intro locals evm0
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -1197,17 +1176,17 @@ theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray} {clipIlkBytes : List UInt8}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
     (hdec :
@@ -1217,11 +1196,11 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I
       (fileIlkClipIlkValue I : Value) ≠ .fixedBytes bytes32Width clipIlkBytes) :
     let locals := fileIlkClipLocals I
     let locals1 := fileIlkClipLocalsClipIlk I (.fixedBytes bytes32Width clipIlkBytes)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       .reverted := by
   intro locals locals1 evm0
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -1294,17 +1273,17 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcond hthen)
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem fileIlkClipUnrecognizedSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I}
+theorem fileIlkClipUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotClip : fileIlkClipWhat I ≠ fileIlkClipClipBytes) :
     let locals := fileIlkClipLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
       .reverted := by
   intro locals evm0
-  have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
@@ -1332,18 +1311,18 @@ theorem fileIlkClipUnrecognizedSourceBody {v : DogImmutables} {cA gh bl σ σ₀
   simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockRevert hblock
 
 theorem dogReachFileIlkClipBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 10)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨735⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨735⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xebecb39d⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xeb 0xec 0xb3 0x9d ⟨0xebecb39d⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
@@ -1362,9 +1341,9 @@ theorem dogReachFileIlkClipBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
+  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
       RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
   have hhigh :
@@ -1374,9 +1353,9 @@ theorem dogReachFileIlkClipBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨54⟩
+  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
       RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
   have hchop : UInt256.eq (dogSelectorWord 4) (solcSelectorWord I) = ⟨0⟩ := by
@@ -1460,7 +1439,7 @@ theorem dogReachFileIlkClipBody {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipDecodeToRoutine {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {ret de sel : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨757⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J code 0).contains ⟨2417⟩ = true)
@@ -1542,18 +1521,18 @@ theorem RD.dogFileIlkClipDecodeToRoutine {v : DogImmutables} {code : ByteArray}
         hroutine (by evm_ov)⟩
 
 theorem RD.dogFileIlkClipToSwitch {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
-      ⟨735⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+      ⟨735⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2506⟩
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2506⟩
       (fileIlkClipClipKey I :: fileIlkClipWhatWord I :: fileIlkClipIlkWord I :: ⟨313⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := code) (sel := sel) (entry := ⟨735⟩) (ret := ⟨313⟩)
     (decoded := ⟨757⟩) (need := ⟨96⟩) hreach
@@ -1592,15 +1571,15 @@ theorem RD.dogFileIlkClipToSwitch {v : DogImmutables} {code : ByteArray}
   exact ⟨_, _, hafterAuth⟩
 
 theorem RD.dogFileIlkClipAuthRevert {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
-      ⟨735⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
+      ⟨735⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := code) (sel := sel) (entry := ⟨735⟩) (ret := ⟨313⟩)
     (decoded := ⟨757⟩) (need := ⟨96⟩) hreach
@@ -1646,7 +1625,7 @@ theorem RD.dogFileIlkClipAuthRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipUnrecognizedRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {clip what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2506⟩ (clip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
@@ -1729,7 +1708,7 @@ theorem RD.dogFileIlkClipUnrecognizedRevert {v : DogImmutables} {code : ByteArra
 theorem RD.dogFileIlkClipSwitchMatched {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2506⟩
       (fileIlkClipClipKey ee :: fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee ::
@@ -1802,7 +1781,7 @@ theorem RD.dogFileIlkClipSwitchMatched {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipToCallMload {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2522⟩
       (fileIlkClipClipKey ee :: fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee ::
@@ -1891,7 +1870,7 @@ theorem RD.dogFileIlkClipToCallMload {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipWriteCallSelector {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2540⟩
       (⟨128⟩ :: ⟨3318622238⟩ ::
@@ -1946,7 +1925,7 @@ theorem RD.dogFileIlkClipWriteCallSelector {v : DogImmutables} {code : ByteArray
 theorem RD.dogFileIlkClipCallArgsToExtcodesize {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2552⟩
       (⟨128⟩ :: ⟨3318622238⟩ ::
@@ -2041,7 +2020,7 @@ theorem RD.dogFileIlkClipCallArgsToExtcodesize {v : DogImmutables} {code : ByteA
 theorem RD.dogFileIlkClipToExtcodesize {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2506⟩
       (fileIlkClipClipKey ee :: fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee ::
@@ -2068,12 +2047,12 @@ theorem RD.dogFileIlkClipToExtcodesize {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2506⟩
       (fileIlkClipClipKey ee :: fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee ::
         ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmatch : fileIlkClipWhatWord ee = ABI.bytesToWord fileIlkClipClipBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2117,12 +2096,12 @@ theorem RD.dogFileIlkClipNoCodeRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipToStaticcall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2506⟩
       (fileIlkClipClipKey ee :: fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee ::
         ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmatch : fileIlkClipWhatWord ee = ABI.bytesToWord fileIlkClipClipBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2133,7 +2112,7 @@ theorem RD.dogFileIlkClipToStaticcall {v : DogImmutables} {code : ByteArray}
       (gasWord :: fileIlkClipClipKey ee :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: ⟨3318622238⟩ :: fileIlkClipClipKey ee :: fileIlkClipClipKey ee ::
         fileIlkClipWhatWord ee :: fileIlkClipIlkWord ee :: ret :: sel :: R)
-      (fileIlkClipCallMem mem) (UInt256.ofNat 5) rdata (cA, σ) k' C' := by
+      (fileIlkClipCallMem mem) (UInt256.ofNat 5) rdata σ k' C' := by
   obtain ⟨_, _, rd2566⟩ :=
     RD.dogFileIlkClipToExtcodesize hpatch h hmatch hmem hread64 hov
   obtain ⟨gasWord, k', C', rd2581⟩ :=
@@ -2171,13 +2150,13 @@ theorem RD.dogFileIlkClipToStaticcall {v : DogImmutables} {code : ByteArray}
   exact ⟨gasWord, k', C', by simpa using rd2581⟩
 
 theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
+    {σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
     {k C : ℕ} {mem rdata : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2506⟩
+    (h : RD code I g (initState σ σ₀ g A I) ⟨2506⟩
       (fileIlkClipClipKey I :: fileIlkClipWhatWord I :: fileIlkClipIlkWord I ::
         ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmatch : fileIlkClipWhatWord I = ABI.bytesToWord fileIlkClipClipBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2185,23 +2164,23 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
       Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2582⟩
+      RD code I g (initState σ σ₀ g A I) ⟨2582⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: ⟨3318622238⟩ ::
           fileIlkClipClipKey I :: fileIlkClipClipKey I ::
           fileIlkClipWhatWord I :: fileIlkClipIlkWord I :: ret :: sel :: R)
-        (fileIlkClipPostCallMem mem out) (UInt256.ofNat 5) out (cA', σ') k' C'
-      ∧ typedCallViaEVM (config v) (initState cA gh bl σ σ₀ g A I)
+        (fileIlkClipPostCallMem mem out) (UInt256.ofNat 5) out σ' k' C'
+      ∧ typedCallViaEVM (config v) (initState σ σ₀ g A I)
           (EVM.address (fileIlkClipClip I)) "ilk" 0 []
           (z,
-            { initState cA gh bl σ σ₀ g A I with
-                accountMap := σ', substate := A', createdAccounts := cA' },
+            { initState σ σ₀ g A I with
+                accountMap := σ', substate := A' },
             out) false
       ∧ out.size < UInt256.size := by
   obtain ⟨_, _, _, rd2581⟩ :=
     RD.dogFileIlkClipToStaticcall hpatch h hmatch hmem hread64 hcodeSize hov
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd2582raw, hosz⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘpack, rd2582raw, hosz⟩ :=
     RD.solcStaticcall rd2581
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2209,39 +2188,39 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k', C', ?_, ?_, hosz⟩
+  refine ⟨σ', z, out, A', k', C', ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 5).toNat
           (⟨128⟩ : UInt256).toNat (⟨4⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 5 := by
       native_decide
-    change RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2582⟩
+    change RD code I g (initState σ σ₀ g A I) ⟨2582⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: ⟨3318622238⟩ ::
         fileIlkClipClipKey I :: fileIlkClipClipKey I ::
         fileIlkClipWhatWord I :: fileIlkClipIlkWord I :: ret :: sel :: R)
       (out.write 0 (fileIlkClipCallMem mem) 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-      (UInt256.ofNat 5) out (cA', σ') k' C'
+      (UInt256.ofNat 5) out σ' k' C'
     exact haw ▸ rd2582raw
-  · have hdepthNe : (initState cA gh bl σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
+  · have hdepthNe : (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
       intro h
       exact absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide)
     have hΘ' :
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (fileIlkClipClipKey I))
             (toExecute σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-            ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header false := by
+            ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [initState] using hΘ
     have hΘcall :
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ σ₀ A_in
             I.codeOwner I.sender (AccountAddress.ofUInt256 (fileIlkClipClipKey I))
             (toExecute σ (AccountAddress.ofUInt256 (fileIlkClipClipKey I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-            ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header false := by
+            ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [accountAddress_roundtrip I.codeOwner] using hΘ'
     refine ⟨(fileIlkClipCallMem mem).readWithPadding 128 4,
       fileIlkClipEncode_eq (v := v) hmem, ?_⟩
@@ -2259,7 +2238,7 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogFileIlkClipCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code ee g s0 ⟨2582⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -2307,13 +2286,13 @@ theorem RD.dogFileIlkClipCallFailure {v : DogImmutables} {code : ByteArray}
     hrdataSize hov
 
 theorem RD.dogFileIlkClipStaticcallDepthLimitRevert {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
+    {σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
     {k C : ℕ} {mem rdata : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2506⟩
+    (h : RD code I g (initState σ σ₀ g A I) ⟨2506⟩
       (fileIlkClipClipKey I :: fileIlkClipWhatWord I :: fileIlkClipIlkWord I ::
         ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmatch : fileIlkClipWhatWord I = ABI.bytesToWord fileIlkClipClipBytes)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2321,7 +2300,7 @@ theorem RD.dogFileIlkClipStaticcallDepthLimitRevert {v : DogImmutables} {code : 
       Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 18 ≤ 1024) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, _, rd2581⟩ :=
     RD.dogFileIlkClipToStaticcall hpatch h hmatch hmem hread64 hcodeSize hov
   obtain ⟨_, _, rd2582raw⟩ :=
@@ -2334,11 +2313,11 @@ theorem RD.dogFileIlkClipStaticcallDepthLimitRevert {v : DogImmutables} {code : 
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   obtain ⟨_, _, rd2582⟩ : ∃ k' C',
-      RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2582⟩
+      RD code I g (initState σ σ₀ g A I) ⟨2582⟩
       (⟨0⟩ :: ⟨132⟩ :: ⟨3318622238⟩ ::
         fileIlkClipClipKey I :: fileIlkClipClipKey I ::
         fileIlkClipWhatWord I :: fileIlkClipIlkWord I :: ret :: sel :: R)
-      (fileIlkClipCallMem mem) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k' C' := by
+      (fileIlkClipCallMem mem) (UInt256.ofNat 5) ByteArray.empty σ k' C' := by
     have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 5).toNat
           (⟨128⟩ : UInt256).toNat (⟨4⟩ : UInt256).toNat)
@@ -2350,7 +2329,7 @@ theorem RD.dogFileIlkClipStaticcallDepthLimitRevert {v : DogImmutables} {code : 
 
 theorem RD.dogFileIlkClipCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 d3 d4 d5 ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -2389,7 +2368,7 @@ theorem RD.dogFileIlkClipCallSuccessToDecode {v : DogImmutables} {code : ByteArr
 
 theorem RD.dogFileIlkClipReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
     {d0 d1 d2 clipKey what ilk ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -2453,7 +2432,7 @@ theorem RD.dogFileIlkClipReturnDecodeShortReverts {v : DogImmutables} {code : By
 
 theorem RD.dogFileIlkClipReturnDecodeOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ}
     {d0 d1 d2 clipKey what ilk ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -2687,7 +2666,7 @@ theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteA
 theorem RD.dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
     {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 5) rdata acc k C)
     (hwf : dogErrorStringRevertTailDirectWf code pc len word op width)
     (hpush : op ≠ .PUSH0)
@@ -2751,7 +2730,7 @@ theorem RD.dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat2
 
 theorem RD.dogFileIlkClipMismatchRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {retWord clipKey what ilk ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -2800,7 +2779,7 @@ theorem RD.dogFileIlkClipMismatchRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipLogTail {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {clipKey what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2745⟩ (clipKey :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 5) rdata acc k C)
@@ -2931,10 +2910,10 @@ theorem RD.dogFileIlkClipLogTail {v : DogImmutables} {code : ByteArray}
 theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {clipKey what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 ⟨2705⟩ (clipKey :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 5) rdata (cA, σ) k C)
+      (UInt256.ofNat 5) rdata σ k C)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
     (hmem : mem.size = 160)
@@ -2943,7 +2922,7 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     ∃ k' C', RD code ee g s0 ret (sel :: R)
       (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
       (UInt256.ofNat 5) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
         (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
       k' C' := by
   have rd2706 := h.jumpdest
@@ -3078,11 +3057,12 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, rdStore'⟩ : ∃ k' C',
       RD code ee g s0 ⟨2745⟩ (clipKey :: what :: ilk :: ret :: sel :: R)
       (twoWordHashMem ilk ⟨1⟩ mem) (UInt256.ofNat 5) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
         (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
       k' C' := by
     exact ⟨_, _, by
-      simpa [solcSlotWord, setAddressOffset0Word, hword,
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord,
+        setAddressOffset0Word, hword,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide] using rdStore⟩
   exact RD.dogFileIlkClipLogTail hpatch rdStore' hret hperm hhashSize hhashRead64 hov
@@ -3091,11 +3071,11 @@ theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
     {retWord clipKey what ilk ret sel : UInt256} {R : List UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code ee g s0 ⟨2623⟩
       (retWord :: clipKey :: what :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 5) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 5) rdata σ k C)
     (hmatch : retWord = ilk)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
@@ -3105,7 +3085,7 @@ theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
     ∃ k' C', RD code ee g s0 ret (sel :: R)
       (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
       (UInt256.ofNat 5) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
         (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
       k' C' := by
   have rd2624 := rd.dup4
@@ -3137,17 +3117,17 @@ theorem RD.dogFileIlkClipSuccessStop {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
     {retWord clipKey what ilk sel : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code ee g s0 ⟨2623⟩
       (retWord :: clipKey :: what :: ilk :: ⟨313⟩ :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 5) rdata σ k C)
     (hmatch : retWord = ilk)
     (hperm : ee.perm = true)
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDret code g s0
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
         (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
       ByteArray.empty := by
   obtain ⟨_, _, hretPc⟩ := RD.dogFileIlkClipSuccessToRet hpatch rd hmatch
@@ -3167,15 +3147,15 @@ theorem RD.dogFileIlkClipSuccessStop {v : DogImmutables} {code : ByteArray}
 
 theorem dogFileIlkClipBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkClipTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -3205,7 +3185,7 @@ theorem dogFileIlkClipBodyCoreDecodeFailed_short
     (dogDecode_fileIlkClip_none_short (v := v) hsz4 hshort)
 
 theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hwv : I.weiValue = ⟨0⟩)
@@ -3219,23 +3199,18 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
         (transitionSignature fileIlkClipTransition).paramTypes I.calldata =
           some (fileIlkClipLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let callerSlot := dogCallerWardsSlot I
   let locals := fileIlkClipLocals I
-  have hcallerWord : dogSlotWord callerSlot σ_evm I = dogSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
   have henc : returnEquiv ByteArray.empty none fileIlkClipTransition.returnType := by
     rw [show fileIlkClipTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  by_cases hauthEvm : dogSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-      rw [← hcallerWord]
-      exact hauthEvm
+  by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
+  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
     have hmemAuth :
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -3252,68 +3227,55 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           fileIlkClipWhatWord I = ABI.bytesToWord fileIlkClipClipBytes :=
         fileIlkClipWhatWord_eq_of_bytes_eq (by omega) hwhatClip
       by_cases hcodeSize :
-          Reasoning.Theory.extCodeSizeWord σ_evm (fileIlkClipClipKey I) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩
       · have hrev := RD.dogFileIlkClipNoCodeRevert
           (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
           hpatch hswitch hwordClip hmemAuth hread64Auth hcodeSize (by simp)
-        have hcodeSizeSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm (fileIlkClipClipKey I) = ⟨0⟩ :=
-          fileIlkClipCodeSize_zero_accountMapEquiv hAccounts hcodeSize
         have hclipNoCode :
             (UInt256.ofNat
-              (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+              (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0 :=
-          fileIlkClipCode_zero_of_codeSize_zero (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeSolm
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          fileIlkClipCode_zero_of_codeSize_zero
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evm0 locals
               fileIlkClipTransition.body .reverted := by
           simpa [evm0, locals] using
-            (fileIlkClipNoCodeSourceBody (v := v) (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (fileIlkClipNoCodeSourceBody (v := v)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauthSolm hwhatClip hclipNoCode)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hcodeSizeNe :
-            Reasoning.Theory.extCodeSizeWord σ_evm (fileIlkClipClipKey I) ≠
+            Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠
               ⟨0⟩ :=
           hcodeSize
-        have hcodeSizeSolmNe :
-            Reasoning.Theory.extCodeSizeWord σ_solm (fileIlkClipClipKey I) ≠
-              ⟨0⟩ :=
-          fileIlkClipCodeSize_ne_accountMapEquiv hAccounts hcodeSizeNe
         have hclipCode :
             0 < (UInt256.ofNat
-              (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+              (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat :=
-          fileIlkClipCode_pos_of_codeSize_ne (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeSolmNe
+          fileIlkClipCode_pos_of_codeSize_ne
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeNe
         by_cases hdepthLt : I.depth.val < 1024
-        · obtain ⟨cA', σ', z, out, A', _k', _C', rd2582, hcallEvmRaw, hosz⟩ :=
+        · obtain ⟨σ', z, out, A', _k', _C', rd2582, hcallEvmRaw, hosz⟩ :=
             RD.dogFileIlkClipPostStaticcall
               (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
               hpatch hswitch hwordClip hmemAuth hread64Auth hcodeSizeNe hdepthLt
               (by simp)
-          let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-          let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmPostEvm :=
-            { evmEvm with accountMap := σ', substate := A', createdAccounts := cA' }
+            { evmEvm with accountMap := σ', substate := A' }
           have hcallEvm :
               typedCallViaEVM (config v) evmEvm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostEvm, out) false := by
             simpa [evmEvm, evmPostEvm] using hcallEvmRaw
-          obtain ⟨σSolmPost, ASolmPost, hcallSolmRaw, hStateCallRaw⟩ :=
-            typedCallViaEVM_initState_EVMStateEquiv hcallEvm
-              (by simp [evmEvm, evmSolm, evmPostEvm, initState]) hAccounts
-          let evmPostSolm :=
-            { evmSolm with
-              accountMap := σSolmPost, substate := ASolmPost, createdAccounts := cA' }
+          let evmPostSolm := evmPostEvm
           have hcallSolm :
               typedCallViaEVM (config v) evmSolm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostSolm, out) false := by
-            simpa [evmPostSolm] using hcallSolmRaw
-          have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := by
-            simpa [evmPostEvm, evmPostSolm] using hStateCallRaw
+            simpa [evmSolm, evmEvm, evmPostSolm] using hcallEvm
+          have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := ⟨rfl, rfl⟩
           cases z
           · simp only [Bool.false_eq_true, if_false] at rd2582 hcallSolm
             have hrev := RD.dogFileIlkClipCallFailure hpatch rd2582 hosz (by simp)
@@ -3321,8 +3283,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                 ExecTransitionBody (config v) (contract v) evmSolm locals
                   fileIlkClipTransition.body .reverted := by
               simpa [evmSolm, locals] using
-                (fileIlkClipCallFailureSourceBody (v := v) (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                (fileIlkClipCallFailureSourceBody (v := v)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := g) (evmCall := evmPostSolm) (out := out)
                   hwv hauthSolm hwhatClip hclipCode hcallSolm)
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -3373,8 +3335,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                           locals := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I) }
                         evm1 none) := by
                   simpa [evmSolm, locals, evm1] using
-                    (fileIlkClipSuccessSourceBody (v := v) (cA := cA) (gh := gh)
-                      (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                    (fileIlkClipSuccessSourceBody (v := v)
+                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                       (g := g) (evmCall := evmPostSolm) (out := out)
                       hwv hsz100 hauthSolm hwhatClip hclipCode hcallSolm hdecRet)
                 let evmPostStoreEvm := Solm.EVM.storageStore evmPostEvm
@@ -3398,13 +3360,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                 have hStateStore : EVMStateEquiv evmPostStoreEvm evm1 := by
                   simpa [evmPostStoreEvm, evm1, actualSlot, sourceSlot, hslotEq] using
                     hStateCall.storageStore_codeOwner actualSlot hvalueEq
-                have hcreated :
-                    (cA', sstoreAccountMap I.codeOwner σ' actualSlot
-                      (setAddressOffset0Word (solcSlotWord σ' I actualSlot)
-                        (fileIlkClipClipKey I))).1 = evm1.createdAccounts := by
-                  simp [evm1, evmPostSolm, storageStore_createdAccounts]
                 have haccounts :
-                    accountMapEquiv
+                    Eq
                       (sstoreAccountMap I.codeOwner σ' actualSlot
                         (setAddressOffset0Word (solcSlotWord σ' I actualSlot)
                           (fileIlkClipClipKey I)))
@@ -3413,8 +3370,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   simpa [evmPostStoreEvm, evmPostEvm, evm1, actualSlot, sourceSlot,
                     hslotEq, storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
                     State.lookupAccount, Account.lookupStorage, initState] using hacc
-                exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
-                  hbody hcreated haccounts henc
+                exact hrdret.reEquivExecutionGen hcode hdispatch hdecode
+                  hbody haccounts henc
               · have hrev := RD.dogFileIlkClipMismatchRevert hpatch rd2623 hretMatch
                   hpostMemSize hpostRead64 (by simp)
                 have hdecRet :
@@ -3431,8 +3388,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                     ExecTransitionBody (config v) (contract v) evmSolm locals
                       fileIlkClipTransition.body .reverted := by
                   simpa [evmSolm, locals] using
-                    (fileIlkClipMismatchSourceBody (v := v) (cA := cA) (gh := gh)
-                      (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                    (fileIlkClipMismatchSourceBody (v := v)
+                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                       (g := g) (evmCall := evmPostSolm) (out := out)
                       (clipIlkBytes :=
                         EVM.Word.toBytesBE (uInt256OfByteArray (out.extract 0 32)))
@@ -3447,8 +3404,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   ExecTransitionBody (config v) (contract v) evmSolm locals
                     fileIlkClipTransition.body .reverted := by
                 simpa [evmSolm, locals] using
-                  (fileIlkClipDecodeRevertSourceBody (v := v) (cA := cA) (gh := gh)
-                    (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                  (fileIlkClipDecodeRevertSourceBody (v := v)
+                    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                     (g := g) (evmCall := evmPostSolm) (out := out)
                     hwv hauthSolm hwhatClip hclipCode hcallSolm hdecRet)
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -3461,7 +3418,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
             hpatch hswitch hwordClip hmemAuth hread64Auth hcodeSizeNe hdepth1024
             (by simp)
-          let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmCall :=
             { evm0 with
               substate := (evm0.addAccessedAccount (EVM.address (fileIlkClipClip I))).substate }
@@ -3478,8 +3435,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               ExecTransitionBody (config v) (contract v) evm0 locals
                 fileIlkClipTransition.body .reverted := by
             simpa [evm0, locals] using
-              (fileIlkClipCallFailureSourceBody (v := v) (cA := cA) (gh := gh)
-                (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (fileIlkClipCallFailureSourceBody (v := v)
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                 (g := g) (evmCall := evmCall) (out := ByteArray.empty)
                 hwv hauthSolm hwhatClip hclipCode hcallDepth)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -3487,13 +3444,13 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           fileIlkClipWhatWord I ≠ ABI.bytesToWord fileIlkClipClipBytes :=
         fileIlkClipWhatWord_ne_of_bytes_ne (by omega) hwhatClip
           fileIlkClipClipBytes_length
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evm0 locals
             fileIlkClipTransition.body .reverted := by
         simpa [evm0, locals] using
-          (fileIlkClipUnrecognizedSourceBody (v := v) (cA := cA) (gh := gh)
-            (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (fileIlkClipUnrecognizedSourceBody (v := v)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             hwv hauthSolm hwhatClip)
       have hrev := RD.dogFileIlkClipUnrecognizedRevert
         (v := v) (code := code) (clip := fileIlkClipClipKey I)
@@ -3501,15 +3458,15 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
         (ret := ⟨313⟩) (sel := sel) (R := [])
         hpatch hswitch hnotClipWord hmemAuth hread64Auth (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : dogSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+  · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
-      exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      exact hauthEvm hsolm
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
         ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
           .reverted := by
-      have hguard := dogAuthGuardEval_false (v := v) (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := dogAuthGuardEval_false (v := v)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fileIlkClipLocals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
@@ -3528,31 +3485,30 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
       simpa [ExecTransitionBody, fileIlkClipTransition, nonpayable, auth, evm0, locals]
         using ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
     have hrev := RD.dogFileIlkClipAuthRevert hpatch hreach hsz100 hsize hauthSolc
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem dogFileIlkClipBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (dogSelBytes 10))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (dogSelBytes 10)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 10) rfl hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkClipTransition :=
     dogDispatchFileIlkClip hsel
-  have hreach := dogReachFileIlkClipBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := dogReachFileIlkClipBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · exact dogFileIlkClipBodyCoreOk hpatch hcode hwv hperm hsz100 hsize hdispatch
-      (dogDecode_fileIlkClip_ok (v := v) hsz100) hreach hAccounts
+      (dogDecode_fileIlkClip_ok (v := v) hsz100) hreach
   · exact dogFileIlkClipBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

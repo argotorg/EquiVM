@@ -295,15 +295,14 @@ theorem clipperDecode_redo_none_short (v : ClipperImmutables) {I : ExecutionEnv}
       (cd := I.calldata) (x := "id") (y := "kpr") hsz4 hshort
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachRedoBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 16)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1409⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1409⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperRedoSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -542,15 +541,15 @@ theorem clipperRedoDecodeArgs (v : ClipperImmutables) {code : ByteArray}
     (by exact Nat.lt_of_le_of_lt hhi (by native_decide))
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperRedoX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1409⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨7261⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1409⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨7261⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := code) (sel := sel) (entry := (⟨1409⟩ : UInt256))
     (ret := (⟨502⟩ : UInt256)) (decoded := (⟨1431⟩ : UInt256)) hreach
@@ -687,11 +686,11 @@ theorem clipperRedoX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
       using rd1452.jump
         hdec1452 (clipperJumpDest7261 v hpatch) (by evm_ov)⟩
 
-theorem clipperRedoLockedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperRedoLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   have hlockedEval :
@@ -1002,7 +1001,7 @@ theorem clipperRedoStatusCallRevertsAgeForPrice (v : ClipperImmutables)
     (clipperStatusFunctionRevertsAgeForPrice v evm
       (clipperRedoSalesTicEVMWord evm I) (clipperRedoSalesTopEVMWord evm I) hlt)
 
-theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperRedoInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1010,7 +1009,7 @@ theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (husr :
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   let evmLock := clipperRedoLockedState evm0
@@ -1094,7 +1093,7 @@ theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperRedoStatusAgeForPriceSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1105,7 +1104,7 @@ theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : U
       (UInt256.ofNat I.header.timestamp).toNat <
         (clipperRedoSalesTicWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I).toNat) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   let evmLock := clipperRedoLockedState evm0
@@ -1200,13 +1199,13 @@ theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : U
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperRedoStoppedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperRedoStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
       2 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   let evmLock := clipperRedoLockedState evm0
@@ -1269,13 +1268,13 @@ theorem clipperRedoStoppedRevertTailWf (v : ClipperImmutables) {code : ByteArray
       ?_⟩ <;> (norm_num1; clipper_runtime_decode)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_locked {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
     (h : RD code I g s0 (⟨7261⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd7264pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -1285,7 +1284,7 @@ theorem clipperRedoX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd7265 : RD code I g s0 (⟨7265⟩ : UInt256)
       (solcSlotWord σ I ⟨13⟩ :: clipperRedoKprMaskedWord I ::
         clipperRedoIdWord I :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k7265 C7265 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k7265 C7265 := by
     simpa [solcSlotWord] using rd7265raw
   have rd7266pre := rd7265.iszero (by clipper_runtime_decode) (by evm_ov)
   rw [isZero_eq_zero_of_ne hlocked] at rd7266pre
@@ -1305,16 +1304,16 @@ theorem clipperRedoX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (h : RD code I g s0 (⟨7261⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 (⟨7338⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd7264pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -1323,7 +1322,7 @@ theorem clipperRedoX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd7265 : RD code I g s0 (⟨7265⟩ : UInt256)
       (solcSlotWord σ I ⟨13⟩ :: clipperRedoKprMaskedWord I ::
         clipperRedoIdWord I :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k7265 C7265 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k7265 C7265 := by
     simpa [solcSlotWord] using rd7265raw
   have rd7266 := rd7265.iszero (by clipper_runtime_decode) (by evm_ov)
   have hcond : UInt256.isZero (solcSlotWord σ I ⟨13⟩) ≠ ⟨0⟩ := by
@@ -1335,17 +1334,17 @@ theorem clipperRedoX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperJumpDest7338 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (h : RD code I g s0 (⟨7338⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 (⟨7344⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
   have rd7343pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1355,13 +1354,13 @@ theorem clipperRedoX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, by simpa using rd7344raw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_stoppedClosed {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hstopped : 2 ≤ (solcSlotWord σ I ⟨14⟩).toNat)
     (h : RD code I g s0 (⟨7344⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd7346pre := h.pushConst (⟨14⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -1370,7 +1369,7 @@ theorem clipperRedoX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd7347 : RD code I g s0 (⟨7347⟩ : UInt256)
       (solcSlotWord σ I ⟨14⟩ :: clipperRedoKprMaskedWord I ::
         clipperRedoIdWord I :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k7347 C7347 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k7347 C7347 := by
     simpa [solcSlotWord] using rd7347raw
   have rd7349 := rd7347.pushConst (⟨2⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -1396,16 +1395,16 @@ theorem clipperRedoX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_stoppedOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_stoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hstopped : (solcSlotWord σ I ⟨14⟩).toNat < 2)
     (h : RD code I g s0 (⟨7344⟩ : UInt256)
       [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 (⟨7428⟩ : UInt256)
       [⟨2⟩, clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd7346pre := h.pushConst (⟨14⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨k7347, C7347, rd7347raw⟩ := rd7346pre.sload
@@ -1413,7 +1412,7 @@ theorem clipperRedoX_stoppedOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd7347 : RD code I g s0 (⟨7347⟩ : UInt256)
       (solcSlotWord σ I ⟨14⟩ :: clipperRedoKprMaskedWord I ::
         clipperRedoIdWord I :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k7347 C7347 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k7347 C7347 := by
     simpa [solcSlotWord] using rd7347raw
   have rd7349 := rd7347.pushConst (⟨2⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -1435,14 +1434,14 @@ abbrev clipperRedoNotRunningAuctionWord : UInt256 :=
   ⟨0x436c69707065722f6e6f742d72756e6e696e672d61756374696f6e0000000000⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperRedoX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperRedoX_inactiveAuctionTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨7487⟩
       [clipperRedoSalesTopWord σ I, clipperRedoSalesTicWord σ I,
         clipperRedoSalesUsrWord σ I, ⟨2⟩, clipperRedoKprMaskedWord I,
         clipperRedoIdWord I, ⟨502⟩, sel]
-      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1503,13 +1502,13 @@ theorem clipperRedoX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
     raw rev 0 (by clipper_runtime_decode) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 2000000 in
-theorem clipperRedoX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_usrZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperRedoSalesUsrWord σ I = ⟨0⟩)
     (h : RD code I g s0 (⟨7428⟩ : UInt256)
       [⟨2⟩, clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperRedoIdWord I)
   have hslot :
@@ -1553,7 +1552,7 @@ theorem clipperRedoX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I (clipperRedoSalesPackedSlot I) :: base :: ⟨2⟩ ::
         clipperRedoKprMaskedWord I :: clipperRedoIdWord I :: ⟨502⟩ :: [sel])
       (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k7448 C7448 := by
+      σ k7448 C7448 := by
     simpa [solcSlotWord] using rd7448raw
   have rd7452pre := evm_run rd7448 with [
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1570,7 +1569,7 @@ theorem clipperRedoX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperRedoSalesTopWord σ I :: solcSlotWord σ I (clipperRedoSalesPackedSlot I) ::
         ⟨2⟩ :: clipperRedoKprMaskedWord I :: clipperRedoIdWord I :: ⟨502⟩ :: [sel])
       (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k7454 C7454 := by
+      σ k7454 C7454 := by
     simpa [clipperRedoSalesTopWord, solcSlotWord] using rd7454raw
   have rd7464pre := evm_run rd7454 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1610,18 +1609,18 @@ theorem clipperRedoX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       u256_land_comm] using rd7487)
 
 set_option maxHeartbeats 2000000 in
-theorem clipperRedoX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperRedoSalesUsrWord σ I ≠ ⟨0⟩)
     (h : RD code I g s0 (⟨7428⟩ : UInt256)
       [⟨2⟩, clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 (⟨7563⟩ : UInt256)
       [clipperRedoSalesTopWord σ I, clipperRedoSalesTicWord σ I,
         clipperRedoSalesUsrWord σ I, ⟨2⟩, clipperRedoKprMaskedWord I,
         clipperRedoIdWord I, ⟨502⟩, sel]
-      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperRedoIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1664,7 +1663,7 @@ theorem clipperRedoX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I (clipperRedoSalesPackedSlot I) :: base :: ⟨2⟩ ::
         clipperRedoKprMaskedWord I :: clipperRedoIdWord I :: ⟨502⟩ :: [sel])
       (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k7448 C7448 := by
+      σ k7448 C7448 := by
     simpa [solcSlotWord] using rd7448raw
   have rd7452pre := evm_run rd7448 with [
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1681,7 +1680,7 @@ theorem clipperRedoX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperRedoSalesTopWord σ I :: solcSlotWord σ I (clipperRedoSalesPackedSlot I) ::
         ⟨2⟩ :: clipperRedoKprMaskedWord I :: clipperRedoIdWord I :: ⟨502⟩ :: [sel])
       (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k7454 C7454 := by
+      σ k7454 C7454 := by
     simpa [clipperRedoSalesTopWord, solcSlotWord] using rd7454raw
   have rd7464pre := evm_run rd7454 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1721,20 +1720,20 @@ theorem clipperRedoX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       rd7483pre.jumpiT (by clipper_runtime_decode) husrStack
         (clipperJumpDest7563 v hpatch) (by evm_ov)⟩
 
-theorem clipperRedoX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperRedoX_enterStatus {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 (⟨7563⟩ : UInt256)
       [clipperRedoSalesTopWord σ I, clipperRedoSalesTicWord σ I,
         clipperRedoSalesUsrWord σ I, ⟨2⟩, clipperRedoKprMaskedWord I,
         clipperRedoIdWord I, ⟨502⟩, sel]
-      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 (⟨8460⟩ : UInt256)
       [clipperRedoSalesTopWord σ I, clipperRedoSalesTicWord σ I, ⟨7575⟩, ⟨0⟩,
         clipperRedoSalesTopWord σ I, clipperRedoSalesTicWord σ I,
         clipperRedoSalesUsrWord σ I, ⟨2⟩, clipperRedoKprMaskedWord I,
         clipperRedoIdWord I, ⟨502⟩, sel]
-      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRedoSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd8460pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1745,14 +1744,14 @@ theorem clipperRedoX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd8460pre.jump (by clipper_runtime_decode)
     (clipperJumpDest8460 v hpatch) (by evm_ov)⟩
 
-theorem clipperRedoX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperRedoX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1409⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1409⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one

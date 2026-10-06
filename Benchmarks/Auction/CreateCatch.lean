@@ -11,8 +11,8 @@ def pauseState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨51⟩
     (pauseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩))
 
-theorem SourceState.pause {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
-    SourceState s0 I cA
+theorem SourceState.pause {s0 I σ evm} (hs : SourceState s0 I σ evm) :
+    SourceState s0 I
       (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (storedWord σ I ⟨51⟩))) (pauseState evm) := by
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩ =
       storedWord σ I ⟨51⟩ := by
@@ -21,9 +21,9 @@ theorem SourceState.pause {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
   rw [hw, hs.env]
   exact hs.storageWrite _ _
 
-theorem createCatchRoutine {I g s0 ret R mem aw ptr out cA σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem createCatchRoutine {I g s0 ret R mem aw ptr out σ k C evm locals}
+    (h : RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R) mem aw out σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hin : ptr.toNat ≤ mem.size)
     (hb : ptr.toNat + out.size + 64 ≤ 2 ^ 200)
     (hd : locals.get? "err" = some (.bytes out))
@@ -33,8 +33,8 @@ theorem createCatchRoutine {I g s0 ret R mem aw ptr out cA σ k C evm locals}
     (∃ evm' σ' locals' mem' aw' k' C',
       ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
         createCatchStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
-      SourceState s0 I cA σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out (cA, σ') k' C') ∨
+      SourceState s0 I σ' evm' ∧
+      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
     (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
       createCatchStmts .reverted ∧ RDrev auctionBytecode g s0) := by
   by_cases he : returnSelector out = ⟨0x08c379a0⟩
@@ -47,14 +47,14 @@ theorem createCatchRoutine {I g s0 ret R mem aw ptr out cA σ k C evm locals}
         · obtain ⟨_, _, rd2850⟩ := pauseRoutineOk rd3655 hpaused hperm
             (by jump_dest) (by evm_ov)
           have hsp : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩ := by
-            rw [hs.env, ← pausedWord_equiv hs.accounts]
+            rw [hs.env, ← hs.accounts]
             exact hpaused
           refine Or.inl ⟨pauseState evm, _, locals', _, _, _, _, ?_, hs.pause,
             evm_run rd2850 with [jumpdest, pop, jump hret]⟩
           exact ExecBlock.consNormal (ExecStmt.iteTrue hse
             (execBlock_append hdecode (pauseBlock evm locals' hpause' hsp))) ExecBlock.nil
         · have hsp : pausedWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ := by
-            rw [hs.env, ← pausedWord_equiv hs.accounts]
+            rw [hs.env, ← hs.accounts]
             exact hpaused
           exact Or.inr ⟨ExecBlock.consRevert (ExecStmt.iteTrue hse
             (execBlock_append hdecode (pauseBlockReverts evm locals' hpause' hsp))),

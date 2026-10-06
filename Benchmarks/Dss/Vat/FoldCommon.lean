@@ -1562,11 +1562,11 @@ theorem foldStoreDebtNew_get_debtNew (I : ExecutionEnv)
   simp [foldStoreDebtNew]
 
 theorem RD.vatFoldDaiStoreOk
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5782⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [rad, ⟨0⟩, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hneg :
       UInt256.slt rad ⟨0⟩ = ⟨0⟩ ∨
@@ -1579,12 +1579,12 @@ theorem RD.vatFoldDaiStoreOk
           (rad + solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
           (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5846⟩
+    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
       (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩
         (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))
         (rad + solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))) k' C' := by
   let daiSlotWord := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
@@ -1630,8 +1630,8 @@ theorem RD.vatFoldDaiStoreOk
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
@@ -1691,11 +1691,11 @@ theorem RD.vatFoldDaiStoreOk
   exact ⟨_, _, by simpa [daiSlotWord, old, sum] using rd5846⟩
 
 theorem RD.vatFoldDaiStoreRevert
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5782⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [rad, ⟨0⟩, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hfail :
       ¬ (UInt256.slt rad ⟨0⟩ = ⟨0⟩ ∨
@@ -1710,7 +1710,7 @@ theorem RD.vatFoldDaiStoreRevert
           UInt256.lt
             (rad + solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
             (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
+    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
   let daiSlotWord := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
   let old := solcSlotWord σ I daiSlotWord
   let sum := rad + old
@@ -1754,8 +1754,8 @@ theorem RD.vatFoldDaiStoreRevert
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
@@ -1773,11 +1773,11 @@ theorem RD.vatFoldDaiStoreRevert
     rd6653 (by simpa [old, daiSlotWord, sum] using hfail) (by simp)
 
 theorem RD.vatFoldDebtStoreReturnOk
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5846⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hneg :
       UInt256.slt rad ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
@@ -1789,16 +1789,16 @@ theorem RD.vatFoldDebtStoreReturnOk
           (rad + solcSlotWord σ I ⟨7⟩)
           (solcSlotWord σ I ⟨7⟩) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨524⟩ [sel]
+    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨7⟩
+      (sstoreAccountMap I.codeOwner σ ⟨7⟩
         (rad + solcSlotWord σ I ⟨7⟩)) k' C' := by
   let old := solcSlotWord σ I ⟨7⟩
   let sum := rad + old
   have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw
@@ -1827,11 +1827,11 @@ theorem RD.vatFoldDebtStoreReturnOk
       (by evm_ov)⟩
 
 theorem RD.vatFoldDebtStoreRevert
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} {rad base : UInt256}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5846⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5846⟩
       [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hfail :
       ¬ (UInt256.slt rad ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (rad + solcSlotWord σ I ⟨7⟩) (solcSlotWord σ I ⟨7⟩) = ⟨0⟩) ∨
@@ -1839,13 +1839,13 @@ theorem RD.vatFoldDebtStoreRevert
         UInt256.gt (rad + solcSlotWord σ I ⟨7⟩) (solcSlotWord σ I ⟨7⟩) = ⟨0⟩) ∧
         ¬ (UInt256.sgt rad ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt (rad + solcSlotWord σ I ⟨7⟩) (solcSlotWord σ I ⟨7⟩) = ⟨0⟩)) :
-    RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
+    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
   let old := solcSlotWord σ I ⟨7⟩
   let sum := rad + old
   have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw

@@ -48,14 +48,14 @@ theorem dealLocals_get_ilk (I : ExecutionEnv) :
   rw [dealLocals, store_get_ne _ _ (by decide)]
   simp
 
-theorem evalExpr_dealTicNeZero_true {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealTicNeZero_true {σ σ₀ A I} {g : Sat256}
     (htic : bidTicWord (dealId I) σ I ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .ne (.storage (bidsF (.var "id") "tic")) (.intLit 0)) =
         .ok (.bool true) := by
   have hticEval :=
-    evalExpr_bidTic_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidTic_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -68,14 +68,14 @@ theorem evalExpr_dealTicNeZero_true {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, evalBinaryOp?, hneNat]
   all_goals decide
 
-theorem evalExpr_dealTicNeZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealTicNeZero_false {σ σ₀ A I} {g : Sat256}
     (htic : bidTicWord (dealId I) σ I = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .ne (.storage (bidsF (.var "id") "tic")) (.intLit 0)) =
         .ok (.bool false) := by
   have hticEval :=
-    evalExpr_bidTic_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidTic_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -85,14 +85,14 @@ theorem evalExpr_dealTicNeZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, evalBinaryOp?, htic]
   all_goals decide
 
-theorem evalExpr_dealTicLtTimestamp_true {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealTicLtTimestamp_true {σ σ₀ A I} {g : Sat256}
     (hlt : (bidTicWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .lt (.storage (bidsF (.var "id") "tic")) (.env .timestamp)) =
         .ok (.bool true) := by
   have hticEval :=
-    evalExpr_bidTic_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidTic_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -102,14 +102,14 @@ theorem evalExpr_dealTicLtTimestamp_true {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, envValue, initState, evalBinaryOp?, hlt]
   all_goals decide
 
-theorem evalExpr_dealTicLtTimestamp_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealTicLtTimestamp_false {σ σ₀ A I} {g : Sat256}
     (hge : (UInt256.ofNat I.header.timestamp).toNat ≤ (bidTicWord (dealId I) σ I).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .lt (.storage (bidsF (.var "id") "tic")) (.env .timestamp)) =
         .ok (.bool false) := by
   have hticEval :=
-    evalExpr_bidTic_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidTic_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -122,14 +122,14 @@ theorem evalExpr_dealTicLtTimestamp_false {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, envValue, initState, evalBinaryOp?, hnot]
   all_goals decide
 
-theorem evalExpr_dealEndLtTimestamp_true {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealEndLtTimestamp_true {σ σ₀ A I} {g : Sat256}
     (hlt : (bidEndWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
         .ok (.bool true) := by
   have hendEval :=
-    evalExpr_bidEnd_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidEnd_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -139,14 +139,14 @@ theorem evalExpr_dealEndLtTimestamp_true {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, envValue, initState, evalBinaryOp?, hlt]
   all_goals decide
 
-theorem evalExpr_dealEndLtTimestamp_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealEndLtTimestamp_false {σ σ₀ A I} {g : Sat256}
     (hge : (UInt256.ofNat I.header.timestamp).toNat ≤ (bidEndWord (dealId I) σ I).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
         .ok (.bool false) := by
   have hendEval :=
-    evalExpr_bidEnd_of_get_id (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    evalExpr_bidEnd_of_get_id (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := dealLocals I) (id := dealId I) (dealLocals_get_id I)
       (dealLocals_get_bids I)
@@ -159,56 +159,56 @@ theorem evalExpr_dealEndLtTimestamp_false {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, envValue, initState, evalBinaryOp?, hnot]
   all_goals decide
 
-theorem evalExpr_dealFinishedGuard_true_left {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealFinishedGuard_true_left {σ σ₀ A I} {g : Sat256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticLt : (bidTicWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I) dealFinishedGuard = .ok (.bool true) := by
-  have hne := evalExpr_dealTicNeZero_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (initState σ σ₀ g A I) dealFinishedGuard = .ok (.bool true) := by
+  have hne := evalExpr_dealTicNeZero_true (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hticNe
-  have hlt := evalExpr_dealTicLtTimestamp_true (cA := cA) (gh := gh) (bl := bl)
+  have hlt := evalExpr_dealTicLtTimestamp_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hticLt
   simp [dealFinishedGuard, evalExpr?, EvalResult.bind, bind, pure, hne, hlt]
 
-theorem evalExpr_dealFinishedGuard_true_right {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealFinishedGuard_true_right {σ σ₀ A I} {g : Sat256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidTicWord (dealId I) σ I).toNat)
     (hendLt : (bidEndWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I) dealFinishedGuard = .ok (.bool true) := by
-  have hne := evalExpr_dealTicNeZero_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (initState σ σ₀ g A I) dealFinishedGuard = .ok (.bool true) := by
+  have hne := evalExpr_dealTicNeZero_true (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hticNe
-  have hticFalse := evalExpr_dealTicLtTimestamp_false (cA := cA) (gh := gh) (bl := bl)
+  have hticFalse := evalExpr_dealTicLtTimestamp_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hticGe
-  have hendTrue := evalExpr_dealEndLtTimestamp_true (cA := cA) (gh := gh) (bl := bl)
+  have hendTrue := evalExpr_dealEndLtTimestamp_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hendLt
   simp [dealFinishedGuard, evalExpr?, EvalResult.bind, bind, pure, hne, hticFalse,
     hendTrue]
 
-theorem evalExpr_dealFinishedGuard_false_tic_zero {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealFinishedGuard_false_tic_zero {σ σ₀ A I} {g : Sat256}
     (htic : bidTicWord (dealId I) σ I = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I) dealFinishedGuard = .ok (.bool false) := by
-  have hne := evalExpr_dealTicNeZero_false (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (initState σ σ₀ g A I) dealFinishedGuard = .ok (.bool false) := by
+  have hne := evalExpr_dealTicNeZero_false (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) htic
   simp [dealFinishedGuard, evalExpr?, EvalResult.bind, bind, pure, hne]
 
-theorem evalExpr_dealFinishedGuard_false_not_expired {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_dealFinishedGuard_false_not_expired {σ σ₀ A I} {g : Sat256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidTicWord (dealId I) σ I).toNat)
     (hendGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidEndWord (dealId I) σ I).toNat) :
     evalExpr? config { contract := contract, locals := dealLocals I }
-      (initState cA gh bl σ σ₀ g A I) dealFinishedGuard = .ok (.bool false) := by
-  have hne := evalExpr_dealTicNeZero_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      (initState σ σ₀ g A I) dealFinishedGuard = .ok (.bool false) := by
+  have hne := evalExpr_dealTicNeZero_true (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hticNe
-  have hticFalse := evalExpr_dealTicLtTimestamp_false (cA := cA) (gh := gh) (bl := bl)
+  have hticFalse := evalExpr_dealTicLtTimestamp_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hticGe
-  have hendFalse := evalExpr_dealEndLtTimestamp_false (cA := cA) (gh := gh) (bl := bl)
+  have hendFalse := evalExpr_dealEndLtTimestamp_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hendGe
   simp [dealFinishedGuard, evalExpr?, EvalResult.bind, bind, pure, hne, hticFalse,
     hendFalse]
@@ -351,18 +351,18 @@ theorem dealLocalsAfterCalls_get_bids (I : ExecutionEnv) :
   rw [store_get_ne _ _ (by decide)]
   exact dealLocalsAfterClaw_get_bids I
 
-theorem flipperDealSourceBodyTicZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyTicZero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (htic : bidTicWord (dealId I) σ I = ⟨0⟩) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0 dealFinishedGuard =
         .ok (.bool false) := by
     simpa [locals, evm0] using
-      evalExpr_dealFinishedGuard_false_tic_zero (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_dealFinishedGuard_false_tic_zero
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) htic
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dealTransition.body
@@ -373,7 +373,7 @@ theorem flipperDealSourceBodyTicZero {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodyNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
@@ -381,14 +381,14 @@ theorem flipperDealSourceBodyNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
     (hendGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidEndWord (dealId I) σ I).toNat) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0 dealFinishedGuard =
         .ok (.bool false) := by
     simpa [locals, evm0] using
-      evalExpr_dealFinishedGuard_false_not_expired (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_dealFinishedGuard_false_not_expired
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hticNe hticGe hendGe
   have hblock :
@@ -400,18 +400,18 @@ theorem flipperDealSourceBodyNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodyCatNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyCatNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
       evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
           .ok (.bool true))
     (hnoCode :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
@@ -462,25 +462,25 @@ theorem flipperDealSourceBodyCatNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodyCatCallFailure {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyCatCallFailure {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {outCat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
       evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
           .ok (.bool true))
     (hcatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (dealClawArgVals (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+        (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (false, evmCat, outCat) true) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0
   have hcat : evalExpr? config { contract := contract, locals := locals } evm0 (.storage catRef) =
@@ -542,22 +542,22 @@ theorem flipperDealSourceBodyCatCallFailure {cA gh bl σ σ₀ A I} {g : UInt256
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodySuccess {σ σ₀ A I} {g : UInt256}
     {evmCat evmVat : EVM.State} {outCat outVat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
       evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
           .ok (.bool true))
     (hcatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (dealClawArgVals (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+        (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
     (hvatCode :
       0 <
@@ -569,7 +569,7 @@ theorem flipperDealSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
         (dealFluxArgValsOf evmCat (dealId I)) (true, evmVat, outVat) true) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
     let locals2 := locals1.insert "_fluxRet" (collapseReturns [])
     let evmDeleted := bidDeletedEVM evmVat (dealId I)
@@ -683,29 +683,29 @@ theorem flipperDealSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0, locals1, locals2, evmDeleted] using ExecFuncBody.execBlockOK hblock
 
-theorem flipperDealSourceBodyVatNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {outCat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
       evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
           .ok (.bool true))
     (hcatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (dealClawArgVals (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+        (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
     (hvatNoCode :
       (UInt256.ofNat
         ((evmCat.lookupAccount (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0 locals1
@@ -793,22 +793,22 @@ theorem flipperDealSourceBodyVatNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dealTransition, nonpayable, dealFinishedGuard, checkedExternalCallStmts,
     locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperDealSourceBodyVatCallFailure {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperDealSourceBodyVatCallFailure {σ σ₀ A I} {g : UInt256}
     {evmCat evmVat : EVM.State} {outCat outVat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hfinished :
       evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
           .ok (.bool true))
     (hcatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallCat :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (dealClawArgVals (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+        (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (true, evmCat, outCat) true)
     (hvatCode :
       0 <
@@ -820,7 +820,7 @@ theorem flipperDealSourceBodyVatCallFailure {cA gh bl σ σ₀ A I} {g : UInt256
         (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
         (dealFluxArgValsOf evmCat (dealId I)) (false, evmVat, outVat) true) :
     let locals := dealLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
     ExecTransitionBody config contract evm0 locals dealTransition.body .reverted := by
   intro locals evm0 locals1

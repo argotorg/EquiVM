@@ -83,7 +83,7 @@ theorem transferFromAfterAllowance_codeOwner (evm : EVM.State) (I : ExecutionEnv
     (transferFromAfterAllowanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterAllowanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -96,7 +96,7 @@ theorem transferFromAfterBalance_codeOwner (evm : EVM.State) (I : ExecutionEnv) 
     (transferFromAfterBalanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases (transferFromAfterAllowanceState evm I).accountMap.find? evm.executionEnv.codeOwner with
+  cases (transferFromAfterAllowanceState evm I).accountMap.get? evm.executionEnv.codeOwner with
   | none => exact transferFromAfterAllowance_codeOwner evm I
   | some acc =>
       simp only [Option.option, State.setAccount, Account.updateStorage,
@@ -140,30 +140,28 @@ theorem transferFromNewToWord_toNat (evm : EVM.State) (I : ExecutionEnv)
 
 def transferFromCurrentAllowanceRaw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => Batteries.RBMap.findD ac.storage (transferFromAllowanceSlotI I) ⟨0⟩)
-    (Batteries.RBMap.find? σ I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromAllowanceSlotI I) ⟨0⟩)
+    (σ.get? I.codeOwner)
 
 def transferFromFromBalanceRaw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => Batteries.RBMap.findD ac.storage (transferFromFromSlot I) ⟨0⟩)
-    (Batteries.RBMap.find? σ I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromFromSlot I) ⟨0⟩)
+    (σ.get? I.codeOwner)
 
 def transferFromFromBalanceRawAfterAllowance
     (σ : AccountMap) (I : ExecutionEnv) (allowanceDebit : UInt256) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => Batteries.RBMap.findD ac.storage (transferFromFromSlot I) ⟨0⟩)
-    (Batteries.RBMap.find?
-      (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit) I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromFromSlot I) ⟨0⟩)
+    ((sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit).get? I.codeOwner)
 
 def transferFromToBalanceRawAfterBalance
     (σ : AccountMap) (I : ExecutionEnv)
     (allowanceDebit balanceDebit : UInt256) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => Batteries.RBMap.findD ac.storage (transferFromToSlot I) ⟨0⟩)
-    (Batteries.RBMap.find?
-      (sstoreAccountMap I.codeOwner
+    (fun ac => ac.storage.getD (transferFromToSlot I) ⟨0⟩)
+    ((sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit)
-        (transferFromFromSlot I) balanceDebit) I.codeOwner)
+        (transferFromFromSlot I) balanceDebit).get? I.codeOwner)
 
 def transferFromAccountMapAfterAllowanceI
     (σ : AccountMap) (I : ExecutionEnv) (allowanceDebit : UInt256) : AccountMap :=
@@ -183,26 +181,26 @@ def transferFromAccountMapAfterToI
     (transferFromAccountMapAfterBalanceI σ I allowanceDebit balanceDebit)
     (transferFromToSlot I) newTo
 
-theorem transferFromCurrentAllowanceRaw_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem transferFromCurrentAllowanceRaw_initState {σ σ₀ A I} {g : Sat256} :
     transferFromCurrentAllowanceRaw σ I =
-      transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I := by
+      transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I := by
   simpa [transferFromCurrentAllowanceRaw, transferFromCurrentAllowanceWord,
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
 
-theorem transferFromFromBalanceRaw_initState {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem transferFromFromBalanceRaw_initState {σ σ₀ A I} {g : Sat256} :
     transferFromFromBalanceRaw σ I =
-      transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+      transferFromFromBalanceWord (initState σ σ₀ g A I) I := by
   simpa [transferFromFromBalanceRaw, transferFromFromBalanceWord,
     transferFromFromSlot, initState, Solm.EVM.storageLoad, State.lookupAccount,
     Account.lookupStorage]
 
 theorem transferFromFromBalanceRawAfterAllowance_initState
-    {cA gh bl σ σ₀ A I} {g : Sat256} :
+    {σ σ₀ A I} {g : Sat256} :
     transferFromFromBalanceRawAfterAllowance σ I
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I) =
-      transferFromFromBalanceWord (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I) =
+      transferFromFromBalanceWord (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I := by
+  let evm0 := initState σ σ₀ g A I
   have hcodeOwner :
       (transferFromAfterAllowanceState evm0 I).executionEnv.codeOwner = I.codeOwner := by
     simpa [evm0, initState] using transferFromAfterAllowance_codeOwner (evm := evm0) (I := I)
@@ -210,20 +208,20 @@ theorem transferFromFromBalanceRawAfterAllowance_initState
   rw [hcodeOwner]
   simpa [evm0, transferFromFromBalanceRawAfterAllowance, transferFromAfterAllowanceState,
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, State.lookupAccount,
-    Account.lookupStorage, vyperERC20StorageStore_accountMap]
+    Account.lookupStorage, storageStore_accountMap]
 
 theorem transferFromToBalanceRawAfterBalance_initState
-    {cA gh bl σ σ₀ A I} {g : Sat256} :
+    {σ σ₀ A I} {g : Sat256} :
     transferFromToBalanceRawAfterBalance σ I
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I) =
-      transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I) =
+      transferFromToBalanceWord (initState σ σ₀ g A I) I := by
   simpa [transferFromToBalanceRawAfterBalance, transferFromToBalanceWord,
     transferFromAfterBalanceState, transferFromAfterAllowanceState,
     transferFromAfterBalance_codeOwner, transferFromAfterAllowance_codeOwner,
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, vyperERC20StorageStore_accountMap]
+    State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
 
 theorem decodeScalarWords_address_address_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
@@ -1195,10 +1193,8 @@ def transferFromAfterToLoadMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray
   wordAt0Mem ⟨0⟩ (wordAt32Mem (transferFromToWord I) (transferFromAfterFromLoadMemI σ I))
 
 def transferFromAllowanceDebitI
-    (cA : Batteries.RBSet AccountAddress compare)
-    (gh : BlockHeader) (bl : ProcessedBlocks)
     (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) (g : Sat256) : UInt256 :=
-  transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I
+  transferFromAllowanceDebitWord (initState σ σ₀ g A I) I
 
 def transferFromLogMem
     (src dst caller allowance val : UInt256) : ByteArray :=
@@ -2346,15 +2342,15 @@ theorem transferFromSelectorWord_of_calldata {I : ExecutionEnv}
     have hne : UInt256.ofNat 0 ≠ (⟨1⟩ : UInt256) := by decide
     exact False.elim (hne h)
 
-theorem erc20X_transferFromReach {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   have hsz := erc20TransferFromSelector_size hsel
   have hword := transferFromSelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0, calldataload, push1 ⟨224⟩, shr, push1 ⟨2⟩, push1 ⟨7⟩, dup3, mod,
@@ -2372,14 +2368,14 @@ theorem erc20X_transferFromReach {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov)]
   exact ⟨_, _, rdBeforeJump.jump (by native_decide) (by native_decide) (by evm_ov)⟩
 
-theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20TransferFromX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd331⟩ := hreach
   have hsizeGuard := calldataSizeGuardShort (n := I.calldata.size) (m := 100)
     hsize (by norm_num [UInt256.size]) hshort
@@ -2391,18 +2387,18 @@ theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard100]; decide) (by vyper_erc20_transferFrom_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd801 rfl (by norm_num)
 
-theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20TransferFromX_noncanon_from {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnc : ¬ (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd331⟩ := hreach
   have hsizeGuard := calldataSizeGuardOk (n := I.calldata.size) (m := 100) hsz100 hsize
   have hsizeGuard100 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨100⟩ = ⟨0⟩ := by
@@ -2420,21 +2416,21 @@ theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by
       simp [transferFromFromWord, calldataWord]
       exact hcanonGuard) (by vyper_erc20_transferFrom_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd801 rfl (by
       simp only [List.length_cons, List.length_nil]
       omega)
 
-theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20TransferFromX_noncanon_to {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hnc : ¬ (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd331⟩ := hreach
   have hsizeGuard := calldataSizeGuardOk (n := I.calldata.size) (m := 100) hsz100 hsize
   have hsizeGuard100 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨100⟩ = ⟨0⟩ := by
@@ -2461,7 +2457,7 @@ theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by
       simp [transferFromToWord, calldataWord]
       exact hcanonToGuard) (by vyper_erc20_transferFrom_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd801 rfl (by
       simp only [List.length_cons, List.length_nil]
       omega)

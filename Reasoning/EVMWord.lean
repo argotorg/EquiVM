@@ -794,7 +794,7 @@ theorem land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n 
     exact (Nat.testBit_lt_two_pow this).symm
 
 /-! ## `UInt256` order — `compare` reduces to the wrapped `Fin`, and the resulting `Std.*Cmp`
-instances (used to drive `Batteries.RBMap` storage-map lemmas). -/
+instances support the `Std.ExtTreeMap` storage-map lemmas. -/
 
 /-- The derived `UInt256` order compares the wrapped `Fin` values. -/
 @[simp] theorem uInt256_compare_eq_val_compare (a b : UInt256) :

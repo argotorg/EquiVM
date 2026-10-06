@@ -317,14 +317,14 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem (UInt256.ofNat 9) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 9) rdata σ k C)
     (htabNew : tabNew = ⟨0⟩)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -334,7 +334,7 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuard {code : ByteArray}
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (clipperTakeVatFluxCalldataMem v ee packed lotNew mem)
-      (UInt256.ofNat 9) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 9) rdata σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
@@ -491,7 +491,7 @@ theorem RD.clipperTakePostDogFluxNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
@@ -500,7 +500,7 @@ theorem RD.clipperTakePostDogFluxNoCode {code : ByteArray}
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem (UInt256.ofNat 9) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 9) rdata σ k C)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩) :
     RDrev code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5177⟩) (okPc := ⟨5189⟩)
@@ -511,25 +511,25 @@ theorem RD.clipperTakePostDogFluxNoCode {code : ByteArray}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.clipperTakePostDogFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
+theorem RD.clipperTakePostDogFluxPostCall {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {baseMem rdata : ByteArray} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨5177⟩
+    (rd : RD code I g (initState σStart σ₀ g A I) ⟨5177⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
         clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem)
-      (UInt256.ofNat 9) rdata (cA, σ) k C)
+      (UInt256.ofNat 9) rdata σ k C)
     (hbaseMem : baseMem.size = 260)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    ∃ (cA_vat : Batteries.RBSet AccountAddress compare) (σ_vat : AccountMap)
+    ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨5193⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨5193⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperTakeVatFluxSelectorWord ::
           clipperTakeVatTarget v :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
             stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
@@ -539,18 +539,18 @@ theorem RD.clipperTakePostDogFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
           (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
-        outVat (cA_vat, σ_vat) k' C' ∧
+        outVat σ_vat k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat packed.toNat),
           .int (Int.ofNat lotNew.toNat)]
         (zVat,
-          { initState cA0 gh bl σStart σ₀ g A I with
+          { initState σStart σ₀ g A I with
             accountMap := σ_vat
             substate := A_vat
-            createdAccounts := cA_vat },
+             },
           outVat) true ∧
       outVat.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd5192⟩ :=
@@ -563,20 +563,20 @@ theorem RD.clipperTakePostDogFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA_vat, σ_vat, zVat, outVat, A_in, callGas, k5193, C5193, hΘpack,
+  obtain ⟨σ_vat, zVat, outVat, A_in, callGas, k5193, C5193, hΘpack,
       rd5193, houtVatSize⟩ :=
     RD.call rd5192 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_vat, hΘ⟩ := hΘpack
-  refine ⟨cA_vat, σ_vat, zVat, outVat, A_vat, k5193, C5193, rd5193, ?_,
+  refine ⟨σ_vat, zVat, outVat, A_vat, k5193, C5193, rd5193, ?_,
     houtVatSize⟩
   let evmVat : EVM.State :=
-    { initState cA0 gh bl σStart σ₀ g A I with
-      accountMap := σ, createdAccounts := cA }
+    { initState σStart σ₀ g A I with
+      accountMap := σ }
   refine callCoincides (cfg := config v) (evm := evmVat) (name := "flux")
     (args := [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat packed.toNat),
       .int (Int.ofNat lotNew.toNat)])
     (tgt := EVM.address v.vat) (targetWord := clipperTakeVatTarget v)
-    (cA' := cA_vat) (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
+    (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
     (z := zVat) (o := outVat) (g'' := g'') (callGas := callGas)
     (mem := clipperTakeVatFluxCalldataMem v I packed lotNew baseMem)
     (inOff := ⟨128⟩) (inSize := ⟨132⟩) (callPerm := true)
@@ -596,7 +596,7 @@ theorem RD.clipperTakePostDogFluxCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨5193⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
@@ -615,7 +615,7 @@ theorem RD.clipperTakePostDogFluxCallSuccessToRemove {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -866,7 +866,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOk (v : ClipperImmutables)
           .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
           .int (Int.ofNat lotNew.toNat)]
         (true, evmFlux, outFlux) true)
-    (hacc : evmFlux.accountMap.find? evmFlux.executionEnv.codeOwner = some acc)
+    (hacc : evmFlux.accountMap.get? evmFlux.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =

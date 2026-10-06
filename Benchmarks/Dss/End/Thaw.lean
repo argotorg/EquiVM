@@ -716,94 +716,30 @@ theorem endExecSubFunctionRevert (evm : EVM.State) {x y : UInt256}
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hSubRev)
   simpa [subFunction, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    endThawVatWord σ I = endThawVatWord τ I := by
-  simp [endThawVatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩]
-
-theorem endThawVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawVatWord σ I)
-  have htarget : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endThawVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) ≠ ⟨0⟩ := by
-  intro hbad
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawVatWord σ I)
-  have htarget : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame] at hbad
-  exact hbad
-
 theorem endThawVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endThawVatAddr σ I = AccountAddress.ofUInt256 (endThawVatWord σ I) := by
   simpa [endThawVatAddr] using
     (accountAddress_ofUInt256_eq_ofNat_toNat (endThawVatWord σ I)).symm
 
-theorem endThawVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endThawVatWord σ I) (addr := endThawVatAddr σ I)
       (endThawVatAddr_eq_ofUInt256 σ I) hzero
 
-theorem endThawVatCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawVatCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     (hne : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endThawVatWord σ I) (addr := endThawVatAddr σ I)
       (endThawVatAddr_eq_ofUInt256 σ I) hne
-
-theorem endThawCureWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    endThawCureWord σ I = endThawCureWord τ I := by
-  simp [endThawCureWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩]
-
-theorem endThawCureCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawCureWord σ I)
-  have htarget : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endThawCureCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) ≠ ⟨0⟩ := by
-  intro hbad
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawCureWord σ I)
-  have htarget : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame] at hbad
-  exact hbad
 
 theorem endThawCureAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endThawCureAddr σ I = AccountAddress.ofUInt256 (endThawCureWord σ I) := by
@@ -816,19 +752,19 @@ theorem endDecode_thaw {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem endReachThawBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachThawBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endThawConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endThawEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x5920375c⟩ :=
     endSelWord_eq_of_beq I hsz 0x59 0x20 0x37 0x5c ⟨0x5920375c⟩
       (by native_decide)
       (by simpa [selIs, endThawConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup403FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -847,15 +783,15 @@ theorem endReachThawBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => endGroup403ArmsWellFormed j (by omega))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem endThawX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endThawX_entry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endThawEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) endThawEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endThawBodyPc [endThawReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (initState σ σ₀ g A I) endThawBodyPc [endThawReturnPc, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   simpa [endThawEntryPc, endThawReturnPc, endThawBodyPc] using
-    RD.solcGetterThunk (code := endBytecode) (cA := cA) (gh := gh) (bl := bl)
+    RD.solcGetterThunk (code := endBytecode)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
       (entry := endThawEntryPc) (returnPc := endThawReturnPc) (routine := endThawBodyPc)
       hreach
@@ -864,21 +800,21 @@ theorem endThawX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         repeat' first | apply And.intro | native_decide)
       (by jump_dest)
 
-theorem endThawX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endThawX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : endThawLiveWord σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have rd4528 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have rd4529 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4529⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4529⟩
         (endThawLiveWord σ I :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endThawLiveWord, endSlotWord, solcSlotWord] using rd4529raw⟩
   obtain ⟨_, _, rd4529⟩ := rd4529
   have rd4530raw := rd4529.iszero (by native_decide) (by evm_ov)
@@ -902,28 +838,28 @@ theorem endThawX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_debtNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endThawX_debtNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have rd4528 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4529⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4529⟩
         (⟨0⟩ :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endThawBodyPc] using rd4529zero⟩
   have rd4530raw := rd4529.iszero (by native_decide) (by evm_ov)
   have rd4530 := rd4530raw
@@ -936,9 +872,9 @@ theorem endThawX_debtNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4599raw⟩ := rd4598.sload (by native_decide) (by evm_ov)
   have rd4599 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4599⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4599⟩
         (endThawDebtWord σ I :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endThawDebtWord, endSlotWord, solcSlotWord] using rd4599raw⟩
   obtain ⟨_, _, rd4599⟩ := rd4599
   have rd4600raw := rd4599.iszero (by native_decide) (by evm_ov)
@@ -962,34 +898,34 @@ theorem endThawX_debtNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4737⟩
+      σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4737⟩
       (endThawVatWord σ I :: endThawVatWord σ I :: endThawDaiOutPtr ::
         endThawDaiInSize :: endThawDaiOutPtr :: endThawDaiOutSize ::
         endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have rd4528 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4529⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4529⟩
         (⟨0⟩ :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endThawBodyPc] using rd4529zero⟩
   have rd4530raw := rd4529.iszero (by native_decide) (by evm_ov)
   have rd4530 := rd4530raw
@@ -1002,15 +938,15 @@ theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4599raw⟩ := rd4598.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw
   rw [hdebtRaw] at rd4599zero
   obtain ⟨_, _, rd4599⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4599⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4599⟩
         (⟨0⟩ :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa using rd4599zero⟩
   have rd4600raw := rd4599.iszero (by native_decide) (by evm_ov)
   have rd4600 := rd4600raw
@@ -1023,19 +959,19 @@ theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4671raw⟩ := rd4670.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4672⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4672⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4672⟩
         (endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4671raw⟩
   have rd4675pre := evm_run rd4672 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4675raw⟩ := rd4675pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4676⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4676⟩
         (endSlotWord ⟨4⟩ σ I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ I ::
           endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
@@ -1135,22 +1071,22 @@ theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       endThawDaiSelectorRaw, endThawVatWord, endThawVowWord, endSlotWord, solcSlotWord,
       solcAddrMask, hvatMask, hvowMask, u256_land_comm, hinSize, hendPtr] using rd4737pre⟩
 
-theorem endThawX_daiCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endThawX_daiCallReady {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4752⟩
+      σ k C) :
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4752⟩
       (gasWord :: endThawVatWord σ I :: endThawDaiOutPtr ::
         endThawDaiInSize :: endThawDaiOutPtr :: endThawDaiOutSize ::
         endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd4737⟩ := endThawX_daiExtcodesizeGuard hlive hdebt h
   obtain ⟨gasWord, k', C', rd4752⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4737⟩) (okPc := ⟨4749⟩) rd4737
@@ -1161,38 +1097,38 @@ theorem endThawX_daiCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨gasWord, k', C', by simpa using rd4752⟩
 
-theorem endThawX_daiPostStaticcall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawX_daiPostStaticcall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4752⟩
       (gasWord :: endThawVatWord σ I :: endThawDaiOutPtr ::
         endThawDaiInSize :: endThawDaiOutPtr :: endThawDaiOutSize ::
         endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawVatWord σ I))
           (toExecute σ (AccountAddress.ofUInt256 (endThawVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawDaiCalldataMem σ I solcFreePtrMem).readWithPadding
             endThawDaiOutPtr.toNat endThawDaiInSize.toNat)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endThawDaiEndPtr ::
             endThawDaiSelectorWord :: endThawVatWord σ I :: endThawReturnPc :: sel :: [])
-          (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k' C'
+          (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd4753raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd4753raw, hout⟩ :=
     RD.solcStaticcall h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
@@ -1203,23 +1139,23 @@ theorem endThawX_daiPostStaticcall {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [endThawDaiPostCallMem, endThawDaiOutPtr, endThawDaiInSize,
       endThawDaiOutSize, endThawDaiEndPtr, haw] using rd4753raw
 
-theorem endThawX_daiStaticcallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawX_daiStaticcallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4752⟩
       (gasWord :: endThawVatWord σ I :: endThawDaiOutPtr ::
         endThawDaiInSize :: endThawDaiOutPtr :: endThawDaiOutSize ::
         endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
       (⟨0⟩ :: endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd4753raw⟩ :=
     RD.solcStaticcallDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1236,16 +1172,16 @@ theorem endThawX_daiStaticcallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [endThawDaiOutPtr, endThawDaiInSize, endThawDaiOutSize,
     endThawDaiEndPtr, hmin, byteArray_write_len_zero, haw] using rd4753raw
 
-theorem endThawX_daiCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
+theorem endThawX_daiCallFailed {σ σ' σ₀ A I} {g sel : UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
       (⟨0⟩ :: endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 6) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4753⟩) (okPc := ⟨4769⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1253,16 +1189,16 @@ theorem endThawX_daiCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_daiCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem endThawX_daiCallSucceeded {σ σ₀ A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4753⟩
       (⟨1⟩ :: endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4771⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4771⟩
       (endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k' C' := by
@@ -1272,16 +1208,16 @@ theorem endThawX_daiCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_daiReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endThawX_daiReturnDecodeOk {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4771⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4771⟩
       (endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k C)
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k C)
     (hlo : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4794⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4794⟩
       (endThawDaiWord out :: endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k' C' := by
   have hmload64 := endThawDaiPostCallMem_mload64 σ I out hout
   have hmload128 := endThawDaiPostCallMem_mload128 σ I out hout hlo
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
@@ -1314,14 +1250,14 @@ theorem endThawX_daiReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     simpa [endThawDaiEndPtr, endThawDaiSelectorWord, endThawDaiOutPtr,
       endThawDaiInSize, endThawDaiOutSize] using rd4794⟩
 
-theorem endThawX_daiReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endThawX_daiReturnDecodeShort {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4771⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4771⟩
       (endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k C)
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k C)
     (hshort : out.size < 32) (hout : out.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endThawDaiPostCallMem_mload64 σ I out hout
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -1348,15 +1284,15 @@ theorem endThawX_daiReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_daiZeroDeadlineEntry {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_daiZeroDeadlineEntry {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hdai : endThawDaiWord out = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4794⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4794⟩
       (endThawDaiWord out :: endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4866⟩
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4866⟩
       (endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k' C' := by
   have rd4795raw := h.iszero (by native_decide) (by evm_ov)
   have rd4795 := rd4795raw
   rw [hdai, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4795
@@ -1365,44 +1301,44 @@ theorem endThawX_daiZeroDeadlineEntry {cA cA' gh bl σ σ' σ₀ A I}
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa using rd4866⟩
 
-theorem endThawX_deadlineAddEntry {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_deadlineAddEntry {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4866⟩
-      (endThawReturnPc :: sel :: []) mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4866⟩
+      (endThawReturnPc :: sel :: []) mem (UInt256.ofNat 6) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       [endThawWaitWord σ' I, endThawWhenWord σ' I, ⟨4880⟩, endThawReturnPc, sel]
-      mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) out σ' k' C' := by
   have rd4872 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨4880⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4873raw⟩ := rd4872.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4873⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4873⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4873⟩
         (endThawWhenWord σ' I :: ⟨4880⟩ :: endThawReturnPc :: sel :: [])
-        mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+        mem (UInt256.ofNat 6) out σ' k' C' := by
     exact ⟨_, _, by simpa [endThawWhenWord, endSlotWord, solcSlotWord] using rd4873raw⟩
   have rd4875 := evm_run rd4873 with [
     raw push1 ⟨10⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4876raw⟩ := rd4875.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4876⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4876⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4876⟩
         (endThawWaitWord σ' I :: endThawWhenWord σ' I :: ⟨4880⟩ ::
           endThawReturnPc :: sel :: [])
-        mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+        mem (UInt256.ofNat 6) out σ' k' C' := by
     exact ⟨_, _, by simpa [endThawWaitWord, endSlotWord, solcSlotWord] using rd4876raw⟩
   have rd4879 := evm_run rd4876 with [
     raw push2 ⟨10092⟩ (by native_decide) (by evm_ov)]
   exact ⟨_, _, rd4879.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem endThawX_deadlineAddOverflow {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_deadlineAddOverflow {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hover :
       UInt256.size ≤ (endThawWhenWord σ' I).toNat + (endThawWaitWord σ' I).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       [endThawWaitWord σ' I, endThawWhenWord σ' I, ⟨4880⟩, endThawReturnPc, sel]
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      mem (UInt256.ofNat 6) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let whenWord := endThawWhenWord σ' I
   let waitWord := endThawWaitWord σ' I
   have hover' : UInt256.size ≤ waitWord.toNat + whenWord.toNat := by
@@ -1446,16 +1382,16 @@ theorem endThawX_deadlineAddOverflow {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_deadlineAddSuccess {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_deadlineAddSuccess {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hfit :
       (endThawWhenWord σ' I).toNat + (endThawWaitWord σ' I).toNat < UInt256.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       [endThawWaitWord σ' I, endThawWhenWord σ' I, ⟨4880⟩, endThawReturnPc, sel]
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4880⟩
+      mem (UInt256.ofNat 6) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4880⟩
       (endThawDeadlineWord σ' I :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) out σ' k' C' := by
   let whenWord := endThawWhenWord σ' I
   let waitWord := endThawWaitWord σ' I
   have hfit' : waitWord.toNat + whenWord.toNat < UInt256.size := by
@@ -1499,7 +1435,7 @@ set_option maxHeartbeats 1000000 in
 theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 6) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -1567,14 +1503,14 @@ theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sa
     raw swap1 hdSwap4 (by evm_ov),
     raw rev 0 hdRev mem_cost (by evm_ov)]
 
-theorem endThawX_daiNonzero {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_daiNonzero {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hdai : endThawDaiWord out ≠ ⟨0⟩)
     (hout : out.size < UInt256.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4794⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4794⟩
       (endThawDaiWord out :: endThawReturnPc :: sel :: [])
-      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmem := endThawDaiPostCallMem_size σ I out hout
   have hread64 := endThawDaiPostCallMem_read64 σ I out hout
   have rd4795raw := h.iszero (by native_decide) (by evm_ov)
@@ -1598,15 +1534,15 @@ theorem endThawX_daiNonzero {cA cA' gh bl σ σ' σ₀ A I}
     (by decide) rfl hmem hread64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_deadlineNotFinished {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_deadlineNotFinished {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hwait : (endThawTimestampWord I).toNat < (endThawDeadlineWord σ' I).toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4880⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4880⟩
       (endThawDeadlineWord σ' I :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      mem (UInt256.ofNat 6) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hlt : UInt256.lt (endThawTimestampWord I) (endThawDeadlineWord σ' I) = ⟨1⟩ :=
     ult_one hwait
   have rd4887 := evm_run h with [
@@ -1633,14 +1569,14 @@ theorem endThawX_deadlineNotFinished {cA cA' gh bl σ σ' σ₀ A I}
     (by decide) rfl hmem hread64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_deadlineReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_deadlineReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hready : (endThawDeadlineWord σ' I).toNat ≤ (endThawTimestampWord I).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4880⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4880⟩
       (endThawDeadlineWord σ' I :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4956⟩
-      (endThawReturnPc :: sel :: []) mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4956⟩
+      (endThawReturnPc :: sel :: []) mem (UInt256.ofNat 6) out σ' k' C' := by
   have hlt : UInt256.lt (endThawTimestampWord I) (endThawDeadlineWord σ' I) = ⟨0⟩ :=
     ult_zero hready
   have rd4887 := evm_run h with [
@@ -1654,21 +1590,21 @@ theorem endThawX_deadlineReady {cA cA' gh bl σ σ' σ₀ A I}
   exact ⟨_, _, rdReady.jumpiT (by native_decide)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)⟩
 
-theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_debtCallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endThawVatWord σ' I) ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4956⟩
-      [endThawReturnPc, sel] mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5031⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4956⟩
+      [endThawReturnPc, sel] mem (UInt256.ofNat 6) out σ' k C) :
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5031⟩
       (gasWord :: endThawVatWord σ' I :: ⟨0⟩ :: endThawNoArgOutPtr ::
         endThawNoArgInSize :: endThawNoArgOutPtr :: endThawNoArgOutSize ::
         endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σ' I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgCalldataMem endThawDebtSelectorWord mem) (UInt256.ofNat 6)
-      out (cA', σ') k' C' := by
+      out σ' k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
@@ -1699,9 +1635,9 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4960raw⟩ := rd4959.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4960⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4960⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4960⟩
         (endSlotWord ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
-        mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+        mem (UInt256.ofNat 6) out σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4960raw⟩
   have rd5016pre := evm_run rd4960 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1752,13 +1688,13 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
   have hendPtr : endThawNoArgOutPtr + endThawNoArgInSize = endThawNoArgEndPtr := by
     native_decide
   have rd5016 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5016⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5016⟩
         (endThawVatWord σ' I :: endThawVatWord σ' I :: ⟨0⟩ ::
           endThawNoArgOutPtr :: endThawNoArgInSize :: endThawNoArgOutPtr ::
           endThawNoArgOutSize :: endThawNoArgEndPtr :: endThawDebtSelectorWord ::
           endThawVatWord σ' I :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
         (endThawNoArgCalldataMem endThawDebtSelectorWord mem) (UInt256.ofNat 6)
-        out (cA', σ') k' C' := by
+        out σ' k' C' := by
     exact ⟨_, _, by
       have rd5016norm := rd5016pre
       rw [hvatMask] at rd5016norm
@@ -1773,15 +1709,15 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨gasWord, k', C', by simpa using rd5031⟩
 
-theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_debtNoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endThawVatWord σ' I) = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4956⟩
-      [endThawReturnPc, sel] mem (UInt256.ofNat 6) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4956⟩
+      [endThawReturnPc, sel] mem (UInt256.ofNat 6) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
@@ -1812,9 +1748,9 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4960raw⟩ := rd4959.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4960⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4960⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4960⟩
         (endSlotWord ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
-        mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+        mem (UInt256.ofNat 6) out σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4960raw⟩
   have rd5016pre := evm_run rd4960 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1859,13 +1795,13 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd5016 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5016⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5016⟩
         (endThawVatWord σ' I :: endThawVatWord σ' I :: ⟨0⟩ ::
           endThawNoArgOutPtr :: endThawNoArgInSize :: endThawNoArgOutPtr ::
           endThawNoArgOutSize :: endThawNoArgEndPtr :: endThawDebtSelectorWord ::
           endThawVatWord σ' I :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
         (endThawNoArgCalldataMem endThawDebtSelectorWord mem) (UInt256.ofNat 6)
-        out (cA', σ') k' C' := by
+        out σ' k' C' := by
     exact ⟨_, _, by
       have rd5016norm := rd5016pre
       rw [hvatMask] at rd5016norm
@@ -1877,38 +1813,37 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_debtPostCall {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endThawX_debtPostCall {σ σ' σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5031⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5031⟩
       (gasWord :: endThawVatWord σ' I :: ⟨0⟩ :: endThawNoArgOutPtr ::
         endThawNoArgInSize :: endThawNoArgOutPtr :: endThawNoArgOutSize ::
         endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σ' I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgCalldataMem endThawDebtSelectorWord mem) (UInt256.ofNat 6)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (debtOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, debtOut) = Ethereum.EVM.Θ I.blobVersionedHashes cA'
-          gh bl σ' σ₀ Ain
+        (σ'', g'', A', z, debtOut) = Ethereum.EVM.Θ σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawVatWord σ' I))
           (toExecute σ' (AccountAddress.ofUInt256 (endThawVatWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5032⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨5032⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endThawNoArgEndPtr ::
             endThawDebtSelectorWord :: endThawVatWord σ' I :: ⟨5190⟩ ::
             endThawReturnPc :: sel :: [])
           (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut)
-          (UInt256.ofNat 6) debtOut (cA'', σ'') k' C'
+          (UInt256.ofNat 6) debtOut σ'' k' C'
       ∧ debtOut.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, debtOut, Ain, callGas, k', C', hΘ, rd5032raw, hout⟩ :=
+  obtain ⟨σ'', z, debtOut, Ain, callGas, k', C', hΘ, rd5032raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, debtOut, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ'', z, debtOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endThawNoArgWriteLen_eq (out := debtOut) hout
     have haw :
@@ -1920,14 +1855,14 @@ theorem endThawX_debtPostCall {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     simpa [endThawNoArgPostCallMem, endThawNoArgOutPtr, endThawNoArgInSize,
       endThawNoArgOutSize, endThawNoArgEndPtr, hmin, haw] using rd5032raw
 
-theorem endThawX_debtCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sat256}
+theorem endThawX_debtCallFailed {σ σTarget σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5032⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5032⟩
       (⟨0⟩ :: endThawNoArgEndPtr :: endThawDebtSelectorWord ::
         endThawVatWord σTarget I :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 6) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1935,36 +1870,36 @@ theorem endThawX_debtCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sa
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_debtCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sat256}
+theorem endThawX_debtCallSucceeded {σ σTarget σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5032⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5032⟩
       (⟨1⟩ :: endThawNoArgEndPtr :: endThawDebtSelectorWord ::
         endThawVatWord σTarget I :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5050⟩
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5050⟩
       (endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σTarget I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) rdata σ' k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by evm_ov)
 
-theorem endThawX_debtReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
+theorem endThawX_debtReturnDecodeOk {σ σTarget σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem debtOut : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5050⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5050⟩
       (endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σTarget I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-      debtOut (cA', σ') k C)
+      debtOut σ' k C)
     (hlo : 32 ≤ debtOut.size) (hout : debtOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5073⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5073⟩
       (endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-      debtOut (cA', σ') k' C' := by
+      debtOut σ' k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨5050⟩) (okPc := ⟨5070⟩)
     (retWord := endThawReturnWord debtOut) h hlo hout
     (by native_decide)
@@ -1978,17 +1913,17 @@ theorem endThawX_debtReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by evm_ov)
 
-theorem endThawX_debtReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
+theorem endThawX_debtReturnDecodeShort {σ σTarget σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem debtOut : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5050⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5050⟩
       (endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σTarget I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-      debtOut (cA', σ') k C)
+      debtOut σ' k C)
     (hshort : debtOut.size < 32) (hout : debtOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨5050⟩) (okPc := ⟨5070⟩)
     h hshort hout
     (by native_decide)
@@ -1999,25 +1934,25 @@ theorem endThawX_debtReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by evm_ov)
 
-theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_tellCallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem debtOut rdata : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdebtOut : debtOut.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endThawCureWord σ' I) ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5073⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5073⟩
       (endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-      rdata (cA', σ') k C) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5144⟩
+      rdata σ' k C) :
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5144⟩
       (gasWord :: endThawCureWord σ' I :: endThawNoArgOutPtr ::
         endThawNoArgInSize :: endThawNoArgOutPtr :: endThawNoArgOutSize ::
         endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σ' I ::
         endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgCalldataMem endThawTellSelectorWord
         (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut))
-      (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+      (UInt256.ofNat 6) rdata σ' k' C' := by
   have hpostSize :
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size = 164 :=
     endThawNoArgPostCallMem_size hmem hdebtOut
@@ -2058,11 +1993,11 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd5076raw⟩ := rd5075.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5076⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5076⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5076⟩
         (endSlotWord ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
           endThawReturnPc :: sel :: [])
         (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-        rdata (cA', σ') k' C' := by
+        rdata σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd5076raw⟩
   have rd5129pre := evm_run rd5076 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -2115,7 +2050,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
   have hendPtr : endThawNoArgOutPtr + endThawNoArgInSize = endThawNoArgEndPtr := by
     native_decide
   have rd5129 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5129⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5129⟩
         (endThawCureWord σ' I :: endThawCureWord σ' I ::
           endThawNoArgOutPtr :: endThawNoArgInSize :: endThawNoArgOutPtr ::
           endThawNoArgOutSize :: endThawNoArgEndPtr :: endThawTellSelectorWord ::
@@ -2123,7 +2058,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
           endThawReturnPc :: sel :: [])
         (endThawNoArgCalldataMem endThawTellSelectorWord
           (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut))
-        (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+        (UInt256.ofNat 6) rdata σ' k' C' := by
     exact ⟨_, _, by
       have rd5129norm := rd5129pre
       rw [hcureMask] at rd5129norm
@@ -2138,18 +2073,18 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by evm_ov)
   exact ⟨gasWord, k', C', by simpa using rd5144⟩
 
-theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_tellNoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {mem debtOut rdata : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdebtOut : debtOut.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endThawCureWord σ' I) = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5073⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5073⟩
       (endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-      rdata (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      rdata σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hpostSize :
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size = 164 :=
     endThawNoArgPostCallMem_size hmem hdebtOut
@@ -2190,11 +2125,11 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd5076raw⟩ := rd5075.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5076⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5076⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5076⟩
         (endSlotWord ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
           endThawReturnPc :: sel :: [])
         (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
-        rdata (cA', σ') k' C' := by
+        rdata σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd5076raw⟩
   have rd5129pre := evm_run rd5076 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -2241,7 +2176,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
     raw dup7 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd5129 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5129⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨5129⟩
         (endThawCureWord σ' I :: endThawCureWord σ' I ::
           endThawNoArgOutPtr :: endThawNoArgInSize :: endThawNoArgOutPtr ::
           endThawNoArgOutSize :: endThawNoArgEndPtr :: endThawTellSelectorWord ::
@@ -2249,7 +2184,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
           endThawReturnPc :: sel :: [])
         (endThawNoArgCalldataMem endThawTellSelectorWord
           (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut))
-        (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+        (UInt256.ofNat 6) rdata σ' k' C' := by
     exact ⟨_, _, by
       have rd5129norm := rd5129pre
       rw [hcureMask] at rd5129norm
@@ -2261,38 +2196,37 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by evm_ov)
 
-theorem endThawX_tellPostStaticcall {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endThawX_tellPostStaticcall {σ σ' σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {mem debtOut rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5144⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5144⟩
       (gasWord :: endThawCureWord σ' I :: endThawNoArgOutPtr ::
         endThawNoArgInSize :: endThawNoArgOutPtr :: endThawNoArgOutSize ::
         endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σ' I ::
         endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgCalldataMem endThawTellSelectorWord mem) (UInt256.ofNat 6)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (tellOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, tellOut) = Ethereum.EVM.Θ I.blobVersionedHashes cA'
-          gh bl σ' σ₀ Ain
+        (σ'', g'', A', z, tellOut) = Ethereum.EVM.Θ σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endThawCureWord σ' I))
           (toExecute σ' (AccountAddress.ofUInt256 (endThawCureWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
-          (I.depth + 1) I.header false)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5145⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨5145⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endThawNoArgEndPtr ::
             endThawTellSelectorWord :: endThawCureWord σ' I ::
             endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
           (endThawNoArgPostCallMem endThawTellSelectorWord mem tellOut)
-          (UInt256.ofNat 6) tellOut (cA'', σ'') k' C'
+          (UInt256.ofNat 6) tellOut σ'' k' C'
       ∧ tellOut.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, tellOut, Ain, callGas, k', C', hΘ, rd5145raw, hout⟩ :=
+  obtain ⟨σ'', z, tellOut, Ain, callGas, k', C', hΘ, rd5145raw, hout⟩ :=
     RD.solcStaticcall h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, tellOut, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ'', z, tellOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endThawNoArgWriteLen_eq (out := tellOut) hout
     have haw :
@@ -2304,15 +2238,15 @@ theorem endThawX_tellPostStaticcall {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     simpa [endThawNoArgPostCallMem, endThawNoArgOutPtr, endThawNoArgInSize,
       endThawNoArgOutSize, endThawNoArgEndPtr, hmin, haw] using rd5145raw
 
-theorem endThawX_tellCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sat256}
+theorem endThawX_tellCallFailed {σ σTarget σ' σ₀ A I} {g : Sat256}
     {sel debtWord : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5145⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5145⟩
       (⟨0⟩ :: endThawNoArgEndPtr :: endThawTellSelectorWord ::
         endThawCureWord σTarget I :: debtWord :: ⟨5190⟩ ::
         endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 6) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2320,36 +2254,36 @@ theorem endThawX_tellCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sa
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by evm_ov)
 
-theorem endThawX_tellCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sat256}
+theorem endThawX_tellCallSucceeded {σ σTarget σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {debtWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5145⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5145⟩
       (⟨1⟩ :: endThawNoArgEndPtr :: endThawTellSelectorWord ::
         endThawCureWord σTarget I :: debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5163⟩
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5163⟩
       (endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σTarget I ::
         debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) rdata σ' k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by evm_ov)
 
-theorem endThawX_tellReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
+theorem endThawX_tellReturnDecodeOk {σ σTarget σ' σ₀ A I}
     {g : Sat256} {sel debtWord : UInt256} {mem tellOut : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5163⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5163⟩
       (endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σTarget I ::
         debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawTellSelectorWord mem tellOut) (UInt256.ofNat 6)
-      tellOut (cA', σ') k C)
+      tellOut σ' k C)
     (hlo : 32 ≤ tellOut.size) (hout : tellOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5186⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5186⟩
       (endThawReturnWord tellOut :: debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawTellSelectorWord mem tellOut) (UInt256.ofNat 6)
-      tellOut (cA', σ') k' C' := by
+      tellOut σ' k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨5163⟩) (okPc := ⟨5183⟩)
     (retWord := endThawReturnWord tellOut) h hlo hout
     (by native_decide)
@@ -2363,17 +2297,17 @@ theorem endThawX_tellReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by evm_ov)
 
-theorem endThawX_tellReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
+theorem endThawX_tellReturnDecodeShort {σ σTarget σ' σ₀ A I}
     {g : Sat256} {sel debtWord : UInt256} {mem tellOut : ByteArray} {k C : ℕ}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5163⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5163⟩
       (endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σTarget I ::
         debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawTellSelectorWord mem tellOut) (UInt256.ofNat 6)
-      tellOut (cA', σ') k C)
+      tellOut σ' k C)
     (hshort : tellOut.size < 32) (hout : tellOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨5163⟩) (okPc := ⟨5183⟩)
     h hshort hout
     (by native_decide)
@@ -2387,15 +2321,15 @@ theorem endThawX_tellReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
 abbrev endThawDebtStoreLogTopic : UInt256 :=
     ⟨0x4df15159e645ba7d02cadde0bc937abef5ad0134623c00de50a31750b85978b9⟩
 
-theorem endThawX_subSuccess {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_subSuccess {σ σ' σ₀ A I}
     {g : Sat256} {sel debtWord tellWord : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hle : tellWord.toNat ≤ debtWord.toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5186⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5186⟩
       (tellWord :: debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5190⟩
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨5190⟩
       (UInt256.sub debtWord tellWord :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) rdata σ' k' C' := by
   have rd10154 := evm_run h with [
     raw push2 ⟨10154⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -2410,13 +2344,13 @@ theorem endThawX_subSuccess {cA cA' gh bl σ σ' σ₀ A I}
     hle (by jump_dest) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endThawX_subUnderflow {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_subUnderflow {σ σ' σ₀ A I}
     {g : Sat256} {sel debtWord tellWord : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hlt : debtWord.toNat < tellWord.toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5186⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5186⟩
       (tellWord :: debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hsubNat : (UInt256.sub debtWord tellWord).toNat =
       UInt256.size + debtWord.toNat - tellWord.toNat :=
     usub_toNat_underflow hlt
@@ -2450,16 +2384,16 @@ theorem endThawX_subUnderflow {cA cA' gh bl σ σ' σ₀ A I}
     raw dup1 (by native_decide) (by evm_ov),
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
-theorem endThawX_debtStoreLogReturn {cA cA' gh bl σ σ' σ₀ A I}
+theorem endThawX_debtStoreLogReturn {σ σ' σ₀ A I}
     {g : Sat256} {sel debtNew : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5190⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5190⟩
       (debtNew :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata (cA', σ') k C) :
-    RDret endBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty := by
+      mem (UInt256.ofNat 6) rdata σ' k C) :
+    RDret endBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty := by
   have rd5193 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
@@ -2493,30 +2427,30 @@ theorem endThawX_debtStoreLogReturn {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
 
-theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have rd4528 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4529⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4529⟩
         (⟨0⟩ :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endThawBodyPc] using rd4529zero⟩
   have rd4530raw := rd4529.iszero (by native_decide) (by evm_ov)
   have rd4530 := rd4530raw
@@ -2529,15 +2463,15 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4599raw⟩ := rd4598.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw
   rw [hdebtRaw] at rd4599zero
   obtain ⟨_, _, rd4599⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4599⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4599⟩
         (⟨0⟩ :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa using rd4599zero⟩
   have rd4600raw := rd4599.iszero (by native_decide) (by evm_ov)
   have rd4600 := rd4600raw
@@ -2550,18 +2484,18 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4671raw⟩ := rd4670.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4672⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4672⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4672⟩
         (endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4671raw⟩
   have rd4675pre := evm_run rd4672 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4675raw⟩ := rd4675pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4676⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨4676⟩
         (endSlotWord ⟨4⟩ σ I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
@@ -2843,10 +2777,10 @@ theorem evalExpr_endThaw_live_zero_false (evm : EVM.State)
   simp only [evalBinaryOp?]
   rw [hbeq]
 
-theorem endThawBodyReverts_liveNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_liveNonzero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I ≠ ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -2911,11 +2845,11 @@ theorem evalExpr_endThaw_debt_zero_false (evm : EVM.State)
   apply hload
   exact uint256_toNat_eq_zero (Int.ofNat.inj hbad)
 
-theorem endThawBodyReverts_debtNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_debtNonzero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I ≠ ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -2966,13 +2900,13 @@ theorem endThawBodyReverts_debtNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, thawTransition, nonpayable, checkedExternalCallStmts, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem endThawBodyReverts_daiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -3043,7 +2977,7 @@ theorem endThawBodyReverts_daiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         0 := by
       simpa [evm0] using
       endThawVatCode_zero_of_codeSize_zero
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3094,7 +3028,7 @@ theorem endThawBodyReverts_daiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
     {evmDai : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -3102,10 +3036,10 @@ theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
         [.address (endThawVowAddr σ I)] (false, evmDai, out) false) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -3175,7 +3109,7 @@ theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [evm0] using
       endThawVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3238,16 +3172,16 @@ theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawBodyReverts_daiBlockReverted {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hdaiBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
         (checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [vowAddr] "vatDai"
           (perm := false)) .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -3341,7 +3275,7 @@ theorem endThawBodyReverts_daiBlockReverted {cA gh bl σ σ₀ A I} {g : UInt256
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawBodyReverts_daiDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiDecodeShort {σ σ₀ A I} {g : UInt256}
     {evmDai : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -3349,11 +3283,11 @@ theorem endThawBodyReverts_daiDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
         [.address (endThawVowAddr σ I)] (true, evmDai, out) false)
     (hshort : out.size < 32) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hreceiver :
@@ -3367,7 +3301,7 @@ theorem endThawBodyReverts_daiDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [evm0] using
       endThawVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3398,16 +3332,16 @@ theorem endThawBodyReverts_daiDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
         (by simpa [evm0] using hcall) (endThawDaiDecode_short out hshort)
   simpa [evm0] using
     endThawBodyReverts_daiBlockReverted
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hwv hlive hdebt (by simpa [evm0] using hdaiBlock)
 
-theorem endThawBodyReverts_daiOkTailReverted {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
     {fDai : Frame} {evmDai : EVM.State}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hdaiBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
         (checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [vowAddr] "vatDai"
           (perm := false)) (.ok fDai evmDai))
@@ -3422,7 +3356,7 @@ theorem endThawBodyReverts_daiOkTailReverted {cA gh bl σ σ₀ A I} {g : UInt25
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hliveLoad :
@@ -3516,7 +3450,7 @@ theorem endThawBodyReverts_daiOkTailReverted {cA gh bl σ σ₀ A I} {g : UInt25
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_daiNonzero {σ σ₀ A I} {g : UInt256}
     {evmDai : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -3524,12 +3458,12 @@ theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
         [.address (endThawVowAddr σ I)] (true, evmDai, out) false)
     (hlo : 32 ≤ out.size)
     (hdai : endThawDaiWord out ≠ ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hreceiver :
@@ -3543,7 +3477,7 @@ theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [evm0] using
       endThawVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3617,12 +3551,12 @@ theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       htailHead (by intro f' e' h; cases h)
   simpa [evm0] using
     endThawBodyReverts_daiOkTailReverted
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g)
       (fDai := { contract := contract, locals := endThawStoreVatDai out })
       (evmDai := evmDai) hwv hlive hdebt (by simpa [evm0] using hdaiBlock) htail
 
-theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_deadlineAddOverflow {σ σ₀ A I} {g : UInt256}
     {evmDai : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -3630,7 +3564,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
         [.address (endThawVowAddr σ I)] (true, evmDai, out) false)
     (hlo : 32 ≤ out.size)
@@ -3639,7 +3573,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
       UInt256.size ≤
         (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩).toNat +
           (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨10⟩).toNat) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hreceiver :
@@ -3653,7 +3587,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
         ((evm0.lookupAccount (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [evm0] using
       endThawVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3768,12 +3702,12 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
       htailHead (by intro f' e' h; cases h)
   simpa [evm0] using
     endThawBodyReverts_daiOkTailReverted
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g)
       (fDai := { contract := contract, locals := endThawStoreVatDai out })
       (evmDai := evmDai) hwv hlive hdebt (by simpa [evm0] using hdaiBlock) htail
 
-theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReverts_waitNotFinished {σ σ₀ A I} {g : UInt256}
     {evmDai : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -3781,7 +3715,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
         [.address (endThawVowAddr σ I)] (true, evmDai, out) false)
     (hlo : 32 ≤ out.size)
@@ -3794,7 +3728,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
       (endThawTimestampWord evmDai.executionEnv).toNat <
         (Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨9⟩ +
           Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨10⟩).toNat) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
   have hreceiver :
@@ -3808,7 +3742,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [evm0] using
       endThawVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguardDai :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
@@ -3946,7 +3880,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
       htailHead (by intro f' e' h; cases h)
   simpa [evm0] using
     endThawBodyReverts_daiOkTailReverted
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g)
       (fDai := { contract := contract, locals := endThawStoreVatDai out })
       (evmDai := evmDai) hwv hlive hdebt (by simpa [evm0] using hdaiBlock) htail
@@ -4570,13 +4504,13 @@ theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
   refine ExecBlock.consNormal hsubStmt ?_
   exact ExecBlock.consNormal (ExecStmt.assign hdebtNew hassign) ExecBlock.nil
 
-theorem endThawBodyReturns_daiOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
     {fDai fPost : Frame} {evmDai evmPost : EVM.State}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hdaiBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := (∅ : Store) } evm0
         (checkedExternalCallStmts (.storage vatRef) "dai" (.intLit 0) [vowAddr] "vatDai"
           (perm := false)) (.ok fDai evmDai))
@@ -4591,7 +4525,7 @@ theorem endThawBodyReturns_daiOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         (.ok fPost evmPost)) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body
       (.returned fPost evmPost none) := by
   intro evm0
@@ -4693,32 +4627,25 @@ theorem endThaw_EVM_address_id (a : AccountAddress) : EVM.address a = a := by
   exact a.isLt
 
 theorem endThawVatAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : Eq σ τ) :
     EVM.address (endThawVatAddr τ I) = AccountAddress.ofUInt256 (endThawVatWord σ I) := by
-  have hword : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [hword]
-  rw [endThawVatAddr_eq_ofUInt256]
+  rw [hAccounts, endThawVatAddr_eq_ofUInt256]
   exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawVatWord τ I))
 
 theorem endThawCureAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : Eq σ τ) :
     EVM.address (endThawCureAddr τ I) = AccountAddress.ofUInt256 (endThawCureWord σ I) := by
-  have hword : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [hword]
-  rw [endThawCureAddr_eq_ofUInt256]
+  rw [hAccounts, endThawCureAddr_eq_ofUInt256]
   exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawCureWord τ I))
 
 theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {A' Ain : Substate} {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     {mem : ByteArray}
     (hmem : mem.size = 164)
     (hdepth : evmE.executionEnv.depth ≠ 1024)
-    (hΘ : (cA', σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes evmE.createdAccounts
-          evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ Ain
+    (hΘ : (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawVatWord evmE.accountMap evmE.executionEnv))
@@ -4727,59 +4654,63 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header true)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true)
     (hState : EVMStateEquiv evmE evmS)
-    (hOriginalAccounts : evmE.σ₀ = evmS.σ₀)
-    (hGenesis : evmS.genesisBlockHeader = evmE.genesisBlockHeader)
-    (hBlocks : evmS.blocks = evmE.blocks) :
+    (hOriginalAccounts : evmE.σ₀ = evmS.σ₀) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM config evmS
         (EVM.address (endThawVatAddr evmS.accountMap evmS.executionEnv))
         "debt" 0 [] (z,
-          { evmS with
-              accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' },
-          out) true ∧
+          { evmS with accountMap := σ'_solm, substate := A'_solm }, out)
+        true ∧
       EVMStateEquiv
-        { evmE with accountMap := σ', substate := A', createdAccounts := cA' }
-        { evmS with
-            accountMap := σ'_solm
-            substate := A'_solm
-            createdAccounts := cA' } := by
+        { evmE with accountMap := σ', substate := A' }
+        { evmS with accountMap := σ'_solm, substate := A'_solm } := by
   have htgt :
       EVM.address (endThawVatAddr evmS.accountMap evmS.executionEnv) =
         AccountAddress.ofUInt256 (endThawVatWord evmE.accountMap evmE.executionEnv) := by
     rw [hState.executionEnv]
     exact endThawVatAddr_source_eq_evmWord hState.accountMap
-  obtain ⟨σ'_solm, A'_solm, hcall, hAccountsPost, hSubstate⟩ :=
-    endCallMade_accountMapEquiv_with_substate
-      (cfg := config) (evm_evm := evmE) (evm_solm := evmS)
-      (tgt := EVM.address (endThawVatAddr evmS.accountMap evmS.executionEnv))
-      (targetWord := endThawVatWord evmE.accountMap evmE.executionEnv)
-      (name := "debt") (args := [])
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := Ain)
-      (z := z) (out := out) (g'' := g'') (callGas := callGas)
-      (mem := endThawNoArgCalldataMem endThawDebtSelectorWord mem)
-      (inOff := endThawNoArgOutPtr) (inSize := endThawNoArgInSize)
-      (callPerm := true)
-      hdepth htgt (endThawDebtEncode_eq hmem) hΘ hState.accountMap
-      hOriginalAccounts hState.createdAccounts.symm hGenesis hBlocks hState.executionEnv.symm
-  refine ⟨σ'_solm, A'_solm, hcall, ?_⟩
-  refine ⟨?_, ?_, ?_⟩
-  · simp [hState.executionEnv]
-  · rfl
-  · exact hAccountsPost
+  have hΘS :
+      (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+          (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
+          evmS.executionEnv.sender
+          (AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv))
+          (toExecute evmS.accountMap
+            (AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv)))
+          callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+          ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
+            endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
+          (evmS.executionEnv.depth + 1) evmS.executionEnv.header
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
+    simpa [hState.executionEnv, hState.accountMap, hOriginalAccounts] using hΘ
+  have hdepthS : evmS.executionEnv.depth ≠ 1024 := by
+    intro hbad
+    apply hdepth
+    rw [hState.executionEnv]
+    exact hbad
+  have htgtS :
+      EVM.address (endThawVatAddr evmS.accountMap evmS.executionEnv) =
+        AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv) :=
+    endThawVatAddr_source_eq_evmWord rfl
+  refine ⟨σ', A', ?_, ?_⟩
+  · exact callCoincides (evm := evmS)
+      (targetWord := endThawVatWord evmS.accountMap evmS.executionEnv)
+      hdepthS htgtS (endThawDebtEncode_eq hmem) hΘS
+  · constructor
+    · simp [hState.executionEnv]
+    · rfl
 
 theorem endThawTellCallMadeBridge {evmE evmS : EVM.State}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {A' Ain : Substate} {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     {mem : ByteArray}
     (hmem : mem.size = 164)
     (hdepth : evmE.executionEnv.depth ≠ 1024)
-    (hΘ : (cA', σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes evmE.createdAccounts
-          evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ Ain
+    (hΘ : (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256 (endThawCureWord evmE.accountMap evmE.executionEnv))
@@ -4788,49 +4719,54 @@ theorem endThawTellCallMadeBridge {evmE evmS : EVM.State}
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
             endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks false)
     (hState : EVMStateEquiv evmE evmS)
-    (hOriginalAccounts : evmE.σ₀ = evmS.σ₀)
-    (hGenesis : evmS.genesisBlockHeader = evmE.genesisBlockHeader)
-    (hBlocks : evmS.blocks = evmE.blocks) :
+    (hOriginalAccounts : evmE.σ₀ = evmS.σ₀) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM config evmS
         (EVM.address (endThawCureAddr evmS.accountMap evmS.executionEnv))
         "tell" 0 [] (z,
-          { evmS with
-              accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' },
-          out) false ∧
+          { evmS with accountMap := σ'_solm, substate := A'_solm }, out)
+        false ∧
       EVMStateEquiv
-        { evmE with accountMap := σ', substate := A', createdAccounts := cA' }
-        { evmS with
-            accountMap := σ'_solm
-            substate := A'_solm
-            createdAccounts := cA' } := by
+        { evmE with accountMap := σ', substate := A' }
+        { evmS with accountMap := σ'_solm, substate := A'_solm } := by
   have htgt :
       EVM.address (endThawCureAddr evmS.accountMap evmS.executionEnv) =
         AccountAddress.ofUInt256 (endThawCureWord evmE.accountMap evmE.executionEnv) := by
     rw [hState.executionEnv]
     exact endThawCureAddr_source_eq_evmWord hState.accountMap
-  obtain ⟨σ'_solm, A'_solm, hcall, hAccountsPost, hSubstate⟩ :=
-    endCallMade_accountMapEquiv_with_substate
-      (cfg := config) (evm_evm := evmE) (evm_solm := evmS)
-      (tgt := EVM.address (endThawCureAddr evmS.accountMap evmS.executionEnv))
-      (targetWord := endThawCureWord evmE.accountMap evmE.executionEnv)
-      (name := "tell") (args := [])
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := Ain)
-      (z := z) (out := out) (g'' := g'') (callGas := callGas)
-      (mem := endThawNoArgCalldataMem endThawTellSelectorWord mem)
-      (inOff := endThawNoArgOutPtr) (inSize := endThawNoArgInSize)
-      (callPerm := false)
-      hdepth htgt (endThawTellEncode_eq hmem) hΘ hState.accountMap
-      hOriginalAccounts hState.createdAccounts.symm hGenesis hBlocks hState.executionEnv.symm
-  refine ⟨σ'_solm, A'_solm, hcall, ?_⟩
-  refine ⟨?_, ?_, ?_⟩
-  · simp [hState.executionEnv]
-  · rfl
-  · exact hAccountsPost
+  have hΘS :
+      (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+          (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
+          evmS.executionEnv.sender
+          (AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv))
+          (toExecute evmS.accountMap
+            (AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv)))
+          callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+          ((endThawNoArgCalldataMem endThawTellSelectorWord mem).readWithPadding
+            endThawNoArgOutPtr.toNat endThawNoArgInSize.toNat)
+          (evmS.executionEnv.depth + 1) evmS.executionEnv.header
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks false := by
+    simpa [hState.executionEnv, hState.accountMap, hOriginalAccounts] using hΘ
+  have hdepthS : evmS.executionEnv.depth ≠ 1024 := by
+    intro hbad
+    apply hdepth
+    rw [hState.executionEnv]
+    exact hbad
+  have htgtS :
+      EVM.address (endThawCureAddr evmS.accountMap evmS.executionEnv) =
+        AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv) :=
+    endThawCureAddr_source_eq_evmWord rfl
+  refine ⟨σ', A', ?_, ?_⟩
+  · exact callCoincides (evm := evmS)
+      (targetWord := endThawCureWord evmS.accountMap evmS.executionEnv)
+      hdepthS htgtS (endThawTellEncode_eq hmem) hΘS
+  · constructor
+    · simp [hState.executionEnv]
+    · rfl
 
 theorem endThawReadyTailRevertsAtDebt (evmDai : EVM.State) (out : ByteArray)
     (hdai : endThawDaiWord out = ⟨0⟩)
@@ -5031,12 +4967,11 @@ theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
         .assign .storage debtRef (.var "debtNew") ])
     (by simpa [whenWord, waitWord, deadlineWord] using hprefix) hafterDebt
 
-theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endThawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf thawTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf thawTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endThawConcreteSelector := by
     simpa [endThawSelectorBytes, endThawConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -5047,56 +4982,52 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       decodeCalldataWithMode config.abiDecodeMode (thawTransition.params.map Param.name)
         (transitionSignature thawTransition).paramTypes I.calldata = some ∅ :=
     endDecode_thaw hsz4
-  have hreach := endReachThawBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := endReachThawBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   obtain ⟨_, _, hbodyReach⟩ := endThawX_entry hreach
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveCouple : endThawLiveWord σ_evm I = endThawLiveWord σ_solm I := by
-    simpa [endThawLiveWord, endSlotWord] using
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  by_cases hlive : endThawLiveWord σ_evm I = ⟨0⟩
-  · have hliveSolm : endThawLiveWord σ_solm I = ⟨0⟩ := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveCouple : endThawLiveWord σ I = endThawLiveWord σ I := rfl
+  by_cases hlive : endThawLiveWord σ I = ⟨0⟩
+  · have hliveSolm : endThawLiveWord σ I = ⟨0⟩ := by
       rw [← hliveCouple]
       exact hlive
-    have hdebtCouple : endThawDebtWord σ_evm I = endThawDebtWord σ_solm I := by
-      simpa [endThawDebtWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
-    by_cases hdebt : endThawDebtWord σ_evm I = ⟨0⟩
-    · have hdebtSolm : endThawDebtWord σ_solm I = ⟨0⟩ := by
+    have hdebtCouple : endThawDebtWord σ I = endThawDebtWord σ I := rfl
+    by_cases hdebt : endThawDebtWord σ I = ⟨0⟩
+    · have hdebtSolm : endThawDebtWord σ I = ⟨0⟩ := by
         rw [← hdebtCouple]
         exact hdebt
       by_cases hvatCode :
-          Reasoning.Theory.extCodeSizeWord σ_evm (endThawVatWord σ_evm I) =
+          Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) =
             ⟨0⟩
       · have hvatCodeSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endThawVatWord σ_solm I) = ⟨0⟩ :=
-          endThawVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+            Reasoning.Theory.extCodeSizeWord σ
+              (endThawVatWord σ I) = ⟨0⟩ :=
+          hvatCode
         have hbody :
             ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
               .reverted := by
             simpa [evmSolm] using
             endThawBodyReverts_daiNoCode
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) hwv hliveSolm hdebtSolm hvatCodeSolm
         exact (endThawX_daiNoCode (g := Sat256.ofUInt256 g) hlive hdebt hvatCode hbodyReach)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hvatCodeNE :
-            Reasoning.Theory.extCodeSizeWord σ_evm
-              (endThawVatWord σ_evm I) ≠ ⟨0⟩ := hvatCode
+            Reasoning.Theory.extCodeSizeWord σ
+              (endThawVatWord σ I) ≠ ⟨0⟩ := hvatCode
         have hvatCodeSolmNE :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endThawVatWord σ_solm I) ≠ ⟨0⟩ :=
-          endThawVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
+            Reasoning.Theory.extCodeSizeWord σ
+              (endThawVatWord σ I) ≠ ⟨0⟩ :=
+          hvatCodeNE
         obtain ⟨gasWord, _, _, hdaiReady⟩ :=
           endThawX_daiCallReady (g := Sat256.ofUInt256 g) hlive hdebt hvatCodeNE hbodyReach
         by_cases hdepthLt : I.depth.val < 1024
-        · obtain ⟨cA', σ', z, out, Ain, callGas, _, _, hΘ, rd4753, hout⟩ :=
+        · obtain ⟨σ', z, out, Ain, callGas, _, _, hΘ, rd4753, hout⟩ :=
             endThawX_daiPostStaticcall (g := g) hdaiReady hdepthLt
           rcases hΘ with ⟨g'', A', hΘeq⟩
           have hdepthNe :
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
                 1024 := by
             intro hbad
             have hbadI : I.depth = 1024 := by
@@ -5104,78 +5035,67 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
             omega
           have htgt :
-              EVM.address (endThawVatAddr σ_evm I) =
-                AccountAddress.ofUInt256 (endThawVatWord σ_evm I) := by
+              EVM.address (endThawVatAddr σ I) =
+                AccountAddress.ofUInt256 (endThawVatWord σ I) := by
             have hAddressId (a : AccountAddress) : EVM.address a = a := by
               apply Fin.ext
               show ↑a % EVM.twoPow 160 = ↑a
               rw [Nat.mod_eq_of_lt]
               exact a.isLt
             calc
-              EVM.address (endThawVatAddr σ_evm I)
-                  = EVM.address (AccountAddress.ofUInt256 (endThawVatWord σ_evm I)) := by
+              EVM.address (endThawVatAddr σ I)
+                  = EVM.address (AccountAddress.ofUInt256 (endThawVatWord σ I)) := by
                     rw [endThawVatAddr_eq_ofUInt256]
-              _ = AccountAddress.ofUInt256 (endThawVatWord σ_evm I) :=
-                    hAddressId (AccountAddress.ofUInt256 (endThawVatWord σ_evm I))
+              _ = AccountAddress.ofUInt256 (endThawVatWord σ I) :=
+                    hAddressId (AccountAddress.ofUInt256 (endThawVatWord σ I))
           have hcallEvm :
               typedCallViaEVM config
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                (EVM.address (endThawVatAddr σ_evm I)) "dai" 0
-                [.address (endThawVowAddr σ_evm I)]
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (EVM.address (endThawVatAddr σ I)) "dai" 0
+                [.address (endThawVowAddr σ I)]
                 (z,
-                  { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                     accountMap := σ'
-                    substate := A'
-                    createdAccounts := cA' },
+                    substate := A' },
                   out) false := by
               exact callCoincides
                 (cfg := config)
-                (evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (name := "dai")
-                (args := [.address (endThawVowAddr σ_evm I)])
-                (tgt := EVM.address (endThawVatAddr σ_evm I))
-                (targetWord := endThawVatWord σ_evm I)
-                (cA' := cA') (σ' := σ') (A' := A') (A_in := Ain)
+                (args := [.address (endThawVowAddr σ I)])
+                (tgt := EVM.address (endThawVatAddr σ I))
+                (targetWord := endThawVatWord σ I)
+                (σ' := σ') (A' := A') (A_in := Ain)
                 (z := z) (o := out) (g'' := g'') (callGas := callGas)
-                (mem := endThawDaiCalldataMem σ_evm I solcFreePtrMem)
+                (mem := endThawDaiCalldataMem σ I solcFreePtrMem)
                 (inOff := endThawDaiOutPtr) (inSize := endThawDaiInSize)
                 (callPerm := false)
-                hdepthNe htgt (endThawDaiEncode_eq σ_evm I solcFreePtrMem_size)
+                hdepthNe htgt (endThawDaiEncode_eq σ I solcFreePtrMem_size)
                 (by simpa [initState] using hΘeq)
-          obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
-            typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
-              (by simp [initState]) hAccounts
-          have hVatAddr : endThawVatAddr σ_evm I = endThawVatAddr σ_solm I := by
-            simp [endThawVatAddr, endThawVatWord_accountMapEquiv hAccounts]
-          have hVowWord : endThawVowWord σ_evm I = endThawVowWord σ_solm I := by
-            simp [endThawVowWord, endSlotWord, solcSlotWord,
-              accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨4⟩ ⟨0⟩]
-          have hVowAddr : endThawVowAddr σ_evm I = endThawVowAddr σ_solm I := by
-            simp [endThawVowAddr, hVowWord]
+          let σ'_solm : AccountMap := σ'
+          let A'_solm : Substate := A'
           have hcallSolm :
               typedCallViaEVM config evmSolm
-                (EVM.address (endThawVatAddr σ_solm I)) "dai" 0
-                [.address (endThawVowAddr σ_solm I)]
+                (EVM.address (endThawVatAddr σ I)) "dai" 0
+                [.address (endThawVowAddr σ I)]
                 (z,
                   { evmSolm with
                     accountMap := σ'_solm
-                    substate := A'_solm
-                    createdAccounts := cA' },
+                    substate := A'_solm },
                   out) false := by
-              simpa [evmSolm, hVatAddr, hVowAddr] using hcallSolmRaw
+              simpa [evmSolm] using hcallEvm
           cases z
           · have hbody :
                 ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
                   .reverted := by
                 simpa [evmSolm] using
                 endThawBodyReverts_daiCallFailed
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g)
                   (evmDai :=
                     { evmSolm with
                       accountMap := σ'_solm
-                      substate := A'_solm
-                      createdAccounts := cA' })
+                      substate := A'_solm })
                   (out := out) hwv hliveSolm hdebtSolm hvatCodeSolmNE
                   (by simpa [evmSolm] using hcallSolm)
             exact (endThawX_daiCallFailed (g := g) rd4753 hout)
@@ -5183,13 +5103,12 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           · let evmDaiSolm :=
                 { evmSolm with
                   accountMap := σ'_solm
-                  substate := A'_solm
-                  createdAccounts := cA' }
+                  substate := A'_solm }
             let evmDaiEvm :=
-                { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                   accountMap := σ'
-                  substate := A'
-                  createdAccounts := cA' }
+                  substate := A' }
+            have hStateCall : EVMStateEquiv evmDaiEvm evmDaiSolm := ⟨rfl, rfl⟩
             obtain ⟨_, _, rd4771⟩ := endThawX_daiCallSucceeded (g := g) rd4753
             by_cases hshort : out.size < 32
             · have hbody :
@@ -5197,7 +5116,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     .reverted := by
                   simpa [evmSolm, evmDaiSolm] using
                   endThawBodyReverts_daiDecodeShort
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmDai := evmDaiSolm) (out := out)
                     hwv hliveSolm hdebtSolm hvatCodeSolmNE
                     (by simpa [evmSolm, evmDaiSolm] using hcallSolm) hshort
@@ -5212,16 +5131,14 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     endThawWhenWord σ' I =
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨9⟩ := by
-                    have hload := hStateCall.storageLoad_codeOwner ⟨9⟩
-                    simpa [evmDaiEvm, evmDaiSolm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, endThawWhenWord, endSlotWord, solcSlotWord] using hload
+                    simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
+                      State.lookupAccount, Account.lookupStorage, endThawWhenWord, endSlotWord, solcSlotWord]
                 have hwaitCouple :
                     endThawWaitWord σ' I =
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨10⟩ := by
-                    have hload := hStateCall.storageLoad_codeOwner ⟨10⟩
-                    simpa [evmDaiEvm, evmDaiSolm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, endThawWaitWord, endSlotWord, solcSlotWord] using hload
+                    simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
+                      State.lookupAccount, Account.lookupStorage, endThawWaitWord, endSlotWord, solcSlotWord]
                 by_cases hoverDeadline :
                     UInt256.size ≤
                       (endThawWhenWord σ' I).toNat + (endThawWaitWord σ' I).toNat
@@ -5238,7 +5155,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         .reverted := by
                       simpa [evmSolm, evmDaiSolm] using
                       endThawBodyReverts_deadlineAddOverflow
-                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                        (σ := σ) (σ₀ := σ₀)
                         (A := A) (I := I) (g := g) (evmDai := evmDaiSolm)
                         (out := out) hwv hliveSolm hdebtSolm hvatCodeSolmNE
                         (by simpa [evmSolm, evmDaiSolm] using hcallSolm) hlo hdai hoverSolm
@@ -5276,12 +5193,12 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (endThawTimestampWord evmDaiSolm.executionEnv).toNat := by
                         simpa [evmDaiSolm, evmSolm, initState, endThawDeadlineWord,
                         hwhenCouple, hwaitCouple] using hready
-                    have hmemDai : (endThawDaiPostCallMem σ_evm I out).size = 164 :=
-                      endThawDaiPostCallMem_size σ_evm I out hout
+                    have hmemDai : (endThawDaiPostCallMem σ I out).size = 164 :=
+                      endThawDaiPostCallMem_size σ I out hout
                     have hreadDai :
-                        (endThawDaiPostCallMem σ_evm I out).readWithPadding 64 32 =
+                        (endThawDaiPostCallMem σ I out).readWithPadding 64 32 =
                           UInt256.toByteArray ⟨128⟩ :=
-                      endThawDaiPostCallMem_read64 σ_evm I out hout
+                      endThawDaiPostCallMem_read64 σ I out hout
                     have hdepthNeDai : evmDaiEvm.executionEnv.depth ≠ 1024 := by
                       simpa [evmDaiEvm, initState] using hdepthNe
                     have hdaiBlock :
@@ -5294,18 +5211,18 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         have hreceiver :
                           evalExpr? config { contract := contract, locals := (∅ : Store) }
                             evmSolm (.storage vatRef) =
-                              .ok (.address (endThawVatAddr σ_solm I)) := by
+                              .ok (.address (endThawVatAddr σ I)) := by
                           simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
                           endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
                           evalExpr_endThaw_vat (locals := (∅ : Store)) evmSolm (by simp)
                         have hcodePos :
                             0 < (UInt256.ofNat
                               ((evmSolm.lookupAccount
-                                (endThawVatAddr σ_solm I)).option 0
+                                (endThawVatAddr σ I)).option 0
                                   (fun acc => acc.code.size))).toNat := by
                             simpa [evmSolm] using
                             endThawVatCode_pos_of_codeSize_ne
-                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                              (σ := σ)
                               (σ₀ := σ₀) (A := A) (I := I) (g := g) hvatCodeSolmNE
                         have hguard :
                             evalExpr? config { contract := contract, locals := (∅ : Store) }
@@ -5316,7 +5233,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         have hvow :
                             evalExpr? config { contract := contract, locals := (∅ : Store) }
                               evmSolm vowAddr =
-                                .ok (.address (endThawVowAddr σ_solm I)) := by
+                                .ok (.address (endThawVowAddr σ I)) := by
                             simpa [vowAddr, evmSolm, initState, Solm.EVM.storageLoad,
                             State.lookupAccount, endThawVowAddr, endThawVowWord,
                             endSlotWord, solcSlotWord] using
@@ -5324,16 +5241,16 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         have hargs :
                             evalExprs? config { contract := contract, locals := (∅ : Store) }
                               evmSolm [vowAddr] =
-                                .ok [.address (endThawVowAddr σ_solm I)] := by
+                                .ok [.address (endThawVowAddr σ I)] := by
                             simp [evalExprs?, hvow, EvalResult.bind, bind, pure]
                         have hblock := checkedExternalCallSuccess
                           (cfg := config) (C := contract) (evm := evmSolm)
                           (evm' := evmDaiSolm)
                           (locals := (∅ : Store)) (receiver := .storage vatRef)
                           (retVar := "vatDai") (name := "dai")
-                          (target := endThawVatAddr σ_solm I)
+                          (target := endThawVatAddr σ I)
                           (sendVal := 0) (args := [vowAddr])
-                          (argVals := [.address (endThawVowAddr σ_solm I)])
+                          (argVals := [.address (endThawVowAddr σ I)])
                           (out := out) (perm := false)
                           (value := [.int (Int.ofNat (endThawDaiWord out).toNat)])
                           hguard hreceiver hargs
@@ -5350,10 +5267,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) = ⟨0⟩ := by
-                          have htmp :=
-                            endThawVatCodeSize_zero_accountMapEquiv
-                              hStateCall.accountMap hvatCodeDebt
-                          simpa [evmDaiSolm, evmSolm, initState] using htmp
+                          simpa [evmDaiSolm, evmSolm, initState] using hvatCodeDebt
                       have hdebtBlock :
                           ExecBlock config
                             { contract := contract,
@@ -5388,7 +5302,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             thawTransition.body .reverted := by
                           simpa [evmSolm, evmDaiSolm] using
                           endThawBodyReverts_daiOkTailReverted
-                            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                            (σ := σ)
                             (σ₀ := σ₀) (A := A) (I := I) (g := g)
                             (fDai :=
                               { contract := contract, locals := endThawStoreVatDai out })
@@ -5403,41 +5317,34 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) ≠ ⟨0⟩ := by
-                          have htmp :=
-                            endThawVatCodeSize_ne_accountMapEquiv
-                              hStateCall.accountMap hvatCodeDebtNE
-                          simpa [evmDaiSolm, evmSolm, initState] using htmp
+                          simpa [evmDaiSolm, evmSolm, initState] using hvatCodeDebtNE
                       obtain ⟨gasDebt, _, _, rd5031⟩ :=
                         endThawX_debtCallReady hmemDai hreadDai
                           hvatCodeDebtNE rd4956
-                      obtain ⟨cADebt, σDebt, zDebt, debtOut, AinDebt,
+                      obtain ⟨σDebt, zDebt, debtOut, AinDebt,
                           callGasDebt, _, _, hΘDebt, rd5032, hdebtOutSize⟩ :=
                         endThawX_debtPostCall rd5031 hdepthLt
                       rcases hΘDebt with ⟨gDebt'', ADebt, hΘDebtEq⟩
                       let evmDebtEvm :=
                         { evmDaiEvm with
                           accountMap := σDebt
-                          substate := ADebt
-                          createdAccounts := cADebt }
+                          substate := ADebt }
                       obtain ⟨σDebtSolm, ADebtSolm, hcallDebtSolmRaw,
                           hStateDebtRaw⟩ :=
                         endThawDebtCallMadeBridge
                           (evmE := evmDaiEvm) (evmS := evmDaiSolm)
-                          (cA' := cADebt) (σ' := σDebt) (A' := ADebt)
+                          (σ' := σDebt) (A' := ADebt)
                           (Ain := AinDebt) (z := zDebt) (out := debtOut)
                           (g'' := gDebt'') (callGas := callGasDebt)
-                          (mem := endThawDaiPostCallMem σ_evm I out)
+                          (mem := endThawDaiPostCallMem σ I out)
                           hmemDai hdepthNeDai
                           (by simpa [evmDaiEvm, initState, hperm] using hΘDebtEq)
                           hStateCall
                           (by simp [evmDaiEvm, evmDaiSolm, evmSolm, initState])
-                          (by simp [evmDaiEvm, evmDaiSolm, evmSolm, initState])
-                          (by simp [evmDaiEvm, evmDaiSolm, evmSolm, initState])
                       let evmDebtSolm :=
                         { evmDaiSolm with
                           accountMap := σDebtSolm
-                          substate := ADebtSolm
-                          createdAccounts := cADebt }
+                          substate := ADebtSolm }
                       have hcallDebtSolm :
                           typedCallViaEVM config evmDaiSolm
                             (EVM.address (endThawVatAddr evmDaiSolm.accountMap
@@ -5488,7 +5395,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               thawTransition.body .reverted := by
                             simpa [evmSolm, evmDaiSolm] using
                             endThawBodyReverts_daiOkTailReverted
-                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                              (σ := σ)
                               (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (fDai :=
                                 { contract := contract, locals := endThawStoreVatDai out })
@@ -5541,7 +5448,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 thawTransition.body .reverted := by
                               simpa [evmSolm, evmDaiSolm] using
                               endThawBodyReverts_daiOkTailReverted
-                                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                (σ := σ)
                                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (fDai :=
                                   { contract := contract, locals := endThawStoreVatDai out })
@@ -5582,9 +5489,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) = ⟨0⟩ := by
-                                have htmp :=
-                                  endThawCureCodeSize_zero_accountMapEquiv
-                                    hStateDebt.accountMap hcureCode
+                                have htmp := hcureCode
+                                have hMap : σDebt = evmDebtSolm.accountMap := by
+                                  simpa [evmDebtEvm] using hStateDebt.accountMap
+                                rw [hMap] at htmp
                                 simpa [evmDebtEvm, evmDebtSolm, evmDaiEvm, evmDaiSolm,
                                   evmSolm, initState] using htmp
                             have htellBlock :
@@ -5643,8 +5551,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   thawTransition.body .reverted := by
                                 simpa [evmSolm, evmDaiSolm] using
                                 endThawBodyReverts_daiOkTailReverted
-                                  (cA := cA) (gh := gh) (bl := bl)
-                                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                   (g := g)
                                   (fDai :=
                                     { contract := contract, locals := endThawStoreVatDai out })
@@ -5660,38 +5567,38 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) ≠ ⟨0⟩ := by
-                                have htmp :=
-                                  endThawCureCodeSize_ne_accountMapEquiv
-                                    hStateDebt.accountMap hcureCodeNE
+                                have htmp := hcureCodeNE
+                                have hMap : σDebt = evmDebtSolm.accountMap := by
+                                  simpa [evmDebtEvm] using hStateDebt.accountMap
+                                rw [hMap] at htmp
                                 simpa [evmDebtEvm, evmDebtSolm, evmDaiEvm, evmDaiSolm,
                                   evmSolm, initState] using htmp
                             obtain ⟨gasTell, _, _, rd5144⟩ :=
                               endThawX_tellCallReady hmemDai hreadDai hdebtOutSize
                                 hcureCodeNE rd5073
-                            obtain ⟨cATell, σTell, zTell, tellOut, AinTell,
+                            obtain ⟨σTell, zTell, tellOut, AinTell,
                                 callGasTell, _, _, hΘTell, rd5145, htellOutSize⟩ :=
                               endThawX_tellPostStaticcall rd5144 hdepthLt
                             rcases hΘTell with ⟨gTell'', ATell, hΘTellEq⟩
                             let evmTellEvm :=
                               { evmDebtEvm with
                                 accountMap := σTell
-                                substate := ATell
-                                createdAccounts := cATell }
+                                substate := ATell }
                             have hpostDebtSize :
                                 (endThawNoArgPostCallMem endThawDebtSelectorWord
-                                  (endThawDaiPostCallMem σ_evm I out) debtOut).size =
+                                  (endThawDaiPostCallMem σ I out) debtOut).size =
                                   164 :=
                               endThawNoArgPostCallMem_size hmemDai hdebtOutSize
                             obtain ⟨σTellSolm, ATellSolm, hcallTellSolmRaw,
                                 hStateTellRaw⟩ :=
                               endThawTellCallMadeBridge
                                 (evmE := evmDebtEvm) (evmS := evmDebtSolm)
-                                (cA' := cATell) (σ' := σTell) (A' := ATell)
+                                (σ' := σTell) (A' := ATell)
                                 (Ain := AinTell) (z := zTell) (out := tellOut)
                                 (g'' := gTell'') (callGas := callGasTell)
                                 (mem :=
                                   endThawNoArgPostCallMem endThawDebtSelectorWord
-                                    (endThawDaiPostCallMem σ_evm I out) debtOut)
+                                    (endThawDaiPostCallMem σ I out) debtOut)
                                 hpostDebtSize
                                 (by simpa [evmDebtEvm, evmDaiEvm, initState]
                                   using hdepthNeDai)
@@ -5700,15 +5607,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 hStateDebt
                                 (by simp [evmDebtEvm, evmDebtSolm, evmDaiEvm,
                                   evmDaiSolm, evmSolm, initState])
-                                (by simp [evmDebtEvm, evmDebtSolm, evmDaiEvm,
-                                  evmDaiSolm, evmSolm, initState])
-                                (by simp [evmDebtEvm, evmDebtSolm, evmDaiEvm,
-                                  evmDaiSolm, evmSolm, initState])
                             let evmTellSolm :=
                               { evmDebtSolm with
                                 accountMap := σTellSolm
-                                substate := ATellSolm
-                                createdAccounts := cATell }
+                                substate := ATellSolm }
                             have hcallTellSolm :
                                 typedCallViaEVM config evmDebtSolm
                                   (EVM.address (endThawCureAddr
@@ -5782,8 +5684,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     thawTransition.body .reverted := by
                                   simpa [evmSolm, evmDaiSolm] using
                                   endThawBodyReverts_daiOkTailReverted
-                                    (cA := cA) (gh := gh) (bl := bl)
-                                    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                                    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                     (g := g)
                                     (fDai :=
                                       { contract := contract, locals := endThawStoreVatDai out })
@@ -5796,7 +5697,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               by_cases hshortTell : tellOut.size < 32
                               · have hpostDebtRead64 :
                                     (endThawNoArgPostCallMem endThawDebtSelectorWord
-                                      (endThawDaiPostCallMem σ_evm I out) debtOut).readWithPadding
+                                      (endThawDaiPostCallMem σ I out) debtOut).readWithPadding
                                         64 32 =
                                       UInt256.toByteArray ⟨128⟩ :=
                                   endThawNoArgPostCallMem_read64 hmemDai hreadDai
@@ -5864,8 +5765,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       thawTransition.body .reverted := by
                                     simpa [evmSolm, evmDaiSolm] using
                                     endThawBodyReverts_daiOkTailReverted
-                                      (cA := cA) (gh := gh) (bl := bl)
-                                      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                       (g := g)
                                       (fDai :=
                                         { contract := contract, locals := endThawStoreVatDai out })
@@ -5876,7 +5776,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               · have hloTell : 32 ≤ tellOut.size := by omega
                                 have hpostDebtRead64 :
                                     (endThawNoArgPostCallMem endThawDebtSelectorWord
-                                      (endThawDaiPostCallMem σ_evm I out) debtOut).readWithPadding
+                                      (endThawDaiPostCallMem σ I out) debtOut).readWithPadding
                                         64 32 =
                                       UInt256.toByteArray ⟨128⟩ :=
                                   endThawNoArgPostCallMem_read64 hmemDai hreadDai
@@ -5916,13 +5816,13 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   have hpostTellSize :
                                       (endThawNoArgPostCallMem endThawTellSelectorWord
                                         (endThawNoArgPostCallMem endThawDebtSelectorWord
-                                          (endThawDaiPostCallMem σ_evm I out) debtOut)
+                                          (endThawDaiPostCallMem σ I out) debtOut)
                                         tellOut).size = 164 :=
                                     endThawNoArgPostCallMem_size hpostDebtSize htellOutSize
                                   have hpostTellRead64 :
                                       (endThawNoArgPostCallMem endThawTellSelectorWord
                                         (endThawNoArgPostCallMem endThawDebtSelectorWord
-                                          (endThawDaiPostCallMem σ_evm I out) debtOut)
+                                          (endThawDaiPostCallMem σ I out) debtOut)
                                         tellOut).readWithPadding 64 32 =
                                         UInt256.toByteArray ⟨128⟩ :=
                                     endThawNoArgPostCallMem_read64 hpostDebtSize
@@ -5967,8 +5867,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           (endThawPostState evmTellSolm debtNew) none) := by
                                       simpa [evmSolm, evmDaiSolm] using
                                       endThawBodyReturns_daiOkTail
-                                        (cA := cA) (gh := gh) (bl := bl)
-                                        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                                        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                         (g := g)
                                         (fDai :=
                                           { contract := contract, locals := endThawStoreVatDai out })
@@ -5986,22 +5885,16 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       simpa [endThawPostState] using
                                       hStateTell.storageStore_codeOwner ⟨11⟩
                                         (rfl : debtNew = debtNew)
-                                  exact hret.reEquivExecutionGenEVMStateEquiv
-                                    (evm'_evm := endThawPostState evmTellEvm debtNew)
-                                    (evm'_solm := endThawPostState evmTellSolm debtNew)
+                                  exact hret.reEquivExecutionGen
                                     hcode hdispatch hdecode hbody
                                     (by
-                                      simp [evmTellEvm, evmDebtEvm, evmDaiEvm,
-                                        endThawPostState, initState,
-                                        storageStore_createdAccounts])
-                                    (by
-                                      simpa [evmTellEvm, evmDebtEvm, evmDaiEvm,
-                                        endThawPostState, initState,
-                                        storageStore_accountMap] using
-                                        accountMapEquiv.refl
-                                          (sstoreAccountMap I.codeOwner σTell
-                                            ⟨11⟩ debtNew))
-                                    hStatePost
+                                      calc
+                                        _ = (endThawPostState evmTellEvm debtNew).accountMap := by
+                                          simp [evmTellEvm, evmDebtEvm, evmDaiEvm,
+                                            endThawPostState, initState, storageStore_accountMap,
+                                            debtNew]
+                                        _ = (endThawPostState evmTellSolm debtNew).accountMap :=
+                                          hStatePost.accountMap)
                                     (by
                                       simpa [thawTransition] using
                                         (returnEquiv.fallthrough
@@ -6073,8 +5966,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         thawTransition.body .reverted := by
                                       simpa [evmSolm, evmDaiSolm] using
                                       endThawBodyReverts_daiOkTailReverted
-                                        (cA := cA) (gh := gh) (bl := bl)
-                                        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                                        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                         (g := g)
                                         (fDai :=
                                           { contract := contract, locals := endThawStoreVatDai out })
@@ -6106,22 +5998,22 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           thawTransition.body .reverted := by
                         simpa [evmSolm, evmDaiSolm] using
                           endThawBodyReverts_waitNotFinished
-                            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                            (σ := σ) (σ₀ := σ₀)
                             (A := A) (I := I) (g := g) (evmDai := evmDaiSolm)
                             (out := out) hwv hliveSolm hdebtSolm hvatCodeSolmNE
                             (by simpa [evmSolm, evmDaiSolm] using hcallSolm) hlo hdai
                             hfitSolm hwaitSolm
                     exact
                       (endThawX_deadlineNotFinished hwaitEvm
-                        (endThawDaiPostCallMem_size σ_evm I out hout)
-                        (endThawDaiPostCallMem_read64 σ_evm I out hout) rd4880).reEquivExecutionRevert
+                        (endThawDaiPostCallMem_size σ I out hout)
+                        (endThawDaiPostCallMem_read64 σ I out hout) rd4880).reEquivExecutionRevert
                         hcode hdispatch hdecode hbody
               · have hbody :
                     ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
                       .reverted := by
                       simpa [evmSolm, evmDaiSolm] using
                         endThawBodyReverts_daiNonzero
-                          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                          (σ := σ) (σ₀ := σ₀)
                           (A := A) (I := I) (g := g) (evmDai := evmDaiSolm) (out := out)
                           hwv hliveSolm hdebtSolm hvatCodeSolmNE
                           (by simpa [evmSolm, evmDaiSolm] using hcallSolm) hlo hdai
@@ -6134,49 +6026,49 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           obtain ⟨_, _, rd4753⟩ :=
             endThawX_daiStaticcallDepthLimit (g := g) hdaiReady hdepthEq
           let A_dai :=
-            (evmSolm.addAccessedAccount (EVM.address (endThawVatAddr σ_solm I))).substate
+            (evmSolm.addAccessedAccount (EVM.address (endThawVatAddr σ I))).substate
           have hcallSolm :
               typedCallViaEVM config evmSolm
-                (EVM.address (endThawVatAddr σ_solm I)) "dai" 0
-                [.address (endThawVowAddr σ_solm I)]
+                (EVM.address (endThawVatAddr σ I)) "dai" 0
+                [.address (endThawVowAddr σ I)]
                 (false, { evmSolm with substate := A_dai }, ByteArray.empty) false := by
               simpa [evmSolm, A_dai] using
               (callNotMade_depthLimit (cfg := config) (evm := evmSolm)
-                (tgt := EVM.address (endThawVatAddr σ_solm I)) (name := "dai")
-                (args := [.address (endThawVowAddr σ_solm I)])
+                (tgt := EVM.address (endThawVatAddr σ I)) (name := "dai")
+                (args := [.address (endThawVowAddr σ I)])
                 (callPerm := false)
-                (endThawDaiEncode_eq σ_solm I solcFreePtrMem_size)
+                (endThawDaiEncode_eq σ I solcFreePtrMem_size)
                 (by simpa [evmSolm, initState] using hdepthEq))
           have hbody :
               ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
                 .reverted := by
               simpa [evmSolm] using
               endThawBodyReverts_daiCallFailed
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g)
                 (evmDai := { evmSolm with substate := A_dai })
                 (out := ByteArray.empty) hwv hliveSolm hdebtSolm hvatCodeSolmNE hcallSolm
           exact (endThawX_daiCallFailed (g := g) rd4753 (by simp [UInt256.size]))
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hdebtSolm : endThawDebtWord σ_solm I ≠ ⟨0⟩ := by
+    · have hdebtSolm : endThawDebtWord σ I ≠ ⟨0⟩ := by
         intro hbad
         exact hdebt (by rw [hdebtCouple, hbad])
       have hbody :
           ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body .reverted := by
         simpa [evmSolm] using
           endThawBodyReverts_debtNonzero
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hliveSolm hdebtSolm
       exact (endThawX_debtNonzero (g := Sat256.ofUInt256 g) hlive hdebt hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hliveSolm : endThawLiveWord σ_solm I ≠ ⟨0⟩ := by
+  · have hliveSolm : endThawLiveWord σ I ≠ ⟨0⟩ := by
       intro hbad
       exact hlive (by rw [hliveCouple, hbad])
     have hbody :
         ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body .reverted := by
       simpa [evmSolm] using
         endThawBodyReverts_liveNonzero
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hwv hliveSolm
     exact (endThawX_liveNonzero (g := Sat256.ofUInt256 g) hlive hbodyReach)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody

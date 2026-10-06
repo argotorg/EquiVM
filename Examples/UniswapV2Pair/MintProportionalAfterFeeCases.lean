@@ -5,8 +5,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
 theorem uniswapMintProportionalArithmeticAfterMintFeeCases
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 mem rdata : ByteArray} {k C : ℕ}
     {feeOnFlag totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
@@ -18,8 +18,8 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -28,9 +28,9 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
     (hguard1 :
       evalExpr? config
@@ -38,21 +38,21 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
           locals :=
             (mintReserveStore
                 (uniswapLockEnteredState
-                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 : typedCallViaEVM config
       (uniswapLockEnteredState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
         (uniswapAddressAtSlot
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
       "balanceOf" 0
       [.address
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
@@ -64,12 +64,12 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
       ExecStmt config
@@ -77,14 +77,14 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
           locals :=
             mintAmountStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I balance0 balance1 }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextLocals } evmFeeS))
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOnFlag, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalBase : nextLocals.get? "totalSupply" = none)
     (hamount0 : nextLocals.get? "amount0" = some (uniswapUint256Value amount0))
     (hamount1 : nextLocals.get? "amount1" = some (uniswapUint256Value amount1))
@@ -100,8 +100,8 @@ theorem uniswapMintProportionalArithmeticAfterMintFeeCases
     (mintAmountProductNat amount0 totalSupply < UInt256.size ∧
       reserve0 ≠ ⟨0⟩ ∧ mintAmountProductNat amount1 totalSupply < UInt256.size ∧
       reserve1 ≠ ⟨0⟩) ∨
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let locals := nextLocals.insert "_totalSupply" (uniswapUint256Value totalSupply)
   obtain ⟨_, _, rd3762⟩ := uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero
     rd3701 htotalSlot htotalNonzero

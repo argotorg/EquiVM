@@ -128,7 +128,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 /-- Ballot's Solidity `Panic(0x32)` array-bounds block at pc 1815. -/
 theorem RD.ballotPanic32Revert1815 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨1815⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
     RDrev ballotBytecode g s0 := by
@@ -152,7 +152,7 @@ theorem RD.ballotPanic32Revert1815 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 /-- Ballot's Solidity `Panic(0x11)` checked-arithmetic block at pc 1847. -/
 theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨1847⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
     RDrev ballotBytecode g s0 := by
@@ -176,7 +176,7 @@ theorem RD.ballotPanic11Revert1847 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 /-- Ballot's shared solc ABI encoder for one `address` word at pc 221. -/
 theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨221⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -203,7 +203,7 @@ theorem RD.ballotRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionE
 /-- Ballot's shared one-word return tail at pc 194. -/
 theorem RD.ballotReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
         (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C) (hov : R.length + 5 ≤ 1024) :
     RDret ballotBytecode g s0 acc (UInt256.toByteArray val) := by
@@ -226,7 +226,7 @@ theorem RD.ballotReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     word is `0x80` and whose return word lives at `0x80`. -/
 theorem RD.ballotReturnOneWord194OfMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨194⟩ (Ballot.ballotRetEnd :: R)
         mem (UInt256.ofNat 5) rdata acc k C)
     (hmload64 :

@@ -817,8 +817,8 @@ theorem uniswapMintInitialFeeOnReturn_kLastZero
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {evm0S evm1S evmAfter : EVM.State}
     {out0 out1 mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
@@ -829,8 +829,8 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -839,9 +839,9 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) = .ok (.bool true))
     (hguard1 :
       evalExpr? config
@@ -849,21 +849,21 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
           locals :=
             (mintReserveStore
                 (uniswapLockEnteredState
-                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 : typedCallViaEVM config
       (uniswapLockEnteredState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (EVM.address
         (uniswapAddressAtSlot
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
       "balanceOf" 0
       [.address
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
       config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
@@ -875,12 +875,12 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
     (henough0 :
       (uniswapReserve0Word
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance0.toNat)
     (henough1 :
       (uniswapReserve1Word
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
           balance1.toNat)
     (hfee :
       ExecStmt config
@@ -888,7 +888,7 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
           locals :=
             mintAmountStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I balance0
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I balance0
               balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok { contract := contract, locals := nextLocals } evmAfter))
@@ -912,16 +912,16 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
             "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [UInt256.ofNat rootLiquidity.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1,
         amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (hrootSize : rootLiquidity.toNat < UInt256.size)
     (hrootLt : rootLiquidity < minimumLiquidity)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
     exact ExecFuncBody.execBlockRevert
@@ -940,15 +940,15 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
     exact hrootNatLt
   have rdRev :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     uniswapMintRuntimeInitialLiquidityAfterRootUnderflowReverts
       (root := UInt256.ofNat rootLiquidity.toNat) rd2531 hrootLtWord hmem hmem64
   exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFinishInitialFeeOff
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {evmAfter : EVM.State}
     {mem rdata : ByteArray} {k C : ℕ}
     {root feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
@@ -959,7 +959,7 @@ theorem uniswapMintFinishInitialFeeOff
     (hsz36 : 36 ≤ I.calldata.size)
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (mintStore I) mintTransition.body
         (.returned frame
           (uniswapLockExitedState
@@ -971,13 +971,12 @@ theorem uniswapMintFinishInitialFeeOff
               balance0 balance1))
           (some [uniswapUint256Value liquidity])))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [root, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hPostAccountsAfter : accountMapEquiv σFee evmAfter.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hPostAccountsAfter : Eq σFee evmAfter.accountMap)
     (henvAfter : evmAfter.executionEnv = I)
-    (hcreatedAfter : evmAfter.createdAccounts = cAFee)
     (hrecipient : recipient = AccountAddress.ofNat toWord.toNat)
     (hliquidity : liquidity = UInt256.sub root ⟨1000⟩)
     (hrootGeMin : (⟨1000⟩ : UInt256).toNat ≤ root.toNat)
@@ -1071,7 +1070,7 @@ theorem uniswapMintFinishInitialFeeOff
     (hfeeOff : feeOn = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let minimumMem :=
     uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
       (uniswapInternalMintBalanceHashMem ⟨0⟩
@@ -1104,9 +1103,9 @@ theorem uniswapMintFinishInitialFeeOff
       (uniswapUpdateTimestampWord I) balance1 balance0
   let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
   let syncState := syncUpdatePackedReserveState postMint balance0 balance1
-  have hMinimumAccounts : accountMapEquiv σAfterMinimum evmMinimum.accountMap := by
+  have hMinimumAccounts : Eq σAfterMinimum evmMinimum.accountMap := by
     simpa [evmMinimum, σAfterMinimum] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+      mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
         (σ := σFee) (evm := evmAfter) (I := I) (mem := mem)
         (recipientWord := ⟨0⟩) (recipient := AccountAddress.ofNat 0)
         hPostAccountsAfter henvAfter rfl (by rw [hmem]; omega)
@@ -1118,9 +1117,9 @@ theorem uniswapMintFinishInitialFeeOff
     simpa [minimumMem, hmem] using
       uniswapInternalMintSuccessMem_size_of_ge160 ⟨0⟩ (⟨1000⟩ : UInt256)
         (mem := mem) (by rw [hmem]; omega)
-  have hMintAccounts : accountMapEquiv σAfterMint postMint.accountMap := by
+  have hMintAccounts : Eq σAfterMint postMint.accountMap := by
     simpa [postMint, σAfterMint] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+      mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
         (σ := σAfterMinimum) (evm := evmMinimum) (I := I) (mem := minimumMem)
         (recipientWord := toWord) (recipient := recipient)
         hMinimumAccounts henvMinimum hrecipient (by rw [hminimumMemSize]; omega)
@@ -1131,41 +1130,39 @@ theorem uniswapMintFinishInitialFeeOff
   have hslot8 :
       Solm.EVM.storageLoad postMint postMint.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σAfterMint I := by
-    have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, henvMint] using hword.symm
-  have hPackedAccounts : accountMapEquiv σPacked syncState.accountMap := by
-    exact accountMapEquiv_syncUpdatePackedReserveState hMintAccounts henvMint hslot8 rfl
+    rw [hMintAccounts]
+    simp [uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage, henvMint]
+  have hPackedAccounts : Eq σPacked syncState.accountMap := by
+    exact syncUpdatePackedReserveState_accountMap_eq hMintAccounts henvMint hslot8 rfl
   have hAccountsRet :
-      accountMapEquiv
+      Eq
         (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
         (uniswapLockExitedState syncState).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hPackedAccounts
+    have hs := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩)
+      hPackedAccounts
     simpa [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
       storageStore_executionEnv, syncState, postMint, syncUpdatePackedReserveState,
       henvMint] using hs
-  have hCreatedRet : cAFee = (uniswapLockExitedState syncState).createdAccounts := by
-    simp [uniswapLockExitedState, uniswapUnlockedState, syncState, postMint, evmMinimum,
-      syncUpdatePackedReserveState, mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-      storageStore_createdAccounts, hcreatedAfter]
   have rdRet :
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
         (UInt256.toByteArray liquidity) := by
     simpa [minimumMem, σAfterMinimum, σAfterMint, packed, σPacked] using
       uniswapMintRuntimeInitialLiquidityAfterRootUpdateElapsedZeroFeeOffReturns
         (liquidity := liquidity) rd2531 hliquidity hrootGeMin hliqNonzero hperm
         htotalFitMin hbalanceFitMin htotalFit hbalanceFit hfit0 hfit1 helapsed0 hfeeOff
         hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
-    hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hCreatedRet hAccountsRet
+  exact rdRet.reEquivExecutionGen
+    hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFinishInitialFeeOn
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {evmAfter : EVM.State}
     {mem rdata : ByteArray} {k C : ℕ}
     {root feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
@@ -1176,7 +1173,7 @@ theorem uniswapMintFinishInitialFeeOn
     (hsz36 : 36 ≤ I.calldata.size)
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (mintStore I) mintTransition.body
         (.returned frame
           (uniswapLockExitedState
@@ -1189,13 +1186,12 @@ theorem uniswapMintFinishInitialFeeOn
                 balance0 balance1)))
           (some [uniswapUint256Value liquidity])))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [root, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hPostAccountsAfter : accountMapEquiv σFee evmAfter.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hPostAccountsAfter : Eq σFee evmAfter.accountMap)
     (henvAfter : evmAfter.executionEnv = I)
-    (hcreatedAfter : evmAfter.createdAccounts = cAFee)
     (hrecipient : recipient = AccountAddress.ofNat toWord.toNat)
     (hliquidity : liquidity = UInt256.sub root ⟨1000⟩)
     (hrootGeMin : (⟨1000⟩ : UInt256).toNat ≤ root.toNat)
@@ -1320,7 +1316,7 @@ theorem uniswapMintFinishInitialFeeOn
             reserve112Mask).toNat < UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let minimumMem :=
     uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
       (uniswapInternalMintBalanceHashMem ⟨0⟩
@@ -1357,9 +1353,9 @@ theorem uniswapMintFinishInitialFeeOn
     UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask)
       (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Shift)
         reserve112Mask)
-  have hMinimumAccounts : accountMapEquiv σAfterMinimum evmMinimum.accountMap := by
+  have hMinimumAccounts : Eq σAfterMinimum evmMinimum.accountMap := by
     simpa [evmMinimum, σAfterMinimum] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+      mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
         (σ := σFee) (evm := evmAfter) (I := I) (mem := mem)
         (recipientWord := ⟨0⟩) (recipient := AccountAddress.ofNat 0)
         hPostAccountsAfter henvAfter rfl (by rw [hmem]; omega)
@@ -1371,9 +1367,9 @@ theorem uniswapMintFinishInitialFeeOn
     simpa [minimumMem, hmem] using
       uniswapInternalMintSuccessMem_size_of_ge160 ⟨0⟩ (⟨1000⟩ : UInt256)
         (mem := mem) (by rw [hmem]; omega)
-  have hMintAccounts : accountMapEquiv σAfterMint postMint.accountMap := by
+  have hMintAccounts : Eq σAfterMint postMint.accountMap := by
     simpa [postMint, σAfterMint] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+      mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
         (σ := σAfterMinimum) (evm := evmMinimum) (I := I) (mem := minimumMem)
         (recipientWord := toWord) (recipient := recipient)
         hMinimumAccounts henvMinimum hrecipient (by rw [hminimumMemSize]; omega)
@@ -1384,20 +1380,20 @@ theorem uniswapMintFinishInitialFeeOn
   have hslot8 :
       Solm.EVM.storageLoad postMint postMint.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σAfterMint I := by
-    have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, henvMint] using hword.symm
-  have hPackedAccounts : accountMapEquiv σPacked syncState.accountMap := by
-    exact accountMapEquiv_syncUpdatePackedReserveState hMintAccounts henvMint hslot8 rfl
+    rw [hMintAccounts]
+    simp [uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage, henvMint]
+  have hPackedAccounts : Eq σPacked syncState.accountMap := by
+    exact syncUpdatePackedReserveState_accountMap_eq hMintAccounts henvMint hslot8 rfl
   have henvSync : syncState.executionEnv = I := by
     simp [syncState, postMint, syncUpdatePackedReserveState, henvMint,
       storageStore_executionEnv]
   have hslot8Sync :
       Solm.EVM.storageLoad syncState syncState.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σPacked I := by
-    have hword := accountMapEquiv_storage_findD hPackedAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    simpa [syncState, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, henvSync] using hword.symm
+    rw [hPackedAccounts]
+    simp [uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage, henvSync]
   have hsyncReserve0 :
       uniswapReserve0Word syncState =
         UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask := by
@@ -1416,28 +1412,26 @@ theorem uniswapMintFinishInitialFeeOn
     exact mintFeeReserveProductWord_eq_mul _ _ (by
       simpa [mintFeeReserveProductNat] using hfitKLast)
   have hKLastAccounts :
-      accountMapEquiv (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord)
+      Eq (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord)
         (mintKLastUpdatedState syncState).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ kLastWord
+    have hs := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩ kLastWord)
       hPackedAccounts
     simpa [mintKLastUpdatedState, storageStore_accountMap, henvSync, hkLastValue] using hs
   have hAccountsRet :
-      accountMapEquiv
+      Eq
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord) ⟨12⟩ (⟨1⟩ : UInt256))
         (uniswapLockExitedState (mintKLastUpdatedState syncState)).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hKLastAccounts
+    have hs := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩)
+      hKLastAccounts
     simpa [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
       storageStore_executionEnv, mintKLastUpdatedState, henvSync] using hs
-  have hCreatedRet :
-      cAFee = (uniswapLockExitedState (mintKLastUpdatedState syncState)).createdAccounts := by
-    simp [uniswapLockExitedState, uniswapUnlockedState, mintKLastUpdatedState, syncState,
-      postMint, evmMinimum, syncUpdatePackedReserveState, mintFunctionPostState,
-      mintFunctionAfterTotalSupplyState, storageStore_createdAccounts, hcreatedAfter]
   have rdRet :
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, sstoreAccountMap I.codeOwner
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord) ⟨12⟩ (⟨1⟩ : UInt256))
         (UInt256.toByteArray liquidity) := by
     simpa [minimumMem, σAfterMinimum, σAfterMint, packed, σPacked, kLastWord] using
@@ -1445,8 +1439,8 @@ theorem uniswapMintFinishInitialFeeOn
         (liquidity := liquidity) rd2531 hliquidity hrootGeMin hliqNonzero hperm
         htotalFitMin hbalanceFitMin htotalFit hbalanceFit hfit0 hfit1 helapsed0
         hfeeOn hfitKLast hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
-    hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hCreatedRet hAccountsRet
+  exact rdRet.reEquivExecutionGen
+    hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 
 end UniswapV2Pair

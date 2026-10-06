@@ -459,14 +459,14 @@ theorem assign_fileDsrStorage (evm : EVM.State) (I : ExecutionEnv) :
 
 /-! ### Solm-side transition body results -/
 
-theorem potFileDsrSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem potFileDsrSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (htime : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDsrWhat I = fileDsrBytes) :
     let locals := fileDsrLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileDsrData I)
     ExecTransitionBody config contract evm0 locals fileDsrTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) := by
@@ -525,11 +525,11 @@ theorem potFileDsrSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem potFileDsrSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem potFileDsrSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
     let locals := fileDsrLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
   intro locals evm0
   have hguard :
@@ -554,12 +554,12 @@ theorem potFileDsrSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
       (by simp [evm0, initState]; exact hwv)
       hguard
 
-theorem potFileDsrSourceBodyLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem potFileDsrSourceBodyLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : potSlotWord ⟨8⟩ σ I ≠ ⟨1⟩) :
     let locals := fileDsrLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
   intro locals evm0
   have hguard :
@@ -586,13 +586,13 @@ theorem potFileDsrSourceBodyLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.requireFalse hliveG)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem potFileDsrSourceBodyRhoReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem potFileDsrSourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (htime : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ I) :
     let locals := fileDsrLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
   intro locals evm0
   have hguard :
@@ -627,14 +627,14 @@ theorem potFileDsrSourceBodyRhoReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.requireFalse hrhoG)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem potFileDsrSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem potFileDsrSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (htime : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDsrWhat I ≠ fileDsrBytes) :
     let locals := fileDsrLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
   intro locals evm0
   have hguard :
@@ -686,13 +686,13 @@ theorem potFileDsrSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-! ### EVM-side trace -/
 
-theorem potReachFileDsrBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachFileDsrBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 7)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨367⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : potSelWord I = ⟨0x29ae8114⟩ :=
     potSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
       (by native_decide) (by simpa [potSelBytes] using hsel)
@@ -713,7 +713,7 @@ theorem potReachFileDsrBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.potFileDsrDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨389⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = potBytecode)
     (hroutine : (D_J code 0).contains ⟨990⟩ = true)
@@ -736,14 +736,14 @@ theorem RD.potFileDsrDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd401.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem potFileDsrX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem potFileDsrX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD potBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨990⟩
+      (initState σ σ₀ g A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I) ⟨990⟩
         [fileDsrData I, calldataWord I.calldata 4, ⟨301⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := potBytecode) (sel := sel) (entry := ⟨367⟩) (ret := ⟨301⟩)
     (decoded := ⟨389⟩) (need := ⟨64⟩) hreach
@@ -758,14 +758,14 @@ theorem potFileDsrX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, by simpa [fileDsrData] using hroutine⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨990⟩
       [data, what, ⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1079⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -796,7 +796,7 @@ theorem potFileDsrX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by native_decide) (by evm_ov)
   have rd1007 : RD potBytecode I g s0 ⟨1007⟩
       (relyAuthWord σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1007 C1007 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1007 C1007 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1007raw
   have rd1010pre := evm_run rd1007 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -808,11 +808,11 @@ theorem potFileDsrX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨990⟩
       [data, what, ⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -844,7 +844,7 @@ theorem potFileDsrX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by native_decide) (by evm_ov)
   have rd1007 : RD potBytecode I g s0 ⟨1007⟩
       (relyAuthWord σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1007 C1007 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1007 C1007 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1007raw
   have rd1010pre := evm_run rd1007 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -874,20 +874,20 @@ theorem potFileDsrX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 400000 in
-theorem potFileDsrX_liveOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_liveOK {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256} (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨1079⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1149⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1080 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1082 := rd1080.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by native_decide) (by evm_ov)
   have rd1083 : RD potBytecode I g s0 ⟨1083⟩
       (potSlotWord ⟨8⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1083 C1083 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1083 C1083 := by
     simpa [potSlotWord] using rd1083raw
   have rd1085pre := evm_run rd1083 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -899,18 +899,18 @@ theorem potFileDsrX_liveOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_liveRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256} (hlive : potSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : RD potBytecode I g s0 ⟨1079⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have rd1080 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1082 := rd1080.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by native_decide) (by evm_ov)
   have rd1083 : RD potBytecode I g s0 ⟨1083⟩
       (potSlotWord ⟨8⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1083 C1083 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1083 C1083 := by
     simpa [potSlotWord] using rd1083raw
   have rd1085pre := evm_run rd1083 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -940,21 +940,21 @@ theorem potFileDsrX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 400000 in
-theorem potFileDsrX_rhoOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_rhoOK {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256}
     (htime : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp)
     (h : RD potBytecode I g s0 ⟨1149⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1225⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1150 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1152 := rd1150.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by native_decide) (by evm_ov)
   have rd1153 : RD potBytecode I g s0 ⟨1153⟩
       (potSlotWord ⟨7⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1153 C1153 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1153 C1153 := by
     simpa [potSlotWord] using rd1153raw
   have rd1154 := rd1153.timestamp (by native_decide) (by evm_ov)
   have rd1155 := rd1154.eq (by native_decide) (by evm_ov)
@@ -965,19 +965,19 @@ theorem potFileDsrX_rhoOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_rhoRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_rhoRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel data what : UInt256}
     (htime : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ I)
     (h : RD potBytecode I g s0 ⟨1149⟩
       [data, what, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have rd1150 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1152 := rd1150.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by native_decide) (by evm_ov)
   have rd1153 : RD potBytecode I g s0 ⟨1153⟩
       (potSlotWord ⟨7⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1153 C1153 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1153 C1153 := by
     simpa [potSlotWord] using rd1153raw
   have rd1154 := rd1153.timestamp (by native_decide) (by evm_ov)
   have rd1155 := rd1154.eq (by native_decide) (by evm_ov)
@@ -1012,7 +1012,7 @@ abbrev potFileUnrecognizedRawWord : UInt256 :=
 
 theorem RD.potFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD potBytecode ee g s0 ⟨1249⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1071,14 +1071,14 @@ theorem RD.potFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEn
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileDsrBytes)
     (h : RD potBytecode I g s0 ⟨1225⟩
       [fileDsrData I, calldataWord I.calldata 4, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret potBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileDsrData I))
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileDsrData I))
       ByteArray.empty := by
   have rd1226 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1227 := rd1226.dup2 (by native_decide) (by evm_ov)
@@ -1111,12 +1111,12 @@ theorem potFileDsrX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   exact RD.stop rd302 (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
-theorem potFileDsrX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem potFileDsrX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileDsrBytes)
     (h : RD potBytecode I g s0 ⟨1225⟩
       [fileDsrData I, calldataWord I.calldata 4, ⟨301⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have rd1226 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1227 := rd1226.dup2 (by native_decide) (by evm_ov)
@@ -1142,13 +1142,13 @@ theorem potFileDsrX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem potFileDsrX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem potFileDsrX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD potBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev potBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev potBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1166,44 +1166,34 @@ theorem potFileDsrX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
 /-! ### Body core lemmas -/
 
 theorem potFileDsrBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
-    (hlive : potSlotWord ⟨8⟩ σ_evm I = ⟨1⟩)
-    (htime : potSlotWord ⟨7⟩ σ_evm I = UInt256.ofNat I.header.timestamp)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (htime : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDsrWhat I = fileDsrBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDsrTransition.params.map Param.name)
         (transitionSignature fileDsrTransition).paramTypes I.calldata = some (fileDsrLocals I))
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let data := fileDsrData I
   let locals := fileDsrLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ data
-  have hauthSolm : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]; exact hauth
-  have hliveSolm : potSlotWord ⟨8⟩ σ_solm I = ⟨1⟩ := by
-    have hword : potSlotWord ⟨8⟩ σ_evm I = potSlotWord ⟨8⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    rw [← hword]; exact hlive
-  have htimeSolm : potSlotWord ⟨7⟩ σ_solm I = UInt256.ofNat I.header.timestamp := by
-    have hword : potSlotWord ⟨7⟩ σ_evm I = potSlotWord ⟨7⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩
-    rw [← hword]; exact htime
+  have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hliveSolm : potSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have htimeSolm : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDsrTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
     simpa [evm0, evm1, locals, data] using
-      (potFileDsrSourceBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+      (potFileDsrSourceBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm htimeSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, hauthd⟩ := potFileDsrX_authorized (I := I) hauth hdecoded
@@ -1212,76 +1202,62 @@ theorem potFileDsrBodyCoreOk
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileDsrBytes :=
     fileDsrWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := potFileDsrX_storeAuthorized hperm hmatch hrhod
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [evm1, evm0, initState, storageStore_createdAccounts])
-    (by
-      simpa [evm1, evm0, initState, storageStore_accountMap, data] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ data hAccounts)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    (by simp [evm1, evm0, initState, storageStore_accountMap, data])
     (by
       simpa [fileDsrTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem potFileDsrBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDsrTransition.params.map Param.name)
         (transitionSignature fileDsrTransition).paramTypes I.calldata = some (fileDsrLocals I))
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad; exact hauth (by rw [hword, hbad])
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthSolm : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
     simpa [evm0, locals] using
-      (potFileDsrSourceBodyAuthReverts (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+      (potFileDsrSourceBodyAuthReverts (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm)
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   exact (potFileDsrX_unauthorized (I := I) hauth hdecoded)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem potFileDsrBodyCoreLiveRevert
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
-    (hlive : potSlotWord ⟨8⟩ σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hlive : potSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDsrTransition.params.map Param.name)
         (transitionSignature fileDsrTransition).paramTypes I.calldata = some (fileDsrLocals I))
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]; exact hauth
-  have hliveSolm : potSlotWord ⟨8⟩ σ_solm I ≠ ⟨1⟩ := by
-    have hword : potSlotWord ⟨8⟩ σ_evm I = potSlotWord ⟨8⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    intro hbad; exact hlive (by rw [hword, hbad])
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hliveSolm : potSlotWord ⟨8⟩ σ I ≠ ⟨1⟩ := hlive
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
     simpa [evm0, locals] using
-      (potFileDsrSourceBodyLiveReverts (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+      (potFileDsrSourceBodyLiveReverts (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm)
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, hauthd⟩ := potFileDsrX_authorized (I := I) hauth hdecoded
@@ -1289,40 +1265,30 @@ theorem potFileDsrBodyCoreLiveRevert
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem potFileDsrBodyCoreRhoRevert
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
-    (hlive : potSlotWord ⟨8⟩ σ_evm I = ⟨1⟩)
-    (htime : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ_evm I)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (htime : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ I)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDsrTransition.params.map Param.name)
         (transitionSignature fileDsrTransition).paramTypes I.calldata = some (fileDsrLocals I))
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]; exact hauth
-  have hliveSolm : potSlotWord ⟨8⟩ σ_solm I = ⟨1⟩ := by
-    have hword : potSlotWord ⟨8⟩ σ_evm I = potSlotWord ⟨8⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    rw [← hword]; exact hlive
-  have htimeSolm : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ_solm I := by
-    have hword : potSlotWord ⟨7⟩ σ_evm I = potSlotWord ⟨7⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩
-    rw [← hword]; exact htime
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hliveSolm : potSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have htimeSolm : UInt256.ofNat I.header.timestamp ≠ potSlotWord ⟨7⟩ σ I := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
     simpa [evm0, locals] using
-      (potFileDsrSourceBodyRhoReverts (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+      (potFileDsrSourceBodyRhoReverts (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm htimeSolm)
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, hauthd⟩ := potFileDsrX_authorized (I := I) hauth hdecoded
@@ -1331,41 +1297,31 @@ theorem potFileDsrBodyCoreRhoRevert
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem potFileDsrBodyCoreUnrecognized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
-    (hlive : potSlotWord ⟨8⟩ σ_evm I = ⟨1⟩)
-    (htime : potSlotWord ⟨7⟩ σ_evm I = UInt256.ofNat I.header.timestamp)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (htime : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp)
     (hwhat : fileDsrWhat I ≠ fileDsrBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileDsrTransition.params.map Param.name)
         (transitionSignature fileDsrTransition).paramTypes I.calldata = some (fileDsrLocals I))
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]; exact hauth
-  have hliveSolm : potSlotWord ⟨8⟩ σ_solm I = ⟨1⟩ := by
-    have hword : potSlotWord ⟨8⟩ σ_evm I = potSlotWord ⟨8⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-    rw [← hword]; exact hlive
-  have htimeSolm : potSlotWord ⟨7⟩ σ_solm I = UInt256.ofNat I.header.timestamp := by
-    have hword : potSlotWord ⟨7⟩ σ_evm I = potSlotWord ⟨7⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩
-    rw [← hword]; exact htime
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hliveSolm : potSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+  have htimeSolm : potSlotWord ⟨7⟩ σ I = UInt256.ofNat I.header.timestamp := htime
   have hbody :
       ExecTransitionBody config contract evm0 locals fileDsrTransition.body .reverted := by
     simpa [evm0, locals] using
-      (potFileDsrSourceBodyUnrecognized (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+      (potFileDsrSourceBodyUnrecognized (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm htimeSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, hauthd⟩ := potFileDsrX_authorized (I := I) hauth hdecoded
@@ -1377,48 +1333,47 @@ theorem potFileDsrBodyCoreUnrecognized
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem potFileDsrBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition)
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (potFileDsrX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (potDecode_fileDsr_none_short hsz4 hshort)
 
 /-- `file(bytes32,uint256)` external (auth): sets `dsr` when `what == "dsr"`. -/
-theorem potFileDsrBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem potFileDsrBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (potSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (potSelBytes 7)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (potSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition :=
     potDispatchFileDsr hsel
-  have hreach := potReachFileDsrBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := potReachFileDsrBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
-    · by_cases hlive : potSlotWord ⟨8⟩ σ_evm I = ⟨1⟩
-      · by_cases htime : UInt256.ofNat I.header.timestamp = potSlotWord ⟨7⟩ σ_evm I
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · by_cases hlive : potSlotWord ⟨8⟩ σ I = ⟨1⟩
+      · by_cases htime : UInt256.ofNat I.header.timestamp = potSlotWord ⟨7⟩ σ I
         · by_cases hwhat : fileDsrWhat I = fileDsrBytes
           · exact potFileDsrBodyCoreOk hcode hsize _hperm hwv hsz68 hauth hlive htime.symm hwhat
-              hdispatch (potDecode_fileDsr_ok hsz68) hreach hAccounts
+              hdispatch (potDecode_fileDsr_ok hsz68) hreach
           · exact potFileDsrBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hlive htime.symm
-              hwhat hdispatch (potDecode_fileDsr_ok hsz68) hreach hAccounts
+              hwhat hdispatch (potDecode_fileDsr_ok hsz68) hreach
         · exact potFileDsrBodyCoreRhoRevert hcode hsize hwv hsz68 hauth hlive htime
-            hdispatch (potDecode_fileDsr_ok hsz68) hreach hAccounts
+            hdispatch (potDecode_fileDsr_ok hsz68) hreach
       · exact potFileDsrBodyCoreLiveRevert hcode hsize hwv hsz68 hauth hlive
-          hdispatch (potDecode_fileDsr_ok hsz68) hreach hAccounts
+          hdispatch (potDecode_fileDsr_ok hsz68) hreach
     · exact potFileDsrBodyCoreUnauthorized hcode hsize hwv hsz68 hauth
-        hdispatch (potDecode_fileDsr_ok hsz68) hreach hAccounts
+        hdispatch (potDecode_fileDsr_ok hsz68) hreach
   · exact potFileDsrBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

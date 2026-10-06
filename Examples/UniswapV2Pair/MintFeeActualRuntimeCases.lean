@@ -7,19 +7,20 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeActualRootRuntimeCases
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (evmFeeS : EVM.State) (rd7899 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
       [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast, feeToWord,
         ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1,
         balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evmFeeS.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : Eq σFee evmFeeS.accountMap)
     (henv : evmFeeS.executionEnv = I)
+    (hσ0 : evmFeeS.σ₀ = σ₀)
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
     (hrootKNonneg : 0 ≤ rootK) (hrootKSize : rootK.toNat < UInt256.size)
     (hrootKLastNonneg : 0 ≤ rootKLast) (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -29,21 +30,26 @@ theorem uniswapMintFeeActualRootRuntimeCases
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
       evmFeeS [mintFeeRootComparisonStmt] .reverted ∧
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ frame' evm' σ' mem' k' C',
       ExecBlock config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evmFeeS.createdAccounts ∧
+      Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
         [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
-          toWord, ⟨861⟩, sel] mem' feeToStaticcallActiveWords rdata (cAFee, σ') k' C' ∧
-      mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
-  exact uniswapMintFeeActualRootRuntimeCasesOfTail evmFeeS rd7899 hAccounts henv hrecipient
+          toWord, ⟨861⟩, sel] mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
+      mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
+      evm'.σ₀ = (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀) := by
+  rcases uniswapMintFeeActualRootRuntimeCasesOfTail evmFeeS rd7899 hAccounts henv
+      (by simpa [initState] using hσ0) hrecipient
     hrootKNonneg hrootKSize hrootKLastNonneg hrootKLastSize hperm hmem hmem64
-    (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega) with
+    hrev | ⟨frame', evm', σ', mem', k', C', hblock, hfeeOn, hmap, henv', rd, hmem', hmem64', hσ0'⟩
+  · exact Or.inl hrev
+  · exact Or.inr ⟨frame', evm', σ', mem', k', C', hblock, hfeeOn, hmap, henv', rd,
+      hmem', hmem64', hσ0'⟩
 
 end UniswapV2Pair

@@ -15,19 +15,19 @@ def bidRefundStmt : Stmt :=
 def bidRefundStmts : List Stmt :=
   [.letDecl "lastBidder" (some addr) (auctionMemField "bidder"), bidRefundStmt]
 
-theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata cA σ k C evm locals}
+theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata σ k C evm locals}
     (h : RD auctionBytecode I g s0 ⟨1681⟩ (⟨128⟩ :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ⟨320⟩) (hsm : SnapshotMemory s mem aw ⟨128⟩)
     (hv : BidValues locals s noun) (hov : R.length + 28 ≤ 1024) :
-    (∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' ptr' : UInt256) (out : ByteArray) (k' C' : Nat),
       ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
         bidRefundStmts (.ok { contract := auctionContract, locals := locals' } evm') ∧
-      BidValues locals' s noun ∧ SourceState s0 I cA' σ' evm' ∧
+      BidValues locals' s noun ∧ SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨1715⟩ (s.bidderWord :: ⟨128⟩ :: noun :: ret :: R)
-        mem' aw' out (cA', σ') k' C' ∧
+        mem' aw' out σ' k' C' ∧
       MemoryCursor mem' aw' ptr' ∧ SnapshotMemory s mem' aw' ⟨128⟩ ∧
       320 ≤ ptr'.toNat ∧ ptr'.toNat ≤ 320 + 2 ^ 140) ∨
     (ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
@@ -51,11 +51,11 @@ theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata cA σ k C evm locals}
   rw [hmask, Snapshot.bidderWord, maskTwice] at rd1701
   change RD _ _ _ _ ⟨1701⟩
     (⟨1715⟩ :: UInt256.isZero s.bidderWord :: s.bidderWord :: ⟨128⟩ :: noun :: ret :: R)
-    mem aw rdata (cA, σ) _ _ at rd1701
+    mem aw rdata σ _ _ at rd1701
   by_cases hz : s.bidderWord = ⟨0⟩
   · have he := evalAddressNeZero_false hb (by rw [hz]; rfl)
     have rd1715 := evm_run rd1701 with [jumpiT (by rw [hz]; decide) (by jump_dest)]
-    exact Or.inl ⟨evm, cA, σ, locals1, mem, aw, ⟨320⟩, rdata, _, _,
+    exact Or.inl ⟨evm, σ, locals1, mem, aw, ⟨320⟩, rdata, _, _,
       ExecBlock.consNormal hlet
         (ExecBlock.consNormal (ExecStmt.iteFalse he ExecBlock.nil) ExecBlock.nil),
       hv1, hs, rd1715, hm.cursor, hsm, by decide, by decide⟩
@@ -78,9 +78,9 @@ theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata cA σ k C evm locals}
       rfl
     rcases paymentInternalRoutine rd3337 hs hperm hm (by decide) hargs
         (retVar := "_refund") (by jump_dest) (by evm_ov) with
-      ⟨evm', cA', σ', mem', aw', ptr', out, _, _, hsrc, hs', hr, hm', hp, hlo, hhi, hg⟩ |
+      ⟨evm', σ', mem', aw', ptr', out, _, _, hsrc, hs', hr, hm', hp, hlo, hhi, hg⟩ |
         ⟨hsrc, hr⟩
-    · exact Or.inl ⟨evm', cA', σ', _, mem', aw', ptr', out, _, _,
+    · exact Or.inl ⟨evm', σ', _, mem', aw', ptr', out, _, _,
         ExecBlock.consNormal hlet
           (ExecBlock.consNormal (ExecStmt.iteTrue he (ExecBlock.consNormal hsrc ExecBlock.nil))
             ExecBlock.nil),

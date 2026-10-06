@@ -37,13 +37,13 @@ theorem gemJoinDecode_wards_none_short {I : ExecutionEnv}
   simpa [config, wardsTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem gemJoinReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (gemJoinSelBytes 10)) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         ⟨382⟩ [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : gemJoinSelWord I = ⟨0xbf353dbb⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
@@ -65,7 +65,7 @@ theorem gemJoinReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem gemJoinWardsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
@@ -74,10 +74,9 @@ theorem gemJoinWardsBodyCoreOk
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨382⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨382⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
@@ -85,15 +84,15 @@ theorem gemJoinWardsBodyCoreOk
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
-            (Int.ofNat (gemJoinSlotWord (wardsMappingSlotFor I) σ_solm I).toNat))])) := by
+            (Int.ofNat (gemJoinSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
     simpa [wardsTransition, wardsMappingSlotFor, gemJoinSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals, key] using
       gemJoinUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := wardsRef (.var "arg0")) (er := wardsMappingEvaledRef I)
         (slot := wardsMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, wardsRef])
@@ -125,12 +124,12 @@ theorem gemJoinWardsBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret gemJoinBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (gemJoinSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (gemJoinSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨318⟩) (val := gemJoinSlotWord slot σ_evm I) (ret := ⟨318⟩) (R := [sel])
+      (pc := ⟨318⟩) (val := gemJoinSlotWord slot σ I) (ret := ⟨318⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (gemJoinSlotWord slot σ_evm I))
+        (gemJoinSlotWord slot σ I))
       (by simpa [slot, gemJoinSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -138,37 +137,35 @@ theorem gemJoinWardsBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (gemJoinSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (gemJoinSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (gemJoinSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (gemJoinSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, gemJoinSlotWord] using hret'
-  have hword : gemJoinSlotWord slot σ_evm I = gemJoinSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some [Value.int (Int.ofNat (gemJoinSlotWord (wardsMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (gemJoinSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+      some [Value.int (Int.ofNat (gemJoinSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat)] := by
+    rw [hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (gemJoinSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (gemJoinSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (gemJoinSlotWord slot σ I))
+        (some [(.int (Int.ofNat (gemJoinSlotWord slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (gemJoinSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (gemJoinSlotWord slot σ I))
+  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem gemJoinWardsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨382⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨382⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -185,24 +182,23 @@ theorem gemJoinWardsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (gemJoinDecode_wards_none_short hsz4 hshort)
 
-theorem gemJoinWardsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinWardsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (gemJoinSelBytes 10))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (gemJoinSelBytes 10)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 10) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     gemJoinDispatchWards hsel
-  have hreach := gemJoinReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := gemJoinReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact gemJoinWardsBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (gemJoinDecode_wards_ok hsz36) hreach hAccounts
+      (gemJoinDecode_wards_ok hsz36) hreach
   · exact gemJoinWardsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.GemJoin

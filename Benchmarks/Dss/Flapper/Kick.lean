@@ -138,6 +138,55 @@ def kickAfterEndState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
     (kickAfterGuyState evm I).executionEnv.codeOwner (auctionPackedSlot (kickIdWord evm))
     (kickEndStoredWord evm I)
 
+theorem kickAfterEndState_accountMapOnly (evm : EVM.State) (I : ExecutionEnv) :
+    {evm with accountMap := (kickAfterEndState evm I).accountMap} =
+      kickAfterEndState evm I := by
+  have hFill :
+      {evm with accountMap := (kickAfterFillState evm I).accountMap} =
+        kickAfterFillState evm I := by
+    simpa [kickAfterFillState] using
+      storageStore_eq_accountMap_update evm evm.executionEnv.codeOwner ⟨9⟩
+        (kickFillNewWord evm I)
+  have hKicks :
+      {kickAfterFillState evm I with accountMap := (kickAfterKicksState evm I).accountMap} =
+        kickAfterKicksState evm I := by
+    simpa [kickAfterKicksState] using
+      storageStore_eq_accountMap_update (kickAfterFillState evm I)
+        (kickAfterFillState evm I).executionEnv.codeOwner ⟨6⟩ (kickIdWord evm)
+  have hBid :
+      {kickAfterKicksState evm I with accountMap := (kickAfterBidState evm I).accountMap} =
+        kickAfterBidState evm I := by
+    simpa [kickAfterBidState] using
+      storageStore_eq_accountMap_update (kickAfterKicksState evm I)
+        (kickAfterKicksState evm I).executionEnv.codeOwner
+        (auctionBidSlot (kickIdWord evm)) (kickBidWord I)
+  have hLot :
+      {kickAfterBidState evm I with accountMap := (kickAfterLotState evm I).accountMap} =
+        kickAfterLotState evm I := by
+    simpa [kickAfterLotState] using
+      storageStore_eq_accountMap_update (kickAfterBidState evm I)
+        (kickAfterBidState evm I).executionEnv.codeOwner
+        (auctionLotSlot (kickIdWord evm)) (kickLotWord I)
+  have hGuy :
+      {kickAfterLotState evm I with accountMap := (kickAfterGuyState evm I).accountMap} =
+        kickAfterGuyState evm I := by
+    simpa [kickAfterGuyState] using
+      storageStore_eq_accountMap_update (kickAfterLotState evm I)
+        (kickAfterLotState evm I).executionEnv.codeOwner
+        (auctionPackedSlot (kickIdWord evm)) (kickGuyStoredWord evm I)
+  have hEnd :
+      {kickAfterGuyState evm I with accountMap := (kickAfterEndState evm I).accountMap} =
+        kickAfterEndState evm I := by
+    simpa [kickAfterEndState] using
+      storageStore_eq_accountMap_update (kickAfterGuyState evm I)
+        (kickAfterGuyState evm I).executionEnv.codeOwner
+        (auctionPackedSlot (kickIdWord evm)) (kickEndStoredWord evm I)
+  exact stateAccountMapUpdate_trans
+    (stateAccountMapUpdate_trans
+      (stateAccountMapUpdate_trans
+        (stateAccountMapUpdate_trans
+          (stateAccountMapUpdate_trans hFill hKicks) hBid) hLot) hGuy) hEnd
+
 abbrev kickMoveLocals (evm : EVM.State) (I : ExecutionEnv) : Store :=
   (kickEndLocals evm I).insert "_moveRet" (collapseReturns [])
 
@@ -838,7 +887,7 @@ theorem kickKicksWord_afterFill_eq (evm : EVM.State) (I : ExecutionEnv) :
     kickKicksWord (kickAfterFillState evm I) = kickKicksWord evm := by
   simpa [kickKicksWord, kickAfterFillState, flapperSlotWord, solcSlotWord,
     storageStore_accountMap, storageStore_executionEnv] using
-    sstoreAccountMap_storage_findD_ne evm.accountMap evm.executionEnv.codeOwner
+    sstoreAccountMap_storage_getD_ne evm.accountMap evm.executionEnv.codeOwner
       ⟨6⟩ ⟨9⟩ (kickFillNewWord evm I) (by native_decide)
 
 theorem kickIdWord_afterFill_eq (evm : EVM.State) (I : ExecutionEnv) :
@@ -1908,13 +1957,13 @@ theorem flapperDecode_kick_none_short {I : ExecutionEnv}
   exact decodeCalldata_legacyUint256_uint256_none_short (cd := I.calldata)
     (x := "lot") (y := "bid") hsz4 hshort
 
-theorem flapperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachKickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 8)) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         ⟨796⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flapperSelWord I = ⟨0xca40c419⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xca 0x40 0xc4 0x19 ⟨0xca40c419⟩
@@ -1928,7 +1977,7 @@ theorem flapperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flapperReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flapperReachHighHighFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   have heq0 : ∀ j, j < 0 →
       UInt256.eq
@@ -1946,14 +1995,14 @@ theorem flapperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flapperHighHighArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flapperKickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨796⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3901⟩
+      (initState σ σ₀ g A I) ⟨796⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flapperBytecode) (sel := sel) (entry := ⟨796⟩) (ret := ⟨313⟩)
     (decoded := ⟨818⟩) (need := ⟨64⟩) hreach
@@ -1978,13 +2027,13 @@ theorem flapperKickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
       show ((⟨32⟩ : UInt256) + (⟨4⟩ : UInt256)).toNat = 36 from by decide]
       using rd826.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem flapperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperKickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨796⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨796⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -2000,14 +2049,14 @@ theorem flapperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -2038,7 +2087,7 @@ theorem flapperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k3918, C3918, rd3918raw⟩ := rd3917.sload (by native_decide) (by evm_ov)
   have rd3918 : RD flapperBytecode I g s0 ⟨3918⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3918 C3918 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3918 C3918 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3918raw
   have rd3921pre := evm_run rd3918 with [
@@ -2051,11 +2100,11 @@ theorem flapperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨3901⟩
       [kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -2087,7 +2136,7 @@ theorem flapperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨k3918, C3918, rd3918raw⟩ := rd3917.sload (by native_decide) (by evm_ov)
   have rd3918 : RD flapperBytecode I g s0 ⟨3918⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3918 C3918 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3918 C3918 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3918raw
   have rd3921pre := evm_run rd3918 with [
@@ -2117,21 +2166,21 @@ theorem flapperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flapperKickX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : flapperSlotWord ⟨7⟩ σ I = ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3997 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3998, C3998, rd3998raw⟩ := rd3997.sload (by native_decide) (by evm_ov)
   have rd3998 : RD flapperBytecode I g s0 ⟨3998⟩
       (flapperSlotWord ⟨7⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3998 C3998 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3998 C3998 := by
     simpa [flapperSlotWord] using rd3998raw
   have rd4001pre := evm_run rd3998 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2142,11 +2191,11 @@ theorem flapperKickX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd4004.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem flapperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : flapperSlotWord ⟨7⟩ σ I ≠ ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨3994⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have rd3997 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2154,7 +2203,7 @@ theorem flapperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k3998, C3998, rd3998raw⟩ := rd3997.sload (by native_decide) (by evm_ov)
   have rd3998 : RD flapperBytecode I g s0 ⟨3998⟩
       (flapperSlotWord ⟨7⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3998 C3998 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3998 C3998 := by
     simpa [flapperSlotWord] using rd3998raw
   have rd4001pre := evm_run rd3998 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2183,14 +2232,14 @@ theorem flapperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flapperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_kicksOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksLt : (flapperSlotWord ⟨6⟩ σ I).toNat < UInt256.size - 1)
     (h : RD flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4074pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -2200,7 +2249,7 @@ theorem flapperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd4075 : RD flapperBytecode I g s0 ⟨4075⟩
       (flapperSlotWord ⟨6⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4075 C4075 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4075 C4075 := by
     simpa [flapperSlotWord] using rd4075raw
   have rd4076 := rd4075.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -2214,11 +2263,11 @@ theorem flapperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd4079.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem flapperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_kicksOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksGe : UInt256.size - 1 ≤ (flapperSlotWord ⟨6⟩ σ I).toNat)
     (h : RD flapperBytecode I g s0 ⟨4068⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have rd4074pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2229,7 +2278,7 @@ theorem flapperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd4075 : RD flapperBytecode I g s0 ⟨4075⟩
       (flapperSlotWord ⟨6⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: ⟨313⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4075 C4075 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4075 C4075 := by
     simpa [flapperSlotWord] using rd4075raw
   have rd4076 := rd4075.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -2260,16 +2309,16 @@ theorem flapperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_fillAddOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_fillAddOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hfillFit : (flapperSlotWord ⟨9⟩ σ I).toNat + (kickLotWord I).toNat < UInt256.size)
     (h : RD flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4155⟩
       [flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4149pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨4155⟩ (by native_decide) (by evm_ov),
@@ -2278,7 +2327,7 @@ theorem flapperKickX_fillAddOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd4150 : RD flapperBytecode I g s0 ⟨4150⟩
       [flapperSlotWord ⟨9⟩ σ I, ⟨4155⟩, ⟨0⟩, kickBidWord I, kickLotWord I,
         ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4150 C4150 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4150 C4150 := by
     simpa [flapperSlotWord] using rd4150raw
   have rd4154pre := evm_run rd4150 with [
     raw dup5 (by native_decide) (by evm_ov),
@@ -2297,13 +2346,13 @@ theorem flapperKickX_fillAddOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd4155⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_fillAddOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_fillAddOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hfillOverflow :
       UInt256.size ≤ (flapperSlotWord ⟨9⟩ σ I).toNat + (kickLotWord I).toNat)
     (h : RD flapperBytecode I g s0 ⟨4143⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have rd4149pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2313,7 +2362,7 @@ theorem flapperKickX_fillAddOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd4150 : RD flapperBytecode I g s0 ⟨4150⟩
       [flapperSlotWord ⟨9⟩ σ I, ⟨4155⟩, ⟨0⟩, kickBidWord I, kickLotWord I,
         ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4150 C4150 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k4150 C4150 := by
     simpa [flapperSlotWord] using rd4150raw
   have rd4154pre := evm_run rd4150 with [
     raw dup5 (by native_decide) (by evm_ov),
@@ -2361,7 +2410,7 @@ theorem flapperKickX_fillAddOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_lidOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_lidOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hfillLe :
       (flapperSlotWord ⟨9⟩ σ I + kickLotWord I).toNat ≤
@@ -2369,11 +2418,11 @@ theorem flapperKickX_lidOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (h : RD flapperBytecode I g s0 ⟨4155⟩
       [flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4233⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k' C' := by
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k' C' := by
   have rd4159pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov),
@@ -2385,7 +2434,7 @@ theorem flapperKickX_lidOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k4161 C4161 := by
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k4161 C4161 := by
     simpa [kickRuntimeAfterFillMap] using rd4161raw
   have rd4163pre := rd4161.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4164, C4164, rd4164raw⟩ := rd4163pre.sload (by native_decide) (by evm_ov)
@@ -2394,7 +2443,7 @@ theorem flapperKickX_lidOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k4164 C4164 := by
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k4164 C4164 := by
     simpa [flapperSlotWord] using rd4164raw
   have rd4165pre := rd4164.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -2409,7 +2458,7 @@ theorem flapperKickX_lidOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_overLid {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperKickX_overLid {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (hoverLid :
       (flapperSlotWord ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat <
@@ -2417,7 +2466,7 @@ theorem flapperKickX_overLid {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (h : RD flapperBytecode I g s0 ⟨4155⟩
       [flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have rd4159pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2430,7 +2479,7 @@ theorem flapperKickX_overLid {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k4161 C4161 := by
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k4161 C4161 := by
     simpa [kickRuntimeAfterFillMap] using rd4161raw
   have rd4163pre := rd4161.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   obtain ⟨k4164, C4164, rd4164raw⟩ := rd4163pre.sload (by native_decide) (by evm_ov)
@@ -2439,7 +2488,7 @@ theorem flapperKickX_overLid {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         flapperSlotWord ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k4164 C4164 := by
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k4164 C4164 := by
     simpa [flapperSlotWord] using rd4164raw
   have rd4165pre := rd4164.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -2470,19 +2519,19 @@ theorem flapperKickX_overLid {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (h : RD flapperBytecode I g s0 ⟨4233⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterFillMap I.codeOwner σ I) k C) :
+      (kickRuntimeAfterFillMap I.codeOwner σ I) k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
     ∃ k' C', RD flapperBytecode I g s0 ⟨4936⟩
       [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨4319⟩,
         id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k' C' := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' := by
   intro id memStore σGuy
   let σFill := kickRuntimeAfterFillMap I.codeOwner σ I
   let σKicks := kickRuntimeAfterKicksMap I.codeOwner σ I
@@ -2495,7 +2544,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
   have hslot6 :
       flapperSlotWord ⟨6⟩ σFill I = flapperSlotWord ⟨6⟩ σ I := by
     simpa [σFill, kickRuntimeAfterFillMap, flapperSlotWord, solcSlotWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨6⟩ ⟨9⟩
+      sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨6⟩ ⟨9⟩
         (flapperSlotWord ⟨9⟩ σ I + kickLotWord I) (by native_decide)
   have rd4238pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2506,12 +2555,12 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by evm_ov)
   have rd4239 : RD flapperBytecode I g s0 ⟨4239⟩
       [flapperSlotWord ⟨6⟩ σ I, ⟨6⟩, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σFill)
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σFill
       k4239 C4239 := by
     have rd4239' : RD flapperBytecode I g s0 ⟨4239⟩
         [flapperSlotWord ⟨6⟩ σFill I, ⟨6⟩, kickBidWord I, kickLotWord I,
           ⟨313⟩, sel]
-        (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σFill)
+        (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σFill
         k4239 C4239 := by
       simpa [σFill, flapperSlotWord] using rd4239raw
     simpa [hslot6] using rd4239'
@@ -2532,7 +2581,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4248 : RD flapperBytecode I g s0 ⟨4248⟩
       [⟨1⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σKicks) k4248 C4248 := by
+      σKicks k4248 C4248 := by
     simpa [id, σKicks, σFill, kickRuntimeAfterKicksMap, kickRuntimeAfterFillMap,
       kickRuntimeIdWord, flapperSlotWord, hidRawSolc]
       using rd4248raw
@@ -2586,7 +2635,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by evm_ov)
   have rd4265 : RD flapperBytecode I g s0 ⟨4265⟩
       [auctionBidSlot id, ⟨1⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σBid) k4265 C4265 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σBid k4265 C4265 := by
     simpa [σBid, kickRuntimeAfterBidMap, σKicks, kickRuntimeAfterKicksMap, id]
       using rd4265raw
   have rd4270pre := evm_run rd4265 with [
@@ -2602,7 +2651,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by evm_ov)
   have rd4271 : RD flapperBytecode I g s0 ⟨4271⟩
       [auctionBidSlot id, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σLot) k4271 C4271 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k4271 C4271 := by
     simpa [σLot, kickRuntimeAfterLotMap, σBid, kickRuntimeAfterBidMap, id]
       using rd4271raw
   have rd4273pre := evm_run rd4271 with [
@@ -2616,7 +2665,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by evm_ov)
   have rd4276 : RD flapperBytecode I g s0 ⟨4276⟩
       [oldPacked, packedSlot, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σLot) k4276 C4276 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k4276 C4276 := by
     simpa [oldPacked, solcSlotWord, packedSlot] using rd4276raw
   have rd4288pre := evm_run rd4276 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2654,7 +2703,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
             rfl
   have rd4290 : RD flapperBytecode I g s0 ⟨4290⟩
       [id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k4290 C4290 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k4290 C4290 := by
     simpa [σGuy, kickRuntimeAfterGuyMap, guyStored, kickRuntimeGuyStoredWord,
       oldPacked, packedSlot, σLot, hmask, hstored, setAddressOffset0Word,
       kickSenderWord] using
@@ -2663,7 +2712,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k4293, C4293, rd4293raw⟩ := rd4292.sload (by native_decide) (by evm_ov)
   have rd4293 : RD flapperBytecode I g s0 ⟨4293⟩
       [flapperSlotWord ⟨5⟩ σGuy I, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k4293 C4293 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k4293 C4293 := by
     simpa [flapperSlotWord] using rd4293raw
   have rd4299 := evm_run rd4293 with [
     raw push2 ⟨4319⟩ (by native_decide) (by evm_ov),
@@ -2703,7 +2752,7 @@ theorem kickRuntimeTauWord_lt (owner : AccountAddress) (σ : AccountMap) (I : Ex
         (UInt256.ofNat (256 ^ 6)))
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_toEndStoreStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flapperKickX_toEndStoreStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) flapperUint48Mask).toNat +
@@ -2713,13 +2762,13 @@ theorem flapperKickX_toEndStoreStart {cA σ I} {g : Sat256} {s0 : State}
         kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
+      (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4319⟩
       [kickRuntimeAddWord I.codeOwner σ I, kickRuntimeIdWord σ I, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterGuyMap I.codeOwner σ I) k' C' := by
+      (kickRuntimeAfterGuyMap I.codeOwner σ I) k' C' := by
   let tau := kickRuntimeTauWord I.codeOwner σ I
   let timestamp := UInt256.ofNat I.header.timestamp
   let addWord := kickRuntimeAddWord I.codeOwner σ I
@@ -2768,7 +2817,7 @@ theorem flapperKickX_toEndStoreStart {cA σ I} {g : Sat256} {s0 : State}
       rd4319⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_endAddOverflow {cA σ I} {g : Sat256} {s0 : State}
+theorem flapperKickX_endAddOverflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (haddOverflow :
       2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) flapperUint48Mask).toNat +
@@ -2778,7 +2827,7 @@ theorem flapperKickX_endAddOverflow {cA σ I} {g : Sat256} {s0 : State}
         kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
+      (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
     RDrev flapperBytecode g s0 := by
   let tau := kickRuntimeTauWord I.codeOwner σ I
   let timestamp := UInt256.ofNat I.header.timestamp
@@ -2820,21 +2869,21 @@ theorem flapperKickX_endAddOverflow {cA σ I} {g : Sat256} {s0 : State}
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flapperKickX_toMoveSetupStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (h : RD flapperBytecode I g s0 ⟨4319⟩
       [kickRuntimeAddWord I.codeOwner σ I, kickRuntimeIdWord σ I, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
+      (kickRuntimeAfterGuyMap I.codeOwner σ I) k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k' C' := by
+      (kickRuntimeBeforeMoveMap I.codeOwner σ I) k' C' := by
   let id := kickRuntimeIdWord σ I
   let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
   let memEndStore := twoWordHashMem id ⟨1⟩ memStore
@@ -2899,7 +2948,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4342 : RD flapperBytecode I g s0 ⟨4342⟩
       [oldPacked, packedSlot, ⟨2⟩, ⟨64⟩, ⟨0⟩, addWord, id, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
-      memEndStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k4342 C4342 := by
+      memEndStore (UInt256.ofNat 3) ByteArray.empty σGuy k4342 C4342 := by
     simpa [oldPacked, packedSlot, solcSlotWord, addWord] using rd4342raw
   have rd4349pre := rd4342.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
@@ -2951,7 +3000,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
   rw [hstoredRaw] at rd4377raw
   have rd4377 : RD flapperBytecode I g s0 ⟨4377⟩
       [⟨64⟩, ⟨0⟩, ⟨2⟩, id, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
-      memEndStore (UInt256.ofNat 3) ByteArray.empty (cA, σBeforeMove) k4377 C4377 := by
+      memEndStore (UInt256.ofNat 3) ByteArray.empty σBeforeMove k4377 C4377 := by
     simpa [σBeforeMove, kickRuntimeBeforeMoveMap, kickRuntimeEndStoredWord,
       σGuy, oldPacked, packedSlot, addWord, hstoredRaw, tickRuntimeEndStoredRawWord,
       tickRuntimeEndShiftedWord, tickRuntimeEndClearMask, id] using rd4377raw
@@ -2960,13 +3009,13 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4379 : RD flapperBytecode I g s0 ⟨4379⟩
       [flapperSlotWord ⟨2⟩ σBeforeMove I, ⟨0⟩, ⟨64⟩, id, kickBidWord I,
         kickLotWord I, ⟨313⟩, sel]
-      memEndStore (UInt256.ofNat 3) ByteArray.empty (cA, σBeforeMove) k4379 C4379 := by
+      memEndStore (UInt256.ofNat 3) ByteArray.empty σBeforeMove k4379 C4379 := by
     simpa [flapperSlotWord] using rd4379raw
   exact ⟨_, _, by
     simpa [id, memStore, memEndStore, σBeforeMove] using rd4379⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem flapperKickX_toMoveExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (h : RD flapperBytecode I g s0 ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
@@ -2974,7 +3023,7 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
+      (kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let memEndStore := twoWordHashMem id ⟨1⟩ memStore
@@ -2986,7 +3035,7 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
       (cageMoveCalldataMem (kickSenderWord I) (kickThisWord I) (kickLotWord I)
         memEndStore)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σBeforeMove) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σBeforeMove k' C' := by
   intro id memStore memEndStore σBeforeMove vat
   let rawVat := flapperSlotWord ⟨2⟩ σBeforeMove I
   let src := kickSenderWord I
@@ -3137,10 +3186,10 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       show cageMoveInSize + cageMoveOutPtr = cageMoveEndPtr from by native_decide]
       using rd4446⟩
 
-theorem RD.flapperKickReturnWordFromMem8 {cA σ I} {g : Sat256} {s0 : State}
+theorem RD.flapperKickReturnWordFromMem8 {σ I} {g : Sat256} {s0 : State}
     {sel id : UInt256} {mem memout rdata : ByteArray} {k C : ℕ}
     (h : RD flapperBytecode I g s0 ⟨313⟩ [id, sel] mem (UInt256.ofNat 8) rdata
-      (cA, σ) k C)
+      σ k C)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -3153,7 +3202,7 @@ theorem RD.flapperKickReturnWordFromMem8 {cA σ I} {g : Sat256} {s0 : State}
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray id) :
-    RDret flapperBytecode g s0 (cA, σ) (UInt256.toByteArray id) := by
+    RDret flapperBytecode g s0 σ (UInt256.toByteArray id) := by
   exact evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3183,18 +3232,18 @@ theorem RD.flapperKickReturnWordFromMem8 {cA σ I} {g : Sat256} {s0 : State}
       (by evm_ov)]
 
 theorem flapperKickX_moveNoCode
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) = ⟨0⟩)
-    (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
+      (kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
+    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4446⟩) (okPc := ⟨4458⟩)
     rd4446 hnoCode
@@ -3203,19 +3252,19 @@ theorem flapperKickX_moveNoCode
     (by native_decide) (by simp)
 
 theorem flapperKickX_moveCall
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
+      (kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let memEndStore := twoWordHashMem id ⟨1⟩ memStore
@@ -3224,20 +3273,20 @@ theorem flapperKickX_moveCall
     let guy := kickThisWord I
     let rad := kickLotWord I
     let vat := kickVatWord σBeforeMove I
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4462⟩
+      RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
         (cageMoveCalldataMem src guy rad memEndStore) (UInt256.ofNat 8)
-        out (cA', σ') k' C'
+        out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA gh bl σStart σ₀ g A I with accountMap := σBeforeMove })
+        ({ initState σStart σ₀ g A I with accountMap := σBeforeMove })
         (EVM.address (AccountAddress.ofNat vat.toNat)) "move" 0
         [.address I.source, .address I.codeOwner, .int (Int.ofNat rad.toNat)]
         (z,
-          { { initState cA gh bl σStart σ₀ g A I with accountMap := σBeforeMove } with
-              accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σStart σ₀ g A I with accountMap := σBeforeMove } with
+              accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   intro id memStore memEndStore σBeforeMove src guy rad vat
@@ -3272,11 +3321,11 @@ theorem flapperKickX_moveCall
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
-  obtain ⟨cA', σ', z, out, A_in, callGas, k4462, C4462, hΘpack, rd4462raw,
+  obtain ⟨σ', z, out, A_in, callGas, k4462, C4462, hΘpack, rd4462raw,
       houtsz⟩ :=
     RD.call rd4461 (by native_decide) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k4462, C4462, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k4462, C4462, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           cageMoveOutPtr.toNat cageMoveInSize.toNat)
@@ -3286,12 +3335,12 @@ theorem flapperKickX_moveCall
     have hmin : (min cageMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold cageMoveOutSize
       rfl
-    have rd4462 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4462⟩
+    have rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: cageMoveEndPtr :: cageMoveSelectorWord ::
           vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
         (out.write 0 (cageMoveCalldataMem src guy rad memEndStore)
           cageMoveOutPtr.toNat (min cageMoveOutSize (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k4462 C4462 :=
+        (UInt256.ofNat 8) out σ' k4462 C4462 :=
       haw ▸ rd4462raw
     rw [hmin, byteArray_write_len_zero] at rd4462
     exact rd4462
@@ -3307,18 +3356,18 @@ theorem flapperKickX_moveCall
     · simpa [initState, hperm] using hΘ
 
 theorem flapperKickX_moveCallDepthLimit
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
-    (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
+    (rd4379 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
         ⟨0⟩, ⟨64⟩, kickRuntimeIdWord σ I, kickBidWord I, kickLotWord I, ⟨313⟩, sel]
       (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
+      (kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let memEndStore := twoWordHashMem id ⟨1⟩ memStore
@@ -3327,11 +3376,11 @@ theorem flapperKickX_moveCallDepthLimit
     let guy := kickThisWord I
     let rad := kickLotWord I
     let vat := kickVatWord σBeforeMove I
-    ∃ k' C', RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4462⟩
+    ∃ k' C', RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         vat :: id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
       (cageMoveCalldataMem src guy rad memEndStore) (UInt256.ofNat 8)
-      ByteArray.empty (cA, σBeforeMove) k' C' := by
+      ByteArray.empty σBeforeMove k' C' := by
   intro id memStore memEndStore σBeforeMove src guy rad vat
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
   obtain ⟨gasWord, _, _, rd4461⟩ :=
@@ -3357,16 +3406,16 @@ theorem flapperKickX_moveCallDepthLimit
     byteArray_write_len_zero, haw] using rd4462raw
 
 theorem flapperKickX_moveCallFailure
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ' : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd4462 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4462⟩
+    (rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
-      mem aw out (cA', σ') k C)
+      mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
-    RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σStart σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3376,20 +3425,20 @@ theorem flapperKickX_moveCallFailure
 
 set_option maxHeartbeats 1000000 in
 theorem flapperKickX_moveCallSuccess
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σStart σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ' : AccountMap}
     {out : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
-    (rd4462 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4462⟩
+    (rd4462 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4462⟩
       (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
       (cageMoveCalldataMem (kickSenderWord I) (kickThisWord I) (kickLotWord I)
         (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
           (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩ (relyAuthHashMem I))))
-      (UInt256.ofNat 8) out (cA', σ') k C) :
-    RDret flapperBytecode g (initState cA gh bl σStart σ₀ g A I)
-      (cA', σ') (UInt256.toByteArray (kickRuntimeIdWord σ I)) := by
+      (UInt256.ofNat 8) out σ' k C) :
+    RDret flapperBytecode g (initState σStart σ₀ g A I)
+      σ' (UInt256.toByteArray (kickRuntimeIdWord σ I)) := by
   let id := kickRuntimeIdWord σ I
   let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
   let memEndStore := twoWordHashMem id ⟨1⟩ memStore
@@ -3484,11 +3533,11 @@ theorem flapperKickX_moveCallSuccess
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd4480 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4480⟩
+  have rd4480 : RD flapperBytecode I g (initState σStart σ₀ g A I) ⟨4480⟩
       (cageMoveEndPtr :: cageMoveSelectorWord ::
         kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
         id :: kickBidWord I :: kickLotWord I :: ⟨313⟩ :: sel :: [])
-      memCall (UInt256.ofNat 8) out (cA', σ') k4480 C4480 := by
+      memCall (UInt256.ofNat 8) out σ' k4480 C4480 := by
     simpa [id, memStore, memEndStore, memCall,
       show ((⟨4478⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨4480⟩ from by native_decide]
       using rd4480raw
@@ -3568,116 +3617,106 @@ theorem flapperKickX_moveCallSuccess
   exact RD.flapperKickReturnWordFromMem8 rd313 hmload64Event (by rfl) hmload64Return hread128
 
 theorem kickRuntimeIdWord_source_eq
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    kickRuntimeIdWord σ_evm I =
-      kickIdWord (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨6⟩
-  simpa [kickRuntimeIdWord, kickIdWord, kickKicksWord, evmSolm, initState, hslot]
+    {σ σ₀ A I} {g : UInt256} :
+    kickRuntimeIdWord σ I =
+      kickIdWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  simp [kickRuntimeIdWord, kickIdWord, kickKicksWord, evmSolm, initState]
 
-theorem kickRuntimeAfterFillMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (kickRuntimeAfterFillMap I.codeOwner σ_evm I)
+theorem kickRuntimeAfterFillMap_source_eq
+    {σ σ₀ A I} {g : UInt256} :
+    Eq (kickRuntimeAfterFillMap I.codeOwner σ I)
       (kickAfterFillState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfill :
-      flapperSlotWord ⟨9⟩ σ_evm I + kickLotWord I = kickFillNewWord evmSolm I := by
-    have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨9⟩
-    simpa [kickFillNewWord, kickFillWord, evmSolm, initState, hslot]
-  simpa [evmSolm, initState, storageStore_accountMap, kickAfterFillState,
-    kickRuntimeAfterFillMap, hfill] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩
-      (flapperSlotWord ⟨9⟩ σ_evm I + kickLotWord I) hAccounts
+      flapperSlotWord ⟨9⟩ σ I + kickLotWord I = kickFillNewWord evmSolm I := by
+    simp [kickFillNewWord, kickFillWord, evmSolm, initState]
+  simp [evmSolm, initState, storageStore_accountMap, kickAfterFillState,
+    kickRuntimeAfterFillMap, hfill]
 
-theorem kickRuntimeAfterKicksMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (kickRuntimeAfterKicksMap I.codeOwner σ_evm I)
+theorem kickRuntimeAfterKicksMap_source_eq
+    {σ σ₀ A I} {g : UInt256} :
+    Eq (kickRuntimeAfterKicksMap I.codeOwner σ I)
       (kickAfterKicksState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    kickRuntimeAfterFillMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+    kickRuntimeAfterFillMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have hid := kickRuntimeIdWord_source_eq
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) hAccounts
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g)
   simpa [evmSolm, initState, storageStore_accountMap, kickAfterKicksState,
     kickAfterFillState_executionEnv, kickRuntimeAfterKicksMap, hid] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩
-      (kickRuntimeIdWord σ_evm I) hAfter
+    congrArg (fun map => sstoreAccountMap I.codeOwner map ⟨6⟩
+      (kickRuntimeIdWord σ I)) hAfter
 
-theorem kickRuntimeAfterBidMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (kickRuntimeAfterBidMap I.codeOwner σ_evm I)
+theorem kickRuntimeAfterBidMap_source_eq
+    {σ σ₀ A I} {g : UInt256} :
+    Eq (kickRuntimeAfterBidMap I.codeOwner σ I)
       (kickAfterBidState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    kickRuntimeAfterKicksMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+    kickRuntimeAfterKicksMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have hid := kickRuntimeIdWord_source_eq
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) hAccounts
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g)
   simpa [evmSolm, initState, storageStore_accountMap, kickAfterBidState,
     kickAfterKicksState_executionEnv, kickRuntimeAfterBidMap, hid] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner
-      (auctionBidSlot (kickRuntimeIdWord σ_evm I)) (kickBidWord I) hAfter
+    congrArg (fun map => sstoreAccountMap I.codeOwner map
+      (auctionBidSlot (kickRuntimeIdWord σ I)) (kickBidWord I)) hAfter
 
-theorem kickRuntimeAfterLotMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (kickRuntimeAfterLotMap I.codeOwner σ_evm I)
+theorem kickRuntimeAfterLotMap_source_eq
+    {σ σ₀ A I} {g : UInt256} :
+    Eq (kickRuntimeAfterLotMap I.codeOwner σ I)
       (kickAfterLotState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    kickRuntimeAfterBidMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+    kickRuntimeAfterBidMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have hid := kickRuntimeIdWord_source_eq
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) hAccounts
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g)
   simpa [evmSolm, initState, storageStore_accountMap, kickAfterLotState,
     kickAfterBidState_executionEnv, kickRuntimeAfterLotMap, hid] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner
-      (auctionLotSlot (kickRuntimeIdWord σ_evm I)) (kickLotWord I) hAfter
+    congrArg (fun map => sstoreAccountMap I.codeOwner map
+      (auctionLotSlot (kickRuntimeIdWord σ I)) (kickLotWord I)) hAfter
 
-theorem kickRuntimeAfterGuyMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (kickRuntimeAfterGuyMap I.codeOwner σ_evm I)
+theorem kickRuntimeAfterGuyMap_source_eq
+    {σ σ₀ A I} {g : UInt256} :
+    Eq (kickRuntimeAfterGuyMap I.codeOwner σ I)
       (kickAfterGuyState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  let packedSlot := auctionPackedSlot (kickRuntimeIdWord σ_evm I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let packedSlot := auctionPackedSlot (kickRuntimeIdWord σ I)
   have hAfter :=
-    kickRuntimeAfterLotMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+    kickRuntimeAfterLotMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have hid := kickRuntimeIdWord_source_eq
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) hAccounts
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g)
   have hold :
-      solcSlotWord (kickRuntimeAfterLotMap I.codeOwner σ_evm I) I packedSlot =
+      solcSlotWord (kickRuntimeAfterLotMap I.codeOwner σ I) I packedSlot =
         Solm.EVM.storageLoad (kickAfterLotState evmSolm I)
           (kickAfterLotState evmSolm I).executionEnv.codeOwner
           (auctionPackedSlot (kickIdWord evmSolm)) := by
-    have hslot := flapperSlotWord_accountMapEquiv (I := I) hAfter packedSlot
+    have hslot := congrArg (fun accounts => flapperSlotWord packedSlot accounts I) hAfter
     simpa [packedSlot, flapperSlotWord, solcSlotWord, evmSolm, initState,
       kickAfterLotState_executionEnv, hid] using hslot
   have hstored :
-      kickRuntimeGuyStoredWord I.codeOwner σ_evm I = kickGuyStoredWord evmSolm I := by
+      kickRuntimeGuyStoredWord I.codeOwner σ I = kickGuyStoredWord evmSolm I := by
     unfold kickRuntimeGuyStoredWord kickGuyStoredWord
     change
       setAddressOffset0Word
-          (solcSlotWord (kickRuntimeAfterLotMap I.codeOwner σ_evm I) I packedSlot)
+          (solcSlotWord (kickRuntimeAfterLotMap I.codeOwner σ I) I packedSlot)
           (kickSenderWord I) =
         setAddressOffset0Word
           (Solm.EVM.storageLoad (kickAfterLotState evmSolm I)
@@ -3687,49 +3726,47 @@ theorem kickRuntimeAfterGuyMap_source_accountMapEquiv
     rw [hold]
   simpa [evmSolm, initState, storageStore_accountMap, kickAfterGuyState,
     kickAfterLotState_executionEnv, kickRuntimeAfterGuyMap, packedSlot, hid, hstored] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot
-      (kickRuntimeGuyStoredWord I.codeOwner σ_evm I) hAfter
+    congrArg (fun map => sstoreAccountMap I.codeOwner map packedSlot
+      (kickRuntimeGuyStoredWord I.codeOwner σ I)) hAfter
 
 theorem kickRuntimeTauWord_source_eq
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    kickRuntimeTauWord I.codeOwner σ_evm I =
+    {σ σ₀ A I} {g : UInt256} :
+    kickRuntimeTauWord I.codeOwner σ I =
       kickTauWord
         (kickAfterGuyState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I) := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    kickRuntimeAfterGuyMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
-  have h := flapperUint48Offset6Word_accountMapEquiv (I := I) hAfter ⟨5⟩
+    kickRuntimeAfterGuyMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
+  have h := congrArg (fun accounts => flapperUint48Offset6Word ⟨5⟩ accounts I) hAfter
   simpa [evmSolm, kickRuntimeTauWord, kickTauWord, kickAfterGuyState_executionEnv,
     initState] using h
 
-theorem kickRuntimeBeforeMoveMap_source_accountMapEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+theorem kickRuntimeBeforeMoveMap_source_eq
+    {σ σ₀ A I} {g : UInt256}
     (hendFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) flapperUint48Mask).toNat +
-        (kickRuntimeTauWord I.codeOwner σ_evm I).toNat < 2 ^ 48) :
-    accountMapEquiv (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I)
+        (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48) :
+    Eq (kickRuntimeBeforeMoveMap I.codeOwner σ I)
       (kickAfterEndState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  let packedSlot := auctionPackedSlot (kickRuntimeIdWord σ_evm I)
-  let runtimeOld := solcSlotWord (kickRuntimeAfterGuyMap I.codeOwner σ_evm I) I packedSlot
-  let runtimeAdd := kickRuntimeAddWord I.codeOwner σ_evm I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let packedSlot := auctionPackedSlot (kickRuntimeIdWord σ I)
+  let runtimeOld := solcSlotWord (kickRuntimeAfterGuyMap I.codeOwner σ I) I packedSlot
+  let runtimeAdd := kickRuntimeAddWord I.codeOwner σ I
   have hid := kickRuntimeIdWord_source_eq
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-    (I := I) (g := g) hAccounts
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (I := I) (g := g)
   have hAfter :=
-    kickRuntimeAfterGuyMap_source_accountMapEquiv
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+    kickRuntimeAfterGuyMap_source_eq
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have htau :=
     kickRuntimeTauWord_source_eq
-      (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-      (I := I) (g := g) hAccounts
+      (σ := σ) (σ₀ := σ₀) (A := A)
+      (I := I) (g := g)
   have hendFitSolm :
       (kickNow48Word evmSolm).toNat +
           (kickTauWord (kickAfterGuyState evmSolm I)).toNat < 2 ^ 48 := by
@@ -3737,11 +3774,11 @@ theorem kickRuntimeBeforeMoveMap_source_accountMapEquiv
   have hmaskedRuntime :
       UInt256.land runtimeAdd flapperUint48Mask = kickEndPostWord evmSolm I := by
     apply u256_inj
-    change (UInt256.land (kickRuntimeAddWord I.codeOwner σ_evm I) flapperUint48Mask).toNat =
+    change (UInt256.land (kickRuntimeAddWord I.codeOwner σ I) flapperUint48Mask).toNat =
       (kickEndPostWord evmSolm I).toNat
     rw [kickRuntimeAddWord]
     rw [uint48Mask_add_no_wrap_toNat (UInt256.ofNat I.header.timestamp)
-      (kickRuntimeTauWord I.codeOwner σ_evm I) hendFit]
+      (kickRuntimeTauWord I.codeOwner σ I) hendFit]
     rw [kickEndPostWord_toNat evmSolm I hendFitSolm]
     simpa [evmSolm, kickNow48Word, kickTimestampWord, initState, htau]
   have hsourceClean :
@@ -3756,11 +3793,11 @@ theorem kickRuntimeBeforeMoveMap_source_accountMapEquiv
         Solm.EVM.storageLoad (kickAfterGuyState evmSolm I)
           (kickAfterGuyState evmSolm I).executionEnv.codeOwner
           (auctionPackedSlot (kickIdWord evmSolm)) := by
-    have hslot := flapperSlotWord_accountMapEquiv (I := I) hAfter packedSlot
+    have hslot := congrArg (fun accounts => flapperSlotWord packedSlot accounts I) hAfter
     simpa [runtimeOld, packedSlot, flapperSlotWord, solcSlotWord, evmSolm,
       initState, kickAfterGuyState_executionEnv, hid] using hslot
   have hstored :
-      kickRuntimeEndStoredWord I.codeOwner σ_evm I = kickEndStoredWord evmSolm I := by
+      kickRuntimeEndStoredWord I.codeOwner σ I = kickEndStoredWord evmSolm I := by
     unfold kickRuntimeEndStoredWord kickEndStoredWord
     change setUint48Offset26Word runtimeOld runtimeAdd =
       setUint48Offset26Word
@@ -3774,69 +3811,62 @@ theorem kickRuntimeBeforeMoveMap_source_accountMapEquiv
   simpa [evmSolm, initState, storageStore_accountMap, kickAfterGuyState_executionEnv,
     packedSlot, runtimeOld, runtimeAdd, kickRuntimeBeforeMoveMap, kickAfterEndState,
     hstored, hid] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot
-      (kickRuntimeEndStoredWord I.codeOwner σ_evm I) hAfter
+    congrArg (fun map => sstoreAccountMap I.codeOwner map packedSlot
+      (kickRuntimeEndStoredWord I.codeOwner σ I)) hAfter
 
-theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flapperSelBytes 8))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flapperSelBytes 8)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 8) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some kickTransition :=
     flapperDispatchKick hsel
-  have hreach := flapperReachKickBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flapperReachKickBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := flapperDecode_kick_ok (I := I) hsz68
     obtain ⟨_, _, rd3901⟩ :=
       flapperKickX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
-    by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
+    by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · obtain ⟨_, _, rd3994⟩ :=
         flapperKickX_authorized (g := Sat256.ofUInt256 g) hauth rd3901
       have hauthSolm :
           Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
               (relyAuthStorageSlot I) = ⟨1⟩ := by
-        have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-        have hsolm : relyAuthWord σ_solm I = ⟨1⟩ := by
-          rw [← hword]
-          exact hauth
+        have hsolm : relyAuthWord σ I = ⟨1⟩ := hauth
         simpa [evmSolm, relyAuthWord, flapperSlotWord, initState,
           Solm.EVM.storageLoad, State.lookupAccount] using hsolm
-      by_cases hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨1⟩
+      by_cases hlive : flapperSlotWord ⟨7⟩ σ I = ⟨1⟩
       · obtain ⟨_, _, rd4068⟩ :=
           flapperKickX_liveOk (g := Sat256.ofUInt256 g) hlive rd3994
         have hliveSolm : kickLiveWord evmSolm = ⟨1⟩ := by
-          have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-          simpa [kickLiveWord, evmSolm, initState, hslot] using hlive
-        by_cases hkicksLt : (flapperSlotWord ⟨6⟩ σ_evm I).toNat < UInt256.size - 1
+          simpa [kickLiveWord, evmSolm, initState] using hlive
+        by_cases hkicksLt : (flapperSlotWord ⟨6⟩ σ I).toNat < UInt256.size - 1
         · obtain ⟨_, _, rd4143⟩ :=
             flapperKickX_kicksOk (g := Sat256.ofUInt256 g) hkicksLt rd4068
           have hkicksLtSolm : (kickKicksWord evmSolm).toNat < UInt256.size - 1 := by
-            have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨6⟩
-            simpa [kickKicksWord, evmSolm, initState, hslot] using hkicksLt
+            simpa [kickKicksWord, evmSolm, initState] using hkicksLt
           by_cases hfillFit :
-              (flapperSlotWord ⟨9⟩ σ_evm I).toNat + (kickLotWord I).toNat <
+              (flapperSlotWord ⟨9⟩ σ I).toNat + (kickLotWord I).toNat <
                 UInt256.size
           · obtain ⟨_, _, rd4155⟩ :=
               flapperKickX_fillAddOk (g := Sat256.ofUInt256 g) hfillFit rd4143
             have hfillFitSolm :
                 (kickFillWord evmSolm).toNat + (kickLotWord I).toNat < UInt256.size := by
-              have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨9⟩
-              simpa [kickFillWord, evmSolm, initState, hslot] using hfillFit
+              simpa [kickFillWord, evmSolm, initState] using hfillFit
             have hfillWordAfter :
                 kickFillWord (kickAfterFillState evmSolm I) =
-                  flapperSlotWord ⟨9⟩ σ_evm I + kickLotWord I := by
+                  flapperSlotWord ⟨9⟩ σ I + kickLotWord I := by
               have hownerSome :
-                  evmSolm.accountMap.find? evmSolm.executionEnv.codeOwner ≠ none := by
+                  evmSolm.accountMap.get? evmSolm.executionEnv.codeOwner ≠ none := by
                 intro howner
+                rw [Std.ExtTreeMap.get?_eq_getElem?] at howner
                 have hload0 :
                     Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
                         (relyAuthStorageSlot I) = ⟨0⟩ := by
@@ -3846,7 +3876,6 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   simpa [hload0] using hauthSolm
                 exact (by native_decide : (⟨0⟩ : UInt256) ≠ ⟨1⟩) hbad
               obtain ⟨_, hownerPresent⟩ := Option.ne_none_iff_exists'.mp hownerSome
-              have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨9⟩
               have hloadFill :=
                 storageLoad_storageStore_same_present evmSolm evmSolm.executionEnv.codeOwner
                   hownerPresent ⟨9⟩ (kickFillNewWord evmSolm I)
@@ -3869,23 +3898,24 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     ⟨9⟩ (kickFillNewWord evmSolm I)).accountMap
                   (Solm.EVM.storageStore evmSolm evmSolm.executionEnv.codeOwner
                     ⟨9⟩ (kickFillNewWord evmSolm I)).executionEnv =
-                flapperSlotWord ⟨9⟩ σ_evm I + kickLotWord I
+                flapperSlotWord ⟨9⟩ σ I + kickLotWord I
               rw [hstoreExec]
-              simpa [kickFillNewWord, kickFillWord, evmSolm, initState, hslot]
+              simpa [kickFillNewWord, kickFillWord, evmSolm, initState]
                 using hloadFillSlot
             have hAfterFill :=
-              kickRuntimeAfterFillMap_source_accountMapEquiv
-                (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-                (I := I) (g := g) hAccounts
+              kickRuntimeAfterFillMap_source_eq
+                (σ := σ) (σ₀ := σ₀) (A := A)
+                (I := I) (g := g)
             have hlidWordAfter :
                 kickLidWord (kickAfterFillState evmSolm I) =
-                  flapperSlotWord ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ_evm I) I := by
-              have hslot := flapperSlotWord_accountMapEquiv (I := I) hAfterFill ⟨8⟩
+                  flapperSlotWord ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I := by
+              have hslot :=
+                congrArg (fun accounts => flapperSlotWord ⟨8⟩ accounts I) hAfterFill
               simpa [kickLidWord, evmSolm, initState, kickAfterFillState_executionEnv]
                 using hslot.symm
             by_cases hfillLe :
-                (flapperSlotWord ⟨9⟩ σ_evm I + kickLotWord I).toNat ≤
-                  (flapperSlotWord ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ_evm I) I).toNat
+                (flapperSlotWord ⟨9⟩ σ I + kickLotWord I).toNat ≤
+                  (flapperSlotWord ⟨8⟩ (kickRuntimeAfterFillMap I.codeOwner σ I) I).toNat
             · obtain ⟨_, _, rd4233⟩ :=
                 flapperKickX_lidOk (g := Sat256.ofUInt256 g) hperm hfillLe rd4155
               have hfillLeSolm :
@@ -3896,37 +3926,36 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 flapperKickX_toCheckedAddStart (g := Sat256.ofUInt256 g) hperm rd4233
               by_cases hendFit :
                   (UInt256.land (UInt256.ofNat I.header.timestamp) flapperUint48Mask).toNat +
-                    (kickRuntimeTauWord I.codeOwner σ_evm I).toNat < 2 ^ 48
+                    (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48
               · obtain ⟨_, _, rd4319⟩ :=
                   flapperKickX_toEndStoreStart (g := Sat256.ofUInt256 g) hendFit rd4936
                 obtain ⟨_, _, rd4379⟩ :=
                   flapperKickX_toMoveSetupStart (g := Sat256.ofUInt256 g) hperm rd4319
                 have htau :=
                   kickRuntimeTauWord_source_eq
-                    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-                    (I := I) (g := g) hAccounts
+                    (σ := σ) (σ₀ := σ₀) (A := A)
+                    (I := I) (g := g)
                 have hendFitSolm :
                     (kickNow48Word evmSolm).toNat +
                         (kickTauWord (kickAfterGuyState evmSolm I)).toNat < 2 ^ 48 := by
                   simpa [evmSolm, kickNow48Word, kickTimestampWord, initState, htau]
                     using hendFit
                 have hBeforeAccounts :=
-                  kickRuntimeBeforeMoveMap_source_accountMapEquiv
-                    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-                    (I := I) (g := g) hAccounts hendFit
+                  kickRuntimeBeforeMoveMap_source_eq
+                    (σ := σ) (σ₀ := σ₀) (A := A)
+                    (I := I) (g := g) hendFit
                 by_cases hnoCode :
                     Reasoning.Theory.extCodeSizeWord
-                      (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I)
-                      (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I) =
+                      (kickRuntimeBeforeMoveMap I.codeOwner σ I)
+                      (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) =
                         ⟨0⟩
                 · have hnoCodeSolm :
                       Reasoning.Theory.extCodeSizeWord
                           (kickAfterEndState evmSolm I).accountMap
                           (kickVatWord (kickAfterEndState evmSolm I).accountMap
                             (kickAfterEndState evmSolm I).executionEnv) = ⟨0⟩ := by
-                    simpa [kickVatWord, kickAfterEndState_executionEnv] using
-                      flapperCodeSize_zero_accountMapEquiv_addressSlot
-                        hBeforeAccounts ⟨2⟩ hnoCode
+                    rw [← hBeforeAccounts]
+                    simpa [kickVatWord, kickAfterEndState_executionEnv] using hnoCode
                   have hbody :
                       ExecTransitionBody config contract evmSolm (kickLocals I)
                         kickTransition.body .reverted := by
@@ -3939,41 +3968,40 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                 · have hcodeSize :
                       Reasoning.Theory.extCodeSizeWord
-                        (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I)
-                        (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I) ≠
+                        (kickRuntimeBeforeMoveMap I.codeOwner σ I)
+                        (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠
                           ⟨0⟩ := hnoCode
                   have hcodeSizeSolm :
                       Reasoning.Theory.extCodeSizeWord
                           (kickAfterEndState evmSolm I).accountMap
                           (kickVatWord (kickAfterEndState evmSolm I).accountMap
                             (kickAfterEndState evmSolm I).executionEnv) ≠ ⟨0⟩ := by
-                    simpa [kickVatWord, kickAfterEndState_executionEnv] using
-                      flapperCodeSize_ne_accountMapEquiv_addressSlot
-                        hBeforeAccounts ⟨2⟩ hcodeSize
+                    rw [← hBeforeAccounts]
+                    simpa [kickVatWord, kickAfterEndState_executionEnv] using hcodeSize
                   by_cases hdepthEq : I.depth = 1024
                   · let evmMoveSolm := kickAfterEndState evmSolm I
                     let vat := kickVatWord evmMoveSolm.accountMap evmMoveSolm.executionEnv
                     let src := kickSenderWord I
                     let guy := kickThisWord I
                     let rad := kickLotWord I
-                    let memStore := twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                    let memStore := twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                       (relyAuthHashMem I)
-                    let memEndStore := twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                    let memEndStore := twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                       memStore
                     let A_move := (evmMoveSolm.addAccessedAccount
                       (EVM.address (AccountAddress.ofNat vat.toNat))).substate
                     have hmemStore : memStore.size = 96 := by
                       simpa [memStore] using
-                        twoWordHashMem_size_96 (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                        twoWordHashMem_size_96 (kickRuntimeIdWord σ I) ⟨1⟩
                           (relyAuthHashMem_size I)
                     have hmemEnd : memEndStore.size = 96 := by
                       have hreadStore :
                           memStore.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
                         simpa [memStore] using
-                          twoWordHashMem_read64 (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                          twoWordHashMem_read64 (kickRuntimeIdWord σ I) ⟨1⟩
                             (relyAuthHashMem_size I) (relyAuthHashMem_read64 I)
                       simpa [memEndStore] using
-                        twoWordHashMem_size_96 (kickRuntimeIdWord σ_evm I) ⟨1⟩ hmemStore
+                        twoWordHashMem_size_96 (kickRuntimeIdWord σ I) ⟨1⟩ hmemStore
                     have hsrcCanon : src.toNat < EVM.addressModulus := by
                       simpa [src, kickSenderWord, solcSourceWord] using
                         solcSourceWord_canonical I
@@ -4035,48 +4063,35 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       apply hdepthEq
                       apply Fin.ext
                       exact hval
-                    obtain ⟨cA', σ', z, out, A', k4462, C4462, rd4462, hcall,
+                    obtain ⟨σ', z, out, A', k4462, C4462, rd4462, hcall,
                         houtSize⟩ :=
                       flapperKickX_moveCall (g := Sat256.ofUInt256 g) hperm hcodeSize
                         hdepthLt rd4379
                     let evmEvm : EVM.State :=
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := kickRuntimeBeforeMoveMap I.codeOwner σ_evm I }
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                        accountMap := kickRuntimeBeforeMoveMap I.codeOwner σ I }
                     let evmMoveSolm := kickAfterEndState evmSolm I
                     have hMoveAccounts :
-                        accountMapEquiv evmEvm.accountMap evmMoveSolm.accountMap := by
+                        Eq evmEvm.accountMap evmMoveSolm.accountMap := by
                       simpa [evmEvm, evmMoveSolm] using hBeforeAccounts
-                    obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccounts⟩ :=
-                      typedCallViaEVM_accountMapEquiv (hcall := hcall) hMoveAccounts
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          cageStorageStore_sigma0])
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          storageStore_createdAccounts])
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          cageStorageStore_genesisBlockHeader])
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          cageStorageStore_blocks])
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          cageStorageStore_substate])
-                        (by simp [evmEvm, evmMoveSolm, evmSolm, kickAfterEndState_executionEnv,
-                          initState])
+                    have hMoveState : evmEvm = evmMoveSolm := by
+                      calc
+                        evmEvm = {evmSolm with accountMap := evmEvm.accountMap} := by rfl
+                        _ = {evmSolm with accountMap := evmMoveSolm.accountMap} := by
+                          exact congrArg
+                            (fun accounts => {evmSolm with accountMap := accounts})
+                            hMoveAccounts
+                        _ = evmMoveSolm := by
+                          simpa [evmMoveSolm] using
+                            kickAfterEndState_accountMapOnly evmSolm I
                     let evmCallSolm : EVM.State :=
-                      { evmMoveSolm with accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }
+                      { evmMoveSolm with accountMap := σ', substate := A' }
                     have hvatEq :
-                        kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I =
+                        kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I =
                           kickVatWord evmMoveSolm.accountMap evmMoveSolm.executionEnv := by
                       have hword :=
-                        flapperAddressReturnWord_accountMapEquiv (I := I) hMoveAccounts ⟨2⟩
+                        congrArg (fun accounts => flapperAddressReturnWord ⟨2⟩ accounts I)
+                          hMoveAccounts
                       simpa [evmEvm, evmMoveSolm, kickVatWord, kickAfterEndState_executionEnv]
                         using hword
                     have hcallSolm :
@@ -4088,22 +4103,22 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           [.address evmMoveSolm.executionEnv.source,
                             .address evmMoveSolm.executionEnv.codeOwner, kickLotValue I]
                           (z, evmCallSolm, out) true := by
-                      simpa [evmEvm, evmMoveSolm, evmCallSolm, evmSolm,
+                      simpa [← hMoveState, evmEvm, evmCallSolm, evmSolm,
                         kickAfterEndState_executionEnv, initState, kickLotValue, hvatEq]
-                        using hcallSolmRaw
+                        using hcall
                     by_cases hz : z = true
                     · have rd4462True : RD flapperBytecode I (Sat256.ofUInt256 g)
-                          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
+                          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
                           (⟨1⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
-                            kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I ::
-                            kickRuntimeIdWord σ_evm I :: kickBidWord I :: kickLotWord I ::
+                            kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
+                            kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I ::
                             ⟨313⟩ :: flapperSelWord I :: [])
                           (cageMoveCalldataMem (kickSenderWord I) (kickThisWord I)
                             (kickLotWord I)
-                            (twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
-                              (twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                            (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
+                              (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                                 (relyAuthHashMem I))))
-                          (UInt256.ofNat 8) out (cA', σ') k4462 C4462 := by
+                          (UInt256.ofNat 8) out σ' k4462 C4462 := by
                         simpa [hz] using rd4462
                       have hcallTrue :
                           typedCallViaEVM config evmMoveSolm
@@ -4129,17 +4144,13 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             hendFitSolm hcodeSizeSolm hcallTrue
                       have hret :=
                         flapperKickX_moveCallSuccess
-                          (g := Sat256.ofUInt256 g) (σ := σ_evm) (sel := flapperSelWord I)
+                          (g := Sat256.ofUInt256 g) (σ := σ) (sel := flapperSelWord I)
                           hperm rd4462True
                       have hid := kickRuntimeIdWord_source_eq
-                        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-                        (I := I) (g := g) hAccounts
-                      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                        (by simp [evmCallSolm, evmMoveSolm, evmSolm, kickAfterEndState,
-                          kickAfterGuyState, kickAfterLotState, kickAfterBidState,
-                          kickAfterKicksState, kickAfterFillState, initState,
-                          storageStore_createdAccounts])
-                        (by simpa [evmCallSolm] using hpostAccounts)
+                        (σ := σ) (σ₀ := σ₀) (A := A)
+                        (I := I) (g := g)
+                      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+                        (by simp [evmCallSolm])
                         (by
                           rw [hid]
                           simpa [kickTransition] using
@@ -4149,17 +4160,17 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     · have hzFalse : z = false := by
                         cases z <;> simp at hz ⊢
                       have rd4462False : RD flapperBytecode I (Sat256.ofUInt256 g)
-                          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
+                          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4462⟩
                           (⟨0⟩ :: cageMoveEndPtr :: cageMoveSelectorWord ::
-                            kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I ::
-                            kickRuntimeIdWord σ_evm I :: kickBidWord I :: kickLotWord I ::
+                            kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I ::
+                            kickRuntimeIdWord σ I :: kickBidWord I :: kickLotWord I ::
                             ⟨313⟩ :: flapperSelWord I :: [])
                           (cageMoveCalldataMem (kickSenderWord I) (kickThisWord I)
                             (kickLotWord I)
-                            (twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
-                              (twoWordHashMem (kickRuntimeIdWord σ_evm I) ⟨1⟩
+                            (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
+                              (twoWordHashMem (kickRuntimeIdWord σ I) ⟨1⟩
                                 (relyAuthHashMem I))))
-                          (UInt256.ofNat 8) out (cA', σ') k4462 C4462 := by
+                          (UInt256.ofNat 8) out σ' k4462 C4462 := by
                         simpa [hzFalse] using rd4462
                       have hcallFalse :
                           typedCallViaEVM config evmMoveSolm
@@ -4184,8 +4195,8 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · have htau :=
                   kickRuntimeTauWord_source_eq
-                    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
-                    (I := I) (g := g) hAccounts
+                    (σ := σ) (σ₀ := σ₀) (A := A)
+                    (I := I) (g := g)
                 have hendOverflowSolm :
                     2 ^ 48 ≤
                       (kickNow48Word evmSolm).toNat +
@@ -4220,8 +4231,7 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hfillOverflowSolm :
                 UInt256.size ≤ (kickFillWord evmSolm).toNat + (kickLotWord I).toNat := by
-              have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨9⟩
-              simpa [kickFillWord, evmSolm, initState, hslot] using
+              simpa [kickFillWord, evmSolm, initState] using
                 (Nat.le_of_not_gt hfillFit)
             have hbody :
                 ExecTransitionBody config contract evmSolm (kickLocals I)
@@ -4234,8 +4244,7 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (g := Sat256.ofUInt256 g) (Nat.le_of_not_gt hfillFit) rd4143)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hkicksGeSolm : UInt256.size - 1 ≤ (kickKicksWord evmSolm).toNat := by
-            have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨6⟩
-            simpa [kickKicksWord, evmSolm, initState, hslot] using
+            simpa [kickKicksWord, evmSolm, initState] using
               (Nat.le_of_not_gt hkicksLt)
           have hbody :
               ExecTransitionBody config contract evmSolm (kickLocals I)
@@ -4250,8 +4259,6 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · have hliveSolmNe : kickLiveWord evmSolm ≠ ⟨1⟩ := by
           intro hbad
           apply hlive
-          have hslot := flapperSlotWord_accountMapEquiv (I := I) hAccounts ⟨7⟩
-          rw [hslot]
           simpa [kickLiveWord, evmSolm, initState] using hbad
         have hbody :
             ExecTransitionBody config contract evmSolm (kickLocals I)
@@ -4265,13 +4272,11 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     · have hauthSolmNe :
           Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
               (relyAuthStorageSlot I) ≠ ⟨1⟩ := by
-        have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
         intro hbad
-        have hbad' : relyAuthWord σ_solm I = ⟨1⟩ := by
+        have hbad' : relyAuthWord σ I = ⟨1⟩ := by
           simpa [evmSolm, relyAuthWord, flapperSlotWord, initState,
             Solm.EVM.storageLoad, State.lookupAccount] using hbad
-        exact hauth (by rw [hword, hbad'])
+        exact hauth hbad'
       have hbody :
           ExecTransitionBody config contract evmSolm (kickLocals I)
             kickTransition.body .reverted := by

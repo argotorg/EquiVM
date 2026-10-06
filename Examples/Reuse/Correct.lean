@@ -122,7 +122,7 @@ theorem cMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 2) (hsz : 4 ≤ I.callda
     interval_cases i <;> decide
 
 /-- Generic dispatcher driver: reaches the selected external wrapper body. -/
-theorem cReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1)
+theorem cReachBody {σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1)
     (bodyPC : UInt256)
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -133,8 +133,8 @@ theorem cReachBody {cA gh bl σ σ₀ A I} {g : Sat256} (i : ℕ) (hi1 : i ≤ 1
         (cSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J cBytecode 0).contains bodyPC = true)
     (hbody : armTgt cBytecode (nthArmPc cBytecode cFirstArmPc i) = bodyPC) :
-    ∃ k C, RD cBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cBytecode I g (initState σ σ₀ g A I) bodyPC
+        [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := cFirstArmPc) (bodyPC := bodyPC) (i := i)
     hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
@@ -187,9 +187,9 @@ theorem cBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ Reuse.cContract
   simp [Reuse.cContract] at ht
   rcases ht with rfl | rfl <;> exact bodyReverts_nonPayable h
 
-theorem cX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
     (wC := solcGuardTgtWidth cBytecode)
@@ -197,10 +197,10 @@ theorem cX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by decide))
     hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
-theorem cX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
@@ -215,18 +215,18 @@ theorem cX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
 /-- With calldata long enough for a selector but no selector match, the dispatcher reverts. -/
-theorem cX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 2 → (cSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat cBytecode (nthArmPc cBytecode cFirstArmPc j))
         (cSelWord I) = ⟨0⟩ := by
     intro j hj
     rw [cArmEq I hsz j hj, hnm j hj]
     rfl
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cBytecode) (opC := solcGuardTgtOp cBytecode)
@@ -239,15 +239,15 @@ theorem cX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (wR := solcCalldataRevertTgtWidth cBytecode)
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h4 : RD cBytecode I g (initState cA gh bl σ σ₀ g A I) cFirstArmPc
-      [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3 C3 := by
+  have h4 : RD cBytecode I g (initState σ σ₀ g A I) cFirstArmPc
+      [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3 C3 := by
     simpa [cFirstArmPc, cSelWord, solcFirstArmPcFromPrefix, solcSelectorLoadPc,
       solcCalldataJumpiPc, solcCalldataRevertPushPc, solcDispatchBodyPc] using h3
   have h5 := h4
     |>.selectorArmNotTakenAuto (cArmsWellFormed 0 (by omega)) (heq0 0 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
-  have h48 : ∃ k C, RD cBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨48⟩
-      [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have h48 : ∃ k C, RD cBytecode I g (initState σ σ₀ g A I) ⟨48⟩
+      [cSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5, C3 + 22 + 22, ?_⟩
     simpa [cFirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, selArmJumpiPc,
       selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
@@ -388,7 +388,7 @@ namespace Reasoning.Reach
 /-- Reuse's Solidity checked-arithmetic panic block at pc 161. -/
 theorem RD.cPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨161⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
     RDrev cBytecode g s0 := by
@@ -413,7 +413,7 @@ theorem RD.cPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
 /-- Reuse's solc checked multiply routine at pc 181, specialized to `v * 2`. -/
 theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨181⟩ (⟨2⟩ :: v :: ret :: R) mem aw rdata acc k C)
     (hmul : 2 * v.toNat < UInt256.size)
     (hret : (D_J cBytecode 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
@@ -432,7 +432,7 @@ theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 /-- Reuse's checked multiply routine panics when `v * 2` overflows. -/
 theorem RD.cCheckedMul2_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨181⟩ (⟨2⟩ :: v :: ret :: R) mem (UInt256.ofNat 3)
       rdata acc k C)
     (hover : UInt256.size ≤ 2 * v.toNat) (hov : R.length + 10 ≤ 1024) :
@@ -456,7 +456,7 @@ theorem RD.cCheckedMul2_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
 /-- Reuse's solc checked add routine at pc 201, specialized to `v + 1`. -/
 theorem RD.cCheckedAdd1 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨201⟩ (⟨1⟩ :: v :: ret :: R) mem aw rdata acc k C)
     (hadd : v.toNat + 1 < UInt256.size)
     (hret : (D_J cBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
@@ -478,7 +478,7 @@ theorem RD.cCheckedAdd1 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 /-- Reuse's checked add routine panics when `v + 1` overflows. -/
 theorem RD.cCheckedAdd1_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨201⟩ (⟨1⟩ :: v :: ret :: R) mem (UInt256.ofNat 3)
       rdata acc k C)
     (hover : UInt256.size ≤ v.toNat + 1) (hov : R.length + 7 ≤ 1024) :
@@ -499,7 +499,7 @@ theorem RD.cCheckedAdd1_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
 /-- The shared `f` routine at pc 102, used by both external `f` and internal `g`. -/
 theorem RD.cFRoutine {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨102⟩ (v :: ret :: R) mem aw rdata acc k C)
     (hbound : 2 * v.toNat + 1 < UInt256.size)
     (hret : (D_J cBytecode 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
@@ -523,7 +523,7 @@ theorem RD.cFRoutine {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
 /-- The shared `f` routine panics when checked arithmetic would overflow. -/
 theorem RD.cFRoutine_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {v ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨102⟩ (v :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hover : UInt256.size ≤ 2 * v.toNat + 1) (hov : R.length + 13 ≤ 1024) :
     RDrev cBytecode g s0 := by
@@ -546,7 +546,7 @@ theorem RD.cFRoutine_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
 /-- External return wrapper at pc 67: ABI-encode and return one `uint256` word. -/
 theorem RD.cEncodeReturn {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val : UInt256} {Rt : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨67⟩ (val :: Rt) solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : Rt.length + 4 ≤ 1024) :
     RDret cBytecode g s0 acc (UInt256.toByteArray val) :=
@@ -573,7 +573,7 @@ theorem RD.cEncodeReturn {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
 /-- Reuse's shared one-`uint256` ABI decoder at pc 139, returning to a dynamic address. -/
 theorem RD.cDecodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {de ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨139⟩ (⟨4⟩ :: de :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨0⟩)
     (hret : (D_J cBytecode 0).contains ret = true) (hov : R.length + 15 ≤ 1024) :
@@ -588,7 +588,7 @@ theorem RD.cDecodeUint256 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : �
 /-- Reuse's ABI decoder failure path at pc 139 (`calldata` too short or huge). -/
 theorem RD.cDecodeUint256_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {de ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD cBytecode ee g s0 ⟨139⟩ (⟨4⟩ :: de :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub de ⟨4⟩) ⟨32⟩ = ⟨1⟩)
     (hov : R.length + 15 ≤ 1024) :
@@ -601,17 +601,17 @@ theorem RD.cDecodeUint256_revert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
 end Reasoning.Reach
 
 /-- External `f(uint256)` wrapper: dispatch and decode, then jump into the shared `f` routine. -/
-theorem cX_f_to102 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_f_to102 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size)
     (hmatch : (cSelBytes 0 == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD cBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨102⟩
+    ∃ k C, RD cBytecode I g (initState σ σ₀ g A I) ⟨102⟩
         [cArgWord I, ⟨67⟩, cSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨heq0, htake⟩ := cMatches 0 (by omega) (by omega) hmatch
   obtain ⟨k, C, rd52⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv (by omega)
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd52 with [
@@ -625,18 +625,18 @@ theorem cX_f_to102 {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨102⟩, jump (by jump_dest) ]⟩
 
 /-- External `g(uint256)` wrapper: dispatch and decode, then jump to `g`'s body at pc 127. -/
-theorem cX_g_to127 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_g_to127 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size)
     (_hfmiss : (cSelBytes 0 == I.calldata.extract 0 4) = false)
     (hgmatch : (cSelBytes 1 == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD cBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨127⟩
+    ∃ k C, RD cBytecode I g (initState σ σ₀ g A I) ⟨127⟩
         [cArgWord I, ⟨100⟩, cSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨heq0, htake⟩ := cMatches 1 (by omega) (by omega) hgmatch
   obtain ⟨k, C, rd85⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv (by omega)
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd85 with [
@@ -650,52 +650,53 @@ theorem cX_g_to127 {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, push1 ⟨127⟩, jump (by jump_dest) ]⟩
 
 /-- `g`'s body performs an internal jump into the same shared `f` routine at pc 102. -/
-theorem cX_g_internalCall_to102 {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (rd127 : RD cBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨127⟩
+theorem cX_g_internalCall_to102 {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (rd127 : RD cBytecode I g (initState σ σ₀ g A I) ⟨127⟩
         [cArgWord I, ⟨100⟩, cSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD cBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨102⟩
+        ByteArray.empty σ k C) :
+    ∃ k' C', RD cBytecode I g (initState σ σ₀ g A I) ⟨102⟩
         [cArgWord I, ⟨134⟩, cArgWord I, ⟨100⟩, cSelWord I] solcFreePtrMem
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   exact ⟨_, _, evm_run rd127 with [
     jumpdest, push1 ⟨134⟩, dup2, push1 ⟨102⟩, jump (by jump_dest) ]⟩
 
 /-- External `f(uint256)` happy path: decode, run the shared routine, encode one word. -/
-theorem cX_f_success {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_f_success {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size)
     (hmatch : (cSelBytes 0 == I.calldata.extract 0 4) = true)
     (hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size) :
-    RDret cBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret cBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (cFResultWord I)) := by
   obtain ⟨_, _, rd102⟩ := cX_f_to102 (g := g) hcode hwv hsz36 hsz255 hsize hmatch
   obtain ⟨_, _, rd67⟩ := RD.cFRoutine rd102 hbound (by jump_dest) (by evm_ov)
   exact RD.cEncodeReturn rd67 (by evm_ov)
 
 /-- External `f(uint256)` overflow path: the shared routine panics. -/
-theorem cX_f_overflow {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_f_overflow {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size)
     (hmatch : (cSelBytes 0 == I.calldata.extract 0 4) = true)
     (hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd102⟩ := cX_f_to102 (g := g) hcode hwv hsz36 hsz255 hsize hmatch
   exact RD.cFRoutine_overflow rd102 hover (by evm_ov)
 
 /-- External `g(uint256)` happy path: reuse `f`'s routine and store its result in slot 0. -/
-theorem cX_g_success {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_g_success {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
     (hfmiss : (cSelBytes 0 == I.calldata.extract 0 4) = false)
     (hgmatch : (cSelBytes 1 == I.calldata.extract 0 4) = true)
     (hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size) :
-    RDret cBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ (cFResultWord I)) ByteArray.empty := by
+    RDret cBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ (cFResultWord I)) ByteArray.empty := by
   obtain ⟨_, _, rd127⟩ :=
-    cX_g_to127 (g := g) hcode hwv hsz36 hsz255 hsize hfmiss hgmatch
+    cX_g_to127 (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+      hcode hwv hsz36 hsz255 hsize hfmiss hgmatch
   obtain ⟨_, _, rd102⟩ := cX_g_internalCall_to102 rd127
   obtain ⟨_, _, rd134⟩ := RD.cFRoutine rd102 hbound (by jump_dest) (by evm_ov)
   have rd136 := evm_run rd134 with [ jumpdest, push0 ]
@@ -704,31 +705,32 @@ theorem cX_g_success {cA gh bl σ σ₀ A I} {g : Sat256}
   exact rd100.stop (by decide) (by evm_ov)
 
 /-- External `g(uint256)` overflow path: the internal call to `f` panics before storage writes. -/
-theorem cX_g_overflow {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_g_overflow {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsz255 : I.calldata.size < 2 ^ 255 + 4)
     (hsize : I.calldata.size < UInt256.size)
     (hfmiss : (cSelBytes 0 == I.calldata.extract 0 4) = false)
     (hgmatch : (cSelBytes 1 == I.calldata.extract 0 4) = true)
     (hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd127⟩ :=
-    cX_g_to127 (g := g) hcode hwv hsz36 hsz255 hsize hfmiss hgmatch
+    cX_g_to127 (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+      hcode hwv hsz36 hsz255 hsize hfmiss hgmatch
   obtain ⟨_, _, rd102⟩ := cX_g_internalCall_to102 rd127
   exact RD.cFRoutine_overflow rd102 hover (by evm_ov)
 
 /-! ## Decode-failure traces -/
 
 /-- External `f(uint256)`: selector matched, but the `uint256` word is incomplete. -/
-theorem cX_f_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_f_shortarg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hmatch : (cSelBytes 0 == I.calldata.extract 0 4) = true) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := cMatches 0 (by omega) hsz4 hmatch
   obtain ⟨_, _, rd52⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv hsz4
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd52 with [
@@ -740,15 +742,15 @@ theorem cX_f_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.cDecodeUint256_revert rd139 hsltval (by evm_ov)
 
 /-- External `f(uint256)`: selector matched, but solc's signed length check rejects huge calldata. -/
-theorem cX_f_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_f_hugearg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hmatch : (cSelBytes 0 == I.calldata.extract 0 4) = true) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := cMatches 0 (by omega) hsz4 hmatch
   obtain ⟨_, _, rd52⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 0 (by omega) ⟨52⟩ hcode hwv hsz4
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd52 with [
@@ -760,16 +762,16 @@ theorem cX_f_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.cDecodeUint256_revert rd139 hsltval (by evm_ov)
 
 /-- External `g(uint256)`: selector matched, but the `uint256` word is incomplete. -/
-theorem cX_g_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_g_shortarg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (_hfmiss : (cSelBytes 0 == I.calldata.extract 0 4) = false)
     (hgmatch : (cSelBytes 1 == I.calldata.extract 0 4) = true) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := cMatches 1 (by omega) hsz4 hgmatch
   obtain ⟨_, _, rd85⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv hsz4
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd85 with [
@@ -781,16 +783,16 @@ theorem cX_g_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.cDecodeUint256_revert rd139 hsltval (by evm_ov)
 
 /-- External `g(uint256)`: selector matched, but solc's signed length check rejects huge calldata. -/
-theorem cX_g_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cX_g_hugearg {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (_hfmiss : (cSelBytes 0 == I.calldata.extract 0 4) = false)
     (hgmatch : (cSelBytes 1 == I.calldata.extract 0 4) = true) :
-    RDrev cBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨heq0, htake⟩ := cMatches 1 (by omega) hsz4 hgmatch
   obtain ⟨_, _, rd85⟩ :=
-    cReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    cReachBody (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) 1 (by omega) ⟨85⟩ hcode hwv hsz4
       hsize heq0 htake (by jump_dest) (by decide)
   have rd139 := evm_run rd85 with [
@@ -1000,12 +1002,12 @@ theorem cUint256ReturnEncoding (I : ExecutionEnv) :
 /-! ## Top-level revert obligations -/
 
 /-- No selector matches: the EVM falls through to the no-match revert and Solm does not dispatch. -/
-theorem cNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 2 → (cSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (cX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
       hcode (cDispatch_none_nomatch hnm)
@@ -1014,19 +1016,19 @@ theorem cNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (cDispatch_none_short hshort)
 
 /-- Calldata shorter than a selector: the size guard reverts before dispatch. -/
-theorem cShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract
+      σ σ₀ g A I := by
   exact (cX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (cDispatch_none_short hsz)
 
 /-- Non-zero callvalue: both Solm transition bodies and the bytecode revert as non-payable. -/
-theorem cNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor cConfig Reuse.cContract
+      σ σ₀ g A I := by
   exact (cX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg Reuse.cContract I.calldata = none
@@ -1041,17 +1043,16 @@ theorem cNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (cBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
               (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Runtime equivalence when the global non-payable guard accepts the call. -/
-theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor cConfig Reuse.cContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
+    runtimeEquivalenceFor cConfig Reuse.cContract
+      σ σ₀ g A I := by
   by_cases hselShort : I.calldata.size < 4
   · exact cShortRevert hcode hsize hperm hwv hselShort
   · have hsz4 : 4 ≤ I.calldata.size := by omega
@@ -1062,15 +1063,14 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · have hdec := cDecode_f_ok (I := I) hsz36 hbig
           by_cases hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size
           · have hbody := cFBodyReturns
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv) hbound
             exact (cX_f_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hf
                 hbound).reEquivExecution hcode hd hdec hbody
-              hAccounts
               (returnEquiv_of_encode (cUint256ReturnEncoding I))
           · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
             have hbody := cFBodyReverts_overflow
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv) hover
             exact (cX_f_overflow (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize hf
                 hover).reEquivExecutionRevert hcode hd hdec hbody
@@ -1090,26 +1090,15 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           · have hdec := cDecode_g_ok (I := I) hsz36 hbig
             by_cases hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size
             · have hbody := cGBodyReturns
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hbound
-              have hσPost : EVMStateEquiv
-                  (Solm.EVM.storageStore (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
-                    ⟨0⟩ (cFResultWord I))
-                  (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
-                    ⟨0⟩ (cFResultWord I)) :=
-                (EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts).storageStore_codeOwner
-                  ⟨0⟩ rfl
               exact (cX_g_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
-                  hperm hf hg hbound).reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                (by rw [storageStore_createdAccounts]; simp [initState])
-                (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
-                hσPost
+                  hperm hf hg hbound).reEquivExecutionGen hcode hd hdec hbody
+                (by rw [storageStore_accountMap]; simp [initState])
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
               have hbody := cGBodyReverts_overflow
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hover
               exact (cX_g_overflow (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
                   hf hg hover).reEquivExecutionRevert hcode hd hdec hbody
@@ -1131,9 +1120,9 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 /-- **Correctness of `C`.** -/
 theorem cCorrect : runtimeEquivalence cConfig cBytecode Reuse.cContract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hσ => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact cReEquiv_callvalueZero hcode hsize hperm hwv hσ
+  · exact cReEquiv_callvalueZero hcode hsize hperm hwv
   · exact cNonPayable hcode hwv
 
 /-! ## Constructor and full-contract equivalence -/
@@ -1184,15 +1173,15 @@ theorem cFinal_read :
   exact cInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in
-theorem cInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+theorem cInitcodeRun {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cInitcode) :
     RDret cInitcode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      (initState σ σ₀ g A I) σ
       cBytecode := by
-  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  set s0 := initState σ σ₀ g A I with hs0
   have rd0 :
       RD cInitcode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0) ByteArray.empty
-        (createdAccounts, σ) 0 0 := by
+        σ 0 0 := by
     rw [hs0]; exact RD.initState hcode
   exact evm_run rd0 with [
     raw push2 ⟨271⟩ cInitcodeDecode0 (by evm_ov),

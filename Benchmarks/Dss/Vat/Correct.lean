@@ -44,10 +44,10 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Vat
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
-theorem vatNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vatNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (vatX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -62,28 +62,27 @@ theorem vatNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (vatBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
-theorem vatShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vatShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (vatX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (vatDispatch_none_short hsz)
 
 /-- No selector matches: no Solm dispatch and EVM fallthrough reverts. -/
-theorem vatNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vatNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 28 → (vatSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 28 → (vatSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (vatX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (vatDispatch_none_nomatch hnm)
@@ -153,64 +152,64 @@ theorem vatNoSelectorMatches {I : ExecutionEnv}
 theorem vatCorrect :
     runtimeEquivalence config vatBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hLine : selIs I (vatSelBytes 0)
-    · exact vatLineBodyCore hcode hsize hperm hwv hLine hAccounts
+    · exact vatLineBodyCore hcode hsize hperm hwv hLine
     · by_cases hcage : selIs I (vatSelBytes 1)
-      · exact vatCageBodyCore hcode hsize hperm hwv hcage hAccounts
+      · exact vatCageBodyCore hcode hsize hperm hwv hcage
       · by_cases hcan : selIs I (vatSelBytes 2)
-        · exact vatCanBodyCore hcode hsize hperm hwv hcan hAccounts
+        · exact vatCanBodyCore hcode hsize hperm hwv hcan
         · by_cases hdai : selIs I (vatSelBytes 3)
-          · exact vatDaiBodyCore hcode hsize hperm hwv hdai hAccounts
+          · exact vatDaiBodyCore hcode hsize hperm hwv hdai
           · by_cases hdebt : selIs I (vatSelBytes 4)
-            · exact vatDebtBodyCore hcode hsize hperm hwv hdebt hAccounts
+            · exact vatDebtBodyCore hcode hsize hperm hwv hdebt
             · by_cases hdeny : selIs I (vatSelBytes 5)
-              · exact vatDenyBodyCore hcode hsize hperm hwv hdeny hAccounts
+              · exact vatDenyBodyCore hcode hsize hperm hwv hdeny
               · by_cases hfileIlk : selIs I (vatSelBytes 6)
-                · exact vatFileIlkBodyCore hcode hsize hperm hwv hfileIlk hAccounts
+                · exact vatFileIlkBodyCore hcode hsize hperm hwv hfileIlk
                 · by_cases hfileLine : selIs I (vatSelBytes 7)
-                  · exact vatFileLineBodyCore hcode hsize hperm hwv hfileLine hAccounts
+                  · exact vatFileLineBodyCore hcode hsize hperm hwv hfileLine
                   · by_cases hflux : selIs I (vatSelBytes 8)
-                    · exact vatFluxBodyCore hcode hsize hperm hwv hflux hAccounts
+                    · exact vatFluxBodyCore hcode hsize hperm hwv hflux
                     · by_cases hfold : selIs I (vatSelBytes 9)
-                      · exact vatFoldBodyCore hcode hsize hperm hwv hfold hAccounts
+                      · exact vatFoldBodyCore hcode hsize hperm hwv hfold
                       · by_cases hfork : selIs I (vatSelBytes 10)
-                        · exact vatForkBodyCore hcode hsize hperm hwv hfork hAccounts
+                        · exact vatForkBodyCore hcode hsize hperm hwv hfork
                         · by_cases hfrob : selIs I (vatSelBytes 11)
-                          · exact vatFrobBodyCore hcode hsize hperm hwv hfrob hAccounts
+                          · exact vatFrobBodyCore hcode hsize hperm hwv hfrob
                           · by_cases hgem : selIs I (vatSelBytes 12)
-                            · exact vatGemBodyCore hcode hsize hperm hwv hgem hAccounts
+                            · exact vatGemBodyCore hcode hsize hperm hwv hgem
                             · by_cases hgrab : selIs I (vatSelBytes 13)
-                              · exact vatGrabBodyCore hcode hsize hperm hwv hgrab hAccounts
+                              · exact vatGrabBodyCore hcode hsize hperm hwv hgrab
                               · by_cases hheal : selIs I (vatSelBytes 14)
-                                · exact vatHealBodyCore hcode hsize hperm hwv hheal hAccounts
+                                · exact vatHealBodyCore hcode hsize hperm hwv hheal
                                 · by_cases hhope : selIs I (vatSelBytes 15)
-                                  · exact vatHopeBodyCore hcode hsize hperm hwv hhope hAccounts
+                                  · exact vatHopeBodyCore hcode hsize hperm hwv hhope
                                   · by_cases hilks : selIs I (vatSelBytes 16)
-                                    · exact vatIlksBodyCore hcode hsize hperm hwv hilks hAccounts
+                                    · exact vatIlksBodyCore hcode hsize hperm hwv hilks
                                     · by_cases hinit : selIs I (vatSelBytes 17)
-                                      · exact vatInitBodyCore hcode hsize hperm hwv hinit hAccounts
+                                      · exact vatInitBodyCore hcode hsize hperm hwv hinit
                                       · by_cases hlive : selIs I (vatSelBytes 18)
-                                        · exact vatLiveBodyCore hcode hsize hperm hwv hlive hAccounts
+                                        · exact vatLiveBodyCore hcode hsize hperm hwv hlive
                                         · by_cases hmove : selIs I (vatSelBytes 19)
-                                          · exact vatMoveBodyCore hcode hsize hperm hwv hmove hAccounts
+                                          · exact vatMoveBodyCore hcode hsize hperm hwv hmove
                                           · by_cases hnope : selIs I (vatSelBytes 20)
-                                            · exact vatNopeBodyCore hcode hsize hperm hwv hnope hAccounts
+                                            · exact vatNopeBodyCore hcode hsize hperm hwv hnope
                                             · by_cases hrely : selIs I (vatSelBytes 21)
-                                              · exact vatRelyBodyCore hcode hsize hperm hwv hrely hAccounts
+                                              · exact vatRelyBodyCore hcode hsize hperm hwv hrely
                                               · by_cases hsin : selIs I (vatSelBytes 22)
-                                                · exact vatSinBodyCore hcode hsize hperm hwv hsin hAccounts
+                                                · exact vatSinBodyCore hcode hsize hperm hwv hsin
                                                 · by_cases hslip : selIs I (vatSelBytes 23)
-                                                  · exact vatSlipBodyCore hcode hsize hperm hwv hslip hAccounts
+                                                  · exact vatSlipBodyCore hcode hsize hperm hwv hslip
                                                   · by_cases hsuck : selIs I (vatSelBytes 24)
-                                                    · exact vatSuckBodyCore hcode hsize hperm hwv hsuck hAccounts
+                                                    · exact vatSuckBodyCore hcode hsize hperm hwv hsuck
                                                     · by_cases hurns : selIs I (vatSelBytes 25)
-                                                      · exact vatUrnsBodyCore hcode hsize hperm hwv hurns hAccounts
+                                                      · exact vatUrnsBodyCore hcode hsize hperm hwv hurns
                                                       · by_cases hvice : selIs I (vatSelBytes 26)
-                                                        · exact vatViceBodyCore hcode hsize hperm hwv hvice hAccounts
+                                                        · exact vatViceBodyCore hcode hsize hperm hwv hvice
                                                         · by_cases hwards : selIs I (vatSelBytes 27)
-                                                          · exact vatWardsBodyCore hcode hsize hperm hwv hwards hAccounts
+                                                          · exact vatWardsBodyCore hcode hsize hperm hwv hwards
                                                           · exact vatNoDispatch hcode hsize hperm hwv
                                                               (vatNoSelectorMatches hLine hcage hcan
                                                                 hdai hdebt hdeny hfileIlk hfileLine
@@ -218,7 +217,6 @@ theorem vatCorrect :
                                                                 hheal hhope hilks hinit hlive hmove
                                                                 hnope hrely hsin hslip hsuck hurns
                                                                 hvice hwards)
-                                                              hAccounts
   · exact vatNonPayable hcode hwv
 
 theorem vatContractCorrect :

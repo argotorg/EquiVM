@@ -105,7 +105,7 @@ theorem RD.clipperGetFeedPricePipPeekHasTrueToValBln
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {d0 d1 pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8974⟩
@@ -192,7 +192,7 @@ theorem RD.clipperGetFeedPriceValBlnOverflowReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9079⟩
@@ -219,12 +219,12 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9079⟩
       (has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C)
+      mem (UInt256.ofNat 7) o σ k C)
     (hmul : val.toNat * (⟨1000000000⟩ : UInt256).toNat < UInt256.size)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -234,7 +234,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
         ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: clipperSpotterParSelectorWord ::
         clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ :: ⟨9225⟩ ::
         has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      (clipperSpotterParSelectorMem mem) (UInt256.ofNat 7) o (cA, σ) k' C' := by
+      (clipperSpotterParSelectorMem mem) (UInt256.ofNat 7) o σ k' C' := by
   have rd8686 := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push2 ⟨9225⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -267,7 +267,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
   obtain ⟨_, _, rd9103⟩ : ∃ k C, RD code ee g s0 ⟨9103⟩
       (solcSlotWord σ ee ⟨3⟩ :: ⟨0⟩ :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C := by
+      mem (UInt256.ofNat 7) o σ k C := by
     exact ⟨_, _, by simpa [solcSlotWord, hpc9103, u256_mul_comm] using rdSpotter⟩
   have rd9110Raw := evm_run rd9103 with [
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
@@ -289,7 +289,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
   obtain ⟨_, _, rd9110⟩ : ∃ k C, RD code ee g s0 ⟨9110⟩
       (solcSlotWord σ ee ⟨3⟩ :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C := by
+      mem (UInt256.ofNat 7) o σ k C := by
     exact ⟨_, _, by simpa [hexp, hdiv, hpc9110] using rd9110Raw⟩
   have rd9119Raw := evm_run rd9110 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -308,7 +308,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
   obtain ⟨_, _, rd9119⟩ : ∃ k C, RD code ee g s0 ⟨9119⟩
       (clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C := by
+      mem (UInt256.ofNat 7) o σ k C := by
     exact ⟨_, _, by
       simpa [clipperSpotterTarget, haddrMask, hpc9119, u256_land_comm] using rd9119Raw⟩
   have rd9128Raw := evm_run rd9119 with [
@@ -336,7 +336,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
   obtain ⟨_, _, rd9128⟩ : ∃ k C, RD code ee g s0 ⟨9128⟩
       (clipperSpotterTarget σ ee :: UInt256.mul val ⟨1000000000⟩ ::
         ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) o (cA, σ) k C := by
+      mem (UInt256.ofNat 7) o σ k C := by
     exact ⟨_, _, by
       simpa [haddrMask, hpc9128, hmaskTargetLeft] using rd9128Raw⟩
   have rd9148Raw := evm_run rd9128 with [
@@ -365,7 +365,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
       (⟨128⟩ :: clipperSpotterParSelectorWord :: clipperSpotterTarget σ ee ::
         UInt256.mul val ⟨1000000000⟩ :: ⟨9225⟩ :: has :: val :: pipWord :: ret ::
         scratch :: lot :: tab :: R)
-      (clipperSpotterParSelectorMem mem) (UInt256.ofNat 7) o (cA, σ) k C := by
+      (clipperSpotterParSelectorMem mem) (UInt256.ofNat 7) o σ k C := by
     exact ⟨_, _, by
       simpa [hselectorMask, clipperSpotterParSelectorShifted,
         clipperSpotterParSelectorMem, hpc9148] using rd9148Raw⟩
@@ -463,11 +463,11 @@ theorem RD.clipperGetFeedPriceParNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {target : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {k C : ℕ}
     (rd : RD code ee g s0 ⟨9164⟩ (target :: target :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hcodeSize : extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
@@ -483,34 +483,34 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {s0 : State} {cA σ I} {g : UInt256}
+    {s0 : State} {σ I} {g : UInt256}
     {target valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd : RD code I (Sat256.ofUInt256 g) s0 ⟨9164⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
         ⟨132⟩ :: clipperSpotterParSelectorWord :: target :: valBln :: ⟨9225⟩ ::
         has :: val :: pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hcodeSize : extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hcalldata :
       (config v).externalABI.encode? "par" [] = some (mem.readWithPadding 128 4))
     (htarget : target = clipperSpotterTarget σ I)
     (hov : R.length + 100 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I (Sat256.ofUInt256 g) s0 ⟨9180⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: clipperSpotterParSelectorWord ::
           target :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch ::
           lot :: tab :: R)
-        (clipperSpotterParPostCallMem mem o) (UInt256.ofNat 7) o (cA', σ') k' C'
+        (clipperSpotterParPostCallMem mem o) (UInt256.ofNat 7) o σ' k' C'
     ∧ typedCallViaEVM (config v)
-        {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I}
+        {s0 with accountMap := σ, executionEnv := I}
         (EVM.address (clipperGetFeedPriceSpotterAddress
-          {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I}))
+          {s0 with accountMap := σ, executionEnv := I}))
         "par" 0 []
-        (z, { {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I} with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o) true
+        (z, { {s0 with accountMap := σ, executionEnv := I} with
+              accountMap := σ', substate := A' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd9179⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9164⟩) (okPc := ⟨9176⟩)
@@ -521,10 +521,10 @@ theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
       (clipperGetFeedPriceJumpDest9176 v hpatch)
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode) (by evm_ov)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k9180, C9180, hΘpack, rd9180raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k9180, C9180, hΘpack, rd9180raw, hosz⟩ :=
     RD.call rd9179 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o, A', k9180, C9180, ?_, ?_, hosz⟩
+  refine ⟨σ', z, o, A', k9180, C9180, ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨4⟩ : UInt256).toNat)
@@ -533,12 +533,12 @@ theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
       native_decide
     simpa [clipperSpotterParPostCallMem] using haw ▸ rd9180raw
   · refine callCoincides (cfg := config v)
-      (evm := {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I})
+      (evm := {s0 with accountMap := σ, executionEnv := I})
       (name := "par") (args := [])
       (tgt := EVM.address (clipperGetFeedPriceSpotterAddress
-        {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I}))
+        {s0 with accountMap := σ, executionEnv := I}))
       (targetWord := target)
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in) (z := z)
+      (σ' := σ') (A' := A') (A_in := A_in) (z := z)
       (o := o) (g'' := g'') (callGas := callGas) (mem := mem)
       (inOff := ⟨128⟩) (inSize := ⟨4⟩) (callPerm := true)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
@@ -553,7 +553,7 @@ theorem RD.clipperGetFeedPriceParCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨9180⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
@@ -572,7 +572,7 @@ theorem RD.clipperGetFeedPriceParCallSuccessToDecode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {target valBln has val pipWord ret scratch lot tab : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨9180⟩
@@ -601,7 +601,7 @@ theorem RD.clipperGetFeedPriceParDecodeShortReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9201⟩
@@ -648,7 +648,7 @@ theorem RD.clipperGetFeedPriceParDecodeOkToRdiv
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9201⟩
@@ -710,7 +710,7 @@ theorem RD.clipperGetFeedPriceRdivOverflowReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {par valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9290⟩
@@ -728,7 +728,7 @@ theorem RD.clipperGetFeedPriceRdivZeroInvalid
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {par valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9290⟩
@@ -751,7 +751,7 @@ theorem RD.clipperGetFeedPriceRdivSuccess
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {par valBln has val pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9290⟩

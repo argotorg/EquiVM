@@ -12,24 +12,24 @@ set_option linter.unnecessarySimpa false
 namespace OpenZeppelinBench.ERC6909
 
 theorem erc6909TransferFromX_operatorFalse_afterAllowanceLoad
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
     (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
-    (hopZero : transferFromOperatorWord (initState cA gh bl σ σ₀ g A I) I = ⟨0⟩)
+    (hopZero : transferFromOperatorWord (initState σ σ₀ g A I) I = ⟨0⟩)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1193⟩
-      [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I,
+      (initState σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1193⟩
+      [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I,
         transferFromAmountWord I, transferFromIdWord I, transferFromCallerWord I,
         transferFromSenderWord I, ⟨637⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferFromOperatorAllowanceScratchMem I)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
   have hbase : base.size = 96 := by
     dsimp [base]
@@ -38,62 +38,62 @@ theorem erc6909TransferFromX_operatorFalse_afterAllowanceLoad
     dsimp [base]
     exact isOperatorOuterHashMem_read64 (transferFromSenderWord I) (transferFromCallerWord I)
   obtain ⟨_, _, rd1147⟩ := erc6909TransferFromX_operatorFalse_toAllowanceHelper
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
     hsenderNe hopZero hreach
   obtain ⟨k1, C1, rd1193⟩ := erc6909TransferFromX_from1147_afterAllowanceLoad
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) (sel := sel) (base := base) hbase hread64 hcanonSender rd1147
   exact ⟨k1, C1, by
     simpa [base, transferFromOperatorAllowanceScratchMem, transferFromAllowanceScratchMem]
       using rd1193⟩
 
 theorem erc6909TransferFromX_operatorFalse_allowanceMax_to661
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
     (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
-    (hopZero : transferFromOperatorWord (initState cA gh bl σ σ₀ g A I) I = ⟨0⟩)
+    (hopZero : transferFromOperatorWord (initState σ σ₀ g A I) I = ⟨0⟩)
     (hallowanceMax : UInt256.size - 1 ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨661⟩
+      (initState σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨661⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferFromOperatorAllowanceScratchMem I)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1193⟩ := erc6909TransferFromX_operatorFalse_afterAllowanceLoad
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
     hsenderNe hopZero hreach
   exact erc6909TransferFromX_from1193_allowanceMax_to661_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) (sel := sel)
     (base := transferFromOperatorAllowanceScratchMem I)
     hallowanceMax rd1193
 
 theorem erc6909TransferFromX_operatorFalse_allowanceMax_to1323
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
     (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
-    (hopZero : transferFromOperatorWord (initState cA gh bl σ σ₀ g A I) I = ⟨0⟩)
+    (hopZero : transferFromOperatorWord (initState σ σ₀ g A I) I = ⟨0⟩)
     (hallowanceMax : UInt256.size - 1 ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨388⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
@@ -101,31 +101,31 @@ theorem erc6909TransferFromX_operatorFalse_allowanceMax_to1323
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
       (transferFromOperatorAllowanceScratchMem I)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd661⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to661
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+    (σ := σ) (σ₀ := σ₀) (A := A)
     (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
     hsenderNe hopZero hallowanceMax hreach
   exact erc6909TransferFromX_from661_toUpdateHelper_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σ)
+    (σ := σ) (σ₀ := σ₀) (σcur := σ)
     (A := A) (g := g) (sel := sel)
     (base := transferFromOperatorAllowanceScratchMem I)
     hcanonSender hcanonReceiver hsenderNZ hreceiverNZ rd661
 
 theorem erc6909TransferFromX_from661_revert_sender_zero_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hsenderZero : transferFromSenderWord I = ⟨0⟩)
     (rd661 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨661⟩
+      (initState σ σ₀ g A I) ⟨661⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have rd676 := evm_run rd661 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
     push2 ⟨707⟩,
@@ -154,7 +154,7 @@ theorem erc6909TransferFromX_from661_revert_sender_zero_base
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from661_revert_receiver_zero_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -162,13 +162,13 @@ theorem erc6909TransferFromX_from661_revert_receiver_zero_base
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverZero : transferFromReceiverWord I = ⟨0⟩)
     (rd661 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨661⟩
+      (initState σ σ₀ g A I) ⟨661⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨649⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have rd722 := evm_run rd661 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
     push2 ⟨707⟩,
@@ -204,21 +204,21 @@ theorem erc6909TransferFromX_from661_revert_receiver_zero_base
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
-theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterLoad {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -226,7 +226,7 @@ theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C := by
   have hslot := transferFromSenderBalanceKeccakSlot I hcanonSender
   have rd1340 := evm_run rd1323 with [
     jumpdest, caller, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and,
@@ -268,23 +268,23 @@ theorem erc6909TransferFromX_from1323_afterLoad {cA gh bl σ σ₀ σcur A I}
       hslot, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       using rd1373₀⟩
 
-theorem erc6909TransferFromX_from1323_afterRequire {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterRequire {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1437⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1437⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -292,24 +292,24 @@ theorem erc6909TransferFromX_from1323_afterRequire {cA gh bl σ σ₀ σcur A I}
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C := by
   obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_from1323_afterLoad
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hcanonSender hsenderNZ rd1323
   have hlt : UInt256.lt
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
       (transferFromAmountWord I) = ⟨0⟩ := ult_zero henough
   exact ⟨_, _, evm_run rd1373 with [
     dup3, dup2, lt, iszero, push2 ⟨1437⟩,
     jumpiT (by rw [hlt]; decide) (by jump_dest) ]⟩
 
-theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1373_insufficient {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
-    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat <
+    (hlt : (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
-    (rd1373 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+    (rd1373 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -317,10 +317,10 @@ theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hltw : UInt256.lt
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
       (transferFromAmountWord I) = ⟨1⟩ := ult_one hlt
   have rd1381 := evm_run rd1373 with [
     dup3, dup2, lt, iszero, push2 ⟨1437⟩,
@@ -348,18 +348,18 @@ theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
     push1 ⟨36⟩, dup2, add, dup3, swap1,
     raw mstore 3 (transferInsufficientBalanceBalanceMem (transferFromSenderWord I)
         (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I))
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I))
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩, dup2, add, dup5, swap1,
     raw mstore 3 (transferInsufficientBalanceAmountMem (transferFromSenderWord I)
         (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, dup2, add, dup6, swap1,
     raw mstore 3 (transferInsufficientBalanceIdMem (transferFromSenderWord I)
         (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
@@ -367,49 +367,49 @@ theorem erc6909TransferFromX_from1373_insufficient {cA gh bl σ σ₀ σcur A I}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
       (transferInsufficientBalanceIdMem_mload64 (transferFromSenderWord I)
         (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
-theorem erc6909TransferFromX_from1323_insufficient {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_insufficient {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
-    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat <
+    (hlt : (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_from1323_afterLoad
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hcanonSender hsenderNZ rd1323
   exact erc6909TransferFromX_from1373_insufficient hcanonSender hlt rd1373
 
-theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterLoad_base {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ} {base : ByteArray}
     (hbase : base.size = 96)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -417,7 +417,7 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C := by
   have hslot := transferFromSenderBalanceKeccakSlot I hcanonSender
   have rd1340 := evm_run rd1323 with [
     jumpdest, caller, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and,
@@ -488,24 +488,24 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
       hslot, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       using rd1373₀⟩
 
-theorem erc6909TransferFromX_from1323_afterRequire_base {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterRequire_base {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ} {base : ByteArray}
     (hbase : base.size = 96)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1437⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1437⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -513,27 +513,27 @@ theorem erc6909TransferFromX_from1323_afterRequire_base {cA gh bl σ σ₀ σcur
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C := by
   obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_from1323_afterLoad_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hcanonSender hsenderNZ rd1323
   have hlt : UInt256.lt
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
       (transferFromAmountWord I) = ⟨0⟩ := ult_zero henough
   exact ⟨_, _, evm_run rd1373 with [
     dup3, dup2, lt, iszero, push2 ⟨1437⟩,
     jumpiT (by rw [hlt]; decide) (by jump_dest) ]⟩
 
 theorem erc6909TransferFromX_from1373_insufficient_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
-    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat <
+    (hlt : (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
-    (rd1373 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1373⟩
-      [transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+    (rd1373 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1373⟩
+      [transferFromSenderBalanceWord (initState σcur σ₀ g A I) I,
         transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -541,8 +541,8 @@ theorem erc6909TransferFromX_from1373_insufficient_base
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       (transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   let senderMem := transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I)
   have hsenderMemSize : senderMem.size = 96 := by
     dsimp [senderMem]
@@ -553,7 +553,7 @@ theorem erc6909TransferFromX_from1373_insufficient_base
     exact transferMapScratchMem_read64 (transferFromSenderWord I) (transferFromIdWord I)
       hbase hread64
   have hltw : UInt256.lt
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
       (transferFromAmountWord I) = ⟨1⟩ := ult_one hlt
   have rd1381 := evm_run rd1373 with [
     dup3, dup2, lt, iszero, push2 ⟨1437⟩,
@@ -581,18 +581,18 @@ theorem erc6909TransferFromX_from1373_insufficient_base
     push1 ⟨36⟩, dup2, add, dup3, swap1,
     raw mstore 3 (transferInsufficientBalanceBalanceBaseMem senderMem
         (transferFromSenderWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I))
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I))
       (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩, dup2, add, dup5, swap1,
     raw mstore 3 (transferInsufficientBalanceAmountBaseMem senderMem
         (transferFromSenderWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, dup2, add, dup6, swap1,
     raw mstore 3 (transferInsufficientBalanceIdBaseMem senderMem
         (transferFromSenderWord I) (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I))
       (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add, push2 ⟨698⟩, jump (by jump_dest),
@@ -600,54 +600,54 @@ theorem erc6909TransferFromX_from1373_insufficient_base
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide) mem_cost
       (transferInsufficientBalanceIdBaseMem_mload64 (transferFromSenderWord I)
         (transferFromIdWord I)
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
         (transferFromAmountWord I) hsenderMemSize hsenderMemRead64)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
 theorem erc6909TransferFromX_from1323_insufficient_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
-    (hlt : (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat <
+    (hlt : (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat <
       (transferFromAmountWord I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1373⟩ := erc6909TransferFromX_from1323_afterLoad_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hcanonSender hsenderNZ rd1323
   exact erc6909TransferFromX_from1373_insufficient_base
     hbase hread64 hcanonSender hlt rd1373
 
-theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterDebit {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1476⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -658,10 +658,10 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd1437⟩ := erc6909TransferFromX_from1323_afterRequire
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hcanonSender hsenderNZ henough rd1323
   have hslot := transferFromSenderBalanceKeccakSlot I hcanonSender
   have rd1451 := evm_run rd1437 with [
@@ -735,17 +735,17 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov) ]
   have hdebit :
       UInt256.sub
-          (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+          (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
           (transferFromAmountWord I) =
-        transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I := by
+        transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I := by
     apply u256_inj
     rw [usub_toNat henough]
     unfold transferFromTailSenderDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat
         (transferFromAmountWord I).toNat)
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).val.isLt)]
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).val.isLt)]
   have rd1475₀ := evm_run rd1470 with [
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
@@ -753,7 +753,7 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
   obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, rd1476⟩
 
-theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_toCheckedAdd {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
@@ -761,18 +761,18 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2017⟩
-      [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨2017⟩
+      [transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I,
         transferFromAmountWord I, ⟨1539⟩, ⟨0⟩, transferFromReceiverBalanceSlot I,
         transferFromAmountWord I, transferFromCallerWord I, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
@@ -787,10 +787,10 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd1476⟩ := erc6909TransferFromX_from1323_afterDebit
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hperm hcanonSender hsenderNZ henough rd1323
   let debitMem :=
     transferMapScratchMem (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
@@ -877,8 +877,8 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
       (by decide) (by evm_ov),
     dup1 ]
   obtain ⟨k1, C1, rd1526₀⟩ := rd1524.sload (by decide) (by evm_ov)
-  have rd1526 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1526⟩
-      [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+  have rd1526 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1526⟩
+      [transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I,
         transferFromReceiverBalanceSlot I, ⟨0⟩, transferFromCallerWord I,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
@@ -888,8 +888,8 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
         ⟨193⟩, sel]
       (transferMapScratchMem debitMem (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k1 C1 := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k1 C1 := by
     simpa [transferFromTailReceiverBalanceWord, transferFromTailAfterSenderBalanceState,
       transferFromSenderBalanceSlot, hslot, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap, debitMem]
@@ -898,14 +898,14 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
     dup5, swap3, swap1, push2 ⟨1539⟩, swap1, dup5, swap1, push2 ⟨2017⟩,
     jump (by jump_dest) ]⟩
 
-theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1545_successCaller_mem {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
-    (rd1545 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+    (rd1545 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1545⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -913,8 +913,8 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
       mem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σcur)
+      (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σcur
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   let creditMem := mem
   have hcreditMemSize : creditMem.size = 96 := by
@@ -1009,12 +1009,12 @@ theorem erc6909TransferFromX_from1545_successCaller_mem {cA gh bl σ σ₀ σcur
           (transferFromAmountWord I) hcreditMemSize)
       (by evm_ov) ]
 
-theorem erc6909TransferFromX_from1545_successCaller {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1545_successCaller {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
-    (rd1545 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+    (rd1545 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1545⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1026,8 +1026,8 @@ theorem erc6909TransferFromX_from1545_successCaller {cA gh bl σ σ₀ σcur A I
           (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σcur)
+      (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σcur
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   let debitMem :=
     transferMapScratchMem (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
@@ -1054,11 +1054,11 @@ theorem erc6909TransferFromX_from1545_successCaller {cA gh bl σ σ₀ σcur A I
     exact transferMapScratchMem_read64 (transferFromReceiverWord I) (transferFromIdWord I)
       hdebitMemSize hdebitMemRead64
   exact erc6909TransferFromX_from1545_successCaller_mem
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := sel) (mem := creditMem) hcreditMemSize hcreditMemRead64 hperm hcanonSender
     hcanonReceiver (by simpa [debitMem, creditMem] using rd1545)
 
-theorem erc6909TransferFromX_from1323_afterCredit {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_afterCredit {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
@@ -1066,19 +1066,19 @@ theorem erc6909TransferFromX_from1323_afterCredit {cA gh bl σ σ₀ σcur A I}
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
-    (hfit : transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I <
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
+    (hfit : transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I <
       UInt256.size)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1545⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1091,22 +1091,22 @@ theorem erc6909TransferFromX_from1323_afterCredit {cA gh bl σ σ₀ σcur A I}
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-          (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I))
+          (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I))
         (transferFromReceiverBalanceSlot I)
-        (transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+        (transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_from1323_toCheckedAdd
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough rd1323
   obtain ⟨_, _, rd1539₀⟩ := erc6909RoutineCheckedAdd rd2017
     (by simpa [transferFromTailReceiverCreditNat] using hfit)
     (by jump_dest) (by evm_ov)
   have hnew :
-      transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I +
+      transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I +
           transferFromAmountWord I =
-        transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I := by
+        transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I := by
     apply u256_inj
     rw [uadd_toNat, Nat.mod_eq_of_lt (by
       simpa [transferFromTailReceiverCreditNat] using hfit)]
@@ -1120,7 +1120,7 @@ theorem erc6909TransferFromX_from1323_afterCredit {cA gh bl σ σ₀ σcur A I}
   obtain ⟨_, _, rd1543⟩ := rd1542.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1543 with [ pop, pop ]⟩
 
-theorem erc6909TransferFromX_from1323_overflow {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_overflow {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
@@ -1128,27 +1128,27 @@ theorem erc6909TransferFromX_from1323_overflow {cA gh bl σ σ₀ σcur A I}
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (hover : UInt256.size ≤
-      transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I)
+      transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_from1323_toCheckedAdd
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough rd1323
   exact erc6909RoutineCheckedAdd_overflow rd2017
     (by simpa [transferFromTailReceiverCreditNat] using hover) (by evm_ov)
 
-theorem erc6909TransferFromX_from1323_successCaller {cA gh bl σ σ₀ σcur A I}
+theorem erc6909TransferFromX_from1323_successCaller {σ σ₀ σcur A I}
     {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
@@ -1156,33 +1156,33 @@ theorem erc6909TransferFromX_from1323_successCaller {cA gh bl σ σ₀ σcur A I
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
-    (hfit : transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I <
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
+    (hfit : transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I <
       UInt256.size)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-          (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I))
+          (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I))
         (transferFromReceiverBalanceSlot I)
-        (transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I))
+        (transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd1545⟩ := erc6909TransferFromX_from1323_afterCredit
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough hfit rd1323
   exact erc6909TransferFromX_from1545_successCaller hperm hcanonSender hcanonReceiver rd1545
 
 theorem erc6909TransferFromX_from1323_afterDebit_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1190,17 +1190,17 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1476⟩
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1211,10 +1211,10 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
         (transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd1437⟩ := erc6909TransferFromX_from1323_afterRequire_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hcanonSender hsenderNZ henough rd1323
   let senderMem := transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I)
   have hsenderMemSize : senderMem.size = 96 := by
@@ -1283,17 +1283,17 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
       (by decide) (by evm_ov) ]
   have hdebit :
       UInt256.sub
-          (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I)
+          (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I)
           (transferFromAmountWord I) =
-        transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I := by
+        transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I := by
     apply u256_inj
     rw [usub_toNat henough]
     unfold transferFromTailSenderDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le
-        (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat
+        (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat
         (transferFromAmountWord I).toNat)
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).val.isLt)]
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).val.isLt)]
   have rd1475₀ := evm_run rd1470 with [
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
@@ -1302,7 +1302,7 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
   exact ⟨_, _, by simpa [senderMem] using rd1476⟩
 
 theorem erc6909TransferFromX_from1323_toCheckedAdd_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1312,18 +1312,18 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2017⟩
-      [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨2017⟩
+      [transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I,
         transferFromAmountWord I, ⟨1539⟩, ⟨0⟩, transferFromReceiverBalanceSlot I,
         transferFromAmountWord I, transferFromCallerWord I, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
@@ -1338,10 +1338,10 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd1476⟩ := erc6909TransferFromX_from1323_afterDebit_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hread64 hperm hcanonSender hsenderNZ
     henough rd1323
   let senderMem := transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I)
@@ -1436,8 +1436,8 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
       (by decide) (by evm_ov),
     dup1 ]
   obtain ⟨k1, C1, rd1526₀⟩ := rd1524.sload (by decide) (by evm_ov)
-  have rd1526 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1526⟩
-      [transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I,
+  have rd1526 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1526⟩
+      [transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I,
         transferFromReceiverBalanceSlot I, ⟨0⟩, transferFromCallerWord I,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
@@ -1447,8 +1447,8 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
         ⟨193⟩, sel]
       (transferMapScratchMem debitMem (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I)) k1 C1 := by
+      (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k1 C1 := by
     simpa [transferFromTailReceiverBalanceWord, transferFromTailAfterSenderBalanceState,
       transferFromSenderBalanceSlot, hslot, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap, debitMem]
@@ -1460,14 +1460,14 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
         jump (by jump_dest) ]⟩
 
 theorem erc6909TransferFromX_from1545_successCaller_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
-    (rd1545 : RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+    (rd1545 : RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1545⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1479,8 +1479,8 @@ theorem erc6909TransferFromX_from1545_successCaller_base
           (transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I))
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σcur)
+      (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σcur
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   let senderMem := transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I)
   let debitMem := transferMapScratchMem senderMem (transferFromSenderWord I)
@@ -1514,7 +1514,7 @@ theorem erc6909TransferFromX_from1545_successCaller_base
     exact transferMapScratchMem_read64 (transferFromReceiverWord I) (transferFromIdWord I)
       hdebitMemSize hdebitMemRead64
   exact erc6909TransferFromX_from1545_successCaller_mem
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := sel) (mem := creditMem) hcreditMemSize hcreditMemRead64 hperm hcanonSender
     hcanonReceiver (by simpa [senderMem, debitMem, creditMem] using rd1545)
 /-
@@ -1608,7 +1608,7 @@ theorem erc6909TransferFromX_from1545_successCaller_base
 -/
 
 theorem erc6909TransferFromX_from1323_afterCredit_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1618,19 +1618,19 @@ theorem erc6909TransferFromX_from1323_afterCredit_base
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
-    (hfit : transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I <
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
+    (hfit : transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I <
       UInt256.size)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1545⟩
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1545⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1643,22 +1643,22 @@ theorem erc6909TransferFromX_from1323_afterCredit_base
           (transferFromSenderWord I) (transferFromIdWord I))
         (transferFromReceiverWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-          (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I))
+          (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I))
         (transferFromReceiverBalanceSlot I)
-        (transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I)) k C := by
+        (transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_from1323_toCheckedAdd_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hread64 hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough rd1323
   obtain ⟨_, _, rd1539₀⟩ := erc6909RoutineCheckedAdd rd2017
     (by simpa [transferFromTailReceiverCreditNat] using hfit)
     (by jump_dest) (by evm_ov)
   have hnew :
-      transferFromTailReceiverBalanceWord (initState cA gh bl σcur σ₀ g A I) I +
+      transferFromTailReceiverBalanceWord (initState σcur σ₀ g A I) I +
           transferFromAmountWord I =
-        transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I := by
+        transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I := by
     apply u256_inj
     rw [uadd_toNat, Nat.mod_eq_of_lt (by
       simpa [transferFromTailReceiverCreditNat] using hfit)]
@@ -1673,7 +1673,7 @@ theorem erc6909TransferFromX_from1323_afterCredit_base
   exact ⟨_, _, evm_run rd1543 with [ pop, pop ]⟩
 
 theorem erc6909TransferFromX_from1323_overflow_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1683,28 +1683,28 @@ theorem erc6909TransferFromX_from1323_overflow_base
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
     (hover : UInt256.size ≤
-      transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I)
+      transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2017⟩ := erc6909TransferFromX_from1323_toCheckedAdd_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hread64 hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough rd1323
   exact erc6909RoutineCheckedAdd_overflow rd2017
     (by simpa [transferFromTailReceiverCreditNat] using hover) (by evm_ov)
 
 theorem erc6909TransferFromX_from1323_successCaller_base
-    {cA gh bl σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
+    {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1714,31 +1714,31 @@ theorem erc6909TransferFromX_from1323_successCaller_base
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
-      (transferFromSenderBalanceWord (initState cA gh bl σcur σ₀ g A I) I).toNat)
-    (hfit : transferFromTailReceiverCreditNat (initState cA gh bl σcur σ₀ g A I) I <
+      (transferFromSenderBalanceWord (initState σcur σ₀ g A I) I).toNat)
+    (hfit : transferFromTailReceiverCreditNat (initState σcur σ₀ g A I) I <
       UInt256.size)
     (rd1323 : RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1323⟩
+      (initState σ σ₀ g A I) ⟨1323⟩
       [transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨760⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨649⟩, transferFromCallerWord I, ⟨0⟩, transferFromAmountWord I,
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
-      base (UInt256.ofNat 3) ByteArray.empty (cA, σcur) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-          (transferFromTailSenderDebitWord (initState cA gh bl σcur σ₀ g A I) I))
+          (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I))
         (transferFromReceiverBalanceSlot I)
-        (transferFromTailReceiverCreditWord (initState cA gh bl σcur σ₀ g A I) I))
+        (transferFromTailReceiverCreditWord (initState σcur σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd1545⟩ := erc6909TransferFromX_from1323_afterCredit_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (σcur := σcur)
+    (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hread64 hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough hfit rd1323
   exact erc6909TransferFromX_from1545_successCaller_base
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := sel) hbase hread64 hperm hcanonSender hcanonReceiver rd1545
 
 

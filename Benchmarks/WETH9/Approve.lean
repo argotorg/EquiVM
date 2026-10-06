@@ -269,14 +269,14 @@ abbrev approveApprovalTopic : UInt256 :=
 
 /-- Peel the callvalue guard (304 → 318), pass the `size ≥ 68` decode guard, decode
     `(address guy, uint256 wad)`, and jump to the body entry (pc 981). -/
-theorem weth9ApproveReachDecode {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨981⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨981⟩
       [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -305,14 +305,14 @@ theorem weth9ApproveReachDecode {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- The store + `Approval` log (981 → 361): store `allowance[caller][guy] = wad` and emit `LOG3`,
     reaching the bool-return encoder at pc 361 with the constant `1` on the stack. -/
-theorem weth9ApproveStoreLog {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem weth9ApproveStoreLog {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD weth9Bytecode I g s0 ⟨981⟩
       [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
       (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((approveInnerMem I).readWithPadding 0 64))) =
@@ -425,12 +425,12 @@ theorem weth9ApproveStoreLog {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 /-- The full `approve` EVM run (68 ≤ calldata): stores `allowance[caller][guy] = wad`, logs, and
     returns the ABI encoding of `true`. -/
-theorem weth9ApproveX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ApproveX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 1)) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
+    RDret weth9Bytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I))
       (UInt256.toByteArray ⟨1⟩) := by
   obtain ⟨_, _, h981⟩ := weth9ApproveReachDecode (g := g) hcode hwv hsz68 hsize hsel
   obtain ⟨_, _, h361⟩ := weth9ApproveStoreLog (I := I) hperm h981
@@ -445,37 +445,33 @@ theorem weth9ApproveX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## Refinement -/
 
-theorem weth9ApproveBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9ApproveBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hsel : selIs I (weth9SelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (approveStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (approveStore I)
         approveTransition.body
         (.returned { contract := contract, locals := approveStore I }
-          (approvePostState (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+          (approvePostState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
           (some [.bool true])) :=
-    weth9ApproveBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+    weth9ApproveBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
       (by simp only [initState]; exact hwv) (by simp [initState])
   refine weth9ReEquivExecGen (t := approveTransition) hcode
     (weth9ApproveX_ok (g := Sat256.ofUInt256 g) hcode hwv hperm hsz68 hsize hsel)
-    (weth9SelectorDispatchApprove hsel) (weth9Decode_approve_ok hsz68) hbody ?_ ?_ ?_
-  · simp [approvePostState, initState, storageStore_createdAccounts]
-  · simpa [approvePostState, initState, storageStore_accountMap] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (approveStorageSlot I)
-        (approveWadWord I) hAccounts
+    (weth9SelectorDispatchApprove hsel) (weth9Decode_approve_ok hsz68) hbody ?_ ?_
+  · simp [approvePostState, initState, storageStore_accountMap]
   · exact returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding)
 
-theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I (weth9SelBytes 1)) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -487,7 +483,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
     simp only [show (⟨64⟩ : UInt256).toNat = 64 from rfl,
       show (⟨4⟩ : UInt256).toNat = 4 from rfl]; omega
   have hrev : RDrev weth9Bytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     h318.push2 ⟨361⟩ (by native_decide) (by simp)
       |>.push1 ⟨4⟩ (by native_decide) (by simp)
       |>.dup1 (by native_decide) (by simp)
@@ -504,18 +500,17 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
     (weth9Decode_approve_none_short hsz4 hshort)
 
 /-- `approve(address,uint256)` body refines its Solm transition (all branches). -/
-theorem weth9ApproveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9ApproveBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 1) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz68 : 68 ≤ I.calldata.size
-    · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel hAccounts
+    · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel
     · exact weth9ApproveBodyCoreDecodeFailed_short hcode hsize hwv hsz4 (by omega) hsel
-  · obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  · obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨316⟩) h304 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

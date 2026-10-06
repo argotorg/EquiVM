@@ -81,16 +81,16 @@ macro "uniswap_const_getter_wf" : term =>
     unfold Reasoning.Reach.uniswapConstGetterWf
     repeat' first | apply And.intro | native_decide)
 
-theorem RD.uniswapGetterThunk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.uniswapGetterThunk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry returnPc routine : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : uniswapGetterEntryWf entry returnPc routine)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true) :
     ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) routine (returnPc :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (Reasoning.Theory.initState σ σ₀ g A I) routine (returnPc :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact RD.solcGetterThunk hreach hentry hroutine
 
 /-! ## Shared lock-entry prefix -/
@@ -112,17 +112,17 @@ macro "uniswap_lock_enter_ok_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc okPc : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R mem aw rdata σ k C)
     (hwf : uniswapLockEnterOkWf pc okPc)
     (hperm : ee.perm = true)
     (hunlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hok : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains okPc = true)
     (hov : R.length + 2 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 (okPc + UInt256.ofNat 6) R
-      mem aw rdata (cA, sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
+      mem aw rdata (sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
   exact RD.solcLockEnterOk h hwf hperm (by simpa [solcSlotWord] using hunlocked) hok hov
 
 macro "uniswap_lock_enter_guard_wf" : term =>
@@ -177,9 +177,9 @@ macro "uniswap_lock_body_revert_tail_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {pc okPc : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hguard : uniswapLockEnterBodyGuardWf pc okPc)
     (htail :
       solcErrorStringRevertTailWf UniswapV2Pair.uniswapV2PairBytecode
@@ -187,7 +187,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
         (⟨7267690950230416977285330377544234619217⟩ : UInt256) ⟨122⟩
         .PUSH17 17)
     (hlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
       ⟨1⟩)
     (hov : R.length + 5 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -201,7 +201,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
   obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
   have rd3 := rd3₀
   have hraw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         lockedWord := by
     simpa [solcSlotWord] using hlockedWord.symm
   rw [hraw] at rd3
@@ -242,19 +242,19 @@ macro "uniswap_lock_enter_body_ok_wf" : term =>
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {pc okPc : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : uniswapLockEnterBodyOkWf pc okPc)
     (hperm : ee.perm = true)
     (hunlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hok : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains okPc = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 (okPc + UInt256.ofNat 8)
       (⟨0⟩ :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
   rcases hwf with ⟨hguard, hdOk, hdOk1, hdOk3, hdOk5, hdOk6, hdOk7⟩
   rcases hguard with ⟨hd0, hd2, hd3, hd5, hd6, hd9⟩
   have rd2 := h.push1 ⟨12⟩ hd0 (by omega)
@@ -289,9 +289,9 @@ theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc okPc : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc R
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hguard :
       solcLockEnterGuardWf UniswapV2Pair.uniswapV2PairBytecode pc okPc ⟨12⟩ ⟨1⟩)
     (htail :
@@ -300,7 +300,7 @@ theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
         (⟨7267690950230416977285330377544234619217⟩ : UInt256) ⟨122⟩
         .PUSH17 17)
     (hlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
       ⟨1⟩)
     (hov : R.length + 6 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -318,48 +318,48 @@ theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
 
 theorem RD.addressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
-        (cA, σ) k C)
+        σ k C)
     (hwf : uniswapAddressSlotGetterWf pc slot)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UInt256.land solcAddrMask
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
-        ret :: R) mem aw rdata (cA, σ) k' C' := by
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
+        ret :: R) mem aw rdata σ k' C' := by
   exact RD.solcAddressSlotGetter h hwf hret hov
 
 theorem RD.uniswapWordSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
-        (cA, σ) k C)
+        σ k C)
     (hwf : uniswapWordSlotGetterWf pc slot)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
-        ret :: R) mem aw rdata (cA, σ) k' C' := by
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
+        ret :: R) mem aw rdata σ k' C' := by
   exact RD.solcWordSlotGetter h hwf hret hov
 
 theorem RD.uniswapConstGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc val ret : UInt256} {width : Nat} {op : Operation.POp} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
-        (cA, σ) k C)
+        σ k C)
     (hwf : uniswapConstGetterWf pc val width op)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret (val :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   exact RD.solcConstGetter h hwf hret hov
 
 /-- Uniswap's address-return wrapper at pc 825. -/
 theorem RD.uniswapReturnAddress825 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨825⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :
@@ -378,7 +378,7 @@ theorem RD.uniswapReturnAddress825 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 /-- Uniswap's uint256-return wrapper at pc 861. -/
 theorem RD.uniswapReturnWord861 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
@@ -395,7 +395,7 @@ theorem RD.uniswapReturnWord861 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
 
 theorem RD.uniswapReturnWord861FromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {mem memout rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hmload64 :
@@ -425,7 +425,7 @@ theorem RD.uniswapReturnWord861FromMem {g : Sat256} {s0 : State} {ee : Execution
 /-- Uniswap's uint8-return wrapper for `decimals()` at pc 949. -/
 theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨949⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :
@@ -441,17 +441,17 @@ theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (solcReturnMem_read128 (UInt256.land val ⟨255⟩))
     hov
 
-theorem RD.addressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.addressGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine slot : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : uniswapAddressGetterEntryWf entry routine)
     (hgetter : uniswapAddressSlotGetterWf routine slot)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hret825 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨825⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UniswapV2Pair.uniswapAddressReturnWord slot σ I)) := by
   simpa [UniswapV2Pair.uniswapAddressReturnWord, UniswapV2Pair.uniswapSlotWord, solcSlotWord]
     using RD.solcAddressGetterExternal (returnPc := ⟨825⟩)
@@ -460,17 +460,17 @@ theorem RD.addressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
         unfold solcReturnAddressFromMemWf
         repeat' first | apply And.intro | native_decide)
 
-theorem RD.uniswapWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.uniswapWordGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine slot : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : uniswapWordGetterEntryWf entry routine)
     (hgetter : uniswapWordSlotGetterWf routine slot)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hret861 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨861⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UniswapV2Pair.uniswapSlotWord slot σ I)) := by
   simpa [UniswapV2Pair.uniswapSlotWord, solcSlotWord]
     using RD.solcWordGetterExternal (returnPc := ⟨861⟩)
@@ -479,17 +479,17 @@ theorem RD.uniswapWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
 
-theorem RD.uniswapWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.uniswapWordConstGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : uniswapWordGetterEntryWf entry routine)
     (hgetter : uniswapConstGetterWf routine val width op)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hret861 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨861⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray val) := by
   exact RD.solcWordConstGetterExternal (returnPc := ⟨861⟩)
     hreach hentry hgetter hroutine hret861
@@ -497,17 +497,17 @@ theorem RD.uniswapWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {
       unfold solcReturnWordFromMemWf
       repeat' first | apply And.intro | native_decide)
 
-theorem RD.uniswapUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.uniswapUint8ConstGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : uniswapGetterEntryWf entry ⟨949⟩ routine)
     (hgetter : uniswapConstGetterWf routine val width op)
     (hroutine : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains routine = true)
     (hret949 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨949⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
   exact RD.solcUint8ConstGetterExternal (returnPc := ⟨949⟩)
     hreach hentry hgetter hroutine hret949
@@ -520,7 +520,7 @@ end Reasoning.Reach
 namespace UniswapV2Pair
 
 theorem uniswapAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -528,43 +528,35 @@ theorem uniswapAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : Reasoning.Reach.uniswapAddressGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapAddressSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (uniswapAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : uniswapSlotWord slot σ_solm I = uniswapSlotWord slot σ_evm I := hword.symm
-    simp [uniswapAddressReturnWord, hslot]
+            (uniswapAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (uniswapAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [uniswapAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ I)))
   exact (RD.addressGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
-      (by jump_dest)).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody hval hAccounts henc
+      (by jump_dest)).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 theorem uniswapUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -572,40 +564,33 @@ theorem uniswapUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (uniswapSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (uniswapSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (uniswapSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ I))
+        (some [(.int (Int.ofNat (uniswapSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (uniswapSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (uniswapSlotWord slot σ I))
   exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
-      (by jump_dest)).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody hval hAccounts henc
+      (by jump_dest)).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 theorem uniswapBytes32GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
     (hcode : I.code = uniswapV2PairBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -613,40 +598,31 @@ theorem uniswapBytes32GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : Reasoning.Reach.uniswapWordGetterEntryWf entry routine)
     (hgetter : Reasoning.Reach.uniswapWordSlotGetterWf routine slot)
     (hroutine : (D_J uniswapV2PairBytecode 0).contains routine = true)
     (hreturn : transition.returnType = [bytes32])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩
-            (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I)))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : uniswapSlotWord slot σ_evm I = uniswapSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_solm I))] =
-        some [Value.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I))] := by
-    rw [← hword]
+            (EVM.Word.toBytesBE (uniswapSlotWord slot σ I)))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ_evm I))
+      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ I))
         (some [(.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ_evm I)))])
+          (EVM.Word.toBytesBE (uniswapSlotWord slot σ I)))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [bytes32] using bytes32ReturnEncoding (uniswapSlotWord slot σ_evm I))
+      (by simpa [bytes32] using bytes32ReturnEncoding (uniswapSlotWord slot σ I))
   exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
-      (by jump_dest)).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody hval hAccounts henc
+      (by jump_dest)).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 end UniswapV2Pair

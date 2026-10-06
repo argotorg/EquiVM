@@ -13,7 +13,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000 in
 theorem daiJoinCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
     (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨129⟩ []
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) rdata acc k C) :
@@ -34,17 +34,14 @@ theorem daiJoinCtorReturnTrace
     (by daiJoin_ctor_decode) mem_cost (daiJoinCtorReturnMem_read I vat dai) (by evm_ov)
 
 theorem daiJoinInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat dai : AccountAddress)
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (daiJoinCtorCode vat dai) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σ (daiJoinCtorCallerWardsSlot I) ⟨1⟩)
@@ -69,8 +66,7 @@ theorem daiJoinInitcodeSuccess
       daiJoinBytecode := by
   obtain ⟨_, _, rd61⟩ :=
     daiJoinCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat dai hcode hwv
   obtain ⟨_, _, rd82⟩ := daiJoinCtorWardsStoreReach vat dai hperm rd61
   obtain ⟨_, _, rd129⟩ := daiJoinCtorStoresReach vat dai hperm rd82

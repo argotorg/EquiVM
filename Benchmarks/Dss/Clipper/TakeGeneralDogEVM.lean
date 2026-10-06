@@ -15,7 +15,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe digsAmt tabNew lotNew price tic packed stopped dataLen dataStart who max
       amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -23,7 +23,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
       (digsAmt :: clipperYankIlkWord v :: clipperDogDigsSelectorWord ::
         UInt256.land solcAddrMask dog :: dog :: slice :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨4964⟩
@@ -32,7 +32,7 @@ theorem RD.clipperTakeDogDigsTailWithArgWF {code : ByteArray}
         clipperDogDigsSelectorWord :: UInt256.land solcAddrMask dog ::
         dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      (clipperDogDigsCalldataMem v digsAmt mem) aw rdata (cA, σ) k' C' := by
+      (clipperDogDigsCalldataMem v digsAmt mem) aw rdata σ k' C' := by
   have hmload64 := clipperTakeMemoryWF_mload64 mem aw hmem
   have hcallWF := clipperTakeDogDigsMemoryWF v digsAmt hmem
   have hcallMload64 := clipperTakeMemoryWF_mload64
@@ -109,14 +109,14 @@ theorem RD.clipperTakeDogDigsOweCallSetupZeroGeneralWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd4850 : RD code ee g s0 ⟨4850⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw) (hlotNew : lotNew = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨4964⟩
@@ -126,7 +126,7 @@ theorem RD.clipperTakeDogDigsOweCallSetupZeroGeneralWF {code : ByteArray}
         dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       (clipperDogDigsCalldataMem v (UInt256.add tabNew owe) mem)
-      aw rdata (cA, σ) k' C' := by
+      aw rdata σ k' C' := by
   obtain ⟨_, _, rd4898⟩ := RD.clipperTakeDogDigsPrefixWF
     (v := v) (hpatch := hpatch) rd4850 hov
   have rd4905pre := evm_run rd4898 with [
@@ -146,38 +146,38 @@ theorem RD.clipperTakeDogDigsOweCallSetupZeroGeneralWF {code : ByteArray}
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperTakeDogDigsPostCallWithArgWF
-    {cA0 cA gh bl σ₀ σStart σ I} {g : Sat256} {A : Substate} {k C : ℕ}
+    {σ₀ σStart σ I} {g : Sat256} {A : Substate} {k C : ℕ}
     {target dog slice owe digsAmt tabNew lotNew price tic packed stopped dataLen dataStart who
       max amt id : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray} {aw : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4964 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4964⟩
+    (rd4964 : RD code I g (initState σStart σ₀ g A I) ⟨4964⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: dog :: slice :: owe ::
         tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
         who :: max :: amt :: id :: R)
-      (clipperDogDigsCalldataMem v digsAmt baseMem) aw rdata (cA, σ) k C)
+      (clipperDogDigsCalldataMem v digsAmt baseMem) aw rdata σ k C)
     (hbaseMem : clipperTakeMemoryWF baseMem aw)
     (hcodeSizeDog : extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ (cA_dog : Batteries.RBSet AccountAddress compare) (σ_dog : AccountMap)
+    ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4980⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4980⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperDogDigsSelectorWord ::
           target :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         (clipperDogDigsCalldataMem v digsAmt baseMem) aw outDog
-        (cA_dog, σ_dog) k' C' ∧
+        σ_dog k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat digsAmt.toNat)]
         (zDog,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σ_dog, substate := A_dog, createdAccounts := cA_dog },
+          { initState σStart σ₀ g A I with
+            accountMap := σ_dog, substate := A_dog },
           outDog) true ∧
       outDog.size < UInt256.size ∧
       clipperTakeMemoryWF (clipperDogDigsCalldataMem v digsAmt baseMem) aw := by
@@ -190,7 +190,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
       (clipperTakeJumpDest4976 v hpatch)
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode) (by simp only [List.length_cons]; omega)
-  obtain ⟨cA_dog, σ_dog, zDog, outDog, A_in, callGas, k4980, C4980, hΘpack,
+  obtain ⟨σ_dog, zDog, outDog, A_in, callGas, k4980, C4980, hΘpack,
       rd4980raw, houtDogSize⟩ :=
     RD.call rd4979 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_dog, hΘ⟩ := hΘpack
@@ -212,7 +212,7 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
       MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat by
         simp [MachineState.M]]
     exact hMIn
-  refine ⟨cA_dog, σ_dog, zDog, outDog, A_dog, k4980, C4980, ?_, ?_,
+  refine ⟨σ_dog, zDog, outDog, A_dog, k4980, C4980, ?_, ?_,
     houtDogSize, clipperTakeDogDigsMemoryWF v digsAmt hbaseMem⟩
   · have hwrite : outDog.write 0 (clipperDogDigsCalldataMem v digsAmt baseMem)
         (⟨128⟩ : UInt256).toNat
@@ -223,11 +223,11 @@ theorem RD.clipperTakeDogDigsPostCallWithArgWF
     rw [hwrite, hactive] at rd4980raw
     simpa using rd4980raw
   · let evmDog : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A I with accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A I with accountMap := σ }
     refine callCoincides (cfg := config v) (evm := evmDog) (name := "digs")
       (args := [v.ilk, .int (Int.ofNat digsAmt.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target)) (targetWord := target)
-      (cA' := cA_dog) (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
+      (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
       (z := zDog) (o := outDog) (g'' := g'') (callGas := callGas)
       (mem := clipperDogDigsCalldataMem v digsAmt baseMem)
       (inOff := ⟨128⟩) (inSize := ⟨68⟩) (callPerm := true)

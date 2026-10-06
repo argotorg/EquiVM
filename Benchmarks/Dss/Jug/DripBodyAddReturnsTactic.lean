@@ -20,13 +20,13 @@ let age :=
 have _rpowNZeroProgress :
     age = ⟨0⟩ →
       ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
         (jugRay :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
           fileDutyIlkWord I :: ⟨357⟩ :: jugSelWord I :: [])
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
           (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
             (dripVatIlksPostCallMem I out)))
-        (UInt256.ofNat 6) out (cA', σ') k' C' := by
+        (UInt256.ofNat 6) out σ' k' C' := by
   intro hage0
   have rd2153Zero := by
     simpa [fee, age, hage0] using _rd2153
@@ -38,13 +38,13 @@ have _rpowRmulNZeroProgress :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
           (dripVatIlksPrevWord out :: dripVatIlksPrevWord out :: ⟨0⟩ ::
             fileDutyIlkWord I :: ⟨357⟩ :: jugSelWord I :: [])
           (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
             (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
               (dripVatIlksPostCallMem I out)))
-          (UInt256.ofNat 6) out (cA', σ') k' C' := by
+          (UInt256.ofNat 6) out σ' k' C' := by
   intro hage0 hfitRmul
   obtain ⟨_, _, rd1524⟩ := _rpowNZeroProgress hage0
   exact RD.jugDripRmulRayReturns
@@ -55,7 +55,7 @@ have _diffNZeroBoundRevert :
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
           RDrev jugBytecode (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   intro hage0 hfitRmul hprevMaxNot
   obtain ⟨_, _, rd1530⟩ := _rpowRmulNZeroProgress hage0 hfitRmul
   obtain ⟨_, _, rd2397⟩ := RD.jugDripToDiffRoutine rd1530
@@ -70,7 +70,7 @@ have _diffNZeroProgress :
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
           ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
             (⟨0⟩ :: dripVowTargetWord σ' I :: fileDutyIlkWord I ::
               dripVatFoldSelectorWord :: dripVatTargetWord σ' I ::
               dripVatIlksPrevWord out :: dripVatIlksPrevWord out ::
@@ -78,7 +78,7 @@ have _diffNZeroProgress :
             (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
               (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                 (dripVatIlksPostCallMem I out)))
-            (UInt256.ofNat 6) out (cA', σ') k' C' := by
+            (UInt256.ofNat 6) out σ' k' C' := by
   intro hage0 hfitRmul hprevMax
   obtain ⟨_, _, rd1530⟩ := _rpowRmulNZeroProgress hage0 hfitRmul
   obtain ⟨_, _, rd2397⟩ := RD.jugDripToDiffRoutine rd1530
@@ -95,7 +95,7 @@ have _foldNZeroCallReady :
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) ≠ ⟨0⟩ →
             ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
               (gasWord :: dripVatTargetWord σ' I :: ⟨0⟩ ::
                 dripVatFoldOutPtr :: dripVatFoldInSize :: dripVatFoldOutPtr ::
                 ⟨0⟩ :: dripVatFoldEndPtr :: dripVatFoldSelectorWord ::
@@ -106,7 +106,7 @@ have _foldNZeroCallReady :
                 (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                   (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
                     (dripVatIlksPostCallMem I out))))
-              (UInt256.ofNat 8) out (cA', σ') k' C' := by
+              (UInt256.ofNat 8) out σ' k' C' := by
   intro hage0 hfitRmul hprevMax hfoldCode
   let foldBaseMem :=
     twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
@@ -149,7 +149,7 @@ have _foldNZeroNoCode :
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) = ⟨0⟩ →
             RDrev jugBytecode (Sat256.ofUInt256 g)
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   intro hage0 hfitRmul hprevMax hfoldCode
   let foldBaseMem :=
     twoWordHashMem (fileDutyIlkWord I) ⟨1⟩

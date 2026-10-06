@@ -53,147 +53,50 @@ theorem endStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
   simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
 
-theorem endAccountMapExtensionalEq_of_accountMapEquiv {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) : accountMapExtensionalEq σ τ := by
-  intro addr
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ] at hστ ⊢
-  exact ⟨hστ.1, hστ.2.1, hστ.2.2.1, hστ.2.2.2.1, hστ.2.2.2.2⟩
-
-theorem endAccountMapEquiv_of_accountMapExtensionalEq {σ τ : AccountMap}
-    (hστ : accountMapExtensionalEq σ τ) : accountMapEquiv σ τ := by
-  intro addr
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ] at hστ ⊢
-  exact ⟨hστ.1, hστ.2.1, hστ.2.2.1, hστ.2.2.2.1, hστ.2.2.2.2⟩
-
-theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
+theorem endCallMade_accountMapEq_with_substate {cfg : Config}
     {evm_evm evm_solm : EVM.State}
     {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {A' A_in : Substate}
+    {σ' : AccountMap} {A' A_in : Substate}
     {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     {mem : ByteArray} {inOff inSize : UInt256} {callPerm : Bool}
     (hdepth : evm_evm.executionEnv.depth ≠ 1024)
     (htgt : tgt = AccountAddress.ofUInt256 targetWord)
     (hcd : cfg.externalABI.encode? name args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
-    (hΘ : (cA', σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes evm_evm.createdAccounts
-          evm_evm.genesisBlockHeader evm_evm.blocks evm_evm.accountMap evm_evm.σ₀ A_in
+    (hΘ : (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evm_evm.accountMap evm_evm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_evm.executionEnv.codeOwner))
           evm_evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
           (toExecute evm_evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm)
-    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+          (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
+          evm_evm.executionEnv.blobVersionedHashes evm_evm.executionEnv.blocks callPerm)
+    (hAccounts : evm_evm.accountMap = evm_solm.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
-    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
-    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
-    (hBlocks : evm_solm.blocks = evm_evm.blocks)
     (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM cfg evm_solm tgt name 0 args
-        (z,
-          { evm_solm with
-              accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' },
-          out) callPerm ∧
-      accountMapEquiv σ' σ'_solm ∧ A' = A'_solm := by
-  have hExtEq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
-    endAccountMapExtensionalEq_of_accountMapEquiv hAccounts
-  generalize hthetaSolm :
-    Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes evm_solm.createdAccounts
-      evm_solm.genesisBlockHeader evm_solm.blocks evm_solm.accountMap evm_solm.σ₀ A_in
-      evm_solm.executionEnv.codeOwner evm_solm.executionEnv.sender tgt
-      (toExecute evm_solm.accountMap tgt) callGas
-      (UInt256.ofNat evm_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-      (mem.readWithPadding inOff.toNat inSize.toNat)
-      (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header callPerm = thetaRes
-  have hcodeEquiv :
-      toExecute evm_evm.accountMap tgt = toExecute evm_solm.accountMap tgt :=
-    accountMapExtensionalEq_toExecute hExtEq tgt
-  have hthetaSolm' :
-      Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes
-        evm_evm.createdAccounts evm_evm.genesisBlockHeader evm_evm.blocks
-        evm_solm.accountMap evm_evm.σ₀ A_in evm_evm.executionEnv.codeOwner
-        evm_evm.executionEnv.sender tgt (toExecute evm_evm.accountMap tgt) callGas
-        (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-        (mem.readWithPadding inOff.toNat inSize.toNat)
-        (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header callPerm =
-        (thetaRes.1, thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1,
-          thetaRes.2.2.2.2.1, thetaRes.2.2.2.2.2) := by
-    rw [← hthetaSolm]
-    rw [hCreated, ← hOriginalAccounts, hGenesis, hBlocks, hEnv, hcodeEquiv]
-  let a1 : AccountAddress := ⟨0, by simp [AccountAddress.size]⟩
-  have hΘEvm := hΘ.symm
-  rw [accountAddress_roundtrip, ← htgt] at hΘEvm
-  have hThetaRel :=
-    (accountMap_extensionality_of_Theta_and_Lambda
-      (blobVersionedHashes := evm_evm.executionEnv.blobVersionedHashes)
-      (createdAccounts := evm_evm.createdAccounts)
-      (genesisBlockHeader := evm_evm.genesisBlockHeader)
-      (blocks := evm_evm.blocks)
-      (σ₁ := evm_evm.accountMap)
-      (σ₂ := evm_solm.accountMap)
-      (σ₀ := evm_evm.σ₀)
-      (A := A_in)
-      (s := evm_evm.executionEnv.codeOwner)
-      (o := evm_evm.executionEnv.sender)
-      (r := tgt)
-      (g := callGas)
-      (p := UInt256.ofNat evm_evm.executionEnv.gasPrice)
-      (v := (⟨0⟩ : UInt256))
-      (v' := (⟨0⟩ : UInt256))
-      (d := mem.readWithPadding inOff.toNat inSize.toNat)
-      (i := ByteArray.empty)
-      (ζ := none)
-      (H := evm_evm.executionEnv.header)
-      (w := callPerm)
-      a1 a1
-      (toExecute evm_evm.accountMap tgt)
-      cA' thetaRes.1
-      σ' thetaRes.2.1
-      g'' thetaRes.2.2.1
-      A' thetaRes.2.2.2.1
-      z thetaRes.2.2.2.2.1
-      out thetaRes.2.2.2.2.2
-      (evm_evm.executionEnv.depth + 1)
-      hExtEq).1 hΘEvm hthetaSolm'
-  have hCreated' : cA' = thetaRes.1 := hThetaRel.1
-  have hThetaS :
-      (cA', thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1, z, out) =
-        Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes
-          evm_solm.createdAccounts evm_solm.genesisBlockHeader evm_solm.blocks
-          evm_solm.accountMap evm_solm.σ₀ A_in evm_solm.executionEnv.codeOwner
-          evm_solm.executionEnv.sender tgt (toExecute evm_solm.accountMap tgt)
+        (z, { evm_solm with accountMap := σ'_solm, substate := A'_solm }, out)
+        callPerm ∧
+      σ' = σ'_solm ∧ A' = A'_solm := by
+  have hΘ_s :
+      (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evm_solm.accountMap evm_solm.σ₀ A_in
+          (AccountAddress.ofUInt256 (UInt256.ofNat evm_solm.executionEnv.codeOwner))
+          evm_solm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
+          (toExecute evm_solm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header callPerm := by
-    rw [hThetaRel.2.2.2.1, hThetaRel.2.2.2.2.1]
-    rw [hCreated']
-    exact hthetaSolm.symm
-  refine ⟨thetaRes.2.1, thetaRes.2.2.2.1, ?_, ?_, ?_⟩
-  · refine ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd, ?_⟩
-    exact callViaEVM.callMade (perm := callPerm) wordOfInt_zero.symm
-      ⟨callGas, A_in, hThetaS⟩ rfl
-      (by
-        rw [hEnv]
-        rw [← accountMapExtensionalEq_balanceOf hExtEq evm_evm.executionEnv.codeOwner]
-        show (0 : Nat) ≤
-          ((evm_evm.accountMap.find? evm_evm.executionEnv.codeOwner).elim ⟨0⟩
-            (fun x => x.balance)).toNat
-        exact Nat.zero_le _)
-      (by
-        rw [hEnv]
-        exact hdepth)
-  · have hσext : accountMapExtensionalEq σ' thetaRes.2.1 :=
-      hThetaRel.2.2.2.2.2
-    exact endAccountMapEquiv_of_accountMapExtensionalEq hσext
-  · exact hThetaRel.2.2.1
+          (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header
+          evm_solm.executionEnv.blobVersionedHashes evm_solm.executionEnv.blocks callPerm := by
+    rw [← hAccounts, ← hOriginalAccounts, hEnv]
+    exact hΘ
+  have hdepthSolm : evm_solm.executionEnv.depth ≠ 1024 := by
+    rw [hEnv]
+    exact hdepth
+  refine ⟨σ', A', ?_, rfl, rfl⟩
+  exact callCoincides hdepthSolm htgt hcd hΘ_s
 
 theorem endAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -229,7 +132,7 @@ theorem endUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (endStorageLocLoad_uint256 evm slot))
 
 theorem endAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = endBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -237,9 +140,8 @@ theorem endAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf endBytecode entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf endBytecode routine slot)
     (hroutine : (D_J endBytecode 0).contains routine = true)
@@ -248,39 +150,33 @@ theorem endAddressGetterBodyCore
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (endAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : endSlotWord slot σ_evm I = endSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.address (AccountAddress.ofNat (endAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (endAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : endSlotWord slot σ_solm I = endSlotWord slot σ_evm I := hword.symm
-    simp [endAddressReturnWord, hslot]
+            (endAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (endAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (endAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (endAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (endAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [endAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (endSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (endSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := endBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret endBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (endAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (endAddressReturnWord slot σ I)) := by
     simpa [endAddressReturnWord, endSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
+    (by simp [initState]) henc
 
 theorem endUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = endBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -288,9 +184,8 @@ theorem endUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf endBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf endBytecode routine slot)
     (hroutine : (D_J endBytecode 0).contains routine = true)
@@ -299,34 +194,29 @@ theorem endUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (endSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : endSlotWord slot σ_evm I = endSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (endSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (endSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (endSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (endSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
+        (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal
     (code := endBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret endBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (endSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (endSlotWord slot σ I)) := by
     simpa [endSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
+    (by simp [initState]) henc
 
 /-! ## One-word calldata arguments -/
 
@@ -648,7 +538,7 @@ theorem endKeyValueToWord_bytes32ArgKey {I : ExecutionEnv}
 theorem RD.solcOneWordExternalJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
@@ -674,16 +564,16 @@ theorem RD.solcOneWordExternalJump {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingGetterWf code pc baseSlot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) spender) :: ret :: R)
       (solcNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, hinner⟩ := RD.solcNestedMappingInnerHash h hwf hov
   obtain ⟨_, _, houter⟩ := RD.solcNestedMappingOuterHash hinner hwf hov
   obtain ⟨_, _, hload⟩ := RD.solcNestedMappingLoadAndJump houter hwf hret (by omega)
@@ -724,15 +614,15 @@ theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
 -- LIBRARY CANDIDATE: move to `Reasoning.Solc` with `solcZeroSlotMappingGetterWf`.
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -798,7 +688,7 @@ theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256}
 -- LIBRARY CANDIDATE: move to `Reasoning.Reach` beside `RD.log1`, `RD.log3`, and `RD.log4`.
 theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
@@ -1071,17 +961,17 @@ theorem endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {tar
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -1090,23 +980,23 @@ theorem endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {tar
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem endUniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem endEvalExpr_or_true_left {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr}

@@ -591,7 +591,7 @@ namespace Reasoning.Reach
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
@@ -657,7 +657,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
@@ -731,7 +731,7 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
 
 theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {oPrev o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
@@ -800,7 +800,7 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
 theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
     {code : ByteArray} {ee : ExecutionEnv}
     {g : Sat256} {s0 : State} {pc okPc self : UInt256} {oPrev o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R)
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)

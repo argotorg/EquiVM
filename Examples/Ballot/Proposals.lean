@@ -36,13 +36,13 @@ def proposalCountEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
     steps := [.aindex (.int (Int.ofNat (proposalsIndexWord I).toNat)), .field "voteCount"] }
 
 def proposalsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def proposalNameWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (proposalNameSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (proposalNameSlot I) ⟨0⟩)
 
 def proposalCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (proposalCountSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (proposalCountSlot I) ⟨0⟩)
 
 def proposalsLengthCurrent (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩
@@ -52,21 +52,6 @@ def proposalNameCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
 
 def proposalCountCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (proposalCountSlot I)
-
-theorem proposalsLengthWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    proposalsLengthWord σ I = proposalsLengthWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner ⟨2⟩ ⟨0⟩
-
-theorem proposalNameWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    proposalNameWord σ I = proposalNameWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner (proposalNameSlot I) ⟨0⟩
-
-theorem proposalCountWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    proposalCountWord σ I = proposalCountWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner (proposalCountSlot I) ⟨0⟩
 
 theorem proposalNameSlot_spec (I : ExecutionEnv) :
     proposalNameSlot I = proposalElemSlot (.int (Int.ofNat (proposalsIndexWord I).toNat)) := by
@@ -387,12 +372,12 @@ theorem proposalsSubRet64_toNat :
 
 /-! ## EVM trace -/
 
-theorem ballotProposalsX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1747⟩
+theorem ballotProposalsX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1747⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨172⟩, ⟨177⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd158⟩ := hreach
   exact ⟨_, _, evm_run rd158 with [
     jumpdest, push2 ⟨177⟩, push2 ⟨172⟩, calldatasize, push1 ⟨4⟩, push2 ⟨1747⟩,
@@ -406,7 +391,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Ballot
 
 theorem RD.ballotDecodeUint256Ok1747 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨1747⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩)
@@ -422,7 +407,7 @@ theorem RD.ballotDecodeUint256Ok1747 {g : Sat256} {s0 : State} {ee : ExecutionEn
 
 theorem RD.ballotDecodeUint256Revert1747 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD ballotBytecode ee g s0 ⟨1747⟩
         (⟨4⟩ :: UInt256.ofNat ee.calldata.size :: ret :: R) mem aw rdata acc k C)
     (hsltval : UInt256.slt (UInt256.sub (UInt256.ofNat ee.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩)
@@ -438,57 +423,57 @@ end Reasoning.Reach
 
 namespace Ballot
 
-theorem ballotProposalsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem ballotProposalsX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨671⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨671⟩
       [proposalsIndexWord I, ⟨177⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
-  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   obtain ⟨_, _, rd172⟩ := RD.ballotDecodeUint256Ok1747 rd1747 hslt (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, evm_run rd172 with [jumpdest, push2 ⟨671⟩, jump (by jump_dest)]⟩
 
-theorem ballotProposalsX_decodeRevert_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem ballotProposalsX_decodeRevert_short {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
-  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact RD.ballotDecodeUint256Revert1747 rd1747 hslt
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem ballotProposalsX_decodeRevert_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem ballotProposalsX_decodeRevert_huge {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
-  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1747⟩ := ballotProposalsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact RD.ballotDecodeUint256Revert1747 rd1747 hslt
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem ballotX_proposals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem ballotX_proposals_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret ballotBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret ballotBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (proposalNameWord σ I) ++
         UInt256.toByteArray (proposalCountWord σ I)) := by
-  obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd676 := evm_run rd671 with [jumpdest, push1 ⟨2⟩, dup2, dup2]
   obtain ⟨_, _, rd677⟩ := rd676.sload (by decide) (by evm_ov)
@@ -499,7 +484,7 @@ theorem ballotX_proposals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     jumpiT (by
       have hlt' :
           (proposalsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
         simpa [proposalsLengthWord] using hlt
       rw [hlt']; decide) (by jump_dest) ]
   have rd702 := evm_run rd686 with [
@@ -542,14 +527,14 @@ theorem ballotX_proposals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
         exact proposalsReturnMem_read128_64 (proposalNameWord σ I) (proposalCountWord σ I))
       (by evm_ov) ]
 
-theorem ballotX_proposals_oob {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem ballotX_proposals_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hbound : ¬ (proposalsIndexWord I).toNat < (proposalsLengthWord σ I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded (cA := cA) (gh := gh) (bl := bl)
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd671⟩ := ballotProposalsX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz36 hsize hszhi hreach
   have rd676 := evm_run rd671 with [jumpdest, push1 ⟨2⟩, dup2, dup2]
   obtain ⟨_, _, rd677⟩ := rd676.sload (by decide) (by evm_ov)
@@ -560,7 +545,7 @@ theorem ballotX_proposals_oob {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     jumpiNT (by
       have hlt' :
           (proposalsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
         simpa [proposalsLengthWord] using hlt
       exact hlt'),
     push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]
@@ -612,16 +597,15 @@ theorem ballotDecode_proposals_none_huge {I : ExecutionEnv}
   simpa [uint256] using decodeCalldata_uint256_none_huge (cd := I.calldata) (x := "i") hbig
 
 theorem ballotProposalsBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hsz4 := ballotProposalsSelector_size hsel
   have hd := ballotDispatch_proposals (cd := I.calldata) hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -629,35 +613,21 @@ theorem ballotProposalsBodyCore
     · have hdec := ballotDecode_proposals_ok (I := I) hsz36 hbig
       have hlen :
           proposalsLengthCurrent
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) =
-            proposalsLengthWord σ_evm I := by
-        simpa [proposalsLengthCurrent, proposalsLengthWord, initState] using
-          (proposalsLengthWord_accountMapEquiv hAccounts).symm
-      by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ_evm I).toNat
-      · have hname :
-            proposalNameCurrent
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
-              proposalNameWord σ_evm I := by
-          simpa [proposalNameCurrent, proposalNameWord, initState] using
-            (proposalNameWord_accountMapEquiv hAccounts).symm
-        have hcount :
-            proposalCountCurrent
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
-              proposalCountWord σ_evm I := by
-          simpa [proposalCountCurrent, proposalCountWord, initState] using
-            (proposalCountWord_accountMapEquiv hAccounts).symm
-        have hbody := ballotProposalsBodyReturns
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) =
+            proposalsLengthWord σ I := by
+        rfl
+      by_cases hbound : (proposalsIndexWord I).toNat < (proposalsLengthWord σ I).toNat
+      · have hbody := ballotProposalsBodyReturns
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
           (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
-          |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname, hcount])
-            hAccounts
+          |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv.returned rfl
-              (ballotProposalReturnEncoding (proposalNameWord σ_evm I)
-                (proposalCountWord σ_evm I)))
+              (ballotProposalReturnEncoding (proposalNameWord σ I)
+                (proposalCountWord σ I)))
       · have hbody := ballotProposalsBodyReverts_oob
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
           (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_oob (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)

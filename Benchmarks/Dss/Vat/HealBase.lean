@@ -1245,7 +1245,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
@@ -1305,7 +1305,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
     (hlt : a.toNat < b.toNat)

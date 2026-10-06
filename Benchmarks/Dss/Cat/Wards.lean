@@ -61,15 +61,15 @@ theorem wardsMappingSlotFor_eq (I : ExecutionEnv) :
 -- LIBRARY CANDIDATE: ported verbatim from Benchmarks/Dss/Vow/Wards.lean.
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -138,13 +138,13 @@ theorem catDecode_wards_none_short {I : ExecutionEnv}
   simpa [config, wardsTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem catReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         ⟨553⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : catSelWord I = ⟨3207937467⟩ :=
     catSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨3207937467⟩ (by native_decide) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
@@ -166,7 +166,7 @@ theorem catReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
 /-! ## Body proof -/
 
 theorem catWardsBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
@@ -175,10 +175,9 @@ theorem catWardsBodyCore
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨553⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨553⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
@@ -186,14 +185,14 @@ theorem catWardsBodyCore
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
     simpa [wardsTransition, wardsMappingSlotFor, catSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       catUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := wardsRef (.var "arg0")) (er := wardsMappingEvaledRef I)
         (slot := wardsMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, wardsRef])
@@ -225,12 +224,12 @@ theorem catWardsBodyCore
     (by jump_dest) (by simp)
   have hret :
       RDret catBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (catSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (catSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨419⟩) (val := catSlotWord slot σ_evm I) (ret := ⟨419⟩) (R := [sel])
+      (pc := ⟨419⟩) (val := catSlotWord slot σ I) (ret := ⟨419⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (catSlotWord slot σ_evm I))
+        (catSlotWord slot σ I))
       (by simpa [slot, catSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -238,36 +237,36 @@ theorem catWardsBodyCore
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (catSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (catSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (catSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (catSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, catSlotWord] using hret'
-  have hword : catSlotWord slot σ_evm I = catSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+    rfl
   have hval :
-      some [Value.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (catSlotWord slot σ_evm I).toNat)] := by
+      some [Value.int (Int.ofNat (catSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] := by
     rw [hslot, hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (catSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (catSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (catSlotWord slot σ I))
+        (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ I))
+  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
-theorem catWardsBodyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catWardsBodyShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hreach :=
-    catReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    catReachWardsBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -286,21 +285,19 @@ theorem catWardsBodyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact hrev.reEquivDecodingFailed hcode (catDispatch_wards hsel)
     (catDecode_wards_none_short hsz4 hshort)
 
-theorem catWardsBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩ rfl hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact catWardsBodyCore hcode hwv hsz36 hsize (catDispatch_wards hsel)
       (catDecode_wards_ok hsz36)
       (catReachWardsBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-      hAccounts
   · exact catWardsBodyShort hcode hsize hwv hsz (by omega) hsel
 
 end Benchmarks.Dss.Cat

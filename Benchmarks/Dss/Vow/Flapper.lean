@@ -41,13 +41,13 @@ theorem vowDecode_flapper {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem vowReachFlapperBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachFlapperBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨501⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨1554044707⟩ :=
     vowSelWord_eq_of_beq I hsz 0x5c 0xa0 0xd7 0x23 ⟨1554044707⟩
       (by native_decide) hsel
@@ -71,34 +71,33 @@ theorem vowReachFlapperBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem vowFlapperBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flapperTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (flapperTransition.params.map Param.name)
         (transitionSignature flapperTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨501⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨501⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ flapperTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ flapperTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (flapperWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (flapperWord σ I).toNat))])) := by
     simpa [flapperTransition, flapperWord, vowAddressReturnWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       vowAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := flapperRef) (er := ({ base := "flapper", steps := [] } : EvaledStorageRef))
         (slot := ⟨2⟩)
         (by simp only [initState]; exact hwv) (by simp [flapperRef])
         (by simp [evalStorageRef, evalStorageRefSteps, flapperRef, EvalResult.bind, pure, bind])
         (by decide) (by rfl)
   exact vowAddressGetterBodyCore (entry := ⟨501⟩) (routine := ⟨2273⟩) (slot := ⟨2⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -108,15 +107,14 @@ theorem vowFlapperBodyCore
     (by jump_dest) (by rfl)
     (by simpa [flapperWord] using hbody)
 
-theorem vowFlapperBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowFlapperBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩ rfl hsel
   exact vowFlapperBodyCore hcode hwv (vowDispatch_flapper hsel) (vowDecode_flapper hsz)
-    (vowReachFlapperBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (vowReachFlapperBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 end Benchmarks.Dss.Vow

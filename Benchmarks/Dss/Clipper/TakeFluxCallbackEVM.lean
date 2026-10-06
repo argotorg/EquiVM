@@ -12,14 +12,14 @@ set_option maxHeartbeats 4000000 in
 theorem RD.clipperTakeFluxCallbackElim
     {P : Prop} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA0 cA gh bl σ₀ σStart σ I} {g : Sat256} {A : Substate}
+    {σ₀ σStart σ I} {g : Sat256} {A : Substate}
     {price slice owe tab lot tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray} {k C : ℕ}
-    (rd4223 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4223⟩
+    (rd4223 : RD code I g (initState σStart σ₀ g A I) ⟨4223⟩
       (slice :: owe :: tab :: lot :: price :: tic :: packed ::
         stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      baseMem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 7) rdata σ k C)
     (hbaseSize : baseMem.size = 196)
     (hbaseRead64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdataLen : dataLen ≠ ⟨0⟩)
@@ -36,30 +36,30 @@ theorem RD.clipperTakeFluxCallbackElim
     (hov : R.length + 32 ≤ 1024)
     (onVatNoCode :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩ →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onVatFailure : ∀ {cAVat σVat outVat AVat},
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onVatFailure : ∀ {σVat outVat AVat},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (false,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onSkip : ∀ {cAVat σVat outVat AVat memVat awVat kVat CVat},
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onSkip : ∀ {σVat outVat AVat memVat awVat kVat CVat},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
       (UInt256.land who solcAddrMask = clipperTakeVatTarget v ∨
@@ -67,39 +67,39 @@ theorem RD.clipperTakeFluxCallbackElim
           UInt256.land who solcAddrMask =
             UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask)) →
       clipperTakeMemoryWF memVat awVat →
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4701⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4701⟩
         (UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask ::
           slice :: owe :: UInt256.sub tab owe :: UInt256.sub lot slice :: price :: tic ::
           packed :: stopped ::
           dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        memVat awVat outVat (cAVat, σVat) kVat CVat → P)
-    (onCallbackNoCode : ∀ {cAVat σVat outVat AVat},
+        memVat awVat outVat σVat kVat CVat → P)
+    (onCallbackNoCode : ∀ {σVat outVat AVat},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
       UInt256.land who solcAddrMask ≠ clipperTakeVatTarget v →
       UInt256.land who solcAddrMask ≠
         UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask →
       Reasoning.Theory.extCodeSizeWord σVat (UInt256.land solcAddrMask who) = ⟨0⟩ →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onCallbackFailure : ∀ {cAVat σVat outVat AVat cACb σCb outCb ACb},
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onCallbackFailure : ∀ {σVat outVat AVat σCb outCb ACb},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
       UInt256.land who solcAddrMask ≠ clipperTakeVatTarget v →
@@ -107,28 +107,28 @@ theorem RD.clipperTakeFluxCallbackElim
         UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask →
       Reasoning.Theory.extCodeSizeWord σVat (UInt256.land solcAddrMask who) ≠ ⟨0⟩ →
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σVat, createdAccounts := cAVat }
+        { initState σStart σ₀ g A I with
+          accountMap := σVat }
         (EVM.address (AccountAddress.ofNat (UInt256.land solcAddrMask who).toNat))
         "clipperCall" 0
         [.address I.source, .int (Int.ofNat owe.toNat),
           .int (Int.ofNat slice.toNat), clipperTakeDataValue I]
         (false,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σCb, substate := ACb, createdAccounts := cACb },
+          { initState σStart σ₀ g A I with
+            accountMap := σCb, substate := ACb },
           outCb) true →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onCallbackSuccess : ∀ {cAVat σVat outVat AVat cACb σCb outCb ACb
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onCallbackSuccess : ∀ {σVat outVat AVat σCb outCb ACb
         memCb awCb kCb CCb},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
       UInt256.land who solcAddrMask ≠ clipperTakeVatTarget v →
@@ -136,22 +136,22 @@ theorem RD.clipperTakeFluxCallbackElim
         UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask →
       Reasoning.Theory.extCodeSizeWord σVat (UInt256.land solcAddrMask who) ≠ ⟨0⟩ →
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σVat, createdAccounts := cAVat }
+        { initState σStart σ₀ g A I with
+          accountMap := σVat }
         (EVM.address (AccountAddress.ofNat (UInt256.land solcAddrMask who).toNat))
         "clipperCall" 0
         [.address I.source, .int (Int.ofNat owe.toNat),
           .int (Int.ofNat slice.toNat), clipperTakeDataValue I]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σCb, substate := ACb, createdAccounts := cACb },
+          { initState σStart σ₀ g A I with
+            accountMap := σCb, substate := ACb },
           outCb) true →
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4701⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4701⟩
         (UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask ::
           slice :: owe :: UInt256.sub tab owe :: UInt256.sub lot slice :: price :: tic ::
           packed :: stopped ::
           dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        memCb awCb outCb (cACb, σCb) kCb CCb →
+        memCb awCb outCb σCb kCb CCb →
       clipperTakeMemoryWF memCb awCb → P) : P := by
   obtain ⟨_, _, rd4380⟩ := RD.clipperTakeVatFluxExtcodesizeGuard
     v hpatch rd4223 hbaseSize hbaseRead64 hov
@@ -159,7 +159,7 @@ theorem RD.clipperTakeFluxCallbackElim
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩
   · exact onVatNoCode hvatCode
       (RD.clipperTakeVatFluxNoCode v hpatch rd4380 hvatCode hov)
-  · obtain ⟨cAVat, σVat, zVat, outVat, AVat, _, _, rd4396, hcallVat, _houtVat⟩ :=
+  · obtain ⟨σVat, zVat, outVat, AVat, _, _, rd4396, hcallVat, _houtVat⟩ :=
       RD.clipperTakeVatFluxPostCall v hpatch rd4380 hbaseSize hvatCode hdepth hperm hov
     by_cases hzVat : zVat = false
     · exact onVatFailure (by simpa [hzVat] using hcallVat) hvatCode
@@ -167,14 +167,14 @@ theorem RD.clipperTakeFluxCallbackElim
           _houtVat (by simp only [List.length_cons]; omega))
     · have hzVatTrue : zVat = true := Bool.eq_true_of_not_eq_false hzVat
       have hcallVatTrue := (show typedCallViaEVM (config v)
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σ, createdAccounts := cA }
+          { initState σStart σ₀ g A I with
+            accountMap := σ }
           (EVM.address v.vat) "flux" 0
           [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
             .int (Int.ofNat slice.toNat)]
           (true,
-            { initState cA0 gh bl σStart σ₀ g A I with
-              accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+            { initState σStart σ₀ g A I with
+              accountMap := σVat, substate := AVat },
             outVat) true from by simpa [hzVatTrue] using hcallVat)
       obtain ⟨_, _, rd4414⟩ := RD.clipperTakeVatFluxCallSuccessToPostGuard
         v hpatch (by simpa [hzVatTrue] using rd4396) hov
@@ -214,7 +214,7 @@ theorem RD.clipperTakeFluxCallbackElim
               (UInt256.land solcAddrMask who) = ⟨0⟩
           · exact onCallbackNoCode hcallVatTrue hvatCode hwhoVat hwhoDog hcallbackCode
               (RD.clipperTakeClipperCallNoCode v hpatch rd4664 hcallbackCode hov)
-          · obtain ⟨cACb, σCb, zCb, outCb, ACb, _, _, rd4680, hcallCb, houtCb⟩ :=
+          · obtain ⟨σCb, zCb, outCb, ACb, _, _, rd4680, hcallCb, houtCb⟩ :=
               RD.clipperTakeClipperCallPostCall v hpatch rd4664 hmemVatSize hdataLen
                 hdataLenEq hdataStartEq hlenMax hpayload hcallbackCode hdepth hperm hov
             by_cases hzCb : zCb = false
@@ -256,14 +256,14 @@ set_option maxHeartbeats 3000000 in
 theorem RD.clipperTakeFluxDataEmptyElim
     {P : Prop} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA0 cA gh bl σ₀ σStart σ I} {g : Sat256} {A : Substate}
+    {σ₀ σStart σ I} {g : Sat256} {A : Substate}
     {price slice owe tab lot tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray} {k C : ℕ}
-    (rd4223 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4223⟩
+    (rd4223 : RD code I g (initState σStart σ₀ g A I) ⟨4223⟩
       (slice :: owe :: tab :: lot :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      baseMem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 7) rdata σ k C)
     (hbaseSize : baseMem.size = 196)
     (hbaseRead64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdataLen : dataLen = ⟨0⟩)
@@ -271,46 +271,46 @@ theorem RD.clipperTakeFluxDataEmptyElim
     (hov : R.length + 32 ≤ 1024)
     (onVatNoCode :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩ →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onVatFailure : ∀ {cAVat σVat outVat AVat},
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onVatFailure : ∀ {σVat outVat AVat},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (false,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-      RDrev code g (initState cA0 gh bl σStart σ₀ g A I) → P)
-    (onSuccess : ∀ {cAVat σVat outVat AVat memVat awVat kVat CVat},
+      RDrev code g (initState σStart σ₀ g A I) → P)
+    (onSuccess : ∀ {σVat outVat AVat memVat awVat kVat CVat},
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat slice.toNat)]
         (true,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σStart σ₀ g A I with
+            accountMap := σVat, substate := AVat },
           outVat) true →
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
       clipperTakeMemoryWF memVat awVat →
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4701⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4701⟩
         (UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask ::
           slice :: owe :: UInt256.sub tab owe :: UInt256.sub lot slice :: price ::
           tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt ::
           id :: R)
-        memVat awVat outVat (cAVat, σVat) kVat CVat → P) : P := by
+        memVat awVat outVat σVat kVat CVat → P) : P := by
   obtain ⟨_, _, rd4380⟩ := RD.clipperTakeVatFluxExtcodesizeGuard
     v hpatch rd4223 hbaseSize hbaseRead64 hov
   by_cases hvatCode :
       Reasoning.Theory.extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩
   · exact onVatNoCode hvatCode
       (RD.clipperTakeVatFluxNoCode v hpatch rd4380 hvatCode hov)
-  · obtain ⟨cAVat, σVat, zVat, outVat, AVat, _, _, rd4396, hcallVat,
+  · obtain ⟨σVat, zVat, outVat, AVat, _, _, rd4396, hcallVat,
         _houtVat⟩ :=
       RD.clipperTakeVatFluxPostCall v hpatch rd4380 hbaseSize hvatCode hdepth
         hperm hov
@@ -320,14 +320,14 @@ theorem RD.clipperTakeFluxDataEmptyElim
           _houtVat (by simp only [List.length_cons]; omega))
     · have hzVatTrue : zVat = true := Bool.eq_true_of_not_eq_false hzVat
       have hcallVatTrue := (show typedCallViaEVM (config v)
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σ, createdAccounts := cA }
+          { initState σStart σ₀ g A I with
+            accountMap := σ }
           (EVM.address v.vat) "flux" 0
           [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
             .int (Int.ofNat slice.toNat)]
           (true,
-            { initState cA0 gh bl σStart σ₀ g A I with
-              accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+            { initState σStart σ₀ g A I with
+              accountMap := σVat, substate := AVat },
             outVat) true from by simpa [hzVatTrue] using hcallVat)
       obtain ⟨_, _, rd4414⟩ := RD.clipperTakeVatFluxCallSuccessToPostGuard
         v hpatch (by simpa [hzVatTrue] using rd4396) hov

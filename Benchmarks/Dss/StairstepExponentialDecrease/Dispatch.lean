@@ -236,14 +236,14 @@ theorem stairstepHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (stairstepHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem stairstepReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepRootSplitPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [stairstepRootSplitPc, stairstepSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := stairstepExponentialDecreaseBytecode)
       (bodyPc := stairstepDispatchBodyPc) (loadPc := stairstepSelectorLoadPc)
       (firstPc := stairstepRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -258,51 +258,51 @@ theorem stairstepReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem stairstepReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
       UInt256.gt (armSelNat stairstepExponentialDecreaseBytecode stairstepRootSplitPc)
         (stairstepSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepLowFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    stairstepReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h91 : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h91 : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepLowJumpdestPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [stairstepRootSplitPc, stairstepLowJumpdestPc] using
       RD.selectorSplitTakenAuto h32 stairstepRootSplitWellFormed hroot (by jump_dest)
         (by simp)
-  have h92 : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h92 : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepLowFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [stairstepLowFirstArmPc] using h91.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h92⟩
 
-theorem stairstepReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
       UInt256.gt (armSelNat stairstepExponentialDecreaseBytecode stairstepRootSplitPc)
         (stairstepSelWord I) = ⟨0⟩) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepHighFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    stairstepReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepHighFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [stairstepHighFirstArmPc, stairstepRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 stairstepRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
-theorem stairstepReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -323,17 +323,17 @@ theorem stairstepReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt stairstepExponentialDecreaseBytecode
         (nthArmPc stairstepExponentialDecreaseBytecode stairstepLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         bodyPC [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    stairstepReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => stairstepLowArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem stairstepReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -354,27 +354,27 @@ theorem stairstepReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt stairstepExponentialDecreaseBytecode
         (nthArmPc stairstepExponentialDecreaseBytecode stairstepHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
         bodyPC [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    stairstepReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachHighFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => stairstepHighArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem stairstepJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem stairstepJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I) pc
+      [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush :
       decode stairstepExponentialDecreaseBytecode pc =
         some (.Push .PUSH2, some (stairstepDispatchRevertPc, 2)))
     (hjump :
       decode stairstepExponentialDecreaseBytecode (pc + UInt256.ofNat 3) =
         some (.JUMP, .none)) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have h125 := h.push2 stairstepDispatchRevertPc hpush
     (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -382,16 +382,16 @@ theorem stairstepJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : 
   exact RD.solcPush1Dup1Revert0 h125 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem stairstepLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+theorem stairstepLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepLowFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat stairstepExponentialDecreaseBytecode
           (nthArmPc stairstepExponentialDecreaseBytecode stairstepLowFirstArmPc j))
         (stairstepSelWord I) = ⟨0⟩) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have h125 := h
     |>.selectorArmNotTakenAuto (stairstepLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -403,16 +403,16 @@ theorem stairstepLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   exact RD.solcPush1Dup1Revert0 h125 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem stairstepHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD stairstepExponentialDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+theorem stairstepHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD stairstepExponentialDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepHighFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat stairstepExponentialDecreaseBytecode
           (nthArmPc stairstepExponentialDecreaseBytecode stairstepHighFirstArmPc j))
         (stairstepSelWord I) = ⟨0⟩) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have h87 := h
     |>.selectorArmNotTakenAuto (stairstepHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -424,10 +424,10 @@ theorem stairstepHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 3 (by omega)) (by simp)
   exact stairstepJumpToNoMatchRevert h87 (by native_decide) (by native_decide)
 
-theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -436,11 +436,11 @@ theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -459,11 +459,11 @@ theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h125 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 7 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev stairstepExponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev stairstepExponentialDecreaseBytecode g (initState σ σ₀ g A I) := by
   have heqLow : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat stairstepExponentialDecreaseBytecode
@@ -510,7 +510,7 @@ theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.gt (armSelNat stairstepExponentialDecreaseBytecode stairstepRootSplitPc)
         (stairstepSelWord I) ≠ ⟨0⟩
   · obtain ⟨_, _, hfirst⟩ :=
-      stairstepReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      stairstepReachLowFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
     exact stairstepLowNoMatchRevert hfirst heqLow
   · have hroot0 :
@@ -519,13 +519,13 @@ theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       by_contra hne
       exact hroot hne
     obtain ⟨_, _, hfirst⟩ :=
-      stairstepReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      stairstepReachHighFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0
     exact stairstepHighNoMatchRevert hfirst heqHigh
 
-theorem stairstepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem stairstepNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (stairstepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -540,18 +540,17 @@ theorem stairstepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (stairstepBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem stairstepNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem stairstepNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 7 → (stairstepSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 7 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (stairstepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (stairstepDispatch_none_nomatch hnm)

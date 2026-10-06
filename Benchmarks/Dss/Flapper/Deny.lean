@@ -78,13 +78,13 @@ theorem flapperDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_rely_auth_false evm I hsrc hauth)
 
-theorem flapperReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 4)) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         ⟨662⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flapperSelWord I = ⟨0x9c52a7f1⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
@@ -98,7 +98,7 @@ theorem flapperReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flapperReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flapperReachHighLowFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   have heq0 : ∀ j, j < 1 →
       UInt256.eq
@@ -118,14 +118,14 @@ theorem flapperReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flapperHighLowArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flapperDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2987⟩
+      (initState σ σ₀ g A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2987⟩
         [relyUsrMaskedWord I, ⟨360⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := flapperBytecode) (sel := sel) (entry := ⟨662⟩) (ret := ⟨360⟩)
     (decoded := ⟨684⟩) hreach
@@ -141,13 +141,13 @@ theorem flapperDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [relyUsrMaskedWord, relyUsrWord, calldataWord] using hroutine⟩
 
-theorem flapperDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -163,14 +163,14 @@ theorem flapperDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem flapperDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨2987⟩
       [relyUsrMaskedWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flapperBytecode I g s0 ⟨3080⟩
       [relyUsrMaskedWord I, ⟨360⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -201,7 +201,7 @@ theorem flapperDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1855, C1855, rd1855raw⟩ := rd1854.sload (by native_decide) (by evm_ov)
   have rd1855 : RD flapperBytecode I g s0 ⟨3004⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨360⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1855 C1855 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -213,11 +213,11 @@ theorem flapperDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flapperDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD flapperBytecode I g s0 ⟨2987⟩
       [relyUsrMaskedWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flapperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -249,7 +249,7 @@ theorem flapperDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨k1855, C1855, rd1855raw⟩ := rd1854.sload (by native_decide) (by evm_ov)
   have rd1855 : RD flapperBytecode I g s0 ⟨3004⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨360⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1855 C1855 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -279,13 +279,13 @@ theorem flapperDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flapperDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD flapperBytecode I g s0 ⟨3080⟩
       [relyUsrMaskedWord I, ⟨360⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flapperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -340,48 +340,46 @@ theorem flapperDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd227 (by native_decide) (by evm_ov)
 
-theorem flapperX_deny_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret flapperBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+      (initState σ σ₀ g A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret flapperBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd1838⟩ := flapperDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1927⟩ := flapperDenyX_authorized (I := I) hauth rd1838
   exact flapperDenyX_storeAuthorized hperm rd1927
 
-theorem flapperX_deny_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flapperX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD flapperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1838⟩ := flapperDenyX_decoded (g := g) hsz36 hsize hreach
   exact flapperDenyX_unauthorized (I := I) hauth rd1838
 
 theorem flapperDenyBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := by
+    have hword : relyAuthWord σ I = relyAuthWord σ I := rfl
     rw [← hword]
     exact hauth
   have hbody :
@@ -396,36 +394,32 @@ theorem flapperDenyBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (flapperX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [denyPostState, evmSolm, initState, storageStore_createdAccounts])
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simpa [denyPostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (relyUsrStorageSlot I) ⟨0⟩
-            hAccounts)
+          rfl)
       (by
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem flapperDenyBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := by
+    have hword : relyAuthWord σ I = relyAuthWord σ I := rfl
     intro hbad
     exact hauth (by rw [hword, hbad])
   have hbody :
@@ -441,38 +435,37 @@ theorem flapperDenyBodyCoreUnauthorized
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperDenyBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flapperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨662⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (flapperDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (flapperDecode_deny_none_short hsz4 hshort)
 
-theorem flapperDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flapperSelBytes 4))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flapperSelBytes 4)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     flapperDispatchDeny hsel
-  have hreach := flapperReachDenyBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flapperReachDenyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact flapperDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
-        (flapperDecode_deny_ok hsz36) hreach hAccounts
+        (flapperDecode_deny_ok hsz36) hreach
     · exact flapperDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
-        (flapperDecode_deny_ok hsz36) hreach hAccounts
+        (flapperDecode_deny_ok hsz36) hreach
   · exact flapperDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

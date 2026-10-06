@@ -1745,7 +1745,7 @@ theorem clipperRedoSuckCallSuccessSource
     hcall (clipperRedoDecodeSuckVoid v out)
 
 theorem clipperRedoDoneTrueSourceRevertsOfAfterTic
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1754,30 +1754,30 @@ theorem clipperRedoDoneTrueSourceRevertsOfAfterTic
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice : EVM.State} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
         (.ok { contract := contract v, locals := clipperRedoLocalsSt evmLock I true price }
           evmPrice))
     (hafter :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecBlock (config v)
         { contract := contract v, locals := clipperRedoLocalsLot evmLock evmPrice I price }
         (clipperRedoPostTicState evmPrice I) (clipperRedoAfterTicBody v) .reverted) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   have hblock := clipperRedoDoneTrueSourcePrefix
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus hafter
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert
     (by simpa [locals, evm0] using hblock)
 
 theorem clipperRedoDoneTrueSourceOkOfAfterTic
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1787,26 +1787,26 @@ theorem clipperRedoDoneTrueSourceOkOfAfterTic
     {evmPrice : EVM.State} (price : UInt256)
     {finalFrame : Frame} {evmFinal : EVM.State}
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
         (.ok { contract := contract v, locals := clipperRedoLocalsSt evmLock I true price }
           evmPrice))
     (hafter :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecBlock (config v)
         { contract := contract v, locals := clipperRedoLocalsLot evmLock evmPrice I price }
         (clipperRedoPostTicState evmPrice I) (clipperRedoAfterTicBody v)
         (.ok finalFrame evmFinal)) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body
       (.returned finalFrame evmFinal none) := by
   intro locals evm0
   have hblock := clipperRedoDoneTrueSourcePrefix
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus hafter
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockOK
     (by simpa [locals, evm0] using hblock)

@@ -46,8 +46,8 @@ abbrev mintTotalSupplySlot : UInt256 :=
   ⟨1⟩
 
 def mintAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (mintAuthStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (mintAuthStorageSlot I) ⟨0⟩)
 
 def mintUsrBalanceWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (mintUsrStorageSlot I)
@@ -692,14 +692,14 @@ theorem mintStoreLogMem_mload64 (I : ExecutionEnv) :
   exact solcScratchReturnMem_mload64 (mintWadWord I) (mintUsrStoreHashMem_size I)
     (mintUsrStoreHashMem_read64 I)
 
-theorem daiMintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiMintX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨642⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2011⟩
+      (initState σ σ₀ g A I) ⟨642⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2011⟩
         [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd664⟩ := RD.daiAddressUint256ExternalLenOk
     (entry := ⟨642⟩) (ret := ⟨686⟩) (routine := ⟨2011⟩) hreach
     dai_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
@@ -710,26 +710,26 @@ theorem daiMintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, by
     simpa [mintWadWord, mintUsrMaskedWord, mintUsrWord, calldataWord] using rd2011⟩
 
-theorem daiMintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiMintX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨642⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨642⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressUint256ExternalShort
     (entry := ⟨642⟩) (ret := ⟨686⟩) (routine := ⟨2011⟩)
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
 
 set_option maxHeartbeats 1000000 in
-theorem daiMintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : mintAuthWord σ I = ⟨1⟩)
     (h : RD daiBytecode I g s0 ⟨2011⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((mintAuthHashMem I).readWithPadding 0 64))) =
@@ -760,7 +760,7 @@ theorem daiMintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by native_decide) (by evm_ov)
   have rd2028 : RD daiBytecode I g s0 ⟨2028⟩
       (mintAuthWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2028 C2028 := by
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2028 C2028 := by
     simpa [mintAuthWord, mintAuthStorageSlot_eq_mapSlot_source I] using rd2028raw
   have rd2031pre := evm_run rd2028 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -772,11 +772,11 @@ theorem daiMintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : mintAuthWord σ I ≠ ⟨1⟩)
     (h : RD daiBytecode I g s0 ⟨2011⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -808,7 +808,7 @@ theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by native_decide) (by evm_ov)
   have rd2028 : RD daiBytecode I g s0 ⟨2028⟩
       (mintAuthWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2028 C2028 := by
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2028 C2028 := by
     simpa [mintAuthWord, mintAuthStorageSlot_eq_mapSlot_source I] using rd2028raw
   have rd2031pre := evm_run rd2028 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -838,16 +838,16 @@ theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiMintX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_logAndJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
     (hperm : I.perm = true)
     (hSlen : S.length + 10 ≤ 1024)
     (hretDest : (D_J daiBytecode 0).contains ret = true)
     (h : RD daiBytecode I g s0 ⟨2177⟩
       (mintWadWord I :: mintUsrMaskedWord I :: ret :: S)
-      (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ret S
-      (mintStoreLogMem I) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k' C' := by
+      (mintStoreLogMem I) (UInt256.ofNat 5) ByteArray.empty σ k' C' := by
   have husrMask :
       UInt256.land (mintUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -908,15 +908,15 @@ theorem daiMintX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rdRet⟩
 
 set_option maxHeartbeats 2000000 in
-theorem daiMintX_usrAddReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_usrAddReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (h : RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3982⟩
       (mintWadWord I :: mintEvmUsrBalanceWord σ I :: ⟨2135⟩ ::
         mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
-      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have husrMaskLiteral :
       UInt256.land (mintUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -965,7 +965,7 @@ theorem daiMintX_usrAddReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2126 : RD daiBytecode I g s0 ⟨2126⟩
       (mintEvmUsrBalanceWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
-      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2126 C2126 := by
+      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2126 C2126 := by
     simpa [mintEvmUsrBalanceWord, mintEvmUsrSlot] using rd2126raw
   have rd2134pre := evm_run rd2126 with [
     raw push2 ⟨2135⟩ (by native_decide) (by evm_ov),
@@ -975,12 +975,12 @@ theorem daiMintX_usrAddReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd2134pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiCheckedAddRevert0 {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiCheckedAddRevert0 {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     (hover : UInt256.size ≤ a.toNat + b.toNat)
     (hov : R.length + 9 ≤ 1024)
     (h : RD daiBytecode I g s0 ⟨3982⟩ (b :: a :: ret :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
   have haddWf : solcCheckedAddSuccessWf daiBytecode ⟨3982⟩ ⟨1399⟩ := by
     unfold solcCheckedAddSuccessWf
@@ -1021,18 +1021,18 @@ theorem daiCheckedAddRevert0 {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 4000000 in
-theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_storeUsr_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hfitUsr :
       (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat < UInt256.size)
     (h : RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k' C' := by
+      (mintEvmAfterUsrAccountMap σ I) k' C' := by
   have husrMaskLiteral :
       UInt256.land (mintUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1053,7 +1053,7 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2135 : RD daiBytecode I g s0 ⟨2135⟩
       [mintEvmUsrCreditWord σ I, mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2135 C2135 := by
+      (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2135 C2135 := by
     simpa [mintEvmUsrCreditWord] using rd2135raw
   have rd2146 := evm_run rd2135 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1097,17 +1097,17 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd2161 : RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k2161 C2161 := by
+      (mintEvmAfterUsrAccountMap σ I) k2161 C2161 := by
     simpa [mintEvmAfterUsrAccountMap, mintEvmUsrCreditWord, mintEvmUsrSlot] using rd2161raw
   exact ⟨k2161, C2161, rd2161⟩
 
-theorem daiMintX_usrOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_usrOverflowRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hover :
       UInt256.size ≤ (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   obtain ⟨_, _, rdAddUsr⟩ := daiMintX_usrAddReady (I := I) (sel := sel) h
   exact daiCheckedAddRevert0
@@ -1116,7 +1116,7 @@ theorem daiMintX_usrOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : �
     hover (by simp only [List.length_cons, List.length_nil]; omega) rdAddUsr
 
 set_option maxHeartbeats 4000000 in
-theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_storeSupply_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hfitSupply :
@@ -1124,11 +1124,11 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (h : RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k C) :
+      (mintEvmAfterUsrAccountMap σ I) k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨2177⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmPostAccountMap σ I) k' C' := by
+      (mintEvmPostAccountMap σ I) k' C' := by
   have haddWf : solcCheckedAddSuccessWf daiBytecode ⟨3982⟩ ⟨1399⟩ := by
     unfold solcCheckedAddSuccessWf
     repeat' first | apply And.intro | native_decide
@@ -1140,7 +1140,7 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd2164 : RD daiBytecode I g s0 ⟨2164⟩
       (mintEvmTotalSupplyWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
+      (mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
     simpa [mintEvmTotalSupplyWord, mintTotalSupplySlot] using rd2164raw
   have rd2172pre := evm_run rd2164 with [
     raw push2 ⟨2173⟩ (by native_decide) (by evm_ov),
@@ -1158,7 +1158,7 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd2173 : RD daiBytecode I g s0 ⟨2173⟩
       [mintEvmSupplyCreditWord σ I, mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k2173 C2173 := by
+      (mintEvmAfterUsrAccountMap σ I) k2173 C2173 := by
     simpa [mintEvmSupplyCreditWord] using rd2173raw
   have rd2176pre := evm_run rd2173 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1168,18 +1168,18 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd2177 : RD daiBytecode I g s0 ⟨2177⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmPostAccountMap σ I) k2177 C2177 := by
+      (mintEvmPostAccountMap σ I) k2177 C2177 := by
     simpa [mintEvmPostAccountMap, mintEvmSupplyCreditWord, mintTotalSupplySlot] using rd2177raw
   exact ⟨k2177, C2177, rd2177⟩
 
-theorem daiMintX_supplyOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_supplyOverflowRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hover :
       UInt256.size ≤ (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat)
     (h : RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k C) :
+      (mintEvmAfterUsrAccountMap σ I) k C) :
     RDrev daiBytecode g s0 := by
   have rd2164pre := evm_run h with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
@@ -1188,7 +1188,7 @@ theorem daiMintX_supplyOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C :
   have rd2164 : RD daiBytecode I g s0 ⟨2164⟩
       (mintEvmTotalSupplyWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
       (mintUsrStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
+      (mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
     simpa [mintEvmTotalSupplyWord, mintTotalSupplySlot] using rd2164raw
   have rd2172pre := evm_run rd2164 with [
     raw push2 ⟨2173⟩ (by native_decide) (by evm_ov),
@@ -1202,7 +1202,7 @@ theorem daiMintX_supplyOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C :
     hover (by simp only [List.length_cons, List.length_nil]; omega) rdAddSupply
 
 set_option maxHeartbeats 1000000 in
-theorem daiMintX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiMintX_success {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hfitUsr :
@@ -1211,8 +1211,8 @@ theorem daiMintX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat < UInt256.size)
     (h : RD daiBytecode I g s0 ⟨2100⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
-      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g s0 (cA, mintEvmPostAccountMap σ I) ByteArray.empty := by
+      (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g s0 (mintEvmPostAccountMap σ I) ByteArray.empty := by
   obtain ⟨k2161, C2161, rd2161⟩ :=
     daiMintX_storeUsr_success (I := I) (sel := sel) hperm hfitUsr h
   obtain ⟨_, _, rd2177⟩ :=
@@ -1232,22 +1232,19 @@ theorem mintAfterUsrCredit_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
 set_option maxHeartbeats 1000000 in
 theorem mintSolmAfterUsrBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (hfitUsr :
       (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat < UInt256.size) :
     mintUsrCreditNat evm I < UInt256.size ∧
-    accountMapEquiv (mintEvmAfterUsrAccountMap σ I)
+    mintEvmAfterUsrAccountMap σ I =
       (mintAfterUsrCreditState evm I).accountMap ∧
     mintSupplyCreditNat (mintAfterUsrCreditState evm I) I =
       (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat := by
   have husrWord :
       mintEvmUsrBalanceWord σ I = mintUsrBalanceWord evm I := by
-    have hread :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (mintEvmUsrSlot I)
-        (⟨0⟩ : UInt256)
     simpa [mintEvmUsrBalanceWord, mintUsrBalanceWord, mintEvmUsrSlot,
       mintUsrStorageSlot_eq_mapSlot_masked, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, solcSlotWord, howner] using hread
+      Account.lookupStorage, solcSlotWord, howner, hmap]
   have hfitUsrSolm : mintUsrCreditNat evm I < UInt256.size := by
     unfold mintUsrCreditNat
     rw [← husrWord]
@@ -1261,24 +1258,19 @@ theorem mintSolmAfterUsrBridge {σ : AccountMap} {evm : EVM.State} {I : Executio
     unfold mintUsrCreditNat
     rw [← husrWord]
   have hafterMap :
-      accountMapEquiv (mintEvmAfterUsrAccountMap σ I)
+      mintEvmAfterUsrAccountMap σ I =
         (mintAfterUsrCreditState evm I).accountMap := by
-    simpa [mintEvmAfterUsrAccountMap, mintAfterUsrCreditState, storageStore_accountMap,
-      mintEvmUsrSlot, mintUsrStorageSlot_eq_mapSlot_masked, howner, hcreditEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (mintEvmUsrSlot I)
-        (mintEvmUsrCreditWord σ I) hAccounts
+    simp [mintEvmAfterUsrAccountMap, mintAfterUsrCreditState, storageStore_accountMap,
+      mintEvmUsrSlot, mintUsrStorageSlot_eq_mapSlot_masked, howner, hcreditEq, hmap]
   have hsupplyWord :
       mintEvmTotalSupplyWord σ I =
         mintTotalSupplyWord (mintAfterUsrCreditState evm I) := by
-    have hread :=
-      accountMapEquiv_storage_findD hafterMap I.codeOwner mintTotalSupplySlot
-        (⟨0⟩ : UInt256)
     have hownerAfter :
         (mintAfterUsrCreditState evm I).executionEnv.codeOwner = I.codeOwner := by
       simpa [mintAfterUsrCredit_codeOwner evm I] using howner
     simpa [mintEvmTotalSupplyWord, mintTotalSupplyWord, mintTotalSupplySlot,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord,
-      hownerAfter] using hread
+      hownerAfter, hafterMap]
   have hsupplyNat :
       mintSupplyCreditNat (mintAfterUsrCreditState evm I) I =
         (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat := by
@@ -1289,15 +1281,15 @@ theorem mintSolmAfterUsrBridge {σ : AccountMap} {evm : EVM.State} {I : Executio
 set_option maxHeartbeats 1000000 in
 theorem mintSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hmap : evm.accountMap = σ)
     (hfitUsr :
       (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat < UInt256.size)
     (hfitSupply :
       (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat < UInt256.size) :
     mintUsrCreditNat evm I < UInt256.size ∧
     mintSupplyCreditNat (mintAfterUsrCreditState evm I) I < UInt256.size ∧
-    accountMapEquiv (mintEvmPostAccountMap σ I) (mintPostState evm I).accountMap := by
-  rcases mintSolmAfterUsrBridge howner hAccounts hfitUsr with
+    mintEvmPostAccountMap σ I = (mintPostState evm I).accountMap := by
+  rcases mintSolmAfterUsrBridge howner hmap hfitUsr with
     ⟨hfitUsrSolm, hafterMap, hsupplyNat⟩
   have hfitSupplySolm :
       mintSupplyCreditNat (mintAfterUsrCreditState evm I) I < UInt256.size := by
@@ -1315,32 +1307,29 @@ theorem mintSolmBridge {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
       (mintAfterUsrCreditState evm I).executionEnv.codeOwner = I.codeOwner := by
     simpa [mintAfterUsrCredit_codeOwner evm I] using howner
   have hfinal :
-      accountMapEquiv (mintEvmPostAccountMap σ I) (mintPostState evm I).accountMap := by
-    simpa [mintEvmPostAccountMap, mintPostState, storageStore_accountMap,
-      mintTotalSupplySlot, hownerAfter, hsupplyCreditEq] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner mintTotalSupplySlot
-        (mintEvmSupplyCreditWord σ I) hafterMap
+      mintEvmPostAccountMap σ I = (mintPostState evm I).accountMap := by
+    simp [mintEvmPostAccountMap, mintPostState, storageStore_accountMap,
+      mintTotalSupplySlot, hownerAfter, hsupplyCreditEq, hafterMap]
   exact ⟨hfitUsrSolm, hfitSupplySolm, hfinal⟩
 
 /-- `mint(address,uint256)` body refines its Solm transition. -/
-theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiMintBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 7)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 7) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some mintTransition :=
     daiDispatchMint hsel
-  have hreach := daiReachMintBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachMintBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := daiDecode_mint_ok (I := I) hsz68
     obtain ⟨_, _, rd2011⟩ :=
       daiMintX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hownerSolm : evmSolm.executionEnv.codeOwner = I.codeOwner := by
       simp [evmSolm, initState]
     have hsourceSolm : evmSolm.executionEnv.source = I.source := by
@@ -1348,30 +1337,20 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hauthLoadEq :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
             (mintAuthStorageSlot I) =
-          mintAuthWord σ_evm I := by
-      have hword : mintAuthWord σ_evm I = mintAuthWord σ_solm I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (mintAuthStorageSlot I)
-          (⟨0⟩ : UInt256)
-      calc
-        Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
-            (mintAuthStorageSlot I) = mintAuthWord σ_solm I := by
-          simp [evmSolm, initState, mintAuthWord, Solm.EVM.storageLoad,
-            State.lookupAccount, Account.lookupStorage]
-        _ = mintAuthWord σ_evm I := hword.symm
+          mintAuthWord σ I := by
+      simp [evmSolm, initState, mintAuthWord, Solm.EVM.storageLoad,
+        State.lookupAccount, Account.lookupStorage]
     have hUsrCreditNat :
         mintUsrCreditNat evmSolm I =
-          (mintEvmUsrBalanceWord σ_evm I).toNat + (mintWadWord I).toNat := by
+          (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat := by
       have hword :
-          mintEvmUsrBalanceWord σ_evm I = mintUsrBalanceWord evmSolm I := by
-        have hread :=
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (mintEvmUsrSlot I)
-            (⟨0⟩ : UInt256)
+          mintEvmUsrBalanceWord σ I = mintUsrBalanceWord evmSolm I := by
         simpa [mintEvmUsrBalanceWord, mintUsrBalanceWord, mintEvmUsrSlot,
           mintUsrStorageSlot_eq_mapSlot_masked, Solm.EVM.storageLoad, State.lookupAccount,
-          Account.lookupStorage, solcSlotWord, hownerSolm] using hread
+          Account.lookupStorage, solcSlotWord, hownerSolm, evmSolm, initState]
       unfold mintUsrCreditNat
       rw [← hword]
-    by_cases hauth : mintAuthWord σ_evm I = ⟨1⟩
+    by_cases hauth : mintAuthWord σ I = ⟨1⟩
     · obtain ⟨_, _, rd2100⟩ := daiMintX_authorized (I := I) hauth rd2011
       have hauthBody :
           Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
@@ -1379,14 +1358,15 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [hauthLoadEq]
         exact hauth
       by_cases hfitUsr :
-          (mintEvmUsrBalanceWord σ_evm I).toNat + (mintWadWord I).toNat <
+          (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat <
             UInt256.size
-      · rcases mintSolmAfterUsrBridge hownerSolm hAccounts hfitUsr with
+      · rcases mintSolmAfterUsrBridge hownerSolm (by simp [evmSolm, initState]) hfitUsr with
           ⟨hfitUsrBody, _hafterMap, hsupplyNat⟩
         by_cases hfitSupply :
-            (mintEvmTotalSupplyWord σ_evm I).toNat + (mintWadWord I).toNat <
+            (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat <
               UInt256.size
-        · rcases mintSolmBridge hownerSolm hAccounts hfitUsr hfitSupply with
+        · rcases mintSolmBridge hownerSolm (by simp [evmSolm, initState])
+            hfitUsr hfitSupply with
             ⟨hfitUsrBody', hfitSupplyBody, hfinal⟩
           have hbody :
               ExecTransitionBody config contract evmSolm (mintStore I)
@@ -1401,10 +1381,7 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 hfitUsrBody'
                 hfitSupplyBody
           exact (daiMintX_success (g := Sat256.ofUInt256 g) hperm hfitUsr hfitSupply rd2100)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-              (by
-                simp [mintPostState, mintAfterUsrCreditState, evmSolm, initState,
-                  storageStore_createdAccounts])
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (by
                 simpa [mintTransition] using
@@ -1412,7 +1389,7 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (dvs := []) rfl (by native_decide) (by native_decide)))
         · have hover :
               UInt256.size ≤
-                (mintEvmTotalSupplyWord σ_evm I).toNat + (mintWadWord I).toNat := by
+                (mintEvmTotalSupplyWord σ I).toNat + (mintWadWord I).toNat := by
             omega
           have hoverBody :
               UInt256.size ≤ mintSupplyCreditNat (mintAfterUsrCreditState evmSolm I) I := by
@@ -1436,7 +1413,7 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hover :
             UInt256.size ≤
-              (mintEvmUsrBalanceWord σ_evm I).toNat + (mintWadWord I).toNat := by
+              (mintEvmUsrBalanceWord σ I).toNat + (mintWadWord I).toNat := by
           omega
         have hoverBody : UInt256.size ≤ mintUsrCreditNat evmSolm I := by
           rw [hUsrCreditNat]

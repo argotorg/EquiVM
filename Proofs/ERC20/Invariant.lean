@@ -87,8 +87,7 @@ theorem totalSupplyVal_transferPostState (hinj : InjectiveLayout erc20Config) :
           (balanceOf_slot_ne_totalSupply hinj evm.executionEnv.source).symm)]
 
 /-- The debit word's value is the sender's balance minus the transferred amount (no underflow). -/
-theorem transferDebitWord_toNat
-    (henough : (transferValueWord I).toNat ≤ balOf evm evm.executionEnv.source) :
+theorem transferDebitWord_toNat :
     (transferDebitWord evm I).toNat =
       balOf evm evm.executionEnv.source - (transferValueWord I).toNat := by
   rw [balOf_source_eq]
@@ -108,7 +107,7 @@ theorem transferToBalanceWord_toNat (hinj : InjectiveLayout erc20Config)
 
 /-- Recipient's post-balance: `balOf evm to + value`. -/
 theorem balOf_transferPostState_to (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat)
     (hfit : transferNewToNat evm I < UInt256.size) :
     balOf (transferPostState evm I) (AccountAddress.ofNat (transferToWord I).toNat) =
@@ -124,9 +123,8 @@ theorem balOf_transferPostState_to (hinj : InjectiveLayout erc20Config)
 
 /-- Caller's post-balance: `balOf evm from - value`. -/
 theorem balOf_transferPostState_from (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
-    (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat)
-    (henough : (transferValueWord I).toNat ≤ balOf evm evm.executionEnv.source) :
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
+    (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat) :
     balOf (transferPostState evm I) evm.executionEnv.source =
       balOf evm evm.executionEnv.source - (transferValueWord I).toNat := by
   rw [balOf]
@@ -135,7 +133,7 @@ theorem balOf_transferPostState_from (hinj : InjectiveLayout erc20Config)
         (by simpa [transferToSlot, transferSenderSlot] using balanceOf_slot_ne hinj hne)]
   rw [show erc20BalanceOfSlot (KeyValue.address evm.executionEnv.source) = transferSenderSlot evm
         from rfl]
-  rw [storageLoad_storageStore_self _ _ _ _ hco, transferDebitWord_toNat evm I henough]
+  rw [storageLoad_storageStore_self _ _ _ _ hco, transferDebitWord_toNat evm I]
 
 /-- Any third party's balance is untouched by `transfer`. -/
 theorem balOf_transferPostState_other (hinj : InjectiveLayout erc20Config) (a : AccountAddress)
@@ -151,9 +149,8 @@ theorem balOf_transferPostState_other (hinj : InjectiveLayout erc20Config) (a : 
 /-- **Pointwise balance effect of `transfer`.**  On the success path, the post-state balances are
     exactly the pre-state balances with `value` moved from the caller to the recipient. -/
 theorem balOf_transferPostState (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat)
-    (henough : (transferValueWord I).toNat ≤ balOf evm evm.executionEnv.source)
     (hfit : transferNewToNat evm I < UInt256.size) :
     balOf (transferPostState evm I) =
       Function.update
@@ -169,7 +166,7 @@ theorem balOf_transferPostState (hinj : InjectiveLayout erc20Config)
   · by_cases has : a = evm.executionEnv.source
     · subst has
       rw [Function.update_of_ne hat, Function.update_self,
-        balOf_transferPostState_from evm I hinj hco hne henough]
+        balOf_transferPostState_from evm I hinj hco hne]
     · rw [Function.update_of_ne hat, Function.update_of_ne has,
         balOf_transferPostState_other evm I hinj a hat has]
 
@@ -177,14 +174,14 @@ theorem balOf_transferPostState (hinj : InjectiveLayout erc20Config)
     is exactly the result of executing the `transfer` body (`erc20TransferBodyReturns`), so this is a
     statement about the real Solm semantics, not a hand-rolled state. -/
 theorem transfer_preserves_inv (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat)
     (henough : (transferValueWord I).toNat ≤ balOf evm evm.executionEnv.source)
     (hfit : transferNewToNat evm I < UInt256.size)
     (hInv : Inv evm) : Inv (transferPostState evm I) := by
   unfold Inv totalBalances at *
   rw [totalSupplyVal_transferPostState evm I hinj, hInv,
-    balOf_transferPostState evm I hinj hco hne henough hfit]
+    balOf_transferPostState evm I hinj hco hne hfit]
   exact (sum_transfer_eq (balOf evm) hne (transferValueWord I).toNat henough).symm
 
 end Transfer
@@ -278,7 +275,7 @@ theorem transferFromBalanceDebitWord_toNat (hinj : InjectiveLayout erc20Config)
 
 /-- Recipient's post-balance under `transferFrom`: `balOf evm to + value`. -/
 theorem balOf_transferFromPostState_to (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hft : AccountAddress.ofNat (transferFromFromWord I).toNat ≠
       AccountAddress.ofNat (transferFromToWord I).toNat)
     (hfit : transferFromNewToNat evm I < UInt256.size) :
@@ -300,7 +297,7 @@ theorem balOf_transferFromPostState_to (hinj : InjectiveLayout erc20Config)
 
 /-- Sender's (`from`) post-balance under `transferFrom`: `balOf evm from - value`. -/
 theorem balOf_transferFromPostState_from (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hft : AccountAddress.ofNat (transferFromFromWord I).toNat ≠
       AccountAddress.ofNat (transferFromToWord I).toNat)
     (henough : (transferFromValueWord I).toNat ≤
@@ -338,7 +335,7 @@ theorem balOf_transferFromPostState_other (hinj : InjectiveLayout erc20Config) (
             evm.executionEnv.source a).symm)]
 
 theorem balOf_transferFromPostState (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hft : AccountAddress.ofNat (transferFromFromWord I).toNat ≠
       AccountAddress.ofNat (transferFromToWord I).toNat)
     (henough : (transferFromValueWord I).toNat ≤
@@ -382,7 +379,7 @@ theorem totalSupplyVal_transferFromPostState (hinj : InjectiveLayout erc20Config
 
 /-- **`transferFrom` preserves the supply invariant.** -/
 theorem transferFrom_preserves_inv (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hft : AccountAddress.ofNat (transferFromFromWord I).toNat ≠
       AccountAddress.ofNat (transferFromToWord I).toNat)
     (henough : (transferFromValueWord I).toNat ≤
@@ -413,7 +410,7 @@ section ClosesLoop
 variable (evm : EVM.State) (I : ExecutionEnv)
 
 theorem transfer_closesLoop (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hne : evm.executionEnv.source ≠ AccountAddress.ofNat (transferToWord I).toNat)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (henough : (transferValueWord I).toNat ≤ balOf evm evm.executionEnv.source)
@@ -426,7 +423,7 @@ theorem transfer_closesLoop (hinj : InjectiveLayout erc20Config)
     transfer_preserves_inv evm I hinj hco hne henough hfit hInv⟩
 
 theorem transferFrom_closesLoop (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hft : AccountAddress.ofNat (transferFromFromWord I).toNat ≠
       AccountAddress.ofNat (transferFromToWord I).toNat)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -504,7 +501,7 @@ def ctorPostState (s : UInt256) : EVM.State :=
     evm.executionEnv.codeOwner ⟨2⟩ s
 
 theorem balOf_ctorPostState (s : UInt256) (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc) :
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc) :
     balOf (ctorPostState evm s) = Function.update (balOf evm) evm.executionEnv.source s.toNat := by
   funext a
   by_cases ha : a = evm.executionEnv.source
@@ -520,7 +517,7 @@ theorem balOf_ctorPostState (s : UInt256) (hinj : InjectiveLayout erc20Config)
     rw [storageLoad_storageStore_ne _ _ _ _ _ (balanceOf_slot_ne hinj ha)]
 
 theorem totalSupplyVal_ctorPostState (s : UInt256)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc) :
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc) :
     totalSupplyVal (ctorPostState evm s) = s.toNat := by
   obtain ⟨_, h2⟩ := storageStore_find_codeOwner evm evm.executionEnv.codeOwner
     (erc20BalanceOfSlot (.address evm.executionEnv.source)) s hco
@@ -529,7 +526,7 @@ theorem totalSupplyVal_ctorPostState (s : UInt256)
 
 /-- **The constructor establishes `Inv`** from a fresh (all-balances-zero) deploy state. -/
 theorem constructor_establishes_inv (s : UInt256) (hinj : InjectiveLayout erc20Config)
-    {acc : Account} (hco : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hco : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hzero : ∀ a, balOf evm a = 0) : Inv (ctorPostState evm s) := by
   unfold Inv totalBalances
   rw [totalSupplyVal_ctorPostState evm s hco, balOf_ctorPostState evm s hinj hco,

@@ -80,13 +80,13 @@ theorem spotDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_rely_auth_false evm I hsrc hauth)
 
-theorem spotReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem spotReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (spotSelBytes 1)) :
-    ∃ k C, RD spotBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
         ⟨408⟩ [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : spotSelWord I = ⟨0x9c52a7f1⟩ :=
     spotSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
       (by native_decide) (by simpa [spotSelBytes] using hsel)
@@ -106,14 +106,14 @@ theorem spotReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact spotReachHighBody 2 (by omega) ⟨408⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem spotDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem spotDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD spotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD spotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1674⟩
+      (initState σ σ₀ g A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I) ⟨1674⟩
         [relyGuyMaskedWord I, ⟨214⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := spotBytecode) (sel := sel) (entry := ⟨408⟩) (ret := ⟨214⟩)
     (decoded := ⟨430⟩) hreach
@@ -129,13 +129,13 @@ theorem spotDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [relyGuyMaskedWord, relyGuyWord, calldataWord] using hroutine⟩
 
-theorem spotDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem spotDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD spotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev spotBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -151,14 +151,14 @@ theorem spotDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem spotDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem spotDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD spotBytecode I g s0 ⟨1674⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD spotBytecode I g s0 ⟨1756⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -189,7 +189,7 @@ theorem spotDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1691, C1691, rd1691raw⟩ := rd1690.sload (by native_decide) (by evm_ov)
   have rd1691 : RD spotBytecode I g s0 ⟨1691⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1691 C1691 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1691 C1691 := by
     simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1691raw
   have rd1694pre := evm_run rd1691 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -201,11 +201,11 @@ theorem spotDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem spotDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem spotDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD spotBytecode I g s0 ⟨1674⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev spotBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -237,7 +237,7 @@ theorem spotDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1691, C1691, rd1691raw⟩ := rd1690.sload (by native_decide) (by evm_ov)
   have rd1691 : RD spotBytecode I g s0 ⟨1691⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1691 C1691 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1691 C1691 := by
     simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1691raw
   have rd1694pre := evm_run rd1691 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -258,13 +258,13 @@ theorem spotDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem spotDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem spotDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD spotBytecode I g s0 ⟨1756⟩
       [relyGuyMaskedWord I, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret spotBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -319,50 +319,44 @@ theorem spotDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   simpa [relyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd215 (by native_decide) (by evm_ov)
 
-theorem spotX_deny_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem spotX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD spotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret spotBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
+      (initState σ σ₀ g A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret spotBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd1674⟩ := spotDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1756⟩ := spotDenyX_authorized (I := I) hauth rd1674
   exact spotDenyX_storeAuthorized hperm rd1756
 
-theorem spotX_deny_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem spotX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD spotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev spotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1674⟩ := spotDenyX_decoded (g := g) hsz36 hsize hreach
   exact spotDenyX_unauthorized (I := I) hauth rd1674
 
 theorem spotDenyBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body
@@ -373,40 +367,32 @@ theorem spotDenyBodyCoreOk
       spotDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (spotX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [denyPostState, evmSolm, initState, storageStore_createdAccounts])
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
-        simpa [denyPostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (relyGuyStorageSlot I) ⟨0⟩
-            hAccounts)
+        simpa [denyPostState, evmSolm, initState, storageStore_accountMap,
+          storageStore_executionEnv, sstoreAccountMap])
       (by
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem spotDenyBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
@@ -415,43 +401,42 @@ theorem spotDenyBodyCoreUnauthorized
       spotDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (spotX_deny_unauthorized (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem spotDenyBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨408⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (spotDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (spotDecode_deny_none_short hsz4 hshort)
 
-theorem spotDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem spotDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (spotSelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (spotSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (spotSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     spotDispatchDeny hsel
-  have hreach := spotReachDenyBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := spotReachDenyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact spotDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
-        (spotDecode_deny_ok hsz36) hreach hAccounts
+        (spotDecode_deny_ok hsz36) hreach
     · exact spotDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
-        (spotDecode_deny_ok hsz36) hreach hAccounts
+        (spotDecode_deny_ok hsz36) hreach
   · exact spotDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

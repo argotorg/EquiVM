@@ -8,16 +8,16 @@ namespace Benchmarks.Dss.Flipper
 
 /-! ## EVM helpers for the caller-changing `dent` refund branch -/
 
-theorem flipperDentX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_takeRefundBranch {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨4767⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd4750 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -42,7 +42,7 @@ theorem flipperDentX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
   have rd4752 : RD flipperBytecode I g s0 ⟨4752⟩
       [bidPackedWord (dentId I) σ I, dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4752 C4752 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k4752 C4752 := by
     have hslotAdd :
         (⟨2⟩ : UInt256) + bidBaseOfWord (dentId I) =
           bidPackedSlotOfWord (dentId I) := by
@@ -67,7 +67,7 @@ theorem flipperDentX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
         [UInt256.eq (solcSourceWord I) (bidGuyWord (dentId I) σ I), dentBid I,
           dentLot I, dentId I, ret, sel]
         (twoWordHashMem (dentId I) ⟨1⟩ mem)
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
       simpa [bidGuyWord, bidPackedWord, flipperAddressReturnWord, hmask160, u256_land_comm]
         using rd4763raw⟩
@@ -78,18 +78,18 @@ theorem flipperDentX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨4927⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]⟩
 
-theorem flipperDentX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I g s0 ⟨4767⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨4831⟩
       (⟨128⟩ :: solcAddrMask :: ⟨0⟩ :: flipperSlotWord ⟨2⟩ σ I :: ⟨64⟩ ::
         dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (dentVatRefundCallMem mem σ I) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k' C' := by
+      σ k' C' := by
   let rawVat := flipperSlotWord ⟨2⟩ σ I
   let rawPacked := flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I
   let base := solcMappingSlot ⟨1⟩ (dentId I)
@@ -118,7 +118,7 @@ theorem flipperDentX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k4771, C4771, rd4771raw⟩ := rd4770.sload (by native_decide) (by evm_ov)
   have rd4771 : RD flipperBytecode I g s0 ⟨4771⟩
       [rawVat, ⟨2⟩, dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4771 C4771 := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k4771 C4771 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd4771raw
   have rd4789pre := evm_run rd4771 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -147,7 +147,7 @@ theorem flipperDentX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
   have rd4790 : RD flipperBytecode I g s0 ⟨4790⟩
       (rawPacked :: ⟨0⟩ :: rawVat :: ⟨64⟩ :: dentBid I :: dentLot I ::
         dentId I :: ret :: sel :: [])
-      memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4790 C4790 := by
+      memHash (UInt256.ofNat 3) ByteArray.empty σ k4790 C4790 := by
     have hslotAdd : (⟨2⟩ : UInt256) + base = bidPackedSlotOfWord (dentId I) := by
       simpa [base, bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (dentId I)))
@@ -202,19 +202,19 @@ theorem flipperDentX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
         rfl) (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa [rawVat] using rd4831⟩
 
-theorem flipperDentX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_toRefundExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨4857⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   let memHash := twoWordHashMem (dentId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -266,7 +266,7 @@ theorem flipperDentX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State
   rw [hsubAdd, hadd, hvatClean] at rd4857
   exact ⟨_, _, by simpa [memHash] using rd4857⟩
 
-theorem flipperDentX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_refundNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -274,7 +274,7 @@ theorem flipperDentX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd4857⟩ :=
     flipperDentX_toRefundExtcodesizeGuard hmemSize hmemRead64 hcaller h
@@ -284,7 +284,7 @@ theorem flipperDentX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperDentX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_toRefundCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -292,13 +292,13 @@ theorem flipperDentX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨4872⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd4857⟩ :=
     flipperDentX_toRefundExtcodesizeGuard hmemSize hmemRead64 hcaller h
   obtain ⟨gasWord, k4872, C4872, rd4872⟩ :=
@@ -309,7 +309,7 @@ theorem flipperDentX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k4872, C4872, by simpa using rd4872⟩
 
-theorem flipperDentX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_refundDepthLimit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -318,12 +318,12 @@ theorem flipperDentX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨4873⟩
       (⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   obtain ⟨gasWord, _, _, rd4872⟩ :=
     flipperDentX_toRefundCall hmemSize hmemRead64 hcaller hcodeSize h
   obtain ⟨k4873, C4873, rd4873raw⟩ :=
@@ -341,14 +341,14 @@ theorem flipperDentX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
       (ByteArray.empty.write 0
         (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I) 128
         (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k4873 C4873 := by
+      (UInt256.ofNat 8) ByteArray.empty σ k4873 C4873 := by
     simpa using haw ▸ rd4873raw
   rw [hmin, byteArray_write_len_zero] at rd4873
   exact ⟨_, _, rd4873⟩
 
 theorem flipperDentX_refundPostCall
-    {cA0 gh bl σbase σ₀ A I} {g : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare}
+    {σbase σ₀ A I} {g : UInt256}
+
     {σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
@@ -359,37 +359,37 @@ theorem flipperDentX_refundPostCall
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
+      (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
         (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I)
-        (UInt256.ofNat 8) out (cA', σ') k' C'
+        (UInt256.ofNat 8) out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ, substate := Acur, createdAccounts := cA })
+        ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (dentRefundMoveArgValsOf
-          ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA }) I)
+          ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur }) I)
         (z,
-          { { initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA } with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur } with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd4872⟩ :=
     flipperDentX_toRefundCall hmemSize hmemRead64 hcaller hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k4873, C4873, hΘpack, rd4873raw,
+  obtain ⟨σ', z, out, A_in, callGas, k4873, C4873, hΘpack, rd4873raw,
       houtsz⟩ :=
     RD.call rd4872 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k4873, C4873, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k4873, C4873, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
@@ -398,13 +398,13 @@ theorem flipperDentX_refundPostCall
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd4873 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
         (out.write 0
           (dentVatRefundCallMem (twoWordHashMem (dentId I) ⟨1⟩ mem) σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k4873 C4873 :=
+        (UInt256.ofNat 8) out σ' k4873 C4873 :=
       haw ▸ rd4873raw
     rw [hmin, byteArray_write_len_zero] at rd4873
     exact rd4873
@@ -416,7 +416,7 @@ theorem flipperDentX_refundPostCall
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (by rfl)
       ?_ ?_
     · have hhashSize :
           (twoWordHashMem (dentId I) ⟨1⟩ mem).size = 96 :=
@@ -430,7 +430,7 @@ theorem flipperDentX_refundPostCall
 
 theorem flipperDentX_refundCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨4873⟩
       (⟨0⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C)
@@ -445,7 +445,7 @@ theorem flipperDentX_refundCallFailure {I} {g : Sat256} {s0 : State}
 
 theorem flipperDentX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨4873⟩
       (⟨1⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C) :
@@ -462,17 +462,17 @@ theorem flipperDentX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4893⟩
 
-theorem flipperDentX_storeRefundGuyToFluxStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_storeRefundGuyToFluxStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
     (h : RD flipperBytecode I g s0 ⟨4893⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) out (cA, σ) k C) :
+      mem (UInt256.ofNat 8) out σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (cA, dentAfterRefundMap σ I) k' C' := by
+      (dentAfterRefundMap σ I) k' C' := by
   let mem1 := wordAt0Mem (dentId I) mem
   let mem2 := twoWordHashMem (dentId I) ⟨1⟩ mem
   let slot := bidPackedSlotOfWord (dentId I)
@@ -522,7 +522,7 @@ theorem flipperDentX_storeRefundGuyToFluxStart {cA σ I} {g : Sat256} {s0 : Stat
   obtain ⟨k4912, C4912, rd4912raw⟩ := rd4910.sload (by native_decide) (by evm_ov)
   have rd4912 : RD flipperBytecode I g s0 ⟨4912⟩
       [old, slot, target, dentBid I, dentLot I, dentId I, ret, sel]
-      mem2 (UInt256.ofNat 8) out (cA, σ) k4912 C4912 := by
+      mem2 (UInt256.ofNat 8) out σ k4912 C4912 := by
     have hslotAdd :
         (⟨2⟩ : UInt256) + bidBaseOfWord (dentId I) = slot := by
       simpa [slot, bidPackedSlotOfWord] using
@@ -543,7 +543,7 @@ theorem flipperDentX_storeRefundGuyToFluxStart {cA σ I} {g : Sat256} {s0 : Stat
   obtain ⟨k4926, C4926, rd4926raw⟩ := rd4925.sstore hperm (by native_decide) (by evm_ov)
   have rd4926 : RD flipperBytecode I g s0 ⟨4926⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
-      mem2 (UInt256.ofNat 8) out (cA, dentAfterRefundMap σ I) k4926 C4926 := by
+      mem2 (UInt256.ofNat 8) out (dentAfterRefundMap σ I) k4926 C4926 := by
     simpa [dentAfterRefundMap, old, slot, flipperSlotWord] using rd4926raw
   exact ⟨_, _, evm_run rd4926 with [
     raw pop (by native_decide) (by evm_ov)]⟩
@@ -799,18 +799,18 @@ theorem dentVatFluxCallMem_encode_228 {mem : ByteArray} (σ : AccountMap)
   apply ByteArray.ext
   simp [vatFluxSelector, byteArray_toList_eq, ByteArray.append_assoc]
 
-theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_toFluxExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5037⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
-      (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) rdata (cA, σ) k' C' := by
+      (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) rdata σ k' C' := by
   let rawVat := flipperSlotWord ⟨2⟩ σ I
   let rawIlk := flipperSlotWord ⟨3⟩ σ I
   let rawUsr := flipperSlotWord (bidSlotOfWord (dentId I) ⟨3⟩) σ I
@@ -852,7 +852,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
   obtain ⟨k4931, C4931, rd4931raw⟩ := rd4930pre.sload (by native_decide) (by evm_ov)
   have rd4931 : RD flipperBytecode I g s0 ⟨4931⟩
       [rawVat, dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k4931 C4931 := by
+      mem (UInt256.ofNat 8) rdata σ k4931 C4931 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd4931raw
   have rd4934 := evm_run rd4931 with [
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
@@ -860,7 +860,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
   obtain ⟨k4935, C4935, rd4935raw⟩ := rd4934.sload (by native_decide) (by evm_ov)
   have rd4935 : RD flipperBytecode I g s0 ⟨4935⟩
       [rawIlk, ⟨3⟩, rawVat, dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k4935 C4935 := by
+      mem (UInt256.ofNat 8) rdata σ k4935 C4935 := by
     simpa [rawIlk, flipperSlotWord, solcSlotWord] using rd4935raw
   have rd4954 := evm_run rd4935 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -894,7 +894,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
   have rd4956 : RD flipperBytecode I g s0 ⟨4956⟩
       [rawUsr, ⟨64⟩, ⟨1⟩, ⟨0⟩, rawIlk, base, rawVat, dentBid I,
         dentLot I, dentId I, ret, sel]
-      memHash (UInt256.ofNat 8) rdata (cA, σ) k4956 C4956 := by
+      memHash (UInt256.ofNat 8) rdata σ k4956 C4956 := by
     have hslotAdd : base + (⟨3⟩ : UInt256) = bidSlotOfWord (dentId I) ⟨3⟩ := by
       simp [base, bidSlotOfWord, bidBaseOfWord]
     simpa [rawUsr, flipperSlotWord, hslotAdd] using rd4956raw
@@ -907,7 +907,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
   have rd4961 : RD flipperBytecode I g s0 ⟨4961⟩
       [rawLot, ⟨64⟩, ⟨0⟩, rawIlk, rawUsr, rawVat, dentBid I,
         dentLot I, dentId I, ret, sel]
-      memHash (UInt256.ofNat 8) rdata (cA, σ) k4961 C4961 := by
+      memHash (UInt256.ofNat 8) rdata σ k4961 C4961 := by
     have hslotAdd :
         (⟨1⟩ : UInt256) + base = bidSlotOfWord (dentId I) ⟨1⟩ := by
       simpa [base, bidSlotOfWord, bidBaseOfWord] using
@@ -996,7 +996,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
   rw [hmask160, hvatClean] at rd5037
   exact ⟨_, _, by simpa [rawVat] using rd5037⟩
 
-theorem flipperDentX_fluxNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_fluxNoCodeAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem out : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1004,7 +1004,7 @@ theorem flipperDentX_fluxNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) out (cA, σ) k C) :
+      mem (UInt256.ofNat 8) out σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5037⟩ := flipperDentX_toFluxExtcodesizeGuardAw8
     hmemSize hmemRead64 h
@@ -1014,7 +1014,7 @@ theorem flipperDentX_fluxNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperDentX_toFluxCallAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_toFluxCallAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem out : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1022,13 +1022,13 @@ theorem flipperDentX_toFluxCallAw8 {cA σ I} {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) out (cA, σ) k C) :
+      mem (UInt256.ofNat 8) out σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨5052⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨132⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
         ret :: sel :: [])
-      (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
+      (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) out σ k' C' := by
   obtain ⟨_, _, rd5037⟩ := flipperDentX_toFluxExtcodesizeGuardAw8
     hmemSize hmemRead64 h
   obtain ⟨gasWord, k5052, C5052, rd5052⟩ :=
@@ -1040,8 +1040,8 @@ theorem flipperDentX_toFluxCallAw8 {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨gasWord, k5052, C5052, by simpa using rd5052⟩
 
 theorem flipperDentX_fluxPostCallAw8
-    {cA0 gh bl σbase σ₀ A I} {g : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {Acur : Substate}
+    {σbase σ₀ A I} {g : UInt256}
+    {σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {mem out0 : ByteArray} {ret sel : UInt256}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1050,38 +1050,38 @@ theorem flipperDentX_fluxPostCallAw8
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4927⟩
+      (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) out0 (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      mem (UInt256.ofNat 8) out0 σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
           ret :: sel :: [])
-        (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) out (cA', σ') k' C'
+        (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ, substate := Acur, createdAccounts := cA })
+        ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dentFluxArgValsOf
-          ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA })
+          ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur })
           I)
         (z,
-          { { initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA } with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur } with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd5052⟩ :=
     flipperDentX_toFluxCallAw8 hmemSize hmemRead64 hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k5053, C5053, hΘpack, rd5053raw,
+  obtain ⟨σ', z, out, A_in, callGas, k5053, C5053, hΘpack, rd5053raw,
       houtsz⟩ :=
     RD.call rd5052 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k5053, C5053, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k5053, C5053, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
           (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
@@ -1090,13 +1090,13 @@ theorem flipperDentX_fluxPostCallAw8
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd5053 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
           ret :: sel :: [])
         (out.write 0 (dentVatFluxCallMem mem σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 9) out (cA', σ') k5053 C5053 :=
+        (UInt256.ofNat 9) out σ' k5053 C5053 :=
       haw ▸ rd5053raw
     rw [hmin, byteArray_write_len_zero] at rd5053
     exact rd5053
@@ -1107,7 +1107,7 @@ theorem flipperDentX_fluxPostCallAw8
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (by rfl)
       ?_ ?_
     · simpa [dentFluxArgValsOf, dentFluxArgValsMap, initState, flipperSlotWord,
         solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,

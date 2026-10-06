@@ -18,13 +18,13 @@ def bidTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
 def bidAuctionEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 def bidHighestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨3⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨3⟩ ⟨0⟩)
 
 def bidHighestBidderRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def bidHighestBidderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (bidHighestBidderRawWord σ I) solcAddrMask
@@ -36,7 +36,7 @@ def bidPendingSlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   pendingReturnsSlot (bidHighestBidderKey σ I)
 
 def bidPendingReturnsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidPendingSlot σ I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidPendingSlot σ I) ⟨0⟩)
 
 def bidSenderWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.source.val
@@ -422,7 +422,7 @@ theorem bidCheckedAddOverflowGt (a b : UInt256)
 
 theorem bidCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD simpleAuctionBytecode ee g s0 ⟨956⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
     (hfit : a.toNat + b.toNat < UInt256.size)
     (hret : (D_J simpleAuctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
@@ -442,7 +442,7 @@ theorem bidCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
 
 theorem bidPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD simpleAuctionBytecode ee g s0 ⟨968⟩ R mem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 2 ≤ 1024) :
     RDrev simpleAuctionBytecode g s0 := by
@@ -472,7 +472,7 @@ theorem bidPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
 
 theorem bidCheckedAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD simpleAuctionBytecode ee g s0 ⟨956⟩ (a :: b :: ret :: R) mem (UInt256.ofNat 3)
       rdata acc k C)
     (hover : UInt256.size ≤ a.toNat + b.toNat) (hov : R.length + 9 ≤ 1024) :
@@ -513,29 +513,29 @@ theorem simpleAuctionDecode_bid {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem simpleAuctionX_bidToBody {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨326⟩
+theorem simpleAuctionX_bidToBody {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨326⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨_, _, rd114⟩ := hreach
   exact ⟨_, _, evm_run rd114 with [jumpdest, push2 ⟨122⟩, push2 ⟨326⟩,
     jump (by jump_dest)]⟩
 
-theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_timeRevert {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidAuctionEndWord σ I).toNat < (bidTimestampWord I).toNat) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody (cA := cA) (gh := gh) (bl := bl)
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach
   have rd329 := evm_run rd326 with [jumpdest, push1 ⟨1⟩]
   obtain ⟨_, _, rd330₀⟩ := rd329.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd330⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨330⟩
+      (initState σ σ₀ g A I) ⟨330⟩
       [bidAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidAuctionEndWord, initState] using rd330₀⟩
   have hgt : UInt256.gt (bidTimestampWord I) (bidAuctionEndWord σ I) = ⟨1⟩ :=
     ugt_one htime
@@ -565,21 +565,21 @@ theorem simpleAuctionX_bid_timeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     dup1, swap2, sub, swap1]
   exact rd360.rev 0 (by decide) mem_cost (by evm_ov)
 
-theorem simpleAuctionX_bid_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_afterTime {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨361⟩
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨361⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
-  obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody (cA := cA) (gh := gh) (bl := bl)
+      σ k C := by
+  obtain ⟨_, _, rd326⟩ := simpleAuctionX_bidToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach
   have rd329 := evm_run rd326 with [jumpdest, push1 ⟨1⟩]
   obtain ⟨_, _, rd330₀⟩ := rd329.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd330⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨330⟩
+      (initState σ σ₀ g A I) ⟨330⟩
       [bidAuctionEndWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidAuctionEndWord, initState] using rd330₀⟩
   have hgt : UInt256.gt (bidTimestampWord I) (bidAuctionEndWord σ I) = ⟨0⟩ :=
     ugt_zero htime
@@ -591,20 +591,20 @@ theorem simpleAuctionX_bid_afterTime {cA gh bl σ σ₀ A I} {g : Sat256}
     show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd333
   exact ⟨_, _, evm_run rd333 with [push2 ⟨361⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
-theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_bidRevert {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : I.weiValue.toNat ≤ (bidHighestBidWord σ I).toNat) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime (cA := cA) (gh := gh) (bl := bl)
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime
   have rd364 := evm_run rd361 with [jumpdest, push1 ⟨3⟩]
   obtain ⟨_, _, rd365₀⟩ := rd364.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd365⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨365⟩
+      (initState σ σ₀ g A I) ⟨365⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd365₀⟩
   have hgt : UInt256.gt I.weiValue (bidHighestBidWord σ I) = ⟨0⟩ :=
     ugt_zero hbid
@@ -615,9 +615,9 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd374 := evm_run rd371 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd374₀⟩ := rd374.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd374'⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨374⟩
+      (initState σ σ₀ g A I) ⟨374⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd374₀⟩
   have rd387 := evm_run rd374' with [
     push1 ⟨64⟩,
@@ -642,22 +642,22 @@ theorem simpleAuctionX_bid_bidRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     dup1, swap2, sub, swap1]
   exact rd409.rev 0 (by decide) mem_cost (by evm_ov)
 
-theorem simpleAuctionX_bid_afterBid {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_afterBid {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨410⟩
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨410⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
-  obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime (cA := cA) (gh := gh) (bl := bl)
+      σ k C := by
+  obtain ⟨_, _, rd361⟩ := simpleAuctionX_bid_afterTime
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime
   have rd364 := evm_run rd361 with [jumpdest, push1 ⟨3⟩]
   obtain ⟨_, _, rd365₀⟩ := rd364.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd365⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨365⟩
+      (initState σ σ₀ g A I) ⟨365⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd365₀⟩
   have hgt : UInt256.gt I.weiValue (bidHighestBidWord σ I) = ⟨1⟩ :=
     ugt_one hbid
@@ -666,48 +666,48 @@ theorem simpleAuctionX_bid_afterBid {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hgt] at rd367
   exact ⟨_, _, evm_run rd367 with [push2 ⟨410⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
-theorem simpleAuctionX_bid_afterNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_afterNoPending {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hzero : bidHighestBidWord σ I = ⟨0⟩) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨468⟩
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨468⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
-  obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid (cA := cA) (gh := gh) (bl := bl)
+      σ k C := by
+  obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime hbid
   have rd413 := evm_run rd410 with [jumpdest, push1 ⟨3⟩]
   obtain ⟨_, _, rd414₀⟩ := rd413.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd414⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨414⟩
+      (initState σ σ₀ g A I) ⟨414⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd414₀⟩
   have rd415₀ := evm_run rd414 with [iszero]
   have rd415 := rd415₀
   rw [hzero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd415
   exact ⟨_, _, evm_run rd415 with [push2 ⟨468⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
-theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_pendingToCheckedAdd {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hnz : bidHighestBidWord σ I ≠ ⟨0⟩) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨956⟩
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨956⟩
       [bidPendingReturnsWord σ I, bidHighestBidWord σ I, ⟨462⟩, ⟨0⟩,
         bidPendingSlot σ I, bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I]
       (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
-  obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid (cA := cA) (gh := gh) (bl := bl)
+      σ k C := by
+  obtain ⟨_, _, rd410⟩ := simpleAuctionX_bid_afterBid
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hreach htime hbid
   have rd413 := evm_run rd410 with [jumpdest, push1 ⟨3⟩]
   obtain ⟨_, _, rd414₀⟩ := rd413.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd414⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨414⟩
+      (initState σ σ₀ g A I) ⟨414⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd414₀⟩
   have rd415₀ := evm_run rd414 with [iszero]
   have rd415 := rd415₀
@@ -716,16 +716,16 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
   have rd421 := evm_run rd419 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd422₀⟩ := rd421.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd422⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨422⟩
+      (initState σ σ₀ g A I) ⟨422⟩
       [bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidWord, initState] using rd422₀⟩
   have rd424 := evm_run rd422 with [push1 ⟨2⟩]
   obtain ⟨_, _, rd425₀⟩ := rd424.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd425⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨425⟩
+      (initState σ σ₀ g A I) ⟨425⟩
       [bidHighestBidderRawWord σ I, bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidderRawWord, initState] using rd425₀⟩
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
@@ -753,78 +753,78 @@ theorem simpleAuctionX_bid_pendingToCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat2
     dup1]
   obtain ⟨_, _, rd448₀⟩ := rd447.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd449⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨449⟩
+      (initState σ σ₀ g A I) ⟨449⟩
       [bidPendingReturnsWord σ I, bidPendingSlot σ I, ⟨0⟩, bidHighestBidWord σ I,
         ⟨122⟩, simpleAuctionSelWord I]
       (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
     exact ⟨_, _, by simpa [bidPendingReturnsWord, initState] using rd448₀⟩
   have rd461 := evm_run rd449 with [
     swap1, swap2, swap1, push2 ⟨462⟩, swap1, dup5, swap1, push2 ⟨956⟩,
     jump (by jump_dest)]
   exact ⟨_, _, rd461⟩
 
-theorem simpleAuctionX_bid_afterPending {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_bid_afterPending {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hnz : bidHighestBidWord σ I ≠ ⟨0⟩)
     (hfit :
       (bidPendingReturnsWord σ I).toNat + (bidHighestBidWord σ I).toNat < UInt256.size) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨468⟩
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨468⟩
       [⟨122⟩, simpleAuctionSelWord I] (bidPendingHashMem (bidHighestBidderWord σ I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, bidPendingMap σ I) k C := by
-  obtain ⟨_, _, rd956⟩ := simpleAuctionX_bid_pendingToCheckedAdd (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (UInt256.ofNat 3) ByteArray.empty (bidPendingMap σ I) k C := by
+  obtain ⟨_, _, rd956⟩ := simpleAuctionX_bid_pendingToCheckedAdd
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hreach htime hbid hnz
   obtain ⟨_, _, rd462⟩ := bidCheckedAddOk rd956 hfit (by jump_dest) (by evm_ov)
   have rd465 := evm_run rd462 with [jumpdest, swap1, swap2]
   obtain ⟨_, _, rd466₀⟩ := rd465.sstore hperm (by decide) (by evm_ov)
   obtain ⟨_, _, rd466⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨466⟩
+      (initState σ σ₀ g A I) ⟨466⟩
       [⟨0⟩, bidHighestBidWord σ I, ⟨122⟩, simpleAuctionSelWord I]
       (bidPendingHashMem (bidHighestBidderWord σ I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, bidPendingMap σ I) k C := by
+      (bidPendingMap σ I) k C := by
     exact ⟨_, _, by
       simpa [bidPendingMap, u256_add_comm] using rd466₀⟩
   exact ⟨_, _, evm_run rd466 with [pop, pop]⟩
 
-theorem simpleAuctionX_bid_pendingOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem simpleAuctionX_bid_pendingOverflow {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hnz : bidHighestBidWord σ I ≠ ⟨0⟩)
     (hover : UInt256.size ≤
       (bidPendingReturnsWord σ I).toNat + (bidHighestBidWord σ I).toNat) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd956⟩ := simpleAuctionX_bid_pendingToCheckedAdd (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd956⟩ := simpleAuctionX_bid_pendingToCheckedAdd
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hreach htime hbid hnz
   exact bidCheckedAddOverflow rd956 hover (by evm_ov)
 
-theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_bid_successNoPending {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hzero : bidHighestBidWord σ I = ⟨0⟩) :
-    RDret simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, bidFinalMapNoPending σ I) ByteArray.empty := by
-  obtain ⟨_, _, rd468⟩ := simpleAuctionX_bid_afterNoPending (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+      (bidFinalMapNoPending σ I) ByteArray.empty := by
+  obtain ⟨_, _, rd468⟩ := simpleAuctionX_bid_afterNoPending
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hreach htime hbid hzero
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd472 := evm_run rd468 with [jumpdest, push1 ⟨2⟩, dup1]
   obtain ⟨_, _, rd473₀⟩ := rd472.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd473⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨473⟩
+      (initState σ σ₀ g A I) ⟨473⟩
       [bidHighestBidderRawWord σ I, ⟨2⟩, ⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidHighestBidderRawWord, initState] using rd473₀⟩
   have rd486₀ := evm_run rd473 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
@@ -866,29 +866,29 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
   simpa [bidFinalMapNoPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
     bidPackedSenderWord, bidSenderWord] using rd123.stop (by decide) (by evm_ov)
 
-theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_bid_successWithPending {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
-      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨114⟩
+      [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat)
     (hbid : (bidHighestBidWord σ I).toNat < I.weiValue.toNat)
     (hnz : bidHighestBidWord σ I ≠ ⟨0⟩)
     (hfit :
       (bidPendingReturnsWord σ I).toNat + (bidHighestBidWord σ I).toNat < UInt256.size) :
-    RDret simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, bidFinalMapWithPending σ I) ByteArray.empty := by
-  obtain ⟨_, _, rd468⟩ := simpleAuctionX_bid_afterPending (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    RDret simpleAuctionBytecode g (initState σ σ₀ g A I)
+      (bidFinalMapWithPending σ I) ByteArray.empty := by
+  obtain ⟨_, _, rd468⟩ := simpleAuctionX_bid_afterPending
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hperm hreach htime hbid hnz hfit
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd472 := evm_run rd468 with [jumpdest, push1 ⟨2⟩, dup1]
   obtain ⟨_, _, rd473₀⟩ := rd472.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd473⟩ : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨473⟩
+      (initState σ σ₀ g A I) ⟨473⟩
       [bidHighestBidderRawWord (bidPendingMap σ I) I, ⟨2⟩, ⟨122⟩, simpleAuctionSelWord I]
       (bidPendingHashMem (bidHighestBidderWord σ I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, bidPendingMap σ I) k C := by
+      (UInt256.ofNat 3) ByteArray.empty (bidPendingMap σ I) k C := by
     exact ⟨_, _, by simpa [bidHighestBidderRawWord, initState] using rd473₀⟩
   have rd486₀ := evm_run rd473 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
@@ -1354,35 +1354,27 @@ theorem simpleAuctionBidBodyReturnsWithPending (evm : EVM.State) (I : ExecutionE
       (bidAssignHighestBid (bidAfterPendingState evm) I hPendingEnv)) ?_
   exact ExecBlock.nil
 
-theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem simpleAuctionBidBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x19, 0x98, 0xae, 0xef]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨114⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨114⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+      σ σ₀ g A I := by
   have hsel' : ((⟨#[0x19, 0x98, 0xae, 0xef]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
     simpa [selIs] using hsel
   have hsz := simpleAuctionBidSelector_size hsel'
   have hd := simpleAuctionDispatch_bid (cd := I.calldata) hsel'
   have hdec := simpleAuctionDecode_bid (I := I) hsz
-  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := by
-    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
-  have hAuctionEnd : bidAuctionEndWord σ_evm I = bidAuctionEndWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-  have hHighestBid : bidHighestBidWord σ_evm I = bidHighestBidWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
-  have hHighestBidderRaw :
-      bidHighestBidderRawWord σ_evm I = bidHighestBidderRawWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  by_cases htimeBad : (bidAuctionEndWord σ_evm I).toNat < (bidTimestampWord I).toNat
-  · have htimeS' : (bidAuctionEndWord σ_solm I).toNat < (bidTimestampWord I).toNat := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hAuctionEnd : bidAuctionEndWord σ I = bidAuctionEndWord σ I := rfl
+  have hHighestBid : bidHighestBidWord σ I = bidHighestBidWord σ I := rfl
+  have hHighestBidderRaw : bidHighestBidderRawWord σ I = bidHighestBidderRawWord σ I := rfl
+  by_cases htimeBad : (bidAuctionEndWord σ I).toNat < (bidTimestampWord I).toNat
+  · have htimeS' : (bidAuctionEndWord σ I).toNat < (bidTimestampWord I).toNat := by
       simpa [hAuctionEnd] using htimeBad
     have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
@@ -1392,12 +1384,12 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           State.lookupAccount] using htimeS')
     exact (simpleAuctionX_bid_timeRevert (g := Sat256.ofUInt256 g) hreach htimeBad)
       |>.reEquivExecutionRevert hcode hd hdec hbody
-  · have htimeLe : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ_evm I).toNat := by
+  · have htimeLe : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat := by
       omega
-    have htimeS' : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ_solm I).toNat := by
+    have htimeS' : (bidTimestampWord I).toNat ≤ (bidAuctionEndWord σ I).toNat := by
       simpa [hAuctionEnd] using htimeLe
-    by_cases hbidBad : I.weiValue.toNat ≤ (bidHighestBidWord σ_evm I).toNat
-    · have hbidS' : I.weiValue.toNat ≤ (bidHighestBidWord σ_solm I).toNat := by
+    by_cases hbidBad : I.weiValue.toNat ≤ (bidHighestBidWord σ I).toNat
+    · have hbidS' : I.weiValue.toNat ≤ (bidHighestBidWord σ I).toNat := by
         simpa [hHighestBid] using hbidBad
       have hbody :
           ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
@@ -1411,12 +1403,12 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               using hbidS')
       exact (simpleAuctionX_bid_bidRevert (g := Sat256.ofUInt256 g) hreach htimeLe hbidBad)
         |>.reEquivExecutionRevert hcode hd hdec hbody
-    · have hbidLt : (bidHighestBidWord σ_evm I).toNat < I.weiValue.toNat := by
+    · have hbidLt : (bidHighestBidWord σ I).toNat < I.weiValue.toNat := by
         omega
-      by_cases hzero : bidHighestBidWord σ_evm I = ⟨0⟩
-      · have hbidS' : (bidHighestBidWord σ_solm I).toNat < I.weiValue.toNat := by
+      by_cases hzero : bidHighestBidWord σ I = ⟨0⟩
+      · have hbidS' : (bidHighestBidWord σ I).toNat < I.weiValue.toNat := by
           simpa [hHighestBid] using hbidLt
-        have hzeroS' : bidHighestBidWord σ_solm I = ⟨0⟩ := by
+        have hzeroS' : bidHighestBidWord σ I = ⟨0⟩ := by
           simpa [hHighestBid] using hzero
         have hbody :
             ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
@@ -1433,73 +1425,30 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (by
               simpa [evmS, initState, bidHighestBidWord, Solm.EVM.storageLoad,
                 State.lookupAccount] using hzeroS')
-        have hσAfter : EVMStateEquiv (bidAfterHighestBidderState evmE I)
-            (bidAfterHighestBidderState evmS I) := by
-          unfold bidAfterHighestBidderState
-          rw [hσ.executionEnv]
-          have hval :
-              simpleAuctionSetAddressWord
-                  (Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner ⟨2⟩)
-                  (bidSenderWord I) =
-                simpleAuctionSetAddressWord
-                  (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨2⟩)
-                  (bidSenderWord I) := by
-            rw [hσ.storageLoad_codeOwner ⟨2⟩]
-          exact hσ.storageStore_codeOwner ⟨2⟩ hval
-        have hσPost : EVMStateEquiv (bidPostStateNoPending evmE I)
-            (bidPostStateNoPending evmS I) := by
-          unfold bidPostStateNoPending
-          exact hσAfter.storageStore_codeOwner ⟨3⟩ rfl
         exact (simpleAuctionX_bid_successNoPending (g := Sat256.ofUInt256 g) hperm hreach
             htimeLe hbidLt hzero)
-          |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-            (by
-              simp [evmE, bidPostStateNoPending, bidAfterHighestBidderState, initState,
-                simpleAuctionStorageStore_createdAccounts])
-            (accountMapEquiv.of_eq (by
-              simp [evmE, bidPostStateNoPending, bidAfterHighestBidderState, initState,
+          |>.reEquivExecutionGen hcode hd hdec hbody
+            (by simp [evmS, bidPostStateNoPending, bidAfterHighestBidderState, initState,
                 bidFinalMapNoPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
                 bidHighestBidderRawWord, bidPackedSenderWord_eq_setAddress,
                 Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                storageStore_executionEnv,
-                simpleAuctionStorageStore_accountMap]))
-            hσPost
+                storageStore_executionEnv, storageStore_accountMap])
             (returnEquiv.fallthrough rfl rfl (by native_decide))
-      · have hnzE : bidHighestBidWord σ_evm I ≠ ⟨0⟩ := hzero
-        have hbidS' : (bidHighestBidWord σ_solm I).toNat < I.weiValue.toNat := by
+      · have hnzE : bidHighestBidWord σ I ≠ ⟨0⟩ := hzero
+        have hbidS' : (bidHighestBidWord σ I).toNat < I.weiValue.toNat := by
           simpa [hHighestBid] using hbidLt
-        have hnzS' : bidHighestBidWord σ_solm I ≠ ⟨0⟩ := by
+        have hnzS' : bidHighestBidWord σ I ≠ ⟨0⟩ := by
           intro hz
           apply hnzE
           simpa [hHighestBid] using hz
-        have hPendingSlot : bidPendingSlot σ_evm I = bidPendingSlot σ_solm I := by
-          simp [bidPendingSlot, bidHighestBidderKey, bidHighestBidderWord, hHighestBidderRaw]
-        have hPendingReturns :
-            bidPendingReturnsWord σ_evm I = bidPendingReturnsWord σ_solm I := by
-          unfold bidPendingReturnsWord
-          rw [← hPendingSlot]
-          exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-            (bidPendingSlot σ_evm I) ⟨0⟩
-        have hPendingSlotState : bidPendingSlotState evmE = bidPendingSlotState evmS := by
-          simpa [evmE, evmS, initState, bidPendingSlotState, bidHighestBidderKeyState,
-            bidHighestBidderWordState, bidHighestBidderRawState, bidPendingSlot,
-            bidHighestBidderKey, bidHighestBidderWord, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage] using hPendingSlot
-        have hPendingReturnsState :
-            bidPendingReturnsWordState evmE = bidPendingReturnsWordState evmS := by
-          unfold bidPendingReturnsWordState
-          rw [hPendingSlotState]
-          exact hσ.storageLoad_codeOwner (bidPendingSlotState evmS)
-        have hHighestBidState :
-            bidHighestBidWordState evmE = bidHighestBidWordState evmS := by
-          unfold bidHighestBidWordState
-          exact hσ.storageLoad_codeOwner ⟨3⟩
+        have hPendingSlot : bidPendingSlot σ I = bidPendingSlot σ I := rfl
+        have hPendingReturns : bidPendingReturnsWord σ I = bidPendingReturnsWord σ I := rfl
         by_cases hfit :
-            (bidPendingReturnsWord σ_evm I).toNat +
-              (bidHighestBidWord σ_evm I).toNat < UInt256.size
+            (bidPendingReturnsWord σ I).toNat +
+              (bidHighestBidWord σ I).toNat < UInt256.size
         · have hfitS' :
-              (bidPendingReturnsWord σ_solm I).toNat +
-                (bidHighestBidWord σ_solm I).toNat < UInt256.size := by
+              (bidPendingReturnsWord σ I).toNat +
+                (bidHighestBidWord σ I).toNat < UInt256.size := by
             simpa [← hPendingReturns, ← hHighestBid] using hfit
           have hfitSState :
               (bidPendingReturnsWordState evmS).toNat +
@@ -1523,40 +1472,10 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 simpa [evmS, initState, bidHighestBidWord, Solm.EVM.storageLoad,
                   State.lookupAccount] using hnzS')
               hfitSState
-          have hσPending : EVMStateEquiv (bidAfterPendingState evmE)
-              (bidAfterPendingState evmS) := by
-            unfold bidAfterPendingState
-            rw [hσ.executionEnv, hPendingSlotState]
-            exact hσ.storageStore_codeOwner (bidPendingSlotState evmS)
-              (by rw [hPendingReturnsState, hHighestBidState])
-          have hσAfter : EVMStateEquiv
-              (bidAfterHighestBidderState (bidAfterPendingState evmE) I)
-              (bidAfterHighestBidderState (bidAfterPendingState evmS) I) := by
-            unfold bidAfterHighestBidderState
-            have hval :
-                simpleAuctionSetAddressWord
-                    (Solm.EVM.storageLoad (bidAfterPendingState evmE)
-                      (bidAfterPendingState evmE).executionEnv.codeOwner ⟨2⟩)
-                    (bidSenderWord I) =
-                  simpleAuctionSetAddressWord
-                    (Solm.EVM.storageLoad (bidAfterPendingState evmS)
-                      (bidAfterPendingState evmS).executionEnv.codeOwner ⟨2⟩)
-                    (bidSenderWord I) := by
-              rw [hσPending.storageLoad_codeOwner ⟨2⟩]
-            exact hσPending.storageStore_codeOwner ⟨2⟩ hval
-          have hσPost : EVMStateEquiv (bidPostStateWithPending evmE I)
-              (bidPostStateWithPending evmS I) := by
-            unfold bidPostStateWithPending bidPostStateNoPending
-            exact hσAfter.storageStore_codeOwner ⟨3⟩ rfl
           exact (simpleAuctionX_bid_successWithPending (g := Sat256.ofUInt256 g) hperm hreach
               htimeLe hbidLt hnzE hfit)
-            |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-              (by
-                simp [evmE, bidPostStateWithPending, bidPostStateNoPending,
-                  bidAfterHighestBidderState, bidAfterPendingState, initState,
-                  simpleAuctionStorageStore_createdAccounts])
-              (accountMapEquiv.of_eq (by
-                simp [evmE, bidPostStateWithPending, bidPostStateNoPending,
+            |>.reEquivExecutionGen hcode hd hdec hbody
+              (by simp [evmS, bidPostStateWithPending, bidPostStateNoPending,
                   bidAfterHighestBidderState, bidAfterPendingState, initState,
                   bidFinalMapWithPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
                   bidPendingMap, bidHighestBidderRawWord, bidPendingReturnsWord,
@@ -1565,16 +1484,15 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   bidHighestBidderKeyState, bidHighestBidderWordState,
                   bidHighestBidderRawState, bidPackedSenderWord_eq_setAddress,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                  storageStore_executionEnv, simpleAuctionStorageStore_accountMap]))
-              hσPost
+                  storageStore_executionEnv, storageStore_accountMap])
               (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hoverE : UInt256.size ≤
-              (bidPendingReturnsWord σ_evm I).toNat +
-                (bidHighestBidWord σ_evm I).toNat := by
+              (bidPendingReturnsWord σ I).toNat +
+                (bidHighestBidWord σ I).toNat := by
             omega
           have hoverS' : UInt256.size ≤
-              (bidPendingReturnsWord σ_solm I).toNat +
-                (bidHighestBidWord σ_solm I).toNat := by
+              (bidPendingReturnsWord σ I).toNat +
+                (bidHighestBidWord σ I).toNat := by
             simpa [← hPendingReturns, ← hHighestBid] using hoverE
           have hoverSState :
               UInt256.size ≤

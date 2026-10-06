@@ -15,13 +15,13 @@ theorem flapperDecode_beg {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem flapperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachBegBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flapperSelBytes 0)) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         ⟨646⟩ [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flapperSelWord I = ⟨0x7d780d82⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x7d 0x78 0x0d 0x82 ⟨0x7d780d82⟩
@@ -35,7 +35,7 @@ theorem flapperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flapperReachLowHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flapperReachLowHighFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   have heq0 : ∀ j, j < 4 →
       UInt256.eq
@@ -53,26 +53,25 @@ theorem flapperReachBegBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flapperLowHighArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flapperBegBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperBegBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flapperSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flapperSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 0) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ begTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ begTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (begWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (begWord σ I).toNat))])) := by
     simpa [begTransition, begWord, flapperSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := begRef) (er := ({ base := "beg", steps := [] } : EvaledStorageRef))
         (slot := ⟨4⟩)
         (by simp only [initState]; exact hwv) (by simp [begRef])
@@ -82,7 +81,6 @@ theorem flapperBegBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (routine := ⟨2975⟩) (slot := ⟨4⟩)
     hcode (flapperDispatchBeg hsel) (flapperDecode_beg hsz)
     (flapperReachBegBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

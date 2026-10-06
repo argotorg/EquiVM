@@ -7,14 +7,14 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnAmountsRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {feeOn totalSupply liquidity balance0 balance1
       token0 token1 reserve0 reserve1 : UInt256} {R : List UInt256} {k C : ℕ}
     {locals : Store} (evm : EVM.State)
     (rd4479 : RD uniswapV2PairBytecode I g s0 ⟨4479⟩
       (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
         reserve1 :: reserve0 :: ⟨0⟩ :: ⟨0⟩ :: R)
-      mem feeToStaticcallActiveWords rdata acc k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hliq : locals.get? "liquidity" = some (uniswapUint256Value liquidity))
     (hb0 : locals.get? "balance0" = some (uniswapUint256Value balance0))
     (hb1 : locals.get? "balance1" = some (uniswapUint256Value balance1))
@@ -33,7 +33,7 @@ theorem uniswapBurnAmountsRuntimeCases
         (totalSupply :: feeOn :: liquidity :: balance1 :: balance0 :: token1 :: token0 ::
           reserve1 :: reserve0 :: burnAmountWord liquidity balance1 totalSupply ::
           burnAmountWord liquidity balance0 totalSupply :: R)
-        mem feeToStaticcallActiveWords rdata acc k' C') := by
+        mem feeToStaticcallActiveWords rdata σ k' C') := by
   obtain ⟨_, _, rdMul0⟩ := uniswapBurnRuntimeAmount0MulEntry rd4479
     (by simp only [List.length_cons]; omega)
   by_cases hfit0 : mintAmountProductNat liquidity balance0 < UInt256.size

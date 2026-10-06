@@ -7,10 +7,10 @@ set_option maxRecDepth 2000000
 
 theorem RD.uniswapSafeTransferDynamicDepthReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
-      base aw rdata (cA, σ) k C)
+      base aw rdata σ k C)
     (hload : memoryWordLoad base ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (hbase : base.size ≤ ptr.toNat + 228)

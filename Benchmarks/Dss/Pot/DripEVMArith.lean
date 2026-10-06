@@ -12,13 +12,13 @@ namespace Benchmarks.Dss.Pot
 
 /-- `@1894`: push the two internal return addresses, load `dsr`, compute `now - rho`, push `ONE`,
 jump to `_rpow @2352`. -/
-theorem potDripX_rpowSetup {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potDripX_rpowSetup {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (h : RD potBytecode I g s0 ⟨1894⟩ [⟨0⟩, ⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨2352⟩
       (potRay :: UInt256.sub (dripNowWord I) (dripRhoWord σ I) :: dripDsrWord σ I ::
         ⟨1926⟩ :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1895 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1898 := rd1895.push2 ⟨1934⟩ (by native_decide) (by evm_ov)
   have rd1901 := rd1898.push2 ⟨1926⟩ (by native_decide) (by evm_ov)
@@ -26,13 +26,13 @@ theorem potDripX_rpowSetup {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel 
   obtain ⟨k1904, C1904, rd1904raw⟩ := rd1903.sload (by native_decide) (by evm_ov)
   have rd1904 : RD potBytecode I g s0 ⟨1904⟩
       (dripDsrWord σ I :: ⟨1926⟩ :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1904 C1904 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1904 C1904 := by
     simpa [dripDsrWord, potSlotWord, solcSlotWord] using rd1904raw
   have rd1906 := rd1904.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1907, C1907, rd1907raw⟩ := rd1906.sload (by native_decide) (by evm_ov)
   have rd1907 : RD potBytecode I g s0 ⟨1907⟩
       (dripRhoWord σ I :: dripDsrWord σ I :: ⟨1926⟩ :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1907 C1907 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1907 C1907 := by
     simpa [dripRhoWord, potSlotWord, solcSlotWord] using rd1907raw
   have rd1908 := RD.timestamp rd1907 (by native_decide) (by evm_ov)
   have rd1909 := rd1908.sub (by native_decide) (by evm_ov)
@@ -49,7 +49,7 @@ doesn't overflow. Handles both `x = 0` (short-circuit) and `x ≠ 0` (division g
 theorem RD.potMulReturnsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hcode : code = potBytecode)
     (hfit : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true)
@@ -134,7 +134,7 @@ theorem RD.potMulReturnsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 theorem RD.potMulRevertsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hcode : code = potBytecode)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
     (hov : R.length + 9 ≤ 1024)
@@ -186,20 +186,20 @@ theorem RD.potMulRevertsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 /-! ## `_rmul @2542` (calls `_mul @2300`, divides by `ONE`) -/
 
 /-- `@1926`: load `chi`, call `_rmul(pow, chi)`, return `tmp = (pow*chi)/ONE` at `@1934`. -/
-theorem potDripX_rmulReturns {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel pow : UInt256}
+theorem potDripX_rmulReturns {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel pow : UInt256}
     (hfit : pow.toNat * (dripChiWord σ I).toNat < UInt256.size)
     (h : RD potBytecode I g s0 ⟨1926⟩ (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1934⟩
       (UInt256.div (pow * dripChiWord σ I) potRay :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   set chi := dripChiWord σ I with hchidef
   have rd1927 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1929 := rd1927.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1930, C1930, rd1930raw⟩ := rd1929.sload (by native_decide) (by evm_ov)
   have rd1930 : RD potBytecode I g s0 ⟨1930⟩
       (chi :: pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1930 C1930 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1930 C1930 := by
     simpa [chi, dripChiWord, potSlotWord, solcSlotWord] using rd1930raw
   have rd1933 := rd1930.push2 ⟨2542⟩ (by native_decide) (by evm_ov)
   have rd2542 := rd1933.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -234,10 +234,10 @@ theorem potDripX_rmulReturns {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {se
   exact ⟨_, _, by simpa using rd1934⟩
 
 /-- `@1926`: `_rmul(pow, chi)` reverts when `pow*chi` overflows (in the inner `_mul`). -/
-theorem potDripX_rmulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel pow : UInt256}
+theorem potDripX_rmulReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel pow : UInt256}
     (hover : UInt256.size ≤ pow.toNat * (dripChiWord σ I).toNat)
     (h : RD potBytecode I g s0 ⟨1926⟩ (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   set chi := dripChiWord σ I with hchidef
   have rd1927 := h.jumpdest (by native_decide) (by evm_ov)
@@ -245,7 +245,7 @@ theorem potDripX_rmulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {se
   obtain ⟨k1930, C1930, rd1930raw⟩ := rd1929.sload (by native_decide) (by evm_ov)
   have rd1930 : RD potBytecode I g s0 ⟨1930⟩
       (chi :: pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1930 C1930 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1930 C1930 := by
     simpa [chi, dripChiWord, potSlotWord, solcSlotWord] using rd1930raw
   have rd1933 := rd1930.push2 ⟨2542⟩ (by native_decide) (by evm_ov)
   have rd2542 := rd1933.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -267,12 +267,12 @@ theorem potDripX_rmulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {se
 /-! ## `_sub @2336` (`chi_ = tmp - chi`, reverts on underflow) -/
 
 /-- Common setup `@1934 → @2336`: `SWAP1 POP`, build `_sub(tmp, chi)` args, jump. -/
-theorem potDripX_subEntry {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
+theorem potDripX_subEntry {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
     (h : RD potBytecode I g s0 ⟨1934⟩ (tmp :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨2336⟩
       (dripChiWord σ I :: tmp :: ⟨1950⟩ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1935 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1942 := evm_run rd1935 with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -284,19 +284,19 @@ theorem potDripX_subEntry {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel t
   obtain ⟨k1946, C1946, rd1946raw⟩ := rd1945.sload (by native_decide) (by evm_ov)
   have rd1946 : RD potBytecode I g s0 ⟨1946⟩
       (dripChiWord σ I :: tmp :: ⟨1950⟩ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1946 C1946 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1946 C1946 := by
     simpa [dripChiWord, potSlotWord, solcSlotWord] using rd1946raw
   have rd1949 := rd1946.push2 ⟨2336⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, rd1949.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 /-- `_sub(tmp, chi)` returns `tmp - chi` at `@1950` when `chi ≤ tmp`. -/
-theorem potDripX_subReturns {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
+theorem potDripX_subReturns {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
     (hle : (dripChiWord σ I).toNat ≤ tmp.toNat)
     (h : RD potBytecode I g s0 ⟨1934⟩ (tmp :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1950⟩
       (UInt256.sub tmp (dripChiWord σ I) :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd2336⟩ := potDripX_subEntry h
   exact RD.solcCheckedSubSuccess (a := tmp) (b := dripChiWord σ I) (okPc := ⟨2294⟩)
     (R := [⟨0⟩, tmp, ⟨341⟩, sel]) rd2336
@@ -304,10 +304,10 @@ theorem potDripX_subReturns {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
     hle (by jump_dest) (by jump_dest) (by simp)
 
 /-- `_sub(tmp, chi)` reverts when `tmp < chi` (underflow). -/
-theorem potDripX_subReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
+theorem potDripX_subReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tmp : UInt256}
     (hlt : tmp.toNat < (dripChiWord σ I).toNat)
     (h : RD potBytecode I g s0 ⟨1934⟩ (tmp :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   set chi := dripChiWord σ I with hchidef
   obtain ⟨_, _, rd2336⟩ := potDripX_subEntry h
@@ -334,13 +334,13 @@ theorem potDripX_subReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
 
 /-! ## Storage writes `chi := tmp`, `rho := now` (`@1950 → @1960`) -/
 
-theorem potDripX_stores {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
+theorem potDripX_stores {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hperm : I.perm = true)
     (h : RD potBytecode I g s0 ⟨1950⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨4⟩ tmp) ⟨7⟩ (UInt256.ofNat I.header.timestamp))
       k' C' := by
   have rd1951 := h.jumpdest (by native_decide) (by evm_ov)
@@ -358,15 +358,15 @@ theorem potDripX_stores {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi
 /-! ## `_rpow` with `x = 0` (`rpowFunctionCoupled` only covers `x ≠ 0`) -/
 
 /-- `_rpow(0, n, b)` returns `b` if `n = 0`, else `0`, reaching `@1926` directly (no loop). -/
-theorem potDripRpowXZeroReturns {cA gh bl σ σ₀ A I} {g b n : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem potDripRpowXZeroReturns {σ σ₀ A I} {g b n : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ} {aw : UInt256}
     (hRlen : R.length ≤ 1000)
     (rd2352 : RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
       (b :: n :: ⟨0⟩ :: ⟨1926⟩ :: R) mem aw out acc k C) :
     ∃ k' C', RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       ((if n = ⟨0⟩ then b else ⟨0⟩) :: R) mem aw out acc k' C' := by
   have rd2361 := evm_run rd2352 with [
     raw jumpdest (by native_decide) (by evm_ov),

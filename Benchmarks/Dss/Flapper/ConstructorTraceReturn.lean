@@ -13,7 +13,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000 in
 theorem flapperCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat gem : AccountAddress)
     (h : RD (flapperCtorCode vat gem) I g s0 ⟨194⟩ []
       (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) rdata acc k C) :
@@ -33,21 +33,18 @@ theorem flapperCtorReturnTrace
     (by flapper_ctor_decode) mem_cost (flapperCtorReturnMem_read I vat gem) (by evm_ov)
 
 theorem flapperInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flapperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (flapperCtorCode vat gem) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts, flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem)
+      (initState σ σ₀ g A I)
+      (flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem)
       flapperBytecode := by
   obtain ⟨_, _, rd122⟩ :=
     flapperCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm hwv
   obtain ⟨_, _, rd194⟩ := flapperCtorStoresReach vat gem hperm rd122
   exact flapperCtorReturnTrace (I := I) vat gem rd194

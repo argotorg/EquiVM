@@ -42,7 +42,7 @@ attribute [local simp]
   endPackSelectorBytes
   endCashSelectorBytes
 
-attribute [local simp] storageStore_executionEnv storageStore_createdAccounts
+attribute [local simp] storageStore_executionEnv
 
 /-! ## `cage()` -/
 
@@ -180,40 +180,6 @@ theorem endCageCallEncode_eq {mem : ByteArray}
   rw [endCageCallCalldataMem_read128_4 hgap]
   simp [config, externalABI, cageSelector]
 
-theorem endCageCallTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (slot : UInt256) (hAccounts : accountMapEquiv σ τ) :
-    endCageCallTargetWord slot σ I = endCageCallTargetWord slot τ I := by
-  simp [endCageCallTargetWord, endAddressReturnWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩]
-
-theorem endCageCallTargetCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (slot : UInt256) (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCageCallTargetWord slot τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endCageCallTargetWord slot σ I)
-  have htarget : endCageCallTargetWord slot σ I = endCageCallTargetWord slot τ I :=
-    endCageCallTargetWord_accountMapEquiv slot hAccounts
-  rw [hsame, htarget]
-  exact hzero
-
-theorem endCageCallTargetCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (slot : UInt256) (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCageCallTargetWord slot τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endCageCallTargetWord slot σ I)
-  have htarget : endCageCallTargetWord slot σ I = endCageCallTargetWord slot τ I :=
-    endCageCallTargetWord_accountMapEquiv slot hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
 theorem endCageCallTargetAddr_eq_ofUInt256 (slot : UInt256) (σ : AccountMap)
     (I : ExecutionEnv) :
     endCageCallTargetAddr slot σ I =
@@ -228,13 +194,10 @@ theorem endCage_EVM_address_id (a : AccountAddress) : EVM.address a = a := by
   exact a.isLt
 
 theorem endCageCallTargetAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
-    (slot : UInt256) (hAccounts : accountMapEquiv σ τ) :
+    (slot : UInt256) (hAccounts : Eq σ τ) :
     EVM.address (endCageCallTargetAddr slot τ I) =
       AccountAddress.ofUInt256 (endCageCallTargetWord slot σ I) := by
-  have hword : endCageCallTargetWord slot σ I = endCageCallTargetWord slot τ I :=
-    endCageCallTargetWord_accountMapEquiv slot hAccounts
-  rw [hword]
-  rw [endCageCallTargetAddr_eq_ofUInt256]
+  rw [hAccounts, endCageCallTargetAddr_eq_ofUInt256]
   exact endCage_EVM_address_id (AccountAddress.ofUInt256 (endCageCallTargetWord slot τ I))
 
 theorem endCageCallEncode_auth (I : ExecutionEnv) :
@@ -245,12 +208,11 @@ theorem endCageCallEncode_auth (I : ExecutionEnv) :
     (by rw [endRelyAuthHashMem_size I]; native_decide)
 
 theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ' : AccountMap}
     {A' Ain : Substate} {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     (hdepth : evmE.executionEnv.depth ≠ 1024)
-    (hΘ : (cA', σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes evmE.createdAccounts
-          evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ Ain
+    (hΘ : (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender
           (AccountAddress.ofUInt256
@@ -261,12 +223,9 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageCallCalldataMem (endRelyAuthHashMem evmE.executionEnv)).readWithPadding
             endCageCallOutPtr.toNat endCageCallInSize.toNat)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header true)
-    (hAccounts : accountMapEquiv evmE.accountMap evmS.accountMap)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true)
+    (hAccounts : Eq evmE.accountMap evmS.accountMap)
     (hOriginalAccounts : evmE.σ₀ = evmS.σ₀)
-    (hCreated : evmS.createdAccounts = evmE.createdAccounts)
-    (hGenesis : evmS.genesisBlockHeader = evmE.genesisBlockHeader)
-    (hBlocks : evmS.blocks = evmE.blocks)
     (hEnv : evmS.executionEnv = evmE.executionEnv) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM config evmS
@@ -274,39 +233,57 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
         "cage" 0 [] (z,
           { evmS with
               accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' },
+              substate := A'_solm },
           out) true ∧
       EVMStateEquiv
-        { evmE with accountMap := σ', substate := A', createdAccounts := cA' }
+        { evmE with accountMap := σ', substate := A' }
         { evmS with
             accountMap := σ'_solm
-            substate := A'_solm
-            createdAccounts := cA' } := by
+            substate := A'_solm } := by
   have htgt :
-      EVM.address (endCageCallTargetAddr slot evmS.accountMap evmS.executionEnv) =
+      EVM.address (endCageCallTargetAddr slot evmS.accountMap evmE.executionEnv) =
         AccountAddress.ofUInt256
           (endCageCallTargetWord slot evmE.accountMap evmE.executionEnv) := by
-    rw [hEnv]
+    rw [← hEnv]
     exact endCageCallTargetAddr_source_eq_evmWord slot hAccounts
-  obtain ⟨σ'_solm, A'_solm, hcall, hAccountsPost, hSubstate⟩ :=
-    endCallMade_accountMapEquiv_with_substate
-      (cfg := config) (evm_evm := evmE) (evm_solm := evmS)
+  have hΘS :
+      (σ', g'', A', z, out) =
+        Ethereum.EVM.Θ evmS.accountMap evmS.σ₀ Ain
+          (AccountAddress.ofUInt256 (UInt256.ofNat evmS.executionEnv.codeOwner))
+          evmS.executionEnv.sender
+          (AccountAddress.ofUInt256
+            (endCageCallTargetWord slot evmS.accountMap evmS.executionEnv))
+          (toExecute evmS.accountMap
+            (AccountAddress.ofUInt256
+              (endCageCallTargetWord slot evmS.accountMap evmS.executionEnv)))
+          callGas (UInt256.ofNat evmS.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+          ((endCageCallCalldataMem (endRelyAuthHashMem evmS.executionEnv)).readWithPadding
+            endCageCallOutPtr.toNat endCageCallInSize.toNat)
+          (evmS.executionEnv.depth + 1) evmS.executionEnv.header
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
+    rw [← hAccounts, ← hOriginalAccounts, hEnv]
+    exact hΘ
+  have hcall :
+      typedCallViaEVM config evmS
+        (EVM.address (endCageCallTargetAddr slot evmS.accountMap evmS.executionEnv))
+        "cage" 0 []
+        (z, { evmS with accountMap := σ', substate := A' }, out) true :=
+    callCoincides
+      (cfg := config) (evm := evmS)
       (tgt := EVM.address (endCageCallTargetAddr slot evmS.accountMap evmS.executionEnv))
-      (targetWord := endCageCallTargetWord slot evmE.accountMap evmE.executionEnv)
+      (targetWord := endCageCallTargetWord slot evmS.accountMap evmS.executionEnv)
       (name := "cage") (args := [])
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := Ain)
-      (z := z) (out := out) (g'' := g'') (callGas := callGas)
-      (mem := endCageCallCalldataMem (endRelyAuthHashMem evmE.executionEnv))
+      (σ' := σ') (A' := A') (A_in := Ain)
+      (z := z) (o := out) (g'' := g'') (callGas := callGas)
+      (mem := endCageCallCalldataMem (endRelyAuthHashMem evmS.executionEnv))
       (inOff := endCageCallOutPtr) (inSize := endCageCallInSize)
       (callPerm := true)
-      hdepth htgt (endCageCallEncode_auth evmE.executionEnv) hΘ hAccounts
-      hOriginalAccounts hCreated hGenesis hBlocks hEnv
-  refine ⟨σ'_solm, A'_solm, hcall, ?_⟩
-  refine ⟨?_, ?_, ?_⟩
+      (by rw [hEnv]; exact hdepth) (endCageCallTargetAddr_source_eq_evmWord slot rfl)
+      (endCageCallEncode_auth evmS.executionEnv) hΘS
+  refine ⟨σ', A', hcall, ?_⟩
+  refine ⟨?_, ?_⟩
   · simp [hEnv]
-  · rfl
-  · exact hAccountsPost
+  · simp [hAccounts]
 
 theorem endCageCallNotMadeDepthLimit (evm : EVM.State) (slot : UInt256)
     (hdepth : evm.executionEnv.depth = 1024) :
@@ -326,7 +303,7 @@ theorem endCageCallTargetCode_zero_of_codeSize_zero {σ : AccountMap} {I : Execu
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat =
+      ((σ.get? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat =
         0 := by
   simpa [State.lookupAccount] using
     endUniswapExtCodeSizeWord_zero_lookup_code_zero
@@ -339,7 +316,7 @@ theorem endCageCallTargetCode_pos_of_codeSize_ne {σ : AccountMap} {I : Executio
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endCageCallTargetWord slot σ I)
@@ -382,18 +359,18 @@ theorem endDispatchCage {I : ExecutionEnv}
   simp [dispatchList, hcd, endCageConcreteSelector, selectorBytes]
   native_decide
 
-theorem endReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endCageConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endCageEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x69245009⟩ :=
     endSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
       (by native_decide) (by simpa [selIs, endCageConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup294FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup294FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -406,15 +383,15 @@ theorem endReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide)
     (by simp)
 
-theorem endCageX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endCageX_entry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endCageEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) endCageEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endCageAuthPc [endCageReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (initState σ σ₀ g A I) endCageAuthPc [endCageReturnPc, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   simpa [endCageEntryPc, endCageReturnPc, endCageAuthPc] using
-    RD.solcGetterThunk (code := endBytecode) (cA := cA) (gh := gh) (bl := bl)
+    RD.solcGetterThunk (code := endBytecode)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
       (entry := endCageEntryPc) (returnPc := endCageReturnPc) (routine := endCageAuthPc)
       hreach
@@ -423,12 +400,12 @@ theorem endCageX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         repeat' first | apply And.intro | native_decide)
       (by jump_dest)
 
-theorem endCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (h : RD endBytecode I g s0 endCageAuthPc [endCageReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD endBytecode I g s0 endCageLivePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
     simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
@@ -443,10 +420,10 @@ theorem endCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
 
-theorem endCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : endRelyAuthWord σ I ≠ ⟨1⟩)
     (h : RD endBytecode I g s0 endCageAuthPc [endCageReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev endBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
@@ -464,12 +441,12 @@ theorem endCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by simp)
 
-theorem endCageX_live {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (h : RD endBytecode I g s0 endCageLivePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD endBytecode I g s0 endCageStorePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ = ⟨1⟩ := by
     simpa [endSlotWord] using hlive
   exact RD.endLiveGuardOk
@@ -481,10 +458,10 @@ theorem endCageX_live {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       repeat' first | apply And.intro | native_decide)
     hliveSolc (by jump_dest) (by simp)
 
-theorem endCageX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : RD endBytecode I g s0 endCageLivePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev endBytecode g s0 := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ ≠ ⟨1⟩ := by
     simpa [endSlotWord] using hlive
@@ -660,20 +637,7 @@ abbrev endCageTimestampWord (evm : EVM.State) : UInt256 :=
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-@[simp] theorem endCage_storageStore_genesisBlockHeader
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-@[simp] theorem endCage_storageStore_blocks
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 def endCagePostStoresState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore
@@ -723,13 +687,13 @@ theorem endCageAssignWhen (evm : EVM.State) :
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩) ⟨9⟩
       (endCageTimestampWord evm)
 
-theorem endCageX_storePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_storePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD endBytecode I g s0 endCageStorePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, endCageStoredAccountMap σ I) k' C' := by
+      (endCageStoredAccountMap σ I) k' C' := by
   have rdStoreLiveCursor := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -744,17 +708,17 @@ theorem endCageX_storePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endCageStoredAccountMap] using rdAfterWhen⟩
 
-theorem endCageX_vatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_vatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (h : RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD endBytecode I g s0 ⟨5655⟩
       (endCageCallTargetWord ⟨1⟩ σ I :: endCageCallTargetWord ⟨1⟩ σ I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σ I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have hmload64Auth :
       (if (⟨64⟩ : UInt256).toNat ≥ (endRelyAuthHashMem I).size then ⟨0⟩
         else UInt256.ofNat
@@ -786,7 +750,7 @@ theorem endCageX_vatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd5607 : ∃ k' C',
       RD endBytecode I g s0 ⟨5607⟩
         (endSlotWord ⟨1⟩ σ I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
-        (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd5607raw⟩
   obtain ⟨_, _, rd5607⟩ := rd5607
   have rd5620pre := evm_run rd5607 with [
@@ -836,10 +800,10 @@ theorem endCageX_vatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State} {k C : 
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
       haddrMask, solcAddrMask, u256_land_comm] using rd5655raw⟩
 
-theorem endCageX_vatNoCode {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_vatNoCode {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (h : RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord ⟨1⟩ σ I) =
         ⟨0⟩) :
@@ -851,10 +815,10 @@ theorem endCageX_vatNoCode {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vatCallReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem endCageX_vatCallReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (h : RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord ⟨1⟩ σ I) ≠
         ⟨0⟩) :
@@ -864,7 +828,7 @@ theorem endCageX_vatCallReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σ I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd5655⟩ := endCageX_vatExtcodesizeGuard h
   obtain ⟨gasWord, k', C', rd5670⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨5655⟩) (okPc := ⟨5667⟩) rd5655
@@ -874,44 +838,43 @@ theorem endCageX_vatCallReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd5670⟩
 
-theorem endCageX_vatPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vatPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5670⟩
-      (gasWord :: endCageCallTargetWord ⟨1⟩ acc.2 I :: ⟨0⟩ :: endCageCallOutPtr ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5670⟩
+      (gasWord :: endCageCallTargetWord ⟨1⟩ acc I :: ⟨0⟩ :: endCageCallOutPtr ::
         endCageCallInSize :: endCageCallOutPtr :: endCageCallOutSize ::
         endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨1⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨1⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-          (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc.2 I))
-          (toExecute acc.2
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc.2 I)))
+          (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc I))
+          (toExecute acc
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨1⟩ acc I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
             endCageCallOutPtr.toNat endCageCallInSize.toNat)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨1⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨1⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd5671raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd5671raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -926,22 +889,22 @@ theorem endCageX_vatPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5671raw
 
-theorem endCageX_vatCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vatCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5670⟩
-      (gasWord :: endCageCallTargetWord ⟨1⟩ acc.2 I :: ⟨0⟩ :: endCageCallOutPtr ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5670⟩
+      (gasWord :: endCageCallTargetWord ⟨1⟩ acc I :: ⟨0⟩ :: endCageCallOutPtr ::
         endCageCallInSize :: endCageCallOutPtr :: endCageCallOutSize ::
         endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨1⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨1⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨1⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨1⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd5671raw⟩ :=
@@ -956,20 +919,19 @@ theorem endCageX_vatCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5671raw
 
-theorem endCageX_vatCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_vatCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5671⟩) (okPc := ⟨5687⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -977,16 +939,16 @@ theorem endCageX_vatCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vatCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_vatCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5671⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5689⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5689⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -996,16 +958,16 @@ theorem endCageX_vatCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vatCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_vatCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5689⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5689⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨1⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
       [endCageReturnPc, sel] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd5692 := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
@@ -1013,20 +975,20 @@ theorem endCageX_vatCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5692⟩
 
-theorem endCageX_catExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_catExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5759⟩
-      (endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageCallTargetWord ⟨2⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5759⟩
+      (endCageCallTargetWord ⟨2⟩ acc I :: endCageCallTargetWord ⟨2⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨2⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -1068,12 +1030,11 @@ theorem endCageX_catExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5698 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5698⟩
-        (endSlotWord ⟨2⟩ acc.2 I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5698⟩
+        (endSlotWord ⟨2⟩ acc I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd5698raw⟩
   obtain ⟨_, _, rd5698⟩ := rd5698
   have rd5742pre := evm_run rd5698 with [
@@ -1126,7 +1087,6 @@ theorem endCageX_catExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
@@ -1134,19 +1094,19 @@ theorem endCageX_catExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       endCage_solcAddrMask_idem_left_left, hendPtr, hcomputedInSize, u256_land_comm]
       using rd5759raw⟩
 
-theorem endCageX_catNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_catNoCode {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨2⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨2⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd5759⟩ := endCageX_catExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5759⟩) (okPc := ⟨5771⟩) rd5759
     hcodeSize
@@ -1154,23 +1114,23 @@ theorem endCageX_catNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_catCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_catCallReady {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5692⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨2⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨2⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
-      (gasWord :: endCageCallTargetWord ⟨2⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
+      (gasWord :: endCageCallTargetWord ⟨2⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨2⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd5759⟩ := endCageX_catExtcodesizeGuard h
@@ -1182,44 +1142,43 @@ theorem endCageX_catCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd5774⟩
 
-theorem endCageX_catPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_catPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
-      (gasWord :: endCageCallTargetWord ⟨2⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
+      (gasWord :: endCageCallTargetWord ⟨2⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨2⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨2⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨2⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨2⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd5775raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd5775raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -1231,26 +1190,25 @@ theorem endCageX_catPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5775raw
 
-theorem endCageX_catCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_catCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
-      (gasWord :: endCageCallTargetWord ⟨2⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5774⟩
+      (gasWord :: endCageCallTargetWord ⟨2⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨2⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨2⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨2⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd5775raw⟩ :=
@@ -1265,20 +1223,19 @@ theorem endCageX_catCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5775raw
 
-theorem endCageX_catCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_catCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨2⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5775⟩) (okPc := ⟨5791⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1286,16 +1243,16 @@ theorem endCageX_catCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_catCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_catCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5775⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨2⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5793⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5793⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨2⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -1305,16 +1262,16 @@ theorem endCageX_catCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_catCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_catCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5793⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5793⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨2⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
       [endCageReturnPc, sel] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd5796 := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
@@ -1322,20 +1279,20 @@ theorem endCageX_catCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5796⟩
 
-theorem endCageX_dogExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_dogExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5863⟩
-      (endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageCallTargetWord ⟨3⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5863⟩
+      (endCageCallTargetWord ⟨3⟩ acc I :: endCageCallTargetWord ⟨3⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨3⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -1374,12 +1331,11 @@ theorem endCageX_dogExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5802 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5802⟩
-        (endSlotWord ⟨3⟩ acc.2 I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5802⟩
+        (endSlotWord ⟨3⟩ acc I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd5802raw⟩
   obtain ⟨_, _, rd5802⟩ := rd5802
   have rd5846pre := evm_run rd5802 with [
@@ -1432,7 +1388,6 @@ theorem endCageX_dogExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
@@ -1440,19 +1395,19 @@ theorem endCageX_dogExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       endCage_solcAddrMask_idem_left_left, hendPtr, hcomputedInSize, u256_land_comm]
       using rd5863raw⟩
 
-theorem endCageX_dogNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_dogNoCode {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨3⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨3⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd5863⟩ := endCageX_dogExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5863⟩) (okPc := ⟨5875⟩) rd5863
     hcodeSize
@@ -1460,23 +1415,23 @@ theorem endCageX_dogNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_dogCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_dogCallReady {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5796⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨3⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨3⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
-      (gasWord :: endCageCallTargetWord ⟨3⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
+      (gasWord :: endCageCallTargetWord ⟨3⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨3⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd5863⟩ := endCageX_dogExtcodesizeGuard h
@@ -1488,44 +1443,43 @@ theorem endCageX_dogCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd5878⟩
 
-theorem endCageX_dogPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_dogPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
-      (gasWord :: endCageCallTargetWord ⟨3⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
+      (gasWord :: endCageCallTargetWord ⟨3⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨3⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨3⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨3⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨3⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd5879raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd5879raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -1537,26 +1491,25 @@ theorem endCageX_dogPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5879raw
 
-theorem endCageX_dogCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_dogCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
-      (gasWord :: endCageCallTargetWord ⟨3⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5878⟩
+      (gasWord :: endCageCallTargetWord ⟨3⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨3⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨3⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨3⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd5879raw⟩ :=
@@ -1571,20 +1524,19 @@ theorem endCageX_dogCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5879raw
 
-theorem endCageX_dogCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_dogCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨3⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5879⟩) (okPc := ⟨5895⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1592,16 +1544,16 @@ theorem endCageX_dogCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_dogCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_dogCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5879⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨3⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5897⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5897⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨3⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -1611,16 +1563,16 @@ theorem endCageX_dogCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_dogCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_dogCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5897⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5897⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨3⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
       (endCageCallSelectorWord :: endCageCallTargetWord ⟨3⟩ σCall I ::
         endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -1628,20 +1580,20 @@ theorem endCageX_dogCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5898⟩
 
-theorem endCageX_vowExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vowExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel dogWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
       (endCageCallSelectorWord :: dogWord :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5954⟩
-      (endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageCallTargetWord ⟨4⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5954⟩
+      (endCageCallTargetWord ⟨4⟩ acc I :: endCageCallTargetWord ⟨4⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨4⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -1674,13 +1626,12 @@ theorem endCageX_vowExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5902 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5902⟩
-        (endSlotWord ⟨4⟩ acc.2 I :: ⟨4⟩ :: endCageCallSelectorWord ::
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5902⟩
+        (endSlotWord ⟨4⟩ acc I :: ⟨4⟩ :: endCageCallSelectorWord ::
           dogWord :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd5902raw⟩
   obtain ⟨_, _, rd5902⟩ := rd5902
   have rd5915pre := evm_run rd5902 with [
@@ -1732,26 +1683,25 @@ theorem endCageX_vowExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
       haddrMask, solcAddrMask, hendPtr, hcomputedInSize, u256_land_comm]
       using rd5954raw⟩
 
-theorem endCageX_vowNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vowNoCode {σ σ₀ A I} {g : UInt256}
     {sel dogWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
       (endCageCallSelectorWord :: dogWord :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨4⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨4⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd5954⟩ := endCageX_vowExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5954⟩) (okPc := ⟨5966⟩) rd5954
     hcodeSize
@@ -1759,23 +1709,23 @@ theorem endCageX_vowNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vowCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vowCallReady {σ σ₀ A I} {g : UInt256}
     {sel dogWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5898⟩
       (endCageCallSelectorWord :: dogWord :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨4⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨4⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
-      (gasWord :: endCageCallTargetWord ⟨4⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
+      (gasWord :: endCageCallTargetWord ⟨4⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨4⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd5954⟩ := endCageX_vowExtcodesizeGuard h
@@ -1787,44 +1737,43 @@ theorem endCageX_vowCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd5969⟩
 
-theorem endCageX_vowPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vowPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
-      (gasWord :: endCageCallTargetWord ⟨4⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
+      (gasWord :: endCageCallTargetWord ⟨4⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨4⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨4⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨4⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨4⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd5970raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd5970raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -1836,26 +1785,25 @@ theorem endCageX_vowPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5970raw
 
-theorem endCageX_vowCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_vowCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
-      (gasWord :: endCageCallTargetWord ⟨4⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5969⟩
+      (gasWord :: endCageCallTargetWord ⟨4⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨4⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨4⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨4⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd5970raw⟩ :=
@@ -1870,20 +1818,19 @@ theorem endCageX_vowCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd5970raw
 
-theorem endCageX_vowCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_vowCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨4⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨5970⟩) (okPc := ⟨5986⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1891,16 +1838,16 @@ theorem endCageX_vowCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vowCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_vowCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5970⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨4⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5988⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5988⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨4⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -1910,16 +1857,16 @@ theorem endCageX_vowCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_vowCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_vowCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5988⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5988⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨4⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
       [endCageReturnPc, sel] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd5991 := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
@@ -1927,20 +1874,20 @@ theorem endCageX_vowCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5991⟩
 
-theorem endCageX_spotExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_spotExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6058⟩
-      (endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageCallTargetWord ⟨6⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6058⟩
+      (endCageCallTargetWord ⟨6⟩ acc I :: endCageCallTargetWord ⟨6⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨6⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -1979,12 +1926,11 @@ theorem endCageX_spotExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5997 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5997⟩
-        (endSlotWord ⟨6⟩ acc.2 I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5997⟩
+        (endSlotWord ⟨6⟩ acc I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd5997raw⟩
   obtain ⟨_, _, rd5997⟩ := rd5997
   have rd6041pre := evm_run rd5997 with [
@@ -2037,7 +1983,6 @@ theorem endCageX_spotExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
@@ -2045,19 +1990,19 @@ theorem endCageX_spotExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       endCage_solcAddrMask_idem_left_left, hendPtr, hcomputedInSize, u256_land_comm]
       using rd6058raw⟩
 
-theorem endCageX_spotNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_spotNoCode {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨6⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨6⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6058⟩ := endCageX_spotExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨6058⟩) (okPc := ⟨6070⟩) rd6058
     hcodeSize
@@ -2065,23 +2010,23 @@ theorem endCageX_spotNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_spotCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_spotCallReady {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5991⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨6⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨6⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
-      (gasWord :: endCageCallTargetWord ⟨6⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
+      (gasWord :: endCageCallTargetWord ⟨6⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨6⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd6058⟩ := endCageX_spotExtcodesizeGuard h
@@ -2093,44 +2038,43 @@ theorem endCageX_spotCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd6073⟩
 
-theorem endCageX_spotPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_spotPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
-      (gasWord :: endCageCallTargetWord ⟨6⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
+      (gasWord :: endCageCallTargetWord ⟨6⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨6⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨6⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨6⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨6⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd6074raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd6074raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -2142,26 +2086,25 @@ theorem endCageX_spotPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6074raw
 
-theorem endCageX_spotCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_spotCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
-      (gasWord :: endCageCallTargetWord ⟨6⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6073⟩
+      (gasWord :: endCageCallTargetWord ⟨6⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨6⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨6⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨6⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd6074raw⟩ :=
@@ -2176,20 +2119,19 @@ theorem endCageX_spotCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6074raw
 
-theorem endCageX_spotCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_spotCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨6⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨6074⟩) (okPc := ⟨6090⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2197,16 +2139,16 @@ theorem endCageX_spotCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_spotCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_spotCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6074⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨6⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6092⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6092⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨6⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -2216,16 +2158,16 @@ theorem endCageX_spotCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_spotCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_spotCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6092⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6092⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨6⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
       [endCageReturnPc, sel] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd6095 := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
@@ -2233,20 +2175,20 @@ theorem endCageX_spotCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd6095⟩
 
-theorem endCageX_potExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_potExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6162⟩
-      (endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageCallTargetWord ⟨5⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6162⟩
+      (endCageCallTargetWord ⟨5⟩ acc I :: endCageCallTargetWord ⟨5⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨5⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -2285,12 +2227,11 @@ theorem endCageX_potExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6101 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6101⟩
-        (endSlotWord ⟨5⟩ acc.2 I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6101⟩
+        (endSlotWord ⟨5⟩ acc I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd6101raw⟩
   obtain ⟨_, _, rd6101⟩ := rd6101
   have rd6145pre := evm_run rd6101 with [
@@ -2343,7 +2284,6 @@ theorem endCageX_potExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
@@ -2351,19 +2291,19 @@ theorem endCageX_potExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       endCage_solcAddrMask_idem_left_left, hendPtr, hcomputedInSize, u256_land_comm]
       using rd6162raw⟩
 
-theorem endCageX_potNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_potNoCode {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨5⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨5⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6162⟩ := endCageX_potExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨6162⟩) (okPc := ⟨6174⟩) rd6162
     hcodeSize
@@ -2371,23 +2311,23 @@ theorem endCageX_potNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_potCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_potCallReady {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6095⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨5⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨5⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
-      (gasWord :: endCageCallTargetWord ⟨5⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
+      (gasWord :: endCageCallTargetWord ⟨5⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨5⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd6162⟩ := endCageX_potExtcodesizeGuard h
@@ -2399,44 +2339,43 @@ theorem endCageX_potCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd6177⟩
 
-theorem endCageX_potPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_potPostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
-      (gasWord :: endCageCallTargetWord ⟨5⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
+      (gasWord :: endCageCallTargetWord ⟨5⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨5⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨5⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨5⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨5⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd6178raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd6178raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -2448,26 +2387,25 @@ theorem endCageX_potPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6178raw
 
-theorem endCageX_potCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_potCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
-      (gasWord :: endCageCallTargetWord ⟨5⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6177⟩
+      (gasWord :: endCageCallTargetWord ⟨5⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨5⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨5⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨5⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd6178raw⟩ :=
@@ -2482,20 +2420,19 @@ theorem endCageX_potCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6178raw
 
-theorem endCageX_potCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_potCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨5⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨6178⟩) (okPc := ⟨6194⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2503,16 +2440,16 @@ theorem endCageX_potCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_potCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_potCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6178⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨5⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6196⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨5⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -2522,16 +2459,16 @@ theorem endCageX_potCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_potCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_potCleanup {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6196⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨5⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
       [endCageReturnPc, sel] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd6199 := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
@@ -2539,20 +2476,20 @@ theorem endCageX_potCleanup {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd6199⟩
 
-theorem endCageX_cureExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_cureExtcodesizeGuard {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6266⟩
-      (endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageCallTargetWord ⟨7⟩ acc.2 I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6266⟩
+      (endCageCallTargetWord ⟨7⟩ acc I :: endCageCallTargetWord ⟨7⟩ acc I ::
         ⟨0⟩ :: endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨7⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   have hmload64Call :
@@ -2591,12 +2528,11 @@ theorem endCageX_cureExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6205 : ∃ k' C',
       RD endBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6205⟩
-        (endSlotWord ⟨7⟩ acc.2 I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6205⟩
+        (endSlotWord ⟨7⟩ acc I :: ⟨0⟩ :: endCageReturnPc :: sel :: [])
         (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
         rdata acc k' C' := by
     exact ⟨_, _, by
-      cases acc
       simpa [endSlotWord, solcSlotWord] using rd6205raw⟩
   obtain ⟨_, _, rd6205⟩ := rd6205
   have rd6249pre := evm_run rd6205 with [
@@ -2649,7 +2585,6 @@ theorem endCageX_cureExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    cases acc
     simpa [endCageCallTargetWord, endCageCallOutPtr, endCageCallInSize,
       endCageCallOutSize, endCageCallEndPtr, endCageCallSelectorWord,
       endCageCallSelectorShifted, endAddressReturnWord, endSlotWord, solcSlotWord,
@@ -2657,19 +2592,19 @@ theorem endCageX_cureExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       endCage_solcAddrMask_idem_left_left, hendPtr, hcomputedInSize, u256_land_comm]
       using rd6266raw⟩
 
-theorem endCageX_cureNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_cureNoCode {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨7⟩ acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨7⟩ acc I) = ⟨0⟩) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6266⟩ := endCageX_cureExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨6266⟩) (okPc := ⟨6278⟩) rd6266
     hcodeSize
@@ -2677,23 +2612,23 @@ theorem endCageX_cureNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_cureCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_cureCallReady {σ σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6199⟩
       [endCageReturnPc, sel]
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (endCageCallTargetWord ⟨7⟩ acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc
+        (endCageCallTargetWord ⟨7⟩ acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
-      (gasWord :: endCageCallTargetWord ⟨7⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
+      (gasWord :: endCageCallTargetWord ⟨7⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨7⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k' C' := by
   obtain ⟨_, _, rd6266⟩ := endCageX_cureExtcodesizeGuard h
@@ -2705,44 +2640,43 @@ theorem endCageX_cureCallReady {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd6281⟩
 
-theorem endCageX_curePostCall {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_curePostCall {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
-      (gasWord :: endCageCallTargetWord ⟨7⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
+      (gasWord :: endCageCallTargetWord ⟨7⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨7⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes acc.1 gh bl acc.2 σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ acc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
-            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc.2 I))
-            (toExecute acc.2
-              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc.2 I)))
+            (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc I))
+            (toExecute acc
+              (AccountAddress.ofUInt256 (endCageCallTargetWord ⟨7⟩ acc I)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-            (I.depth + 1) I.header I.perm)
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD endBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endCageCallEndPtr ::
-            endCageCallSelectorWord :: endCageCallTargetWord ⟨7⟩ acc.2 I ::
+            endCageCallSelectorWord :: endCageCallTargetWord ⟨7⟩ acc I ::
             endCageReturnPc :: sel :: [])
           (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-          out (cA', σ') k' C'
+          out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd6282raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd6282raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
-  · cases acc
-    simpa [initState] using hΘ
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  · simpa [initState] using hΘ
   · have hmin : (min endCageCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : endCageCallOutSize ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).toNat
@@ -2754,26 +2688,25 @@ theorem endCageX_curePostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
       unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
       native_decide
-    cases acc
     simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
       endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6282raw
 
-theorem endCageX_cureCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageX_cureCallDepthLimit {σ σ₀ A I} {g : UInt256}
     {sel gasWord : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
-      (gasWord :: endCageCallTargetWord ⟨7⟩ acc.2 I :: ⟨0⟩ ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6281⟩
+      (gasWord :: endCageCallTargetWord ⟨7⟩ acc I :: ⟨0⟩ ::
         endCageCallOutPtr :: endCageCallInSize :: endCageCallOutPtr ::
         endCageCallOutSize :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨7⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       rdata acc k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
-        endCageCallTargetWord ⟨7⟩ acc.2 I :: endCageReturnPc :: sel :: [])
+        endCageCallTargetWord ⟨7⟩ acc I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty acc k' C' := by
   obtain ⟨k', C', rd6282raw⟩ :=
@@ -2788,20 +2721,19 @@ theorem endCageX_cureCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCageCallOutPtr.toNat endCageCallOutSize.toNat) = UInt256.ofNat 5 := by
     unfold endCageCallOutPtr endCageCallInSize endCageCallOutSize
     native_decide
-  cases acc
   simpa [endCageCallOutPtr, endCageCallInSize, endCageCallOutSize,
     endCageCallEndPtr, hmin, byteArray_write_len_zero, haw] using rd6282raw
 
-theorem endCageX_cureCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_cureCallFailed {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
       (⟨0⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨7⟩ σCall I :: endCageReturnPc :: sel :: [])
-      mem (UInt256.ofNat 5) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 5) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨6282⟩) (okPc := ⟨6298⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2809,16 +2741,16 @@ theorem endCageX_cureCallFailed {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_cureCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
+theorem endCageX_cureCallSucceeded {σ σCall σ₀ A I} {g : UInt256}
     {sel : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6282⟩
       (⟨1⟩ :: endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨7⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k C) :
     ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6300⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6300⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨7⟩ σCall I :: endCageReturnPc :: sel :: [])
       mem (UInt256.ofNat 5) rdata acc k' C' := by
@@ -2828,17 +2760,17 @@ theorem endCageX_cureCallSucceeded {cA gh bl σ σCall σ₀ A I} {g : UInt256}
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endCageX_finish {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
+theorem endCageX_finish {σ σCall σ' σ₀ A I} {g : UInt256}
     {sel : UInt256} {rdata : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6300⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6300⟩
       (endCageCallEndPtr :: endCageCallSelectorWord ::
         endCageCallTargetWord ⟨7⟩ σCall I :: endCageReturnPc :: sel :: [])
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
-      rdata (cA', σ') k C) :
+      rdata σ' k C) :
     RDret endBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA', σ')
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ'
       ByteArray.empty := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
@@ -2878,11 +2810,11 @@ theorem endCageX_finish {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
 
-theorem endCageSourceStoresPrefix {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageSourceStoresPrefix {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmStores := endCagePostStoresState evm0
     ExecBlock config { contract := contract, locals := ∅ } evm0
       (nonpayable ++ auth ++
@@ -3121,10 +3053,10 @@ theorem endCageExecBlock_append_revert {f f1 : Frame} {e e1 : EVM.State}
   simpa [List.append_assoc] using
    execBlock_append (s2 := s2 ++ tail) h1 h2tail
 
-theorem endCageSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageSourceAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I ≠ ⟨1⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 ∅ cageTransition.body .reverted := by
   intro evm0
   have hguard :
@@ -3154,11 +3086,11 @@ theorem endCageSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
       (by simp [evm0, initState]; exact hwv)
       hguard
 
-theorem endCageSourceLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endCageSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 ∅ cageTransition.body .reverted := by
   intro evm0
   have hguardAuth :
@@ -3182,12 +3114,11 @@ theorem endCageSourceLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, cageTransition, nonpayable, auth, checkedExternalCallStmts, evm0]
     using ExecFuncBody.execBlockRevert hblock
 
-theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf cageTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf cageTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endCageConcreteSelector := by
     simpa [endCageSelectorBytes, endCageConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -3195,32 +3126,19 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     endDispatchCage hsel
   have hdecode := endDecode_cage (I := I) hsz4
-  have hreach := endReachCageBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := endReachCageBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   obtain ⟨_, _, hAuthPc⟩ := endCageX_entry hreach
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  by_cases hauth : endRelyAuthWord σ_evm I = ⟨1⟩
-  · have hauthSolm : endRelyAuthWord σ_solm I = ⟨1⟩ := by
-      have hword : endRelyAuthWord σ_evm I = endRelyAuthWord σ_solm I := by
-        simpa [endRelyAuthWord, endSlotWord, solcSlotWord] using
-          accountMapEquiv_storage_findD hAccounts I.codeOwner
-            (endRelyAuthStorageSlot I) ⟨0⟩
-      rw [← hword]
-      exact hauth
-    obtain ⟨_, _, hLivePc⟩ := endCageX_authorized hauth hAuthPc
-    by_cases hlive : endSlotWord ⟨8⟩ σ_evm I = ⟨1⟩
-    · have hliveSolm : endSlotWord ⟨8⟩ σ_solm I = ⟨1⟩ := by
-        have hword : endSlotWord ⟨8⟩ σ_evm I = endSlotWord ⟨8⟩ σ_solm I := by
-          simpa [endSlotWord, solcSlotWord] using
-            accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-        rw [← hword]
-        exact hlive
-      obtain ⟨_, _, hStorePc⟩ := endCageX_live hlive hLivePc
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  by_cases hauth : endRelyAuthWord σ I = ⟨1⟩
+  · obtain ⟨_, _, hLivePc⟩ := endCageX_authorized hauth hAuthPc
+    by_cases hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩
+    · obtain ⟨_, _, hStorePc⟩ := endCageX_live hlive hLivePc
       obtain ⟨_, _, hVatStart⟩ := endCageX_storePrefix hperm hStorePc
       let evmS0 := endCagePostStoresState evmSolm
       let evmE0 := endCagePostStoresState
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       let l0 : Store := ∅
       let lVat := l0.insert "_vatCage" .unit
       let lCat := lVat.insert "_catCage" .unit
@@ -3234,20 +3152,14 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             endCageSourceStorePrefixStmts
             (.ok { contract := contract, locals := ∅ } evmS0) := by
         simpa [evmSolm, evmS0, endCageSourceStorePrefixStmts] using
-          endCageSourceStoresPrefix (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-            hwv hauthSolm hliveSolm
-      have hAccounts0 : accountMapEquiv evmE0.accountMap evmS0.accountMap := by
-        simpa [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
-          storageStore_accountMap, endCageStoredAccountMap] using
-          accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner
-            ⟨8⟩ ⟨0⟩ ⟨9⟩ (UInt256.ofNat I.header.timestamp) hAccounts
+          endCageSourceStoresPrefix
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            hwv hauth hlive
+      have hAccounts0 : Eq evmE0.accountMap evmS0.accountMap := rfl
       have hState0 : EVMStateEquiv evmE0 evmS0 := by
-        refine ⟨?_, ?_, ?_⟩
+        refine ⟨?_, ?_⟩
         · simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
             storageStore_executionEnv]
-        · simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
-            storageStore_createdAccounts]
         · exact hAccounts0
       have mkRevert
           {f1 : Frame} {e1 : EVM.State} {s1 s2 tail : List Stmt}
@@ -3269,9 +3181,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · have hVatCodeS :
             Reasoning.Theory.extCodeSizeWord evmS0.accountMap
               (endCageCallTargetWord ⟨1⟩ evmS0.accountMap evmS0.executionEnv) = ⟨0⟩ := by
-          have hcodeS :=
-            endCageCallTargetCodeSize_zero_accountMapEquiv
-              (slot := ⟨1⟩) hAccounts0 hVatCodeE
+          have hcodeS := hVatCodeE
+          rw [hAccounts0] at hcodeS
           simpa [hState0.executionEnv] using hcodeS
         have hVatBlock :
             ExecBlock config { contract := contract, locals := l0 } evmS0
@@ -3306,9 +3217,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             Reasoning.Theory.extCodeSizeWord evmS0.accountMap
               (endCageCallTargetWord ⟨1⟩ evmS0.accountMap evmS0.executionEnv) ≠
                 ⟨0⟩ := by
-          have hcodeS :=
-            endCageCallTargetCodeSize_ne_accountMapEquiv
-              (slot := ⟨1⟩) hAccounts0 hVatCodeE
+          have hcodeS := hVatCodeE
+          rw [hAccounts0] at hcodeS
           simpa [hState0.executionEnv] using hcodeS
         obtain ⟨gasVat, _, _, hVatReady⟩ :=
           endCageX_vatCallReady hVatStart
@@ -3323,15 +3233,14 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 storageStore_executionEnv] using hbad
             have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
             omega
-          obtain ⟨cA1, σ1, z1, out1, Ain1, callGas1, _, _, hΘ1, rdVatPost, hout1⟩ :=
-            endCageX_vatPostCall (acc := (cA, endCageStoredAccountMap σ_evm I))
+          obtain ⟨σ1, z1, out1, Ain1, callGas1, _, _, hΘ1, rdVatPost, hout1⟩ :=
+            endCageX_vatPostCall (acc := (endCageStoredAccountMap σ I))
               hVatReady hdepthLt
           rcases hΘ1 with ⟨g1'', A1, hΘ1eq⟩
-          let evmE1 := { evmE0 with accountMap := σ1, substate := A1, createdAccounts := cA1 }
+          let evmE1 := { evmE0 with accountMap := σ1, substate := A1 }
           have hΘ1bridge :
-              (cA1, σ1, g1'', A1, z1, out1) =
-                Ethereum.EVM.Θ evmE0.executionEnv.blobVersionedHashes evmE0.createdAccounts
-                  evmE0.genesisBlockHeader evmE0.blocks evmE0.accountMap evmE0.σ₀ Ain1
+              (σ1, g1'', A1, z1, out1) =
+                Ethereum.EVM.Θ evmE0.accountMap evmE0.σ₀ Ain1
                   (AccountAddress.ofUInt256 (UInt256.ofNat evmE0.executionEnv.codeOwner))
                   evmE0.executionEnv.sender
                   (AccountAddress.ofUInt256
@@ -3343,24 +3252,21 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   ((endCageCallCalldataMem
                     (endRelyAuthHashMem evmE0.executionEnv)).readWithPadding
                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                  (evmE0.executionEnv.depth + 1) evmE0.executionEnv.header true := by
+                  (evmE0.executionEnv.depth + 1) evmE0.executionEnv.header
+                  evmE0.executionEnv.blobVersionedHashes evmE0.executionEnv.blocks true := by
             simpa [evmE0, endCagePostStoresState, initState, storageStore_accountMap,
-              storageStore_createdAccounts, storageStore_executionEnv, endCageStoredAccountMap,
+              storageStore_executionEnv, endCageStoredAccountMap,
               hperm] using hΘ1eq
           obtain ⟨σ1s, A1s, hcall1Solm, hState1⟩ :=
             endCageCallMadeBridge (slot := ⟨1⟩)
               (evmE := evmE0) (evmS := evmS0)
-              (cA' := cA1) (σ' := σ1) (A' := A1) (Ain := Ain1)
+              (σ' := σ1) (A' := A1) (Ain := Ain1)
               (z := z1) (out := out1) (g'' := g1'') (callGas := callGas1)
               hdepthNe0 hΘ1bridge hAccounts0
               (by simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
               (by simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
-                storageStore_createdAccounts])
-              (by simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
-              (by simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
-              (by simp [evmE0, evmS0, evmSolm, endCagePostStoresState, initState,
                 storageStore_executionEnv])
-          let evmS1 := { evmS0 with accountMap := σ1s, substate := A1s, createdAccounts := cA1 }
+          let evmS1 := { evmS0 with accountMap := σ1s, substate := A1s }
           cases z1
           · have rdVatFail := rdVatPost
             simp at rdVatFail
@@ -3428,9 +3334,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   Reasoning.Theory.extCodeSizeWord evmS1.accountMap
                     (endCageCallTargetWord ⟨2⟩ evmS1.accountMap evmS1.executionEnv) =
                       ⟨0⟩ := by
-                have hcodeS :=
-                  endCageCallTargetCodeSize_zero_accountMapEquiv
-                    (slot := ⟨2⟩) hState1.accountMap hCatCodeE
+                have hcodeS := hCatCodeE
+                rw [hState1.accountMap] at hcodeS
                 rw [hState1.executionEnv] at hcodeS
                 simpa [evmS1] using hcodeS
               have hCatBlock :
@@ -3465,25 +3370,22 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   Reasoning.Theory.extCodeSizeWord evmS1.accountMap
                     (endCageCallTargetWord ⟨2⟩ evmS1.accountMap evmS1.executionEnv) ≠
                       ⟨0⟩ := by
-                have hcodeS :=
-                  endCageCallTargetCodeSize_ne_accountMapEquiv
-                    (slot := ⟨2⟩) hState1.accountMap hCatCodeE
+                have hcodeS := hCatCodeE
+                rw [hState1.accountMap] at hcodeS
                 rw [hState1.executionEnv] at hcodeS
                 simpa [evmS1] using hcodeS
               obtain ⟨gasCat, _, _, hCatReady⟩ :=
                 endCageX_catCallReady hCatStart (by simpa [evmE1, evmE0, endCagePostStoresState, initState] using hCatCodeE)
-              obtain ⟨cA2, σ2, z2, out2, Ain2, callGas2, _, _, hΘ2, rdCatPost, hout2⟩ :=
+              obtain ⟨σ2, z2, out2, Ain2, callGas2, _, _, hΘ2, rdCatPost, hout2⟩ :=
                 endCageX_catPostCall hCatReady hdepthLt
               rcases hΘ2 with ⟨g2'', A2, hΘ2eq⟩
               let evmE2 :=
-                { evmE1 with accountMap := σ2, substate := A2, createdAccounts := cA2 }
+                { evmE1 with accountMap := σ2, substate := A2 }
               have hdepthNe1 : evmE1.executionEnv.depth ≠ 1024 := by
                 simpa [evmE1] using hdepthNe0
               have hΘ2bridge :
-                  (cA2, σ2, g2'', A2, z2, out2) =
-                    Ethereum.EVM.Θ evmE1.executionEnv.blobVersionedHashes
-                      evmE1.createdAccounts evmE1.genesisBlockHeader evmE1.blocks
-                      evmE1.accountMap evmE1.σ₀ Ain2
+                  (σ2, g2'', A2, z2, out2) =
+                    Ethereum.EVM.Θ evmE1.accountMap evmE1.σ₀ Ain2
                       (AccountAddress.ofUInt256 (UInt256.ofNat evmE1.executionEnv.codeOwner))
                       evmE1.executionEnv.sender
                       (AccountAddress.ofUInt256
@@ -3495,26 +3397,22 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       ((endCageCallCalldataMem
                         (endRelyAuthHashMem evmE1.executionEnv)).readWithPadding
                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                      (evmE1.executionEnv.depth + 1) evmE1.executionEnv.header true := by
+                      (evmE1.executionEnv.depth + 1) evmE1.executionEnv.header
+                      evmE1.executionEnv.blobVersionedHashes evmE1.executionEnv.blocks true := by
                 simpa [evmE1, evmE0, endCagePostStoresState, initState,
-                  storageStore_accountMap, storageStore_createdAccounts,
+                  storageStore_accountMap,
                   storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ2eq
               obtain ⟨σ2s, A2s, hcall2Solm, hState2⟩ :=
                 endCageCallMadeBridge (slot := ⟨2⟩)
                   (evmE := evmE1) (evmS := evmS1)
-                  (cA' := cA2) (σ' := σ2) (A' := A2) (Ain := Ain2)
+                  (σ' := σ2) (A' := A2) (Ain := Ain2)
                   (z := z2) (out := out2) (g'' := g2'') (callGas := callGas2)
                   hdepthNe1 hΘ2bridge hState1.accountMap
                   (by simp [evmE1, evmS1, evmE0, evmS0, evmSolm, endCagePostStoresState,
                     initState])
-                  (by simpa [evmE1, evmS1] using hState1.createdAccounts.symm)
-                  (by simp [evmE1, evmS1, evmE0, evmS0, evmSolm, endCagePostStoresState,
-                    initState])
-                  (by simp [evmE1, evmS1, evmE0, evmS0, evmSolm, endCagePostStoresState,
-                    initState])
                   (by simpa [evmE1, evmS1] using hState1.executionEnv.symm)
               let evmS2 :=
-                { evmS1 with accountMap := σ2s, substate := A2s, createdAccounts := cA2 }
+                { evmS1 with accountMap := σ2s, substate := A2s }
               cases z2
               · have rdCatFail := rdCatPost
                 simp at rdCatFail
@@ -3527,9 +3425,11 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       (ref := catRef)
                       (er := ({ base := "cat", steps := [] } : EvaledStorageRef))
                       (slot := ⟨2⟩) (retVar := "_catCage") (out := out2)
+
+
+
                       (by simp [lVat, l0, catRef])
-                      (by simp [evalStorageRef, evalStorageRefSteps, catRef,
-                        EvalResult.bind, pure, bind])
+                      (by simp [evalStorageRef, evalStorageRefSteps, catRef, EvalResult.bind, pure, bind])
                       (by simp [storageTypeAt?, contract, storageDecls, addrSt])
                       (by rfl)
                       hCatCodeSNE
@@ -3544,8 +3444,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       endCageSourceSpotStmts ++ endCageSourcePotStmts ++
                       endCageSourceCureStmts)
                     hSrcVat hCatBlock
-                    (by simp [endCageSourceBody_eq, endCageSourceCallStmts,
-                      List.append_assoc])
+                    (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
+
                 exact (endCageX_catCallFailed rdCatFail hout2)
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · have rdCatSucc := rdCatPost
@@ -3562,9 +3462,11 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       (ref := catRef)
                       (er := ({ base := "cat", steps := [] } : EvaledStorageRef))
                       (slot := ⟨2⟩) (retVar := "_catCage") (out := out2)
+
+
+
                       (by simp [lVat, l0, catRef])
-                      (by simp [evalStorageRef, evalStorageRefSteps, catRef,
-                        EvalResult.bind, pure, bind])
+                      (by simp [evalStorageRef, evalStorageRefSteps, catRef, EvalResult.bind, pure, bind])
                       (by simp [storageTypeAt?, contract, storageDecls, addrSt])
                       (by rfl)
                       hCatCodeSNE
@@ -3585,9 +3487,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       Reasoning.Theory.extCodeSizeWord evmS2.accountMap
                         (endCageCallTargetWord ⟨3⟩ evmS2.accountMap evmS2.executionEnv) =
                           ⟨0⟩ := by
-                    have hcodeS :=
-                      endCageCallTargetCodeSize_zero_accountMapEquiv
-                        (slot := ⟨3⟩) hState2.accountMap hDogCodeE
+                    have hcodeS := hDogCodeE
+                    rw [hState2.accountMap] at hcodeS
                     rw [hState2.executionEnv] at hcodeS
                     simpa [evmS2] using hcodeS
                   have hDogBlock :
@@ -3624,25 +3525,22 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       Reasoning.Theory.extCodeSizeWord evmS2.accountMap
                         (endCageCallTargetWord ⟨3⟩ evmS2.accountMap evmS2.executionEnv) ≠
                           ⟨0⟩ := by
-                    have hcodeS :=
-                      endCageCallTargetCodeSize_ne_accountMapEquiv
-                        (slot := ⟨3⟩) hState2.accountMap hDogCodeE
+                    have hcodeS := hDogCodeE
+                    rw [hState2.accountMap] at hcodeS
                     rw [hState2.executionEnv] at hcodeS
                     simpa [evmS2] using hcodeS
                   obtain ⟨gasDog, _, _, hDogReady⟩ :=
                     endCageX_dogCallReady hDogStart (by simpa [evmE2, evmE1, evmE0, endCagePostStoresState, initState] using hDogCodeE)
-                  obtain ⟨cA3, σ3, z3, out3, Ain3, callGas3, _, _, hΘ3, rdDogPost,
+                  obtain ⟨σ3, z3, out3, Ain3, callGas3, _, _, hΘ3, rdDogPost,
                       hout3⟩ :=
                     endCageX_dogPostCall hDogReady hdepthLt
                   rcases hΘ3 with ⟨g3'', A3, hΘ3eq⟩
-                  let evmE3 := { evmE2 with accountMap := σ3, substate := A3, createdAccounts := cA3 }
+                  let evmE3 := { evmE2 with accountMap := σ3, substate := A3 }
                   have hdepthNe2 : evmE2.executionEnv.depth ≠ 1024 := by
                     simpa [evmE2, evmE1] using hdepthNe0
                   have hΘ3bridge :
-                      (cA3, σ3, g3'', A3, z3, out3) =
-                        Ethereum.EVM.Θ evmE2.executionEnv.blobVersionedHashes
-                          evmE2.createdAccounts evmE2.genesisBlockHeader evmE2.blocks
-                          evmE2.accountMap evmE2.σ₀ Ain3
+                      (σ3, g3'', A3, z3, out3) =
+                        Ethereum.EVM.Θ evmE2.accountMap evmE2.σ₀ Ain3
                           (AccountAddress.ofUInt256
                             (UInt256.ofNat evmE2.executionEnv.codeOwner))
                           evmE2.executionEnv.sender
@@ -3657,25 +3555,21 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           ((endCageCallCalldataMem
                             (endRelyAuthHashMem evmE2.executionEnv)).readWithPadding
                               endCageCallOutPtr.toNat endCageCallInSize.toNat)
-                          (evmE2.executionEnv.depth + 1) evmE2.executionEnv.header true := by
+                          (evmE2.executionEnv.depth + 1) evmE2.executionEnv.header
+                          evmE2.executionEnv.blobVersionedHashes evmE2.executionEnv.blocks true := by
                     simpa [evmE2, evmE1, evmE0, endCagePostStoresState, initState,
-                      storageStore_accountMap, storageStore_createdAccounts,
+                      storageStore_accountMap,
                       storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ3eq
                   obtain ⟨σ3s, A3s, hcall3Solm, hState3⟩ :=
                     endCageCallMadeBridge (slot := ⟨3⟩)
                       (evmE := evmE2) (evmS := evmS2)
-                      (cA' := cA3) (σ' := σ3) (A' := A3) (Ain := Ain3)
+                      (σ' := σ3) (A' := A3) (Ain := Ain3)
                       (z := z3) (out := out3) (g'' := g3'') (callGas := callGas3)
                       hdepthNe2 hΘ3bridge hState2.accountMap
                       (by simp [evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
                         endCagePostStoresState, initState])
-                      (by simpa [evmE2, evmS2] using hState2.createdAccounts.symm)
-                      (by simp [evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
-                        endCagePostStoresState, initState])
-                      (by simp [evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
-                        endCagePostStoresState, initState])
                       (by simpa [evmE2, evmS2] using hState2.executionEnv.symm)
-                  let evmS3 := { evmS2 with accountMap := σ3s, substate := A3s, createdAccounts := cA3 }
+                  let evmS3 := { evmS2 with accountMap := σ3s, substate := A3s }
                   cases z3
                   · have rdDogFail := rdDogPost
                     simp at rdDogFail
@@ -3746,9 +3640,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmS3.accountMap
                             (endCageCallTargetWord ⟨4⟩ evmS3.accountMap
                               evmS3.executionEnv) = ⟨0⟩ := by
-                        have hcodeS :=
-                          endCageCallTargetCodeSize_zero_accountMapEquiv
-                            (slot := ⟨4⟩) hState3.accountMap hVowCodeE
+                        have hcodeS := hVowCodeE
+                        rw [hState3.accountMap] at hcodeS
                         rw [hState3.executionEnv] at hcodeS
                         simpa [evmS3] using hcodeS
                       have hVowBlock :
@@ -3785,26 +3678,23 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmS3.accountMap
                             (endCageCallTargetWord ⟨4⟩ evmS3.accountMap
                               evmS3.executionEnv) ≠ ⟨0⟩ := by
-                        have hcodeS :=
-                          endCageCallTargetCodeSize_ne_accountMapEquiv
-                            (slot := ⟨4⟩) hState3.accountMap hVowCodeE
+                        have hcodeS := hVowCodeE
+                        rw [hState3.accountMap] at hcodeS
                         rw [hState3.executionEnv] at hcodeS
                         simpa [evmS3] using hcodeS
                       obtain ⟨gasVow, _, _, hVowReady⟩ :=
                         endCageX_vowCallReady hVowStart
                           (by simpa [evmE3, evmE2, evmE1, evmE0, endCagePostStoresState, initState] using hVowCodeE)
-                      obtain ⟨cA4, σ4, z4, out4, Ain4, callGas4, _, _, hΘ4,
+                      obtain ⟨σ4, z4, out4, Ain4, callGas4, _, _, hΘ4,
                           rdVowPost, hout4⟩ :=
                         endCageX_vowPostCall hVowReady hdepthLt
                       rcases hΘ4 with ⟨g4'', A4, hΘ4eq⟩
-                      let evmE4 := { evmE3 with accountMap := σ4, substate := A4, createdAccounts := cA4 }
+                      let evmE4 := { evmE3 with accountMap := σ4, substate := A4 }
                       have hdepthNe3 : evmE3.executionEnv.depth ≠ 1024 := by
                         simpa [evmE3, evmE2, evmE1] using hdepthNe0
                       have hΘ4bridge :
-                          (cA4, σ4, g4'', A4, z4, out4) =
-                            Ethereum.EVM.Θ evmE3.executionEnv.blobVersionedHashes
-                              evmE3.createdAccounts evmE3.genesisBlockHeader evmE3.blocks
-                              evmE3.accountMap evmE3.σ₀ Ain4
+                          (σ4, g4'', A4, z4, out4) =
+                            Ethereum.EVM.Θ evmE3.accountMap evmE3.σ₀ Ain4
                               (AccountAddress.ofUInt256
                                 (UInt256.ofNat evmE3.executionEnv.codeOwner))
                               evmE3.executionEnv.sender
@@ -3821,26 +3711,21 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 (endRelyAuthHashMem evmE3.executionEnv)).readWithPadding
                                   endCageCallOutPtr.toNat endCageCallInSize.toNat)
                               (evmE3.executionEnv.depth + 1) evmE3.executionEnv.header
-                              true := by
+                              evmE3.executionEnv.blobVersionedHashes evmE3.executionEnv.blocks true := by
                         simpa [evmE3, evmE2, evmE1, evmE0, endCagePostStoresState,
-                          initState, storageStore_accountMap, storageStore_createdAccounts,
+                          initState, storageStore_accountMap,
                           storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using
                           hΘ4eq
                       obtain ⟨σ4s, A4s, hcall4Solm, hState4⟩ :=
                         endCageCallMadeBridge (slot := ⟨4⟩)
                           (evmE := evmE3) (evmS := evmS3)
-                          (cA' := cA4) (σ' := σ4) (A' := A4) (Ain := Ain4)
+                          (σ' := σ4) (A' := A4) (Ain := Ain4)
                           (z := z4) (out := out4) (g'' := g4'') (callGas := callGas4)
                           hdepthNe3 hΘ4bridge hState3.accountMap
                           (by simp [evmE3, evmS3, evmE2, evmS2, evmE1, evmS1,
                             evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
-                          (by simpa [evmE3, evmS3] using hState3.createdAccounts.symm)
-                          (by simp [evmE3, evmS3, evmE2, evmS2, evmE1, evmS1,
-                            evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
-                          (by simp [evmE3, evmS3, evmE2, evmS2, evmE1, evmS1,
-                            evmE0, evmS0, evmSolm, endCagePostStoresState, initState])
                           (by simpa [evmE3, evmS3] using hState3.executionEnv.symm)
-                      let evmS4 := { evmS3 with accountMap := σ4s, substate := A4s, createdAccounts := cA4 }
+                      let evmS4 := { evmS3 with accountMap := σ4s, substate := A4s }
                       cases z4
                       · have rdVowFail := rdVowPost
                         simp at rdVowFail
@@ -3913,9 +3798,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               Reasoning.Theory.extCodeSizeWord evmS4.accountMap
                                 (endCageCallTargetWord ⟨6⟩ evmS4.accountMap
                                   evmS4.executionEnv) = ⟨0⟩ := by
-                            have hcodeS :=
-                              endCageCallTargetCodeSize_zero_accountMapEquiv
-                                (slot := ⟨6⟩) hState4.accountMap hSpotCodeE
+                            have hcodeS := hSpotCodeE
+                            rw [hState4.accountMap] at hcodeS
                             rw [hState4.executionEnv] at hcodeS
                             simpa [evmS4] using hcodeS
                           have hSpotBlock :
@@ -3953,26 +3837,23 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               Reasoning.Theory.extCodeSizeWord evmS4.accountMap
                                 (endCageCallTargetWord ⟨6⟩ evmS4.accountMap
                                   evmS4.executionEnv) ≠ ⟨0⟩ := by
-                            have hcodeS :=
-                              endCageCallTargetCodeSize_ne_accountMapEquiv
-                                (slot := ⟨6⟩) hState4.accountMap hSpotCodeE
+                            have hcodeS := hSpotCodeE
+                            rw [hState4.accountMap] at hcodeS
                             rw [hState4.executionEnv] at hcodeS
                             simpa [evmS4] using hcodeS
                           obtain ⟨gasSpot, _, _, hSpotReady⟩ :=
                             endCageX_spotCallReady hSpotStart
                               (by simpa [evmE4, evmE3, evmE2, evmE1, evmE0, endCagePostStoresState, initState] using hSpotCodeE)
-                          obtain ⟨cA5, σ5, z5, out5, Ain5, callGas5, _, _, hΘ5,
+                          obtain ⟨σ5, z5, out5, Ain5, callGas5, _, _, hΘ5,
                               rdSpotPost, hout5⟩ :=
                             endCageX_spotPostCall hSpotReady hdepthLt
                           rcases hΘ5 with ⟨g5'', A5, hΘ5eq⟩
-                          let evmE5 := { evmE4 with accountMap := σ5, substate := A5, createdAccounts := cA5 }
+                          let evmE5 := { evmE4 with accountMap := σ5, substate := A5 }
                           have hdepthNe4 : evmE4.executionEnv.depth ≠ 1024 := by
                             simpa [evmE4, evmE3, evmE2, evmE1] using hdepthNe0
                           have hΘ5bridge :
-                              (cA5, σ5, g5'', A5, z5, out5) =
-                                Ethereum.EVM.Θ evmE4.executionEnv.blobVersionedHashes
-                                  evmE4.createdAccounts evmE4.genesisBlockHeader
-                                  evmE4.blocks evmE4.accountMap evmE4.σ₀ Ain5
+                              (σ5, g5'', A5, z5, out5) =
+                                Ethereum.EVM.Θ evmE4.accountMap evmE4.σ₀ Ain5
                                   (AccountAddress.ofUInt256
                                     (UInt256.ofNat evmE4.executionEnv.codeOwner))
                                   evmE4.executionEnv.sender
@@ -3989,30 +3870,23 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (endRelyAuthHashMem evmE4.executionEnv)).readWithPadding
                                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
                                   (evmE4.executionEnv.depth + 1) evmE4.executionEnv.header
-                                  true := by
+                                  evmE4.executionEnv.blobVersionedHashes evmE4.executionEnv.blocks true := by
                             simpa [evmE4, evmE3, evmE2, evmE1, evmE0,
                               endCagePostStoresState, initState, storageStore_accountMap,
-                              storageStore_createdAccounts, storageStore_executionEnv,
+                              storageStore_executionEnv,
                               endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ5eq
                           obtain ⟨σ5s, A5s, hcall5Solm, hState5⟩ :=
                             endCageCallMadeBridge (slot := ⟨6⟩)
                               (evmE := evmE4) (evmS := evmS4)
-                              (cA' := cA5) (σ' := σ5) (A' := A5) (Ain := Ain5)
+                              (σ' := σ5) (A' := A5) (Ain := Ain5)
                               (z := z5) (out := out5) (g'' := g5'')
                               (callGas := callGas5)
                               hdepthNe4 hΘ5bridge hState4.accountMap
                               (by simp [evmE4, evmS4, evmE3, evmS3, evmE2, evmS2,
                                 evmE1, evmS1, evmE0, evmS0, evmSolm,
                                 endCagePostStoresState, initState])
-                              (by simpa [evmE4, evmS4] using hState4.createdAccounts.symm)
-                              (by simp [evmE4, evmS4, evmE3, evmS3, evmE2, evmS2,
-                                evmE1, evmS1, evmE0, evmS0, evmSolm,
-                                endCagePostStoresState, initState])
-                              (by simp [evmE4, evmS4, evmE3, evmS3, evmE2, evmS2,
-                                evmE1, evmS1, evmE0, evmS0, evmSolm,
-                                endCagePostStoresState, initState])
                               (by simpa [evmE4, evmS4] using hState4.executionEnv.symm)
-                          let evmS5 := { evmS4 with accountMap := σ5s, substate := A5s, createdAccounts := cA5 }
+                          let evmS5 := { evmS4 with accountMap := σ5s, substate := A5s }
                           cases z5
                           · have rdSpotFail := rdSpotPost
                             simp at rdSpotFail
@@ -4090,9 +3964,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   Reasoning.Theory.extCodeSizeWord evmS5.accountMap
                                     (endCageCallTargetWord ⟨5⟩ evmS5.accountMap
                                       evmS5.executionEnv) = ⟨0⟩ := by
-                                have hcodeS :=
-                                  endCageCallTargetCodeSize_zero_accountMapEquiv
-                                    (slot := ⟨5⟩) hState5.accountMap hPotCodeE
+                                have hcodeS := hPotCodeE
+                                rw [hState5.accountMap] at hcodeS
                                 rw [hState5.executionEnv] at hcodeS
                                 simpa [evmS5] using hcodeS
                               have hPotBlock :
@@ -4131,26 +4004,23 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   Reasoning.Theory.extCodeSizeWord evmS5.accountMap
                                     (endCageCallTargetWord ⟨5⟩ evmS5.accountMap
                                       evmS5.executionEnv) ≠ ⟨0⟩ := by
-                                have hcodeS :=
-                                  endCageCallTargetCodeSize_ne_accountMapEquiv
-                                    (slot := ⟨5⟩) hState5.accountMap hPotCodeE
+                                have hcodeS := hPotCodeE
+                                rw [hState5.accountMap] at hcodeS
                                 rw [hState5.executionEnv] at hcodeS
                                 simpa [evmS5] using hcodeS
                               obtain ⟨gasPot, _, _, hPotReady⟩ :=
                                 endCageX_potCallReady hPotStart
                                   (by simpa [evmE5, evmE4, evmE3, evmE2, evmE1, evmE0, endCagePostStoresState, initState] using hPotCodeE)
-                              obtain ⟨cA6, σ6, z6, out6, Ain6, callGas6, _, _, hΘ6,
+                              obtain ⟨σ6, z6, out6, Ain6, callGas6, _, _, hΘ6,
                                   rdPotPost, hout6⟩ :=
                                 endCageX_potPostCall hPotReady hdepthLt
                               rcases hΘ6 with ⟨g6'', A6, hΘ6eq⟩
-                              let evmE6 := { evmE5 with accountMap := σ6, substate := A6, createdAccounts := cA6 }
+                              let evmE6 := { evmE5 with accountMap := σ6, substate := A6 }
                               have hdepthNe5 : evmE5.executionEnv.depth ≠ 1024 := by
                                 simpa [evmE5, evmE4, evmE3, evmE2, evmE1] using hdepthNe0
                               have hΘ6bridge :
-                                  (cA6, σ6, g6'', A6, z6, out6) =
-                                    Ethereum.EVM.Θ evmE5.executionEnv.blobVersionedHashes
-                                      evmE5.createdAccounts evmE5.genesisBlockHeader
-                                      evmE5.blocks evmE5.accountMap evmE5.σ₀ Ain6
+                                  (σ6, g6'', A6, z6, out6) =
+                                    Ethereum.EVM.Θ evmE5.accountMap evmE5.σ₀ Ain6
                                       (AccountAddress.ofUInt256
                                         (UInt256.ofNat evmE5.executionEnv.codeOwner))
                                       evmE5.executionEnv.sender
@@ -4169,15 +4039,16 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           evmE5.executionEnv)).readWithPadding
                                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
                                       (evmE5.executionEnv.depth + 1)
-                                      evmE5.executionEnv.header true := by
+                                      evmE5.executionEnv.header evmE5.executionEnv.blobVersionedHashes
+                                      evmE5.executionEnv.blocks true := by
                                 simpa [evmE5, evmE4, evmE3, evmE2, evmE1, evmE0,
                                   endCagePostStoresState, initState, storageStore_accountMap,
-                                  storageStore_createdAccounts, storageStore_executionEnv,
+                                  storageStore_executionEnv,
                                   endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ6eq
                               obtain ⟨σ6s, A6s, hcall6Solm, hState6⟩ :=
                                 endCageCallMadeBridge (slot := ⟨5⟩)
                                   (evmE := evmE5) (evmS := evmS5)
-                                  (cA' := cA6) (σ' := σ6) (A' := A6) (Ain := Ain6)
+                                  (σ' := σ6) (A' := A6) (Ain := Ain6)
                                   (z := z6) (out := out6) (g'' := g6'')
                                   (callGas := callGas6)
                                   hdepthNe5 hΘ6bridge hState5.accountMap
@@ -4185,16 +4056,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
                                     endCagePostStoresState, initState])
                                   (by simpa [evmE5, evmS5] using
-                                    hState5.createdAccounts.symm)
-                                  (by simp [evmE5, evmS5, evmE4, evmS4, evmE3, evmS3,
-                                    evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
-                                    endCagePostStoresState, initState])
-                                  (by simp [evmE5, evmS5, evmE4, evmS4, evmE3, evmS3,
-                                    evmE2, evmS2, evmE1, evmS1, evmE0, evmS0, evmSolm,
-                                    endCagePostStoresState, initState])
-                                  (by simpa [evmE5, evmS5] using
                                     hState5.executionEnv.symm)
-                              let evmS6 := { evmS5 with accountMap := σ6s, substate := A6s, createdAccounts := cA6 }
+                              let evmS6 := { evmS5 with accountMap := σ6s, substate := A6s }
                               cases z6
                               · have rdPotFail := rdPotPost
                                 simp at rdPotFail
@@ -4281,9 +4144,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         evmS6.accountMap
                                         (endCageCallTargetWord ⟨7⟩ evmS6.accountMap
                                           evmS6.executionEnv) = ⟨0⟩ := by
-                                    have hcodeS :=
-                                      endCageCallTargetCodeSize_zero_accountMapEquiv
-                                        (slot := ⟨7⟩) hState6.accountMap hCureCodeE
+                                    have hcodeS := hCureCodeE
+                                    rw [hState6.accountMap] at hcodeS
                                     rw [hState6.executionEnv] at hcodeS
                                     simpa [evmS6] using hcodeS
                                   have hCureBlock :
@@ -4325,28 +4187,24 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         evmS6.accountMap
                                         (endCageCallTargetWord ⟨7⟩ evmS6.accountMap
                                           evmS6.executionEnv) ≠ ⟨0⟩ := by
-                                    have hcodeS :=
-                                      endCageCallTargetCodeSize_ne_accountMapEquiv
-                                        (slot := ⟨7⟩) hState6.accountMap hCureCodeE
+                                    have hcodeS := hCureCodeE
+                                    rw [hState6.accountMap] at hcodeS
                                     rw [hState6.executionEnv] at hcodeS
                                     simpa [evmS6] using hcodeS
                                   obtain ⟨gasCure, _, _, hCureReady⟩ :=
                                     endCageX_cureCallReady hCureStart
                                       (by simpa [evmE6, evmE5, evmE4, evmE3, evmE2, evmE1, evmE0, endCagePostStoresState, initState] using hCureCodeE)
-                                  obtain ⟨cA7, σ7, z7, out7, Ain7, callGas7, _, _, hΘ7,
+                                  obtain ⟨σ7, z7, out7, Ain7, callGas7, _, _, hΘ7,
                                       rdCurePost, hout7⟩ :=
                                     endCageX_curePostCall hCureReady hdepthLt
                                   rcases hΘ7 with ⟨g7'', A7, hΘ7eq⟩
-                                  let evmE7 := { evmE6 with accountMap := σ7, substate := A7, createdAccounts := cA7 }
+                                  let evmE7 := { evmE6 with accountMap := σ7, substate := A7 }
                                   have hdepthNe6 : evmE6.executionEnv.depth ≠ 1024 := by
                                     simpa [evmE6, evmE5, evmE4, evmE3, evmE2, evmE1]
                                       using hdepthNe0
                                   have hΘ7bridge :
-                                      (cA7, σ7, g7'', A7, z7, out7) =
-                                        Ethereum.EVM.Θ
-                                          evmE6.executionEnv.blobVersionedHashes
-                                          evmE6.createdAccounts evmE6.genesisBlockHeader
-                                          evmE6.blocks evmE6.accountMap evmE6.σ₀ Ain7
+                                      (σ7, g7'', A7, z7, out7) =
+                                        Ethereum.EVM.Θ evmE6.accountMap evmE6.σ₀ Ain7
                                           (AccountAddress.ofUInt256
                                             (UInt256.ofNat
                                               evmE6.executionEnv.codeOwner))
@@ -4367,16 +4225,17 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               endCageCallOutPtr.toNat
                                               endCageCallInSize.toNat)
                                           (evmE6.executionEnv.depth + 1)
-                                          evmE6.executionEnv.header true := by
+                                          evmE6.executionEnv.header evmE6.executionEnv.blobVersionedHashes
+                                          evmE6.executionEnv.blocks true := by
                                     simpa [evmE6, evmE5, evmE4, evmE3, evmE2, evmE1,
                                       evmE0, endCagePostStoresState, initState,
-                                      storageStore_accountMap, storageStore_createdAccounts,
+                                      storageStore_accountMap,
                                       storageStore_executionEnv, endCageStoredAccountMap,
                                       hperm] using hΘ7eq
                                   obtain ⟨σ7s, A7s, hcall7Solm, hState7⟩ :=
                                     endCageCallMadeBridge (slot := ⟨7⟩)
                                       (evmE := evmE6) (evmS := evmS6)
-                                      (cA' := cA7) (σ' := σ7) (A' := A7)
+                                      (σ' := σ7) (A' := A7)
                                       (Ain := Ain7) (z := z7) (out := out7)
                                       (g'' := g7'') (callGas := callGas7)
                                       hdepthNe6 hΘ7bridge hState6.accountMap
@@ -4385,18 +4244,8 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         evmS1, evmE0, evmS0, evmSolm,
                                         endCagePostStoresState, initState])
                                       (by simpa [evmE6, evmS6] using
-                                        hState6.createdAccounts.symm)
-                                      (by simp [evmE6, evmS6, evmE5, evmS5, evmE4,
-                                        evmS4, evmE3, evmS3, evmE2, evmS2, evmE1,
-                                        evmS1, evmE0, evmS0, evmSolm,
-                                        endCagePostStoresState, initState])
-                                      (by simp [evmE6, evmS6, evmE5, evmS5, evmE4,
-                                        evmS4, evmE3, evmS3, evmE2, evmS2, evmE1,
-                                        evmS1, evmE0, evmS0, evmSolm,
-                                        endCagePostStoresState, initState])
-                                      (by simpa [evmE6, evmS6] using
                                         hState6.executionEnv.symm)
-                                  let evmS7 := { evmS6 with accountMap := σ7s, substate := A7s, createdAccounts := cA7 }
+                                  let evmS7 := { evmS6 with accountMap := σ7s, substate := A7s }
                                   cases z7
                                   · have rdCureFail := rdCurePost
                                     simp at rdCureFail
@@ -4501,12 +4350,12 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       simpa [ExecTransitionBody] using
                                         ExecFuncBody.execBlockOK hblock
                                     have hret := endCageX_finish hperm rd6300
-                                    exact hret.reEquivExecutionGenEVMStateEquiv
-                                      (evm'_evm := evmE7) (evm'_solm := evmS7)
+                                    exact hret.reEquivExecutionGen
                                       hcode hdispatch hdecode hbody
-                                      (by simp [evmE7])
-                                      (by simpa [evmE7] using accountMapEquiv.refl σ7)
-                                      hState7
+                                      (by
+                                        calc
+                                          _ = evmE7.accountMap := by simp [evmE7]
+                                          _ = evmS7.accountMap := hState7.accountMap)
                                       (by
                                         simpa [cageTransition] using
                                           (returnEquiv.fallthrough
@@ -4517,7 +4366,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           have hdepthEq : I.depth = 1024 :=
             Fin.ext (by have := I.depth.isLt; omega)
           obtain ⟨_, _, rdVatDepth⟩ :=
-            endCageX_vatCallDepthLimit (acc := (cA, endCageStoredAccountMap σ_evm I))
+            endCageX_vatCallDepthLimit (acc := (endCageStoredAccountMap σ I))
               hVatReady hdepthEq
           have hcallDepth :
               typedCallViaEVM config evmS0
@@ -4572,37 +4421,20 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (by simp [endCageSourceBody_eq, endCageSourceCallStmts, List.append_assoc])
           exact (endCageX_vatCallFailed rdVatDepth (by native_decide))
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hliveSolm : endSlotWord ⟨8⟩ σ_solm I ≠ ⟨1⟩ := by
-        intro hbad
-        exact hlive (by
-          have hword : endSlotWord ⟨8⟩ σ_evm I = endSlotWord ⟨8⟩ σ_solm I := by
-            simpa [endSlotWord, solcSlotWord] using
-              accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-          rw [hword]
-          exact hbad)
-      have hbody :
+    · have hbody :
           ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
         simpa [evmSolm] using
-          endCageSourceLiveReverts (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-            hwv hauthSolm hliveSolm
+          endCageSourceLiveReverts
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            hwv hauth hlive
       exact (endCageX_notLive hlive hLivePc)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : endRelyAuthWord σ_solm I ≠ ⟨1⟩ := by
-      intro hbad
-      exact hauth (by
-        have hword : endRelyAuthWord σ_evm I = endRelyAuthWord σ_solm I := by
-          simpa [endRelyAuthWord, endSlotWord, solcSlotWord] using
-            accountMapEquiv_storage_findD hAccounts I.codeOwner
-              (endRelyAuthStorageSlot I) ⟨0⟩
-        rw [hword]
-        exact hbad)
-    have hbody :
+  · have hbody :
         ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
       simpa [evmSolm] using
-        endCageSourceAuthReverts (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          hwv hauthSolm
+        endCageSourceAuthReverts
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          hwv hauth
     exact (endCageX_unauthorized hauth hAuthPc)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

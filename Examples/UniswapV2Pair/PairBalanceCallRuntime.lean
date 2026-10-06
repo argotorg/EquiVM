@@ -18,33 +18,33 @@ abbrev PairBalanceCallSite.pc : PairBalanceCallSite → UInt256
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPairBalanceCallMade
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {aw ptr target : UInt256} {R : List UInt256} {k C : Nat}
     (rd4697 : RD uniswapV2PairBytecode I g s0 (site.pc)
       (target :: target :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
-      (balanceDynamicCalldataMem base ptr (UInt256.ofNat I.codeOwner.val)) (balanceDynamicCalldataWords aw ptr) rdata (cA, σ) k C)
+      (balanceDynamicCalldataMem base ptr (UInt256.ofNat I.codeOwner.val)) (balanceDynamicCalldataWords aw ptr) rdata σ k C)
     (hcode : extCodeSizeWord σ target ≠ ⟨0⟩) (hdepth : I.depth.val < 1024)
     (hgap : ptr.toNat - base.size < USize.size) (haw : aw.toNat * 32 < UInt256.size)
     (hfit : ptr.toNat + 67 < UInt256.size) (hov : R.length + 12 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (out : ByteArray)
+    ∃ (σ' : AccountMap) (z : Bool) (out : ByteArray)
       (A_in : Substate) (callGas : UInt256) (k' C' : Nat),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes
-          cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ
+          σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 target) (toExecute σ (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)).readWithPadding 128 36)
-          (I.depth + 1) I.header false) ∧
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧
       RD uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
         (balanceDynamicReturnMem base ptr (UInt256.ofNat I.codeOwner.val) out)
-        (balanceDynamicCalldataWords aw ptr) out (cA', σ') k' C' ∧ out.size < UInt256.size := by
+        (balanceDynamicCalldataWords aw ptr) out σ' k' C' ∧ out.size < UInt256.size := by
   obtain ⟨_, _, _, rd4712⟩ := RD.solcExtcodesizeGuardOkGas (okPc := (site.pc + ⟨12⟩)) rd4697 hcode
     (by cases site <;> native_decide) (by cases site <;> native_decide) (by cases site <;> native_decide) (by cases site <;> native_decide)
     (by cases site <;> native_decide) (by cases site <;> native_decide) (by cases site <;> native_decide) (by cases site <;> native_decide)
     (by cases site <;> native_decide) (by cases site <;> native_decide) (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hTheta, rd4713, hout⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hTheta, rd4713, hout⟩ :=
     RD.solcStaticcall rd4712 (by cases site <;> native_decide) hdepth (by simp only [List.length_cons]; omega)
   obtain ⟨_, hb, hc⟩ := balanceDynamicWords_bounds aw ptr haw hfit
   have hm36 := MachineState_M_eq_of_cover (balanceDynamicCalldataWords aw ptr).toNat ptr.toNat 36 hc
@@ -55,12 +55,12 @@ theorem RD.uniswapPairBalanceCallMade
   have hdata := balanceDynamicCalldataMem_calldata ptr (UInt256.ofNat I.codeOwner.val) hgap (by omega)
   change (balanceDynamicCalldataMem base ptr (UInt256.ofNat I.codeOwner.val)).readWithPadding ptr.toNat (⟨36⟩ : UInt256).toNat = _ at hdata
   rw [hdata] at hTheta
-  exact ⟨cA', σ', z, out, A_in, callGas, k', C', hTheta, by cases site <;> exact rd4713, hout⟩
+  exact ⟨σ', z, out, A_in, callGas, k', C', hTheta, by cases site <;> exact rd4713, hout⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPairBalanceCallResultCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {base out : ByteArray} {aw ptr target : UInt256} {z : Bool} {R : List UInt256} {k C : Nat}
     (rd4713 : RD uniswapV2PairBytecode I g s0 (site.pc + ⟨16⟩)
       ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨36⟩) :: balanceOfSelectorWord :: target :: R)
@@ -110,10 +110,10 @@ theorem RD.uniswapPairBalanceCallResultCases
 
 theorem RD.uniswapPairBalanceNoCodeReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw target : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 (site.pc)
-      (target :: target :: R) mem aw rdata (cA, σ) k C)
+      (target :: target :: R) mem aw rdata σ k C)
     (hcode : extCodeSizeWord σ target = ⟨0⟩) (hov : R.length + 4 ≤ 1024) : RDrev uniswapV2PairBytecode g s0 := by
   exact RD.solcExtcodesizeGuardMissing (okPc := site.pc + ⟨12⟩) rd hcode
     (by cases site <;> native_decide) (by cases site <;> native_decide)

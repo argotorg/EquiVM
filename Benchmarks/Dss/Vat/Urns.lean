@@ -112,13 +112,13 @@ theorem vatDispatchUrns {I : ExecutionEnv}
     sinSelectorBytes, slipSelectorBytes, suckSelectorBytes, urnsSelectorBytes]
   native_decide
 
-theorem vatReachUrnsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachUrnsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 25)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨570⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x2424be5c⟩ :=
     vatSelWord_eq_of_beq I hsz 0x24 0x24 0xbe 0x5c ⟨0x2424be5c⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -213,9 +213,9 @@ set_option maxHeartbeats 2000000 in
 theorem RD.solcNestedStruct2Getter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedStruct2GetterWf code pc baseSlot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
@@ -224,7 +224,7 @@ theorem RD.solcNestedStruct2Getter {code : ByteArray} {g : Sat256} {s0 : State}
         solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) spender) ::
         ret :: R)
       (solcNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
       hd17, hd18, hd19, hd20, hd21, hd22, hd23, hd24, hd25, hd26, hd27,
@@ -351,7 +351,7 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
         ExecBlock.consReturn (ExecStmt.return hreturns))
 
 theorem vatUrnsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some urnsTransition)
@@ -359,29 +359,28 @@ theorem vatUrnsBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (urnsTransition.params.map Param.name)
         (transitionSignature urnsTransition).paramTypes I.calldata = some (urnsStore I))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let inkSlot := solcMappingSlot (solcMappingSlot ⟨3⟩ (urnsIlkWord I)) (urnsUsrMaskedWord I)
   let artSlot := inkSlot + ⟨1⟩
-  let inkWord := vatSlotWord inkSlot σ_evm I
-  let artWord := vatSlotWord artSlot σ_evm I
+  let inkWord := vatSlotWord inkSlot σ I
+  let artWord := vatSlotWord artSlot σ I
   have hinkSlot : urnsInkStorageSlot I = inkSlot := by
     simp [inkSlot, urnsInkStorageSlot_eq I hsz68]
   have hartSlot : urnsArtStorageSlot I = artSlot := by
     simp [artSlot, inkSlot, urnsArtStorageSlot_eq I hsz68]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (urnsStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (urnsStore I)
         urnsTransition.body
         (.returned { contract := contract, locals := urnsStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (urnsInkStorageSlot I) σ_solm I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (urnsArtStorageSlot I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord (urnsInkStorageSlot I) σ I).toNat)),
+            (.int (Int.ofNat (vatSlotWord (urnsArtStorageSlot I) σ I).toNat))])) := by
     simpa [initState] using
       vatUrnsBodyReturns hsz68
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv)
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨570⟩) (ret := ⟨614⟩)
@@ -409,7 +408,7 @@ theorem vatUrnsBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray inkWord ++ UInt256.toByteArray artWord) := by
     have hret' := RD.solcTwoWordReturnFromMem
       (pc := ⟨614⟩) (first := inkWord) (second := artWord) (ret := ⟨614⟩)
@@ -424,33 +423,24 @@ theorem vatUrnsBodyCoreOk
       (solcNestedMappingHashMem_read64 ⟨3⟩ (urnsIlkWord I) (urnsUsrMaskedWord I))
       (by simp)
     simpa [inkWord, artWord] using hret'
-  have hinkWord : vatSlotWord inkSlot σ_evm I = vatSlotWord inkSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner inkSlot ⟨0⟩
-  have hartWord : vatSlotWord artSlot σ_evm I = vatSlotWord artSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner artSlot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord (urnsInkStorageSlot I) σ_solm I).toNat),
-        Value.int (Int.ofNat (vatSlotWord (urnsArtStorageSlot I) σ_solm I).toNat)] =
-      some [Value.int (Int.ofNat inkWord.toNat), Value.int (Int.ofNat artWord.toNat)] := by
-    rw [hinkSlot, hartSlot]
-    simp [inkWord, artWord, hinkWord, hartWord]
+  rw [hinkSlot, hartSlot] at hbody
   have henc :
       returnEquiv (UInt256.toByteArray inkWord ++ UInt256.toByteArray artWord)
         (some [(.int (Int.ofNat inkWord.toNat)), (.int (Int.ofNat artWord.toNat))])
         urnsTransition.returnType := by
     rw [show urnsTransition.returnType = [uint256, uint256] by rfl]
     exact returnEquiv.returned rfl (uint256PairReturnEncoding inkWord artWord)
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatUrnsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some urnsTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := vatDecode_urns_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -469,17 +459,17 @@ theorem vatUrnsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
 theorem vatUrnsBodyCore : VatBodyTheorem 25 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 25) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some urnsTransition :=
     vatDispatchUrns hsel
-  have hreach := vatReachUrnsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachUrnsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact vatUrnsBodyCoreOk hcode hwv hsz68 hsize hdispatch
-      (vatDecode_urns_ok hsz68) hreach hAccounts
+      (vatDecode_urns_ok hsz68) hreach
   · exact vatUrnsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Vat

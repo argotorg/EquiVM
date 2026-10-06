@@ -12,7 +12,7 @@ namespace Benchmarks.Dss.Clipper
 set_option maxHeartbeats 4000000 in
 theorem clipperTakeRemoveEquiv
     (v : ClipperImmutables) {code : ByteArray}
-    {cA0 cACont gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σCont : AccountMap} {evmCont : EVM.State}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
@@ -25,21 +25,20 @@ theorem clipperTakeRemoveEquiv
       (transitionSignature (takeTransition v)).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd8274 : RD code I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
       (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
         stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
-        [⟨502⟩, sel]) mem aw out (cACont, σCont) k C)
+        [⟨502⟩, sel]) mem aw out σCont k C)
     (hidWord : id = clipperYankArgWord I)
     (hmem : clipperTakeMemoryWF mem aw) (hperm : I.perm = true)
-    (hAccounts : accountMapEquiv σCont evmCont.accountMap)
-    (hevmCreated : evmCont.createdAccounts = cACont)
+    (hAccounts : Eq σCont evmCont.accountMap)
     (hevmEnv : evmCont.executionEnv = I)
     (hsourceReverted :
       ExecFuncBody (config v)
           { contract := contract v, locals := clipperYankRemoveStore I }
           evmCont removeFunction.body .reverted →
         ExecTransitionBody (config v) (contract v)
-          (initState cA0 gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperTakeStore I) (takeTransition v).body .reverted)
     (hsourceReturned : ∀ {callee : Frame} {evmRemove : EVM.State},
       ExecFuncBody (config v)
@@ -47,19 +46,19 @@ theorem clipperTakeRemoveEquiv
           evmCont removeFunction.body (.returned callee evmRemove none) →
         ∃ finalFrame : Frame,
           ExecTransitionBody (config v) (contract v)
-            (initState cA0 gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperTakeStore I) (takeTransition v).body
             (.returned finalFrame
               (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner
                 ⟨13⟩ ⟨0⟩) none)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA0 gh bl σ_evm σ_solm σ₀ g A I := by
+      σ σ₀ g A I := by
   have howner : evmCont.executionEnv.codeOwner = I.codeOwner := by rw [hevmEnv]
   have hstorage (slot : UInt256) :
       solcSlotWord σCont I slot =
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner slot := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-    simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    have hslot := congrArg (fun m => solcSlotWord m I slot) hAccounts
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmEnv, hslot]
   apply RD.clipperTakeRemoveContinuationElim v hpatch rd8274 hidWord hmem hperm
   · intro hlen hinvalid
@@ -88,12 +87,13 @@ theorem clipperTakeRemoveEquiv
               ⟨1⟩)) := by
       rw [← hlastIndexEq, ← hstorage]
       simpa [lastIndex] using hidEq
-    have hacc : ∃ acc, evmCont.accountMap.find?
+    have hacc : ∃ acc, evmCont.accountMap.get?
         evmCont.executionEnv.codeOwner = some acc := by
-      cases hfind : evmCont.accountMap.find? evmCont.executionEnv.codeOwner with
+      cases hfind : evmCont.accountMap.get? evmCont.executionEnv.codeOwner with
       | none =>
           exfalso
           apply hlenSolm
+          rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
           simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
       | some acc => exact ⟨acc, rfl⟩
     obtain ⟨acc, hacc⟩ := hacc
@@ -113,13 +113,10 @@ theorem clipperTakeRemoveEquiv
         clipperYankRemoveIdEqMoveSource v evmCont I hacc hlenSolm hidEqSolm
     obtain ⟨finalFrame, hbody⟩ := hsourceReturned hremove
     have hAccountsFinal :=
-      clipperYankSuccessAccountMap_state_accountMapEquiv
+      clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σCont) (τ := evmCont.accountMap) evmCont I lastIndex
         hAccounts rfl howner
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
-      (by
-        simp [evmRemove, sourceLastIndex, clipperYankDeleteSaleState,
-          clipperYankRemovePopState, storageStore_createdAccounts, hevmCreated])
+    exact hret.reEquivExecutionGen hcode hdispatch hdec hbody
       (by
         simpa [lastIndex, sourceLastIndex, hlastIndexEq, evmRemove,
           clipperYankSuccessAccountMap] using hAccountsFinal)
@@ -167,10 +164,10 @@ theorem clipperTakeRemoveEquiv
     have hidxSolm : Solm.EVM.storageLoad evmCont
         evmCont.executionEnv.codeOwner (clipperYankSalesPosSlot I) = idx := by
       rw [← hstorage]
-    have hmoveAccounts : accountMapEquiv
+    have hmoveAccounts : Eq
         (clipperYankMoveAccountMap σCont I idx move) evmMovePos.accountMap := by
       simpa [evmIndex, evmMovePos] using
-        clipperYankMoveAccountMap_state_accountMapEquiv
+        clipperYankMoveAccountMap_state_accounts_eq
           (σ := σCont) (τ := evmCont.accountMap) evmCont I idx move
           hAccounts rfl howner
     have hownerMovePos : evmMovePos.executionEnv.codeOwner = I.codeOwner := by
@@ -178,8 +175,8 @@ theorem clipperTakeRemoveEquiv
     have hstorageMove (slot : UInt256) :
         solcSlotWord (clipperYankMoveAccountMap σCont I idx move) I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
-      have hslot := accountMapEquiv_storage_findD hmoveAccounts I.codeOwner slot ⟨0⟩
-      simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
         evmMovePos.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
@@ -233,9 +230,9 @@ theorem clipperTakeRemoveEquiv
           (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩).toNat := by
       rw [hidxSolm, ← hstorage]
       simpa [idx] using hidxBound
-    have hmoveAccounts : accountMapEquiv σMove evmMovePos.accountMap := by
+    have hmoveAccounts : Eq σMove evmMovePos.accountMap := by
       simpa [σMove, evmIndex, evmMovePos] using
-        clipperYankMoveAccountMap_state_accountMapEquiv
+        clipperYankMoveAccountMap_state_accounts_eq
           (σ := σCont) (τ := evmCont.accountMap) evmCont I idx move
           hAccounts rfl howner
     have hownerMovePos : evmMovePos.executionEnv.codeOwner = I.codeOwner := by
@@ -243,8 +240,8 @@ theorem clipperTakeRemoveEquiv
     have hstorageMove (slot : UInt256) :
         solcSlotWord σMove I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
-      have hslot := accountMapEquiv_storage_findD hmoveAccounts I.codeOwner slot ⟨0⟩
-      simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, σMove, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
         evmMovePos.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩ := by
@@ -254,12 +251,13 @@ theorem clipperTakeRemoveEquiv
         (show solcSlotWord σMove I ⟨11⟩ = ⟨0⟩ by
           rw [hstorageMove]
           exact hzero)
-    have hacc : ∃ acc, evmCont.accountMap.find?
+    have hacc : ∃ acc, evmCont.accountMap.get?
         evmCont.executionEnv.codeOwner = some acc := by
-      cases hfind : evmCont.accountMap.find? evmCont.executionEnv.codeOwner with
+      cases hfind : evmCont.accountMap.get? evmCont.executionEnv.codeOwner with
       | none =>
           exfalso
           apply hlenSolm
+          rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
           simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
       | some acc => exact ⟨acc, rfl⟩
     obtain ⟨acc, hacc⟩ := hacc
@@ -290,14 +288,10 @@ theorem clipperTakeRemoveEquiv
         UInt256.lnot ⟨0⟩ from rfl]
       rw [clipperYankLenAddLnotZero_eq_subOne, hstorageMove]
     have hAccountsFinal :=
-      clipperYankSuccessAccountMap_state_accountMapEquiv
+      clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
         hmoveAccounts rfl hownerMovePos
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
-      (by
-        simp [evmRemove, popLastIndex, evmMovePos, evmIndex,
-          clipperYankDeleteSaleState, clipperYankRemovePopState,
-          storageStore_createdAccounts, hevmCreated])
+    exact hret.reEquivExecutionGen hcode hdispatch hdec hbody
       (by
         simpa [lastIndex, move, idx, σMove, lastIndexAfter,
           hlastIndexAfterEq, evmRemove, popLastIndex,

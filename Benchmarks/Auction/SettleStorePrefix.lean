@@ -5,12 +5,12 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem settleStorePrefix {I g s0 s ptr ret R mem aw rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4397⟩ (ptr :: ret :: R) mem aw rdata (cA, σ) k C)
+theorem settleStorePrefix {I g s0 s ptr ret R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4397⟩ (ptr :: ret :: R) mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw ptr) (hperm : I.perm = true) (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4434⟩
       (⟨4536⟩ :: s.bidderWord :: ptr :: ret :: R) mem aw rdata
-      (cA, settledAccounts σ I) k' C' := by
+      (settledAccounts σ I) k' C' := by
   have rd4401 := evm_run h with [jumpdest, push1 ⟨211⟩, dup1]
   obtain ⟨_, _, rd4402⟩ := rd4401.sload (by native_decide) (by evm_ov)
   have rd4416 := evm_run rd4402 with [push1 ⟨255⟩, push1 ⟨160⟩, shl, not, and,

@@ -62,7 +62,7 @@ theorem weth9OldWordsWord_eq (S : UInt256) :
     with `[slot]`, having stored the short word and cleared the stale keccak-data words. -/
 theorem weth9StringStoreSubroutine
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
+    {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
     (len memPtr slot retAddr dataword : UInt256)
     (hslot : slot = ⟨0⟩ ∨ slot = ⟨1⟩)
     (hlen : len.toNat < 31)
@@ -74,21 +74,21 @@ theorem weth9StringStoreSubroutine
     (haw1 : 1 ≤ aw.toNat)
     (hmemData : mem.readWithPadding memPtr.toNat 32 = UInt256.toByteArray dataword)
     (h : RD weth9CreationBytecode ee g s0 ⟨122⟩ [len, memPtr, slot, retAddr]
-          mem aw rdata (cA, σ) k C) :
+          mem aw rdata σ k C) :
     ∃ k' C',
       RD weth9CreationBytecode ee g s0 retAddr [slot]
         (UInt256.toByteArray slot |>.write 0 mem 0 32) aw rdata
-        (cA, clearDataWordsForwardFrom ee.codeOwner
+        (clearDataWordsForwardFrom ee.codeOwner
           (sstoreAccountMap ee.codeOwner σ slot
             (UInt256.lor (len + len) (UInt256.land (UInt256.lnot ⟨255⟩) dataword)))
           (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
           (solidityBytesDataWordCount
             (weth9DecodeLenWord
-              (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))).toNat))
+              (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))).toNat))
         k' C' := by
   -- abbreviations
   set S : UInt256 :=
-    σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩) with hSdef
+    σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩) with hSdef
   set mem1 : ByteArray := UInt256.toByteArray slot |>.write 0 mem 0 32 with hmem1def
   set ow : Nat := solidityBytesDataWordCount (weth9DecodeLenWord S).toNat with howdef
   set K : UInt256 := Solm.solidityBytesDataBaseSlot slot with hKdef

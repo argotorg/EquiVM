@@ -15,14 +15,14 @@ abbrev swapPayloadGuardStack (I : ExecutionEnv) (sel : UInt256) : List UInt256 :
     ⟨132⟩, swapRuntimeDataSizeWord I, swapRuntimePayloadPtr I, ⟨4⟩, swapRuntimeCalldataEnd I,
     UInt256.land (swapToWord I) solcAddrMask, swapAmount1OutWord I, swapAmount0OutWord I, ⟨570⟩, sel]
 
-theorem uniswapSwapDecodeToPayloadGuard {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapSwapDecodeToPayloadGuard {s0 : State} {I : ExecutionEnv} {σ : AccountMap} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
     (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨541⟩
-      (swapPayloadGuardStack I sel) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨541⟩
+      (swapPayloadGuardStack I sel) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by
     exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize

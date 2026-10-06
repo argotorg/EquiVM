@@ -31,18 +31,18 @@ theorem endCureArmsWellFormed :
     (dsimp [armWellFormed]
      repeat' first | apply And.intro | native_decide)
 
-theorem endReachCureBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachCureBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endCureConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endCureEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x840782ed⟩ :=
     endSelWord_eq_of_beq I hsz 0x84 0x07 0x82 0xed ⟨0x840782ed⟩
       (by native_decide) (by simpa [selIs, endCureConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup294FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup294FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -62,7 +62,7 @@ theorem endReachCureBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endCureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cureTransition)
@@ -70,20 +70,19 @@ theorem endCureBodyCore
       decodeCalldataWithMode config.abiDecodeMode (cureTransition.params.map Param.name)
         (transitionSignature cureTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨843⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨843⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ cureTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ cureTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (cureWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (cureWord σ I).toNat))])) := by
     simpa [cureTransition, cureWord, endAddressReturnWord, endSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := cureRef) (er := ({ base := "cure", steps := [] } : EvaledStorageRef))
         (slot := ⟨7⟩)
         (by simp only [initState]; exact hwv) (by simp [cureRef])
@@ -91,7 +90,7 @@ theorem endCureBodyCore
         (by decide) (by rfl)
   exact endAddressGetterBodyCore (entry := ⟨843⟩) (returnPc := ⟨572⟩)
     (routine := ⟨6690⟩) (slot := ⟨7⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -105,18 +104,16 @@ theorem endCureBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [cureWord] using hbody)
 
-theorem endCureBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endCureBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf cureTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf cureTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endCureConcreteSelector := by
     simpa [endCureSelectorBytes, endCureConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endCureConcreteSelector (by rfl) hsel'
   exact endCureBodyCore hcode hwv (endDispatchCure hsel) (endDecode_cure hsz)
     (endReachCureBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel')
-    hAccounts
 
 end Benchmarks.Dss.End

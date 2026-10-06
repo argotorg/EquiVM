@@ -21,74 +21,6 @@ abbrev daiJoinDaiTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev daiJoinDaiAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (daiJoinDaiTargetWord σ I).toNat
 
-theorem daiJoinVatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    daiJoinVatTargetWord σ I = daiJoinVatTargetWord τ I := by
-  have hslot : daiJoinSlotWord ⟨1⟩ σ I = daiJoinSlotWord ⟨1⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-  simp [daiJoinVatTargetWord, daiJoinAddressReturnWord, hslot]
-
-theorem daiJoinDaiTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    daiJoinDaiTargetWord σ I = daiJoinDaiTargetWord τ I := by
-  have hslot : daiJoinSlotWord ⟨2⟩ σ I = daiJoinSlotWord ⟨2⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  simp [daiJoinDaiTargetWord, daiJoinAddressReturnWord, hslot]
-
-theorem daiJoinVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    daiJoinVatAddress σ I = daiJoinVatAddress τ I := by
-  apply Fin.ext
-  simp [daiJoinVatAddress, daiJoinVatTargetWord_accountMapEquiv hAccounts]
-
-theorem daiJoinDaiAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    daiJoinDaiAddress σ I = daiJoinDaiAddress τ I := by
-  apply Fin.ext
-  simp [daiJoinDaiAddress, daiJoinDaiTargetWord_accountMapEquiv hAccounts]
-
-theorem daiJoinVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (daiJoinVatTargetWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (daiJoinVatTargetWord σ I)
-  have htarget : daiJoinVatTargetWord σ I = daiJoinVatTargetWord τ I :=
-    daiJoinVatTargetWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem daiJoinVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (daiJoinVatTargetWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  exact hne (daiJoinVatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
-
-theorem daiJoinDaiCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (daiJoinDaiTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (daiJoinDaiTargetWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (daiJoinDaiTargetWord σ I)
-  have htarget : daiJoinDaiTargetWord σ I = daiJoinDaiTargetWord τ I :=
-    daiJoinDaiTargetWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem daiJoinDaiCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (daiJoinDaiTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (daiJoinDaiTargetWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  exact hne (daiJoinDaiCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
-
 theorem daiJoinAddress_eq_target (word : UInt256) :
     AccountAddress.ofNat word.toNat = AccountAddress.ofUInt256 word := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
@@ -108,39 +40,33 @@ theorem daiJoinEvmAddress_accountAddress (a : AccountAddress) :
   rw [show EVM.addressModulus = AccountAddress.size from by decide]
   exact Nat.mod_eq_of_lt a.isLt
 
-theorem daiJoinVatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    EVM.address (daiJoinVatAddress σ_solm I) =
-      AccountAddress.ofUInt256 (daiJoinVatTargetWord σ_evm I) := by
-  have haddr : daiJoinVatAddress σ_solm I = daiJoinVatAddress σ_evm I :=
-    (daiJoinVatAddress_accountMapEquiv hAccounts).symm
-  rw [haddr, daiJoinVatAddress_eq_target σ_evm I]
-  exact daiJoinEvmAddress_accountAddress _
+theorem daiJoinVatEvmAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
+    EVM.address (daiJoinVatAddress σ I) =
+      AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I) := by
+  rw [daiJoinEvmAddress_accountAddress]
+  exact daiJoinVatAddress_eq_target σ I
 
-theorem daiJoinDaiEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    EVM.address (daiJoinDaiAddress σ_solm I) =
-      AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ_evm I) := by
-  have haddr : daiJoinDaiAddress σ_solm I = daiJoinDaiAddress σ_evm I :=
-    (daiJoinDaiAddress_accountMapEquiv hAccounts).symm
-  rw [haddr, daiJoinDaiAddress_eq_target σ_evm I]
-  exact daiJoinEvmAddress_accountAddress _
+theorem daiJoinDaiEvmAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
+    EVM.address (daiJoinDaiAddress σ I) =
+      AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ I) := by
+  rw [daiJoinEvmAddress_accountAddress]
+  exact daiJoinDaiAddress_eq_target σ I
 
 theorem daiJoin_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem daiJoinCode_zero_of_codeSize_zero {evm : EVM.State} {target : UInt256}
     {addr : AccountAddress}
@@ -171,8 +97,9 @@ theorem daiJoinCode_pos_of_codeSize_ne_zero {evm : EVM.State} {target : UInt256}
       UInt256.ofNat ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord evm.accountMap target := by
     subst addr
-    cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 target) <;>
-      simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord, hacc,
+    cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 target) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord, hacc,
         Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

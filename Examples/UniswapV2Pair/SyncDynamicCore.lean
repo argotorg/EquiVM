@@ -29,7 +29,7 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw awLoad awStore0 awLog ptr : UInt256}
     {mcostLoad mcostStore0 mcostStore1 mcostLoadLog mcostLog : ℕ}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)

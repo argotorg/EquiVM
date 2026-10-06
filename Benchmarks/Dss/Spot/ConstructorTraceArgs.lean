@@ -11,18 +11,16 @@ namespace Benchmarks.Dss.Spot
 set_option maxRecDepth 2000000
 
 theorem spotInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = spotCtorCode vat)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (spotCtorCode vat) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (spotCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := spot_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -38,7 +36,7 @@ theorem spotInitcodeNonpayableRevert
 set_option maxHeartbeats 1000000 in
 theorem spotCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
     (h : RD (spotCtorCode vat) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
@@ -90,7 +88,7 @@ theorem spotCtorArgCopyTrace
 set_option maxHeartbeats 1000000 in
 theorem spotCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
     (h : RD (spotCtorCode vat) I g s0 ⟨38⟩
       [(UInt256.ofNat (spotCtorCode vat).size).sub ⟨2320⟩, ⟨128⟩]
@@ -116,21 +114,19 @@ theorem spotCtorArgSizeGuardTrace
   exact ⟨_, _, rd54'⟩
 
 theorem spotCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = spotCtorCode vat)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (spotCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨54⟩
+      (initState σ σ₀ g A I) ⟨54⟩
       [EVM.word vat.val] (spotCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   have rd8 :
       RD (spotCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+        (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := spotCtorCode vat) hcode
       (by spot_ctor_decode) (by spot_ctor_decode) (by spot_ctor_decode)
       (by spot_ctor_decode) (by spot_ctor_decode) (by spot_ctor_decode)
@@ -141,8 +137,8 @@ theorem spotCtorArgsReach
       (by spot_ctor_jd)
   have rd18' :
       RD (spotCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
       using rd18
   obtain ⟨_, _, rd38⟩ := spotCtorArgCopyTrace vat rd18'

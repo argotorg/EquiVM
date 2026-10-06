@@ -108,8 +108,8 @@ abbrev permitAllowanceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
     steps := [.mindex (permitHolderKey I), .mindex (permitSpenderKey I)] }
 
 def permitNonceStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (permitNonceStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (permitNonceStorageSlot I) ⟨0⟩)
 
 abbrev permitEvmNonceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   permitNonceStoredWord σ I
@@ -374,28 +374,6 @@ theorem permitEcrecoverCalldata_eq (evm : EVM.State) (I : ExecutionEnv) :
   unfold permitEcrecoverCalldata
   rw [byteArray_mk_toArray_eq_toByteArray]
   simp only [List.toByteArray_append, ByteArray.append_assoc]
-
-theorem permitEcrecoverCalldata_initState_accountMapEquiv {cA gh bl σ_evm σ_solm σ₀ A I}
-    {g : Sat256} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    permitEcrecoverCalldata (initState cA gh bl σ_evm σ₀ g A I) I =
-      permitEcrecoverCalldata (initState cA gh bl σ_solm σ₀ g A I) I := by
-  have hload :
-      Solm.EVM.storageLoad (initState cA gh bl σ_evm σ₀ g A I)
-          (initState cA gh bl σ_evm σ₀ g A I).executionEnv.codeOwner
-          domainSeparatorStorageSlot =
-        Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
-          (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner
-          domainSeparatorStorageSlot := by
-    simpa [initState] using
-      storageLoad_accountMapEquiv (by simpa [initState] using hAccounts) I.codeOwner
-        domainSeparatorStorageSlot
-  have hpacked :
-      permitDigestPackedByteArray (initState cA gh bl σ_evm σ₀ g A I) I =
-        permitDigestPackedByteArray (initState cA gh bl σ_solm σ₀ g A I) I := by
-    unfold permitDigestPackedByteArray
-    rw [hload]
-  unfold permitEcrecoverCalldata permitDigestBytes
-  rw [hpacked]
 
 theorem addressOfNat_toNat_masked (w : UInt256) :
     (AccountAddress.ofNat w.toNat).toNat = (UInt256.land w solcAddrMask).toNat := by
@@ -2232,14 +2210,14 @@ theorem daiDecode_permit_none_short {I : ExecutionEnv}
 
 /-! ## EVM external wrapper -/
 
-theorem daiPermitX_lenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_lenOk {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨833⟩
+      (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨833⟩
       [UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩, ⟨4⟩, ⟨686⟩, daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd810⟩ := hreach
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨256⟩ = ⟨0⟩ := by
@@ -2263,13 +2241,13 @@ theorem daiPermitX_lenOk {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd828 := rd825.push2 ⟨833⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, rd828.jumpiT (by native_decide) hjumpCond (by jump_dest) (by evm_ov)⟩
 
-theorem daiPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_shortarg {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 260)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd810⟩ := hreach
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨256⟩ = ⟨1⟩ := by
@@ -2298,16 +2276,16 @@ theorem daiPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd832 := rd831.dup1 (by native_decide) (by evm_ov)
   exact rd832.rev 0 (by native_decide) mem_cost (by evm_ov)
 
-theorem daiPermitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_decoded {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2428⟩
+      (initState σ σ₀ g A I) ⟨810⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2428⟩
       [permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd833⟩ := daiPermitX_lenOk hsz260 hsize hreach
   have rd899raw := evm_run rd833 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3190,17 +3168,17 @@ theorem permitDigestMem11_read418 (I : ExecutionEnv) (domainWord : UInt256) :
     permitWordMem_read_back (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
       (by rw [permitDigestMem10_size]; native_decide)
 
-theorem permitDigestMem11_read384_66_eq (cA gh bl σ σ₀ A I) (g : Sat256) :
+theorem permitDigestMem11_read384_66_eq (σ σ₀ A I) (g : Sat256) :
     ((permitDigestMem11 I
-      (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-        (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot))
+      (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot))
         |>.readWithPadding 384 66) =
-      permitDigestPackedByteArray (initState cA gh bl σ σ₀ g A I) I := by
+      permitDigestPackedByteArray (initState σ σ₀ g A I) I := by
   let domainWord :=
-    Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-      (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
+    Solm.EVM.storageLoad (initState σ σ₀ g A I)
+      (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
   change (permitDigestMem11 I domainWord).readWithPadding 384 66 =
-    permitDigestPackedByteArray (initState cA gh bl σ σ₀ g A I) I
+    permitDigestPackedByteArray (initState σ σ₀ g A I) I
   have hstructBytes :
       UInt256.toByteArray (permitStructHashMemWord I) =
         (permitStructHashBytes I).toByteArray := by
@@ -3235,22 +3213,22 @@ theorem permitDigestMem11_read384_66_eq (cA gh bl σ σ₀ A I) (g : Sat256) :
   rw [← ByteArray.append_assoc]
   rw [← List.toByteArray_append]
 
-theorem permitDigestMem13_read384_66_eq (cA gh bl σ σ₀ A I) (g : Sat256) :
+theorem permitDigestMem13_read384_66_eq (σ σ₀ A I) (g : Sat256) :
     ((permitDigestMem13 I
-      (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-        (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot))
+      (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot))
         |>.readWithPadding 384 66) =
-      permitDigestPackedByteArray (initState cA gh bl σ σ₀ g A I) I := by
+      permitDigestPackedByteArray (initState σ σ₀ g A I) I := by
   rw [permitDigestMem13_read384_66]
-  exact permitDigestMem11_read384_66_eq cA gh bl σ σ₀ A I g
+  exact permitDigestMem11_read384_66_eq σ σ₀ A I g
 
-theorem permitDigestWord_from_mem13 (cA gh bl σ σ₀ A I) (g : Sat256) :
+theorem permitDigestWord_from_mem13 (σ σ₀ A I) (g : Sat256) :
     UInt256.ofNat (fromByteArrayBigEndian
         (KEC ((permitDigestMem13 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)).readWithPadding 384 66))) =
-      permitDigestWord (initState cA gh bl σ σ₀ g A I) I := by
+      permitDigestWord (initState σ σ₀ g A I) I := by
   rw [permitDigestMem13_read384_66_eq]
   unfold permitDigestWord
   rw [uInt256OfByteArray_eq]
@@ -3546,14 +3524,14 @@ theorem permitEcrecoverMem5_read578
     permitWordMem_read_back (permitEcrecoverMem4 I domainWord digestWord) 578
       (permitSWord I) (by rw [permitEcrecoverMem4_size]; norm_num)
 
-theorem permitEcrecoverMem5_read482_128 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem permitEcrecoverMem5_read482_128 {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) :
     (permitEcrecoverMem5 I
-      (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-        (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot)
-      (permitDigestWord (initState cA gh bl σ σ₀ g A I) I)).readWithPadding 482 128 =
-      permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I := by
-  let evm := initState cA gh bl σ σ₀ g A I
+      (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot)
+      (permitDigestWord (initState σ σ₀ g A I) I)).readWithPadding 482 128 =
+      permitEcrecoverCalldata (initState σ σ₀ g A I) I := by
+  let evm := initState σ σ₀ g A I
   let domainWord :=
     Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
@@ -3650,7 +3628,7 @@ namespace Reasoning.Reach
 theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
@@ -3664,7 +3642,7 @@ theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
@@ -3694,12 +3672,12 @@ theorem permitSpenderMaskedWord_canonical (I : ExecutionEnv) :
   exact solcAddrMask_result_canonical (permitSpenderWord I)
 
 set_option maxHeartbeats 1000000 in
-theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_holderZeroRevert {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hz : permitHolderMaskedWord I = ⟨0⟩)
-    (hreach : ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨810⟩
-      [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
+      [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2428⟩ := daiPermitX_decoded hsz260 hsize hreach
   obtain ⟨_, _, rd2432raw⟩ := (evm_run rd2428 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3707,8 +3685,8 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd2432 := by
     simpa [domainSeparatorStorageSlot, initState, Solm.EVM.storageLoad] using rd2432raw
   let domainWord :=
-    Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-      (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
+    Solm.EVM.storageLoad (initState σ σ₀ g A I)
+      (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
   let mem1 := permitStructMem1 I
   let mem2 := permitStructMem2 I
   let mem3 := permitStructMem3 I
@@ -4080,21 +4058,21 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_nonzeroHolderReach2684 {σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨810⟩
-      [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2684⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (hreach : ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨810⟩
+      [daiSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitDigestMem13 I
-        (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-          (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+        (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+          (initState σ σ₀ g A I).executionEnv.codeOwner
           domainSeparatorStorageSlot))
-      (UInt256.ofNat 15) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 15) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd2428⟩ := daiPermitX_decoded hsz260 hsize hreach
   obtain ⟨_, _, rd2432raw⟩ := (evm_run rd2428 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -4102,8 +4080,8 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd2432 := by
     simpa [domainSeparatorStorageSlot, initState, Solm.EVM.storageLoad] using rd2432raw
   let domainWord :=
-    Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-      (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
+    Solm.EVM.storageLoad (initState σ σ₀ g A I)
+      (initState σ σ₀ g A I).executionEnv.codeOwner domainSeparatorStorageSlot
   let mem1 := permitStructMem1 I
   let mem2 := permitStructMem2 I
   let mem3 := permitStructMem3 I
@@ -4330,10 +4308,10 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa [mem13, mem11] using permitDigestMem13_read384_66 I domainWord])
     (by native_decide) (by evm_ov)
   have hdigest :
-      digestWord = permitDigestWord (initState cA gh bl σ σ₀ g A I) I := by
+      digestWord = permitDigestWord (initState σ σ₀ g A I) I := by
     unfold digestWord
     rw [← permitDigestMem13_read384_66 I domainWord]
-    simpa [domainWord] using permitDigestWord_from_mem13 cA gh bl σ σ₀ A I g
+    simpa [domainWord] using permitDigestWord_from_mem13 σ σ₀ A I g
   rw [hdigest] at rd2611hash
   have rd2615 := evm_run rd2611hash with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -4341,31 +4319,31 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, rd2615.jumpiT (by native_decide) hnz (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     {k C : ℕ}
-    (rd2684 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2684⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2684 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitDigestMem13 I
-        (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-          (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+        (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+          (initState σ σ₀ g A I).executionEnv.codeOwner
           domainSeparatorStorageSlot))
-      (UInt256.ofNat 15) ByteArray.empty (cA, σ) k C) :
-    ∃ gasArg k' C', RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2757⟩
+      (UInt256.ofNat 15) ByteArray.empty σ k C) :
+    ∃ gasArg k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2757⟩
       [gasArg, ⟨1⟩, ⟨482⟩, ⟨128⟩, ⟨450⟩, ⟨32⟩, ⟨610⟩, ⟨1⟩,
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverMem5 I
-        (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-          (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+        (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+          (initState σ σ₀ g A I).executionEnv.codeOwner
           domainSeparatorStorageSlot)
-        (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
-      (UInt256.ofNat 20) ByteArray.empty (cA, σ) k' C' := by
-  let evm := initState cA gh bl σ σ₀ g A I
+        (permitDigestWord (initState σ σ₀ g A I) I))
+      (UInt256.ofNat 20) ByteArray.empty σ k' C' := by
+  let evm := initState σ σ₀ g A I
   let domainWord :=
     Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
@@ -4481,42 +4459,41 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g 
   exact ⟨gasArg, _, _, by simpa [evm, domainWord, digestWord] using rd2757⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {σ σ₀ A I} {g : Sat256}
     {k C : ℕ}
     (hsz260 : 260 ≤ I.calldata.size) (hdepth : I.depth.val < 1024)
-    (rd2684 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2684⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2684 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2684⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitDigestMem13 I
-        (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-          (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+        (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+          (initState σ σ₀ g A I).executionEnv.codeOwner
           domainSeparatorStorageSlot))
-      (UInt256.ofNat 15) ByteArray.empty (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+      (UInt256.ofNat 15) ByteArray.empty σ k C) :
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
-          σ σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+      (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-          (permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I)
-          (I.depth + 1) I.header false)
-      ∧ RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2758⟩
+          (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
+      ∧ RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
           ((if z then (⟨1⟩ : UInt256) else ⟨0⟩) ::
-            [⟨610⟩, ⟨1⟩, permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+            [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
               permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
               permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
               permitHolderMaskedWord I, ⟨686⟩, daiSelWord I])
           (o.write 0
             (permitEcrecoverMem5 I
-              (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+              (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                (initState σ σ₀ g A I).executionEnv.codeOwner
                 domainSeparatorStorageSlot)
-              (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+              (permitDigestWord (initState σ σ₀ g A I) I))
             (⟨450⟩ : UInt256).toNat
             (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat
@@ -4524,9 +4501,9 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
               (MachineState.M (UInt256.ofNat 20).toNat (⟨482⟩ : UInt256).toNat
                 (⟨128⟩ : UInt256).toNat)
               (⟨450⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))
-          o (cA', σ') k' C'
+          o σ' k' C'
       ∧ o.size < UInt256.size := by
-  let evm := initState cA gh bl σ σ₀ g A I
+  let evm := initState σ σ₀ g A I
   let domainWord :=
     Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
@@ -4639,9 +4616,9 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
     raw swap1 (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov)]
   obtain ⟨_gasArg, rd2757⟩ := RD.gas rd2756 (by native_decide) (by evm_ov)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd2758, hoSize⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k', C', hΘ, rd2758, hoSize⟩ :=
     RD.solcStaticcall rd2757 (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, o, A_in, callGas, k', C', ?_, ?_, hoSize⟩
+  refine ⟨σ', z, o, A_in, callGas, k', C', ?_, ?_, hoSize⟩
   · rcases hΘ with ⟨g'', A', hΘ⟩
     refine ⟨g'', A', ?_⟩
     have hcalldata :
@@ -4649,12 +4626,12 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
           (((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
             ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + (⟨482⟩ : UInt256))))).sub
             (⟨482⟩ : UInt256)).toNat =
-          permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I := by
+          permitEcrecoverCalldata (initState σ σ₀ g A I) I := by
       rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
       change mem5.readWithPadding 482 128 =
-        permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I
+        permitEcrecoverCalldata (initState σ σ₀ g A I) I
       simpa [mem5, evm, domainWord, digestWord] using
-        permitEcrecoverMem5_read482_128 (cA := cA) (gh := gh) (bl := bl)
+        permitEcrecoverMem5_read482_128
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz260
     rw [hcalldata] at hΘ
     simpa [evm, initState, domainWord, digestWord] using hΘ
@@ -4698,25 +4675,25 @@ theorem toExecute_ecrecover_precompile (σ : AccountMap) :
   rw [if_pos hmem]
 
 theorem permitStaticcallTheta_ecrecover_output_size
-    {blobVersionedHashes cA gh bl σ σ₀ A_in r s g p v v' d e H w cA' σ' g' A' z o}
-    (hΘ : (cA', σ', g', A', z, o) =
-      Θ blobVersionedHashes cA gh bl σ σ₀ A_in r s
+    {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
+    (hΘ : (σ', g', A', z, o) =
+      Θ σ σ₀ A_in r s
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
-        g p v v' d e H w) :
+          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          g p v v' d e H blobVersionedHashes blocks w) :
     o.size = 0 ∨ o.size = 32 := by
   have hpre : toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
     exact toExecute_ecrecover_precompile σ
   have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
     native_decide
-  have hout := congrArg (fun x => x.2.2.2.2.2.size) hΘ
+  have hout := congrArg (fun x => x.2.2.2.2.size) hΘ
   have hout' :
       o.size =
-        (Θ blobVersionedHashes cA gh bl σ σ₀ A_in r s
+        (Θ σ σ₀ A_in r s
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
           (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
-          g p v v' d e H w).2.2.2.2.2.size := by
+          g p v v' d e H blobVersionedHashes blocks w).2.2.2.2.size := by
     simpa using hout
   rw [hout']
   unfold Θ
@@ -4725,18 +4702,18 @@ theorem permitStaticcallTheta_ecrecover_output_size
   exact ecrecover_output_size _ g A_in _
 
 theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o mem : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o mem : ByteArray}
     {aw : UInt256} {k C : ℕ}
-    (rd2758 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2758⟩
+    (rd2758 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
       (⟨0⟩ ::
-        [⟨610⟩, ⟨1⟩, permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hoSize : o.size < UInt256.size) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨2774⟩) rd2758 rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5003,50 +4980,50 @@ theorem permitApprovalLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
       exact hread64)
 
 theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2758 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2758⟩
+    (rd2758 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2758⟩
       (⟨1⟩ ::
-        [⟨610⟩, ⟨1⟩, permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        [⟨610⟩, ⟨1⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I])
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k C)
+      permitEcrecoverStaticcallAw o σ' k C)
     (hoSize : o.size < UInt256.size) :
-    ∃ k' C', RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2808⟩
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
             (permitMloadWord
               (permitEcrecoverReturnMem
                 (permitEcrecoverMem5 I
-                  (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                    (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+                  (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                    (initState σ σ₀ g A I).executionEnv.codeOwner
                     domainSeparatorStorageSlot)
-                  (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+                  (permitDigestWord (initState σ σ₀ g A I) I))
                 o)
               permitEcrecoverStaticcallAw ⟨450⟩)),
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
-  let evm := initState cA gh bl σ σ₀ g A I
+      permitEcrecoverStaticcallAw o σ' k' C' := by
+  let evm := initState σ σ₀ g A I
   let domainWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
   let baseMem := permitEcrecoverMem5 I domainWord digestWord
@@ -5110,94 +5087,94 @@ theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
   exact ⟨_, _, by simpa [evm, domainWord, digestWord, baseMem, memRet, recoveredWord] using rd2808⟩
 
 theorem daiPermitX_nonzeroHolderRecoveredOkAfter2808
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2808 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2808⟩
+    (rd2808 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
             (permitMloadWord
               (permitEcrecoverReturnMem
                 (permitEcrecoverMem5 I
-                  (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                    (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+                  (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                    (initState σ σ₀ g A I).executionEnv.codeOwner
                     domainSeparatorStorageSlot)
-                  (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+                  (permitDigestWord (initState σ σ₀ g A I) I))
                 o)
               permitEcrecoverStaticcallAw ⟨450⟩)),
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k C)
+      permitEcrecoverStaticcallAw o σ' k C)
     (hcond :
       UInt256.eq (permitHolderMaskedWord I)
         (UInt256.land solcAddrMask
           (permitMloadWord
             (permitEcrecoverReturnMem
               (permitEcrecoverMem5 I
-                (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                  (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+                (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                  (initState σ σ₀ g A I).executionEnv.codeOwner
                   domainSeparatorStorageSlot)
-                (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+                (permitDigestWord (initState σ σ₀ g A I) I))
               o)
             permitEcrecoverStaticcallAw ⟨450⟩)) ≠ ⟨0⟩) :
-    ∃ k' C', RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2874⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
+      permitEcrecoverStaticcallAw o σ' k' C' := by
   exact ⟨_, _, rd2808.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)⟩
 
 theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2874 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2874⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2874 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k C)
+      permitEcrecoverStaticcallAw o σ' k C)
     (hexpiryOk :
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat I.header.timestamp).toNat ≤ (permitExpiryWord I).toNat) :
-    ∃ k' C', RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2957⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
+      permitEcrecoverStaticcallAw o σ' k' C' := by
   have rd2881 := evm_run rd2874 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -5253,28 +5230,28 @@ theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderExpiredAfter2874
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2874 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2874⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2874 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2874⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k C)
+      permitEcrecoverStaticcallAw o σ' k C)
     (hoSize : o.size < UInt256.size)
     (hexpiryNonzero : permitExpiryWord I ≠ ⟨0⟩)
     (hexpired :
       (permitExpiryWord I).toNat < (UInt256.ofNat I.header.timestamp).toNat) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  let evm := initState cA gh bl σ σ₀ g A I
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+  let evm := initState σ σ₀ g A I
   let domainWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
   let baseMem := permitEcrecoverMem5 I domainWord digestWord
@@ -5396,34 +5373,34 @@ theorem daiPermitX_nonzeroHolderExpiredAfter2874
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap} {o : ByteArray}
     {k C : ℕ}
-    (rd2808 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2808⟩
+    (rd2808 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2808⟩
       [⟨2874⟩,
         UInt256.eq (permitHolderMaskedWord I)
           (UInt256.land solcAddrMask
             (permitMloadWord
               (permitEcrecoverReturnMem
                 (permitEcrecoverMem5 I
-                  (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                    (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+                  (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                    (initState σ σ₀ g A I).executionEnv.codeOwner
                     domainSeparatorStorageSlot)
-                  (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+                  (permitDigestWord (initState σ σ₀ g A I) I))
                 o)
               permitEcrecoverStaticcallAw ⟨450⟩)),
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitEcrecoverReturnMem
         (permitEcrecoverMem5 I
-          (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-            (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+            (initState σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)
-          (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+          (permitDigestWord (initState σ σ₀ g A I) I))
         o)
-      permitEcrecoverStaticcallAw o (cA', σ') k C)
+      permitEcrecoverStaticcallAw o σ' k C)
     (hoSize : o.size < UInt256.size)
     (hcond :
       UInt256.eq (permitHolderMaskedWord I)
@@ -5431,14 +5408,14 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
           (permitMloadWord
             (permitEcrecoverReturnMem
               (permitEcrecoverMem5 I
-                (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-                  (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+                (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+                  (initState σ σ₀ g A I).executionEnv.codeOwner
                   domainSeparatorStorageSlot)
-                (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
+                (permitDigestWord (initState σ σ₀ g A I) I))
               o)
             permitEcrecoverStaticcallAw ⟨450⟩)) = ⟨0⟩) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  let evm := initState cA gh bl σ σ₀ g A I
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+  let evm := initState σ σ₀ g A I
   let domainWord := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner domainSeparatorStorageSlot
   let digestWord := permitDigestWord evm I
   let baseMem := permitEcrecoverMem5 I domainWord digestWord
@@ -5465,12 +5442,12 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd2813 :
-      RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2813⟩
-        [⟨482⟩, ⟨64⟩, permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+      RD daiBytecode I g (initState σ σ₀ g A I) ⟨2813⟩
+        [⟨482⟩, ⟨64⟩, permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-        memRet permitEcrecoverStaticcallAw o (cA', σ')
+        memRet permitEcrecoverStaticcallAw o σ'
         (k + 1 + 1 + 1 + 1) (C + 10 + 3 + 3 + (0 + 3)) := by
     simpa [evm, domainWord, digestWord, baseMem, memRet] using
       RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd2812
@@ -5541,26 +5518,26 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
 theorem daiPermitX_nonceBranchAfter2957
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd2957 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2957⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      memRet permitEcrecoverStaticcallAw o (cA', σ') k C) :
-    ∃ k' C', RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2996⟩
+      memRet permitEcrecoverStaticcallAw o σ' k C) :
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
       [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k' C' := by
+      (permitEvmAfterNonceAccountMap σ' I) k' C' := by
   have hmask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -5628,20 +5605,20 @@ theorem daiPermitX_nonceBranchAfter2957
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonceMismatchAfter2957
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hnonce : permitNonceWord I ≠ permitEvmNonceWord σ' I)
-    (rd2957 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2957⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      memRet permitEcrecoverStaticcallAw o (cA', σ') k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      memRet permitEcrecoverStaticcallAw o σ' k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   let memHash := permitNonceHashMem memRet I
   let err0 := (UInt256.toByteArray solcErrorStringSelector).write 0 memHash 482 32
   let err1 := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 486 32
@@ -5732,24 +5709,24 @@ theorem daiPermitX_nonceMismatchAfter2957
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_successLogStopAfter3124
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {acct : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {acct : AccountMap}
     {o memAllowance : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memAllowance.size = 610)
     (hread64 : memAllowance.readWithPadding 64 32 =
       UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3124 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3124⟩
+    (rd3124 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
       [⟨32⟩, ⟨64⟩, permitHolderMaskedWord I, permitSpenderMaskedWord I,
         permitWadWord I, ⟨0⟩,
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memAllowance permitEcrecoverStaticcallAw o
-      (cA', acct) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', acct) ByteArray.empty := by
+      acct k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      acct ByteArray.empty := by
   let memLog := permitApprovalLogMem memAllowance I
   have hmloadAllow64 :
       permitMloadWord memAllowance permitEcrecoverStaticcallAw ⟨64⟩ =
@@ -5818,30 +5795,30 @@ theorem daiPermitX_successLogStopAfter3124
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_successStorageAfter3079
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3079 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3079⟩
+    (rd3079 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
       [permitWadWord I, ⟨0⟩,
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3124⟩
+      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3124⟩
         [⟨32⟩, ⟨64⟩, permitHolderMaskedWord I, permitSpenderMaskedWord I,
           permitWadWord I, ⟨0⟩,
-          permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+          permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
         (permitAllowanceHashMem (permitNonceHashMem memRet I) I)
-        permitEcrecoverStaticcallAw o (cA', permitEvmPostAccountMap σ' I) k' C' := by
+        permitEcrecoverStaticcallAw o (permitEvmPostAccountMap σ' I) k' C' := by
   let memNonce := permitNonceHashMem memRet I
   let memOwner := permitAllowanceOwnerHashMem memNonce I
   let memAllowance := permitAllowanceHashMem memNonce I
@@ -5973,22 +5950,22 @@ theorem daiPermitX_successStorageAfter3079
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_successTailAfter3079
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
-    (rd3079 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3079⟩
+    (rd3079 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
       [permitWadWord I, ⟨0⟩,
-        permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+        permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', permitEvmPostAccountMap σ' I) ByteArray.empty := by
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   let memNonce := permitNonceHashMem memRet I
   let memOwner := permitAllowanceOwnerHashMem memNonce I
   let memAllowance := permitAllowanceHashMem memNonce I
@@ -6029,27 +6006,27 @@ theorem daiPermitX_successTailAfter3079
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_after3061_allowedZero_to3079
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hclean : permitAllowedCleanWord I = ⟨0⟩)
     (hwad : permitWadWord I = ⟨0⟩)
-    (rd3061 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3079⟩
+      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
         [permitWadWord I, ⟨0⟩,
-          permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+          permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
         (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-        (cA', permitEvmAfterNonceAccountMap σ' I) k' C' := by
+        (permitEvmAfterNonceAccountMap σ' I) k' C' := by
   have rd3068 := evm_run rd3061 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -6064,27 +6041,27 @@ theorem daiPermitX_after3061_allowedZero_to3079
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_after3061_allowedNonzero_to3079
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hclean : permitAllowedCleanWord I = ⟨1⟩)
     (hwad : permitWadWord I = UInt256.lnot ⟨0⟩)
-    (rd3061 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
     ∃ k' C',
-      RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3079⟩
+      RD daiBytecode I g (initState σ σ₀ g A I) ⟨3079⟩
         [permitWadWord I, ⟨0⟩,
-          permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+          permitDigestWord (initState σ σ₀ g A I) I,
           permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
           permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
           permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
         (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-        (cA', permitEvmAfterNonceAccountMap σ' I) k' C' := by
+        (permitEvmAfterNonceAccountMap σ' I) k' C' := by
   have rd3068 := evm_run rd3061 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -6101,22 +6078,22 @@ theorem daiPermitX_after3061_allowedNonzero_to3079
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_successAfter3061_allowedZero
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hallowedZero : (permitAllowedWord I).toNat = 0)
-    (rd3061 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', permitEvmPostAccountMap σ' I) ByteArray.empty := by
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   have hclean : permitAllowedCleanWord I = ⟨0⟩ := by
     unfold permitAllowedCleanWord
     have hzero : permitAllowedWord I = ⟨0⟩ := uint256_toNat_eq_zero hallowedZero
@@ -6130,22 +6107,22 @@ theorem daiPermitX_successAfter3061_allowedZero
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_successAfter3061_allowedNonzero
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hallowedNonzero : ¬ (permitAllowedWord I).toNat = 0)
-    (rd3061 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd3061 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (cA', permitEvmAfterNonceAccountMap σ' I) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', permitEvmPostAccountMap σ' I) ByteArray.empty := by
+      (permitEvmAfterNonceAccountMap σ' I) k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   have hclean : permitAllowedCleanWord I = ⟨1⟩ := by
     unfold permitAllowedCleanWord
     have hnz : permitAllowedWord I ≠ ⟨0⟩ := by
@@ -6161,21 +6138,21 @@ theorem daiPermitX_successAfter3061_allowedNonzero
 
 set_option maxHeartbeats 2000000 in
 theorem daiPermitX_successAfter2957
-    {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hnonce : permitNonceWord I = permitEvmNonceWord σ' I)
-    (rd2957 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2957⟩
-      [permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
+    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
         permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      memRet permitEcrecoverStaticcallAw o (cA', σ') k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', permitEvmPostAccountMap σ' I) ByteArray.empty := by
+      memRet permitEcrecoverStaticcallAw o σ' k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (permitEvmPostAccountMap σ' I) ByteArray.empty := by
   obtain ⟨_, _, rd2996⟩ :=
     daiPermitX_nonceBranchAfter2957 (g := g) hperm hmem hread64 rd2957
   have heqOne : UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I) = ⟨1⟩ := by
@@ -6191,25 +6168,24 @@ theorem daiPermitX_successAfter2957
   · exact daiPermitX_successAfter3061_allowedNonzero (g := g)
       hperm hmem hread64 hallowedZero rd3061
 
-theorem permitStaticcallTheta_callViaEVM {cA gh bl σ σ₀ A I} {g : Sat256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem permitStaticcallTheta_callViaEVM {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
     {z : Bool} {o : ByteArray} {A_in : Substate} {callGas g'' : UInt256}
     {A' : Substate}
     (hdepth : I.depth.val < 1024)
     (hΘ :
-      (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
-        σ σ₀ A_in
+      (σ', g'', A', z, o) = Ethereum.EVM.Θ σ σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
         (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-        (permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I)
-        (I.depth + 1) I.header false) :
-    callViaEVM (initState cA gh bl σ σ₀ g A I) (EVM.address (AccountAddress.ofNat 1)) 0
-      (permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I)
+        (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
+        (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
+    callViaEVM (initState σ σ₀ g A I) (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata (initState σ σ₀ g A I) I)
       (z,
-        { initState cA gh bl σ σ₀ g A I with
-          accountMap := σ', substate := A', createdAccounts := cA' },
+        { initState σ σ₀ g A I with
+          accountMap := σ', substate := A' },
         o) false := by
   apply callViaEVM.callMade (perm := false) wordOfInt_zero.symm
   · refine ⟨callGas, A_in, ?_⟩
@@ -6223,22 +6199,21 @@ theorem permitStaticcallTheta_callViaEVM {cA gh bl σ σ₀ A I} {g : Sat256}
     omega
 
 /-- `permit(address,address,uint256,uint256,bool,uint8,bytes32,bytes32)` body refines its Solm transition. -/
-theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 11)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 11) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some permitTransition :=
     daiDispatchPermit hsel
-  have hreach := daiReachPermitBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachPermitBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz260 : 260 ≤ I.calldata.size
   · have hdecode := daiDecode_permit_ok (I := I) hsz260
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
     by_cases hz : permitHolderMaskedWord I = ⟨0⟩
     · have hbody :
           ExecTransitionBody config contract evmSolm (permitStore I)
@@ -6256,35 +6231,35 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         daiPermitX_nonzeroHolderStaticcallFrom2684
           (g := Sat256.ofUInt256 g) hsz260 hdepth rd2684
       by_cases hdepth : I.depth.val < 1024
-      · obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘex, rd2758, hoSize⟩ :=
+      · obtain ⟨σ', z, o, A_in, callGas, k', C', hΘex, rd2758, hoSize⟩ :=
           hstaticOnDepth hdepth
         rcases hΘex with ⟨g'', A', hΘ⟩
         have hcallEvm :
-            callViaEVM (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+            callViaEVM (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (EVM.address (AccountAddress.ofNat 1)) 0
               (permitEcrecoverCalldata
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
               (z,
-                { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-                  accountMap := σ', substate := A', createdAccounts := cA' },
+                { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+                  accountMap := σ', substate := A' },
                 o) false := by
           exact permitStaticcallTheta_callViaEVM
             (g := Sat256.ofUInt256 g) hdepth hΘ
-        obtain ⟨σ'_solm, A'_solm, hcallSolm, hAccountsCallRaw⟩ :=
-          callViaEVM_initState_accountMapEquiv_perm
-            (storage := config.storage) hcallEvm hAccounts
+        let σ'_solm := σ'
+        let A'_solm := A'
+        have hcallSolm :
+            callViaEVM evmSolm (EVM.address (AccountAddress.ofNat 1)) 0
+              (permitEcrecoverCalldata evmSolm I)
+              (z, { evmSolm with accountMap := σ'_solm, substate := A'_solm }, o) false := by
+          simpa [evmSolm, σ'_solm, A'_solm] using hcallEvm
         have hcalldata :
             permitEcrecoverCalldata
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I =
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I =
               permitEcrecoverCalldata evmSolm I := by
-          simpa [evmSolm] using
-            permitEcrecoverCalldata_initState_accountMapEquiv
-              (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-              (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-              (g := Sat256.ofUInt256 g) hAccounts
+          rfl
         rw [hcalldata] at hcallSolm
         by_cases hzcall : z = true
-        · let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        · let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let domainWord :=
             Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner domainSeparatorStorageSlot
           let digestWord := permitDigestWord evmE I
@@ -6292,23 +6267,18 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           let memRet := permitEcrecoverReturnMem baseMem o
           let evmPostSolm :=
             { evmSolm with
-              accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }
+              accountMap := σ'_solm, substate := A'_solm }
           have hcallSucceeded :
               callViaEVM evmSolm (EVM.address (AccountAddress.ofNat 1)) 0
                 (permitEcrecoverCalldata evmSolm I) (true, evmPostSolm, o) false := by
             simpa [evmPostSolm, evmSolm, hzcall] using hcallSolm
-          have hAccountsCall : accountMapEquiv σ' σ'_solm := by
-            simpa using hAccountsCallRaw
           have hnonceLoad :
-              permitEvmNonceWord σ' I =
+            permitEvmNonceWord σ' I =
                 Solm.EVM.storageLoad evmPostSolm evmPostSolm.executionEnv.codeOwner
                   (permitNonceStorageSlot I) := by
-            have hread :=
-              accountMapEquiv_storage_findD hAccountsCall I.codeOwner
-                (permitNonceStorageSlot I) (⟨0⟩ : UInt256)
-            simpa [permitEvmNonceWord, permitNonceStoredWord, evmPostSolm, evmSolm,
-              initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-              using hread
+            simp [permitEvmNonceWord, permitNonceStoredWord, evmPostSolm, evmSolm,
+              σ'_solm, initState, Solm.EVM.storageLoad, State.lookupAccount,
+              Account.lookupStorage]
           have hrd2758 :
               RD daiBytecode I (Sat256.ofUInt256 g) evmE ⟨2758⟩
                 (⟨1⟩ ::
@@ -6317,7 +6287,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     permitAllowedCleanWord I, permitExpiryWord I, permitNonceWord I,
                     permitSpenderMaskedWord I, permitHolderMaskedWord I, ⟨686⟩,
                     daiSelWord I])
-                memRet permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
+                memRet permitEcrecoverStaticcallAw o σ' k' C' := by
             simpa [hzcall, evmE, domainWord, digestWord, baseMem, memRet,
               permitEcrecoverReturnMem] using rd2758
           have hbaseSize : baseMem.size = 610 := by
@@ -6417,31 +6387,27 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       hsz260 (by simpa [evmSolm, initState] using hwv) hz
                       hcallSucceeded hdecRet heqRecovered hexpiryOk hnonceSolm
                   have hAccountsAfterNonce :
-                      accountMapEquiv (permitEvmAfterNonceAccountMap σ' I)
+                      permitEvmAfterNonceAccountMap σ' I =
                         (permitPostNonceState evmPostSolm I).accountMap := by
-                    simpa [permitEvmAfterNonceAccountMap, permitPostNonceState,
-                      evmPostSolm, evmSolm, initState, storageStore_accountMap,
-                      hnonceLoad] using
-                      accountMapEquiv_sstoreAccountMap I.codeOwner
-                        (permitNonceStorageSlot I)
-                        (permitEvmNonceWord σ' I + ⟨1⟩) hAccountsCall
+                    rw [permitPostNonceState, storageStore_accountMap]
+                    change sstoreAccountMap I.codeOwner σ' (permitNonceStorageSlot I)
+                        (permitEvmNonceWord σ' I + ⟨1⟩) =
+                      sstoreAccountMap I.codeOwner σ' (permitNonceStorageSlot I)
+                        (UInt256.add
+                          (Solm.EVM.storageLoad evmPostSolm evmPostSolm.executionEnv.codeOwner
+                            (permitNonceStorageSlot I)) ⟨1⟩)
+                    congr 1
                   have hAccountsPost :
-                      accountMapEquiv (permitEvmPostAccountMap σ' I)
+                      permitEvmPostAccountMap σ' I =
                         (permitPostState evmPostSolm I).accountMap := by
-                    simpa [permitEvmPostAccountMap, permitPostState, evmPostSolm,
-                      evmSolm, initState, storageStore_accountMap] using
-                      accountMapEquiv_sstoreAccountMap I.codeOwner
-                        (permitAllowanceStorageSlot I) (permitWadWord I)
-                        hAccountsAfterNonce
-                  have hCreatedPost :
-                      cA' = (permitPostState evmPostSolm I).createdAccounts := by
-                    simp [permitPostState, permitPostNonceState, evmPostSolm,
-                      storageStore_createdAccounts]
+                    simp [permitEvmPostAccountMap, permitPostState, permitPostNonceState,
+                      evmPostSolm, evmSolm, σ'_solm, A'_solm, initState, storageStore_accountMap,
+                      hAccountsAfterNonce]
                   exact
                     (daiPermitX_successAfter2957
-                      (g := Sat256.ofUInt256 g) hperm hmemRet hread64 hnonce rd2957)
-                    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                      hCreatedPost hAccountsPost
+                    (g := Sat256.ofUInt256 g) hperm hmemRet hread64 hnonce rd2957)
+                    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+                      hAccountsPost
                       (by
                         simpa [permitTransition] using
                           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
@@ -6579,11 +6545,11 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hrd2758 :
               RD daiBytecode I (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2758⟩
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2758⟩
                 (⟨0⟩ ::
                   [⟨610⟩, ⟨1⟩,
                     permitDigestWord
-                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I,
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I,
                     permitSWord I, permitRWord I, permitVMaskedWord I,
                     permitAllowedCleanWord I, permitExpiryWord I, permitNonceWord I,
                     permitSpenderMaskedWord I, permitHolderMaskedWord I, ⟨686⟩,
@@ -6591,11 +6557,11 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (o.write 0
                   (permitEcrecoverMem5 I
                     (Solm.EVM.storageLoad
-                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                       domainSeparatorStorageSlot)
                     (permitDigestWord
-                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I))
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I))
                   (⟨450⟩ : UInt256).toNat
                   (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
                 (UInt256.ofNat
@@ -6603,11 +6569,11 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (MachineState.M (UInt256.ofNat 20).toNat (⟨482⟩ : UInt256).toNat
                       (⟨128⟩ : UInt256).toNat)
                     (⟨450⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))
-                o (cA', σ') k' C' := by
+                o σ' k' C' := by
             simpa [hzcall] using rd2758
           let evmPostSolm :=
             { evmSolm with
-              accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }
+              accountMap := σ'_solm, substate := A'_solm }
           have hcallFailed :
               callViaEVM evmSolm (EVM.address (AccountAddress.ofNat 1)) 0
                 (permitEcrecoverCalldata evmSolm I) (false, evmPostSolm, o) false := by

@@ -779,7 +779,7 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
         (Solm.EVM.storageLoad (auctionDeleteAfterTic id evm)
           (auctionDeleteAfterTic id evm).executionEnv.codeOwner (auctionPackedSlot id)) =
       ⟨0⟩ := by
-  by_cases hacc0 : evm.accountMap.find? evm.executionEnv.codeOwner = none
+  by_cases hacc0 : evm.accountMap.get? evm.executionEnv.codeOwner = none
   · have hbid : auctionDeleteAfterBid id evm = evm := by
       exact storageStore_absent evm evm.executionEnv.codeOwner hacc0 (auctionBidSlot id) ⟨0⟩
     have hlot : auctionDeleteAfterLot id evm = evm := by
@@ -799,17 +799,22 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot id)))]
     have hload :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot id) = ⟨0⟩ := by
+      rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0
       simp [Solm.EVM.storageLoad, State.lookupAccount, hacc0, Option.option]
     rw [htic, hload]
     exact clearUint48Offset26Word_zero
   · obtain ⟨_, hacc0some⟩ := Option.ne_none_iff_exists'.mp hacc0
+    have hacc0someElem := hacc0some
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0someElem
     have haccLotExists :
-        ∃ acc, (auctionDeleteAfterLot id evm).accountMap.find?
+        ∃ acc, (auctionDeleteAfterLot id evm).accountMap.get?
           (auctionDeleteAfterLot id evm).executionEnv.codeOwner = some acc := by
       simp [auctionDeleteAfterLot, auctionDeleteAfterBid, Solm.EVM.storageStore,
-        State.lookupAccount, hacc0some, Option.option, State.setAccount,
-        accountMap_find_insert_self]
+        State.lookupAccount, hacc0someElem, Option.option, State.setAccount,
+        Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccLot⟩ := haccLotExists
+    have haccLotElem := haccLot
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccLotElem
     have hloadGuy :
         Solm.EVM.storageLoad (auctionDeleteAfterGuy id evm)
             (auctionDeleteAfterGuy id evm).executionEnv.codeOwner (auctionPackedSlot id) =
@@ -827,10 +832,10 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
           (Solm.EVM.storageLoad (auctionDeleteAfterLot id evm)
             (auctionDeleteAfterLot id evm).executionEnv.codeOwner (auctionPackedSlot id)) ⟨0⟩)
     have haccGuyExists :
-        ∃ acc, (auctionDeleteAfterGuy id evm).accountMap.find?
+        ∃ acc, (auctionDeleteAfterGuy id evm).accountMap.get?
           (auctionDeleteAfterGuy id evm).executionEnv.codeOwner = some acc := by
-      simp [auctionDeleteAfterGuy, haccLot, Solm.EVM.storageStore, State.lookupAccount,
-        Option.option, State.setAccount, accountMap_find_insert_self]
+      simp [auctionDeleteAfterGuy, haccLotElem, Solm.EVM.storageStore, State.lookupAccount,
+        Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccGuy⟩ := haccGuyExists
     have hloadTic :
         Solm.EVM.storageLoad (auctionDeleteAfterTic id evm)
@@ -851,9 +856,9 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
     exact clearUint48Offset26_after_offset20_after_address_zero _
 
 set_option maxHeartbeats 1000000 in
-theorem auctionDeletePostState_accountMapEquiv (id : UInt256) (evm : EVM.State)
+theorem auctionDeletePostState_accountMapEq (id : UInt256) (evm : EVM.State)
     (owner : AccountAddress) (howner : evm.executionEnv.codeOwner = owner) :
-    accountMapEquiv (auctionRuntimeDeleteAccountMap owner id evm.accountMap)
+    auctionRuntimeDeleteAccountMap owner id evm.accountMap =
       (auctionDeletePostState id evm).accountMap := by
   let srcOwner := evm.executionEnv.codeOwner
   let bidSlot := auctionBidSlot id
@@ -877,27 +882,26 @@ theorem auctionDeletePostState_accountMapEquiv (id : UInt256) (evm : EVM.State)
   have hfinal : vEnd = ⟨0⟩ := by
     simpa [vEnd, packedSlot] using auctionDeletePackedFinalWord_zero id evm
   have h1 :
-      accountMapEquiv (sstoreAccountMap srcOwner m2 packedSlot vEnd)
-        (sstoreAccountMap srcOwner (sstoreAccountMap srcOwner m2 packedSlot vGuy)
-          packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update m2 srcOwner packedSlot vGuy vEnd
+      sstoreAccountMap srcOwner m2 packedSlot vEnd =
+        sstoreAccountMap srcOwner (sstoreAccountMap srcOwner m2 packedSlot vGuy)
+          packedSlot vEnd :=
+    sstoreAccountMap_self_update m2 srcOwner packedSlot vGuy vEnd
   have h2 :
-      accountMapEquiv
-        (sstoreAccountMap srcOwner (sstoreAccountMap srcOwner m2 packedSlot vGuy)
-          packedSlot vEnd)
-        (sstoreAccountMap srcOwner
+      sstoreAccountMap srcOwner (sstoreAccountMap srcOwner m2 packedSlot vGuy)
+          packedSlot vEnd =
+        sstoreAccountMap srcOwner
           (sstoreAccountMap srcOwner
             (sstoreAccountMap srcOwner m2 packedSlot vGuy) packedSlot vTic)
-          packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update
+          packedSlot vEnd :=
+    sstoreAccountMap_self_update
       (sstoreAccountMap srcOwner m2 packedSlot vGuy) srcOwner packedSlot vTic vEnd
-  have h := accountMapEquiv.trans h1 h2
+  have h := h1.trans h2
   have hleftEq :
       sstoreAccountMap srcOwner m2 packedSlot vEnd =
         sstoreAccountMap srcOwner m2 packedSlot ⟨0⟩ := by
     rw [hfinal]
   have h' :
-      accountMapEquiv (sstoreAccountMap srcOwner m2 packedSlot ⟨0⟩)
+      sstoreAccountMap srcOwner m2 packedSlot ⟨0⟩ =
         (sstoreAccountMap srcOwner
           (sstoreAccountMap srcOwner
             (sstoreAccountMap srcOwner m2 packedSlot vGuy) packedSlot vTic)
@@ -957,87 +961,6 @@ theorem twoWordHashMem_solcMappingSlot_any (baseSlot key : UInt256) (mem : ByteA
   rw [twoWordHashMem_read0_64_any]
   unfold solcMappingSlot
   exact mappingSlot_single key baseSlot
-
-theorem flopperSlotWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flopperSlotWord slot σ I = flopperSlotWord slot τ I :=
-  accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-
-theorem flopperUint48Offset6Word_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flopperUint48Offset6Word slot σ I = flopperUint48Offset6Word slot τ I := by
-  simp [flopperUint48Offset6Word, flopperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem flopperUint48Offset20Word_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flopperUint48Offset20Word slot σ I = flopperUint48Offset20Word slot τ I := by
-  simp [flopperUint48Offset20Word, flopperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem flopperUint48Offset26Word_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flopperUint48Offset26Word slot σ I = flopperUint48Offset26Word slot τ I := by
-  simp [flopperUint48Offset26Word, flopperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem flopperAddressReturnWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    flopperAddressReturnWord slot σ I = flopperAddressReturnWord slot τ I := by
-  simp [flopperAddressReturnWord, flopperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem flopperAddressOfSlot_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
-    AccountAddress.ofNat (flopperAddressReturnWord slot σ I).toNat =
-      AccountAddress.ofNat (flopperAddressReturnWord slot τ I).toNat := by
-  simp [flopperAddressReturnWord_accountMapEquiv hAccounts slot]
-
-theorem flopperCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) {target : UInt256}
-    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ target ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target
-  rw [hsame]
-  exact hzero
-
-theorem flopperCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) {target : UInt256}
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ target = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target
-  rw [← hsame]
-  exact hzero
-
-theorem flopperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flopperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flopperAddressReturnWord slot σ I)
-  have htarget :
-      flopperAddressReturnWord slot σ I = flopperAddressReturnWord slot τ I :=
-    flopperAddressReturnWord_accountMapEquiv hAccounts slot
-  rw [hsame, htarget]
-  exact hzero
-
-theorem flopperCodeSize_zero_accountMapEquiv_addressSlot {σ τ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (flopperAddressReturnWord slot τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (flopperAddressReturnWord slot σ I)
-  have htarget :
-      flopperAddressReturnWord slot σ I = flopperAddressReturnWord slot τ I :=
-    flopperAddressReturnWord_accountMapEquiv hAccounts slot
-  rw [← htarget, ← hsame]
-  exact hzero
 
 theorem decodeCalldata_legacyAddress_uint256_uint256_ok {cd : ByteArray}
     {x y z : Solm.Ident}
@@ -1258,7 +1181,7 @@ theorem flopper_u256_mul_div_overflow_ne (x y : UInt256)
 theorem RD.flopperCheckedMulReturns
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1010)
     (hret : (D_J flopperBytecode 0).contains ret = true)
@@ -1340,7 +1263,7 @@ theorem RD.flopperCheckedMulReturns
 theorem RD.flopperCheckedMulOverflowReverts
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1010)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
@@ -1397,7 +1320,7 @@ theorem RD.flopperCheckedMulOverflowReverts
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperAuctionDeleteTail
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {k C : ℕ} {drop0 drop1 drop2 scratch id : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
@@ -1407,9 +1330,9 @@ theorem RD.flopperAuctionDeleteTail
     (hov : R.length + 10 ≤ 1024)
     (h : RD flopperBytecode I g s0 ⟨1180⟩
       (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨334⟩ :: R)
-      mem aw rdata (cA, σ) k C) :
+      mem aw rdata σ k C) :
     RDret flopperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
           (auctionLotSlot id) ⟨0⟩)

@@ -24,7 +24,7 @@ abbrev uniswapUpdateElapsedFromStorage (σ : AccountMap) (ee : ExecutionEnv) : U
   UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
     (UInt256.land reserve32Mask
       (UInt256.div
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
         reserve224Shift))
 
 abbrev uniswapUpdatePrice0CumulativeWord
@@ -115,7 +115,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUQ112Encode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value ret : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8460⟩
       (value :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
@@ -133,7 +133,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUQ112Div {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {denominator numerator ret : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8478⟩
       (denominator :: numerator :: ret :: R) mem aw rdata acc k C)
     (hdenom : UInt256.land denominator reserve112Mask ≠ ⟨0⟩)
@@ -162,31 +162,31 @@ set_option maxHeartbeats 2000000 in
 theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsedNe :
-      UInt256.land (uniswapUpdateElapsedFromStorage acc.2 ee) reserve32Mask ≠ ⟨0⟩)
+      UInt256.land (uniswapUpdateElapsedFromStorage acc ee) reserve32Mask ≠ ⟨0⟩)
     (hreserve0Ne : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
     (hreserve1Ne : UInt256.land reserve1 reserve112Mask ≠ ⟨0⟩)
     (hperm : ee.perm = true)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C',
-      let elapsed := uniswapUpdateElapsedFromStorage acc.2 ee
+      let elapsed := uniswapUpdateElapsedFromStorage acc ee
       let timestamp := UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp)
-      let price0 := uniswapUpdatePrice0CumulativeWord acc.2 ee elapsed reserve1 reserve0
-      let σP0 := sstoreAccountMap ee.codeOwner acc.2 ⟨9⟩ price0
+      let price0 := uniswapUpdatePrice0CumulativeWord acc ee elapsed reserve1 reserve0
+      let σP0 := sstoreAccountMap ee.codeOwner acc ⟨9⟩ price0
       let price1 := uniswapUpdatePrice1CumulativeWord σP0 ee elapsed reserve0 reserve1
       RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
         (elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
-        mem aw rdata (acc.1, sstoreAccountMap ee.codeOwner σP0 ⟨10⟩ price1) k' C' := by
+        mem aw rdata (sstoreAccountMap ee.codeOwner σP0 ⟨10⟩ price1) k' C' := by
   have helapsedLit :
       UInt256.land
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩ := by
     simpa [uniswapUpdateElapsedFromStorage] using helapsedNe
@@ -196,8 +196,8 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.2.find? ee.codeOwner |>.option ⟨0⟩
-                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                (acc.get? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
     isZero_eq_zero_of_ne helapsedLit
@@ -248,12 +248,12 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
   rw [hreserve1IsZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7128
   have rd7130 := evm_run rd7128 with [jumpdest, iszero, push2 ⟨7241⟩]
   have rd7134 := evm_run rd7130 with [jumpiNT (by decide)]
-  let elapsed := uniswapUpdateElapsedFromStorage acc.2 ee
+  let elapsed := uniswapUpdateElapsedFromStorage acc ee
   let timestamp := UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp)
   let elapsedMasked := UInt256.land elapsed reserve32Mask
   let price0 := uniswapUpdateUQ112Price reserve1 reserve0
-  let cumulative0 := uniswapUpdatePrice0CumulativeWord acc.2 ee elapsed reserve1 reserve0
-  let σP0 := sstoreAccountMap ee.codeOwner acc.2 ⟨9⟩ cumulative0
+  let cumulative0 := uniswapUpdatePrice0CumulativeWord acc ee elapsed reserve1 reserve0
+  let σP0 := sstoreAccountMap ee.codeOwner acc ⟨9⟩ cumulative0
   let price1 := uniswapUpdateUQ112Price reserve0 reserve1
   let cumulative1 := uniswapUpdatePrice1CumulativeWord σP0 ee elapsed reserve0 reserve1
   have rd8460₀ := evm_run rd7134 with [
@@ -484,7 +484,7 @@ theorem uniswapUpdatePrice1CumulativeWord_toNat
 theorem syncPrice0CumulativeIntAt_eq_updateWord_nat_form
     {σStorage σUpdate : AccountMap} {storageEvm updateEvm : EVM.State}
     {I : ExecutionEnv} {elapsed reserve1 reserve0 : UInt256}
-    (hStorageAccounts : accountMapEquiv σStorage storageEvm.accountMap)
+    (hStorageAccounts : Eq σStorage storageEvm.accountMap)
     (hStorageEnv : storageEvm.executionEnv = I)
     (hUpdateEnv : updateEvm.executionEnv = I)
     (hslot8 :
@@ -504,7 +504,7 @@ theorem syncPrice0CumulativeIntAt_eq_updateWord_nat_form
   have hslot9 :
       Solm.EVM.storageLoad storageEvm storageEvm.executionEnv.codeOwner ⟨9⟩ =
         uniswapSlotWord ⟨9⟩ σStorage I := by
-    have h := accountMapEquiv_storage_findD hStorageAccounts I.codeOwner ⟨9⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨9⟩ m I) hStorageAccounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, uniswapSlotWord,
       hStorageEnv] at h ⊢
     exact h.symm
@@ -533,7 +533,7 @@ theorem syncPrice0CumulativeIntAt_eq_updateWord_nat_form
 theorem syncPrice1CumulativeIntAt_eq_updateWord_nat_form
     {σStorage σUpdate : AccountMap} {storageEvm updateEvm : EVM.State}
     {I : ExecutionEnv} {elapsed reserve0 reserve1 : UInt256}
-    (hStorageAccounts : accountMapEquiv σStorage storageEvm.accountMap)
+    (hStorageAccounts : Eq σStorage storageEvm.accountMap)
     (hStorageEnv : storageEvm.executionEnv = I)
     (hUpdateEnv : updateEvm.executionEnv = I)
     (hslot8 :
@@ -553,7 +553,7 @@ theorem syncPrice1CumulativeIntAt_eq_updateWord_nat_form
   have hslot10 :
       Solm.EVM.storageLoad storageEvm storageEvm.executionEnv.codeOwner ⟨10⟩ =
         uniswapSlotWord ⟨10⟩ σStorage I := by
-    have h := accountMapEquiv_storage_findD hStorageAccounts I.codeOwner ⟨10⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨10⟩ m I) hStorageAccounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, uniswapSlotWord,
       hStorageEnv] at h ⊢
     exact h.symm
@@ -579,10 +579,10 @@ theorem syncPrice1CumulativeIntAt_eq_updateWord_nat_form
     cumulativeIntNatForm (uniswapSlotWord ⟨10⟩ σStorage I).toNat reserve0.toNat
       reserve1.toNat (UInt256.land elapsed reserve32Mask).toNat
 
-theorem accountMapEquiv_syncUpdatePackedReserveState
+theorem syncUpdatePackedReserveState_accountMap_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     {balance0 balance1 packed : UInt256}
-    (hPost : accountMapEquiv σ evm.accountMap)
+    (hPost : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
@@ -591,14 +591,14 @@ theorem accountMapEquiv_syncUpdatePackedReserveState
       packed =
         uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σ I)
           (uniswapUpdateTimestampWord I) balance1 balance0) :
-    accountMapEquiv
+    Eq
       (sstoreAccountMap I.codeOwner σ ⟨8⟩ packed)
       (syncUpdatePackedReserveState evm balance0 balance1).accountMap := by
   let v0 := setUint112Offset0Word (uniswapSlotWord ⟨8⟩ σ I) balance0
   let v1 := setUint112Offset14Word v0 balance1
   have hpacked' : packed = setUint32Offset28Word v1 (uniswapUpdateTimestampWord I) := by
     simp [hpacked, v0, v1, uniswapUpdatePackedReserveWord_eq_setters]
-  by_cases haccExists : ∃ acc, evm.accountMap.find? I.codeOwner = some acc
+  by_cases haccExists : ∃ acc, evm.accountMap.get? I.codeOwner = some acc
   · obtain ⟨acc, hacc⟩ := haccExists
     have hload0 :
         Solm.EVM.storageLoad evm I.codeOwner ⟨8⟩ = uniswapSlotWord ⟨8⟩ σ I := by
@@ -611,13 +611,12 @@ theorem accountMapEquiv_syncUpdatePackedReserveState
       exact storageLoad_storageStore_same_present evm I.codeOwner hacc ⟨8⟩ v0
     obtain ⟨acc0, hacc0⟩ :
         ∃ acc0,
-          (Solm.EVM.storageStore evm I.codeOwner ⟨8⟩ v0).accountMap.find? I.codeOwner =
+          (Solm.EVM.storageStore evm I.codeOwner ⟨8⟩ v0).accountMap.get? I.codeOwner =
             some acc0 := by
       refine ⟨Account.updateStorage acc ⟨8⟩ v0, ?_⟩
-      simpa [Solm.EVM.storageStore, State.lookupAccount, hacc, State.setAccount,
-        Option.option] using
-        accountMap_find_insert_self evm.accountMap I.codeOwner
-          (Account.updateStorage acc ⟨8⟩ v0)
+      simp only [Solm.EVM.storageStore, State.lookupAccount]
+      rw [hacc]
+      simp [State.setAccount, Option.option, Std.ExtTreeMap.get?_eq_getElem?]
     have hload2 :
         Solm.EVM.storageLoad
             (Solm.EVM.storageStore
@@ -628,44 +627,43 @@ theorem accountMapEquiv_syncUpdatePackedReserveState
       exact storageLoad_storageStore_same_present
         (Solm.EVM.storageStore evm I.codeOwner ⟨8⟩ v0) I.codeOwner hacc0 ⟨8⟩ v1
     have hbase :
-        accountMapEquiv
+        Eq
           (sstoreAccountMap I.codeOwner σ ⟨8⟩ packed)
           (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ packed) :=
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ packed hPost
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨8⟩ packed) hPost
     have hsingle :
-        accountMapEquiv
+        Eq
           (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ packed)
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ v1) ⟨8⟩ packed) :=
-      accountMapEquiv_sstoreAccountMap_self_update evm.accountMap I.codeOwner ⟨8⟩ v1
-        packed
+      sstoreAccountMap_self_update evm.accountMap I.codeOwner ⟨8⟩ v1 packed
     have hupdate01 :
-        accountMapEquiv
+        Eq
           (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ v1)
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ v0) ⟨8⟩ v1) :=
-      accountMapEquiv_sstoreAccountMap_self_update evm.accountMap I.codeOwner ⟨8⟩ v0 v1
+      sstoreAccountMap_self_update evm.accountMap I.codeOwner ⟨8⟩ v0 v1
     have hdouble :
-        accountMapEquiv
+        Eq
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ v1) ⟨8⟩ packed)
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner evm.accountMap ⟨8⟩ v0) ⟨8⟩ v1)
             ⟨8⟩ packed) :=
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ packed hupdate01
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨8⟩ packed) hupdate01
     have hchain := (hbase.trans hsingle).trans hdouble
     simpa [syncUpdatePackedReserveState, storageStore_accountMap, storageStore_executionEnv,
       hload0, hload1, hload2, henv, hpacked', v0, v1] using hchain
-  · have hmissing : evm.accountMap.find? I.codeOwner = none := by
-      cases hfind : evm.accountMap.find? I.codeOwner with
+  · have hmissing : evm.accountMap.get? I.codeOwner = none := by
+      cases hfind : evm.accountMap.get? I.codeOwner with
       | none => rfl
       | some acc => exact False.elim (haccExists ⟨acc, hfind⟩)
-    have hmissingSource : σ.find? I.codeOwner = none :=
-      accountMapEquiv_find?_none hPost.symm hmissing
+    have hmissingSource : σ.get? I.codeOwner = none :=
+      by simpa [hPost] using hmissing
     have hleft : sstoreAccountMap I.codeOwner σ ⟨8⟩ packed = σ :=
       sstoreAccountMap_absent_same hmissingSource
-    have hmissingOwner : evm.accountMap.find? evm.executionEnv.codeOwner = none := by
+    have hmissingOwner : evm.accountMap.get? evm.executionEnv.codeOwner = none := by
       simpa [henv] using hmissing
     have hright :
         (syncUpdatePackedReserveState evm balance0 balance1).accountMap =
@@ -1225,12 +1223,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateCumulativesToReturn {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {balance0 balance1 : UInt256}
     {o o1 : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       [uniswapUpdateReserve1Word σ ee, uniswapUpdateReserve0Word σ ee, balance1,
         balance0, ⟨6363⟩, ⟨570⟩, uniswapSelWord ee]
       (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat ee.codeOwner.val) o o1)
-      balanceOfThisStaticcallActiveWords o1 (cA, σ) k C)
+      balanceOfThisStaticcallActiveWords o1 σ k C)
     (hmemSize128 :
       128 ≤ (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat ee.codeOwner.val) o o1).size)
     (hmemRead64 :
@@ -1249,7 +1247,7 @@ theorem RD.uniswapUpdateCumulativesToReturn {g : Sat256} {s0 : State}
     (hreserve1Nonzero : uniswapUpdateReserve1Word σ ee ≠ ⟨0⟩)
     (hperm : ee.perm = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g s0
-      (cA, uniswapUpdateCumulativeReturnMap σ ee balance0 balance1) ByteArray.empty := by
+      (uniswapUpdateCumulativeReturnMap σ ee balance0 balance1) ByteArray.empty := by
   have hreserve0Masked :
       UInt256.land (uniswapUpdateReserve0Word σ ee) reserve112Mask =
         uniswapUpdateReserve0Word σ ee := by
@@ -1332,14 +1330,14 @@ theorem RD.uniswapUpdateCumulativesToReturn {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_uniswapUpdatePrice0CumulativeMap
+theorem uniswapUpdatePrice0CumulativeMap_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ I) :
-    accountMapEquiv (uniswapUpdatePrice0CumulativeMap σ I)
+    Eq (uniswapUpdatePrice0CumulativeMap σ I)
       (Solm.EVM.storageStore evm I.codeOwner ⟨9⟩
         (EVM.wordOfInt (syncPrice0CumulativeIntAt evm evm))).accountMap := by
   let reserve0Word : UInt256 := uniswapUpdateReserve0Word σ I
@@ -1384,15 +1382,15 @@ theorem accountMapEquiv_uniswapUpdatePrice0CumulativeMap
       norm_num [UInt256.size, twoPow256]
     rw [hsync]
     exact wordOfInt_ofNat_toNat price0Word
-  have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩ price0Word hAccounts
+  have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨9⟩ price0Word) hAccounts
   simpa [uniswapUpdatePrice0CumulativeMap, reserve0Word, reserve1Word, elapsedWord,
     price0Word, storageStore_accountMap, hprice0Eq] using hs
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMap
+theorem uniswapUpdatePrice1CumulativeMap_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
@@ -1400,7 +1398,7 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMap
     let evmP0 :=
       Solm.EVM.storageStore evm I.codeOwner ⟨9⟩
         (EVM.wordOfInt (syncPrice0CumulativeIntAt evm evm))
-    accountMapEquiv (uniswapUpdatePrice1CumulativeMap σ I)
+    Eq (uniswapUpdatePrice1CumulativeMap σ I)
       (Solm.EVM.storageStore evmP0 I.codeOwner ⟨10⟩
         (EVM.wordOfInt (syncPrice1CumulativeIntAt evmP0 evm))).accountMap := by
   let evmP0 :=
@@ -1412,9 +1410,9 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMap
   let σP0 : AccountMap := uniswapUpdatePrice0CumulativeMap σ I
   let price1Word : UInt256 :=
     uniswapUpdatePrice1CumulativeWord σP0 I elapsedWord reserve0Word reserve1Word
-  have hP0Accounts : accountMapEquiv σP0 evmP0.accountMap := by
+  have hP0Accounts : Eq σP0 evmP0.accountMap := by
     simpa [σP0, evmP0] using
-      accountMapEquiv_uniswapUpdatePrice0CumulativeMap hAccounts henv hslot8
+      uniswapUpdatePrice0CumulativeMap_accounts_eq hAccounts henv hslot8
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henv]
   have helapsedSource :
@@ -1455,20 +1453,20 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMap
       norm_num [UInt256.size, twoPow256]
     rw [hsync]
     exact wordOfInt_ofNat_toNat price1Word
-  have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ price1Word hP0Accounts
+  have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨10⟩ price1Word) hP0Accounts
   simpa [uniswapUpdatePrice1CumulativeMap, σP0, reserve0Word, reserve1Word, evmP0,
     elapsedWord, price1Word, storageStore_accountMap, hprice1Eq] using hs
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_syncUpdateCumulativeReturnMap
+theorem syncUpdateCumulativeReturnMap_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {balance0 balance1 : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ I) :
-    accountMapEquiv (uniswapUpdateCumulativeReturnMap σ I balance0 balance1)
+    Eq (uniswapUpdateCumulativeReturnMap σ I balance0 balance1)
       (uniswapLockExitedState
         (syncUpdateCumulativePackedReserveState evm balance0 balance1)).accountMap := by
   let evmP0 :=
@@ -1479,9 +1477,9 @@ theorem accountMapEquiv_syncUpdateCumulativeReturnMap
       (EVM.wordOfInt (syncPrice1CumulativeIntAt evmP0 evm))
   let σP1 : AccountMap := uniswapUpdatePrice1CumulativeMap σ I
   let packedCumulative : UInt256 := uniswapUpdateCumulativePackedWord σ I balance0 balance1
-  have hP1Accounts : accountMapEquiv σP1 evmP1.accountMap := by
+  have hP1Accounts : Eq σP1 evmP1.accountMap := by
     simpa [σP1, evmP0, evmP1] using
-      accountMapEquiv_uniswapUpdatePrice1CumulativeMap hAccounts henv hslot8
+      uniswapUpdatePrice1CumulativeMap_accounts_eq hAccounts henv hslot8
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henv]
   have henvP1 : evmP1.executionEnv = I := by
@@ -1489,40 +1487,40 @@ theorem accountMapEquiv_syncUpdateCumulativeReturnMap
   have hslot8P1 :
       Solm.EVM.storageLoad evmP1 evmP1.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σP1 I := by
-    have h := accountMapEquiv_storage_findD hP1Accounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hP1Accounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       uniswapSlotWord, henvP1] at h ⊢
     exact h.symm
   have hPackedAccounts :
-      accountMapEquiv
+      Eq
         (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
         (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
-    accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1 hslot8P1
+    syncUpdatePackedReserveState_accountMap_eq hP1Accounts henvP1 hslot8P1
       (by simp [packedCumulative, uniswapUpdateCumulativePackedWord, σP1])
   have hPackedAccountsCumulative :
-      accountMapEquiv (uniswapUpdateCumulativePackedMap σ I balance0 balance1)
+      Eq (uniswapUpdateCumulativePackedMap σ I balance0 balance1)
         (syncUpdateCumulativePackedReserveState evm balance0 balance1).accountMap := by
     simpa [uniswapUpdateCumulativePackedMap, uniswapUpdateCumulativePackedWord,
       syncUpdateCumulativePackedReserveState, syncUpdatePackedReserveState, evmP0, evmP1,
       σP1, packedCumulative, storageStore_executionEnv, henv, henvP0] using hPackedAccounts
   have hReturnAccounts :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hPackedAccountsCumulative
+    congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hPackedAccountsCumulative
   simpa [uniswapUpdateCumulativeReturnMap, uniswapLockExitedState, uniswapUnlockedState,
     storageStore_accountMap, storageStore_executionEnv, syncUpdateCumulativePackedReserveState,
     henv] using hReturnAccounts
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_uniswapUpdatePrice0CumulativeMapWith
+theorem uniswapUpdatePrice0CumulativeMapWith_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ I)
     (hreserve0Lt : reserve0.toNat < 2 ^ 112)
     (hreserve1Lt : reserve1.toNat < 2 ^ 112) :
-    accountMapEquiv (uniswapUpdatePrice0CumulativeMapWith σ I reserve0 reserve1)
+    Eq (uniswapUpdatePrice0CumulativeMapWith σ I reserve0 reserve1)
       (Solm.EVM.storageStore evm I.codeOwner ⟨9⟩
         (EVM.wordOfInt
           (syncPrice0CumulativeIntAtWith evm evm reserve0 reserve1))).accountMap := by
@@ -1532,7 +1530,7 @@ theorem accountMapEquiv_uniswapUpdatePrice0CumulativeMapWith
   have hslot9 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩ =
         uniswapSlotWord ⟨9⟩ σ I := by
-    have h := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨9⟩ m I) hAccounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, uniswapSlotWord,
       henv] at h ⊢
     exact h.symm
@@ -1578,15 +1576,15 @@ theorem accountMapEquiv_uniswapUpdatePrice0CumulativeMapWith
       norm_num [UInt256.size, twoPow256]
     rw [hsync]
     exact wordOfInt_ofNat_toNat price0Word
-  have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩ price0Word hAccounts
+  have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨9⟩ price0Word) hAccounts
   simpa [uniswapUpdatePrice0CumulativeMapWith, elapsedWord, price0Word,
     storageStore_accountMap, hprice0Eq] using hs
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith
+theorem uniswapUpdatePrice1CumulativeMapWith_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
@@ -1596,7 +1594,7 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith
     let evmP0 :=
       Solm.EVM.storageStore evm I.codeOwner ⟨9⟩
         (EVM.wordOfInt (syncPrice0CumulativeIntAtWith evm evm reserve0 reserve1))
-    accountMapEquiv (uniswapUpdatePrice1CumulativeMapWith σ I reserve0 reserve1)
+    Eq (uniswapUpdatePrice1CumulativeMapWith σ I reserve0 reserve1)
       (Solm.EVM.storageStore evmP0 I.codeOwner ⟨10⟩
         (EVM.wordOfInt
           (syncPrice1CumulativeIntAtWith evmP0 evm reserve0 reserve1))).accountMap := by
@@ -1607,16 +1605,16 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith
   let σP0 : AccountMap := uniswapUpdatePrice0CumulativeMapWith σ I reserve0 reserve1
   let price1Word : UInt256 :=
     uniswapUpdatePrice1CumulativeWord σP0 I elapsedWord reserve0 reserve1
-  have hP0Accounts : accountMapEquiv σP0 evmP0.accountMap := by
+  have hP0Accounts : Eq σP0 evmP0.accountMap := by
     simpa [σP0, evmP0] using
-      accountMapEquiv_uniswapUpdatePrice0CumulativeMapWith
+      uniswapUpdatePrice0CumulativeMapWith_accounts_eq
         hAccounts henv hslot8 hreserve0Lt hreserve1Lt
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henv]
   have hslot10 :
       Solm.EVM.storageLoad evmP0 evmP0.executionEnv.codeOwner ⟨10⟩ =
         uniswapSlotWord ⟨10⟩ σP0 I := by
-    have h := accountMapEquiv_storage_findD hP0Accounts I.codeOwner ⟨10⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨10⟩ m I) hP0Accounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, uniswapSlotWord,
       henvP0] at h ⊢
     exact h.symm
@@ -1662,23 +1660,23 @@ theorem accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith
       norm_num [UInt256.size, twoPow256]
     rw [hsync]
     exact wordOfInt_ofNat_toNat price1Word
-  have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ price1Word hP0Accounts
+  have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨10⟩ price1Word) hP0Accounts
   simpa [uniswapUpdatePrice1CumulativeMapWith, σP0, evmP0, elapsedWord, price1Word,
     storageStore_accountMap, hprice1Eq] using hs
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
-theorem accountMapEquiv_syncUpdateCumulativePackedMapWith
+theorem syncUpdateCumulativePackedMapWith_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     {balance0 balance1 reserve0 reserve1 : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ I)
     (hreserve0Lt : reserve0.toNat < 2 ^ 112)
     (hreserve1Lt : reserve1.toNat < 2 ^ 112) :
-    accountMapEquiv
+    Eq
       (uniswapUpdateCumulativePackedMapWith σ I balance0 balance1 reserve0 reserve1)
       (syncUpdateCumulativePackedReserveStateWith
         evm balance0 balance1 reserve0 reserve1).accountMap := by
@@ -1691,9 +1689,9 @@ theorem accountMapEquiv_syncUpdateCumulativePackedMapWith
   let σP1 : AccountMap := uniswapUpdatePrice1CumulativeMapWith σ I reserve0 reserve1
   let packedCumulative : UInt256 :=
     uniswapUpdateCumulativePackedWordWith σ I balance0 balance1 reserve0 reserve1
-  have hP1Accounts : accountMapEquiv σP1 evmP1.accountMap := by
+  have hP1Accounts : Eq σP1 evmP1.accountMap := by
     simpa [σP1, evmP0, evmP1] using
-      accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith
+      uniswapUpdatePrice1CumulativeMapWith_accounts_eq
         hAccounts henv hslot8 hreserve0Lt hreserve1Lt
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henv]
@@ -1702,18 +1700,18 @@ theorem accountMapEquiv_syncUpdateCumulativePackedMapWith
   have hslot8P1 :
       Solm.EVM.storageLoad evmP1 evmP1.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σP1 I := by
-    have h := accountMapEquiv_storage_findD hP1Accounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hP1Accounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       uniswapSlotWord, henvP1] at h ⊢
     exact h.symm
   have hPackedAccounts :
-      accountMapEquiv
+      Eq
         (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
         (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
-    accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1 hslot8P1
+    syncUpdatePackedReserveState_accountMap_eq hP1Accounts henvP1 hslot8P1
       (by simp [packedCumulative, uniswapUpdateCumulativePackedWordWith, σP1])
   have hPackedAccountsCumulative :
-      accountMapEquiv
+      Eq
         (uniswapUpdateCumulativePackedMapWith σ I balance0 balance1 reserve0 reserve1)
         (syncUpdateCumulativePackedReserveStateWith
           evm balance0 balance1 reserve0 reserve1).accountMap := by
@@ -1724,25 +1722,25 @@ theorem accountMapEquiv_syncUpdateCumulativePackedMapWith
   exact hPackedAccountsCumulative
 
 set_option maxHeartbeats 1000000 in
-theorem accountMapEquiv_syncUpdateCumulativeReturnMapWith
+theorem syncUpdateCumulativeReturnMapWith_accounts_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     {balance0 balance1 reserve0 reserve1 : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hslot8 :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ I)
     (hreserve0Lt : reserve0.toNat < 2 ^ 112)
     (hreserve1Lt : reserve1.toNat < 2 ^ 112) :
-    accountMapEquiv
+    Eq
       (uniswapUpdateCumulativeReturnMapWith σ I balance0 balance1 reserve0 reserve1)
       (uniswapLockExitedState
         (syncUpdateCumulativePackedReserveStateWith
           evm balance0 balance1 reserve0 reserve1)).accountMap := by
-  have hPackedAccountsCumulative := accountMapEquiv_syncUpdateCumulativePackedMapWith
+  have hPackedAccountsCumulative := syncUpdateCumulativePackedMapWith_accounts_eq
     (balance0 := balance0) (balance1 := balance1) hAccounts henv hslot8 hreserve0Lt hreserve1Lt
   have hReturnAccounts :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hPackedAccountsCumulative
+    congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hPackedAccountsCumulative
   simpa [uniswapUpdateCumulativeReturnMapWith, uniswapLockExitedState, uniswapUnlockedState,
     storageStore_accountMap, storageStore_executionEnv,
     syncUpdateCumulativePackedReserveStateWith, henv] using hReturnAccounts
@@ -1751,8 +1749,8 @@ theorem accountMapEquiv_syncUpdateCumulativeReturnMapWith
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 100000000 in
 theorem uniswapSyncBodyCumulativeSuccess
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cA'' : Batteries.RBSet AccountAddress compare} {σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σ'' : AccountMap}
     {o o1 : ByteArray} {evm1S : EVM.State} {balance0 balance1 : UInt256}
     {k7060 C7060 : ℕ}
     (hcode : I.code = uniswapV2PairBytecode)
@@ -1761,20 +1759,19 @@ theorem uniswapSyncBodyCumulativeSuccess
     (hperm : I.perm = true)
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ syncTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ syncTransition.body
         (.returned (syncAfterUpdateFrame balance0 balance1)
           (uniswapLockExitedState
             (syncUpdateCumulativePackedReserveState evm1S balance0 balance1))
           none))
-    (hPostAccounts1 : accountMapEquiv σ'' evm1S.accountMap)
-    (hcreated1 : evm1S.createdAccounts = cA'')
+    (hPostAccounts1 : σ'' = evm1S.accountMap)
     (henv1I : evm1S.executionEnv = I)
     (hslotWordSource :
       Solm.EVM.storageLoad evm1S evm1S.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σ'' I)
     (rd7060 :
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
         [ UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
             reserve112Mask,
           UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask,
@@ -1782,7 +1779,7 @@ theorem uniswapSyncBodyCumulativeSuccess
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
         (UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat 128 36)
           128 32))
-        o1 (cA'', σ'') k7060 C7060)
+        o1 σ'' k7060 C7060)
     (hmemSize :
       (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1).size =
         164)
@@ -1804,18 +1801,18 @@ theorem uniswapSyncBodyCumulativeSuccess
       UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Shift)
           reserve112Mask ≠
         ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmemSize128 :
       128 ≤ (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1).size := by
     rw [hmemSize]
     omega
   have rd7060' :
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7060⟩
         [uniswapUpdateReserve1Word σ'' I, uniswapUpdateReserve0Word σ'' I,
           balance1, balance0, ⟨6363⟩, ⟨570⟩, uniswapSelWord I]
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
-        balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k7060 C7060 := by
+        balanceOfThisStaticcallActiveWords o1 σ'' k7060 C7060 := by
     simpa [uniswapUpdateReserve0Word, uniswapUpdateReserve1Word,
       balanceOfThisStaticcallActiveWords] using rd7060
   have rdRet :=
@@ -1827,18 +1824,17 @@ theorem uniswapSyncBodyCumulativeSuccess
       (by simpa [uniswapUpdateReserve0Word] using hreserve0Nonzero)
       (by simpa [uniswapUpdateReserve1Word] using hreserve1Nonzero)
       hperm
-  have hCreatedRet :
-      cA'' =
+  have hAccountsRet :
+      uniswapUpdateCumulativeReturnMap σ'' I balance0 balance1 =
         (uniswapLockExitedState
-          (syncUpdateCumulativePackedReserveState evm1S balance0 balance1)).createdAccounts := by
-    simp [uniswapLockExitedState, uniswapUnlockedState, syncUpdateCumulativePackedReserveState,
-      storageStore_createdAccounts, hcreated1]
-  have hAccountsRet :=
-    accountMapEquiv_syncUpdateCumulativeReturnMap
-      (balance0 := balance0) (balance1 := balance1)
-      hPostAccounts1 henv1I hslotWordSource
-  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
-    (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
+          (syncUpdateCumulativePackedReserveState evm1S balance0 balance1)).accountMap := by
+    simpa [uniswapLockExitedState, uniswapUnlockedState, syncUpdateCumulativePackedReserveState,
+      storageStore_accountMap] using
+        (syncUpdateCumulativeReturnMap_accounts_eq
+          (balance0 := balance0) (balance1 := balance1)
+          hPostAccounts1 henv1I hslotWordSource)
+  exact rdRet.reEquivExecutionGen hcode hdispatch
+    (uniswapDecode_sync hsz4) hbody hAccountsRet
     (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 

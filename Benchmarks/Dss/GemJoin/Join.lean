@@ -1517,18 +1517,18 @@ theorem joinTransferFromMin32_toNat_of_lt {n : ℕ} (h : n < 32) :
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinToSlipExtcodesizeGuard
-    {cA σ I} {g sel : UInt256}
+    {σ I} {g sel : UInt256}
     {s0 : State} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨717⟩
       (gemJoinAddressReturnWord ⟨1⟩ σ I :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         ⟨0⟩ :: ⟨128⟩ :: joinSlipInSize :: joinSlipOutPtr :: ⟨0⟩ ::
         joinSlipEndPtr :: joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k' C' := by
+      σ k' C' := by
   let target := gemJoinAddressReturnWord ⟨1⟩ σ I
   let rawTarget := gemJoinSlotWord ⟨1⟩ σ I
   let ilk := gemJoinSlotWord ⟨2⟩ σ I
@@ -1537,13 +1537,13 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   obtain ⟨k638, C638, rd638Raw⟩ := rd637.sload (by native_decide) (by evm_ov)
   have rd638 : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨638⟩
       (rawTarget :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k638 C638 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k638 C638 := by
     simpa [rawTarget, gemJoinSlotWord, solcSlotWord] using rd638Raw
   have rd640 := rd638.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k641, C641, rd641Raw⟩ := rd640.sload (by native_decide) (by evm_ov)
   have rd641 : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨641⟩
       (ilk :: rawTarget :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k641 C641 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k641 C641 := by
     simpa [ilk, gemJoinSlotWord, solcSlotWord] using rd641Raw
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
@@ -1616,7 +1616,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   have rd645' : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨645⟩
       (⟨128⟩ :: ⟨64⟩ :: ilk :: rawTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       (k641 + 1 + 1 + 1) (C641 + 3 + 3 + (0 + 3)) := by
     simpa [ilk, rawTarget] using rd645
   have rd717 := evm_run rd645' with [
@@ -1706,22 +1706,22 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
       show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by native_decide] using rd717⟩
 
 theorem RD.gemJoinToSlipCallReady
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩) :
     ∃ gasWord k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨732⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨732⟩
       (gasWord :: gemJoinAddressReturnWord ⟨1⟩ σ I :: ⟨0⟩ :: ⟨128⟩ ::
         joinSlipInSize :: joinSlipOutPtr :: ⟨0⟩ :: joinSlipEndPtr ::
         joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨_, _, rd634⟩ := hreach
   obtain ⟨_, _, rd717⟩ := RD.gemJoinToSlipExtcodesizeGuard rd634
   obtain ⟨gasWord, k, C, rd732⟩ :=
@@ -1733,16 +1733,16 @@ theorem RD.gemJoinToSlipCallReady
   exact ⟨gasWord, k, C, by simpa [joinSlipOutPtr] using rd732⟩
 
 theorem RD.gemJoinSlipNoCode
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (gemJoinAddressReturnWord ⟨1⟩ σ I) = ⟨0⟩) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd634⟩ := hreach
   obtain ⟨_, _, rd717⟩ := RD.gemJoinToSlipExtcodesizeGuard rd634
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨717⟩) (okPc := ⟨729⟩) rd717
@@ -1752,38 +1752,38 @@ theorem RD.gemJoinSlipNoCode
     (by native_decide) (by simp)
 
 theorem RD.gemJoinSlipPostCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k C : ℕ),
       RD gemJoinBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: joinSlipEndPtr :: joinSlipSelectorWord ::
           gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
           ⟨254⟩ :: sel :: [])
-        (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) out (cA', σ') k C
-    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) out σ' k C
+    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
         [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, out) true
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd732⟩ := RD.gemJoinToSlipCallReady hreach hcodeSize
-  obtain ⟨cA', σ', z, out, A_in, callGas, k733, C733, hΘpack, rd733raw, houtSize⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k733, C733, hΘpack, rd733raw, houtSize⟩ :=
     RD.call rd732 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k733, C733, ?_, ?_, houtSize⟩
+  refine ⟨σ', z, out, A', k733, C733, ?_, ?_, houtSize⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           (⟨128⟩ : UInt256).toNat joinSlipInSize.toNat)
@@ -1796,19 +1796,19 @@ theorem RD.gemJoinSlipPostCall
         exact Nat.zero_le _
       simp [min, hle]
     have rd733 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: joinSlipEndPtr :: joinSlipSelectorWord ::
           gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
           ⟨254⟩ :: sel :: [])
         (out.write 0 (joinSlipCalldataMem I σ solcFreePtrMem) joinSlipOutPtr.toNat
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k733 C733 :=
+        (UInt256.ofNat 8) out σ' k733 C733 :=
       haw ▸ rd733raw
     rw [hmin, byteArray_write_len_zero] at rd733
     exact rd733
   · have htgt :
         EVM.address (joinVatAddressOf
-            (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
           AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
       apply Fin.ext
       simp [EVM.address, EVM.uintN, joinVatAddressOf, initState, Solm.EVM.storageLoad,
@@ -1829,18 +1829,18 @@ theorem RD.gemJoinSlipPostCall
     simpa [initState, hperm] using hΘ
 
 theorem RD.gemJoinSlipCallFailure
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
         gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       mem aw out acc k C)
     (houtSize : out.size < UInt256.size) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨733⟩) (okPc := ⟨749⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1849,22 +1849,22 @@ theorem RD.gemJoinSlipCallFailure
     houtSize (by simp)
 
 theorem RD.gemJoinSlipCallDepthLimit
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
         (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
         gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨_, _, _, rd732⟩ := RD.gemJoinToSlipCallReady hreach hcodeSize
   obtain ⟨k733, C733, rd733raw⟩ :=
     RD.callDepthLimit rd732 (by native_decide)
@@ -1879,30 +1879,30 @@ theorem RD.gemJoinSlipCallDepthLimit
       (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     native_decide
   have rd733 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
         gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (ByteArray.empty.write 0 (joinSlipCalldataMem I σ solcFreePtrMem)
         joinSlipOutPtr.toNat
         (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k733 C733 :=
+      (UInt256.ofNat 8) ByteArray.empty σ k733 C733 :=
     haw ▸ rd733raw
   rw [hmin, byteArray_write_len_zero] at rd733
   exact ⟨k733, C733, rd733⟩
 
 theorem RD.gemJoinSlipCallSuccessToTransferSetup
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨1⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
         gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       mem aw out acc k C) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       mem aw out acc k' C' := by
@@ -1916,34 +1916,34 @@ theorem RD.gemJoinSlipCallSuccessToTransferSetup
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinToTransferFromExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {cAcur : Batteries.RBSet AccountAddress compare} {σcur : AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {σcur : AccountMap}
     {outSlip : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k C) :
+      σcur k C) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨831⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨831⟩
       (gemJoinAddressReturnWord ⟨3⟩ σcur I :: gemJoinAddressReturnWord ⟨3⟩ σcur I ::
         ⟨0⟩ :: ⟨128⟩ :: joinTransferFromInSize :: joinTransferFromOutPtr ::
         joinTransferFromOutSize :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σcur I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) outSlip (cAcur, σcur) k' C' := by
+      (UInt256.ofNat 8) outSlip σcur k' C' := by
   let target := gemJoinAddressReturnWord ⟨3⟩ σcur I
   let rawTarget := gemJoinSlotWord ⟨3⟩ σcur I
   have rd754 := rd.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k755, C755, rd755raw⟩ := rd754.sload (by native_decide) (by evm_ov)
   have rd755 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨755⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨755⟩
       (rawTarget :: joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k755 C755 := by
+      σcur k755 C755 := by
     simpa [rawTarget, gemJoinSlotWord, solcSlotWord] using rd755raw
   have hSlipMem :
       (joinSlipCalldataMem I σ solcFreePtrMem).size = 228 :=
@@ -2109,27 +2109,27 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
       using rd831⟩
 
 theorem RD.gemJoinToTransferFromCallReady
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {cAcur : Batteries.RBSet AccountAddress compare} {σcur : AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {σcur : AccountMap}
     {outSlip : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k C)
+      σcur k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σcur
         (gemJoinAddressReturnWord ⟨3⟩ σcur I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨846⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨846⟩
       (gasWord :: gemJoinAddressReturnWord ⟨3⟩ σcur I :: ⟨0⟩ :: ⟨128⟩ ::
         joinTransferFromInSize :: joinTransferFromOutPtr :: joinTransferFromOutSize ::
         joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σcur I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) outSlip (cAcur, σcur) k' C' := by
+      (UInt256.ofNat 8) outSlip σcur k' C' := by
   obtain ⟨_, _, rd831⟩ := RD.gemJoinToTransferFromExtcodesizeGuard rd
   obtain ⟨gasWord, k, C, rd846⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨831⟩) (okPc := ⟨843⟩) rd831
@@ -2140,20 +2140,20 @@ theorem RD.gemJoinToTransferFromCallReady
   exact ⟨gasWord, k, C, by simpa [joinTransferFromOutPtr] using rd846⟩
 
 theorem RD.gemJoinTransferFromNoCode
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {cAcur : Batteries.RBSet AccountAddress compare} {σcur : AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {σcur : AccountMap}
     {outSlip : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k C)
+      σcur k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σcur
         (gemJoinAddressReturnWord ⟨3⟩ σcur I) = ⟨0⟩) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd831⟩ := RD.gemJoinToTransferFromExtcodesizeGuard rd
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨831⟩) (okPc := ⟨843⟩) rd831
     hcodeSize
@@ -2162,25 +2162,25 @@ theorem RD.gemJoinTransferFromNoCode
     (by native_decide) (by simp)
 
 theorem RD.gemJoinTransferFromPostCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {cAcur : Batteries.RBSet AccountAddress compare} {σcur : AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {σcur : AccountMap}
     {Acur : Substate}
     {outSlip : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k C)
+      σcur k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σcur
         (gemJoinAddressReturnWord ⟨3⟩ σcur I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outTransfer : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: joinTransferFromEndPtr ::
           joinTransferFromSelectorWord :: gemJoinAddressReturnWord ⟨3⟩ σcur I ::
           joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
@@ -2188,25 +2188,25 @@ theorem RD.gemJoinTransferFromPostCall
           (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
           joinTransferFromOutPtr.toNat
           (min joinTransferFromOutSize (UInt256.ofNat outTransfer.size)).toNat)
-        (UInt256.ofNat 8) outTransfer (cA', σ') k' C'
+        (UInt256.ofNat 8) outTransfer σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σcur, substate := Acur, createdAccounts := cAcur }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σcur, substate := Acur }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σcur, substate := Acur, createdAccounts := cAcur })) "transferFrom" 0
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σcur, substate := Acur })) "transferFrom" 0
         [.address I.source, .address I.codeOwner, joinWadValue I]
         (z,
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', substate := A' },
           outTransfer) true
     ∧ outTransfer.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd846⟩ := RD.gemJoinToTransferFromCallReady rd hcodeSize
-  obtain ⟨cA', σ', z, outTransfer, A_in, callGas, k847, C847, hΘpack, rd847raw,
+  obtain ⟨σ', z, outTransfer, A_in, callGas, k847, C847, hΘpack, rd847raw,
       houtSize⟩ :=
     RD.call rd846 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, outTransfer, A', k847, C847, ?_, ?_, houtSize⟩
+  refine ⟨σ', z, outTransfer, A', k847, C847, ?_, ?_, houtSize⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           (⟨128⟩ : UInt256).toNat joinTransferFromInSize.toNat)
@@ -2217,8 +2217,8 @@ theorem RD.gemJoinTransferFromPostCall
     exact haw ▸ rd847raw
   · have htgt :
         EVM.address (joinGemAddressOf
-            { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σcur, substate := Acur, createdAccounts := cAcur }) =
+            { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σcur, substate := Acur }) =
           AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σcur I) := by
       apply Fin.ext
       simp [EVM.address, EVM.uintN, joinGemAddressOf, initState, Solm.EVM.storageLoad,
@@ -2243,18 +2243,18 @@ theorem RD.gemJoinTransferFromPostCall
     simpa [initState, hperm] using hΘ
 
 theorem RD.gemJoinTransferFromCallFailure
-    {cA gh bl σ σ₀ A I} {g sel gemTarget : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel gemTarget : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨0⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       mem aw outTransfer acc k C)
     (houtSize : outTransfer.size < UInt256.size) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨847⟩) (okPc := ⟨863⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2263,26 +2263,26 @@ theorem RD.gemJoinTransferFromCallFailure
     houtSize (by simp)
 
 theorem RD.gemJoinTransferFromCallDepthLimit
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {cAcur : Batteries.RBSet AccountAddress compare} {σcur : AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {σcur : AccountMap}
     {outSlip : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
       (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cAcur, σcur) k C)
+      σcur k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σcur
         (gemJoinAddressReturnWord ⟨3⟩ σcur I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨0⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σcur I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) ByteArray.empty (cAcur, σcur) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σcur k' C' := by
   obtain ⟨_, _, _, rd846⟩ := RD.gemJoinToTransferFromCallReady rd hcodeSize
   obtain ⟨k847, C847, rd847raw⟩ :=
     RD.callDepthLimit rd846 (by native_decide)
@@ -2297,7 +2297,7 @@ theorem RD.gemJoinTransferFromCallDepthLimit
       (min joinTransferFromOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     native_decide
   have rd847 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨0⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σcur I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
@@ -2305,23 +2305,23 @@ theorem RD.gemJoinTransferFromCallDepthLimit
         (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
         joinTransferFromOutPtr.toNat
         (min joinTransferFromOutSize (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 8) ByteArray.empty (cAcur, σcur) k847 C847 :=
+      (UInt256.ofNat 8) ByteArray.empty σcur k847 C847 :=
     haw ▸ rd847raw
   rw [hmin, byteArray_write_len_zero] at rd847
   exact ⟨k847, C847, rd847⟩
 
 theorem RD.gemJoinTransferFromCallSuccessToDecode
-    {cA gh bl σ σ₀ A I} {g sel gemTarget : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel gemTarget : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨1⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       mem aw outTransfer acc k C) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
       (joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
@@ -2333,11 +2333,11 @@ theorem RD.gemJoinTransferFromCallSuccessToDecode
     (by simp)
 
 theorem RD.gemJoinTransferFromReturnDecodeShortReverts
-    {cA gh bl σ σ₀ A I} {g sel gemTarget : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel gemTarget : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
       (joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
@@ -2350,7 +2350,7 @@ theorem RD.gemJoinTransferFromReturnDecodeShortReverts
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -2360,11 +2360,11 @@ theorem RD.gemJoinTransferFromReturnDecodeShortReverts
     (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem RD.gemJoinTransferFromReturnDecodeOk
-    {cA gh bl σ σ₀ A I} {g sel retWord gemTarget : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel retWord gemTarget : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
       (joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemTarget :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
@@ -2382,7 +2382,7 @@ theorem RD.gemJoinTransferFromReturnDecodeOk
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
     ∃ k' C', RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       mem (UInt256.ofNat 8) outTransfer acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
@@ -2460,18 +2460,18 @@ theorem solcErrorStringMem3_mload64_of_size228 (len word : UInt256) {mem : ByteA
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinTransferFromReturnFalseReverts
-    {cA gh bl σ σ₀ A I} {g sel retWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel retWord : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       mem (UInt256.ofNat 8) outTransfer acc k C)
     (hret : retWord = ⟨0⟩)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -2545,11 +2545,11 @@ theorem RD.gemJoinTransferFromReturnFalseReverts
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinTransferFromReturnTrueToStop
-    {cA gh bl σ σ₀ A I} {g sel retWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel retWord : UInt256}
+    {acc : AccountMap}
     {mem outTransfer : ByteArray} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       mem (UInt256.ofNat 8) outTransfer acc k C)
     (hret : retWord ≠ ⟨0⟩)
@@ -2557,7 +2557,7 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDret gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -2660,17 +2660,18 @@ theorem gemJoin_typedCallViaEVM_zero_setSubstate
           { { evm with substate := A0 } with
             accountMap := evm'.accountMap,
             substate := A',
-            createdAccounts := evm'.createdAccounts },
+            },
           out) perm := by
   obtain ⟨calldata, henc, hraw⟩ := hcall
   cases hraw with
   | callMade hvalue hTheta hevm' hvalueLe _hdepth =>
-      rename_i valueWord cA' σ' g' A'
+      rename_i σ' g' A'
       subst evm'
       rcases hTheta with ⟨callGas, A_in, hTheta⟩
       refine ⟨A', ⟨calldata, henc, ?_⟩⟩
-      refine callViaEVM.callMade (valueWord := valueWord) (cA' := cA') (σ' := σ')
-        (g' := g') (A' := A') (perm := perm) hvalue ⟨callGas, A_in, ?_⟩ ?_ ?_ ?_
+      refine callViaEVM.callMade (σ' := σ') (g' := g') (A' := A')
+        (perm := perm) hvalue
+        ⟨callGas, A_in, ?_⟩ ?_ ?_ ?_
       · simpa using hTheta
       · rfl
       · simpa using hvalueLe
@@ -2679,13 +2680,13 @@ theorem gemJoin_typedCallViaEVM_zero_setSubstate
       exfalso
       exact hfail ⟨(by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _), hdepth⟩
 
-theorem gemJoinReachJoinBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachJoinBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (gemJoinSelBytes 6)) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         ⟨210⟩ [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : gemJoinSelWord I = ⟨0x3b4da69f⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x3b 0x4d 0xa6 0x9f ⟨0x3b4da69f⟩
       (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
@@ -2709,14 +2710,14 @@ theorem gemJoinReachJoinBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact gemJoinReachLowBody 1 (by omega) ⟨210⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem gemJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinJoinX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨487⟩
+      (initState σ σ₀ g A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I) ⟨487⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := gemJoinBytecode) (entry := ⟨210⟩) (ret := ⟨254⟩)
     (decoded := ⟨232⟩) (need := ⟨64⟩) hreach
@@ -2739,13 +2740,13 @@ theorem gemJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [joinWadWord, joinUsrMaskedWord, joinUsrWord, calldataWord] using hroutine⟩
 
-theorem gemJoinJoinX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinJoinX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -2761,21 +2762,21 @@ theorem gemJoinJoinX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinJoinX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinJoinX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (h : RD gemJoinBytecode I g s0 ⟨487⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD gemJoinBytecode I g s0 ⟨561⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd490pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by native_decide) (by evm_ov)
   have rd491 : RD gemJoinBytecode I g s0 ⟨491⟩
       (gemJoinSlotWord ⟨5⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k491 C491 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k491 C491 := by
     simpa [gemJoinSlotWord] using rd491raw
   have rd494pre := evm_run rd491 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2787,11 +2788,11 @@ theorem gemJoinJoinX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinJoinX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinJoinX_liveRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : gemJoinSlotWord ⟨5⟩ σ I ≠ ⟨1⟩)
     (h : RD gemJoinBytecode I g s0 ⟨487⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev gemJoinBytecode g s0 := by
   have rd490pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2799,7 +2800,7 @@ theorem gemJoinJoinX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by native_decide) (by evm_ov)
   have rd491 : RD gemJoinBytecode I g s0 ⟨491⟩
       (gemJoinSlotWord ⟨5⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k491 C491 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k491 C491 := by
     simpa [gemJoinSlotWord] using rd491raw
   have rd494pre := evm_run rd491 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2830,11 +2831,11 @@ theorem gemJoinJoinX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinJoinX_overflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinJoinX_overflowRevert {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hwadHigh : intLimit ≤ (joinWadWord I).toNat)
     (h : RD gemJoinBytecode I g s0 ⟨561⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev gemJoinBytecode g s0 := by
   have hslt : UInt256.slt (joinWadWord I) (⟨0⟩ : UInt256) = ⟨1⟩ := by
     simpa [intLimit] using
@@ -2870,14 +2871,14 @@ theorem gemJoinJoinX_overflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinJoinX_nonoverflowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinJoinX_nonoverflowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hwadLow : (joinWadWord I).toNat < intLimit)
     (h : RD gemJoinBytecode I g s0 ⟨561⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD gemJoinBytecode I g s0 ⟨634⟩
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslt : UInt256.slt (joinWadWord I) (⟨0⟩ : UInt256) = ⟨0⟩ := by
     simpa [intLimit] using
       slt_lit_zero (a := joinWadWord I) (m := 0) (by norm_num)
@@ -2894,29 +2895,29 @@ theorem gemJoinJoinX_nonoverflowOk {cA σ I} {g : Sat256} {s0 : State} {k C : �
   exact ⟨_, _, rd570.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem gemJoinX_join_notLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinX_join_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hlive : gemJoinSlotWord ⟨5⟩ σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd487⟩ := gemJoinJoinX_decoded (g := g) hsz68 hsize hreach
   exact gemJoinJoinX_liveRevert (I := I) hlive rd487
 
-theorem gemJoinX_join_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinX_join_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadHigh : intLimit ≤ (joinWadWord I).toNat)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd487⟩ := gemJoinJoinX_decoded (g := g) hsz68 hsize hreach
   obtain ⟨_, _, rd561⟩ := gemJoinJoinX_liveOk (I := I) hlive rd487
   exact gemJoinJoinX_overflowRevert (I := I) hwadHigh rd561
 
-theorem gemJoinX_join_vatNoCode {cA gh bl σ σ₀ A I} {g sel : UInt256}
+theorem gemJoinX_join_vatNoCode {σ σ₀ A I} {g sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
@@ -2924,16 +2925,16 @@ theorem gemJoinX_join_vatNoCode {cA gh bl σ σ₀ A I} {g sel : UInt256}
       Reasoning.Theory.extCodeSizeWord σ
         (gemJoinAddressReturnWord ⟨1⟩ σ I) = ⟨0⟩)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd487⟩ := gemJoinJoinX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, rd561⟩ := gemJoinJoinX_liveOk (I := I) hlive rd487
   obtain ⟨_, _, rd634⟩ := gemJoinJoinX_nonoverflowOk (I := I) hwadLow rd561
   exact RD.gemJoinSlipNoCode ⟨_, _, rd634⟩ hvatNoCode
 
-theorem gemJoinX_join_slipCallDepthLimit {cA gh bl σ σ₀ A I} {g sel : UInt256}
+theorem gemJoinX_join_slipCallDepthLimit {σ σ₀ A I} {g sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
@@ -2942,10 +2943,10 @@ theorem gemJoinX_join_slipCallDepthLimit {cA gh bl σ σ₀ A I} {g sel : UInt25
         (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd487⟩ := gemJoinJoinX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, rd561⟩ := gemJoinJoinX_liveOk (I := I) hlive rd487
   obtain ⟨_, _, rd634⟩ := gemJoinJoinX_nonoverflowOk (I := I) hwadLow rd561
@@ -2953,18 +2954,18 @@ theorem gemJoinX_join_slipCallDepthLimit {cA gh bl σ σ₀ A I} {g sel : UInt25
     RD.gemJoinSlipCallDepthLimit ⟨_, _, rd634⟩ hvatCode hdepth
   exact RD.gemJoinSlipCallFailure rd733 (by native_decide)
 
-theorem gemJoinX_join_slipCallFailure {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem gemJoinX_join_slipCallFailure {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
         gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       mem aw out acc k C)
     (houtSize : out.size < UInt256.size) :
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.gemJoinSlipCallFailure rd houtSize
 
 theorem gemJoinJoinBodyRevertsNotLive (evm : EVM.State) (I : ExecutionEnv)
@@ -3004,17 +3005,17 @@ theorem gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -3026,24 +3027,23 @@ theorem gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
       simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem gemJoinJoinBodyCoreNotLive
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I ≠ ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I ≠ ⟨1⟩ := by
-    have hword : gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I ≠ ⟨1⟩ := by
+    have hword : gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+      rfl
     intro hbad
     exact hlive (by rw [hword, hbad])
   have hbody :
@@ -3056,25 +3056,24 @@ theorem gemJoinJoinBodyCoreNotLive
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreOverflow
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadHigh : intLimit ≤ (joinWadWord I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
-    have hword : gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
+    have hword : gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+      rfl
     rw [← hword]
     exact hlive
   have hbody :
@@ -3087,52 +3086,43 @@ theorem gemJoinJoinBodyCoreOverflow
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreVatNoCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatNoCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hnoCodeSolm :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) = ⟨0⟩ := by
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hsolmAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      rw [← hsame]
-      exact hvatNoCode
-    simpa [hVatSlot] using hsolmAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) = ⟨0⟩ := by
+    exact hvatNoCode
   have hvatAddr :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -3144,13 +3134,15 @@ theorem gemJoinJoinBodyCoreVatNoCode
     rw [hvatAddr]
     unfold Reasoning.Theory.extCodeSizeWord at hnoCodeSolm
     cases hacc :
-      σ_solm.find? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I)) with
+      σ.get? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I)) with
     | none =>
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState,
+          State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState,
+          State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (joinStore I) joinTransition.body .reverted := by
     simpa [evmSolm, gemJoinSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
@@ -3161,55 +3153,43 @@ theorem gemJoinJoinBodyCoreVatNoCode
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreSlipCallDepthLimit
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -3221,8 +3201,8 @@ theorem gemJoinJoinBodyCoreSlipCallDepthLimit
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   let evmSlip :=
     { evmSolm with
@@ -3245,7 +3225,7 @@ theorem gemJoinJoinBodyCoreSlipCallDepthLimit
         (callPerm := true)
         (by
           simpa [evmSolm, initState, joinSlipInSize] using
-            joinSlipEncode_eq I σ_solm solcFreePtrMem_size hwadLow)
+            joinSlipEncode_eq I σ solcFreePtrMem_size hwadLow)
         (by simpa [evmSolm, initState] using hdepth))
   have hbody :
       ExecTransitionBody config contract evmSolm (joinStore I) joinTransition.body .reverted := by
@@ -3256,89 +3236,62 @@ theorem gemJoinJoinBodyCoreSlipCallDepthLimit
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreSlipCallFailure
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    {cA_slip σ_slip outSlip A_slip k733 C733}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ_slip outSlip A_slip k733 C733}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd733 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
-        gemJoinAddressReturnWord ⟨1⟩ σ_evm I :: joinWadWord I :: joinUsrMaskedWord I ::
+        gemJoinAddressReturnWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
-      (joinSlipCalldataMem I σ_evm solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cA_slip, σ_slip) k733 C733)
+      (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
+      σ_slip k733 C733)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (false, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (false, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
-    (houtSlipSize : outSlip.size < UInt256.size)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    (houtSlipSize : outSlip.size < UInt256.size) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev := RD.gemJoinSlipCallFailure rd733 houtSlipSize
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -3350,33 +3303,33 @@ theorem gemJoinJoinBodyCoreSlipCallFailure
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (false, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, _hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, evmSolm, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   let evmSolmSlip := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (false, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -3390,7 +3343,7 @@ theorem gemJoinJoinBodyCoreSlipCallFailure
         (false, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg]
@@ -3404,17 +3357,17 @@ theorem gemJoinJoinBodyCoreSlipCallFailure
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreGemNoCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    {cA_slip : Batteries.RBSet AccountAddress compare} {σ_slip : AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ_slip : AccountMap}
     {outSlip : ByteArray} {A_slip : Substate} {k752 C752 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemNoCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩)
@@ -3423,75 +3376,48 @@ theorem gemJoinJoinBodyCoreGemNoCode
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd752 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
-      (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ_evm I ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨752⟩
+      (joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
         joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      (joinSlipCalldataMem I σ_evm solcFreePtrMem) (UInt256.ofNat 8) outSlip
-      (cA_slip, σ_slip) k752 C752)
+      (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8) outSlip
+      σ_slip k752 C752)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
-          outSlip) true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
+          outSlip) true) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   have hrev := RD.gemJoinTransferFromNoCode rd752 hgemNoCode
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -3503,29 +3429,29 @@ theorem gemJoinJoinBodyCoreGemNoCode
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -3539,29 +3465,16 @@ theorem gemJoinJoinBodyCoreGemNoCode
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hword : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hword]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemNoCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) = ⟨0⟩ := by
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      rw [← hsame]
-      exact hgemNoCode
-    simpa [hGemSlot] using hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) = ⟨0⟩ := by simpa [σ_slip_solm] using hgemNoCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -3577,14 +3490,16 @@ theorem gemJoinJoinBodyCoreGemNoCode
     rw [hgemAddrSolm]
     unfold Reasoning.Theory.extCodeSizeWord at hgemNoCodeSolmWord
     cases hacc :
-      σ_slip_solm.find? (AccountAddress.ofUInt256
+      σ_slip_solm.get? (AccountAddress.ofUInt256
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I)) with
     | none =>
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm,
+          initState, State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hgemNoCodeSolmWord
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm,
+          initState, State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (joinStore I) joinTransition.body .reverted := by
     exact gemJoinJoinBodyRevertsGemNoCode evmSolm evmSolmSlip I
@@ -3593,18 +3508,18 @@ theorem gemJoinJoinBodyCoreGemNoCode
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreTransferCallFailure
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    {cA_slip cA_transfer : Batteries.RBSet AccountAddress compare}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer : ByteArray} {A_slip A_transfer : Substate} {k847 C847 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ ⟨0⟩)
@@ -3614,96 +3529,69 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd847 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨0⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σ_slip I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (outTransfer.write 0
-        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
         joinTransferFromOutPtr.toNat
         (min joinTransferFromOutSize (UInt256.ofNat outTransfer.size)).toNat)
-      (UInt256.ofNat 8) outTransfer (cA_transfer, σ_transfer) k847 C847)
+      (UInt256.ofNat 8) outTransfer σ_transfer k847 C847)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (hcallTransferEvmRaw :
       typedCallViaEVM config
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ_slip, substate := A_slip }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }))
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (false,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_transfer, substate := A_transfer, createdAccounts := cA_transfer },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true)
-    (houtTransferSize : outTransfer.size < UInt256.size)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    (houtTransferSize : outTransfer.size < UInt256.size) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   let evmEvmTransfer : State := { evmEvm with
     accountMap := σ_transfer,
     substate := A_transfer,
-    createdAccounts := cA_transfer }
+}
   have hrev := RD.gemJoinTransferFromCallFailure rd847 houtTransferSize
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -3715,29 +3603,29 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -3751,31 +3639,16 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hword : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hword]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hgemCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      simpa [hGemSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by simpa [σ_slip_solm] using hgemCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -3795,32 +3668,17 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
         (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I))
         rfl hgemCodeSolmWord
   have hGemAddrOrig :
-      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by
-    have hgemAddrEvm :
-        joinGemAddressOf evmEvmSlip =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) := by
-      apply Fin.ext
-      simp [evmEvmSlip, evmEvm, joinGemAddressOf, initState, Solm.EVM.storageLoad,
-        State.lookupAccount, Account.lookupStorage, gemJoinAddressReturnWord,
-        gemJoinSlotWord, solcSlotWord, accountAddress_ofUInt256_eq_ofNat_toNat,
-        AccountAddress.ofNat]
-    rw [hgemAddrEvm, hgemAddrSolm, hGemSlot]
+      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by simp [σ_slip_solm, A_slip_solm, evmEvmSlip, evmSolmSlip, evmEvm, evmSolm, initState]
   have hcallTransferEvm :
       typedCallViaEVM config evmEvmSlip (EVM.address (joinGemAddressOf evmEvmSlip))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (false, evmEvmTransfer, outTransfer) true := by
     simpa [evmEvm, evmEvmSlip, evmEvmTransfer] using hcallTransferEvmRaw
   let evmSolmSlipBase : State := { evmSolmSlip with substate := evmEvmSlip.substate }
-  obtain ⟨σ_transfer_solm, A_transfer_solm0, hcallTransferSolmBase, _hAccountsTransfer⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSolmSlipBase)
-      hcallTransferEvm hStateSlip.accountMap
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmSolmSlipBase])
-      (by
-        simpa [evmSolmSlipBase] using hStateSlip.executionEnv.symm)
+  let σ_transfer_solm := σ_transfer
+  have hcallTransferSolmBase := by
+    simpa [evmSolmSlipBase, evmSolmSlip, evmEvmSlip, evmSolm, evmEvm, initState] using
+      hcallTransferEvm
   have hdepthNeBase : evmSolmSlipBase.executionEnv.depth ≠ 1024 := by
     intro hdepthEq
     have hI : I.depth = 1024 := by
@@ -3833,7 +3691,7 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
   let evmSolmTransfer : State := { evmSolmSlip with
     accountMap := σ_transfer_solm,
     substate := A_transfer_solm,
-    createdAccounts := cA_transfer }
+}
   have hcallTransferSolm :
       typedCallViaEVM config evmSolmSlip (EVM.address (joinGemAddressOf evmSolmSlip))
         "transferFrom" 0
@@ -3850,18 +3708,18 @@ theorem gemJoinJoinBodyCoreTransferCallFailure
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreTransferDecodeShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    {cA_slip cA_transfer : Batteries.RBSet AccountAddress compare}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer : ByteArray} {A_slip A_transfer : Substate} {k865 C865 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ ⟨0⟩)
@@ -3872,61 +3730,60 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd865 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨865⟩
       (joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
         gemJoinAddressReturnWord ⟨3⟩ σ_slip I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨254⟩ :: sel :: [])
       (outTransfer.write 0
-        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
         joinTransferFromOutPtr.toNat
         (min joinTransferFromOutSize (UInt256.ofNat outTransfer.size)).toNat)
-      (UInt256.ofNat 8) outTransfer (cA_transfer, σ_transfer) k865 C865)
+      (UInt256.ofNat 8) outTransfer σ_transfer k865 C865)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (hcallTransferEvmRaw :
       typedCallViaEVM config
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ_slip, substate := A_slip }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }))
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_transfer, substate := A_transfer, createdAccounts := cA_transfer },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_transfer, substate := A_transfer },
           outTransfer) true)
-    (houtTransferSize : outTransfer.size < UInt256.size)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    (houtTransferSize : outTransfer.size < UInt256.size) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   let evmEvmTransfer : State := { evmEvm with
     accountMap := σ_transfer,
     substate := A_transfer,
-    createdAccounts := cA_transfer }
+}
   have hSlipMem :
-      (joinSlipCalldataMem I σ_evm solcFreePtrMem).size = 228 :=
-    joinSlipCalldataMem_size_of_size96 I σ_evm solcFreePtrMem_size
+      (joinSlipCalldataMem I σ solcFreePtrMem).size = 228 :=
+    joinSlipCalldataMem_size_of_size96 I σ solcFreePtrMem_size
   have hSlipRead64 :
-      (joinSlipCalldataMem I σ_evm solcFreePtrMem).readWithPadding 64 32 =
+      (joinSlipCalldataMem I σ solcFreePtrMem).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    joinSlipCalldataMem_read64_of_size96 I σ_evm solcFreePtrMem_size solcFreePtrMem_read64
+    joinSlipCalldataMem_read64_of_size96 I σ solcFreePtrMem_size solcFreePtrMem_read64
   have hBaseMem :
-      (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem)).size = 228 :=
+      (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).size = 228 :=
     joinTransferFromCalldataMem_size I hSlipMem
   have hBaseRead64 :
-      (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem)).readWithPadding 64 32 =
+      (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
     joinTransferFromCalldataMem_read64 I hSlipMem hSlipRead64
   have hmin :
@@ -3935,24 +3792,24 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
     joinTransferFromMin32_toNat_of_lt hshort
   have hmem :
       (outTransfer.write 0
-        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
         joinTransferFromOutPtr.toNat outTransfer.size).size = 228 :=
     joinTransferFromReturnWrite_size outTransfer.size hBaseMem (by omega) (by omega)
   have hread64 :
       (outTransfer.write 0
-        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+        (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
         joinTransferFromOutPtr.toNat outTransfer.size).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
     joinTransferFromReturnWrite_read64 outTransfer.size hBaseMem hBaseRead64 (by omega) (by omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (outTransfer.write 0
-              (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+              (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
               joinTransferFromOutPtr.toNat outTransfer.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outTransfer.write 0
-            (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+            (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
             joinTransferFromOutPtr.toNat outTransfer.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
@@ -3960,51 +3817,25 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
   have hrev := RD.gemJoinTransferFromReturnDecodeShortReverts
     (by simpa [hmin] using rd865) hshort houtTransferSize hmload64
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hword : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hword : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hword]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -4016,29 +3847,29 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -4052,31 +3883,16 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hword : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hword]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hgemCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      simpa [hGemSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by simpa [σ_slip_solm] using hgemCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -4096,32 +3912,17 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
         (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I))
         rfl hgemCodeSolmWord
   have hGemAddrOrig :
-      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by
-    have hgemAddrEvm :
-        joinGemAddressOf evmEvmSlip =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) := by
-      apply Fin.ext
-      simp [evmEvmSlip, evmEvm, joinGemAddressOf, initState, Solm.EVM.storageLoad,
-        State.lookupAccount, Account.lookupStorage, gemJoinAddressReturnWord,
-        gemJoinSlotWord, solcSlotWord, accountAddress_ofUInt256_eq_ofNat_toNat,
-        AccountAddress.ofNat]
-    rw [hgemAddrEvm, hgemAddrSolm, hGemSlot]
+      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by simp [σ_slip_solm, A_slip_solm, evmEvmSlip, evmSolmSlip, evmEvm, evmSolm, initState]
   have hcallTransferEvm :
       typedCallViaEVM config evmEvmSlip (EVM.address (joinGemAddressOf evmEvmSlip))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true, evmEvmTransfer, outTransfer) true := by
     simpa [evmEvm, evmEvmSlip, evmEvmTransfer] using hcallTransferEvmRaw
   let evmSolmSlipBase : State := { evmSolmSlip with substate := evmEvmSlip.substate }
-  obtain ⟨σ_transfer_solm, A_transfer_solm0, hcallTransferSolmBase, _hAccountsTransfer⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSolmSlipBase)
-      hcallTransferEvm hStateSlip.accountMap
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmSolmSlipBase])
-      (by
-        simpa [evmSolmSlipBase] using hStateSlip.executionEnv.symm)
+  let σ_transfer_solm := σ_transfer
+  have hcallTransferSolmBase := by
+    simpa [evmSolmSlipBase, evmSolmSlip, evmEvmSlip, evmSolm, evmEvm, initState] using
+      hcallTransferEvm
   have hdepthNeBase : evmSolmSlipBase.executionEnv.depth ≠ 1024 := by
     intro hdepthEq
     have hI : I.depth = 1024 := by
@@ -4134,7 +3935,7 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
   let evmSolmTransfer : State := { evmSolmSlip with
     accountMap := σ_transfer_solm,
     substate := A_transfer_solm,
-    createdAccounts := cA_transfer }
+}
   have hcallTransferSolm :
       typedCallViaEVM config evmSolmSlip (EVM.address (joinGemAddressOf evmSolmSlip))
         "transferFrom" 0
@@ -4152,20 +3953,20 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
       hliveSolm hwadLow hvatCodeSolm hcallSlipSolm hgemCodeSolm hcallTransferSolm
       hdecTransfer
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  
+
 theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {cA_slip cA_transfer : Batteries.RBSet AccountAddress compare}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer mem : ByteArray} {A_slip A_transfer : Substate} {k888 C888 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ ⟨0⟩)
@@ -4180,89 +3981,62 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd888 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) outTransfer (cA_transfer, σ_transfer) k888 C888)
+      mem (UInt256.ofNat 8) outTransfer σ_transfer k888 C888)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (hcallTransferEvmRaw :
       typedCallViaEVM config
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ_slip, substate := A_slip }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }))
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_transfer, substate := A_transfer, createdAccounts := cA_transfer },
-          outTransfer) true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_transfer, substate := A_transfer },
+          outTransfer) true) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   let evmEvmTransfer : State := { evmEvm with
     accountMap := σ_transfer,
     substate := A_transfer,
-    createdAccounts := cA_transfer }
+}
   have hretFinal := RD.gemJoinTransferFromReturnTrueToStop rd888 hret hperm hmem hread64
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hwordSlot]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -4274,29 +4048,29 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -4310,31 +4084,16 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hwordSlot]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hgemCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      simpa [hGemSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by simpa [σ_slip_solm] using hgemCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -4354,32 +4113,17 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
         (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I))
         rfl hgemCodeSolmWord
   have hGemAddrOrig :
-      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by
-    have hgemAddrEvm :
-        joinGemAddressOf evmEvmSlip =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) := by
-      apply Fin.ext
-      simp [evmEvmSlip, evmEvm, joinGemAddressOf, initState, Solm.EVM.storageLoad,
-        State.lookupAccount, Account.lookupStorage, gemJoinAddressReturnWord,
-        gemJoinSlotWord, solcSlotWord, accountAddress_ofUInt256_eq_ofNat_toNat,
-        AccountAddress.ofNat]
-    rw [hgemAddrEvm, hgemAddrSolm, hGemSlot]
+      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by simp [σ_slip_solm, A_slip_solm, evmEvmSlip, evmSolmSlip, evmEvm, evmSolm, initState]
   have hcallTransferEvm :
       typedCallViaEVM config evmEvmSlip (EVM.address (joinGemAddressOf evmEvmSlip))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true, evmEvmTransfer, outTransfer) true := by
     simpa [evmEvm, evmEvmSlip, evmEvmTransfer] using hcallTransferEvmRaw
   let evmSolmSlipBase : State := { evmSolmSlip with substate := evmEvmSlip.substate }
-  obtain ⟨σ_transfer_solm, A_transfer_solm0, hcallTransferSolmBase, hAccountsTransfer⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSolmSlipBase)
-      hcallTransferEvm hStateSlip.accountMap
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmSolmSlipBase])
-      (by
-        simpa [evmSolmSlipBase] using hStateSlip.executionEnv.symm)
+  let σ_transfer_solm := σ_transfer
+  have hcallTransferSolmBase := by
+    simpa [evmSolmSlipBase, evmSolmSlip, evmEvmSlip, evmSolm, evmEvm, initState] using
+      hcallTransferEvm
   have hdepthNeBase : evmSolmSlipBase.executionEnv.depth ≠ 1024 := by
     intro hdepthEq
     have hI : I.depth = 1024 := by
@@ -4392,7 +4136,7 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
   let evmSolmTransfer : State := { evmSolmSlip with
     accountMap := σ_transfer_solm,
     substate := A_transfer_solm,
-    createdAccounts := cA_transfer }
+}
   have hcallTransferSolm :
       typedCallViaEVM config evmSolmSlip (EVM.address (joinGemAddressOf evmSolmSlip))
         "transferFrom" 0
@@ -4411,31 +4155,27 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
       (by simp only [evmSolm, initState]; exact hwv)
       hliveSolm hwadLow hvatCodeSolm hcallSlipSolm hgemCodeSolm hcallTransferSolm
       hdecTransfer
-  have hStateTransfer : EVMStateEquiv evmEvmTransfer evmSolmTransfer := by
-    refine ⟨?_, ?_, ?_⟩
-    · simp [evmEvmTransfer, evmSolmTransfer, evmSolmSlip, evmEvm, evmSolm, initState]
-    · simp [evmEvmTransfer, evmSolmTransfer]
-    · simpa [evmEvmTransfer, evmSolmTransfer] using hAccountsTransfer
   have henc : returnEquiv ByteArray.empty none joinTransition.returnType := by
     rw [show joinTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hretFinal.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-    rfl (accountMapEquiv.refl σ_transfer) hStateTransfer henc
+  exact hretFinal.reEquivExecutionGen
+    (hcode := hcode) (hd := hdispatch) (hdec := hdecode) (hbody := hbody)
+    (hAccounts := rfl) (henc := henc)
 
 
 theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {cA_slip cA_transfer : Batteries.RBSet AccountAddress compare}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer mem : ByteArray} {A_slip A_transfer : Substate} {k888 C888 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ ⟨0⟩)
@@ -4450,89 +4190,62 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd888 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) outTransfer (cA_transfer, σ_transfer) k888 C888)
+      mem (UInt256.ofNat 8) outTransfer σ_transfer k888 C888)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (hcallTransferEvmRaw :
       typedCallViaEVM config
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ_slip, substate := A_slip }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }))
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_transfer, substate := A_transfer, createdAccounts := cA_transfer },
-          outTransfer) true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_transfer, substate := A_transfer },
+          outTransfer) true) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   let evmEvmTransfer : State := { evmEvm with
     accountMap := σ_transfer,
     substate := A_transfer,
-    createdAccounts := cA_transfer }
+}
   have hrev := RD.gemJoinTransferFromReturnFalseReverts rd888 hret hmem hread64
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hwordSlot]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -4544,29 +4257,29 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -4580,31 +4293,16 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hwordSlot]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hgemCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      simpa [hGemSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by simpa [σ_slip_solm] using hgemCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -4624,32 +4322,17 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
         (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I))
         rfl hgemCodeSolmWord
   have hGemAddrOrig :
-      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by
-    have hgemAddrEvm :
-        joinGemAddressOf evmEvmSlip =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) := by
-      apply Fin.ext
-      simp [evmEvmSlip, evmEvm, joinGemAddressOf, initState, Solm.EVM.storageLoad,
-        State.lookupAccount, Account.lookupStorage, gemJoinAddressReturnWord,
-        gemJoinSlotWord, solcSlotWord, accountAddress_ofUInt256_eq_ofNat_toNat,
-        AccountAddress.ofNat]
-    rw [hgemAddrEvm, hgemAddrSolm, hGemSlot]
+      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by simp [σ_slip_solm, A_slip_solm, evmEvmSlip, evmSolmSlip, evmEvm, evmSolm, initState]
   have hcallTransferEvm :
       typedCallViaEVM config evmEvmSlip (EVM.address (joinGemAddressOf evmEvmSlip))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true, evmEvmTransfer, outTransfer) true := by
     simpa [evmEvm, evmEvmSlip, evmEvmTransfer] using hcallTransferEvmRaw
   let evmSolmSlipBase : State := { evmSolmSlip with substate := evmEvmSlip.substate }
-  obtain ⟨σ_transfer_solm, A_transfer_solm0, hcallTransferSolmBase, hAccountsTransfer⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSolmSlipBase)
-      hcallTransferEvm hStateSlip.accountMap
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmSolmSlipBase])
-      (by
-        simpa [evmSolmSlipBase] using hStateSlip.executionEnv.symm)
+  let σ_transfer_solm := σ_transfer
+  have hcallTransferSolmBase := by
+    simpa [evmSolmSlipBase, evmSolmSlip, evmEvmSlip, evmSolm, evmEvm, initState] using
+      hcallTransferEvm
   have hdepthNeBase : evmSolmSlipBase.executionEnv.depth ≠ 1024 := by
     intro hdepthEq
     have hI : I.depth = 1024 := by
@@ -4662,7 +4345,7 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
   let evmSolmTransfer : State := { evmSolmSlip with
     accountMap := σ_transfer_solm,
     substate := A_transfer_solm,
-    createdAccounts := cA_transfer }
+}
   have hcallTransferSolm :
       typedCallViaEVM config evmSolmSlip (EVM.address (joinGemAddressOf evmSolmSlip))
         "transferFrom" 0
@@ -4683,18 +4366,18 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseSmall
 
 
 theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {cA_slip cA_transfer : Batteries.RBSet AccountAddress compare}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+
     {σ_slip σ_transfer : AccountMap}
     {outSlip outTransfer mem : ByteArray} {A_slip A_transfer : Substate} {k888 C888 : ℕ}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩)
+    (hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩)
     (hwadLow : (joinWadWord I).toNat < intLimit)
     (hvatCode :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩)
     (hgemCode :
       Reasoning.Theory.extCodeSizeWord σ_slip
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ ⟨0⟩)
@@ -4709,89 +4392,62 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
       decodeCalldataWithMode config.abiDecodeMode (joinTransition.params.map Param.name)
         (transitionSignature joinTransition).paramTypes I.calldata = some (joinStore I))
     (rd888 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
       (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) outTransfer (cA_transfer, σ_transfer) k888 C888)
+      mem (UInt256.ofNat 8) outTransfer σ_transfer k888 C888)
     (hcallSlipEvmRaw :
-      typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (joinVatAddressOf
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) "slip" 0
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
-        (true, ({ initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }),
+        (true, ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }),
           outSlip) true)
     (hcallTransferEvmRaw :
       typedCallViaEVM config
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ_slip, substate := A_slip }
         (EVM.address (joinGemAddressOf
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_slip, substate := A_slip, createdAccounts := cA_slip }))
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_slip, substate := A_slip }))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_transfer, substate := A_transfer, createdAccounts := cA_transfer },
-          outTransfer) true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ_transfer, substate := A_transfer },
+          outTransfer) true) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmEvmSlip : State := { evmEvm with
     accountMap := σ_slip,
     substate := A_slip,
-    createdAccounts := cA_slip }
+}
   let evmEvmTransfer : State := { evmEvm with
     accountMap := σ_transfer,
     substate := A_transfer,
-    createdAccounts := cA_transfer }
+}
   have hrev := RD.gemJoinTransferFromReturnFalseReverts rd888 hret hmem hread64
   have hLiveSlot :
-      gemJoinSlotWord ⟨5⟩ σ_evm I = gemJoinSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ_solm I = ⟨1⟩ := by
+      gemJoinSlotWord ⟨5⟩ σ I = gemJoinSlotWord ⟨5⟩ σ I :=
+    rfl
+  have hliveSolm : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩ := by
     rw [← hLiveSlot]
     exact hlive
   have hVatSlot :
-      gemJoinAddressReturnWord ⟨1⟩ σ_evm I =
-        gemJoinAddressReturnWord ⟨1⟩ σ_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ_evm I = gemJoinSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+      gemJoinAddressReturnWord ⟨1⟩ σ I =
+        gemJoinAddressReturnWord ⟨1⟩ σ I := by
+    have hwordSlot : gemJoinSlotWord ⟨1⟩ σ I = gemJoinSlotWord ⟨1⟩ σ I :=
+      rfl
     simp [gemJoinAddressReturnWord, hwordSlot]
   have hVatAddrOrig :
-      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by
-    have hvatAddrEvm :
-        joinVatAddressOf evmEvm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) := by
-      apply Fin.ext
-      simp [evmEvm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    have hvatAddrSolm' :
-        joinVatAddressOf evmSolm =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
-      apply Fin.ext
-      simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
-        accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat]
-    rw [hvatAddrEvm, hvatAddrSolm', hVatSlot]
+      joinVatAddressOf evmEvm = joinVatAddressOf evmSolm := by rfl
   have hcodeSolmWord :
-      Reasoning.Theory.extCodeSizeWord σ_solm
-        (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hvatCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (gemJoinAddressReturnWord ⟨1⟩ σ_evm I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-          (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩ := by
-      simpa [hVatSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+      Reasoning.Theory.extCodeSizeWord σ
+        (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := by simpa using hvatCode
   have hvatAddrSolm :
       joinVatAddressOf evmSolm =
-        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I) := by
+        AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I) := by
     apply Fin.ext
     simp [evmSolm, joinVatAddressOf, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord,
@@ -4803,29 +4459,29 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
     rw [hvatAddrSolm]
     simpa [evmSolm, initState, State.lookupAccount] using
       gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
-        (σ := σ_solm) (target := gemJoinAddressReturnWord ⟨1⟩ σ_solm I)
-        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I))
+        (σ := σ) (target := gemJoinAddressReturnWord ⟨1⟩ σ I)
+        (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I))
         rfl hcodeSolmWord
   have hcallSlipEvm :
       typedCallViaEVM config evmEvm (EVM.address (joinVatAddressOf evmEvm)) "slip" 0
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmEvmSlip, outSlip) true := by
     simpa [evmEvm, evmEvmSlip] using hcallSlipEvmRaw
-  obtain ⟨σ_slip_solm, A_slip_solm, hcallSlipSolmRaw, hStateSlip⟩ :=
-    typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallSlipEvm)
-      (by simp [evmEvm, evmEvmSlip, initState]) hAccounts
+  have hcallSlipSolmRaw := hcallSlipEvm
+  let σ_slip_solm := σ_slip
+  let A_slip_solm := A_slip
   let evmSolmSlip : State := { evmSolm with
     accountMap := σ_slip_solm,
     substate := A_slip_solm,
-    createdAccounts := cA_slip }
+}
   have hIlkSlot :
-      gemJoinSlotWord ⟨2⟩ σ_evm I = gemJoinSlotWord ⟨2⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+      gemJoinSlotWord ⟨2⟩ σ I = gemJoinSlotWord ⟨2⟩ σ I :=
+    rfl
   have hcallSlipSolmEvmIlk :
       typedCallViaEVM config evmSolm (EVM.address (joinVatAddressOf evmSolm)) "slip" 0
         [.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ_evm I)),
+            (EVM.Word.toBytesBE (gemJoinSlotWord ⟨2⟩ σ I)),
           joinUsrValue I, joinWadValue I]
         (true, evmSolmSlip, outSlip) true := by
     simpa [evmSolm, evmSolmSlip, evmEvmSlip, initState, hVatAddrOrig]
@@ -4839,31 +4495,16 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
         (true, evmSolmSlip, outSlip) true := by
     have hIlkArg :
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩ =
-          gemJoinSlotWord ⟨2⟩ σ_evm I := by
+          gemJoinSlotWord ⟨2⟩ σ I := by
       simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage, gemJoinSlotWord, solcSlotWord] using hIlkSlot.symm
     simpa [hIlkArg] using hcallSlipSolmEvmIlk
   have hGemSlot :
       gemJoinAddressReturnWord ⟨3⟩ σ_slip I =
-        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by
-    have hwordSlot : gemJoinSlotWord ⟨3⟩ σ_slip I =
-        gemJoinSlotWord ⟨3⟩ σ_slip_solm I :=
-      accountMapEquiv_storage_findD hStateSlip.accountMap I.codeOwner ⟨3⟩ ⟨0⟩
-    simp [gemJoinAddressReturnWord, hwordSlot]
+        gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I := by rfl
   have hgemCodeSolmWord :
       Reasoning.Theory.extCodeSizeWord σ_slip_solm
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by
-    intro hzero
-    apply hgemCode
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hStateSlip.accountMap
-        (gemJoinAddressReturnWord ⟨3⟩ σ_slip I)
-    have hzeroAtEvmTarget :
-        Reasoning.Theory.extCodeSizeWord σ_slip_solm
-          (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = ⟨0⟩ := by
-      simpa [hGemSlot] using hzero
-    rw [hsame]
-    exact hzeroAtEvmTarget
+        (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) ≠ ⟨0⟩ := by simpa [σ_slip_solm] using hgemCode
   have hgemAddrSolm :
       joinGemAddressOf evmSolmSlip =
         AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I) := by
@@ -4883,32 +4524,17 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
         (addr := AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I))
         rfl hgemCodeSolmWord
   have hGemAddrOrig :
-      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by
-    have hgemAddrEvm :
-        joinGemAddressOf evmEvmSlip =
-          AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) := by
-      apply Fin.ext
-      simp [evmEvmSlip, evmEvm, joinGemAddressOf, initState, Solm.EVM.storageLoad,
-        State.lookupAccount, Account.lookupStorage, gemJoinAddressReturnWord,
-        gemJoinSlotWord, solcSlotWord, accountAddress_ofUInt256_eq_ofNat_toNat,
-        AccountAddress.ofNat]
-    rw [hgemAddrEvm, hgemAddrSolm, hGemSlot]
+      joinGemAddressOf evmEvmSlip = joinGemAddressOf evmSolmSlip := by simp [σ_slip_solm, A_slip_solm, evmEvmSlip, evmSolmSlip, evmEvm, evmSolm, initState]
   have hcallTransferEvm :
       typedCallViaEVM config evmEvmSlip (EVM.address (joinGemAddressOf evmEvmSlip))
         "transferFrom" 0 [.address I.source, .address I.codeOwner, joinWadValue I]
         (true, evmEvmTransfer, outTransfer) true := by
     simpa [evmEvm, evmEvmSlip, evmEvmTransfer] using hcallTransferEvmRaw
   let evmSolmSlipBase : State := { evmSolmSlip with substate := evmEvmSlip.substate }
-  obtain ⟨σ_transfer_solm, A_transfer_solm0, hcallTransferSolmBase, hAccountsTransfer⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSolmSlipBase)
-      hcallTransferEvm hStateSlip.accountMap
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmEvmSlip, evmSolmSlipBase, evmSolmSlip, evmEvm, evmSolm, initState])
-      (by simp [evmSolmSlipBase])
-      (by
-        simpa [evmSolmSlipBase] using hStateSlip.executionEnv.symm)
+  let σ_transfer_solm := σ_transfer
+  have hcallTransferSolmBase := by
+    simpa [evmSolmSlipBase, evmSolmSlip, evmEvmSlip, evmSolm, evmEvm, initState] using
+      hcallTransferEvm
   have hdepthNeBase : evmSolmSlipBase.executionEnv.depth ≠ 1024 := by
     intro hdepthEq
     have hI : I.depth = 1024 := by
@@ -4921,7 +4547,7 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
   let evmSolmTransfer : State := { evmSolmSlip with
     accountMap := σ_transfer_solm,
     substate := A_transfer_solm,
-    createdAccounts := cA_transfer }
+}
   have hcallTransferSolm :
       typedCallViaEVM config evmSolmSlip (EVM.address (joinGemAddressOf evmSolmSlip))
         "transferFrom" 0
@@ -4941,69 +4567,68 @@ theorem gemJoinJoinBodyCoreTransferReturnFalseHuge
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem gemJoinJoinBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some joinTransition)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨210⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (gemJoinJoinX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (gemJoinDecode_join_none_short hsz4 hshort)
 
-theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (gemJoinSelBytes 6))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (gemJoinSelBytes 6)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some joinTransition :=
     gemJoinDispatchJoin hsel
-  have hreach := gemJoinReachJoinBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := gemJoinReachJoinBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hlive : gemJoinSlotWord ⟨5⟩ σ_evm I = ⟨1⟩
+  · by_cases hlive : gemJoinSlotWord ⟨5⟩ σ I = ⟨1⟩
     · by_cases hwadHigh : intLimit ≤ (joinWadWord I).toNat
       · exact gemJoinJoinBodyCoreOverflow hcode hsize hwv hsz68 hlive hwadHigh hdispatch
-          (gemJoinDecode_join_ok hsz68) hreach hAccounts
+          (gemJoinDecode_join_ok hsz68) hreach
       · have hwadLow : (joinWadWord I).toNat < intLimit := by omega
         by_cases hvatNoCode :
-            Reasoning.Theory.extCodeSizeWord σ_evm
-              (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) = ⟨0⟩
+            Reasoning.Theory.extCodeSizeWord σ
+              (gemJoinAddressReturnWord ⟨1⟩ σ I) = ⟨0⟩
         · exact gemJoinJoinBodyCoreVatNoCode hcode hsize hwv hsz68 hlive hwadLow
-            hvatNoCode hdispatch (gemJoinDecode_join_ok hsz68) hreach hAccounts
+            hvatNoCode hdispatch (gemJoinDecode_join_ok hsz68) hreach
         · have hvatCode :
-              Reasoning.Theory.extCodeSizeWord σ_evm
-                (gemJoinAddressReturnWord ⟨1⟩ σ_evm I) ≠ ⟨0⟩ := hvatNoCode
+              Reasoning.Theory.extCodeSizeWord σ
+                (gemJoinAddressReturnWord ⟨1⟩ σ I) ≠ ⟨0⟩ := hvatNoCode
           by_cases hdepthLt : I.depth.val < 1024
           · obtain ⟨_, _, rd487⟩ :=
               gemJoinJoinX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
             obtain ⟨_, _, rd561⟩ := gemJoinJoinX_liveOk (I := I) hlive rd487
             obtain ⟨_, _, rd634⟩ := gemJoinJoinX_nonoverflowOk (I := I) hwadLow rd561
-            obtain ⟨cA_slip, σ_slip, zSlip, outSlip, A_slip, k733, C733,
+            obtain ⟨σ_slip, zSlip, outSlip, A_slip, k733, C733,
                 rd733, hcallSlipEvmRaw, houtSlipSize⟩ :=
               RD.gemJoinSlipPostCall ⟨_, _, rd634⟩ hvatCode hwadLow hperm hdepthLt
             cases zSlip
             · exact gemJoinJoinBodyCoreSlipCallFailure hcode hsize hwv hsz68 hlive
                 hwadLow hvatCode hdepthLt hdispatch (gemJoinDecode_join_ok hsz68)
-                rd733 (by simpa using hcallSlipEvmRaw) houtSlipSize hAccounts
+                rd733 (by simpa using hcallSlipEvmRaw) houtSlipSize
             · obtain ⟨_, _, rd752⟩ := RD.gemJoinSlipCallSuccessToTransferSetup rd733
               by_cases hgemNoCode :
                   Reasoning.Theory.extCodeSizeWord σ_slip
                     (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) = (⟨0⟩ : UInt256)
               · exact gemJoinJoinBodyCoreGemNoCode hcode hsize hwv hsz68 hlive
                   hwadLow hvatCode hgemNoCode hdispatch (gemJoinDecode_join_ok hsz68)
-                  rd752 (by simpa using hcallSlipEvmRaw) hAccounts
+                  rd752 (by simpa using hcallSlipEvmRaw)
               · have hgemCode :
                     Reasoning.Theory.extCodeSizeWord σ_slip
                       (gemJoinAddressReturnWord ⟨3⟩ σ_slip I) ≠ (⟨0⟩ : UInt256) := hgemNoCode
-                obtain ⟨cA_transfer, σ_transfer, zTransfer, outTransfer, A_transfer,
+                obtain ⟨σ_transfer, zTransfer, outTransfer, A_transfer,
                     k847, C847, rd847, hcallTransferEvmRaw, houtTransferSize⟩ :=
                   RD.gemJoinTransferFromPostCall (Acur := A_slip) rd752 hgemCode
                     hperm hdepthLt
@@ -5011,30 +4636,30 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 · exact gemJoinJoinBodyCoreTransferCallFailure hcode hsize hwv hsz68 hlive
                     hwadLow hvatCode hgemCode hdepthLt hdispatch
                     (gemJoinDecode_join_ok hsz68) rd847 (by simpa using hcallSlipEvmRaw)
-                    (by simpa using hcallTransferEvmRaw) houtTransferSize hAccounts
+                    (by simpa using hcallTransferEvmRaw) houtTransferSize
                 · obtain ⟨_, _, rd865⟩ := RD.gemJoinTransferFromCallSuccessToDecode rd847
                   by_cases hshort : outTransfer.size < 32
                   · exact gemJoinJoinBodyCoreTransferDecodeShort hcode hsize hwv hsz68 hlive
                       hwadLow hvatCode hgemCode hdepthLt hshort hdispatch
                       (gemJoinDecode_join_ok hsz68) rd865
                       (by simpa using hcallSlipEvmRaw)
-                      (by simpa using hcallTransferEvmRaw) houtTransferSize hAccounts
+                      (by simpa using hcallTransferEvmRaw) houtTransferSize
                   · have hlo : 32 ≤ outTransfer.size := by omega
                     have hSlipMem :
-                        (joinSlipCalldataMem I σ_evm solcFreePtrMem).size = 228 :=
-                      joinSlipCalldataMem_size_of_size96 I σ_evm solcFreePtrMem_size
+                        (joinSlipCalldataMem I σ solcFreePtrMem).size = 228 :=
+                      joinSlipCalldataMem_size_of_size96 I σ solcFreePtrMem_size
                     have hSlipRead64 :
-                        (joinSlipCalldataMem I σ_evm solcFreePtrMem).readWithPadding 64 32 =
+                        (joinSlipCalldataMem I σ solcFreePtrMem).readWithPadding 64 32 =
                           UInt256.toByteArray ⟨128⟩ :=
-                      joinSlipCalldataMem_read64_of_size96 I σ_evm solcFreePtrMem_size
+                      joinSlipCalldataMem_read64_of_size96 I σ solcFreePtrMem_size
                         solcFreePtrMem_read64
                     have hBaseMem :
                         (joinTransferFromCalldataMem I
-                          (joinSlipCalldataMem I σ_evm solcFreePtrMem)).size = 228 :=
+                          (joinSlipCalldataMem I σ solcFreePtrMem)).size = 228 :=
                       joinTransferFromCalldataMem_size I hSlipMem
                     have hBaseRead64 :
                         (joinTransferFromCalldataMem I
-                          (joinSlipCalldataMem I σ_evm solcFreePtrMem)).readWithPadding 64 32 =
+                          (joinSlipCalldataMem I σ solcFreePtrMem)).readWithPadding 64 32 =
                           UInt256.toByteArray ⟨128⟩ :=
                       joinTransferFromCalldataMem_read64 I hSlipMem hSlipRead64
                     have hmin :
@@ -5045,7 +4670,7 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     let transferReturnMem : ByteArray :=
                       outTransfer.write 0
                         (joinTransferFromCalldataMem I
-                          (joinSlipCalldataMem I σ_evm solcFreePtrMem))
+                          (joinSlipCalldataMem I σ solcFreePtrMem))
                         joinTransferFromOutPtr.toNat 32
                     have hmem : transferReturnMem.size = 228 :=
                       joinTransferFromReturnWrite_size 32 hBaseMem (by omega) (by omega)
@@ -5098,7 +4723,7 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         hsz68 hlive hwadLow hvatCode hgemCode hdepthLt hretZero
                         hword hlo hmem hread64 hdispatch
                         (gemJoinDecode_join_ok hsz68) rd888
-                        hcallSlipEvmRaw hcallTransferEvmRaw hAccounts
+                        hcallSlipEvmRaw hcallTransferEvmRaw
                     · have hword :
                           UInt256.ofNat
                             (fromByteArrayBigEndian (outTransfer.extract 0 32)) ≠ ⟨0⟩ := by
@@ -5107,16 +4732,16 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         hsz68 hlive hwadLow hvatCode hgemCode hdepthLt hretZero
                         hword hlo hmem hread64 hdispatch
                         (gemJoinDecode_join_ok hsz68) rd888
-                        hcallSlipEvmRaw hcallTransferEvmRaw hAccounts
+                        hcallSlipEvmRaw hcallTransferEvmRaw
           · have hdepthEq : I.depth = 1024 := by
               apply Fin.ext
               have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
               omega
             exact gemJoinJoinBodyCoreSlipCallDepthLimit hcode hsize hwv hsz68 hlive
               hwadLow hvatCode hdepthEq hdispatch (gemJoinDecode_join_ok hsz68) hreach
-              hAccounts
+
     · exact gemJoinJoinBodyCoreNotLive hcode hsize hwv hsz68 hlive hdispatch
-        (gemJoinDecode_join_ok hsz68) hreach hAccounts
+        (gemJoinDecode_join_ok hsz68) hreach
   · exact gemJoinJoinBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

@@ -761,7 +761,7 @@ theorem endLow2SplitWellFormed :
 
 theorem endRootSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endRootSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endRootSplitPc) selWord ≠ ⟨0⟩)
@@ -774,7 +774,7 @@ theorem endRootSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endRootSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endRootSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endRootSplitPc) selWord = ⟨0⟩)
@@ -787,7 +787,7 @@ theorem endRootSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHighSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHighSplitPc) selWord ≠ ⟨0⟩)
@@ -800,7 +800,7 @@ theorem endHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHighSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHighSplitPc) selWord = ⟨0⟩)
@@ -813,7 +813,7 @@ theorem endHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHigh2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHigh2SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHigh2SplitPc) selWord ≠ ⟨0⟩)
@@ -826,7 +826,7 @@ theorem endHigh2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHigh2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHigh2SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHigh2SplitPc) selWord = ⟨0⟩)
@@ -840,7 +840,7 @@ theorem endHigh2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHighMidSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHighMidSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHighMidSplitPc) selWord ≠ ⟨0⟩)
@@ -853,7 +853,7 @@ theorem endHighMidSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endHighMidSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endHighMidSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endHighMidSplitPc) selWord = ⟨0⟩)
@@ -867,7 +867,7 @@ theorem endHighMidSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLow1SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLow1SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLow1SplitPc) selWord ≠ ⟨0⟩)
@@ -880,7 +880,7 @@ theorem endLow1SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLow1SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLow1SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLow1SplitPc) selWord = ⟨0⟩)
@@ -893,7 +893,7 @@ theorem endLow1SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLowHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLowHighSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLowHighSplitPc) selWord ≠ ⟨0⟩)
@@ -906,7 +906,7 @@ theorem endLowHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLowHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLowHighSplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLowHighSplitPc) selWord = ⟨0⟩)
@@ -920,7 +920,7 @@ theorem endLowHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLow2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLow2SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLow2SplitPc) selWord ≠ ⟨0⟩)
@@ -933,7 +933,7 @@ theorem endLow2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem endLow2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {rest : List UInt256}
     (h : RD endBytecode ee g s0 endLow2SplitPc (selWord :: rest) mem aw rdata acc k C)
     (hb : UInt256.gt (armSelNat endBytecode endLow2SplitPc) selWord = ⟨0⟩)
@@ -1128,14 +1128,14 @@ theorem endGroup452ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (endGroup452SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem endReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endRootSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [endRootSplitPc, endSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := endBytecode)
       (bodyPc := endDispatchBodyPc) (loadPc := endSelectorLoadPc)
       (firstPc := endRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -1150,58 +1150,58 @@ theorem endReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachDebtFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow1 : UInt256.gt (armSelNat endBytecode endLow1SplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow2 : UInt256.gt (armSelNat endBytecode endLow2SplitPc) (endSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endDebtFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h271 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitTaken h32 hroot (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h272 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h391 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     exact endLow1SplitTaken h272 hlow1 (by simp)
-  have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h392 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [endLow2SplitPc] using h391.jumpdest (by native_decide) (by simp)
-  have h451 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h451 : RD endBytecode I g (initState σ σ₀ g A I)
       endVeryLowJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 1 + 5)
         (C32 + 22 + 1 + 22 + 1 + 22) := by
     exact endLow2SplitTaken h392 hlow2 (by simp)
-  have h452 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h452 : RD endBytecode I g (initState σ σ₀ g A I)
       endDebtFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5 + 1)
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 1 + 5 + 1)
         (C32 + 22 + 1 + 22 + 1 + 22 + 1) := by
     simpa [endDebtFirstArmPc] using h451.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h452⟩
 
-theorem endReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachDebtBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I debtSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endDebtEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x0dca59c1⟩ :=
     endSelWord_eq_of_beq I hsz 0x0d 0xca 0x59 0xc1 ⟨0x0dca59c1⟩
       (by native_decide) (by simpa [selIs, debtSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachDebtFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachDebtFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -1214,247 +1214,247 @@ theorem endReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide)
     (by simp)
 
-theorem endReachGroup65FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup65FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat endBytecode endHighSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh2 : UInt256.gt (armSelNat endBytecode endHigh2SplitPc) (endSelWord I) = ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup65FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitNotTaken h32 hroot (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD endBytecode I g (initState σ σ₀ g A I)
       endHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     exact endHighSplitNotTaken h43 hhigh (by simp)
-  have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h65 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup65FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
     exact endHigh2SplitNotTaken h54 hhigh2 (by simp)
   exact ⟨_, _, h65⟩
 
-theorem endReachGroup114FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup114FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat endBytecode endHighSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh2 : UInt256.gt (armSelNat endBytecode endHigh2SplitPc) (endSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup114FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitNotTaken h32 hroot (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD endBytecode I g (initState σ σ₀ g A I)
       endHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     exact endHighSplitNotTaken h43 hhigh (by simp)
-  have h113 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h113 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup114JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
     exact endHigh2SplitTaken h54 hhigh2 (by simp)
-  have h114 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h114 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup114FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
     simpa [endGroup114FirstArmPc] using h113.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h114⟩
 
-theorem endReachGroup174FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup174FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat endBytecode endHighSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hmid : UInt256.gt (armSelNat endBytecode endHighMidSplitPc) (endSelWord I) = ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup174FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitNotTaken h32 hroot (by simp)
-  have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h162 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     exact endHighSplitTaken h43 hhigh (by simp)
-  have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h163 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [endHighMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
-  have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h174 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup174FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     exact endHighMidSplitNotTaken h163 hmid (by simp)
   exact ⟨_, _, h174⟩
 
-theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup223FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat endBytecode endHighSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hmid : UInt256.gt (armSelNat endBytecode endHighMidSplitPc) (endSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup223FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitNotTaken h32 hroot (by simp)
-  have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h162 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     exact endHighSplitTaken h43 hhigh (by simp)
-  have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h163 : RD endBytecode I g (initState σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [endHighMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
-  have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h222 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup223JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     exact endHighMidSplitTaken h163 hmid (by simp)
-  have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h223 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup223FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
+      ByteArray.empty σ (k32 + 5 + 5 + 1 + 5 + 1)
         (C32 + 22 + 22 + 1 + 22 + 1) := by
     simpa [endGroup223FirstArmPc] using h222.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h223⟩
 
-theorem endReachGroup294FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup294FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow1 : UInt256.gt (armSelNat endBytecode endLow1SplitPc) (endSelWord I) = ⟨0⟩)
     (hlowHigh : UInt256.gt (armSelNat endBytecode endLowHighSplitPc) (endSelWord I) = ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup294FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h271 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitTaken h32 hroot (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h272 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h283 : RD endBytecode I g (initState σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     exact endLow1SplitNotTaken h272 hlow1 (by simp)
-  have h294 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h294 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup294FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
     exact endLowHighSplitNotTaken h283 hlowHigh (by simp)
   exact ⟨_, _, h294⟩
 
-theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup343FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow1 : UInt256.gt (armSelNat endBytecode endLow1SplitPc) (endSelWord I) = ⟨0⟩)
     (hlowHigh : UInt256.gt (armSelNat endBytecode endLowHighSplitPc) (endSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup343FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h271 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitTaken h32 hroot (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h272 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h283 : RD endBytecode I g (initState σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     exact endLow1SplitNotTaken h272 hlow1 (by simp)
-  have h342 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h342 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup343JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
     exact endLowHighSplitTaken h283 hlowHigh (by simp)
-  have h343 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h343 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup343FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5 + 1)
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 5 + 1)
         (C32 + 22 + 1 + 22 + 22 + 1) := by
     simpa [endGroup343FirstArmPc] using h342.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h343⟩
 
-theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachGroup403FirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat endBytecode endRootSplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow1 : UInt256.gt (armSelNat endBytecode endLow1SplitPc) (endSelWord I) ≠ ⟨0⟩)
     (hlow2 : UInt256.gt (armSelNat endBytecode endLow2SplitPc) (endSelWord I) = ⟨0⟩) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endGroup403FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h271 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     exact endRootSplitTaken h32 hroot (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h272 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h391 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     exact endLow1SplitTaken h272 hlow1 (by simp)
-  have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h392 : RD endBytecode I g (initState σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [endLow2SplitPc] using h391.jumpdest (by native_decide) (by simp)
-  have h403 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h403 : RD endBytecode I g (initState σ σ₀ g A I)
       endGroup403FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
+      ByteArray.empty σ (k32 + 5 + 1 + 5 + 1 + 5)
         (C32 + 22 + 1 + 22 + 1 + 22) := by
     exact endLow2SplitNotTaken h392 hlow2 (by simp)
   exact ⟨_, _, h403⟩
 
-theorem endJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem endJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) pc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode endBytecode pc = some (.Push .PUSH2, some (endDispatchRevertPc, 2)))
     (hjump : decode endBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h496 := h.push2 endDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem endGroup65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup65FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup65NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup65FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup65FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (endGroup65ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1466,13 +1466,13 @@ theorem endGroup65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
-theorem endGroup114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup114FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup114NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup114FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup114FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h158 := h
     |>.selectorArmNotTakenAuto (endGroup114ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1484,13 +1484,13 @@ theorem endGroup114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h158 (by native_decide) (by native_decide)
 
-theorem endGroup174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup174FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup174NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup174FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup174FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h218 := h
     |>.selectorArmNotTakenAuto (endGroup174ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1502,13 +1502,13 @@ theorem endGroup174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h218 (by native_decide) (by native_decide)
 
-theorem endGroup223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup223FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup223NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup223FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup223FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h267 := h
     |>.selectorArmNotTakenAuto (endGroup223ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1520,13 +1520,13 @@ theorem endGroup223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h267 (by native_decide) (by native_decide)
 
-theorem endGroup294NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup294FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup294NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup294FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup294FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h338 := h
     |>.selectorArmNotTakenAuto (endGroup294ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1538,13 +1538,13 @@ theorem endGroup294NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h338 (by native_decide) (by native_decide)
 
-theorem endGroup343NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup343FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup343NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup343FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup343FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h387 := h
     |>.selectorArmNotTakenAuto (endGroup343ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1556,13 +1556,13 @@ theorem endGroup343NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h387 (by native_decide) (by native_decide)
 
-theorem endGroup403NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup403FirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup403NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endGroup403FirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h447 := h
     |>.selectorArmNotTakenAuto (endGroup403ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1574,13 +1574,13 @@ theorem endGroup403NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
   exact endJumpToNoMatchRevert h447 (by native_decide) (by native_decide)
 
-theorem endGroup452NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endDebtFirstArmPc
-      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem endGroup452NoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endDebtFirstArmPc
+      [endSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDebtFirstArmPc j))
         (endSelWord I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have h496 := h
     |>.selectorArmNotTakenAuto (endGroup452ArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -1604,10 +1604,10 @@ theorem endBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
     rfl | rfl | rfl | rfl | rfl | rfl
   all_goals exact bodyReverts_nonPayable h
 
-theorem endX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -1616,11 +1616,11 @@ theorem endX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -1639,11 +1639,11 @@ theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 32 → (endSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have heq65 : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat endBytecode (nthArmPc endBytecode endGroup65FirstArmPc j))
@@ -1824,7 +1824,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   · by_cases hlow1 : UInt256.gt (armSelNat endBytecode endLow1SplitPc) (endSelWord I) ≠ ⟨0⟩
     · by_cases hlow2 : UInt256.gt (armSelNat endBytecode endLow2SplitPc) (endSelWord I) ≠ ⟨0⟩
       · obtain ⟨_, _, hfirst⟩ :=
-          endReachDebtFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachDebtFirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow1 hlow2
         exact endGroup452NoMatchRevert hfirst heq452
       · have hlow20 :
@@ -1832,7 +1832,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           by_contra hne
           exact hlow2 hne
         obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup403FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow1 hlow20
         exact endGroup403NoMatchRevert hfirst heq403
     · have hlow10 :
@@ -1842,7 +1842,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       by_cases hlowHigh :
           UInt256.gt (armSelNat endBytecode endLowHighSplitPc) (endSelWord I) ≠ ⟨0⟩
       · obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup343FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup343FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow10 hlowHigh
         exact endGroup343NoMatchRevert hfirst heq343
       · have hlowHigh0 :
@@ -1850,7 +1850,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           by_contra hne
           exact hlowHigh hne
         obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup294FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup294FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow10 hlowHigh0
         exact endGroup294NoMatchRevert hfirst heq294
   · have hroot0 :
@@ -1861,7 +1861,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     · by_cases hmid :
           UInt256.gt (armSelNat endBytecode endHighMidSplitPc) (endSelWord I) ≠ ⟨0⟩
       · obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup223FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup223FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh hmid
         exact endGroup223NoMatchRevert hfirst heq223
       · have hmid0 :
@@ -1869,7 +1869,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           by_contra hne
           exact hmid hne
         obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup174FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup174FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh hmid0
         exact endGroup174NoMatchRevert hfirst heq174
     · have hhigh0 :
@@ -1879,7 +1879,7 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       by_cases hhigh2 :
           UInt256.gt (armSelNat endBytecode endHigh2SplitPc) (endSelWord I) ≠ ⟨0⟩
       · obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup114FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup114FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh0 hhigh2
         exact endGroup114NoMatchRevert hfirst heq114
       · have hhigh20 :
@@ -1887,13 +1887,13 @@ theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           by_contra hne
           exact hhigh2 hne
         obtain ⟨_, _, hfirst⟩ :=
-          endReachGroup65FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          endReachGroup65FirstArm (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh0 hhigh20
         exact endGroup65NoMatchRevert hfirst heq65
 
-theorem endNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (endX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -1908,11 +1908,11 @@ theorem endNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (endBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
               (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact .revert rfl rfl)
 
-theorem endNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
@@ -1948,9 +1948,8 @@ theorem endNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hthaw : ¬ selIs I (selectorOf thawTransition))
     (hflow : ¬ selIs I (selectorOf flowTransition))
     (hpack : ¬ selIs I (selectorOf packTransition))
-    (hcash : ¬ selIs I (selectorOf cashTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hcash : ¬ selIs I (selectorOf cashTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hnm := endNoSelectorMatches hwards hvat hcat hdog hvow hpot hspot hcure hlive hwhen
     hwait hdebt htag hgap hArt hfix hbag hout hrely hdeny hfileAddress hfileUint hcage
     hcageIlk hsnip hskip hskim hfree hthaw hflow hpack hcash

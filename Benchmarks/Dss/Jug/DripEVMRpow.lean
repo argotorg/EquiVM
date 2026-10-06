@@ -5,24 +5,24 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.Jug
 
 theorem RD.jugDripToRpowRoutine
-    {cA cA' gh bl σ σ' σ₀ A I} {g sel fee : UInt256}
+    {σ σ' σ₀ A I} {g sel fee : UInt256}
     {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size) (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (rd1485 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (fee :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
-      (UInt256.ofNat 6) out (cA', σ') k C) :
+      (UInt256.ofNat 6) out σ' k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (jugRay :: UInt256.sub (UInt256.ofNat I.header.timestamp)
           (jugSlotWord (fileDutyRhoSlotFor I) σ' I) ::
         fee :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
         (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out)))
-      (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      (UInt256.ofNat 6) out σ' k' C' := by
   let mem0 := twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out)
   let mem1 := twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem0
   have hpostSize : 64 ≤ (dripVatIlksPostCallMem I out).size := by
@@ -64,10 +64,10 @@ theorem RD.jugDripToRpowRoutine
   have rd1504 := rd1503.add (by native_decide) (by evm_ov)
   obtain ⟨k1505, C1505, rd1505raw⟩ := rd1504.sload (by native_decide) (by evm_ov)
   have rd1505 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1505⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1505⟩
       (jugSlotWord (fileDutyRhoSlotFor I) σ' I :: fee :: ⟨1524⟩ :: ⟨1530⟩ ::
         dripVatIlksPrevWord out :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem1 (UInt256.ofNat 6) out (cA', σ') k1505 C1505 := by
+      mem1 (UInt256.ofNat 6) out σ' k1505 C1505 := by
     simpa [jugSlotWord, solcSlotWord, fileDutyRhoSlotFor_eq hsz36,
       u256_add_comm] using rd1505raw
   have rd1506 := RD.timestamp rd1505 (by native_decide) (by evm_ov)
@@ -79,16 +79,16 @@ theorem RD.jugDripToRpowRoutine
   exact ⟨_, _, by simpa using rd2153⟩
 
 theorem RD.jugDripRpowNZeroReturns
-    {cA gh bl σ σ₀ A I} {g b x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g b x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: ⟨0⟩ :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (b :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -185,16 +185,16 @@ theorem RD.jugDripRpowNZeroReturns
     exact ⟨_, _, by simpa [hland, hdivZero] using rd1524⟩
 
 theorem RD.jugDripRpowNOneReturns
-    {cA gh bl σ σ₀ A I} {g b x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g b x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: ⟨1⟩ :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (x :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -295,17 +295,17 @@ theorem RD.jugDripRpowNOneReturns
     exact ⟨_, _, by simpa [hland, hdivOne] using rd1524⟩
 
 theorem RD.jugDripRpowXZeroNNonzeroReturns
-    {cA gh bl σ σ₀ A I} {g b n : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g b n : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
     (rd2153 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (b :: n :: ⟨0⟩ :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (⟨0⟩ :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2162 := evm_run rd2153 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -344,17 +344,17 @@ theorem RD.jugDripRpowXZeroNNonzeroReturns
   exact ⟨_, _, by simpa using rd1524⟩
 
 theorem RD.jugDripRmulReturns
-    {cA gh bl σ σ₀ A I} {g pow prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g pow prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : pow.toNat * prev.toNat < UInt256.size)
     (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (pow :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
       (UInt256.div (prev * pow) jugRay :: prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd1529 := evm_run rd1524 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -442,17 +442,17 @@ theorem RD.jugDripRmulReturns
     exact ⟨_, _, by simpa using rd1530⟩
 
 theorem RD.jugDripRmulRayReturns
-    {cA gh bl σ σ₀ A I} {g prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : jugRay.toNat * prev.toNat < UInt256.size)
     (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (jugRay :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
       (prev :: prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hquot : UInt256.div (prev * jugRay) jugRay = prev :=
     jugRay_mul_div_cancel prev hfit
@@ -541,24 +541,24 @@ theorem RD.jugDripRmulRayReturns
     have rd1530 := rd2396.jump (by native_decide) (by jump_dest) (by evm_ov)
     exact ⟨_, _, by
       change RD jugBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
         (UInt256.div (prev * jugRay) jugRay :: prev :: R)
         mem (UInt256.ofNat 6) out acc _ _ at rd1530
       rw [hquot] at rd1530
       exact rd1530⟩
 
 theorem RD.jugDripRmulOverflowReverts
-    {cA gh bl σ σ₀ A I} {g pow prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g pow prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ pow.toNat * prev.toNat)
     (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (pow :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hprevNe : prev ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : pow.toNat * prev.toNat = 0 := by simp [hzero]
@@ -605,17 +605,17 @@ theorem RD.jugDripRmulOverflowReverts
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripRmulRayOverflowReverts
-    {cA gh bl σ σ₀ A I} {g prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ jugRay.toNat * prev.toNat)
     (rd1524 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (jugRay :: ⟨1530⟩ :: prev :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hprevNe : prev ≠ ⟨0⟩ := by
     intro hzero
     have hprod0 : jugRay.toNat * prev.toNat = 0 := by simp [hzero]
@@ -662,17 +662,17 @@ theorem RD.jugDripRmulRayOverflowReverts
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDiffSameReturnsZero
-    {cA gh bl σ σ₀ A I} {g v : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g v : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hvMax : (v.toNat : Int) ≤ maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (⟨0⟩ :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hvHi : v.toNat < 2 ^ 255 := by
     have hvInt : (v.toNat : Int) < (2 : Int) ^ 255 := by
@@ -720,18 +720,18 @@ theorem RD.jugDiffSameReturnsZero
   exact ⟨_, _, by simpa [hsub] using rd1570⟩
 
 theorem RD.jugDiffReturns
-    {cA gh bl σ σ₀ A I} {g rate prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g rate prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hrateMax : (rate.toNat : Int) ≤ maxInt256)
     (hprevMax : (prev.toNat : Int) ≤ maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (UInt256.sub rate prev :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have hrateHi : rate.toNat < 2 ^ 255 := by
     have hrateInt : (rate.toNat : Int) < (2 : Int) ^ 255 := by
@@ -786,17 +786,17 @@ theorem RD.jugDiffReturns
   exact ⟨_, _, by simpa using rd1570⟩
 
 theorem RD.jugDiffSameRevertXBound
-    {cA gh bl σ σ₀ A I} {g v : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g v : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hvMaxNot : ¬ (v.toNat : Int) ≤ maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hvHi : 2 ^ 255 ≤ v.toNat := by
     have hvInt : ((2 ^ 255 : ℕ) : Int) ≤ (v.toNat : Int) := by
       have hvGt : maxInt256 < (v.toNat : Int) := by
@@ -833,17 +833,17 @@ theorem RD.jugDiffSameRevertXBound
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDiffRevertXBound
-    {cA gh bl σ σ₀ A I} {g rate prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g rate prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hrateMaxNot : ¬ (rate.toNat : Int) ≤ maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hrateHi : 2 ^ 255 ≤ rate.toNat := by
     have hrateInt : ((2 ^ 255 : ℕ) : Int) ≤ (rate.toNat : Int) := by
       have hrateGt : maxInt256 < (rate.toNat : Int) := by
@@ -880,18 +880,18 @@ theorem RD.jugDiffRevertXBound
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDiffRevertYBound
-    {cA gh bl σ σ₀ A I} {g rate prev : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g rate prev : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hrateMax : (rate.toNat : Int) ≤ maxInt256)
     (hprevMaxNot : ¬ (prev.toNat : Int) ≤ maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hrateHi : rate.toNat < 2 ^ 255 := by
     have hrateInt : (rate.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (rate.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by

@@ -66,12 +66,11 @@ theorem entryGuardNonzero {I g s0 sel mem aw rdata acc k C} (i : Entry) (hi : i 
     raw jumpiNT hji (isZero_eq_zero_of_ne hwv) (by evm_ov),
     raw auctionRevert0 hr0 hr1 hr2 (by evm_ov) ]
 
-theorem entryNonpayableRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem entryNonpayableRevert {σ σ₀ A I} {g : UInt256}
     (i : Entry) (hi : i ≠ 6) (hcode : I.code = auctionBytecode)
-    (hsel : selIs I (entryBytes i)) (hreach : EntryReached i cA gh bl σ_evm σ₀ A I g)
+    (hsel : selIs I (entryBytes i)) (hreach : EntryReached i σ σ₀ A I g)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   obtain ⟨_, _, rd⟩ := hreach
   have hrev := entryGuardNonzero i hi rd hwv
   have hd := dispatchEntry i hsel
@@ -83,7 +82,7 @@ theorem entryNonpayableRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · exact reEquiv_decodingFailed hd hdec hXi (by rfl) (by rfl)
   · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
     have hbody : ExecTransitionBody auctionConfig auctionContract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
         (entryTransition i).body .reverted := by
       obtain ⟨rest, hrest⟩ := guardedBody i hi
       rw [hrest]

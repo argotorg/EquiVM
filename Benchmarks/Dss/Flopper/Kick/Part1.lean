@@ -972,13 +972,13 @@ theorem flopperDecode_kick_none_short {I : ExecutionEnv}
   exact decodeCalldata_legacyAddress_uint256_uint256_none_short (cd := I.calldata)
     (x := "gal") (y := "lot") (z := "bid") hsz4 hshort
 
-theorem flopperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flopperReachKickBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flopperSelBytes 8)) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I)
         ⟨716⟩ [flopperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flopperSelWord I = ⟨0xb7e9cd24⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xb7 0xe9 0xcd 0x24 ⟨0xb7e9cd24⟩
@@ -992,7 +992,7 @@ theorem flopperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hword]
     native_decide
   obtain ⟨_, _, hfirst⟩ :=
-    flopperReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    flopperReachHighLowFirstArm (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
   have heq0 : ∀ j, j < 4 →
       UInt256.eq
@@ -1010,14 +1010,14 @@ theorem flopperReachKickBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => flopperHighLowArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem flopperKickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperKickX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨716⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3401⟩
+      (initState σ σ₀ g A I) ⟨716⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flopperBytecode I g (initState σ σ₀ g A I) ⟨3401⟩
       [kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flopperBytecode) (sel := sel) (entry := ⟨716⟩) (ret := ⟨644⟩)
     (decoded := ⟨738⟩) (need := ⟨96⟩) hreach
@@ -1056,13 +1056,13 @@ theorem flopperKickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
         solcAddrMask from by decide]
       using rd765.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem flopperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flopperKickX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
     (hreach : ∃ k C, RD flopperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨716⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨716⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1078,14 +1078,14 @@ theorem flopperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem flopperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD flopperBytecode I g s0 ⟨3401⟩
       [kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g s0 ⟨3494⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -1117,7 +1117,7 @@ theorem flopperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3418 : RD flopperBytecode I g s0 ⟨3418⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I ::
         kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3418 C3418 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3418 C3418 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3418raw
   have rd3421pre := evm_run rd3418 with [
@@ -1130,11 +1130,11 @@ theorem flopperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flopperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD flopperBytecode I g s0 ⟨3401⟩
       [kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1167,7 +1167,7 @@ theorem flopperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd3418 : RD flopperBytecode I g s0 ⟨3418⟩
       (relyAuthWord σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I ::
         kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3418 C3418 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3418 C3418 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3418raw
   have rd3421pre := evm_run rd3418 with [
@@ -1197,14 +1197,14 @@ theorem flopperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flopperKickX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
     (h : RD flopperBytecode I g s0 ⟨3494⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g s0 ⟨3568⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3497 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
@@ -1212,7 +1212,7 @@ theorem flopperKickX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3498 : RD flopperBytecode I g s0 ⟨3498⟩
       (flopperSlotWord ⟨8⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I ::
         kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3498 C3498 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3498 C3498 := by
     simpa [flopperSlotWord] using rd3498raw
   have rd3501pre := evm_run rd3498 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1223,11 +1223,11 @@ theorem flopperKickX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd3504.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem flopperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hlive : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : RD flopperBytecode I g s0 ⟨3494⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g s0 := by
   have rd3497 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1236,7 +1236,7 @@ theorem flopperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3498 : RD flopperBytecode I g s0 ⟨3498⟩
       (flopperSlotWord ⟨8⟩ σ I :: ⟨0⟩ :: kickBidWord I :: kickLotWord I ::
         kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3498 C3498 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3498 C3498 := by
     simpa [flopperSlotWord] using rd3498raw
   have rd3501pre := evm_run rd3498 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1265,14 +1265,14 @@ theorem flopperKickX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flopperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_kicksOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksLt : (flopperSlotWord ⟨7⟩ σ I).toNat < UInt256.size - 1)
     (h : RD flopperBytecode I g s0 ⟨3568⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3574pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1282,7 +1282,7 @@ theorem flopperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3575 : RD flopperBytecode I g s0 ⟨3575⟩
       (flopperSlotWord ⟨7⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3575 C3575 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3575 C3575 := by
     simpa [flopperSlotWord] using rd3575raw
   have rd3576 := rd3575.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -1296,11 +1296,11 @@ theorem flopperKickX_kicksOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd3579.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem flopperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_kicksOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hkicksGe : UInt256.size - 1 ≤ (flopperSlotWord ⟨7⟩ σ I).toNat)
     (h : RD flopperBytecode I g s0 ⟨3568⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g s0 := by
   have rd3574pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1311,7 +1311,7 @@ theorem flopperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd3575 : RD flopperBytecode I g s0 ⟨3575⟩
       (flopperSlotWord ⟨7⟩ σ I :: UInt256.lnot ⟨0⟩ :: ⟨0⟩ :: kickBidWord I ::
         kickLotWord I :: kickGalMaskedWord I :: ⟨644⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3575 C3575 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3575 C3575 := by
     simpa [flopperSlotWord] using rd3575raw
   have rd3576 := rd3575.lt (by native_decide) (by evm_ov)
   have hlt :
@@ -1342,18 +1342,18 @@ theorem flopperKickX_kicksOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem flopperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
     ∃ k' C', RD flopperBytecode I g s0 ⟨4740⟩
       [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨3737⟩,
         id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k' C' := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' := by
   intro id memStore σGuy
   let σKicks := kickRuntimeAfterKicksMap I.codeOwner σ I
   let σBid := kickRuntimeAfterBidMap I.codeOwner σ I
@@ -1371,7 +1371,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3649 : RD flopperBytecode I g s0 ⟨3649⟩
       [flopperSlotWord ⟨7⟩ σ I, ⟨7⟩, kickBidWord I, kickLotWord I,
         kickGalMaskedWord I, ⟨644⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3649 C3649 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3649 C3649 := by
     simpa [flopperSlotWord] using rd3649raw
   have rd3657pre := evm_run rd3649 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1390,7 +1390,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3658 : RD flopperBytecode I g s0 ⟨3658⟩
       [⟨1⟩, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σKicks) k3658 C3658 := by
+      σKicks k3658 C3658 := by
     simpa [id, σKicks, kickRuntimeAfterKicksMap, kickRuntimeIdWord, flopperSlotWord,
       hidRawSolc]
       using rd3658raw
@@ -1445,7 +1445,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3675 : RD flopperBytecode I g s0 ⟨3675⟩
       [auctionBidSlot id, ⟨1⟩, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I,
         ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σBid) k3675 C3675 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σBid k3675 C3675 := by
     simpa [σBid, kickRuntimeAfterBidMap, σKicks, kickRuntimeAfterKicksMap, id]
       using rd3675raw
   have rd3680pre := evm_run rd3675 with [
@@ -1461,7 +1461,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
     (by native_decide) (by evm_ov)
   have rd3681 : RD flopperBytecode I g s0 ⟨3681⟩
       [auctionBidSlot id, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σLot) k3681 C3681 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k3681 C3681 := by
     simpa [σLot, kickRuntimeAfterLotMap, σBid, kickRuntimeAfterBidMap, id]
       using rd3681raw
   have rd3684pre := evm_run rd3681 with [
@@ -1475,7 +1475,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3686 : RD flopperBytecode I g s0 ⟨3686⟩
       [oldPacked, packedSlot, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I,
         ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σLot) k3686 C3686 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k3686 C3686 := by
     simpa [oldPacked, solcSlotWord, packedSlot] using rd3686raw
   have rd3708pre := evm_run rd3686 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1516,7 +1516,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
             rfl
   have rd3709 : RD flopperBytecode I g s0 ⟨3709⟩
       [id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k3709 C3709 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k3709 C3709 := by
     simpa [σGuy, kickRuntimeAfterGuyMap, guyStored, kickRuntimeGuyStoredWord,
       oldPacked, packedSlot, σLot, hmask, hword, setAddressOffset0Word] using
       rd3709raw
@@ -1525,7 +1525,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3712 : RD flopperBytecode I g s0 ⟨3712⟩
       [flopperSlotWord ⟨6⟩ σGuy I, id, kickBidWord I, kickLotWord I, kickGalMaskedWord I,
         ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty (cA, σGuy) k3712 C3712 := by
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k3712 C3712 := by
     simpa [flopperSlotWord] using rd3712raw
   have rd3724 := evm_run rd3712 with [
     raw push2 ⟨3737⟩ (by native_decide) (by evm_ov),
@@ -1597,7 +1597,7 @@ theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256}
 
 theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)

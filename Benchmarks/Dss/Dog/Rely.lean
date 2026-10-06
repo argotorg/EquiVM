@@ -46,18 +46,18 @@ theorem dogDecode_rely_none_short {v : DogImmutables} {I : ExecutionEnv}
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort)
 
 theorem dogReachRelyBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 13)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨394⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨394⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0x65fae35e⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootTgt : armTgt code (⟨32⟩ : UInt256) = ⟨162⟩ := by
     dsimp [armTgt]
@@ -76,18 +76,18 @@ theorem dogReachRelyBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h162 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨162⟩
+  have h162 : RD code I g (initState σ σ₀ g A I) ⟨162⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [hrootTgt] using
       RD.selectorSplitTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot
         (by
           rw [hrootTgt]
           exact dogPatchedDJumpPrefix1405 ⟨162⟩ hpatch (by native_decide))
         (by simp)
-  have h163 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨163⟩
+  have h163 : RD code I g (initState σ σ₀ g A I) ⟨163⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa using
       h162.jumpdest
         (by
@@ -101,9 +101,9 @@ theorem dogReachRelyBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨163⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h174 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨174⟩
+  have h174 : RD code I g (initState σ σ₀ g A I) ⟨174⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
+      σ (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [selArmNextPc, hlowWidth] using
       RD.selectorSplitNotTakenAuto h163 (dogLowSplitWellFormed hpatch) hlow (by simp)
   have hrely : UInt256.eq (dogSelectorWord 13) (solcSelectorWord I) ≠ ⟨0⟩ := by
@@ -197,8 +197,8 @@ theorem dogReachRelyBody {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogRelyStoreOneLog {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : dogRelyStoreOneLogWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
@@ -207,7 +207,7 @@ theorem RD.dogRelyStoreOneLog {code : ByteArray} {g : Sat256} {s0 : State}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3)
-      rdata (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
+      rdata (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd18, hd19, hd20, hd21, hd23, hd24, hd25, hd26, hd28, hd29, hd30,
@@ -275,7 +275,7 @@ theorem RD.dogRelyStoreOneLog {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem dogRelyBodyCoreOk
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
@@ -285,18 +285,17 @@ theorem dogRelyBodyCoreOk
       decodeCalldataWithMode (config v).abiDecodeMode (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨394⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨394⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := dogCallerWardsSlot I
   let locals := relyLocals I
   have hslot : relySlotFor I = slot := by
     simp [slot, key, relySlotFor_eq]
-  have hcallerWord : dogSlotWord callerSlot σ_evm I = dogSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+  have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
+    rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨394⟩) (ret := ⟨313⟩)
     (decoded := ⟨416⟩) hreach
@@ -328,17 +327,17 @@ theorem dogRelyBodyCoreOk
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
-  by_cases hauthEvm : dogSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ_solm I = ⟨1⟩ := by
+  by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
+  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := by
       rw [← hcallerWord]
       exact hauthEvm
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨1⟩
     have hbody :
         ExecTransitionBody (config v) (contract v) evm0 locals relyTransition.body
           (.returned { contract := contract v, locals := locals } evm1 none) := by
-      have hguard := dogAuthGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := dogAuthGuardEval_true (v := v)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, relyLocals]) hauthSolm
       have hassign :
@@ -374,7 +373,7 @@ theorem dogRelyBodyCoreOk
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1, locals] using
         ExecFuncBody.execBlockOK hblock
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
     obtain ⟨_, _, hokPc⟩ := RD.dogAuthCheckOk
       (code := code) (pc := ⟨1454⟩) (okPc := ⟨1543⟩) (key := key)
@@ -417,34 +416,30 @@ theorem dogRelyBodyCoreOk
       (by evm_ov)
     have hret :
         RDret code (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩) ByteArray.empty := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (sstoreAccountMap I.codeOwner σ slot ⟨1⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc'
         (by
           change decode code (⟨314⟩ : UInt256) = some (.STOP, .none)
           rw [dogDecodePatchedEqTemplate1405 (pc := ⟨314⟩) hpatch (by native_decide)]
           native_decide)
         (by simp only [List.length_singleton]; omega)
-    have hcreated :
-        (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).1 = evm1.createdAccounts := by
-      simp [evm1, evm0, initState, storageStore_createdAccounts]
     have haccounts :
-        accountMapEquiv (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).2
+        Eq (sstoreAccountMap I.codeOwner σ slot ⟨1⟩)
           evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨1⟩ hAccounts
+      simp [evm1, evm0, initState, storageStore_accountMap, hslot]
     have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
       rw [show relyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      hcreated haccounts henc
-  · have hauthSolm : dogSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+      haccounts henc
+  · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody (config v) (contract v) evm0 locals relyTransition.body .reverted := by
-      have hguard := dogAuthGuardEval_false (v := v) (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := dogAuthGuardEval_false (v := v)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, relyLocals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
@@ -457,7 +452,7 @@ theorem dogRelyBodyCoreOk
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, locals] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
     have hrev := RD.dogAuthCheckRevert
       (code := code) (pc := ⟨1454⟩) (okPc := ⟨1543⟩) (key := key)
@@ -480,15 +475,15 @@ theorem dogRelyBodyCoreOk
 
 theorem dogRelyBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some relyTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨394⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨394⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -518,25 +513,24 @@ theorem dogRelyBodyCoreDecodeFailed_short
     (dogDecode_rely_none_short (v := v) hsz4 hshort)
 
 theorem dogRelyBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (dogSelBytes 13))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (dogSelBytes 13)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 13) rfl hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some relyTransition :=
     dogDispatchRely hsel
-  have hreach := dogReachRelyBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := dogReachRelyBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogRelyBodyCoreOk hpatch hcode hwv hperm hsz36 hsize hdispatch
-      (dogDecode_rely_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_rely_ok (v := v) hsz36) hreach
   · exact dogRelyBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

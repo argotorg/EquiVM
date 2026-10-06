@@ -15,13 +15,13 @@ theorem gemJoinDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem gemJoinReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachVatBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (gemJoinSelBytes 9)) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         ⟨174⟩ [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : gemJoinSelWord I = ⟨0x36569e77⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x36 0x56 0x9e 0x77 ⟨0x36569e77⟩
       (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
@@ -42,26 +42,25 @@ theorem gemJoinReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact gemJoinReachLowBody 0 (by omega) ⟨174⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem gemJoinVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (gemJoinSelBytes 9))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (gemJoinSelBytes 9)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 9) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (gemJoinVatWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (gemJoinVatWord σ I).toNat))])) := by
     simpa [vatTransition, gemJoinVatWord, gemJoinAddressReturnWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       gemJoinAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
         (slot := ⟨1⟩)
         (by simp only [initState]; exact hwv) (by simp [vatRef])
@@ -70,7 +69,7 @@ theorem gemJoinVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact gemJoinAddressGetterBodyCore (entry := ⟨174⟩) (returnPc := ⟨182⟩)
     (routine := ⟨472⟩) (slot := ⟨1⟩)
     hcode (gemJoinDispatchVat hsel) (gemJoinDecode_vat hsz)
-    (gemJoinReachVatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (gemJoinReachVatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

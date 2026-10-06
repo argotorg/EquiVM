@@ -344,8 +344,6 @@ theorem evalExprs_gemJoinCtorDecimalsArgs (evm : EVM.State) (vat : AccountAddres
   rfl
 
 theorem gemJoinCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray} {dec : UInt256}
@@ -355,21 +353,21 @@ theorem gemJoinCtorBodySuccess
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (true, evmDecimals, outDecimals) false)
     (hdecDecimals : config.externalABI.decode? "decimals" outDecimals =
       some [.int (Int.ofNat dec.toNat)]) :
     let locals := gemJoinCtorLocals vat ilk gem
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := gemJoinCtorAfterWardsState evm0
     let evm2 := gemJoinCtorAfterLiveState evm1
@@ -460,8 +458,6 @@ theorem gemJoinCtorBodySuccess
     ExecBlock.nil
 
 theorem gemJoinCtorBodyNoCodeReverts
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
@@ -470,12 +466,12 @@ theorem gemJoinCtorBodyNoCodeReverts
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))) = 0) :
     let locals := gemJoinCtorLocals vat ilk gem
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := gemJoinCtorAfterWardsState evm0
     let evm2 := gemJoinCtorAfterLiveState evm1
@@ -546,8 +542,6 @@ theorem gemJoinCtorBodyNoCodeReverts
   exact ExecBlock.consRevert (ExecStmt.requireFalse hgemGuard)
 
 theorem gemJoinCtorBodyDecimalsFailureReverts
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray}
@@ -557,19 +551,19 @@ theorem gemJoinCtorBodyDecimalsFailureReverts
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (false, evmDecimals, outDecimals) false) :
     let locals := gemJoinCtorLocals vat ilk gem
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := gemJoinCtorAfterWardsState evm0
     let evm2 := gemJoinCtorAfterLiveState evm1
@@ -639,8 +633,6 @@ theorem gemJoinCtorBodyDecimalsFailureReverts
       hcallDecimals)
 
 theorem gemJoinCtorBodyDecimalsDecodeReverts
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray}
@@ -650,20 +642,20 @@ theorem gemJoinCtorBodyDecimalsDecodeReverts
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (true, evmDecimals, outDecimals) false)
     (hdecDecimals : config.externalABI.decode? "decimals" outDecimals = none) :
     let locals := gemJoinCtorLocals vat ilk gem
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := gemJoinCtorAfterWardsState evm0
     let evm2 := gemJoinCtorAfterLiveState evm1
@@ -733,8 +725,6 @@ theorem gemJoinCtorBodyDecimalsDecodeReverts
       hcallDecimals hdecDecimals)
 
 theorem gemJoinSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray} {dec : UInt256}
@@ -744,14 +734,14 @@ theorem gemJoinSolmCtorExecSuccess
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (true, evmDecimals, outDecimals) false)
@@ -762,11 +752,11 @@ theorem gemJoinSolmCtorExecSuccess
     let evm6 := gemJoinCtorAfterDecState evmDecimals dec
     solmCtorExec config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned { contract := contract, locals := localsAfterDecimals } evm6 none) := by
   intro locals localsAfterDecimals evm6
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := locals) ?_ ?_ ?_ ?_
   · rfl
@@ -776,13 +766,10 @@ theorem gemJoinSolmCtorExecSuccess
       (by
         simpa [locals, localsAfterDecimals, evm6] using
           gemJoinCtorBodySuccess
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv hgemCode hcallDecimals hdecDecimals)
 
 theorem gemJoinSolmCtorExecReverts_noCode
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
@@ -791,15 +778,15 @@ theorem gemJoinSolmCtorExecReverts_noCode
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))) = 0) :
     solmCtorExec config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := gemJoinCtorLocals vat ilk gem) ?_ ?_ ?_ ?_
   · rfl
@@ -809,13 +796,10 @@ theorem gemJoinSolmCtorExecReverts_noCode
       (by
         simpa using
           gemJoinCtorBodyNoCodeReverts
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv hgemCode)
 
 theorem gemJoinSolmCtorExecReverts_decimalsFailure
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray}
@@ -825,22 +809,22 @@ theorem gemJoinSolmCtorExecReverts_decimalsFailure
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (false, evmDecimals, outDecimals) false) :
     solmCtorExec config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := gemJoinCtorLocals vat ilk gem) ?_ ?_ ?_ ?_
   · rfl
@@ -850,13 +834,10 @@ theorem gemJoinSolmCtorExecReverts_decimalsFailure
       (by
         simpa using
           gemJoinCtorBodyDecimalsFailureReverts
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv hgemCode hcallDecimals)
 
 theorem gemJoinSolmCtorExecReverts_decimalsDecode
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     {evmDecimals : EVM.State} {outDecimals : ByteArray}
@@ -866,23 +847,23 @@ theorem gemJoinSolmCtorExecReverts_decimalsDecode
         (Option.option 0 (fun acc => acc.code.size)
           (State.lookupAccount
             (gemJoinCtorAfterInitStores
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀
+              (initState σ σ₀
                 (Sat256.ofUInt256 g) A I)
               vat ilk gem)
             (EVM.address gem)))))
     (hcallDecimals :
       typedCallViaEVM config
         (gemJoinCtorAfterInitStores
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           vat ilk gem)
         (EVM.address gem) "decimals" 0 [] (true, evmDecimals, outDecimals) false)
     (hdecDecimals : config.externalABI.decode? "decimals" outDecimals = none) :
     solmCtorExec config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := gemJoinCtorLocals vat ilk gem) ?_ ?_ ?_ ?_
   · rfl
@@ -892,21 +873,18 @@ theorem gemJoinSolmCtorExecReverts_decimalsDecode
       (by
         simpa using
           gemJoinCtorBodyDecimalsDecodeReverts
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat ilk gem hwv hgemCode hcallDecimals hdecDecimals)
 
 theorem gemJoinSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec config contract
       [.address vat, .fixedBytes bytes32Width (EVM.Word.toBytesBE ilk), .address gem]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := gemJoinCtorLocals vat ilk gem)
     ?_ rfl ?_ ?_
@@ -914,7 +892,7 @@ theorem gemJoinSolmCtorExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := gemJoinCtorLocals vat ilk gem) hwv
 

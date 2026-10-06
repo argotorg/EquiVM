@@ -146,17 +146,17 @@ theorem daiTransferBodyReverts_from_transferFrom (evm : EVM.State) (I : Executio
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert hcall
 
-theorem daiTransferX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiTransferX_toTransferFrom {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (daiSelBytes 18))
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨990⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1411⟩
+      (initState σ σ₀ g A I) ⟨990⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1411⟩
       [transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨3868⟩, ⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I, ⟨496⟩,
         daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1012⟩ := RD.daiAddressUint256ExternalLenOk
     (entry := ⟨990⟩) (ret := ⟨496⟩) (routine := ⟨3855⟩) hreach
     dai_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
@@ -166,9 +166,9 @@ theorem daiTransferX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     rd1012 dai_address_uint256_external_entry_wf (by jump_dest)
     (by simp only [List.length_singleton]; omega)
   obtain ⟨_, _, rd3855⟩ :
-      ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3855⟩
+      ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3855⟩
         [transferFromWadWord I, transferFromDstMaskedWord I, ⟨496⟩, daiSelWord I]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [transferFromDstMaskedWord, transferFromDstWord_of_transfer I hsel,
         transferFromWadWord_of_transfer I hsel, calldataWord] using rd3855raw⟩
@@ -185,27 +185,27 @@ theorem daiTransferX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [hsrcMask] using rd1411⟩
 
-theorem daiTransferX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiTransferX_shortarg {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨990⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨990⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressUint256ExternalShort
     (entry := ⟨990⟩) (ret := ⟨496⟩) (routine := ⟨3855⟩)
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
 
-theorem daiTransferFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
+theorem daiTransferFinish {σInit σFinal σ₀ A I} {g : Sat256}
     {scratch : ByteArray} {k C : ℕ}
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD daiBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3868⟩
+    (h : RD daiBytecode I g (initState σInit σ₀ g A I) ⟨3868⟩
       [⟨1⟩, ⟨0⟩, transferFromWadWord I, transferFromDstMaskedWord I, ⟨496⟩,
         daiSelWord I]
       (solcScratchReturnMem scratch (transferFromWadWord I)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σFinal) k C) :
-    RDret daiBytecode g (initState cA gh bl σInit σ₀ g A I) (cA, σFinal)
+      ByteArray.empty σFinal k C) :
+    RDret daiBytecode g (initState σInit σ₀ g A I) σFinal
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   have rd496raw := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -230,38 +230,37 @@ theorem daiTransferFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
       (by simp only [List.length_singleton]; omega)
 
 theorem daiTransferBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some transferTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨990⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨990⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_transfer_none_short (I := I) hsz4 hshort
   exact (daiTransferX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `transfer(address,uint256)` body refines its Solm transition. -/
-theorem daiTransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiTransferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 18))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 18)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 18) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some transferTransition :=
     daiDispatchTransfer hsel
-  have hreach := daiReachTransferBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachTransferBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := daiDecode_transfer_ok (I := I) hsel hsz68
     obtain ⟨_, _, rd1411⟩ :=
       daiTransferX_toTransferFrom (g := Sat256.ofUInt256 g) hsel hsz68 hsize hreach
     exact daiTransferFromInternalCallRuntimeCore
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (t := transferTransition) (callargs := transferStore I)
       (ret := ⟨3868⟩)
@@ -272,15 +271,14 @@ theorem daiTransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       hcode hdispatch hdecode hperm hwv
       (by simp only [List.length_cons, List.length_nil]; omega)
       (by jump_dest)
-      hAccounts
       rd1411
       (by
         intro σ' scratch k' C' hscratch hread64 rd3868
-        exact daiTransferFinish (σInit := σ_evm) (σFinal := σ') hscratch hread64 rd3868)
+        exact daiTransferFinish (σInit := σ) (σFinal := σ') hscratch hread64 rd3868)
       (by
         intro evmPost hcallee
         exact daiTransferBodyReturns_from_transferFrom
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) evmPost I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) evmPost I
           hsel
           (by simp only [initState]; exact hwv)
           (by simp [initState])
@@ -288,7 +286,7 @@ theorem daiTransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by
         intro hcallee
         exact daiTransferBodyReverts_from_transferFrom
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           hsel
           (by simp only [initState]; exact hwv)
           (by simp [initState])

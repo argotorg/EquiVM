@@ -1,13 +1,6 @@
 import Examples.UniswapV2Pair.Common
 import Mathlib.Tactic.IntervalCases
 
-/-!
-# UniswapV2Pair dispatcher reach slices
-
-Small, bytecode-local dispatcher facts for the optimized binary selector tree.  These lemmas stop at
-function body entries and are meant to feed the per-function `...BodyCore` lemmas from `Correct.lean`.
--/
-
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
@@ -576,14 +569,14 @@ theorem uniswapBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.
 /-! ## Low selector branch reach -/
 
 /-- Standard solc prologue/guards/selector load, stopping at the root selector split. -/
-theorem uniswapReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapRootSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [uniswapRootSplitPc, uniswapSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := uniswapV2PairBytecode)
       (bodyPc := (⟨18⟩ : UInt256)) (loadPc := (⟨26⟩ : UInt256))
       (firstPc := uniswapRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -598,10 +591,10 @@ theorem uniswapReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem uniswapX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide)
@@ -611,11 +604,11 @@ theorem uniswapX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide)
@@ -634,77 +627,77 @@ theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- Reach the low-half split from the root split. -/
-theorem uniswapReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapRootSplitPc) (uniswapSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapLowSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    uniswapReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h249 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h249 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapRootSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) :=
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k32 + 5) (C32 + 22) :=
     RD.selectorSplitTakenAuto h32 uniswapRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h250 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h250 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapLowSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [uniswapLowSplitPc, uniswapRootSplitPc, armTgt, pushAt] using
       h249.jumpdest (by decide) (by simp)
   exact ⟨_, _, h250⟩
 
 /-- Reach the high-half split from the root split. -/
-theorem uniswapReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapRootSplitPc) (uniswapSelWord I) =
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    uniswapReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [uniswapHighSplitPc, uniswapRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 uniswapRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
 /-- Reach the first arm in Uniswap's lowest selector group. -/
-theorem uniswapReachLowestFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachLowestFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapRootSplitPc) (uniswapSelWord I) ≠ ⟨0⟩)
     (hlow :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapLowSplitPc) (uniswapSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k250, C250, h250⟩ :=
-    uniswapReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h358 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h358 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapLowSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k250 + 5)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k250 + 5)
         (C250 + 22) :=
     RD.selectorSplitTakenAuto h250 uniswapLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h359 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h359 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k250 + 5 + 1) (C250 + 22 + 1) := by
+      ByteArray.empty σ (k250 + 5 + 1) (C250 + 22 + 1) := by
     simpa [uniswapLowestFirstArmPc, uniswapLowestJumpdestPc, uniswapLowSplitPc, armTgt, pushAt]
       using h358.jumpdest (by decide) (by simp)
   exact ⟨_, _, h359⟩
 
 /-- Reach the first arm in Uniswap's middle-low selector group. -/
-theorem uniswapReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachMidLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -713,32 +706,32 @@ theorem uniswapReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapLowSplitPc) (uniswapSelWord I) = ⟨0⟩)
     (hmidLow :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapMidLowSplitPc) (uniswapSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapMidLowFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k250, C250, h250⟩ :=
-    uniswapReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h261 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h261 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapMidLowSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k250 + 5) (C250 + 22) := by
+      ByteArray.empty σ (k250 + 5) (C250 + 22) := by
     simpa [uniswapMidLowSplitPc, uniswapLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h250 uniswapLowSplitWellFormed hlow (by simp)
-  have h320 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h320 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapMidLowSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k250 + 5 + 5)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k250 + 5 + 5)
         (C250 + 22 + 22) :=
     RD.selectorSplitTakenAuto h261 uniswapMidLowSplitWellFormed hmidLow (by jump_dest) (by simp)
-  have h321 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h321 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapMidLowFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k250 + 5 + 5 + 1) (C250 + 22 + 22 + 1) := by
+      ByteArray.empty σ (k250 + 5 + 5 + 1) (C250 + 22 + 22 + 1) := by
     simpa [uniswapMidLowFirstArmPc, uniswapMidLowJumpdestPc, uniswapMidLowSplitPc, armTgt, pushAt]
       using h320.jumpdest (by decide) (by simp)
   exact ⟨_, _, h321⟩
 
 /-- Reach the first arm in Uniswap's low-upper selector group. -/
-theorem uniswapReachLowUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachLowUpperFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -748,28 +741,28 @@ theorem uniswapReachLowUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hmidLow :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapMidLowSplitPc) (uniswapSelWord I) =
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapLowUpperFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k250, C250, h250⟩ :=
-    uniswapReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h261 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h261 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapMidLowSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k250 + 5) (C250 + 22) := by
+      ByteArray.empty σ (k250 + 5) (C250 + 22) := by
     simpa [uniswapMidLowSplitPc, uniswapLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h250 uniswapLowSplitWellFormed hlow (by simp)
-  have h272 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h272 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapLowUpperFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k250 + 5 + 5) (C250 + 22 + 22) := by
+      ByteArray.empty σ (k250 + 5 + 5) (C250 + 22 + 22) := by
     simpa [uniswapLowUpperFirstArmPc, uniswapMidLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h261 uniswapMidLowSplitWellFormed hmidLow (by simp)
   exact ⟨_, _, h272⟩
 
 /-- Reach the first arm in Uniswap's high-upper selector group. -/
-theorem uniswapReachHighUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighUpperFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -781,28 +774,28 @@ theorem uniswapReachHighUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hhighMid :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighMidSplitPc) (uniswapSelWord I) =
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighUpperFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    uniswapReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighMidSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) := by
+      ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [uniswapHighMidSplitPc, uniswapHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 uniswapHighSplitWellFormed hhigh (by simp)
-  have h65 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h65 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighUpperFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5 + 5) (C43 + 22 + 22) := by
+      ByteArray.empty σ (k43 + 5 + 5) (C43 + 22 + 22) := by
     simpa [uniswapHighUpperFirstArmPc, uniswapHighMidSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h54 uniswapHighMidSplitWellFormed hhighMid (by simp)
   exact ⟨_, _, h65⟩
 
 /-- Reach the first arm in Uniswap's high-middle selector group. -/
-theorem uniswapReachHighMiddleFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighMiddleFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -814,32 +807,32 @@ theorem uniswapReachHighMiddleFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hhighMid :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighMidSplitPc) (uniswapSelWord I) ≠
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighMiddleFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    uniswapReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighMidSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) := by
+      ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [uniswapHighMidSplitPc, uniswapHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 uniswapHighSplitWellFormed hhigh (by simp)
-  have h113 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h113 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapHighMidSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k43 + 5 + 5)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5 + 5)
         (C43 + 22 + 22) :=
     RD.selectorSplitTakenAuto h54 uniswapHighMidSplitWellFormed hhighMid (by jump_dest) (by simp)
-  have h114 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h114 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighMiddleFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5 + 5 + 1) (C43 + 22 + 22 + 1) := by
+      ByteArray.empty σ (k43 + 5 + 5 + 1) (C43 + 22 + 22 + 1) := by
     simpa [uniswapHighMiddleFirstArmPc, uniswapHighMiddleJumpdestPc, uniswapHighMidSplitPc,
       armTgt, pushAt] using h113.jumpdest (by decide) (by simp)
   exact ⟨_, _, h114⟩
 
 /-- Reach the high-lower split in Uniswap's high selector branch. -/
-theorem uniswapReachHighLowerSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighLowerSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -848,25 +841,25 @@ theorem uniswapReachHighLowerSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hhigh :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighSplitPc) (uniswapSelWord I) ≠
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighLowerSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    uniswapReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h151 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h151 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapHighSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) :=
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k43 + 5) (C43 + 22) :=
     RD.selectorSplitTakenAuto h43 uniswapHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h152 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h152 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighLowerSplitPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
+      ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [uniswapHighLowerSplitPc, uniswapHighLowerJumpdestPc, uniswapHighSplitPc, armTgt,
       pushAt] using h151.jumpdest (by decide) (by simp)
   exact ⟨_, _, h152⟩
 
 /-- Reach the first arm in Uniswap's high-lower selector group. -/
-theorem uniswapReachHighLowerFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighLowerFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -878,22 +871,22 @@ theorem uniswapReachHighLowerFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hlower :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighLowerSplitPc) (uniswapSelWord I) =
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighLowerFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k152, C152, h152⟩ :=
-    uniswapReachHighLowerSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighLowerSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
-  have h163 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h163 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighLowerFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k152 + 5) (C152 + 22) := by
+      ByteArray.empty σ (k152 + 5) (C152 + 22) := by
     simpa [uniswapHighLowerFirstArmPc, uniswapHighLowerSplitPc, selArmNextPc,
       armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h152 uniswapHighLowerSplitWellFormed hlower (by simp)
   exact ⟨_, _, h163⟩
 
 /-- Reach the first arm in Uniswap's high-lowest selector group. -/
-theorem uniswapReachHighLowestFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighLowestFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot :
@@ -905,41 +898,41 @@ theorem uniswapReachHighLowestFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hlower :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighLowerSplitPc) (uniswapSelWord I) ≠
         ⟨0⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
         uniswapHighLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k152, C152, h152⟩ :=
-    uniswapReachHighLowerSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighLowerSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
-  have h211 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h211 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       (armTgt uniswapV2PairBytecode uniswapHighLowerSplitPc) [uniswapSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) (k152 + 5) (C152 + 22) :=
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k152 + 5) (C152 + 22) :=
     RD.selectorSplitTakenAuto h152 uniswapHighLowerSplitWellFormed hlower (by jump_dest) (by simp)
-  have h212 : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h212 : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I)
       uniswapHighLowestFirstArmPc [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k152 + 5 + 1) (C152 + 22 + 1) := by
+      ByteArray.empty σ (k152 + 5 + 1) (C152 + 22 + 1) := by
     simpa [uniswapHighLowestFirstArmPc, uniswapHighLowestJumpdestPc, uniswapHighLowerSplitPc,
       armTgt, pushAt] using h211.jumpdest (by decide) (by simp)
   exact ⟨_, _, h212⟩
 
-theorem uniswapJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256}
     {pc : UInt256} {k C : ℕ}
-    (h : RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) pc
+      [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode uniswapV2PairBytecode pc = some (.Push .PUSH2, some (⟨425⟩, 2)))
     (hjump : decode uniswapV2PairBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   have h425 := h.push2 ⟨425⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 27 → (uniswapSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   have hselectorNoMatch (i : ℕ) (hi : i < 27) (c0 c1 c2 c3 : UInt8) (sel : UInt256)
       (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
       (hbytes : uniswapSelBytes i = (⟨#[c0, c1, c2, c3]⟩ : ByteArray)) :
@@ -1034,8 +1027,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     · by_cases hhighMid :
           UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighMidSplitPc) (uniswapSelWord I) =
             ⟨0⟩
-      · obtain ⟨_, _, h65⟩ := uniswapReachHighUpperFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h65⟩ := uniswapReachHighUpperFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hhighMid
         have h109 := h65
           |>.selectorArmNotTakenAuto (uniswapHighUpperArmsWellFormed 0 (by omega))
@@ -1047,8 +1040,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           |>.selectorArmNotTakenAuto (uniswapHighUpperArmsWellFormed 3 (by omega))
               (heqHighUpper 3 (by omega)) (by simp)
         exact uniswapJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
-      · obtain ⟨_, _, h114⟩ := uniswapReachHighMiddleFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h114⟩ := uniswapReachHighMiddleFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hhighMid
         have h147 := h114
           |>.selectorArmNotTakenAuto (uniswapHighMiddleArmsWellFormed 0 (by omega))
@@ -1061,8 +1054,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     · by_cases hlower :
         UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighLowerSplitPc) (uniswapSelWord I) =
           ⟨0⟩
-      · obtain ⟨_, _, h163⟩ := uniswapReachHighLowerFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h163⟩ := uniswapReachHighLowerFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hlower
         have h207 := h163
           |>.selectorArmNotTakenAuto (uniswapHighLowerArmsWellFormed 0 (by omega))
@@ -1074,8 +1067,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           |>.selectorArmNotTakenAuto (uniswapHighLowerArmsWellFormed 3 (by omega))
               (heqHighLower 3 (by omega)) (by simp)
         exact uniswapJumpToNoMatchRevert h207 (by native_decide) (by native_decide)
-      · obtain ⟨_, _, h212⟩ := uniswapReachHighLowestFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h212⟩ := uniswapReachHighLowestFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hlower
         have h245 := h212
           |>.selectorArmNotTakenAuto (uniswapHighLowestArmsWellFormed 0 (by omega))
@@ -1091,8 +1084,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     · by_cases hmidLow :
         UInt256.gt (armSelNat uniswapV2PairBytecode uniswapMidLowSplitPc) (uniswapSelWord I) =
           ⟨0⟩
-      · obtain ⟨_, _, h272⟩ := uniswapReachLowUpperFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h272⟩ := uniswapReachLowUpperFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hlow hmidLow
         have h316 := h272
           |>.selectorArmNotTakenAuto (uniswapLowUpperArmsWellFormed 0 (by omega))
@@ -1104,8 +1097,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           |>.selectorArmNotTakenAuto (uniswapLowUpperArmsWellFormed 3 (by omega))
               (heqLowUpper 3 (by omega)) (by simp)
         exact uniswapJumpToNoMatchRevert h316 (by native_decide) (by native_decide)
-      · obtain ⟨_, _, h321⟩ := uniswapReachMidLowFirstArm (cA := cA) (gh := gh)
-          (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      · obtain ⟨_, _, h321⟩ := uniswapReachMidLowFirstArm
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hlow hmidLow
         have h354 := h321
           |>.selectorArmNotTakenAuto (uniswapMidLowArmsWellFormed 0 (by omega))
@@ -1115,8 +1108,8 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           |>.selectorArmNotTakenAuto (uniswapMidLowArmsWellFormed 2 (by omega))
               (heqMidLow 2 (by omega)) (by simp)
         exact uniswapJumpToNoMatchRevert h354 (by native_decide) (by native_decide)
-    · obtain ⟨_, _, h359⟩ := uniswapReachLowestFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, h359⟩ := uniswapReachLowestFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       have h425 := h359
         |>.selectorArmNotTakenAuto (uniswapLowestArmsWellFormed 0 (by omega))
@@ -1135,9 +1128,9 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       exact RD.solcPush1Dup1Revert0 h426 (by native_decide) (by native_decide)
         (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem uniswapNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem uniswapNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (uniswapX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -1152,22 +1145,22 @@ theorem uniswapNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (uniswapBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem uniswapShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem uniswapShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (uniswapX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (uniswapDispatch_none_short hsz)
 
-theorem uniswapNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem uniswapNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 27 → (uniswapSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (uniswapX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (uniswapDispatch_none_nomatch hnm)
@@ -1176,7 +1169,7 @@ theorem uniswapNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       |>.reEquivNoDispatch hcode (uniswapDispatch_none_short hshort)
 
 /-- Reach a selected body in Uniswap's lowest selector group. -/
-theorem uniswapReachLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachLowestBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1198,10 +1191,10 @@ theorem uniswapReachLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapLowestFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h359⟩ :=
-    uniswapReachLowestFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachLowestFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
   exact RD.dispatchTo bodyPC i h359
     (fun j hj => uniswapLowestArmsWellFormed j (le_trans hj hi))
@@ -1211,7 +1204,7 @@ theorem uniswapReachLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's middle-low selector group. -/
-theorem uniswapReachMidLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachMidLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1235,10 +1228,10 @@ theorem uniswapReachMidLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapMidLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h321⟩ :=
-    uniswapReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachMidLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow hmidLow
   exact RD.dispatchTo bodyPC i h321
     (fun j hj => uniswapMidLowArmsWellFormed j (le_trans hj hi))
@@ -1248,7 +1241,7 @@ theorem uniswapReachMidLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's low-upper selector group. -/
-theorem uniswapReachLowUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachLowUpperBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1273,10 +1266,10 @@ theorem uniswapReachLowUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapLowUpperFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h272⟩ :=
-    uniswapReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachLowUpperFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow hmidLow
   exact RD.dispatchTo bodyPC i h272
     (fun j hj => uniswapLowUpperArmsWellFormed j (le_trans hj hi))
@@ -1286,7 +1279,7 @@ theorem uniswapReachLowUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's high-upper selector group. -/
-theorem uniswapReachHighUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighUpperBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1313,10 +1306,10 @@ theorem uniswapReachHighUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapHighUpperFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h65⟩ :=
-    uniswapReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighUpperFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh hhighMid
   exact RD.dispatchTo bodyPC i h65
     (fun j hj => uniswapHighUpperArmsWellFormed j (le_trans hj hi))
@@ -1326,7 +1319,7 @@ theorem uniswapReachHighUpperBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's high-middle selector group. -/
-theorem uniswapReachHighMiddleBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighMiddleBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1353,10 +1346,10 @@ theorem uniswapReachHighMiddleBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapHighMiddleFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h114⟩ :=
-    uniswapReachHighMiddleFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighMiddleFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh hhighMid
   exact RD.dispatchTo bodyPC i h114
     (fun j hj => uniswapHighMiddleArmsWellFormed j (le_trans hj hi))
@@ -1366,7 +1359,7 @@ theorem uniswapReachHighMiddleBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's high-lower selector group. -/
-theorem uniswapReachHighLowerBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighLowerBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1393,10 +1386,10 @@ theorem uniswapReachHighLowerBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapHighLowerFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h163⟩ :=
-    uniswapReachHighLowerFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighLowerFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh hlower
   exact RD.dispatchTo bodyPC i h163
     (fun j hj => uniswapHighLowerArmsWellFormed j (le_trans hj hi))
@@ -1406,7 +1399,7 @@ theorem uniswapReachHighLowerBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach a selected body in Uniswap's high-lowest selector group. -/
-theorem uniswapReachHighLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachHighLowestBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1433,10 +1426,10 @@ theorem uniswapReachHighLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt uniswapV2PairBytecode
         (nthArmPc uniswapV2PairBytecode uniswapHighLowestFirstArmPc i) = bodyPC) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) bodyPC
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h212⟩ :=
-    uniswapReachHighLowestFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    uniswapReachHighLowestFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh hlower
   exact RD.dispatchTo bodyPC i h212
     (fun j hj => uniswapHighLowestArmsWellFormed j (le_trans hj hi))
@@ -1446,12 +1439,12 @@ theorem uniswapReachHighLowestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
 
 /-- Reach the `PERMIT_TYPEHASH()` body entry through the optimized dispatcher. -/
-theorem uniswapReachPermitTypehashBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachPermitTypehashBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨933⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨933⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x30adf81f⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x30 0xad 0xf8 0x1f ⟨0x30adf81f⟩ (by decide) hsel
   exact uniswapReachMidLowBody 1 (by decide) ⟨933⟩ hcode hwv hsz hsize
@@ -1469,12 +1462,12 @@ theorem uniswapReachPermitTypehashBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `decimals()` body entry through the optimized dispatcher. -/
-theorem uniswapReachDecimalsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachDecimalsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨941⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨941⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x313ce567⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x31 0x3c 0xe5 0x67 ⟨0x313ce567⟩ (by decide) hsel
   exact uniswapReachMidLowBody 2 (by decide) ⟨941⟩ hcode hwv hsz hsize
@@ -1492,12 +1485,12 @@ theorem uniswapReachDecimalsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `transferFrom(address,address,uint256)` body entry through the optimized dispatcher. -/
-theorem uniswapReachTransferFromBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachTransferFromBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨879⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨879⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x23b872dd⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x23 0xb8 0x72 0xdd ⟨0x23b872dd⟩ (by decide) hsel
   exact uniswapReachMidLowBody 0 (by decide) ⟨879⟩ hcode hwv hsz hsize
@@ -1512,12 +1505,12 @@ theorem uniswapReachTransferFromBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `DOMAIN_SEPARATOR()` body entry through the optimized dispatcher. -/
-theorem uniswapReachDomainSeparatorBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachDomainSeparatorBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x36, 0x44, 0xe5, 0x15]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨971⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨971⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x3644e515⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x36 0x44 0xe5 0x15 ⟨0x3644e515⟩ (by decide) hsel
   exact uniswapReachLowUpperBody 0 (by decide) ⟨971⟩ hcode hwv hsz hsize
@@ -1532,12 +1525,12 @@ theorem uniswapReachDomainSeparatorBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `initialize(address,address)` body entry through the optimized dispatcher. -/
-theorem uniswapReachInitializeBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachInitializeBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨979⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨979⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x485cc955⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x48 0x5c 0xc9 0x55 ⟨0x485cc955⟩ (by decide) hsel
   exact uniswapReachLowUpperBody 1 (by decide) ⟨979⟩ hcode hwv hsz hsize
@@ -1555,12 +1548,12 @@ theorem uniswapReachInitializeBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `price0CumulativeLast()` body entry through the optimized dispatcher. -/
-theorem uniswapReachPrice0CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachPrice0CumulativeLastBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1025⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1025⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x5909c0d5⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x59 0x09 0xc0 0xd5 ⟨0x5909c0d5⟩ (by decide) hsel
   exact uniswapReachLowUpperBody 2 (by decide) ⟨1025⟩ hcode hwv hsz hsize
@@ -1578,12 +1571,12 @@ theorem uniswapReachPrice0CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256
     (by decide)
 
 /-- Reach the `price1CumulativeLast()` body entry through the optimized dispatcher. -/
-theorem uniswapReachPrice1CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachPrice1CumulativeLastBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x5a, 0x3d, 0x54, 0x93]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1033⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1033⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x5a3d5493⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x5a 0x3d 0x54 0x93 ⟨0x5a3d5493⟩ (by decide) hsel
   exact uniswapReachLowUpperBody 3 (by decide) ⟨1033⟩ hcode hwv hsz hsize
@@ -1601,12 +1594,12 @@ theorem uniswapReachPrice1CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256
     (by decide)
 
 /-- Reach the `balanceOf(address)` body entry through the optimized dispatcher. -/
-theorem uniswapReachBalanceOfBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachBalanceOfBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1079⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1079⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x70a08231⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x70 0xa0 0x82 0x31 ⟨0x70a08231⟩ (by decide) hsel
   exact uniswapReachHighLowestBody 1 (by decide) ⟨1079⟩ hcode hwv hsz hsize
@@ -1624,12 +1617,12 @@ theorem uniswapReachBalanceOfBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `kLast()` body entry through the optimized dispatcher. -/
-theorem uniswapReachKLastBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachKLastBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x74, 0x64, 0xfc, 0x3d]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1117⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1117⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x7464fc3d⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x74 0x64 0xfc 0x3d ⟨0x7464fc3d⟩ (by decide) hsel
   exact uniswapReachHighLowestBody 2 (by decide) ⟨1117⟩ hcode hwv hsz hsize
@@ -1647,12 +1640,12 @@ theorem uniswapReachKLastBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `nonces(address)` body entry through the optimized dispatcher. -/
-theorem uniswapReachNoncesBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachNoncesBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1125⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1125⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x7ecebe00⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x7e 0xce 0xbe 0x00 ⟨0x7ecebe00⟩ (by decide) hsel
   exact uniswapReachHighLowerBody 0 (by decide) ⟨1125⟩ hcode hwv hsz hsize
@@ -1667,12 +1660,12 @@ theorem uniswapReachNoncesBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `MINIMUM_LIQUIDITY()` body entry through the optimized dispatcher. -/
-theorem uniswapReachMinimumLiquidityBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachMinimumLiquidityBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1278⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1278⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xba9a7a56⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xba 0x9a 0x7a 0x56 ⟨0xba9a7a56⟩ (by decide) hsel
   exact uniswapReachHighMiddleBody 0 (by decide) ⟨1278⟩ hcode hwv hsz hsize
@@ -1687,12 +1680,12 @@ theorem uniswapReachMinimumLiquidityBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `factory()` body entry through the optimized dispatcher. -/
-theorem uniswapReachFactoryBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachFactoryBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1324⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1324⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xc45a0155⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xc4 0x5a 0x01 0x55 ⟨0xc45a0155⟩ (by decide) hsel
   exact uniswapReachHighMiddleBody 2 (by decide) ⟨1324⟩ hcode hwv hsz hsize
@@ -1710,12 +1703,12 @@ theorem uniswapReachFactoryBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `token1()` body entry through the optimized dispatcher. -/
-theorem uniswapReachToken1Body {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachToken1Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xd2, 0x12, 0x20, 0xa7]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1332⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1332⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xd21220a7⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xd2 0x12 0x20 0xa7 ⟨0xd21220a7⟩ (by decide) hsel
   exact uniswapReachHighUpperBody 0 (by decide) ⟨1332⟩ hcode hwv hsz hsize
@@ -1730,12 +1723,12 @@ theorem uniswapReachToken1Body {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `allowance(address,address)` body entry through the optimized dispatcher. -/
-theorem uniswapReachAllowanceBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachAllowanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1421⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1421⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xdd62ed3e⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xdd 0x62 0xed 0x3e ⟨0xdd62ed3e⟩ (by decide) hsel
   exact uniswapReachHighUpperBody 2 (by decide) ⟨1421⟩ hcode hwv hsz hsize
@@ -1753,12 +1746,12 @@ theorem uniswapReachAllowanceBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `sync()` body entry through the optimized dispatcher. -/
-theorem uniswapReachSyncBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachSyncBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1467⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1467⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xfff6cae9⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xff 0xf6 0xca 0xe9 ⟨0xfff6cae9⟩ (by decide) hsel
   exact uniswapReachHighUpperBody 3 (by decide) ⟨1467⟩ hcode hwv hsz hsize
@@ -1776,12 +1769,12 @@ theorem uniswapReachSyncBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `skim(address)` body entry through the optimized dispatcher. -/
-theorem uniswapReachSkimBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachSkimBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1286⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1286⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xbc25cf77⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xbc 0x25 0xcf 0x77 ⟨0xbc25cf77⟩ (by decide) hsel
   exact uniswapReachHighMiddleBody 1 (by decide) ⟨1286⟩ hcode hwv hsz hsize
@@ -1799,12 +1792,12 @@ theorem uniswapReachSkimBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `getReserves()` body entry through the optimized dispatcher. -/
-theorem uniswapReachGetReservesBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachGetReservesBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨697⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨697⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x0902f1ac⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x09 0x02 0xf1 0xac ⟨0x0902f1ac⟩ (by decide) hsel
   exact uniswapReachLowestBody 2 (by decide) ⟨697⟩ hcode hwv hsz hsize
@@ -1820,12 +1813,12 @@ theorem uniswapReachGetReservesBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `token0()` body entry through the optimized dispatcher. -/
-theorem uniswapReachToken0Body {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachToken0Body {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨817⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨817⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x0dfe1681⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x0d 0xfe 0x16 0x81 ⟨0x0dfe1681⟩ (by decide) hsel
   exact uniswapReachLowestBody 4 (by decide) ⟨817⟩ hcode hwv hsz hsize
@@ -1841,12 +1834,12 @@ theorem uniswapReachToken0Body {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `approve(address,uint256)` body entry through the optimized dispatcher. -/
-theorem uniswapReachApproveBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachApproveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨753⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨753⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x095ea7b3⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x09 0x5e 0xa7 0xb3 ⟨0x095ea7b3⟩ (by decide) hsel
   exact uniswapReachLowestBody 3 (by decide) ⟨753⟩ hcode hwv hsz hsize
@@ -1863,12 +1856,12 @@ theorem uniswapReachApproveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `totalSupply()` body entry through the optimized dispatcher. -/
-theorem uniswapReachTotalSupplyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachTotalSupplyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨853⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨853⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0x18160ddd⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0x18 0x16 0x0d 0xdd ⟨0x18160ddd⟩ (by decide) hsel
   have hroot :
@@ -1890,12 +1883,12 @@ theorem uniswapReachTotalSupplyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide)
 
 /-- Reach the `transfer(address,uint256)` body entry through the optimized dispatcher. -/
-theorem uniswapReachTransferBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapReachTransferBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1234⟩
-        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨1234⟩
+        [uniswapSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : uniswapSelWord I = ⟨0xa9059cbb⟩ :=
     uniswapSelWord_eq_of_beq I hsz 0xa9 0x05 0x9c 0xbb ⟨0xa9059cbb⟩ (by decide) hsel
   exact uniswapReachHighLowerBody 3 (by decide) ⟨1234⟩ hcode hwv hsz hsize

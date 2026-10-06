@@ -20,7 +20,7 @@ theorem RD.clipperTakeNoPartialPurchaseRevertTail {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {stk : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨4127⟩ stk mem (UInt256.ofNat 7) rdata acc k C)
     (hmem : mem.size = 196)
@@ -90,14 +90,14 @@ theorem RD.clipperTakeOweLtTabSliceLtLotNoPartialPurchaseReverts {code : ByteArr
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hle : (UInt256.mul price slice).toNat ≤ tab.toNat)
     (hlt : (UInt256.mul price slice).toNat < tab.toNat)
     (hsliceLt : slice.toNat < lot.toNat)

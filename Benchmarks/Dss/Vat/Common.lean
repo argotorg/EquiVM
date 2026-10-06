@@ -59,14 +59,13 @@ def vatSelBytes : ℕ → ByteArray
 
 /-- The common top-level shape of a routed Vat runtime body proof. -/
 abbrev VatBodyTheorem (i : ℕ) : Prop :=
-  ∀ {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256},
+  ∀ {σ σ₀ A I} {g : UInt256},
     I.code = vatBytecode →
     I.calldata.size < UInt256.size →
     I.perm = true →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    accountMapEquiv σ_evm σ_solm →
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I
 
 def vatSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   solcSlotWord σ I slot
@@ -462,7 +461,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcSixWordThreeAddressExternalLoadAndJump {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : solcSixWordThreeAddressExternalLoadAndJumpWf code decoded routine)
     (hroutine : (D_J code 0).contains routine = true)
@@ -547,7 +546,7 @@ theorem vatUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm slot))
 
 theorem vatUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = vatBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -555,9 +554,8 @@ theorem vatUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf vatBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf vatBytecode routine slot)
     (hroutine : (D_J vatBytecode 0).contains routine = true)
@@ -566,33 +564,27 @@ theorem vatUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : vatSlotWord slot σ_evm I = vatSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
+        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := vatBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (vatSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
     simpa [vatSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 @[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
   let p1 := pc + ⟨1⟩
@@ -627,15 +619,15 @@ theorem vatUint256GetterBodyCore
 
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -665,9 +657,9 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
 theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingGetterWf code pc baseSlot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
@@ -675,7 +667,7 @@ theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
       (solcSlotWord σ ee (solcMappingSlot (solcMappingSlot baseSlot owner) spender) ::
         ret :: R)
       (solcNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, hinner⟩ := RD.solcNestedMappingInnerHash h hwf hov
   obtain ⟨_, _, houter⟩ := RD.solcNestedMappingOuterHash hinner hwf hov
   obtain ⟨_, _, hload⟩ := RD.solcNestedMappingLoadAndJump houter hwf hret (by omega)
@@ -794,7 +786,7 @@ theorem solcScratchReturn2Mem_read128_64 {scratch : ByteArray} (first second : U
 
 theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc first second ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 pc (second :: first :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcTwoWordReturnFromMemWf code pc)
@@ -909,7 +901,7 @@ theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List 
 -- LIBRARY CANDIDATE: signed-division RD step analogous to Reasoning.Reach.RD.div.
 theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.SDIV, .none)) (hov : t.length + 1 ≤ 1024) :
@@ -953,7 +945,7 @@ theorem u256_eq_ne_zero_to_eq {a b : UInt256}
 theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hmax : UInt256.slt x ⟨0⟩ = ⟨0⟩)
@@ -1030,7 +1022,7 @@ theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
 theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6706⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hfail :
@@ -1107,7 +1099,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
 theorem RD.vatSignedSubOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hpos : UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (UInt256.sub x y) x = ⟨0⟩)
@@ -1206,7 +1198,7 @@ theorem RD.vatSignedSubOk {g : Sat256} {s0 : State}
 theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6795⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hfail :

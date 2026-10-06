@@ -8,23 +8,23 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAllowanceStoreAfterOuterKeyReady {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨479⟩
+theorem erc20X_transferFromAllowanceStoreAfterOuterKeyReady {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨479⟩
       [transferFromAllowanceInnerSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (transferFromAllowanceInnerScratchMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨483⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨483⟩
       [⟨32⟩, approveOwnerWord I,
         transferFromAllowanceInnerSlotI I,
         transferFromAllowanceInnerSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (transferFromAllowanceInnerScratchMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd479⟩ := hreach
   have rd483 := evm_run rd479 with [dup1, caller, push1 ⟨32⟩]
   exact ⟨_, _, rd483⟩

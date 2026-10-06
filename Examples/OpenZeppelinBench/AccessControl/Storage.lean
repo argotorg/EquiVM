@@ -61,17 +61,4 @@ theorem accessControlValueToKey_address (a : AccountAddress) :
     valueToKey? (.address a) = some (.address a) := by
   rfl
 
-theorem accessControlAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
-    (a : AccountAddress) (slot val : UInt256) (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) :=
-  accountMapEquiv_sstoreAccountMap a slot val hστ
-
-theorem accessControlEVMStateEquiv_storageStore_codeOwner {evm₁ evm₂ : EVM.State}
-    (h : EVMStateEquiv evm₁ evm₂) (slot : UInt256) {val₁ val₂ : UInt256}
-    (hval : val₁ = val₂) :
-    EVMStateEquiv
-      (Solm.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot val₁)
-      (Solm.EVM.storageStore evm₂ evm₂.executionEnv.codeOwner slot val₂) :=
-  EVMStateEquiv.storageStore_codeOwner h slot hval
-
 end OpenZeppelinBench.AccessControl

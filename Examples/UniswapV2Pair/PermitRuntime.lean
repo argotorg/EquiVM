@@ -4,19 +4,17 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
 
-
-
 namespace UniswapV2Pair
 
 set_option maxHeartbeats 2000000 in
 theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {nonce owner spender value deadline domain s r v ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5589⟩
       (nonce :: ⟨1⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
-      baseMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 3) rdata σ k C)
     (hbaseSize : baseMem.size = 96)
     (hbaseRead64 :
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨128⟩ : UInt256))
@@ -27,7 +25,7 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
         ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeStructHashMem baseMem owner spender value nonce deadline)
-      (UInt256.ofNat 11) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 11) rdata σ k' C' := by
   have hbaseMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ baseMem.size then ⟨0⟩
        else UInt256.ofNat
@@ -109,11 +107,11 @@ set_option maxHeartbeats 2000000 in
 theorem RD.uniswapPermitDigestHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {structHash domain s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5688⟩
       (structHash :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ ::
         domain :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
-      baseMem (UInt256.ofNat 11) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 11) rdata σ k C)
     (hbaseSize : baseMem.size = 352)
     (hbaseRead64 :
       baseMem.readWithPadding 64 32 = UInt256.toByteArray (⟨352⟩ : UInt256))
@@ -123,7 +121,7 @@ theorem RD.uniswapPermitDigestHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
         ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeDigestMem baseMem domain structHash)
-      (UInt256.ofNat 15) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 15) rdata σ k' C' := by
   have rd5699 := evm_run h with [
     push2 ⟨6401⟩, push1 ⟨240⟩, shl, push2 ⟨256⟩, dup7, add,
     raw mstore 6 (permitRuntimeDigestDataMem0 baseMem)
@@ -171,32 +169,31 @@ set_option maxHeartbeats 2000000 in
 theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
       (digest :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
-      baseMem (UInt256.ofNat 15) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 15) rdata σ k C)
     (hbaseSize : baseMem.size = 450)
     (hvMask : UInt256.land (⟨255⟩ : UInt256) v = v)
     (hdepth : ee.depth.val < 1024)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ ee.blobVersionedHashes cA
-          s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
           (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitRuntimeEcrecoverInputMem baseMem digest v r s).readWithPadding 482 128)
-          (ee.depth + 1) ee.header false)
+          (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks false)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5814⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ ::
             digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
           (o.write 0 (permitRuntimeEcrecoverInputMem baseMem digest v r s) 450
             (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
-          (UInt256.ofNat 20) o (cA', σ') k' C'
+          (UInt256.ofNat 20) o σ' k' C'
       ∧ o.size < UInt256.size := by
   have rd5749 := evm_run h with [
     swap6, dup4, swap1,
@@ -248,7 +245,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
     native_decide
   have rd5813 := rd5813₀
   rw [hInSize, hOutOffset, hTail] at rd5813
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', htheta, rd5814, houtSize⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k', C', htheta, rd5814, houtSize⟩ :=
     RD.solcStaticcall rd5813 (by native_decide) hdepth
       (by simp only [List.length_cons]; omega)
   have haw : UInt256.ofNat
@@ -258,7 +255,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
           (⟨450⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat) =
       UInt256.ofNat 20 := by
     native_decide
-  refine ⟨cA', σ', z, o, A_in, callGas, k', C', ?_, ?_, houtSize⟩
+  refine ⟨σ', z, o, A_in, callGas, k', C', ?_, ?_, houtSize⟩
   · simpa using htheta
   · rw [haw] at rd5814
     simpa using rd5814
@@ -267,11 +264,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5746⟩
       (digest :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: ⟨128⟩ :: ⟨1⟩ :: ⟨450⟩ ::
         s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
-      baseMem (UInt256.ofNat 15) rdata (cA, σ) k C)
+      baseMem (UInt256.ofNat 15) rdata σ k C)
     (hbaseSize : baseMem.size = 450)
     (hvMask : UInt256.land (⟨255⟩ : UInt256) v = v)
     (hdepth : ee.depth = 1024)
@@ -343,7 +340,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
       (⟨0⟩ :: ⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline ::
         value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s ByteArray.empty)
-      (UInt256.ofNat 20) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 20) ByteArray.empty σ k' C' := by
     simpa [permitRuntimeEcrecoverStaticcallMem] using rd5814
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814' rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -356,7 +353,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverReturnWordDecoded {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline :: value ::
         spender :: owner :: ret :: R)
@@ -395,7 +392,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverReturnWordDecodedShort {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {baseMem o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: digest :: s :: r :: v :: deadline :: value ::
         spender :: owner :: ret :: R)
@@ -434,7 +431,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata acc k C)
@@ -481,15 +478,15 @@ theorem RD.uniswapPermitEcrecoverSignatureGuardOk {g : Sat256} {s0 : State}
 theorem RD.uniswapPermitApproveSetup {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {recovered digest s r v deadline value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
-      mem (UInt256.ofNat 20) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 20) rdata σ k C)
     (hov : R.length + 19 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
       (value :: spender :: owner :: ⟨5976⟩ :: recovered :: digest :: s :: r :: v ::
         deadline :: value :: spender :: owner :: ret :: R)
-      mem (UInt256.ofNat 20) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 20) rdata σ k' C' := by
   have rd7412 := evm_run h with [
     jumpdest, push2 ⟨5976⟩, dup10, dup10, dup10, push2 ⟨7412⟩,
     jump (by jump_dest)]
@@ -499,9 +496,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7412⟩
-      (value :: spender :: owner :: ret :: R) mem (UInt256.ofNat 20) rdata (cA, σ) k C)
+      (value :: spender :: owner :: ret :: R) mem (UInt256.ofNat 20) rdata σ k C)
     (hmem : 96 ≤ mem.size)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
@@ -509,7 +506,7 @@ theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : Execu
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
       (twoWordHashMem owner ⟨2⟩ mem)
-      (UInt256.ofNat 20) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 20) rdata σ k' C' := by
   have hwf : solcNestedMappingStoreInnerHashWf UniswapV2Pair.uniswapV2PairBytecode
       (⟨7412⟩ : UInt256) (⟨2⟩ : UInt256) := by
     unfold solcNestedMappingStoreInnerHashWf
@@ -566,11 +563,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
       (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
         value :: spender :: owner :: ret :: R)
-      mem (UInt256.ofNat 20) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 20) rdata σ k C)
     (hmem : 96 ≤ mem.size)
     (hperm : ee.perm = true)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
@@ -579,7 +576,7 @@ theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : Execution
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender (mapSlot owner ⟨2⟩) mem)
       (UInt256.ofNat 20) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (mapSlot spender (mapSlot owner ⟨2⟩)) value)
+      (sstoreAccountMap ee.codeOwner σ (mapSlot spender (mapSlot owner ⟨2⟩)) value)
       k' C' := by
   have hwf : solcNestedMappingStoreOuterSstoreWf UniswapV2Pair.uniswapV2PairBytecode
       (⟨7441⟩ : UInt256) := by
@@ -628,7 +625,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7457⟩
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       mem (UInt256.ofNat 20) rdata acc k C)
@@ -717,10 +714,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {recovered digest s r v deadline value spender owner : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5965⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ⟨570⟩ :: R)
-      mem (UInt256.ofNat 20) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 20) rdata σ k C)
     (hmem : 514 ≤ mem.size)
     (hfree : mem.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (hperm : ee.perm = true)
@@ -728,7 +725,7 @@ theorem RD.uniswapPermitApproveAndReturn20 {g : Sat256} {s0 : State} {ee : Execu
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 23 ≤ 1024) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g s0
-      (cA, sstoreAccountMap ee.codeOwner σ (mapSlot spender (mapSlot owner ⟨2⟩)) value)
+      (sstoreAccountMap ee.codeOwner σ (mapSlot spender (mapSlot owner ⟨2⟩)) value)
       ByteArray.empty := by
   obtain ⟨_, _, rd7412⟩ := RD.uniswapPermitApproveSetup
     (recovered := recovered) (digest := digest) (s := s) (r := r) (v := v)
@@ -779,7 +776,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {digest v r s : UInt256} {stk : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -881,7 +878,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {digest v r s : UInt256} {stk : List UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5889⟩ stk
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
       (UInt256.ofNat 20) rdata acc k C)
@@ -985,7 +982,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardZeroReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
-    {R : List UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {R : List UInt256} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -1023,7 +1020,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
-    {R : List UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {R : List UInt256} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -1076,7 +1073,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardZeroRevertsShort {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
-    {R : List UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {R : List UInt256} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)
@@ -1114,7 +1111,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPermitEcrecoverSignatureGuardMismatchRevertsShort {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {baseMem o rdata : ByteArray}
     {recovered digest s r v deadline value spender owner ret : UInt256}
-    {R : List UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {R : List UInt256} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5844⟩
       (recovered :: digest :: s :: r :: v :: deadline :: value :: spender :: owner :: ret :: R)
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s o)

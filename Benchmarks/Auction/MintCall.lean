@@ -12,25 +12,25 @@ def mintCallMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
 def mintCallWords (aw ptr : UInt256) : UInt256 :=
   callActiveWords (expandedWords aw ptr ⟨32⟩) ptr ⟨4⟩ ptr ⟨32⟩
 
-theorem mintCall {I g s0 ret R mem aw ptr rdata cA σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem mintCall {I g s0 ret R mem aw ptr rdata σ k C evm}
+    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         mintSelector (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨3071⟩ ((if z then ⟨1⟩ else ⟨0⟩) :: ret :: R)
-        (mintCallMem mem out ptr) (mintCallWords aw ptr) out (cA', σ') k' C' ∧
+        (mintCallMem mem out ptr) (mintCallWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd3066⟩ := mintPrefix h hm hb hov
   have hcd : (selectorMem mem ptr mintWord).readWithPadding ptr.toNat 4 = mintSelector := by
     rw [selectorMem_read hm, mintWord_prefix]
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd3067, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd3067, ho⟩ :=
     callBridge rd3066 hs hperm (by native_decide) hcd (by decide) (by evm_ov)
-  exact ⟨evm', cA', σ', z, out, _, _, hc, hs',
+  exact ⟨evm', σ', z, out, _, _, hc, hs',
     evm_run rd3067 with [swap3, pop, pop, pop], ho⟩
 
 theorem mintCallMem_size {mem aw ptr} (hm : HeapMemory mem aw ptr)

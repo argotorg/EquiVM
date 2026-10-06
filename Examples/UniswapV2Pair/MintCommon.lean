@@ -192,22 +192,18 @@ theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi)
 
 theorem uniswapMintFeeToTypedCall_source_of_mem
-    {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
-    {cA2 : Batteries.RBSet AccountAddress compare} {σ2 : AccountMap}
+    {σ1 σ₀ I} {evm1S : EVM.State} {σ2 : AccountMap}
     {z2 : Bool} {out2 : ByteArray} {A_in2 : Substate} {callGas2 : UInt256}
     {mem : ByteArray}
-    (hPost : accountMapEquiv σ1 evm1S.accountMap)
-    (hcreated : evm1S.createdAccounts = cA1)
+    (hPost : Eq σ1 evm1S.accountMap)
     (hσ0 : evm1S.σ₀ = σ₀)
-    (hgenesis : evm1S.genesisBlockHeader = gh)
-    (hblocks : evm1S.blocks = bl)
     (henv : evm1S.executionEnv = I)
     (hdepth : I.depth.val < 1024)
     (hmem : 160 ≤ mem.size)
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
-        (cA2, σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.blobVersionedHashes
-          cA1 gh bl σ1 σ₀ A_in2
+        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
+          σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
           (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
@@ -215,23 +211,19 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
           ((feeToSelectorMem
             mem)
             |>.readWithPadding 128 4)
-          (I.depth + 1) I.header false) :
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
       typedCallViaEVM config evm1S
         (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (z2, evm2S, out2) false ∧
-      accountMapEquiv σ2 evm2S.accountMap ∧
-      evm2S.createdAccounts = cA2 ∧
+      Eq σ2 evm2S.accountMap ∧
       evm2S.σ₀ = σ₀ ∧
-      evm2S.genesisBlockHeader = gh ∧
-      evm2S.blocks = bl ∧
       evm2S.executionEnv = evm1S.executionEnv := by
   obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
   let factoryWord := uniswapSlotWord ⟨5⟩ σ1 I
   let factoryClean := UInt256.land solcAddrMask factoryWord
   have hslot : factoryWord = uniswapSlotWord ⟨5⟩ evm1S.accountMap evm1S.executionEnv := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨5⟩ ⟨0⟩
-    simpa [factoryWord, uniswapSlotWord, henv] using hword
+    simp [factoryWord, hPost, henv]
   have htargetSource :
       AccountAddress.ofUInt256 factoryClean = EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩) := by
     have haddr :
@@ -247,21 +239,13 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
       uniswapAddressAtSlot evm1S ⟨5⟩
     ext
     simp [EVM.uintN, EVM.twoPow, AccountAddress.size]
-  let evmE : EVM.State :=
-    { evm1S with
-      accountMap := σ1
-      createdAccounts := cA1
-      σ₀ := σ₀
-      genesisBlockHeader := gh
-      blocks := bl
-      executionEnv := I }
   let target : EVM.Address := EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩)
-  have hdepthE : evmE.executionEnv.depth.val < 1024 := by
-    simpa [evmE] using hdepth
-  have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
+  have hdepthS : evm1S.executionEnv.depth.val < 1024 := by
+    simpa [henv] using hdepth
+  have hdepthNe : evm1S.executionEnv.depth ≠ 1024 := by
     intro hEq
-    rw [hEq] at hdepthE
-    exact absurd hdepthE (by decide)
+    rw [hEq] at hdepthS
+    exact absurd hdepthS (by decide)
   have hcdE :
       config.externalABI.encode? "feeTo" [] =
         some ((feeToSelectorMem
@@ -271,71 +255,51 @@ theorem uniswapMintFeeToTypedCall_source_of_mem
     change uniswapExternalABI.encode? "feeTo" [] = some feeToSelector
     simp [uniswapExternalABI]
   have hΘE :
-      (cA2, σ2, g'', A'_evm, z2, out2) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes evmE.createdAccounts
-          evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ A_in2
-          (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
-          evmE.executionEnv.sender (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
-          (toExecute evmE.accountMap (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
-          callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+      (σ2, g'', A'_evm, z2, out2) =
+        Ethereum.EVM.Θ evm1S.accountMap evm1S.σ₀ A_in2
+          (AccountAddress.ofUInt256 (UInt256.ofNat evm1S.executionEnv.codeOwner))
+          evm1S.executionEnv.sender (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
+          (toExecute evm1S.accountMap (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          callGas2 (UInt256.ofNat evm1S.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
             mem)
             |>.readWithPadding 128 4)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
-    simpa [evmE] using hΘeq
-  obtain ⟨σ2S, A2S, hcallSolm, hPost2⟩ :=
-    typedCallViaEVM_callMade_accountMapEquiv
-      (cfg := config) (evm_evm := evmE) (evm_solm := evm1S)
+          (evm1S.executionEnv.depth + 1) evm1S.executionEnv.header
+          evm1S.executionEnv.blobVersionedHashes evm1S.executionEnv.blocks false := by
+    simpa [← hPost, hσ0, henv] using hΘeq
+  have hcallSolm :=
+    callCoincides (cfg := config) (evm := evm1S)
       (tgt := target) (targetWord := mintFeeFactoryWord σ1 I)
-      (name := "feeTo") (args := [])
-      (cA' := cA2) (σ' := σ2) (A' := A'_evm) (A_in := A_in2)
-      (z := z2) (out := out2) (g'' := g'') (callGas := callGas2)
-      (mem :=
-        feeToSelectorMem
-          mem)
-      (inOff := ⟨128⟩) (inSize := ⟨4⟩) (callPerm := false)
-      hdepthNe
+      (name := "feeTo") (args := []) (σ' := σ2) (A' := A'_evm)
+      (A_in := A_in2) (z := z2) (o := out2) (g'' := g'') (callGas := callGas2)
+      (mem := feeToSelectorMem mem) (inOff := ⟨128⟩) (inSize := ⟨4⟩)
+      (callPerm := false) hdepthNe
       (by simpa [target, mintFeeFactoryWord, factoryClean, factoryWord] using htargetSource.symm)
       hcdE hΘE
-      (by simpa [evmE] using hPost)
-      (by simp [evmE, hσ0])
-      (by simp [evmE, hcreated])
-      (by simp [evmE, hgenesis])
-      (by simp [evmE, hblocks])
-      (by simp [evmE])
-      (by simp [evmE, henv])
   let evm2S : EVM.State :=
     { evm1S with
-      accountMap := σ2S
-      substate := A2S
-      createdAccounts := cA2 }
-  refine ⟨evm2S, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      accountMap := σ2
+      substate := A'_evm }
+  refine ⟨evm2S, ?_, ?_, ?_, ?_⟩
   · simpa [evm2S, target] using hcallSolm
-  · simpa [evm2S] using hPost2
-  · simp [evm2S]
+  · rfl
   · simp [evm2S, hσ0]
-  · simp [evm2S, hgenesis]
-  · simp [evm2S, hblocks]
   · simp [evm2S]
 
 theorem uniswapMintFeeToTypedCall_source
-    {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
-    {cA2 : Batteries.RBSet AccountAddress compare} {σ2 : AccountMap}
+    {σ1 σ₀ I} {evm1S : EVM.State} {σ2 : AccountMap}
     {z2 : Bool} {out2 : ByteArray} {A_in2 : Substate} {callGas2 : UInt256}
     {oPrev o : ByteArray}
-    (hPost : accountMapEquiv σ1 evm1S.accountMap)
-    (hcreated : evm1S.createdAccounts = cA1)
+    (hPost : Eq σ1 evm1S.accountMap)
     (hσ0 : evm1S.σ₀ = σ₀)
-    (hgenesis : evm1S.genesisBlockHeader = gh)
-    (hblocks : evm1S.blocks = bl)
     (henv : evm1S.executionEnv = I)
     (hdepth : I.depth.val < 1024)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
-        (cA2, σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.blobVersionedHashes
-          cA1 gh bl σ1 σ₀ A_in2
+        (σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ
+          σ1 σ₀ A_in2
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
           (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
@@ -343,18 +307,15 @@ theorem uniswapMintFeeToTypedCall_source
           ((feeToSelectorMem
             (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
             |>.readWithPadding 128 4)
-          (I.depth + 1) I.header false) :
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evm2S : EVM.State,
       typedCallViaEVM config evm1S
         (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (z2, evm2S, out2) false ∧
-      accountMapEquiv σ2 evm2S.accountMap ∧
-      evm2S.createdAccounts = cA2 ∧
+      Eq σ2 evm2S.accountMap ∧
       evm2S.σ₀ = σ₀ ∧
-      evm2S.genesisBlockHeader = gh ∧
-      evm2S.blocks = bl ∧
       evm2S.executionEnv = evm1S.executionEnv := by
-  exact uniswapMintFeeToTypedCall_source_of_mem hPost hcreated hσ0 hgenesis hblocks henv
+  exact uniswapMintFeeToTypedCall_source_of_mem hPost hσ0 henv
     hdepth (by
       rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge
         (UInt256.ofNat I.codeOwner.val) oPrev o hprevlo hprevhi hlo hhi]
@@ -480,7 +441,7 @@ theorem feeToStaticcallMem_mload128_of_size_ge
 
 theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
     {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
-    (hPost : accountMapEquiv σ evm.accountMap)
+    (hPost : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hfactoryNoCode : extCodeSizeWord σ (mintFeeFactoryWord σ I) = ⟨0⟩) :
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
@@ -489,15 +450,11 @@ theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
   let factoryWordS := uniswapSlotWord ⟨5⟩ σ I
   let factoryWordE := uniswapSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
   have hslot : factoryWordS = factoryWordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨5⟩ ⟨0⟩
-    simpa [factoryWordS, factoryWordE, uniswapSlotWord, henv] using hword
+    simp [factoryWordS, factoryWordE, hPost, henv]
   have hcodeEvm :
       extCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) =
         ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
-    rw [← hslot]
-    rw [← hsame]
+    rw [← hslot, ← hPost]
     simpa [factoryWordS, mintFeeFactoryWord] using hfactoryNoCode
   have hstorage :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm (.storage factoryRef) =
@@ -532,7 +489,7 @@ theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
 
 theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
     {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
-    (hPost : accountMapEquiv σ evm.accountMap)
+    (hPost : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hfactoryCode : extCodeSizeWord σ (mintFeeFactoryWord σ I) ≠ ⟨0⟩) :
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
@@ -541,20 +498,16 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
   let factoryWordS := uniswapSlotWord ⟨5⟩ σ I
   let factoryWordE := uniswapSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
   have hslot : factoryWordS = factoryWordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨5⟩ ⟨0⟩
-    simpa [factoryWordS, factoryWordE, uniswapSlotWord, henv] using hword
+    simp [factoryWordS, factoryWordE, hPost, henv]
   have hcodeEvm :
       extCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) ≠
         ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
     have hcodeS :
         extCodeSizeWord σ (UInt256.land solcAddrMask factoryWordS) ≠ ⟨0⟩ := by
       simpa [factoryWordS, mintFeeFactoryWord] using hfactoryCode
     intro hzero
     apply hcodeS
-    rw [← hslot] at hzero
-    rw [← hsame] at hzero
+    rw [← hslot, ← hPost] at hzero
     exact hzero
   have hstorage :
       evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm (.storage factoryRef) =
@@ -694,21 +647,19 @@ theorem accountAddress_ofNat_ne_zero_of_land_solcAddrMask_ne_zero {n : Nat}
   rw [nat_land_mask_eq_mod, hmod]
   rfl
 
-theorem mintFeeKLastWord_eq_slot_of_accountMapEquiv
+theorem mintFeeKLastWord_eq_slot
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hPost : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    (hPost : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     mintFeeKLastWord evm = mintFeeKLastSlotWord σ I := by
-  have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨11⟩ ⟨0⟩
   simpa [mintFeeKLastWord, mintFeeKLastSlotWord, uniswapSlotWord, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, henv] using hword.symm
+    State.lookupAccount, Account.lookupStorage, henv, hPost]
 
-theorem mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv
+theorem mintFunctionTotalSupplyWord_eq_slot
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hPost : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    (hPost : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     mintFunctionTotalSupplyWord evm = uniswapSlotWord ⟨0⟩ σ I := by
-  have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨0⟩ ⟨0⟩
   simpa [mintFunctionTotalSupplyWord, uniswapSlotWord, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, henv] using hword.symm
+    State.lookupAccount, Account.lookupStorage, henv, hPost]
 
 -- LIBRARY CANDIDATE: general UInt256 fitted addition bridge.
 theorem u256_ofNat_toNat_add_eq_add_of_lt (a b : UInt256)
@@ -755,14 +706,14 @@ theorem u256_land_solcAddrMask_idem_left (w : UInt256) :
 
 /-- The optimized external wrapper for `mint(address)` masks legacy-address calldata and jumps to
     the external mint routine at pc 3283. -/
-theorem uniswapMintX_decoded_masked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapMintX_decoded_masked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1041⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3283⟩
+      (initState σ σ₀ g A I) ⟨1041⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1063⟩ := RD.uniswapOneAddressExternalLenOk
     (entry := ⟨1041⟩) (ret := ⟨861⟩) (routine := ⟨3283⟩) hreach
     uniswap_one_address_external_entry_wf (by jump_dest) hsz36 hsize
@@ -773,28 +724,28 @@ theorem uniswapMintX_decoded_masked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   exact ⟨_, _, by simpa [mintToWord, mintToMaskedWord] using rd3283⟩
 
 /-- Short-calldata path for `mint(address)` from the dispatcher body entry. -/
-theorem uniswapMintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapMintX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1041⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1041⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   exact RD.uniswapOneAddressExternalShort
     (entry := ⟨1041⟩) (ret := ⟨861⟩) (routine := ⟨3283⟩)
     hreach uniswap_one_address_external_entry_wf hsz4 hsize hshort
 
 /-- After the external wrapper has decoded `to`, `mint(address)` reverts when the Uniswap lock is
 already held. -/
-theorem uniswapMintX_locked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapMintX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3283⟩
+      (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3283⟩ := hdecoded
   have rd3286 := evm_run rd3283 with [jumpdest, push1 ⟨0⟩]
   exact RD.uniswapLockEnterBodyLocked
@@ -804,19 +755,19 @@ theorem uniswapMintX_locked {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 /-- After the external wrapper has decoded `to`, `mint(address)` successfully enters the
 Uniswap lock when it is not already held. -/
-theorem uniswapMintX_lockEntered {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapMintX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨3283⟩
+      (initState σ σ₀ g A I) ⟨3283⟩
       [mintToMaskedWord I, ⟨861⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3368⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3368⟩
       [⟨0⟩, ⟨0⟩, mintToMaskedWord I, ⟨861⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C := by
   obtain ⟨_, _, rd3283⟩ := hdecoded
   have rd3286 := evm_run rd3283 with [jumpdest, push1 ⟨0⟩]
   obtain ⟨_, _, rd3368⟩ := RD.uniswapLockEnterBodyOk
@@ -868,25 +819,24 @@ theorem mintReserveStore_to (evm : EVM.State) (I : ExecutionEnv) :
     mintStore_to]
 
 theorem mintToken0GuardFalse_initState_of_noCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    {σ σ₀ A I} {g : Sat256}
     (htoken0NoCode :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
     evalExpr? config
         { contract := contract,
           locals :=
             mintReserveStore
-              (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)) I }
-        (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I))
+              (uniswapLockEnteredState (initState σ σ₀ g A I)) I }
+        (uniswapLockEnteredState (initState σ σ₀ g A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
       .ok (.bool false) := by
   have hguard := syncToken0GuardFalse_initState_of_noCode
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hAccounts htoken0NoCode
-  let evmL := uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    htoken0NoCode
+  let evmL := uniswapLockEnteredState (initState σ σ₀ g A I)
   have hresolve :
       resolveStorageRef? config
           { contract := contract, locals := mintReserveStore evmL I } evmL token0Ref =
@@ -898,40 +848,26 @@ theorem mintToken0GuardFalse_initState_of_noCode
   exact hguard
 
 theorem mintToken0GuardTrue_initState_of_code
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    {σ σ₀ A I} {g : Sat256}
     (htoken0Code :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     evalExpr? config
         { contract := contract,
           locals :=
             mintReserveStore
-              (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)) I }
-        (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I))
+              (uniswapLockEnteredState (initState σ σ₀ g A I)) I }
+        (uniswapLockEnteredState (initState σ σ₀ g A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
       .ok (.bool true) := by
-  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
-  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
+  let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
-  have hLockAccounts : accountMapEquiv σLockE σLockS := by
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have hslot : token0WordE = token0WordS := by
-    simpa [σLockE, σLockS, token0WordE, token0WordS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hcodeSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
-    intro hzero
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hLockAccounts
-        (UInt256.land solcAddrMask token0WordE)
-    rw [← hslot] at hzero
-    rw [← hsame] at hzero
-    exact htoken0Code (by simpa [σLockE, token0WordE] using hzero)
-  let evmS := initState cA gh bl σ_solm σ₀ g A I
+    simpa [σLockS, token0WordS] using htoken0Code
+  let evmS := initState σ σ₀ g A I
   let evmL := uniswapLockEnteredState evmS
   have hstorage :
       evalExpr? config { contract := contract, locals := mintReserveStore evmL I } evmL
@@ -982,7 +918,7 @@ theorem mintToken0GuardTrue_initState_of_code
 
 theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
     {evm0 reserveEvm : EVM.State} {I : ExecutionEnv} {balance0 : Value}
-    (hPost : accountMapEquiv σ evm0.accountMap)
+    (hPost : Eq σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1NoCode :
       extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
@@ -994,15 +930,11 @@ theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
   let token1WordS := uniswapSlotWord ⟨7⟩ σ I
   let token1WordE := uniswapSlotWord ⟨7⟩ evm0.accountMap evm0.executionEnv
   have hslot : token1WordS = token1WordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
-    simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
+    simp [token1WordS, token1WordE, hPost, henv]
   have hcodeEvm :
       extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
         ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
-    rw [← hslot]
-    rw [← hsame]
+    rw [← hslot, ← hPost]
     simpa [token1WordS] using htoken1NoCode
   have hstorage :
       evalExpr? config
@@ -1045,7 +977,7 @@ theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
 
 theorem mintToken1GuardTrue_of_code {σ : AccountMap}
     {evm0 reserveEvm : EVM.State} {I : ExecutionEnv} {balance0 : Value}
-    (hPost : accountMapEquiv σ evm0.accountMap)
+    (hPost : Eq σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1Code :
       extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
@@ -1057,16 +989,12 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
   let token1WordS := uniswapSlotWord ⟨7⟩ σ I
   let token1WordE := uniswapSlotWord ⟨7⟩ evm0.accountMap evm0.executionEnv
   have hslot : token1WordS = token1WordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
-    simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
+    simp [token1WordS, token1WordE, hPost, henv]
   have hcodeEvm :
       extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
         ⟨0⟩ := by
     intro hzero
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
-    rw [← hslot] at hzero
-    rw [← hsame] at hzero
+    rw [← hslot, ← hPost] at hzero
     exact htoken1Code (by simpa [token1WordS] using hzero)
   have hstorage :
       evalExpr? config
@@ -1120,47 +1048,30 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
   simp [evalExpr?, hstorage, EvalResult.bind, bind, pure, evalBinaryOp?, hcodeSourceWordPos]
 
 theorem mintReserve0Word_initState_eq_evm
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    {σ σ₀ A I} {g : Sat256} :
     uniswapReserve0Word
-        (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)) =
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I := by
-  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
-  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  have hLockAccounts : accountMapEquiv σLockE σLockS := by
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have hslot : (σLockE.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) =
-      (σLockS.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) := by
-    simpa [σLockE, σLockS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  simpa [σLockE, σLockS, uniswapReserve0Word, reserve0Word, getReservesSlotWord,
+        (uniswapLockEnteredState (initState σ σ₀ g A I)) =
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I := by
+  let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
+  simpa [σLockS, uniswapReserve0Word, reserve0Word, getReservesSlotWord, uniswapSlotWord,
     uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_accountMap,
     storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-    using (congrArg (fun w => UInt256.land w reserve112Mask) hslot).symm
+    using (rfl : UInt256.land
+      (σLockS.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩))
+      reserve112Mask = _)
 
 theorem mintReserve1Word_initState_eq_evm
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
+    {σ σ₀ A I} {g : Sat256} :
     uniswapReserve1Word
-        (uniswapLockEnteredState (initState cA gh bl σ_solm σ₀ g A I)) =
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I := by
-  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
-  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  have hLockAccounts : accountMapEquiv σLockE σLockS := by
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have hslot : (σLockE.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) =
-      (σLockS.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) := by
-    simpa [σLockE, σLockS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  simpa [σLockE, σLockS, uniswapReserve1Word, reserve1Word, getReservesSlotWord,
+        (uniswapLockEnteredState (initState σ σ₀ g A I)) =
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I := by
+  let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
+  simpa [σLockS, uniswapReserve1Word, reserve1Word, getReservesSlotWord, uniswapSlotWord,
     uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_accountMap,
     storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-    using (congrArg (fun w => UInt256.land (UInt256.div w reserve112Shift) reserve112Mask)
-      hslot).symm
+    using (rfl : UInt256.land (UInt256.div
+      (σLockS.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩))
+      reserve112Shift) reserve112Mask = _)
 
 theorem uniswapMintReservePrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

@@ -12,18 +12,18 @@ theorem dogDecode_Dirt {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.cal
   exact decodeCalldata_empty_ok hsz
 
 theorem dogReachDirtBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 0)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨837⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨837⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xeda6e121⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xed 0xa6 0xe1 0x21 ⟨0xeda6e121⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
@@ -42,9 +42,9 @@ theorem dogReachDirtBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
+  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
       RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
   have hhigh :
@@ -54,9 +54,9 @@ theorem dogReachDirtBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨54⟩
+  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
       RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
   have hchop : UInt256.eq (dogSelectorWord 4) (solcSelectorWord I) = ⟨0⟩ := by
@@ -188,26 +188,25 @@ theorem dogReachDirtBody {v : DogImmutables} {code : ByteArray}
   exact ⟨_, _, h837⟩
 
 theorem dogDirtBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
-    (_hsel : selIs I (dogSelBytes 0))
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (_hsel : selIs I (dogSelBytes 0)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 0) rfl _hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ DirtTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ DirtTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (dogSlotWord ⟨5⟩ σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (dogSlotWord ⟨5⟩ σ I).toNat))])) := by
     simpa [DirtTransition, dogSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       dogUint256GetterBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
         (slot := ⟨5⟩)
         (by simp only [initState]; exact _hwv) (by simp [DirtRef])
@@ -217,7 +216,6 @@ theorem dogDirtBodyCore {v : DogImmutables} {code : ByteArray}
     (routine := ⟨4536⟩) (slot := ⟨5⟩)
     _hcode (dogDispatchDirt _hsel) (dogDecode_Dirt (v := v) hsz)
     (dogReachDirtBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
-    _hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first

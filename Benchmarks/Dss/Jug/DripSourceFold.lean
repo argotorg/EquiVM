@@ -4,7 +4,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
-theorem jugDripSourceBodyVatFoldNoCodeReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatFoldNoCodeReverts {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -14,10 +14,10 @@ theorem jugDripSourceBodyVatFoldNoCodeReverts {cA gh bl σ σ₀ A I} {g : UInt2
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -38,7 +38,7 @@ theorem jugDripSourceBodyVatFoldNoCodeReverts {cA gh bl σ σ₀ A I} {g : UInt2
         ((evmVat.lookupAccount (dripVatAddress evmVat.accountMap evmVat.executionEnv)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -264,7 +264,7 @@ theorem jugDripSourceBodyVatFoldNoCodeReverts {cA gh bl σ σ₀ A I} {g : UInt2
         (ExecStmt.requireFalse hfoldGuard))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatFoldCallFailedReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatFoldCallFailedReverts {σ σ₀ A I} {g : UInt256}
     {evmVat evmFold : EVM.State} {out foldOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -274,10 +274,10 @@ theorem jugDripSourceBodyVatFoldCallFailedReverts {cA gh bl σ σ₀ A I} {g : U
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -307,7 +307,7 @@ theorem jugDripSourceBodyVatFoldCallFailedReverts {cA gh bl σ σ₀ A I} {g : U
           .int (Int.ofNat (⟨0⟩ : UInt256).toNat)]
         (false, evmFold, foldOut) true) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -542,7 +542,7 @@ theorem jugDripSourceBodyVatFoldCallFailedReverts {cA gh bl σ σ₀ A I} {g : U
         (by simp [evalExpr?, pure]) hfoldArgs hfoldCall)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatFoldCallSucceededReturns {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatFoldCallSucceededReturns {σ σ₀ A I} {g : UInt256}
     {evmVat evmFold : EVM.State} {out foldOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -552,10 +552,10 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturns {cA gh bl σ σ₀ A I} {g 
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -585,7 +585,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturns {cA gh bl σ σ₀ A I} {g 
           .int (Int.ofNat (⟨0⟩ : UInt256).toNat)]
         (true, evmFold, foldOut) true) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
     let duty := jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
     let fee := base + duty

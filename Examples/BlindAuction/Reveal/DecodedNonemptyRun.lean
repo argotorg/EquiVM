@@ -8,7 +8,7 @@ namespace BlindAuction
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {callargs : Store} {values fakes secrets : List Value}
     {loopLen secretsLenWord fakesLenWord valuesLenWord : UInt256}
     {initCursor : RevealLoopCursor} {evmSolm : EVM.State} {k1014 C1014 : ℕ}
@@ -21,7 +21,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
       callargs =
         (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
           "secrets" (.array secrets))
-    (hevmSolm : evmSolm = initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+    (hevmSolm : evmSolm = initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩)
     (hafterBody :
       (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
@@ -36,9 +36,8 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
     (hsecretsGet : callargs.get? "secrets" = some (.array secrets))
     (hlenBody :
       Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
-        (bidsBase (.address evmSolm.executionEnv.source)) = revealScratchBidsLengthWord σ_solm I)
-    (hbidsEq : revealScratchBidsLengthWord σ_evm I = revealScratchBidsLengthWord σ_solm I)
-    (hloopLen : loopLen = revealScratchBidsLengthWord σ_evm I)
+        (bidsBase (.address evmSolm.executionEnv.source)) = revealScratchBidsLengthWord σ I)
+    (hloopLen : loopLen = revealScratchBidsLengthWord σ I)
     (hvaluesEq : loopLen = valuesLenWord)
     (hfakesEq : loopLen = fakesLenWord)
     (hsecretsEq : loopLen = secretsLenWord)
@@ -59,25 +58,25 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
         secrets.length = secretsLenWord.toNat →
         UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩ →
         RevealLoopRunFromStart I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) σ₀ gh bl A loopLen
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ₀ A loopLen
           revealEnd biddingEnd secretsLenWord secretsEnd fakesLenWord fakesEnd
           valuesLenWord valuesEnd sel values fakes secrets)
     (hinitInv :
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A loopLen.toNat initCursor
+      RevealLoopInv loopLen values fakes secrets I σ₀ A loopLen.toNat initCursor
         (scratch_revealLoopStore callargs loopLen ⟨0⟩ ⟨0⟩) evmSolm)
     (rd1014 :
       RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1014⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1014⟩
         (scratch_revealEvmLoopStack initCursor.idx initCursor.refund loopLen
-          (revealScratchRevealEndWord σ_evm I)
-          (revealScratchBiddingEndWord σ_evm I)
+          (revealScratchRevealEndWord σ I)
+          (revealScratchBiddingEndWord σ I)
           secretsLenWord (⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩)
           fakesLenWord (⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩)
           valuesLenWord (⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩)
           (blindAuctionSelWord I))
         initCursor.mem initCursor.aw ByteArray.empty initCursor.acc k1014 C1014) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have hloopResult :
       (∃ aDone LDone evmDone kDone CDone,
         ExecForLoop blindAuctionConfig
@@ -86,12 +85,12 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
           (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
           scratch_revealLoopBodyStmts
           (.ok { contract := blindAuctionContract, locals := LDone } evmDone) ∧
-        RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A 0 aDone LDone evmDone ∧
+        RevealLoopInv loopLen values fakes secrets I σ₀ A 0 aDone LDone evmDone ∧
         RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1331⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1331⟩
           (scratch_revealEvmLoopStack aDone.idx aDone.refund loopLen
-            (revealScratchRevealEndWord σ_evm I)
-            (revealScratchBiddingEndWord σ_evm I)
+            (revealScratchRevealEndWord σ I)
+            (revealScratchBiddingEndWord σ I)
             secretsLenWord (⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩)
             fakesLenWord (⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩)
             valuesLenWord (⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩)
@@ -104,7 +103,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
           (.binary .lt (.var "i") (.var "length")) scratch_revealLoopPostStmts
           scratch_revealLoopBodyStmts .reverted ∧
         RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
     exact
       hloopRun rfl rfl rfl hvaluesEq hfakesEq hsecretsEq
         hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax
@@ -114,8 +113,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
   exact
     scratch_blindAuctionReveal_nonempty_fromLoopResult
       (I := I) (g := g)
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (callargs := callargs)
       (values := values) (fakes := fakes) (secrets := secrets)
       (loopLen := loopLen)
@@ -124,7 +122,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
       (valuesLenWord := valuesLenWord)
       hcode hd hdec hstore hperm evmSolm hevmSolm
       hwvSolm hafterBody hbeforeBody hbiddingAbsent hrevealAbsent
-      hvaluesGet hfakesGet hsecretsGet hlenBody hbidsEq
+      hvaluesGet hfakesGet hsecretsGet hlenBody
       hloopLen hvaluesEq hfakesEq hsecretsEq
       hvaluesListLen hfakesListLen hsecretsListLen
       hloopResult

@@ -11,22 +11,20 @@ namespace Benchmarks.Dss.Jug
 set_option maxRecDepth 2000000
 
 theorem jugCtorVatMaskHighReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd88 :
       RD (jugCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨88⟩
+        (initState σ σ₀ g A I) ⟨88⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨2⟩, solcSlotWord σWards I ⟨2⟩]
         (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (jugCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨100⟩
+      (initState σ σ₀ g A I) ⟨100⟩
       [UInt256.land (solcSlotWord σWards I ⟨2⟩) (UInt256.lnot solcAddrMask), ⟨2⟩,
         UInt256.land (EVM.word vat.val) solcAddrMask]
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rd100 := jug_ctor_run rd88 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, swap3,
     raw and (by jug_ctor_decode) (by evm_ov)]

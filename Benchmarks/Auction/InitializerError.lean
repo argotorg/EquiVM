@@ -28,8 +28,8 @@ theorem initializerErrorRevert {I g s0 ptr R mem aw rdata acc k C}
     jumpdest, push1 ⟨64⟩, raw mloadSymbolic (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1, raw revertSymbolic (by native_decide) (by evm_ov) ]
 
-theorem initializeGuardRevert {I g s0 R mem aw rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨2130⟩ R mem aw rdata (cA, σ) k C)
+theorem initializeGuardRevert {I g s0 R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨2130⟩ R mem aw rdata σ k C)
     (hi : initializingWord σ I = ⟨0⟩) (hz : initializedWord σ I ≠ ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
   have rd2132 := evm_run h with [jumpdest, push0]

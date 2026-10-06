@@ -24,10 +24,6 @@ def snapshotOfState (evm : EVM.State) : Snapshot :=
     Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨210⟩,
     Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨211⟩⟩
 
-theorem snapshotOf_equiv {σ₁ σ₂ : AccountMap} (h : accountMapEquiv σ₁ σ₂)
-    (I : ExecutionEnv) : snapshotOf σ₁ I = snapshotOf σ₂ I := by
-  simp only [snapshotOf, storedWord_equiv h]
-
 def Snapshot.bidderWord (s : Snapshot) : UInt256 := UInt256.land s.packed solcAddrMask
 def Snapshot.settledSourceWord (s : Snapshot) : UInt256 := UInt256.div s.packed ⟨2 ^ 160⟩
 def Snapshot.settledByte (s : Snapshot) : UInt256 := UInt256.land s.settledSourceWord ⟨255⟩

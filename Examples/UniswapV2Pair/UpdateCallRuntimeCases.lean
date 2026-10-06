@@ -33,12 +33,12 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapUpdateCallRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {k C : ℕ}
     {reserve1 reserve0 balance1 balance0 ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     {locals : Store} (evm : EVM.State)
     (rd6959 : RD uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+      mem feeToStaticcallActiveWords rdata σ k C)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hbalance0 : locals.get? "balance0" = some (uniswapUint256Value balance0))
     (hbalance1 : locals.get? "balance1" = some (uniswapUint256Value balance1))
@@ -62,10 +62,9 @@ theorem uniswapUpdateCallRuntimeCases
           "_updateResult")
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
           "_updateResult" none) evm') ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evm.createdAccounts ∧
+      Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I g s0 ret R (uniswapSyncLogMem packed mem)
-        feeToStaticcallActiveWords rdata (cA, σ') k' C' ∧
+        feeToStaticcallActiveWords rdata σ' k' C' ∧
       (uniswapSyncLogMem packed mem).size = 192 ∧
       (uniswapSyncLogMem packed mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
   rcases uniswapUpdateCallRuntimeCases_dynamic evm rd6959 hAccounts henv
@@ -73,9 +72,9 @@ theorem uniswapUpdateCallRuntimeCases
         hbalance0 hbalance1 hreserve0 hreserve1)
       hclean0 hclean1 hperm (by rw [hmem]; decide) (by decide)
       (by rw [hmem]; native_decide) (by native_decide) (by native_decide) (by decide)
-      hmem64 hret hov with hrev | ⟨evm', σ', packed, k', C', hcall, ha, he, hc, rd, hs, hm⟩
+      hmem64 hret hov with hrev | ⟨evm', σ', packed, k', C', hcall, ha, he, rd, hs, hm⟩
   · exact Or.inl hrev
-  · refine Or.inr ⟨evm', σ', packed, k', C', hcall, ha, he, hc, rd, ?_, hm⟩
+  · refine Or.inr ⟨evm', σ', packed, k', C', hcall, ha, he, rd, ?_, hm⟩
     simpa only [hmem] using hs
 
 end UniswapV2Pair

@@ -15,7 +15,7 @@ reused from `Reasoning.Storage` / packed scalar storage.
 -/
 
 def pausedRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def pausedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (pausedRawWord σ I) ⟨255⟩
@@ -72,49 +72,16 @@ theorem pausableStorageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UIn
   simpa [boolLoc, boolOffset0Loc, pausedSetFalseWord] using
     storageLocStore_bool_false_offset0 evm slot
 
-theorem pausableStorageStore_accountMap
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).accountMap =
-      sstoreAccountMap a evm.accountMap slot val := by
-  exact storageStore_accountMap evm a slot val
-
-theorem pausableStorageStore_createdAccounts
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
-  exact storageStore_createdAccounts evm a slot val
-
-theorem pausableAccountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
-    (a : AccountAddress) (slot val : UInt256)
-    (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (sstoreAccountMap a σ slot val) (sstoreAccountMap a τ slot val) :=
-  accountMapEquiv_sstoreAccountMap a slot val hστ
-
-theorem pausableEVMStateEquiv_storageStore_codeOwner {evm₁ evm₂ : EVM.State}
-    (h : EVMStateEquiv evm₁ evm₂) (slot : UInt256) {val₁ val₂ : UInt256}
-    (hval : val₁ = val₂) :
-    EVMStateEquiv
-      (Solm.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot val₁)
-      (Solm.EVM.storageStore evm₂ evm₂.executionEnv.codeOwner slot val₂) :=
-  EVMStateEquiv.storageStore_codeOwner h slot hval
-
 theorem pausePostState_accountMap (evm : EVM.State) :
     (pausePostState evm).accountMap =
       sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨0⟩
         (pausedSetTrueWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)) := by
-  simp [pausePostState, pausableStorageStore_accountMap]
+  simp [pausePostState, storageStore_accountMap]
 
 theorem unpausePostState_accountMap (evm : EVM.State) :
     (unpausePostState evm).accountMap =
       sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨0⟩
         (pausedSetFalseWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)) := by
-  simp [unpausePostState, pausableStorageStore_accountMap]
-
-theorem pausePostState_createdAccounts (evm : EVM.State) :
-    (pausePostState evm).createdAccounts = evm.createdAccounts := by
-  simp [pausePostState, pausableStorageStore_createdAccounts]
-
-theorem unpausePostState_createdAccounts (evm : EVM.State) :
-    (unpausePostState evm).createdAccounts = evm.createdAccounts := by
-  simp [unpausePostState, pausableStorageStore_createdAccounts]
+  simp [unpausePostState, storageStore_accountMap]
 
 end OpenZeppelinBench.Pausable

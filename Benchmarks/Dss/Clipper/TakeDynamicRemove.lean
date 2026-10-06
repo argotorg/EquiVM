@@ -68,7 +68,7 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccessWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {move owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -76,13 +76,13 @@ theorem RD.clipperTakeRemoveJoinToReturnSuccessWF {code : ByteArray}
       (move :: clipperYankArgWord ee :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
     RDret code g s0
-      (cA, sstoreAccountMap ee.codeOwner (clipperYankRemoveAccountMap σ ee lastIndex)
+      (sstoreAccountMap ee.codeOwner (clipperYankRemoveAccountMap σ ee lastIndex)
         ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
   intro lastIndex
@@ -103,13 +103,13 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (htabNew : tabNew ≠ ⟨0⟩)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
@@ -117,8 +117,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
       (twoWordHashMem id ⟨12⟩ mem) aw o
-      (cA,
-        sstoreAccountMap ee.codeOwner
+      (sstoreAccountMap ee.codeOwner
           (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew)
           (solcMappingSlot ⟨12⟩ id + ⟨2⟩) lotNew)
       k' C' := by
@@ -186,7 +185,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
       (twoWordHashMem id ⟨12⟩ mem) aw o
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew)
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew)
       k5244 C5244 := by
     simpa using rd5244raw
   have rd5249pre := evm_run rd5244 with [
@@ -204,19 +203,18 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToReturnSuccessWF {code : ByteA
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5025⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (htabNew : tabNew ≠ ⟨0⟩)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
     RDret code g s0
-      (cA,
-        sstoreAccountMap ee.codeOwner
+      (sstoreAccountMap ee.codeOwner
           (sstoreAccountMap ee.codeOwner
             (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew)
             (solcMappingSlot ⟨12⟩ id + ⟨2⟩) lotNew)

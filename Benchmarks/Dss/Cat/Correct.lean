@@ -32,10 +32,10 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Cat
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
-theorem catNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (catX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -50,25 +50,25 @@ theorem catNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (catBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
-theorem catShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (catX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (catDispatch_none_short hsz)
 
 /-- `size ≥ 4` but no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
-theorem catNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 16 → (catSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (catX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (catDispatch_none_nomatch hnm)
@@ -116,40 +116,40 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
 theorem catCorrect :
     runtimeEquivalence config catBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩
-    · exact catBiteBody hcode hsize hperm hwv hbite hAccounts
+    · exact catBiteBody hcode hsize hperm hwv hbite
     · by_cases hbox : selIs I ⟨#[0x75, 0x42, 0x15, 0xa1]⟩
-      · exact catBoxBody hcode hsize hperm hwv hbox hAccounts
+      · exact catBoxBody hcode hsize hperm hwv hbox
       · by_cases hcage : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩
-        · exact catCageBody hcode hsize hperm hwv hcage hAccounts
+        · exact catCageBody hcode hsize hperm hwv hcage
         · by_cases hclaw : selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩
-          · exact catClawBody hcode hsize hperm hwv hclaw hAccounts
+          · exact catClawBody hcode hsize hperm hwv hclaw
           · by_cases hdeny : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩
-            · exact catDenyBody hcode hsize hperm hwv hdeny hAccounts
+            · exact catDenyBody hcode hsize hperm hwv hdeny
             · by_cases hfileAddress : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩
-              · exact catFileAddressBody hcode hsize hperm hwv hfileAddress hAccounts
+              · exact catFileAddressBody hcode hsize hperm hwv hfileAddress
               · by_cases hfileIlkFlip : selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩
-                · exact catFileIlkFlipBody hcode hsize hperm hwv hfileIlkFlip hAccounts
+                · exact catFileIlkFlipBody hcode hsize hperm hwv hfileIlkFlip
                 · by_cases hfileIlkUint : selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩
-                  · exact catFileIlkUintBody hcode hsize hperm hwv hfileIlkUint hAccounts
+                  · exact catFileIlkUintBody hcode hsize hperm hwv hfileIlkUint
                   · by_cases hfileUint : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩
-                    · exact catFileUintBody hcode hsize hperm hwv hfileUint hAccounts
+                    · exact catFileUintBody hcode hsize hperm hwv hfileUint
                     · by_cases hilks : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩
-                      · exact catIlksBody hcode hsize hperm hwv hilks hAccounts
+                      · exact catIlksBody hcode hsize hperm hwv hilks
                       · by_cases hlitter : selIs I ⟨#[0xa4, 0xfe, 0x8c, 0xaf]⟩
-                        · exact catLitterBody hcode hsize hperm hwv hlitter hAccounts
+                        · exact catLitterBody hcode hsize hperm hwv hlitter
                         · by_cases hlive : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩
-                          · exact catLiveBody hcode hsize hperm hwv hlive hAccounts
+                          · exact catLiveBody hcode hsize hperm hwv hlive
                           · by_cases hrely : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩
-                            · exact catRelyBody hcode hsize hperm hwv hrely hAccounts
+                            · exact catRelyBody hcode hsize hperm hwv hrely
                             · by_cases hvat : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩
-                              · exact catVatBody hcode hsize hperm hwv hvat hAccounts
+                              · exact catVatBody hcode hsize hperm hwv hvat
                               · by_cases hvow : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩
-                                · exact catVowBody hcode hsize hperm hwv hvow hAccounts
+                                · exact catVowBody hcode hsize hperm hwv hvow
                                 · by_cases hwards : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩
-                                  · exact catWardsBody hcode hsize hperm hwv hwards hAccounts
+                                  · exact catWardsBody hcode hsize hperm hwv hwards
                                   · exact catNoDispatch hcode hsize hwv
                                       (catNoSelectorMatches hbite hbox hcage hclaw hdeny
                                         hfileAddress hfileIlkFlip hfileIlkUint hfileUint hilks

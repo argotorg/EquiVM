@@ -410,15 +410,15 @@ theorem uniswapPermitBlockAfterDeadline {evm : EVM.State} {I : ExecutionEnv} {re
     (uniswapPermitDeadlinePrefix evm I hwv hnotExpired) hrest
   simpa [permitTransition, permitDeadlinePrefixBody, permitAfterDeadlineBody] using hblock
 
-theorem uniswapPermitX_expired {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_expired {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hexpired : (permitDeadlineWord I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5473⟩
+      (initState σ σ₀ g A I) ⟨5473⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5473⟩ := hdecoded
   have hlt :
       UInt256.lt (permitDeadlineWord I) (UInt256.ofNat I.header.timestamp) = ⟨1⟩ := by
@@ -441,19 +441,19 @@ theorem uniswapPermitX_expired {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by decide) (by rfl) solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem uniswapPermitX_deadlineOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_deadlineOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnotExpired : ¬ (permitDeadlineWord I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5473⟩
+      (initState σ σ₀ g A I) ⟨5473⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5547⟩
+      (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd5473⟩ := hdecoded
   have hle : (UInt256.ofNat I.header.timestamp).toNat ≤ (permitDeadlineWord I).toNat := by
     omega
@@ -465,21 +465,21 @@ theorem uniswapPermitX_deadlineOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
   have rd5547 := evm_run rd5477 with [iszero, push2 ⟨5547⟩, jumpiT (by decide) (by jump_dest)]
   exact ⟨_, _, rd5547⟩
 
-theorem uniswapPermitX_nonceStored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_nonceStored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hdeadlineOk : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5547⟩
+      (initState σ σ₀ g A I) ⟨5547⟩
       [permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5589⟩
+      (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
         solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
         permitVWord I, permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C := by
+      (permitAfterNonceAccountMap σ I) k C := by
   obtain ⟨_, _, rd5547⟩ := hdeadlineOk
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -515,23 +515,23 @@ theorem uniswapPermitX_nonceStored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     simpa [permitDomainSeparatorWord, permitNonceWord, permitNonceNextWord,
       permitAfterNonceAccountMap, codeOwnerStorageWord] using rd5589⟩
 
-theorem uniswapPermitX_structHashed {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_structHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnonceEvm : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5589⟩
+      (initState σ σ₀ g A I) ⟨5589⟩
       [permitNonceWord σ I, ⟨1⟩, ⟨64⟩, ⟨32⟩, ⟨0⟩, permitOwnerMaskedWord I,
         solcAddrMask, permitDomainSeparatorWord σ I, permitSWord I, permitRWord I,
         permitVWord I, permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitNonceHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C) :
+      (permitAfterNonceAccountMap σ I) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5688⟩
+      (initState σ σ₀ g A I) ⟨5688⟩
       [permitStructHashWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩,
         permitDomainSeparatorWord σ I, permitSWord I, permitRWord I, permitVWord I,
         permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitStructHashMem σ I) (UInt256.ofNat 11) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C := by
+      (permitAfterNonceAccountMap σ I) k C := by
   obtain ⟨_, _, rd5589⟩ := hnonceEvm
   have hspenderMask :
       UInt256.land (permitSpenderMaskedWord I) solcAddrMask = permitSpenderMaskedWord I := by
@@ -550,22 +550,22 @@ theorem uniswapPermitX_structHashed {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     simpa [permitStructHashWord, permitStructHashMem, permitStructHashLenMem,
       permitStructHashDataMem, permitStructHashDataWrites, permitTypehashWord] using rd5688⟩
 
-theorem uniswapPermitX_digestHashed {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapPermitX_digestHashed {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hstructEvm : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5688⟩
+      (initState σ σ₀ g A I) ⟨5688⟩
       [permitStructHashWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩,
         permitDomainSeparatorWord σ I, permitSWord I, permitRWord I, permitVWord I,
         permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitStructHashMem σ I) (UInt256.ofNat 11) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C) :
+      (permitAfterNonceAccountMap σ I) k C) :
     ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5746⟩
+      (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitDigestMem σ I) (UInt256.ofNat 15) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C := by
+      (permitAfterNonceAccountMap σ I) k C := by
   obtain ⟨_, _, rd5688⟩ := hstructEvm
   have hbaseSize : (permitStructHashMem σ I).size = 352 := by
     simpa [permitStructHashMem] using
@@ -590,19 +590,19 @@ theorem uniswapPermitX_digestHashed {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     simpa [permitDigestWord, permitDigestMem] using rd5746⟩
 
 theorem uniswapPermitX_ecrecoverStaticcallMade
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hdigestEvm : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5746⟩
+      (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitDigestMem σ I) (UInt256.ofNat 15) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C)
+      (permitAfterNonceAccountMap σ I) k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
@@ -610,15 +610,15 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5814⟩
+          (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
             permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
             permitOwnerMaskedWord I, ⟨570⟩, sel]
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k C
+          (UInt256.ofNat 20) o σ' k C
       ∧ o.size < UInt256.size := by
   obtain ⟨_, _, rd5746⟩ := hdigestEvm
   have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
@@ -630,7 +630,7 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
     simpa [permitDigestMem] using
       permitRuntimeDigestMem_size (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
         hstructMemSize
-  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ :=
     RD.uniswapPermitEcrecoverStaticcallMade
       (digest := permitDigestWord σ I) (s := permitSWord I) (r := permitRWord I)
       (v := permitVWord I) (deadline := permitDeadlineWord I)
@@ -638,21 +638,21 @@ theorem uniswapPermitX_ecrecoverStaticcallMade
       (owner := permitOwnerMaskedWord I) (ret := ⟨570⟩) (R := [sel])
       rd5746 hbaseSize (permitVWord_mask_left I) hdepth
       (by simp only [List.length_singleton]; omega)
-  refine ⟨cA', σ', z, o, A_in, callGas, k, C, ?_, ?_, hoSize⟩
+  refine ⟨σ', z, o, A_in, callGas, k, C, ?_, ?_, hoSize⟩
   · simpa [initState, permitEcrecoverInputMem] using hΘ
   · simpa [permitEcrecoverInputMem, permitEcrecoverStaticcallMem] using rd5814
 
 theorem uniswapPermitX_ecrecoverStaticcallDepthReverts
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hdigestEvm : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5746⟩
+      (initState σ σ₀ g A I) ⟨5746⟩
       [permitDigestWord σ I, ⟨64⟩, ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨1⟩, ⟨450⟩,
         permitSWord I, permitRWord I, permitVWord I, permitDeadlineWord I,
         permitValueWord I, permitSpenderMaskedWord I, permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitDigestMem σ I) (UInt256.ofNat 15) ByteArray.empty
-      (cA, permitAfterNonceAccountMap σ I) k C)
+      (permitAfterNonceAccountMap σ I) k C)
     (hdepth : I.depth = 1024) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5746⟩ := hdigestEvm
   have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
     simpa [permitStructHashMem] using
@@ -672,11 +672,11 @@ theorem uniswapPermitX_ecrecoverStaticcallDepthReverts
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hstatic : ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
@@ -684,20 +684,20 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5814⟩
+          (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
             permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
             permitOwnerMaskedWord I, ⟨570⟩, sel]
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k C
+          (UInt256.ofNat 20) o σ' k C
       ∧ o.size < UInt256.size) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
@@ -705,21 +705,21 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ (z = false →
-        RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I))
+        RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+          (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
             permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
             permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k' C')
+          (UInt256.ofNat 20) o σ' k' C')
       ∧ o.size < UInt256.size := by
-  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
-  refine ⟨cA', σ', z, o, A_in, callGas, hΘ, ?_, ?_, hoSize⟩
+  obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
+  refine ⟨σ', z, o, A_in, callGas, hΘ, ?_, ?_, hoSize⟩
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
@@ -759,11 +759,11 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
       simpa [permitEcrecoverStaticcallMem] using rd5844⟩
 
 theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hstatic : ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
@@ -771,20 +771,20 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5814⟩
+          (initState σ σ₀ g A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
             permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
             permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
             permitOwnerMaskedWord I, ⟨570⟩, sel]
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k C
+          (UInt256.ofNat 20) o σ' k C
       ∧ o.size < UInt256.size) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
           (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
@@ -792,29 +792,29 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ (z = false →
-        RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I))
+        RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
       ∧ (z = true → o.size < 32 →
         ∃ k' C', RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+          (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
             permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
             permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k' C')
+          (UInt256.ofNat 20) o σ' k' C')
       ∧ (z = true → 32 ≤ o.size →
         ∃ k' C', RD uniswapV2PairBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+          (initState σ σ₀ g A I) ⟨5844⟩
           (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
             permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
             permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
             permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
           (permitEcrecoverStaticcallMem σ I o)
-          (UInt256.ofNat 20) o (cA', σ') k' C')
+          (UInt256.ofNat 20) o σ' k' C')
       ∧ o.size < UInt256.size := by
-  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
+  obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
   have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
     simpa [permitStructHashMem] using
       permitRuntimeStructHashMem_size (permitOwnerMaskedWord I) (permitSpenderMaskedWord I)
@@ -825,12 +825,12 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
       permitRuntimeDigestMem_size (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
         hstructMemSize
   have hguardOk : z = true → ∃ k' C', RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5832⟩
+      (initState σ σ₀ g A I) ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: permitDigestWord σ I :: permitSWord I ::
         permitRWord I :: permitVWord I :: permitDeadlineWord I :: permitValueWord I ::
         permitSpenderMaskedWord I :: permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k' C' := by
+      (UInt256.ofNat 20) o σ' k' C' := by
     intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
       rw [hz]
@@ -839,7 +839,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  refine ⟨cA', σ', z, o, A_in, callGas, hΘ, ?_, ?_, ?_, hoSize⟩
+  refine ⟨σ', z, o, A_in, callGas, hΘ, ?_, ?_, ?_, hoSize⟩
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
@@ -875,38 +875,38 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
       simpa [permitEcrecoverStaticcallMem] using rd5844⟩
 
 theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ' : AccountMap}
     {z : Bool} {o : ByteArray} {k C : ℕ}
     (rd5814 : RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5814⟩
+      (initState σ σ₀ g A I) ⟨5814⟩
       [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
         permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
         permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
         permitOwnerMaskedWord I, ⟨570⟩, sel]
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hoSize : o.size < UInt256.size) :
     (z = false →
-      RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I))
+      RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I))
     ∧ (z = true → o.size < 32 →
       ∃ k' C', RD uniswapV2PairBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+        (initState σ σ₀ g A I) ⟨5844⟩
         (UInt256.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)) ::
           permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
           permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
           permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
         (permitEcrecoverStaticcallMem σ I o)
-        (UInt256.ofNat 20) o (cA', σ') k' C')
+        (UInt256.ofNat 20) o σ' k' C')
     ∧ (z = true → 32 ≤ o.size →
       ∃ k' C', RD uniswapV2PairBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+        (initState σ σ₀ g A I) ⟨5844⟩
         (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) ::
           permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
           permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
           permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
         (permitEcrecoverStaticcallMem σ I o)
-        (UInt256.ofNat 20) o (cA', σ') k' C') := by
+        (UInt256.ofNat 20) o σ' k' C') := by
   have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
     simpa [permitStructHashMem] using
       permitRuntimeStructHashMem_size (permitOwnerMaskedWord I) (permitSpenderMaskedWord I)
@@ -917,12 +917,12 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
       permitRuntimeDigestMem_size (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
         hstructMemSize
   have hguardOk : z = true → ∃ k' C', RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5832⟩
+      (initState σ σ₀ g A I) ⟨5832⟩
       (⟨610⟩ :: ⟨1⟩ :: ⟨0⟩ :: permitDigestWord σ I :: permitSWord I ::
         permitRWord I :: permitVWord I :: permitDeadlineWord I :: permitValueWord I ::
         permitSpenderMaskedWord I :: permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k' C' := by
+      (UInt256.ofNat 20) o σ' k' C' := by
     intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
       rw [hz]
@@ -967,45 +967,38 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
       simpa [permitEcrecoverStaticcallMem] using rd5844⟩
 
 theorem uniswapPermitEcrecoverTypedCall_source
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {z : Bool} {o : ByteArray} {A_in : Substate} {callGas : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hdepth : I.depth.val < 1024)
     (hsz228 : 228 ≤ I.calldata.size)
     (hΘ : ∃ (g'' : UInt256) (A'_evm : Substate),
-      (cA', σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
-        (permitAfterNonceAccountMap σ_evm I) σ₀ A_in
+      (σ', g'', A'_evm, z, o) = Ethereum.EVM.Θ
+        (permitAfterNonceAccountMap σ I) σ₀ A_in
         (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
         (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-        (toExecute (permitAfterNonceAccountMap σ_evm I)
+        (toExecute (permitAfterNonceAccountMap σ I)
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
         callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-        ((permitEcrecoverInputMem σ_evm I).readWithPadding 482 128)
-        (I.depth + 1) I.header false) :
+        ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
+        (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) :
     ∃ evmCallS : EVM.State,
       typedCallViaEVM config
         (permitAfterNonceState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (AccountAddress.ofNat 1) "ecrecover" 0
-        [permitDigestValue σ_solm I, permitVValue I, permitRValue I, permitSValue I]
-        (z, evmCallS, o) false ∧
-      accountMapEquiv σ' evmCallS.accountMap ∧
-      evmCallS.createdAccounts = cA' ∧
+        [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I]
+      (z, evmCallS, o) false ∧
+      Eq σ' evmCallS.accountMap ∧
       evmCallS.σ₀ = σ₀ ∧
-      evmCallS.genesisBlockHeader = gh ∧
-      evmCallS.blocks = bl ∧
       evmCallS.executionEnv = I := by
   obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmNonceS := permitAfterNonceState evmS I
   let evmE : EVM.State :=
     { evmNonceS with
-      accountMap := permitAfterNonceAccountMap σ_evm I
-      createdAccounts := cA
+      accountMap := permitAfterNonceAccountMap σ I
       σ₀ := σ₀
-      genesisBlockHeader := gh
-      blocks := bl
       executionEnv := I }
   have hdepthE : evmE.executionEnv.depth.val < 1024 := by
     simpa [evmE] using hdepth
@@ -1013,148 +1006,129 @@ theorem uniswapPermitEcrecoverTypedCall_source
     intro hEq
     rw [hEq] at hdepthE
     exact absurd hdepthE (by decide)
-  have hdigestEq : permitDigestWord σ_evm I = permitDigestWord σ_solm I :=
-    permitDigestWord_equiv hAccounts
-  have hreadEq :
-      (permitEcrecoverInputMem σ_solm I).readWithPadding 482 128 =
-        (permitEcrecoverInputMem σ_evm I).readWithPadding 482 128 := by
-    rw [permitEcrecoverInputMem_read482_128, permitEcrecoverInputMem_read482_128,
-      hdigestEq]
   have hcdE :
       config.externalABI.encode? "ecrecover"
-          [permitDigestValue σ_solm I, permitVValue I, permitRValue I, permitSValue I] =
-        some ((permitEcrecoverInputMem σ_evm I).readWithPadding 482 128) := by
-    have hcd := uniswapEcrecoverEncode_eq σ_solm I hsz228
-    rwa [hreadEq] at hcd
+          [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I] =
+        some ((permitEcrecoverInputMem σ I).readWithPadding 482 128) := by
+    have hcd := uniswapEcrecoverEncode_eq σ I hsz228
+    exact hcd
   have hΘE :
-      (cA', σ', g'', A'_evm, z, o) =
-        Ethereum.EVM.Θ evmE.executionEnv.blobVersionedHashes
-          evmE.createdAccounts evmE.genesisBlockHeader evmE.blocks evmE.accountMap evmE.σ₀ A_in
+      (σ', g'', A'_evm, z, o) =
+        Ethereum.EVM.Θ evmE.accountMap evmE.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evmE.executionEnv.codeOwner))
           evmE.executionEnv.sender (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
           (toExecute evmE.accountMap (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          ((permitEcrecoverInputMem σ_evm I).readWithPadding 482 128)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
+          ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks false := by
     simpa [evmE] using hΘeq
-  have hStateAccounts : accountMapEquiv evmE.accountMap evmNonceS.accountMap := by
-    rw [show evmNonceS.accountMap = permitAfterNonceAccountMap σ_solm I from by
-      simpa [evmNonceS, evmS] using
-        (permitAfterNonceState_init_accountMap
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-          (A := A) (I := I) (g := Sat256.ofUInt256 g))]
-    simpa [evmE] using permitAfterNonceAccountMap_equiv hAccounts
-  obtain ⟨σS, AS, hcallSolm, hPost⟩ :=
-    typedCallViaEVM_callMade_accountMapEquiv
-      (cfg := config) (evm_evm := evmE) (evm_solm := evmNonceS)
-      (tgt := AccountAddress.ofNat 1) (targetWord := (⟨1⟩ : UInt256))
-      (name := "ecrecover")
-      (args := [permitDigestValue σ_solm I, permitVValue I, permitRValue I, permitSValue I])
-      (cA' := cA') (σ' := σ') (A' := A'_evm) (A_in := A_in)
-      (z := z) (out := o) (g'' := g'') (callGas := callGas)
-      (mem := permitEcrecoverInputMem σ_evm I) (inOff := ⟨482⟩) (inSize := ⟨128⟩)
-      (callPerm := false)
+  have hStateAccounts : Eq evmE.accountMap evmNonceS.accountMap := by
+    change permitAfterNonceAccountMap σ I =
+      (permitAfterNonceState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap
+    rw [permitAfterNonceState_init_accountMap]
+  have hStateEq : evmE = evmNonceS := by
+    have hMap : permitAfterNonceAccountMap σ I = evmNonceS.accountMap := by
+      simpa [evmE] using hStateAccounts
+    have hOriginal : evmNonceS.σ₀ = σ₀ := by
+      simp [evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
+        initState]
+    have hEnv : evmNonceS.executionEnv = I := by
+      simp [evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
+        initState]
+    change ({evmNonceS with
+      accountMap := permitAfterNonceAccountMap σ I
+      σ₀ := σ₀
+      executionEnv := I} : EVM.State) = evmNonceS
+    rw [hMap, ← hOriginal, ← hEnv]
+  have hcallE :
+      typedCallViaEVM config evmE (AccountAddress.ofNat 1) "ecrecover" 0
+        [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I]
+        (z, {evmE with accountMap := σ', substate := A'_evm}, o) false := by
+    exact callCoincides (targetWord := (⟨1⟩ : UInt256))
+      (mem := permitEcrecoverInputMem σ I) (inOff := ⟨482⟩) (inSize := ⟨128⟩)
       hdepthNe rfl hcdE hΘE
-      hStateAccounts
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
-        initState])
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState_init_createdAccounts])
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState,
-        permitStorageStore_genesisBlockHeader, initState])
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState, permitStorageStore_blocks,
-        initState])
-      (by simp [evmE])
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
-        initState])
   let evmCallS : EVM.State :=
-    { evmNonceS with accountMap := σS, substate := AS, createdAccounts := cA' }
-  refine ⟨evmCallS, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simpa [evmCallS] using hcallSolm
-  · simpa [evmCallS] using hPost
+    { evmNonceS with accountMap := σ', substate := A'_evm }
+  refine ⟨evmCallS, ?_, ?_, ?_, ?_⟩
+  · have hcallS := hcallE
+    rw [hStateEq] at hcallS
+    simpa [evmCallS] using hcallS
   · simp [evmCallS]
-  · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
-      initState]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState,
-      permitStorageStore_genesisBlockHeader, initState]
-  · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, permitStorageStore_blocks,
-      initState]
+      permitStorageStore_sigma0, initState]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
       initState]
 
 theorem uniswapPermitEcrecoverStaticcallTyped_source
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hdepth : I.depth.val < 1024)
     (hsz228 : 228 ≤ I.calldata.size)
-    (hstatic : ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    (hstatic : ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl
-          (permitAfterNonceAccountMap σ_evm I) σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ
+          (permitAfterNonceAccountMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
-          (toExecute (permitAfterNonceAccountMap σ_evm I)
+          (toExecute (permitAfterNonceAccountMap σ I)
             (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-          ((permitEcrecoverInputMem σ_evm I).readWithPadding 482 128)
-          (I.depth + 1) I.header false)
+          ((permitEcrecoverInputMem σ I).readWithPadding 482 128)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
           [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
-            permitDigestWord σ_evm I, permitSWord I, permitRWord I, permitVWord I,
+            permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
             permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
             permitOwnerMaskedWord I, ⟨570⟩, sel]
-          (permitEcrecoverStaticcallMem σ_evm I o)
-          (UInt256.ofNat 20) o (cA', σ') k C
+          (permitEcrecoverStaticcallMem σ I o)
+          (UInt256.ofNat 20) o σ' k C
   ∧ o.size < UInt256.size) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (k C : ℕ) (evmCallS : EVM.State),
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5814⟩
         [(if z then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨610⟩, ⟨1⟩, ⟨0⟩,
-          permitDigestWord σ_evm I, permitSWord I, permitRWord I, permitVWord I,
+          permitDigestWord σ I, permitSWord I, permitRWord I, permitVWord I,
           permitDeadlineWord I, permitValueWord I, permitSpenderMaskedWord I,
           permitOwnerMaskedWord I, ⟨570⟩, sel]
-        (permitEcrecoverStaticcallMem σ_evm I o)
-        (UInt256.ofNat 20) o (cA', σ') k C
+        (permitEcrecoverStaticcallMem σ I o)
+        (UInt256.ofNat 20) o σ' k C
       ∧ typedCallViaEVM config
           (permitAfterNonceState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
           (AccountAddress.ofNat 1) "ecrecover" 0
-          [permitDigestValue σ_solm I, permitVValue I, permitRValue I, permitSValue I]
+          [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I]
           (z, evmCallS, o) false
-      ∧ accountMapEquiv σ' evmCallS.accountMap
-      ∧ evmCallS.createdAccounts = cA'
+      ∧ Eq σ' evmCallS.accountMap
       ∧ evmCallS.σ₀ = σ₀
-      ∧ evmCallS.genesisBlockHeader = gh
-      ∧ evmCallS.blocks = bl
       ∧ evmCallS.executionEnv = I
       ∧ o.size < UInt256.size := by
-  obtain ⟨cA', σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
-  obtain ⟨evmCallS, hcall, hPost, hcreated, hσ0, hgenesis, hblocks, henv⟩ :=
-    uniswapPermitEcrecoverTypedCall_source (g := g) hAccounts hdepth hsz228 hΘ
-  exact ⟨cA', σ', z, o, k, C, evmCallS, rd5814, hcall, hPost,
-    hcreated, hσ0, hgenesis, hblocks, henv, hoSize⟩
+  obtain ⟨σ', z, o, A_in, callGas, k, C, hΘ, rd5814, hoSize⟩ := hstatic
+  obtain ⟨evmCallS, hcall, hPost, hσ0, henv⟩ :=
+    uniswapPermitEcrecoverTypedCall_source (g := g) hdepth hsz228 hΘ
+  exact ⟨σ', z, o, k, C, evmCallS, rd5814, hcall, hPost,
+    hσ0, henv, hoSize⟩
 
 theorem uniswapPermitX_ecrecoverSignatureGuardOk
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+      (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmatch : UInt256.land recovered solcAddrMask = permitOwnerMaskedWord I) :
     ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5965⟩
+      (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C := by
+      (UInt256.ofNat 20) o σ' k C := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   have hownerClean :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by
@@ -1178,19 +1152,19 @@ theorem uniswapPermitX_ecrecoverSignatureGuardOk
     simpa [permitEcrecoverStaticcallMem] using rd5965⟩
 
 theorem uniswapPermitX_approveAndReturn
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hok : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5965⟩
+      (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hperm : I.perm = true)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', sstoreAccountMap I.codeOwner σ'
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ'
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
         (permitValueWord I))
       ByteArray.empty := by
@@ -1226,19 +1200,19 @@ theorem uniswapPermitX_approveAndReturn
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_approveAndReturnShort
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hok : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5965⟩
+      (initState σ σ₀ g A I) ⟨5965⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hperm : I.perm = true)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', sstoreAccountMap I.codeOwner σ'
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ'
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
         (permitValueWord I))
       ByteArray.empty := by
@@ -1274,18 +1248,18 @@ theorem uniswapPermitX_approveAndReturnShort
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_ecrecoverSignatureGuardZeroReverts
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+      (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hzero : UInt256.land recovered solcAddrMask = ⟨0⟩)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   exact RD.uniswapPermitEcrecoverSignatureGuardZeroReverts
     (baseMem := permitDigestMem σ I) (digest := permitDigestWord σ I)
@@ -1296,18 +1270,18 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroReverts
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_ecrecoverSignatureGuardZeroRevertsShort
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+      (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hzero : UInt256.land recovered solcAddrMask = ⟨0⟩)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   exact RD.uniswapPermitEcrecoverSignatureGuardZeroRevertsShort
     (baseMem := permitDigestMem σ I) (digest := permitDigestWord σ I)
@@ -1318,19 +1292,19 @@ theorem uniswapPermitX_ecrecoverSignatureGuardZeroRevertsShort
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_ecrecoverSignatureGuardMismatchReverts
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+      (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmismatch : UInt256.land recovered solcAddrMask ≠ permitOwnerMaskedWord I)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   have hownerClean :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by
@@ -1353,19 +1327,19 @@ theorem uniswapPermitX_ecrecoverSignatureGuardMismatchReverts
     (by simp only [List.length_singleton]; omega)
 
 theorem uniswapPermitX_ecrecoverSignatureGuardMismatchRevertsShort
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {o : ByteArray}
+    {σ σ₀ A I} {g : Sat256} {sel recovered : UInt256}
+    {σ' : AccountMap} {o : ByteArray}
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨5844⟩
+      (initState σ σ₀ g A I) ⟨5844⟩
       (recovered :: permitDigestWord σ I :: permitSWord I :: permitRWord I :: permitVWord I ::
         permitDeadlineWord I :: permitValueWord I :: permitSpenderMaskedWord I ::
         permitOwnerMaskedWord I :: ⟨570⟩ :: [sel])
       (permitEcrecoverStaticcallMem σ I o)
-      (UInt256.ofNat 20) o (cA', σ') k C)
+      (UInt256.ofNat 20) o σ' k C)
     (hnz : UInt256.land recovered solcAddrMask ≠ ⟨0⟩)
     (hmismatch : UInt256.land recovered solcAddrMask ≠ permitOwnerMaskedWord I)
     (hshort : o.size < 32) (hoSize : o.size < UInt256.size) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd5844⟩ := hdecoded
   have hownerClean :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by

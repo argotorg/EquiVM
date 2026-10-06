@@ -7,15 +7,15 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferDynamicSignatureStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
-      base aw rdata acc k C)
+      base aw rdata σ k C)
     (hload : memoryWordLoad base ⟨64⟩ = ptr)
     (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6423⟩ (⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem2 base ptr) (safeTransferDynamicWords2 aw ptr) rdata acc k' C' := by
+      (safeTransferDynamicMem2 base ptr) (safeTransferDynamicWords2 aw ptr) rdata σ k' C' := by
   have rd6374 := evm_run rd6370 with [jumpdest, push1 ⟨64⟩, dup1]
   have rd6375 := RD.mloadWord rd6374 (by native_decide) hload (by evm_ov)
   rw [haw64] at rd6375
@@ -34,17 +34,17 @@ theorem RD.uniswapSafeTransferDynamicSignatureStored
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferDynamicArgsStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6423 : RD uniswapV2PairBytecode I g s0 ⟨6423⟩
       (⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem2 base ptr) (safeTransferDynamicWords2 aw ptr) rdata acc k C)
+      (safeTransferDynamicMem2 base ptr) (safeTransferDynamicWords2 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 95 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6449⟩
       (⟨68⟩ :: solcAddrMask :: (ptr + ⟨64⟩) :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem4 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k' C' := by
+      (safeTransferDynamicMem4 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k' C' := by
   obtain ⟨hload, haw64⟩ := safeTransferDynamicMem2_mload64 aw ptr hin hgap hptrLo haw hptr
   have rd6424 := evm_run rd6423 with [dup2]
   have rd6425 := RD.mloadWord rd6424 (by native_decide) hload (by evm_ov)
@@ -62,17 +62,17 @@ theorem RD.uniswapSafeTransferDynamicArgsStored
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferDynamicLengthStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6449 : RD uniswapV2PairBytecode I g s0 ⟨6449⟩
       (⟨68⟩ :: solcAddrMask :: (ptr + ⟨64⟩) :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem4 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k C)
+      (safeTransferDynamicMem4 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 195 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6466⟩
       (solcAddrMask :: (ptr + ⟨64⟩) :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem6 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k' C' := by
+      (safeTransferDynamicMem6 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k' C' := by
   obtain ⟨hload, haw64⟩ := safeTransferDynamicMem4_mload64 aw ptr toWord value hin hgap hptrLo haw hptr
   obtain ⟨hb4, hc4⟩ := safeTransferDynamicWords4_bounds aw ptr haw hptr
   have h64 : (ptr + ⟨64⟩).toNat = ptr.toNat + 64 :=
@@ -95,17 +95,17 @@ theorem RD.uniswapSafeTransferDynamicLengthStored
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferDynamicSelectorPatched
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6466 : RD uniswapV2PairBytecode I g s0 ⟨6466⟩
       (solcAddrMask :: (ptr + ⟨64⟩) :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem6 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k C)
+      (safeTransferDynamicMem6 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 195 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6491⟩
       ((ptr + ⟨96⟩) :: (ptr + ⟨64⟩) :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k' C' := by
+      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k' C' := by
   obtain ⟨hload, haw96⟩ := safeTransferDynamicMem6_mload96 aw ptr toWord value hin hgap haw hptr
   have rd6470 := evm_run rd6466 with [swap2, dup2, add, dup1]
   rw [u256_add_assoc ptr ⟨64⟩ ⟨32⟩, show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide] at rd6470
@@ -122,11 +122,11 @@ theorem RD.uniswapSafeTransferDynamicSelectorPatched
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferDynamicCopyEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6491 : RD uniswapV2PairBytecode I g s0 ⟨6491⟩
       ((ptr + ⟨96⟩) :: (ptr + ⟨64⟩) :: solcAddrMask :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k C)
+      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k C)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 195 < UInt256.size)
     (hov : R.length + 20 ≤ 1024) :
@@ -134,7 +134,7 @@ theorem RD.uniswapSafeTransferDynamicCopyEntry
       ((ptr + ⟨96⟩) :: (ptr + ⟨164⟩) :: ⟨68⟩ :: ⟨68⟩ ::
         (ptr + ⟨96⟩) :: (ptr + ⟨164⟩) :: (ptr + ⟨164⟩) :: (ptr + ⟨64⟩) :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata acc k' C' := by
+      (safeTransferDynamicMem7 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) rdata σ k' C' := by
   obtain ⟨hread64, hreadLen, _⟩ := safeTransferDynamicMem7_reads ptr toWord value hin hgap hptrLo (by omega)
   change (safeTransferDynamicMem7 base ptr toWord value).readWithPadding (⟨64⟩ : UInt256).toNat 32 =
     (ptr + ⟨164⟩).toByteArray at hread64

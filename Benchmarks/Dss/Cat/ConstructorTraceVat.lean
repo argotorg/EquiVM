@@ -15,24 +15,22 @@ namespace Benchmarks.Dss.Cat
 set_option maxRecDepth 2000000
 
 theorem catCtorVatSloadReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨75⟩
+        (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩
+      (initState σ σ₀ g A I) ⟨79⟩
       [solcSlotWord σWards I ⟨3⟩, ⟨3⟩, ⟨1⟩, EVM.word vat.val]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rdBeforeSload := cat_ctor_run rd75 with [push1 ⟨3⟩, dup1]
   obtain ⟨_, _, rd79⟩ := rdBeforeSload.sload (by cat_ctor_decode) (by evm_ov)
   have hload :
-      (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+      (σWards.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨3⟩ := by
     rfl
   rw [hload] at rd79
@@ -42,21 +40,19 @@ theorem catCtorVatSloadReach
   exact ⟨_, _, rd79⟩
 
 theorem catCtorVatMaskLowReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd79 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩
+        (initState σ σ₀ g A I) ⟨79⟩
         [solcSlotWord σWards I ⟨3⟩, ⟨3⟩, ⟨1⟩, EVM.word vat.val]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨90⟩
+      (initState σ σ₀ g A I) ⟨90⟩
       [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨3⟩, ⟨1⟩, solcSlotWord σWards I ⟨3⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rd90 := cat_ctor_run rd79 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap4,
     raw and (by cat_ctor_decode) (by evm_ov)]
@@ -71,22 +67,20 @@ theorem catCtorVatMaskLowReach
       solcAddrMask from by decide] using rd90⟩
 
 theorem catCtorVatMaskHighReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd90 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨90⟩
+        (initState σ σ₀ g A I) ⟨90⟩
         [UInt256.land (EVM.word vat.val) solcAddrMask, ⟨3⟩, ⟨1⟩, solcSlotWord σWards I ⟨3⟩]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨102⟩
+      (initState σ σ₀ g A I) ⟨102⟩
       [UInt256.land (solcSlotWord σWards I ⟨3⟩) (UInt256.lnot solcAddrMask), ⟨3⟩, ⟨1⟩,
         UInt256.land (EVM.word vat.val) solcAddrMask]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rd102 := cat_ctor_run rd90 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, swap4,
     raw and (by cat_ctor_decode) (by evm_ov)]
@@ -101,22 +95,20 @@ theorem catCtorVatMaskHighReach
       solcAddrMask from by decide] using rd102⟩
 
 theorem catCtorVatMaskJoinReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd102 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨102⟩
+        (initState σ σ₀ g A I) ⟨102⟩
         [UInt256.land (solcSlotWord σWards I ⟨3⟩) (UInt256.lnot solcAddrMask), ⟨3⟩, ⟨1⟩,
           UInt256.land (EVM.word vat.val) solcAddrMask]
         (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨108⟩
+      (initState σ σ₀ g A I) ⟨108⟩
       [⟨3⟩, catCtorVatStored σWards I vat, ⟨1⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rd108 := cat_ctor_run rd102 with [
     swap3, swap1, swap3, or, swap1, swap2]
   have hpc108 :
@@ -127,41 +119,36 @@ theorem catCtorVatMaskJoinReach
     simpa [catCtorVatStored, setAddressOffset0Word] using rd108⟩
 
 theorem catCtorVatBeforeStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd75 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨75⟩
+        (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨108⟩
+      (initState σ σ₀ g A I) ⟨108⟩
       [⟨3⟩, catCtorVatStored σWards I vat, ⟨1⟩]
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   obtain ⟨_, _, rd79⟩ := catCtorVatSloadReach vat rd75
   obtain ⟨_, _, rd90⟩ := catCtorVatMaskLowReach vat rd79
   obtain ⟨_, _, rd102⟩ := catCtorVatMaskHighReach vat rd90
   exact catCtorVatMaskJoinReach vat rd102
 
 theorem catCtorVatStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd75 :
       RD (catCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨75⟩
+        (initState σ σ₀ g A I) ⟨75⟩
         [⟨1⟩, EVM.word vat.val] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (catCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨109⟩
+      (initState σ σ₀ g A I) ⟨109⟩
       [⟨1⟩] (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σWards ⟨3⟩ (catCtorVatStored σWards I vat)) k' C' := by
+      (sstoreAccountMap I.codeOwner σWards ⟨3⟩ (catCtorVatStored σWards I vat)) k' C' := by
   obtain ⟨_, _, rd108⟩ := catCtorVatBeforeStoreReach vat rd75
   obtain ⟨k', C', rd109⟩ := rd108.sstore hperm (by cat_ctor_decode) (by evm_ov)
   exact ⟨k', C', by

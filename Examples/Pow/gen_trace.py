@@ -151,7 +151,7 @@ L=[]
 def P(ind,s): L.append("  "*ind + s)
 
 # header (indent 1)
-P(1,"set s0 := initState cA gh bl σ σ₀ g A I with hs0")
+P(1,"set s0 := initState σ σ₀ g A I with hs0")
 P(1,"have hee0 : s0.executionEnv = I := by rw [hs0]; simp [initState]")
 P(1,"have hcode0 : s0.executionEnv.code = truthBytecode := by rw [hee0]; exact hcode")
 P(1,"have hpc0 : s0.machineState.pc = ⟨0⟩ := by rw [hs0]; simp [initState]; rfl")

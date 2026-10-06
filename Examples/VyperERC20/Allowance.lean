@@ -49,7 +49,7 @@ def allowanceSlot (I : ExecutionEnv) : UInt256 :=
     (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (allowanceSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (allowanceSlot I) ⟨0⟩)
 
 def allowanceSelectorWord : UInt256 :=
   ⟨0xdd62ed3e⟩
@@ -426,15 +426,15 @@ theorem calldataSizeGuard68 {n : Nat} (hsz68 : 68 ≤ n) (hsize : n < UInt256.si
     exact decide_eq_false hnot]
   native_decide
 
-theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_allowanceFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨681⟩
-      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDret vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDret vyperERC20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (allowanceWord σ I)) := by
   obtain ⟨k, C, rd681⟩ := hreach
   have hslot := allowanceOuterKeccakSlot I hcanonOwner hcanonSpender
@@ -569,13 +569,13 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (allowanceReturnMem_read128 (allowanceOwnerWord I) (allowanceSpenderWord I) (allowanceWord σ I))
     (by evm_ov)
 
-theorem erc20AllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20AllowanceX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨681⟩
-      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd681⟩ := hreach
   have hsizeGuard := calldataSizeGuardShort (n := I.calldata.size) (m := 68)
     hsize (by norm_num [UInt256.size]) hshort
@@ -595,17 +595,17 @@ theorem erc20AllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     or,
     push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard68]; decide) (by vyper_erc20_allowance_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by norm_num)
 
-theorem erc20AllowanceX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20AllowanceX_noncanon_owner {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnc : ¬ (allowanceOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨681⟩
-      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd681⟩ := hreach
   have hsizeGuard := calldataSizeGuard68 (n := I.calldata.size) hsz68 hsize
   have hcanonGuard : UInt256.shiftRight (allowanceOwnerWord I) ⟨160⟩ ≠ ⟨0⟩ := by
@@ -634,18 +634,18 @@ theorem erc20AllowanceX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by
       simp [allowanceOwnerWord, calldataWord]
       exact hcanonGuard) (by vyper_erc20_allowance_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem erc20AllowanceX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20AllowanceX_noncanon_spender {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hnc : ¬ (allowanceSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨681⟩
-      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
+      [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd681⟩ := hreach
   have hsizeGuard := calldataSizeGuard68 (n := I.calldata.size) hsz68 hsize
   have hcanonOwnerGuard : UInt256.shiftRight (allowanceOwnerWord I) ⟨160⟩ = ⟨0⟩ :=
@@ -689,7 +689,7 @@ theorem erc20AllowanceX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by
       simp [allowanceSpenderWord, calldataWord]
       exact hcanonSpenderGuard) (by vyper_erc20_allowance_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem erc20AllowanceSelector_size {I : ExecutionEnv}
@@ -724,15 +724,15 @@ theorem allowanceDispatchMem_mload0 :
       = (⟨681⟩ : UInt256) := by
   native_decide
 
-theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_allowanceReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨681⟩
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨681⟩
       [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   have hsz := erc20AllowanceSelector_size hsel
   have hword := allowanceSelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0,
@@ -786,31 +786,28 @@ theorem erc20Dispatch_allowance {cd : ByteArray}
     · rw [selectorOf, vyperERC20TransferSelectorBytes, hcd]; decide
 
 theorem erc20AllowanceBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨681⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨681⟩
       [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   have hd := erc20Dispatch_allowance (cd := I.calldata) hsel
-  have hword : allowanceWord σ_evm I = allowanceWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (allowanceSlot I) ⟨0⟩
   have hbody :
       ExecTransitionBody vyperERC20Config erc20Contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (allowanceStore I)
         ERC20.allowanceTransition.body
         (.returned { contract := erc20Contract, locals := allowanceStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (allowanceWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (allowanceWord σ I).toNat))])) := by
     simpa [allowanceWord, allowanceSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using erc20AllowanceBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   have hsz4 := erc20AllowanceSelector_size hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
@@ -825,8 +822,8 @@ theorem erc20AllowanceBodyCore
           simpa [vyperERC20Config] using hdec0
         exact (erc20X_allowanceFromEntry (g := Sat256.ofUInt256 g) hwv hsz68 hsize hcanonOwner
             hcanonSpender hreach)
-          |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
-            (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (allowanceWord σ_evm I)))
+          |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
+            (returnEquiv_of_encode (Reasoning.Theory.uint256ReturnEncoding (allowanceWord σ I)))
       · have hdec0 := erc20Decode_allowance_none_noncanon_spender
             (I := I) hsz68 hcanonOwner hcanonSpender
         have hdec :
@@ -857,16 +854,14 @@ theorem erc20AllowanceBodyCore
       |>.reEquivDecodingFailed hcode hd hdec
 
 theorem erc20AllowanceRuntimeSuccess
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
-    (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hwv hsize hsel
-    (erc20X_allowanceReach (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    (erc20X_allowanceReach (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
-    hAccounts
 
 end VyperERC20

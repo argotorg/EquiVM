@@ -8,16 +8,16 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1000000 in
 /- Runtime-only proportional-liquidity branch from pc3762 through the fee-off final return. -/
 theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOffReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
@@ -68,8 +68,8 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOffReturns
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3841⟩ :=
     uniswapMintRuntimeProportionalLiquidityEntry rd3762 hclean0 hclean1 hmulFit0
@@ -82,16 +82,16 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOffReturns
 set_option maxHeartbeats 1000000 in
 /- Runtime-only proportional-liquidity branch from pc3762 through the fee-on final return. -/
 theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hmulFit0 : amount0.toNat * totalSupply.toNat < UInt256.size)
@@ -159,8 +159,8 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σPacked ⟨11⟩
           (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask)
             (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Shift)
@@ -177,16 +177,16 @@ theorem uniswapMintRuntimeProportionalLiquidityUpdateElapsedZeroFeeOnReturns
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -211,7 +211,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
   obtain ⟨_, _, rd3841⟩ :=
@@ -245,16 +245,16 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateFirstBoundReverts
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -280,7 +280,7 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
   obtain ⟨_, _, rd3841⟩ :=
@@ -315,16 +315,16 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateSecondBoundReverts
 set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` proportional-liquidity path through the fee-off final return. -/
 theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOffReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -377,8 +377,8 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOffReturns
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner σPacked ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3762⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701 htotal htotalNonzero
@@ -391,16 +391,16 @@ set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` proportional-liquidity path through the cumulative `_update`,
 fee-off handling, final `Mint`, unlock, and ABI return. -/
 theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -450,8 +450,8 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOffReturns
             (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, uniswapUpdateCumulativeReturnMapWith
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (uniswapUpdateCumulativeReturnMapWith
         σAfterMint I balance0 balance1 reserve0 reserve1)
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3762⟩ :=
@@ -503,16 +503,16 @@ set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` proportional-liquidity path through the cumulative `_update`
 path, fee-on `kLast` update, final `Mint`, unlock, and ABI return. -/
 theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -586,8 +586,8 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
             (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (uniswapUpdateCumulativePackedMapWith
             σAfterMint I balance0 balance1 reserve0 reserve1) ⟨11⟩
@@ -654,16 +654,16 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalUpdateCumulativeFeeOnReturns
 set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` proportional-liquidity path through the fee-on final return. -/
 theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOnReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
@@ -733,8 +733,8 @@ theorem uniswapMintRuntimeAfterMintFeeProportionalFeeOnReturns
       (uniswapUpdateTimestampWord I) balance1 balance0
     let σPacked := sstoreAccountMap I.codeOwner σAfterMint ⟨8⟩ packed
     RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cAFee, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σPacked ⟨11⟩
           (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Mask)
             (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σPacked I) reserve112Shift)
@@ -751,22 +751,22 @@ set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` initial-liquidity path: zero total supply and a small sqrt
 result must revert when subtracting `MINIMUM_LIQUIDITY`. -/
 theorem uniswapMintRuntimeAfterMintFeeInitialSmallRootReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hsmall : (UInt256.mul amount0 amount1).toNat ≤ 3)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3713⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyZero rd3701 htotalZero
   exact uniswapMintRuntimeInitialLiquiditySmallRootReverts rd3713 hfit hsmall hmem hmem64
@@ -775,25 +775,25 @@ set_option maxHeartbeats 1000000 in
 /- Runtime-only post-`_mintFee` initial-liquidity path: zero total supply and a large sqrt
 argument enter the sqrt loop. -/
 theorem uniswapMintRuntimeAfterMintFeeInitialLargeRootLoopEntry
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : amount0.toNat * amount1.toNat < UInt256.size)
     (hlarge : 3 < (UInt256.mul amount0 amount1).toNat) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8067⟩
       [UInt256.div (UInt256.mul amount0 amount1) ⟨2⟩ + ⟨1⟩,
         UInt256.mul amount0 amount1, UInt256.mul amount0 amount1, ⟨2531⟩, ⟨1000⟩,
         ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd3713⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyZero rd3701 htotalZero
   exact uniswapMintRuntimeInitialLiquidityLargeRootLoopEntry rd3713 hfit hlarge

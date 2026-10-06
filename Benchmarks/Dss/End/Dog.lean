@@ -31,18 +31,18 @@ theorem endDogArmsWellFormed :
     (dsimp [armWellFormed]
      repeat' first | apply And.intro | native_decide)
 
-theorem endReachDogBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachDogBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endDogConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endDogEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0xc3b3ad7f⟩ :=
     endSelWord_eq_of_beq I hsz 0xc3 0xb3 0xad 0x7f ⟨0xc3b3ad7f⟩
       (by native_decide) (by simpa [selIs, endDogConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup174FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup174FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -62,7 +62,7 @@ theorem endReachDogBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endDogBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dogTransition)
@@ -70,20 +70,19 @@ theorem endDogBodyCore
       decodeCalldataWithMode config.abiDecodeMode (dogTransition.params.map Param.name)
         (transitionSignature dogTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1017⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1017⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ dogTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ dogTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (dogWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (dogWord σ I).toNat))])) := by
     simpa [dogTransition, dogWord, endAddressReturnWord, endSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := dogRef) (er := ({ base := "dog", steps := [] } : EvaledStorageRef))
         (slot := ⟨3⟩)
         (by simp only [initState]; exact hwv) (by simp [dogRef])
@@ -91,7 +90,7 @@ theorem endDogBodyCore
         (by decide) (by rfl)
   exact endAddressGetterBodyCore (entry := ⟨1017⟩) (returnPc := ⟨572⟩)
     (routine := ⟨7675⟩) (slot := ⟨3⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -105,18 +104,16 @@ theorem endDogBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [dogWord] using hbody)
 
-theorem endDogBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endDogBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf dogTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf dogTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endDogConcreteSelector := by
     simpa [endDogSelectorBytes, endDogConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endDogConcreteSelector (by rfl) hsel'
   exact endDogBodyCore hcode hwv (endDispatchDog hsel) (endDecode_dog hsz)
     (endReachDogBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel')
-    hAccounts
 
 end Benchmarks.Dss.End

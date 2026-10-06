@@ -192,15 +192,15 @@ set_option maxHeartbeats 2000000 in
     provided the creation message carries no value (`weiValue = 0`; the non-payable guard reverts
     otherwise). -/
 theorem ballotReachDecoder
-    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256} (argBytes : ByteArray)
     (hcode : I.code = ballotInitcode ++ argBytes) (hwv : I.weiValue = ⟨0⟩) :
-    ∃ k C, RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨210⟩
+    ∃ k C, RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
       [⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty (cA, σ) k C := by
+      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C := by
   simp only [ballotDecoderMem, ballotDecoderAW, ballotArgLen]
-  have rd0 : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
-      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 :=
+  have rd0 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   set code := ballotInitcode ++ argBytes with hcodeDef
   have h128 : ((⟨128⟩ : UInt256)).toNat = 128 := by decide
@@ -600,19 +600,19 @@ set_option maxHeartbeats 8000000 in
     offset (`0x20`) and length (`n`) words out of the copied calldata.  All four guard `JUMPI`s are
     taken (no revert), leaving the array head, length, and book-keeping words on the stack with memory
     and active-words unchanged.  Requires the deployment shape and `n < 2^64`, `size < 2^255-128`. -/
-theorem ballotDecoderValidations {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+theorem ballotDecoderValidations
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (h255 : argBytes.size < 2 ^ 255 - 128) (hn : n < 2 ^ 64)
-    (rd210 : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨210⟩
+    (rd210 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨210⟩
       [⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨288⟩
+      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C) :
+    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
       [UInt256.ofNat n, ⟨128⟩ + UInt256.ofNat 32, ⟨0⟩, ⟨128⟩,
         ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty (cA, σ) k' C' := by
+      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k' C' := by
   have hpos : 0 < argBytes.size := by omega
   have h255' : argBytes.size < 2 ^ 255 := by
     have : (2:ℕ) ^ 255 - 128 < 2 ^ 255 := by norm_num
@@ -797,23 +797,23 @@ set_option maxHeartbeats 12000000 in
     to the copy-loop header.  All four arithmetic guards (the two overflow `OR` checks and the data-fits
     `GT`) are taken; memory becomes `ballotAllocMem` and active-words grow to `7 + n`.  The free pointer
     is the abstract `fp = 0x80 + argLen`. -/
-theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+theorem ballotDecoderAlloc
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
     (helems : elemBytes.length = 32 * n)
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (fp : UInt256) (hfp : fp = ⟨128⟩ + ballotArgLen argBytes)
-    (rd288 : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨288⟩
+    (rd288 : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨288⟩
       [UInt256.ofNat n, ⟨128⟩ + UInt256.ofNat 32, ⟨0⟩, ⟨128⟩,
         ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
+      (ballotDecoderMem argBytes) (ballotDecoderAW argBytes) ByteArray.empty σ k C) :
+    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
       [fp + ⟨32⟩, fp, UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩,
         ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
         ⟨128⟩ + UInt256.ofNat 32 + ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotAllocMem argBytes n fp) (UInt256.ofNat (7 + n)) ByteArray.empty (cA, σ) k' C' := by
+      (ballotAllocMem argBytes n fp) (UInt256.ofNat (7 + n)) ByteArray.empty σ k' C' := by
   have hpos : 0 < argBytes.size := by omega
   -- part 1: freeptr MLOAD (abstract fp) + rounded-size computation through the AND
   have rd1 := ctor_run rd288 with [
@@ -978,29 +978,29 @@ theorem ballotAllocMem_size (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteA
 
 set_option maxRecDepth 10000
 set_option maxHeartbeats 8000000 in
-theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+theorem ballotDecoderCopyLoop
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
     (helems : elemBytes.length = 32 * n)
     (hszH : (ballotInitcode ++ argBytes).size < UInt256.size) (h64 : 64 ≤ argBytes.size)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (fp : UInt256) (hfp : fp = ⟨128⟩ + ballotArgLen argBytes)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
+    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
       [fp + ⟨32⟩, fp, UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩,
         ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
         ⟨128⟩ + UInt256.ofNat 32 + ⟨32⟩, ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-      (ballotAllocMem argBytes n fp) (UInt256.ofNat (7 + n)) ByteArray.empty (cA, σ) k C) :
+      (ballotAllocMem argBytes n fp) (UInt256.ofNat (7 + n)) ByteArray.empty σ k C) :
     ∃ (mem' : ByteArray) (dst' src' gg : UInt256) (k' C' : ℕ),
       mem'.size = 224 + 32 * n + 32 * n ∧
       (∀ j, j < n → mem'.readWithPadding (224 + 32 * n + 32 * j) 32
         = UInt256.toByteArray (uInt256OfByteArray
             ((ballotAllocMem argBytes n fp).readWithPadding (192 + 32 * j) 32))) ∧
-      RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨398⟩
+      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
         [dst', fp, gg,
           ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩),
           src', ⟨0⟩, ⟨128⟩, ⟨128⟩ + ballotArgLen argBytes, ⟨46⟩]
-        mem' (UInt256.ofNat (7 + n + n)) ByteArray.empty (cA, σ) k' C' := by
+        mem' (UInt256.ofNat (7 + n + n)) ByteArray.empty σ k' C' := by
   set srcEnd : UInt256 :=
     ⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩) with hsrcEnd
   set de : UInt256 := ⟨128⟩ + ballotArgLen argBytes with hde
@@ -1029,10 +1029,10 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
     rw [hsrcEnd, uadd_toNat, e1, show ((⟨32⟩ : UInt256)).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
   have hexit : ∀ a, Inv 0 a → ∀ kk CC,
-      RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
-        (stk a) (stateMem a) (stateAw a) ByteArray.empty (cA, σ) kk CC →
-      ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨398⟩
-        (exitStk a) (stateMem a) (stateAw a) ByteArray.empty (cA, σ) k' C' := by
+      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+        (stk a) (stateMem a) (stateAw a) ByteArray.empty σ kk CC →
+      ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
+        (exitStk a) (stateMem a) (stateAw a) ByteArray.empty σ k' C' := by
     intro a hInv kk CC hh
     obtain ⟨hvar, hsrc, _, _, _, _⟩ := hInv
     dsimp only [stk, stateMem, stateAw] at hh
@@ -1043,11 +1043,11 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
       jumpiT (by rw [hltz]; decide) (by ctor_jd) ]
     exact ⟨_, _, res⟩
   have hbody : ∀ v a, Inv (v + 1) a → ∀ kk CC,
-      RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
-        (stk a) (stateMem a) (stateAw a) ByteArray.empty (cA, σ) kk CC →
+      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+        (stk a) (stateMem a) (stateAw a) ByteArray.empty σ kk CC →
       ∃ a' k' C', Inv v a' ∧
-        RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
-          (stk a') (stateMem a') (stateAw a') ByteArray.empty (cA, σ) k' C' := by
+        RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+          (stk a') (stateMem a') (stateAw a') ByteArray.empty σ k' C' := by
     intro v a hInv kk CC hh
     obtain ⟨hvar, hsrc, hdst, hsize, hsrcRead, hdstRead⟩ := hInv
     dsimp only [stk, stateMem, stateAw] at hh
@@ -1126,13 +1126,13 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
           have hs : (srcWords a.i).toByteArray.data.size = 32 := toByteArray_size (srcWords a.i)
           rw [Array.extract_eq_self_of_le (by rw [hs])]
     obtain ⟨k', C', res'⟩ :
-        ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨370⟩
-          (stk a') (stateMem a') (stateAw a') ByteArray.empty (cA, σ) k' C' :=
+        ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨370⟩
+          (stk a') (stateMem a') (stateAw a') ByteArray.empty σ k' C' :=
       ⟨_, _, by dsimp only [stk, stateMem, stateAw, a']; exact res⟩
     exact ⟨a', k', C', hInvA', res'⟩
   obtain ⟨a', k', C', hInvF, hrdF⟩ :=
     RD.whileLoopCarry (code := ballotInitcode ++ argBytes) (ee := I) (g := g)
-      (s0 := initState cA gh bl σ σ₀ g A I) (rdata := ByteArray.empty) (acc := (cA, σ))
+      (s0 := initState σ σ₀ g A I) (rdata := ByteArray.empty) (acc := σ)
       (α := CopyState) ⟨370⟩ ⟨398⟩ Inv stk stateMem stateAw exitStk hexit hbody
       n ⟨fp + ⟨32⟩, ⟨128⟩ + UInt256.ofNat 32 + ⟨32⟩, UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩,
         ballotAllocMem argBytes n fp, 0⟩
@@ -1161,15 +1161,15 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
   · dsimp only [exitStk, stateMem, stateAw] at hrdF; rw [hin] at hrdF; exact hrdF
 
 /-- Cleanup (pc `0x18e → 0x2e`): pop/swap the loop scratch off the stack and JUMP to the body entry. -/
-theorem ballotDecoderCleanup {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+theorem ballotDecoderCleanup
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (argBytes : ByteArray) (fp dst' src' gg srcEnd de : UInt256)
     (memv : ByteArray) (awv : UInt256)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨398⟩
+    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨398⟩
       [dst', fp, gg, srcEnd, src', ⟨0⟩, ⟨128⟩, de, ⟨46⟩]
-      memv awv ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨46⟩
-      [fp] memv awv ByteArray.empty (cA, σ) k' C' := by
+      memv awv ByteArray.empty σ k C) :
+    ∃ k' C', RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+      [fp] memv awv ByteArray.empty σ k' C' := by
   have res := ctor_run h with [
     jumpdest, pop, swap7, swap6, pop, pop, pop, pop, pop, pop, jump (by ctor_jd) ]
   exact ⟨_, _, res⟩
@@ -1179,7 +1179,7 @@ theorem ballotDecoderCleanup {cA : Batteries.RBSet AccountAddress compare} {gh :
     with the decoded memory array pointer on the stack.  The remaining proof obligations after this
     point are the constructor's storage writes and final runtime `RETURN`. -/
 theorem ballotReachConstructorBody
-    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (n : ℕ) (elemBytes : List UInt8) (argBytes : ByteArray)
     (hstruct : argBytes = (ABI.natBytes 32 ++ (ABI.natBytes n ++ elemBytes)).toByteArray)
@@ -1191,24 +1191,24 @@ theorem ballotReachConstructorBody
     ∃ (fp : UInt256) (mem : ByteArray) (aw : UInt256) (k C : ℕ),
       fp = ⟨128⟩ + ballotArgLen argBytes ∧
       mem.size = 224 + 32 * n + 32 * n ∧
-      RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨46⟩
-        [fp] mem aw ByteArray.empty (cA, σ) k C := by
+      RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+        [fp] mem aw ByteArray.empty σ k C := by
   obtain ⟨k210, C210, rd210⟩ := ballotReachDecoder
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) argBytes hcode hwv
   obtain ⟨k288, C288, rd288⟩ := ballotDecoderValidations
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) n elemBytes argBytes hstruct hszH h64 h255 hn rd210
   let fp : UInt256 := ⟨128⟩ + ballotArgLen argBytes
   obtain ⟨k370, C370, rd370⟩ := ballotDecoderAlloc
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) n elemBytes argBytes hstruct helems hszH h64 hn64 fp rfl rd288
   obtain ⟨mem', dst', src', gg, k398, C398, hmemSize, _hcopy, rd398⟩ :=
     ballotDecoderCopyLoop
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := g) n elemBytes argBytes hstruct helems hszH h64 hn64 fp rfl rd370
   obtain ⟨k46, C46, rd46⟩ := ballotDecoderCleanup
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) argBytes fp dst' src' gg
     (⟨32⟩ + (⟨128⟩ + UInt256.ofNat 32 + UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩))
     (⟨128⟩ + ballotArgLen argBytes) mem' (UInt256.ofNat (7 + n + n)) rd398
@@ -1224,7 +1224,7 @@ one.  The proposal loop starts at pc `0x50` with stack `[i = 0, proposalNamesPtr
 abbrev ballotSourceWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.source.val
 
 def ballotStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)
 
 def ballotCtorChairWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
@@ -1248,18 +1248,18 @@ def ballotCtorPreludeMap (σ : AccountMap) (I : ExecutionEnv)
 set_option maxHeartbeats 2000000 in
 /-- The constructor body prefix writes `chairperson` and `voters[chairperson].weight`, then reaches
     the proposal loop header at pc `0x50`. -/
-theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+theorem ballotConstructorPrelude
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ} (n : ℕ) (argBytes : ByteArray) (fp : UInt256) (mem : ByteArray)
     (_hmemSize : mem.size = 224 + 32 * n + 32 * n)
     (hn64 : 64 * n + 224 < 2 ^ 64)
     (hperm : I.perm = true)
-    (h : RD (ballotInitcode ++ argBytes) I g (initState cA gh bl σ σ₀ g A I) ⟨46⟩
-      [fp] mem (UInt256.ofNat (7 + n + n)) ByteArray.empty (cA, σ) k C) :
+    (h : RD (ballotInitcode ++ argBytes) I g (initState σ σ₀ g A I) ⟨46⟩
+      [fp] mem (UInt256.ofNat (7 + n + n)) ByteArray.empty σ k C) :
     ∃ k' C', RD (ballotInitcode ++ argBytes) I g
-      (initState cA gh bl σ σ₀ g A I) ⟨80⟩ [⟨0⟩, fp]
+      (initState σ σ₀ g A I) ⟨80⟩ [⟨0⟩, fp]
       (ballotCtorScratchMem I mem) (UInt256.ofNat (7 + n + n)) ByteArray.empty
-      (cA, ballotCtorPreludeMap σ I mem) k' C' := by
+      (ballotCtorPreludeMap σ I mem) k' C' := by
   have hnSmall : n < 2 ^ 64 := by omega
   have hawLt : 7 + n + n < UInt256.size := by
     unfold UInt256.size
@@ -1329,7 +1329,7 @@ theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {
         (by evm_ov) ]
   obtain ⟨k80, C80, rd80⟩ := rd79.sstore hperm (by ctor_decode) (by evm_ov)
   have hchairRaw := hchair
-  simp [ballotStorageWord, ballotSourceWord] at hchairRaw
+  simp [-Std.ExtTreeMap.get?_eq_getElem?, ballotStorageWord, ballotSourceWord] at hchairRaw
   rw [hchairRaw] at rd80
   simpa [ballotCtorPreludeMap, ballotCtorVoterSlot, ballotCtorScratchMem,
     ballotSourceWord] using ⟨k80, C80, rd80⟩

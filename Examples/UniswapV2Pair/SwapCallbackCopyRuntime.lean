@@ -19,18 +19,18 @@ abbrev swapCallbackPaddedWords (aw ptr dataLen : UInt256) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapCallbackPayloadCopied
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {ptr aw dataLen dataPtr amount1Out amount0Out senderWord selector target : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd2001 : RD uniswapV2PairBytecode I g s0 ⟨2001⟩
       ((ptr + ⟨132⟩) :: dataLen :: dataPtr :: (ptr + ⟨132⟩) :: (ptr + ⟨100⟩) :: (ptr + ⟨4⟩) ::
         dataLen :: dataPtr :: amount1Out :: amount0Out :: senderWord :: selector :: target :: R)
-      mem aw rdata acc k C)
+      mem aw rdata σ k C)
     (hov : R.length + 18 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2041⟩
       (((ptr + ⟨164⟩) + swapCallbackPaddedLen dataLen) :: selector :: target :: R)
       (swapCallbackPaddedMem I.calldata mem ptr dataPtr dataLen)
-      (swapCallbackPaddedWords aw ptr dataLen) rdata acc k' C' := by
+      (swapCallbackPaddedWords aw ptr dataLen) rdata σ k' C' := by
   have rd2009 := evm_run rd2001 with [push1 ⟨32⟩, add, swap3, pop, dup1, dup3, dup5]
   rw [u256_add_comm ⟨32⟩ (ptr + ⟨132⟩), u256_add_assoc ptr ⟨132⟩ ⟨32⟩,
     show (⟨132⟩ : UInt256) + ⟨32⟩ = ⟨164⟩ from by decide] at rd2009

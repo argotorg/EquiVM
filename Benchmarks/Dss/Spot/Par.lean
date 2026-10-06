@@ -15,13 +15,13 @@ theorem spotDecode_par {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem spotReachParBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem spotReachParBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (spotSelBytes 7)) :
-    ∃ k C, RD spotBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD spotBytecode I g (initState σ σ₀ g A I)
         ⟨328⟩ [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : spotSelWord I = ⟨0x495d32cb⟩ :=
     spotSelWord_eq_of_beq I hsz 0x49 0x5d 0x32 0xcb ⟨0x495d32cb⟩
       (by native_decide) (by simpa [spotSelBytes] using hsel)
@@ -41,26 +41,25 @@ theorem spotReachParBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact spotReachLowBody 4 (by omega) ⟨328⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem spotParBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem spotParBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (spotSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (spotSelBytes 7)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (spotSelBytes 7) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ parTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ parTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (spotParWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (spotParWord σ I).toNat))])) := by
     simpa [parTransition, spotParWord, spotSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := parRef) (er := ({ base := "par", steps := [] } : EvaledStorageRef))
         (slot := ⟨3⟩)
         (by simp only [initState]; exact hwv) (by simp [parRef])
@@ -69,7 +68,7 @@ theorem spotParBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact spotUint256GetterBodyCore (entry := ⟨328⟩) (returnPc := ⟨336⟩)
     (routine := ⟨1462⟩) (slot := ⟨3⟩)
     hcode (spotDispatchPar hsel) (spotDecode_par hsz)
-    (spotReachParBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (spotReachParBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

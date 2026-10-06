@@ -23,24 +23,24 @@ abbrev catCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
 abbrev catCallerWardsEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "wards", steps := [.mindex (.address I.source)] }
 
-theorem catCallerWardsEvaledRef_ok {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem catCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Store}
     (_hbase : locals.get? "wards" = none) :
     evalStorageRef config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (wardsRef sender) =
+      (initState σ σ₀ g A I) (wardsRef sender) =
         .ok (catCallerWardsEvaledRef I) := by
   simp [catCallerWardsEvaledRef, wardsRef, sender, evalStorageRef, evalStorageRefSteps,
     evalStorageRefStep, evalExpr?, envValue, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, pure, bind, initState]
 
-theorem catAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem catAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : catSlotWord (catCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-  have her := catCallerWardsEvaledRef_ok (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have her := catCallerWardsEvaledRef_ok (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  have hload : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (catCallerWardsSlot I) = ⟨1⟩ := by
     simpa [catSlotWord] using hauth
   rw [evalExpr?]
@@ -61,15 +61,15 @@ theorem catAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Sto
   simp [evalExpr?, evalBinaryOp?]
   all_goals native_decide
 
-theorem catAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem catAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : catSlotWord (catCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-  have her := catCallerWardsEvaledRef_ok (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have her := catCallerWardsEvaledRef_ok (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  let w := Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (catCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
@@ -163,16 +163,16 @@ abbrev catNotAuthorizedRawWord : UInt256 :=
 
 theorem RD.catAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catAuthCheckWf code pc okPc)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15,
       hd16, hd17, hd19, hd20, hd23⟩
@@ -200,8 +200,8 @@ theorem RD.catAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have rd20 := rd20₀
   rw [hauthRaw, uInt256_eq_self] at rd20
@@ -210,9 +210,9 @@ theorem RD.catAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.catAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (catAuthTailPc pc) ⟨18⟩
       catNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
@@ -246,13 +246,13 @@ theorem RD.catAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠ ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠ ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hauthRaw h1.symm)
   have rd20 := rd20₀
   rw [heq0] at rd20
@@ -311,8 +311,8 @@ LIBRARY CANDIDATE: generic auth/store routine, lift from Vow. -/
 
 theorem RD.catDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catDenyStoreZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
@@ -320,7 +320,7 @@ theorem RD.catDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25⟩
@@ -409,8 +409,8 @@ theorem RD.catDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.catRelyStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catRelyStoreOneWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
@@ -418,7 +418,7 @@ theorem RD.catRelyStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd26, hd27, hd28⟩
@@ -481,14 +481,14 @@ LIBRARY CANDIDATE: generic scalar store routine. -/
 
 theorem RD.catStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catStoreLiveZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
   have rdStore := evm_run h with [
     raw jumpdest hd0 (by evm_ov),

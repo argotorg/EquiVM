@@ -224,10 +224,10 @@ theorem simpleAuctionPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 
 /-! ## Payable dispatcher prefix and routing -/
 
-theorem simpleAuctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionPayablePrologueRD {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode) :
-    RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5⟩ []
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 3 18 := by
+    RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
@@ -235,15 +235,15 @@ theorem simpleAuctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by decide) ]
 
-theorem simpleAuctionReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) simpleAuctionSplitPc
-        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) simpleAuctionSplitPc
+        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h2⟩ := solcCalldataOk
     (bodyPc := (⟨5⟩ : UInt256)) (selLoadTgt := (⟨110⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (simpleAuctionPayablePrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (simpleAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide)
@@ -251,7 +251,7 @@ theorem simpleAuctionReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
   refine ⟨k3, C3, ?_⟩
   simpa [simpleAuctionSelWord] using h3
 
-theorem simpleAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -269,9 +269,9 @@ theorem simpleAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J simpleAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt simpleAuctionBytecode
         (nthArmPc simpleAuctionBytecode simpleAuctionHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hfirst := by
     simpa [simpleAuctionHighFirstArmPc, simpleAuctionSplitPc, selArmNextPc, armTgtWidth,
@@ -300,7 +300,7 @@ theorem simpleAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
       exact hbody)
     (by simp)
 
-theorem simpleAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionReachLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -318,9 +318,9 @@ theorem simpleAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J simpleAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt simpleAuctionBytecode
         (nthArmPc simpleAuctionBytecode simpleAuctionLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, hsplit⟩ := simpleAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hlowJd := by
     simpa [simpleAuctionLowJumpdestPc, simpleAuctionSplitPc, armTgt, pushAt,
@@ -394,22 +394,22 @@ theorem simpleAuctionDispatch_none_nomatch {cd : ByteArray}
   · rw [selectorOf, simpleAuctionHighestBidSelectorBytes]
     simpa [simpleAuctionSelBytes] using hnm 6 (by omega)
 
-theorem simpleAuctionX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode) (hsz : I.calldata.size < 4) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   exact solcCalldataShortRevert
     (bodyPc := (⟨5⟩ : UInt256)) (rtgt := (⟨110⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (simpleAuctionPayablePrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (simpleAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem simpleAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = simpleAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   have heqLow0 : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat simpleAuctionBytecode
@@ -459,7 +459,7 @@ theorem simpleAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa [simpleAuctionHighSelBytes, simpleAuctionSelBytes] using h
       rw [simpleAuctionHighArmEq I hsz 3 (by omega), hf]
       rfl
-  obtain ⟨kS, CS, hsplit⟩ := simpleAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨kS, CS, hsplit⟩ := simpleAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   by_cases hpivot : UInt256.gt (armSelNat simpleAuctionBytecode simpleAuctionSplitPc)
       (simpleAuctionSelWord I) = ⟨0⟩
@@ -473,8 +473,8 @@ theorem simpleAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           (heqHigh0 2 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (simpleAuctionHighArmsWellFormed 3 (by omega))
           (heqHigh0 3 (by omega)) (by simp)
-    have h73' : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨73⟩
-        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    have h73' : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨73⟩
+        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [simpleAuctionHighFirstArmPc, simpleAuctionSplitPc, nthArmPc, selArmNextPc,
         armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h73
@@ -490,8 +490,8 @@ theorem simpleAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           (heqLow0 1 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (simpleAuctionLowArmsWellFormed 2 (by omega))
           (heqLow0 2 (by omega)) (by simp)
-    have h110' : ∃ k C, RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨110⟩
-        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    have h110' : ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨110⟩
+        [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22, ?_⟩
       simpa [simpleAuctionLowFirstArmPc, simpleAuctionLowJumpdestPc, simpleAuctionSplitPc,
         nthArmPc, selArmNextPc, armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc,
@@ -508,7 +508,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 
 theorem RD.simpleAuctionRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD _root_.simpleAuctionBytecode ee g s0 ⟨174⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -535,7 +535,7 @@ theorem RD.simpleAuctionRoutineEncodeAddress {g : Sat256} {s0 : State} {ee : Exe
 
 theorem RD.simpleAuctionReturnOneWord194 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD _root_.simpleAuctionBytecode ee g s0 ⟨194⟩
         (SimpleAuction.simpleAuctionRetEnd :: R) (solcReturnMem val) (UInt256.ofNat 5)
         rdata acc k C)

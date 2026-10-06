@@ -15,13 +15,13 @@ theorem daiJoinDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem daiJoinReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiJoinReachVatBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiJoinSelBytes 7)) :
-    ∃ k C, RD daiJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD daiJoinBytecode I g (initState σ σ₀ g A I)
         ⟨152⟩ [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : daiJoinSelWord I = ⟨0x36569e77⟩ :=
     daiJoinSelWord_eq_of_beq I hsz 0x36 0x56 0x9e 0x77 ⟨0x36569e77⟩
       (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
@@ -41,26 +41,25 @@ theorem daiJoinReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact daiJoinReachLowBody 0 (by omega) ⟨152⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem daiJoinVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiJoinVatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiJoinSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiJoinSelBytes 7)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiJoinSelBytes 7) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (daiJoinVatWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (daiJoinVatWord σ I).toNat))])) := by
     simpa [vatTransition, daiJoinVatWord, daiJoinAddressReturnWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       daiJoinAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
         (slot := ⟨1⟩)
         (by simp only [initState]; exact hwv) (by simp [vatRef])
@@ -69,7 +68,7 @@ theorem daiJoinVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact daiJoinAddressGetterBodyCore (entry := ⟨152⟩) (returnPc := ⟨160⟩)
     (routine := ⟨434⟩) (slot := ⟨1⟩)
     hcode (daiJoinDispatchVat hsel) (daiJoinDecode_vat hsz)
-    (daiJoinReachVatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (daiJoinReachVatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

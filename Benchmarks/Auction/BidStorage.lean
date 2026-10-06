@@ -20,9 +20,9 @@ def bidStoredAccounts (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ1 ⟨211⟩
     (setAddressOffset0Word (storedWord σ1 I ⟨211⟩) (solcSourceWord I))
 
-theorem SourceState.bidStores {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
-    SourceState s0 I cA (bidStoredAccounts σ I) (bidStoredState evm) := by
-  have hs1 : SourceState s0 I cA (sstoreAccountMap I.codeOwner σ ⟨208⟩ I.weiValue)
+theorem SourceState.bidStores {s0 I σ evm} (hs : SourceState s0 I σ evm) :
+    SourceState s0 I (bidStoredAccounts σ I) (bidStoredState evm) := by
+  have hs1 : SourceState s0 I (sstoreAccountMap I.codeOwner σ ⟨208⟩ I.weiValue)
       (bidAmountState evm) := by
     simpa only [bidAmountState, hs.env] using hs.storageWrite ⟨208⟩ I.weiValue
   have hs2 := hs1.readModifyWrite ⟨211⟩ (fun old ↦ setAddressOffset0Word old (solcSourceWord I))
@@ -53,12 +53,12 @@ theorem bidStoresSource {evm locals} (ha : locals.get? "auction" = none) :
         rwa [solcSource_ofNat] at hw)))
   exact ExecBlock.nil
 
-theorem bidStoresRuntime {I g s0 bidder snap noun ret R mem aw rdata cA σ k C}
+theorem bidStoresRuntime {I g s0 bidder snap noun ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨1715⟩ (bidder :: snap :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨1738⟩ (bidder :: snap :: noun :: ret :: R)
-      mem aw rdata (cA, bidStoredAccounts σ I) k' C' := by
+      mem aw rdata (bidStoredAccounts σ I) k' C' := by
   have rd1719 := evm_run h with [jumpdest, callvalue, push1 ⟨208⟩]
   obtain ⟨_, _, rd1720⟩ := rd1719.sstore hperm (by native_decide) (by evm_ov)
   have rd1723 := evm_run rd1720 with [push1 ⟨211⟩, dup1]
@@ -70,13 +70,13 @@ theorem bidStoresRuntime {I g s0 bidder snap noun ret R mem aw rdata cA σ k C}
   rw [bidStoredAccounts, setAddressOffset0Word, solcAddrMask_clean (solcSourceWord_canonical I)]
   exact rd1737.sstore hperm (by native_decide) (by evm_ov)
 
-theorem bidExit {I g s0 extended bidder snap noun ret R mem aw rdata cA σ k C}
+theorem bidExit {I g s0 extended bidder snap noun ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨1923⟩ (extended :: bidder :: snap :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨1⟩) k' C' := by
   have rd1930 := evm_run h with [jumpdest, pop, pop, push1 ⟨1⟩, push1 ⟨101⟩]
   obtain ⟨_, _, rd1931⟩ := rd1930.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1931 with [pop, pop, jump hret]⟩

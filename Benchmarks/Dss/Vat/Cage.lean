@@ -25,13 +25,13 @@ theorem vatDispatchCage {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes]
   native_decide
 
-theorem vatReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 1)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨855⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x69245009⟩ :=
     vatSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -71,14 +71,14 @@ theorem vatReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem RD.vatCageStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vatCageStoreLiveZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ ⟨10⟩ ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨10⟩ ⟨0⟩) k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
   have rdStore := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -88,7 +88,7 @@ theorem RD.vatCageStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
   exact ⟨_, _, rdOut.jump hd6 hret (by evm_ov)⟩
 
 theorem vatCageBodyCore : VatBodyTheorem 1 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -97,7 +97,7 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅ :=
     vatDecode_cage hsz4
-  have hreach := vatReachCageBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachCageBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk
@@ -108,21 +108,17 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
   let callerSlot := vatCallerWardsSlot I
-  have hcallerWord : vatSlotWord callerSlot σ_evm I = vatSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-  by_cases hauthEvm : vatSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : vatSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-      rw [← hcallerWord]
-      exact hauthEvm
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+  ·
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨10⟩ ⟨0⟩
     have hbody :
         ExecTransitionBody config contract evm0 ∅ cageTransition.body
           (.returned { contract := contract, locals := ∅ } evm1 none) := by
-      have hguard := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := vatAuthGuardEval_true
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := ∅)
-        (by simp) hauthSolm
+        (by simp) hauthEvm
       have hassign :
           assignStorageRef? config { contract := contract, locals := ∅ } evm0
             .storage liveRef (.int 0) =
@@ -158,7 +154,7 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
           ExecBlock.nil
       simpa [ExecTransitionBody, cageTransition, nonpayable, auth, evm0, evm1] using
         ExecFuncBody.execBlockOK hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
       (code := vatBytecode) (pc := ⟨2868⟩) (okPc := ⟨2950⟩) (key := ⟨524⟩)
@@ -178,31 +174,24 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
         RDret vatBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          (cA, sstoreAccountMap I.codeOwner σ_evm ⟨10⟩ ⟨0⟩) ByteArray.empty := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (sstoreAccountMap I.codeOwner σ ⟨10⟩ ⟨0⟩) ByteArray.empty := by
       simpa using RD.stop hretPc' (by native_decide) (by simp)
-    have hcreated :
-        (cA, sstoreAccountMap I.codeOwner σ_evm ⟨10⟩ ⟨0⟩).1 = evm1.createdAccounts := by
-      simp [evm1, evm0, initState, storageStore_createdAccounts]
     have haccounts :
-        accountMapEquiv (cA, sstoreAccountMap I.codeOwner σ_evm ⟨10⟩ ⟨0⟩).2
-          evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ ⟨0⟩ hAccounts
+        sstoreAccountMap I.codeOwner σ ⟨10⟩ ⟨0⟩ = evm1.accountMap := by
+      simp [evm1, evm0, initState, storageStore_accountMap]
     have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
       rw [show cageTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      hcreated haccounts henc
-  · have hauthSolm : vatSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
-      intro hsolm
-      exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+      haccounts henc
+  ·
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 ∅ cageTransition.body .reverted := by
-      have hguard := vatAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := vatAuthGuardEval_false
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := ∅)
-        (by simp) hauthSolm
+        (by simp) hauthEvm
       have hblock := nonpayableSecondRequireReverts
         (cfg := config) (solm := { contract := contract, locals := ∅ })
         (evm := evm0)
@@ -212,7 +201,7 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
         hguard
       simpa [ExecTransitionBody, cageTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
     have hrev := RD.vatAuthCheckRevert
       (pc := ⟨2868⟩) (okPc := ⟨2950⟩) (key := ⟨524⟩)

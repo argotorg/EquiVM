@@ -17,29 +17,29 @@ theorem depositCall_heap {mem aw ptr} (hm : HeapMemory mem aw ptr)
   exact ⟨hh.size, hh.free, hh.lower, hh.gap,
     activeWords_expand hh.active (by change ptr.toNat + 4 ≤ 2 ^ 200; omega)⟩
 
-theorem depositCall {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C evm}
+theorem depositCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) (Int.ofNat amount.toNat)
         depositSelector (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨3432⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ ::
           wethWord σ I :: amount :: recipient :: ret :: R)
-        (selectorMem mem ptr depositWord) (depositCallWords aw ptr) out (cA', σ') k' C' ∧
+        (selectorMem mem ptr depositWord) (depositCallWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd3431⟩ := depositCallPrefix h hm hb hyes hov
   have hcd : (selectorMem mem ptr depositWord).readWithPadding ptr.toNat 4 = depositSelector :=
     (selectorMem_read hm depositWord).trans depositWord_prefix
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd3432, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd3432, ho⟩ :=
     callBridge rd3431 hs hperm (by native_decide) hcd (by decide) (by evm_ov)
   rw [callOutputMem_zero] at rd3432
-  exact ⟨evm', cA', σ', z, out, _, _, hc, hs', rd3432, ho⟩
+  exact ⟨evm', σ', z, out, _, _, hc, hs', rd3432, ho⟩
 
 theorem depositAfterSuccess {I g s0 amount recipient ret R mem aw ptr out acc k C target}
     (h : RD auctionBytecode I g s0 ⟨3432⟩

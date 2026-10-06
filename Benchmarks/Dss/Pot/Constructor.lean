@@ -20,23 +20,22 @@ set_option maxHeartbeats 1000000 in
 theorem potConstructorCorrect :
     constructorEquivalence config potCreationBytecode contract potBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases potCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = potCtorCode vat := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hrd := potInitcodeSuccess
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
-    · let σWards := sstoreAccountMap I.codeOwner σ_evm (potCtorCallerWardsSlot I) ⟨1⟩
+    · let σWards := sstoreAccountMap I.codeOwner σ (potCtorCallerWardsSlot I) ⟨1⟩
       let σVat := sstoreAccountMap I.codeOwner σWards ⟨5⟩ (potCtorVatStored σWards I vat)
       let σDsr := sstoreAccountMap I.codeOwner σVat ⟨3⟩ potCtorOne
       let σChi := sstoreAccountMap I.codeOwner σDsr ⟨4⟩ potCtorOne
@@ -45,12 +44,11 @@ theorem potConstructorCorrect :
       have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
       have hσ' : s.accountMap = σLive := by
-        simpa [σWards, σVat, σDsr, σChi, σRho, σLive] using congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+        simpa [σWards, σVat, σDsr, σChi, σRho, σLive] using hacc
+      rw [hσ'] at hsuccess
       let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1s := potCtorAfterWardsState evm0s
       let evm2s := potCtorAfterVatState evm1s vat
       let evm3s := potCtorAfterDsrState evm2s
@@ -59,17 +57,16 @@ theorem potConstructorCorrect :
       let evm6s := potCtorAfterLiveState evm5s
       have hslot : wardsSlot (.address I.source) = potCtorCallerWardsSlot I :=
         potCtorCallerWardsSlot_eq I
-      have hAccountsWards : accountMapEquiv σWards evm1s.accountMap := by
-        simpa [σWards, evm1s, evm0s, potCtorAfterWardsState, initState,
-          storageStore_accountMap, storageStore_executionEnv, hslot] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (potCtorCallerWardsSlot I) ⟨1⟩
-            hAccounts
+      have hMapWards : evm1s.accountMap = σWards := by
+        simp [evm1s, evm0s, σWards, potCtorAfterWardsState, initState,
+          storageStore_accountMap, hslot]
       have hOldVat :
           solcSlotWord σWards I ⟨5⟩ =
             Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩ := by
-        simpa [evm1s, evm0s, potCtorAfterWardsState, initState, Solm.EVM.storageLoad,
-          State.lookupAccount, Account.lookupStorage, solcSlotWord, storageStore_executionEnv] using
-          accountMapEquiv_storage_findD hAccountsWards I.codeOwner ⟨5⟩ ⟨0⟩
+        rw [← hMapWards]
+        simp [evm1s, evm0s, potCtorAfterWardsState, initState,
+          Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          solcSlotWord, storageStore_executionEnv]
       have hee1 : evm1s.executionEnv = I := by
         simp only [evm1s, evm0s, potCtorAfterWardsState, storageStore_executionEnv, initState]
       have hee2 : evm2s.executionEnv = I := by
@@ -80,50 +77,36 @@ theorem potConstructorCorrect :
         simp only [evm4s, potCtorAfterChiState, storageStore_executionEnv, hee3]
       have hee5 : evm5s.executionEnv = I := by
         simp only [evm5s, potCtorAfterRhoState, storageStore_executionEnv, hee4]
-      have hAccountsVat : accountMapEquiv σVat evm2s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩
-          (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩)
-            (EVM.word vat.val))
-          hAccountsWards
-        simpa [σVat, evm2s, potCtorAfterVatState, storageStore_accountMap,
-          hee1, potCtorVatStored, hOldVat] using hbase
-      have hAccountsDsr : accountMapEquiv σDsr evm3s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ potCtorOne hAccountsVat
-        simpa [σDsr, evm3s, potCtorAfterDsrState, storageStore_accountMap, hee2] using hbase
-      have hAccountsChi : accountMapEquiv σChi evm4s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ potCtorOne hAccountsDsr
-        simpa [σChi, evm4s, potCtorAfterChiState, storageStore_accountMap, hee3] using hbase
-      have hAccountsRho : accountMapEquiv σRho evm5s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩
-          (UInt256.ofNat I.header.timestamp) hAccountsChi
-        simpa [σRho, evm5s, potCtorAfterRhoState, storageStore_accountMap, hee4] using hbase
-      have hAccountsLive : accountMapEquiv σLive evm6s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ ⟨1⟩ hAccountsRho
-        simpa [σLive, evm6s, potCtorAfterLiveState, storageStore_accountMap, hee5] using hbase
+      have hMapVat : evm2s.accountMap = σVat := by
+        unfold evm2s potCtorAfterVatState
+        rw [storageStore_accountMap]
+        dsimp [σVat, potCtorVatStored]
+        rw [hMapWards, ← hee1, hOldVat.symm]
+        rw [hee1]
+      have hMapDsr : evm3s.accountMap = σDsr := by
+        simp [evm3s, potCtorAfterDsrState, storageStore_accountMap, σDsr, hMapVat, hee2]
+      have hMapChi : evm4s.accountMap = σChi := by
+        simp [evm4s, potCtorAfterChiState, storageStore_accountMap, σChi, hMapDsr, hee3]
+      have hMapRho : evm5s.accountMap = σRho := by
+        simp [evm5s, potCtorAfterRhoState, storageStore_accountMap, σRho, hMapChi, hee4]
+      have hMapLive : evm6s.accountMap = σLive := by
+        simp [evm6s, potCtorAfterLiveState, storageStore_accountMap, σLive, hMapRho, hee5]
       refine constructorEquivalenceFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, potCtorPostState] using
             potSolmCtorExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) vat hwv)
         ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp only [potCtorAfterLiveState, potCtorAfterRhoState, potCtorAfterChiState,
-          potCtorAfterDsrState, potCtorAfterVatState, potCtorAfterWardsState,
-          storageStore_createdAccounts, initState]
-      · exact hAccountsLive
+      exact ctorResultEquiv.success rfl rfl hMapLive.symm rfl
   · have hrd := potInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (potSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

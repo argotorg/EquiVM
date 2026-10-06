@@ -14,7 +14,7 @@ abbrev memoryWordLoad (mem : ByteArray) (offset : UInt256) : UInt256 :=
 theorem RD.mstoreWord
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset value aw : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256} {k C : Nat}
+    {acc : AccountMap} {R : List UInt256} {k C : Nat}
     (rd : RD code I g s0 pc (offset :: value :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none)) (hov : R.length ≤ 1024) :
     RD code I g s0 (pc + ⟨1⟩) R (value.toByteArray.write 0 mem offset.toNat 32)
@@ -27,7 +27,7 @@ theorem RD.mstoreWord
 theorem RD.mloadWord
     {code : ByteArray} {I : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc offset aw value : UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256} {k C : Nat}
+    {acc : AccountMap} {R : List UInt256} {k C : Nat}
     (rd : RD code I g s0 pc (offset :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
     (hvalue : memoryWordLoad mem offset = value) (hov : R.length + 1 ≤ 1024) :

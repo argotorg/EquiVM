@@ -11,7 +11,7 @@ namespace Benchmarks.Dss.Clipper
 set_option maxHeartbeats 8000000 in
 theorem clipperTakeChostAdjustEquiv
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost : AccountMap} {evmPrice : EVM.State}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {baseMem rdata : ByteArray} {k C : ℕ}
@@ -23,19 +23,16 @@ theorem clipperTakeChostAdjustEquiv
       (transitionSignature (takeTransition v)).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd4223 : RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
       (((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price) ::
         UInt256.sub tab (solcSlotWord σPost I ⟨9⟩) :: tab :: lot :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
-      baseMem (UInt256.ofNat 7) rdata (cAPost, σPost) k C)
+      baseMem (UInt256.ofNat 7) rdata σPost k C)
     (hbaseSize : baseMem.size = 196)
     (hbaseRead64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hAccountsPost : accountMapEquiv σPost evmPrice.accountMap)
+    (hAccountsPost : Eq σPost evmPrice.accountMap)
     (hevmPriceSigma0 : evmPrice.σ₀ = σ₀)
-    (hevmPriceCreated : evmPrice.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPrice.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPrice.blocks = bl)
     (hevmPriceEnv : evmPrice.executionEnv = I)
     (hdataLenEq : dataLen = clipperTakeDataLenWord I)
     (hdataStartEq : dataStart.toNat = 32 + (4 + (clipperTakeDataOffsetWord I).toNat))
@@ -47,7 +44,7 @@ theorem clipperTakeChostAdjustEquiv
     (hwhoWord : who = UInt256.land (clipperTakeWhoWord I) solcAddrMask)
     (hidWord : id = clipperTakeIdWord I)
     (hpackedWord : packed = clipperTakeSalesUsrWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPrice I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPrice I)
     (hslice : slice = clipperMinWord
@@ -62,19 +59,19 @@ theorem clipperTakeChostAdjustEquiv
     (hprice : price ≠ ⟨0⟩)
     (hsliceAdjustedLe :
       ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price).toNat ≤ lot.toNat)
-    (hlocked : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped : (solcSlotWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husr : clipperTakeSalesUsrWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) (Frame.mk (contract v) (clipperTakeLocalsTic evmLock I))
         evmLock (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk (contract v) (clipperTakeLocalsSt evmLock I false price)) evmPrice))
-    (hcontinue : ClipperTakeStoreContinuationEquiv v code cA gh bl σ_evm σ_solm
+    (hcontinue : ClipperTakeStoreContinuationEquiv v code σ
       σ₀ A I g ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (UInt256.sub tab (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)))
@@ -83,8 +80,8 @@ theorem clipperTakeChostAdjustEquiv
       price tic packed stopped dataLen dataStart who max amt id sel)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      σ σ₀ g A I := by
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   let sourceSlice := clipperMinWord
     (clipperTakeSalesLotEVMWord evmPrice I) (clipperTakeAmtWord I)
@@ -99,8 +96,8 @@ theorem clipperTakeChostAdjustEquiv
     ((clipperTakeSalesTabEVMWord evmPrice I).sub owe)
     ((clipperTakeSalesLotEVMWord evmPrice I).sub sliceAdjusted)
   have hchostEq : chost = solcSlotWord σPost I ⟨9⟩ := by
-    have hslot := accountMapEquiv_storage_findD hAccountsPost I.codeOwner ⟨9⟩ ⟨0⟩
-    simp [chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    have hslot := congrArg (fun m => solcSlotWord m I ⟨9⟩) hAccountsPost
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmPriceEnv, hslot]
   have hmul' : (UInt256.mul slice price).toNat ≤
       (clipperTakeSalesTabEVMWord evmPrice I).toNat := by
@@ -250,11 +247,11 @@ theorem clipperTakeChostAdjustEquiv
       (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted := by
     intro hnoCode
     apply clipperTakeSourceRevertsOfAfterSlice
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     have hpref := clipperTakeChostAdjustVatFluxNoCodeTailBlock v evmLock evmPrice
@@ -279,11 +276,11 @@ theorem clipperTakeChostAdjustEquiv
           .int (Int.ofNat ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price).toNat)]
         (false, evmVat, outVat) true →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted := by
     intro evmVat outVat hvatCode hcallVat
     apply clipperTakeSourceRevertsOfAfterSlice
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     have hpref := clipperTakeChostAdjustVatFluxCallFailureTailBlock v evmLock
@@ -322,11 +319,11 @@ theorem clipperTakeChostAdjustEquiv
           (clipperTakeLocalsSlice evmLock evmPrice I false price slice)) evmPrice
         (clipperTakeAfterSliceStmts v) .reverted →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted := by
     intro htail
     apply clipperTakeSourceRevertsOfAfterSlice
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     simpa [evm0, evmLock, sourceSlice, hslice] using htail
@@ -336,12 +333,12 @@ theorem clipperTakeChostAdjustEquiv
           (clipperTakeLocalsSlice evmLock evmPrice I false price slice)) evmPrice
         (clipperTakeAfterSliceStmts v) (.ok finalFrame finalEvm) →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body
         (.returned finalFrame finalEvm none) := by
     intro finalFrame finalEvm htail
     apply clipperTakeSourceOkOfAfterSlice
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     simpa [evm0, evmLock, sourceSlice, hslice] using htail
@@ -352,7 +349,7 @@ theorem clipperTakeChostAdjustEquiv
       (owe := UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (slice := (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       v hpatch hcode hdispatch hdec rd4223 hbaseSize hbaseRead64 hAccountsPost
-      hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis hevmPriceBlocks
+      hevmPriceSigma0
       hevmPriceEnv hdataLenZero hdataLenEq hfluxDogAbsent
       (by simpa [owe, hchostEq, htab] using hfluxOwe)
       (by simpa [sliceAdjusted, owe, hchostEq, htab] using hfluxSlice)
@@ -367,7 +364,7 @@ theorem clipperTakeChostAdjustEquiv
       (owe := UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (slice := (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       v hpatch hcode hdispatch hdec rd4223 hbaseSize hbaseRead64 hAccountsPost
-      hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis hevmPriceBlocks
+      hevmPriceSigma0
       hevmPriceEnv hdataLenZero hdataLenEq hdataStartEq hlenMax hpayload
       hwhoClean hfluxDogAbsent
       (by simpa [owe, hchostEq, htab] using hfluxOwe)
@@ -381,7 +378,7 @@ theorem clipperTakeChostAdjustEquiv
 /- The strict adjusted-slice case is the ordinary nonzero residual store. -/
 theorem clipperTakeChostAdjustNonzeroEquiv
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost : AccountMap} {evmPrice : EVM.State}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {baseMem rdata : ByteArray} {k C : ℕ}
@@ -393,19 +390,16 @@ theorem clipperTakeChostAdjustNonzeroEquiv
       (transitionSignature (takeTransition v)).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd4223 : RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4223⟩
       (((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price) ::
         UInt256.sub tab (solcSlotWord σPost I ⟨9⟩) :: tab :: lot :: price ::
         tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
         [⟨502⟩, sel])
-      baseMem (UInt256.ofNat 7) rdata (cAPost, σPost) k C)
+      baseMem (UInt256.ofNat 7) rdata σPost k C)
     (hbaseSize : baseMem.size = 196)
     (hbaseRead64 : baseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hAccountsPost : accountMapEquiv σPost evmPrice.accountMap)
+    (hAccountsPost : Eq σPost evmPrice.accountMap)
     (hevmPriceSigma0 : evmPrice.σ₀ = σ₀)
-    (hevmPriceCreated : evmPrice.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPrice.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPrice.blocks = bl)
     (hevmPriceEnv : evmPrice.executionEnv = I)
     (hdataLenEq : dataLen = clipperTakeDataLenWord I)
     (hdataStartEq : dataStart.toNat = 32 + (4 + (clipperTakeDataOffsetWord I).toNat))
@@ -417,7 +411,7 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     (hwhoWord : who = UInt256.land (clipperTakeWhoWord I) solcAddrMask)
     (hidWord : id = clipperTakeIdWord I)
     (hpackedWord : packed = clipperTakeSalesUsrWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPrice I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPrice I)
     (hslice : slice = clipperMinWord
@@ -432,21 +426,21 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     (hprice : price ≠ ⟨0⟩)
     (hsliceAdjustedLt :
       ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price).toNat < lot.toNat)
-    (hlocked : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped : (solcSlotWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husr : clipperTakeSalesUsrWord
-      (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) (Frame.mk (contract v) (clipperTakeLocalsTic evmLock I))
         evmLock (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         (.ok (Frame.mk (contract v) (clipperTakeLocalsSt evmLock I false price)) evmPrice))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
+      σ σ₀ g A I := by
   let chost := solcSlotWord σPost I ⟨9⟩
   let owe := UInt256.sub tab chost
   let sliceAdjusted := owe.div price
@@ -476,8 +470,8 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     rw [hsubNat] at hnat
     change lot.toNat - sliceAdjusted.toNat = 0 at hnat
     omega
-  have hcontinue : ClipperTakeStoreContinuationEquiv v code cA gh bl σ_evm
-      σ_solm σ₀ A I g
+  have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
+      σ₀ A I g
       ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (UInt256.sub tab (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)))
@@ -488,8 +482,7 @@ theorem clipperTakeChostAdjustNonzeroEquiv
       (by simpa [owe, chost] using htabNe)
       (by simpa [sliceAdjusted, owe, chost] using hlotNe) hdepth hperm
   exact clipperTakeChostAdjustEquiv v hpatch hcode hwv hdispatch hdec rd4223
-    hbaseSize hbaseRead64 hAccountsPost hevmPriceSigma0 hevmPriceCreated
-    hevmPriceGenesis hevmPriceBlocks hevmPriceEnv hdataLenEq hdataStartEq
+    hbaseSize hbaseRead64 hAccountsPost hevmPriceSigma0 hevmPriceEnv hdataLenEq hdataStartEq
     hlenMax hpayload hwhoClean hwhoWord hidWord hpackedWord htab hlot hslice hmul
     hle hlt hsliceLt hremainingLt hchostTab hprice (Nat.le_of_lt hsliceAdjustedLt)
     hlocked hstopped husr hmax hstatus hcontinue hdepth hperm

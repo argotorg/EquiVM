@@ -8,20 +8,20 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7899 : RD uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hrootLe : rootK.toNat ≤ rootKLast.toNat)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have hgt : UInt256.gt rootK rootKLast = ⟨0⟩ := ugt_zero hrootLe
   have rd8018pre := evm_run rd7899 with [
     jumpdest, swap1, pop, dup1, dup3, gt, iszero, push2 ⟨8018⟩]
@@ -35,13 +35,13 @@ theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7899 : RD uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
@@ -49,7 +49,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail
       (rootKLast :: rootK :: ⟨7930⟩ :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have hgt : UInt256.gt rootK rootKLast = ⟨1⟩ := ugt_one hrootGt
   have rd7910pre := evm_run rd7899 with [
     jumpdest, swap1, pop, dup1, dup3, gt, iszero, push2 ⟨8018⟩]
@@ -66,7 +66,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd6879 : RD uniswapV2PairBytecode I g
@@ -74,14 +74,14 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
       (rootKLast :: rootK :: ⟨7930⟩ :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (UInt256.sub rootK rootKLast :: uniswapSlotWord ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd7930⟩ :=
     RD.uniswapSafeMathSubSuccess rd6879 (Nat.le_of_lt hrootGt) (by jump_dest)
       (by simp only [List.length_cons]; omega)
@@ -91,7 +91,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
       s0 ⟨7934⟩
       (uniswapSlotWord ⟨0⟩ σFee I :: UInt256.sub rootK rootKLast :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k7934 C7934 := by
+      mem aw rdata σFee k7934 C7934 := by
     simpa [uniswapSlotWord] using rd7934₀
   have rd6780pre := evm_run rd7934 with [
     swap1, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
@@ -103,14 +103,14 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveNumeratorEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd6780 : RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (UInt256.sub rootK rootKLast :: uniswapSlotWord ⟨0⟩ σFee I :: ⟨7945⟩ :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hnumFit :
       (uniswapSlotWord ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
         UInt256.size)
@@ -119,27 +119,27 @@ theorem uniswapMintFeeRuntimePositiveNumeratorEntryOfTail
       s0 ⟨7945⟩
       (UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: ⟨0⟩ :: rootKLast ::
         rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   exact RD.uniswapSafeMathMulSuccess rd6780 hnumFit (by jump_dest)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveDenominatorMulEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7945 : RD uniswapV2PairBytecode I g
       s0 ⟨7945⟩
       (numerator :: ⟨0⟩ :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 ::
         ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (⟨5⟩ :: rootK :: ⟨7970⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd6780pre := evm_run rd7945 with [
     jumpdest, swap1, pop, push1 ⟨0⟩, push2 ⟨7982⟩, dup4, push2 ⟨7970⟩, dup7,
     push1 ⟨5⟩, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
@@ -151,28 +151,28 @@ theorem uniswapMintFeeRuntimePositiveDenominatorMulEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveDenominatorProductEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd6780 : RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (⟨5⟩ :: rootK :: ⟨7970⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hrootK5Fit : rootK.toNat * 5 < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨7970⟩
       (UInt256.mul rootK ⟨5⟩ :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   exact RD.uniswapSafeMathMulSuccess rd6780 (by simpa using hrootK5Fit) (by jump_dest)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveDenominatorAddEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denProduct numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7970 : RD uniswapV2PairBytecode I g
@@ -180,14 +180,14 @@ theorem uniswapMintFeeRuntimePositiveDenominatorAddEntryOfTail
       (denProduct :: rootKLast :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨8515⟩
       (rootKLast :: denProduct :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd8515pre := evm_run rd7970 with [
     jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨8515⟩, and]
   have hpc8515 : UInt256.land (⟨8515⟩ : UInt256) ⟨0xffffffff⟩ = ⟨8515⟩ := by
@@ -198,7 +198,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorAddEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveDenominatorEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denProduct numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd8515 : RD uniswapV2PairBytecode I g
@@ -206,7 +206,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorEntryOfTail
       (rootKLast :: denProduct :: ⟨7982⟩ :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast ::
         feeTo ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hdenFit : denProduct.toNat + rootKLast.toNat < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
@@ -214,21 +214,21 @@ theorem uniswapMintFeeRuntimePositiveDenominatorEntryOfTail
       ((denProduct + rootKLast) :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast :: feeTo ::
         ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   exact RD.uniswapSafeMathAddSuccess rd8515 hdenFit (by jump_dest)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveLiquidityEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7982 : RD uniswapV2PairBytecode I g
       s0 ⟨7982⟩
       (denominator :: ⟨0⟩ :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 ::
         reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hdenominatorNe : denominator ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
@@ -236,7 +236,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityEntryOfTail
       (UInt256.div numerator denominator :: denominator :: numerator :: rootKLast :: rootK ::
         kLast ::
         feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd7995 := evm_run rd7982 with [
     jumpdest, swap1, pop, push1 ⟨0⟩, dup2, dup4, dup2, push2 ⟨7995⟩,
     jumpiT hdenominatorNe (by jump_dest)]
@@ -245,21 +245,21 @@ theorem uniswapMintFeeRuntimePositiveLiquidityEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveLiquidityZeroNoMintReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7999 : RD uniswapV2PairBytecode I g
       s0 ⟨7999⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hliqZero : liquidity = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   subst liquidity
   have rd8014pre := evm_run rd7999 with [dup1, iszero, push2 ⟨8014⟩]
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8014pre
@@ -273,20 +273,20 @@ theorem uniswapMintFeeRuntimePositiveLiquidityZeroNoMintReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterInternalMintReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd8014 : RD uniswapV2PairBytecode I g
       s0 ⟨8014⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd8038 := evm_run rd8014 with [
     jumpdest, pop, pop, pop, jumpdest, pop, pop, jumpdest, push2 ⟨8038⟩,
     jump (by jump_dest)]
@@ -296,14 +296,14 @@ theorem uniswapMintFeeRuntimeAfterInternalMintReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveLiquidityMintEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {liquidity denominator numerator rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7999 : RD uniswapV2PairBytecode I g
       s0 ⟨7999⟩
       (liquidity :: denominator :: numerator :: rootKLast :: rootK :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hliqNonzero : liquidity ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
@@ -311,7 +311,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintEntryOfTail
       (liquidity :: feeTo :: ⟨8014⟩ :: liquidity :: denominator :: numerator :: rootKLast ::
         rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd8005pre := evm_run rd7999 with [dup1, iszero, push2 ⟨8014⟩]
   rw [isZero_eq_zero_of_ne hliqNonzero] at rd8005pre
   have rd8005 := evm_run rd8005pre with [jumpiNT (by native_decide)]
@@ -321,13 +321,13 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {rootK rootKLast kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7899 : RD uniswapV2PairBytecode I g
       s0 ⟨7899⟩
       (rootKLast :: ⟨0⟩ :: rootK :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hrootGt : rootKLast.toNat < rootK.toNat)
     (hnumFit :
       (uniswapSlotWord ⟨0⟩ σFee I).toNat * (UInt256.sub rootK rootKLast).toNat <
@@ -340,7 +340,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
       ((UInt256.mul rootK ⟨5⟩ + rootKLast) :: ⟨0⟩ ::
         UInt256.mul (uniswapSlotWord ⟨0⟩ σFee I) (UInt256.sub rootK rootKLast) :: rootKLast :: rootK ::
         kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd6879⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail (hov := hov) rd7899 hrootGt
   obtain ⟨_, _, rd6780Num⟩ :=

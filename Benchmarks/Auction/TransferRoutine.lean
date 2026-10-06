@@ -14,22 +14,22 @@ def transferFinalWords (aw ptr : UInt256) : UInt256 :=
   expandedWords (transferCallWords aw ptr) ptr ⟨32⟩
 
 /-- WETH's raw transfer call, its required success bit, and its strict ABI bool decoder. -/
-theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdata cA σ k C evm}
+theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdata σ k C evm}
     (h : RD auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 18 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray),
       callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
         (transferData recipient amount) (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧ out.size < 2 ^ 138 ∧
+      SourceState s0 I σ' evm' ∧ out.size < 2 ^ 138 ∧
       ((z = true ∧ BoolReturnValid out ∧
           (∃ k' C', RD auctionBytecode I g s0 ret R
             (transferFinalMem mem out ptr recipient amount) (transferFinalWords aw ptr)
-            out (cA', σ') k' C') ∧
+            out σ' k' C') ∧
           MemoryCursor (transferFinalMem mem out ptr recipient amount) (transferFinalWords aw ptr)
             (returnReservePtr ptr out.size) ∧
           MemoryPrefix mem (transferFinalMem mem out ptr recipient amount) ptr.toNat ∧
@@ -37,9 +37,9 @@ theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdat
           (returnReservePtr ptr out.size).toNat ≤ ptr.toNat + 2 ^ 139) ∨
         ((z = false ∨ ¬ BoolReturnValid out) ∧ RDrev auctionBytecode g s0)) := by
   have hb68 : ptr.toNat + 68 ≤ 2 ^ 200 := by omega
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd3518, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd3518, ho⟩ :=
     transferCall h hs hperm hm hb68 hov
-  refine ⟨evm', cA', σ', z, out, hc, hs', ho, ?_⟩
+  refine ⟨evm', σ', z, out, hc, hs', ho, ?_⟩
   cases z with
   | false =>
     exact Or.inr ⟨Or.inl rfl, transferAfterFailure rd3518 (by omega)⟩

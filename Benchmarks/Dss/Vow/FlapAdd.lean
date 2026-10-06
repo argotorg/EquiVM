@@ -9,21 +9,21 @@ namespace Benchmarks.Dss.Vow
 /-! ## `flap()` checked surplus additions -/
 
 theorem RD.vowFlapSurplus0AddOverflow
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
       (vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hover : UInt256.size ≤ vatSin.toNat + (vowSlotWord ⟨10⟩ acc.2 I).toNat) :
+    (hover : UInt256.size ≤ vatSin.toNat + (vowSlotWord ⟨10⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let BumpVal := vowSlotWord ⟨10⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let BumpVal := vowSlotWord ⟨10⟩ acc I
   have rd980 := rd.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k981, C981, rd981Raw⟩ := rd980.sload (by native_decide) (by evm_ov)
   have rd981 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
       (BumpVal :: vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k981 C981 := by
     simpa [BumpVal, vowSlotWord, solcSlotWord] using rd981Raw
@@ -40,23 +40,23 @@ theorem RD.vowFlapSurplus0AddOverflow
     (by simp)
 
 theorem RD.vowFlapSurplus0AddSuccess
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨978⟩
       (vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hfit : vatSin.toNat + (vowSlotWord ⟨10⟩ acc.2 I).toNat < UInt256.size) :
+    (hfit : vatSin.toNat + (vowSlotWord ⟨10⟩ acc I).toNat < UInt256.size) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
-      ((vatSin + vowSlotWord ⟨10⟩ acc.2 I) :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
+      ((vatSin + vowSlotWord ⟨10⟩ acc I) :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let BumpVal := vowSlotWord ⟨10⟩ acc.2 I
+  let BumpVal := vowSlotWord ⟨10⟩ acc I
   have rd980 := rd.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k981, C981, rd981Raw⟩ := rd980.sload (by native_decide) (by evm_ov)
   have rd981 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨981⟩
       (BumpVal :: vatSin :: ⟨985⟩ :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k981 C981 := by
     simpa [BumpVal, vowSlotWord, solcSlotWord] using rd981Raw
@@ -75,22 +75,22 @@ theorem RD.vowFlapSurplus0AddSuccess
   exact ⟨k', C', by simpa [BumpVal] using rd985⟩
 
 theorem RD.vowFlapSurplusNeedAddOverflow
-    {cA gh bl σ σ₀ A I} {g sel surplus0 : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel surplus0 : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
       (surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hover : UInt256.size ≤ surplus0.toNat + (vowSlotWord ⟨11⟩ acc.2 I).toNat) :
+    (hover : UInt256.size ≤ surplus0.toNat + (vowSlotWord ⟨11⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let HumpVal := vowSlotWord ⟨11⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let HumpVal := vowSlotWord ⟨11⟩ acc I
   have rd986 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd988 := rd986.push1 ⟨11⟩ (by native_decide) (by evm_ov)
   obtain ⟨k989, C989, rd989Raw⟩ := rd988.sload (by native_decide) (by evm_ov)
   have rd989 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
       (HumpVal :: surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k989 C989 := by
     simpa [HumpVal, vowSlotWord, solcSlotWord] using rd989Raw
@@ -107,24 +107,24 @@ theorem RD.vowFlapSurplusNeedAddOverflow
     (by simp)
 
 theorem RD.vowFlapSurplusNeedAddSuccess
-    {cA gh bl σ σ₀ A I} {g sel surplus0 : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel surplus0 : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨985⟩
       (surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hfit : surplus0.toNat + (vowSlotWord ⟨11⟩ acc.2 I).toNat < UInt256.size) :
+    (hfit : surplus0.toNat + (vowSlotWord ⟨11⟩ acc I).toNat < UInt256.size) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
-      ((surplus0 + vowSlotWord ⟨11⟩ acc.2 I) :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
+      ((surplus0 + vowSlotWord ⟨11⟩ acc I) :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let HumpVal := vowSlotWord ⟨11⟩ acc.2 I
+  let HumpVal := vowSlotWord ⟨11⟩ acc I
   have rd986 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd988 := rd986.push1 ⟨11⟩ (by native_decide) (by evm_ov)
   obtain ⟨k989, C989, rd989Raw⟩ := rd988.sload (by native_decide) (by evm_ov)
   have rd989 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨989⟩
       (HumpVal :: surplus0 :: ⟨993⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k989 C989 := by
     simpa [HumpVal, vowSlotWord, solcSlotWord] using rd989Raw

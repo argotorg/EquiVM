@@ -139,16 +139,16 @@ theorem vatSinDecode_none_short {o : ByteArray} (hshort : o.size < 32) :
   rfl
 
 theorem RD.vowHealSinCallSuccessToDecode
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -157,11 +157,11 @@ theorem RD.vowHealSinCallSuccessToDecode
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowHealSinReturnDecodeShortReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hshort : o.size < 32)
@@ -172,7 +172,7 @@ theorem RD.vowHealSinReturnDecodeShortReverts
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -182,11 +182,11 @@ theorem RD.vowHealSinReturnDecodeShortReverts
     (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem RD.vowHealSinReturnDecodeOk
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hlo : 32 ≤ o.size)
@@ -202,7 +202,7 @@ theorem RD.vowHealSinReturnDecodeOk
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (retWord :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
@@ -216,7 +216,7 @@ theorem RD.vowHealSinReturnDecodeOk
 theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
     (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
     (hlt : a.toNat < b.toNat)
@@ -258,21 +258,21 @@ theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0
   exact RD.rev 0 rdRev hdRev3 (by simp [M, MachineState.M, Cₘ, u256_ofNat_toNat]) (by evm_ov)
 
 theorem RD.vowHealFreeSinSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc.2 I).toNat) :
+    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -290,24 +290,24 @@ theorem RD.vowHealFreeSinSubUnderflow
     (by simp)
 
 theorem RD.vowHealFreeSinSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat) :
+    (hle : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
-      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I) ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I) ::
         ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -325,22 +325,22 @@ theorem RD.vowHealFreeSinSubSuccess
   exact ⟨k1325, C1325, by simpa [SinVal] using rd1325⟩
 
 theorem RD.vowHealDebtSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc.2 I).toNat) :
+    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -358,24 +358,24 @@ theorem RD.vowHealDebtSubUnderflow
     (by simp)
 
 theorem RD.vowHealDebtSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat) :
+    (hle : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
-      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I) :: healRad I :: ⟨412⟩ :: sel :: [])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
+      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I) :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -394,18 +394,18 @@ theorem RD.vowHealDebtSubSuccess
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowHealInsufficientDebt
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel healDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel healDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
       (healDebt :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hinsuff : healDebt.toNat < (healRad I).toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rd4922 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd4923 := rd4922.dup2 (by native_decide) (by evm_ov)
   have rd4924₀ := rd4923.gt (by native_decide) (by evm_ov)
@@ -477,16 +477,16 @@ theorem RD.vowHealInsufficientDebt
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem RD.vowHealDebtEnough
-    {cA gh bl σ σ₀ A I} {g sel healDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel healDebt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
       (healDebt :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (henough : (healRad I).toNat ≤ healDebt.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k' C' := by
   have rd4922 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd4923 := rd4922.dup2 (by native_decide) (by evm_ov)
@@ -504,28 +504,28 @@ theorem RD.vowHealDebtEnough
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowHealToHealExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5062⟩
-      (kissDaiTargetWord acc.2 I :: kissDaiTargetWord acc.2 I :: kissHealOutSize ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5062⟩
+      (kissDaiTargetWord acc I :: kissDaiTargetWord acc I :: kissHealOutSize ::
         kissHealOutPtr :: kissHealInSize :: kissHealOutPtr :: kissHealOutSize ::
-        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc.2 I ::
+        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc I ::
         healRad I :: ⟨412⟩ :: sel :: [])
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
-  let target := kissDaiTargetWord acc.2 I
+  let target := kissDaiTargetWord acc I
   have rd4998 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd5000 := rd4998.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k5001, C5001, rd5001Raw⟩ := rd5000.sload (by native_decide) (by evm_ov)
   have rd5001 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5001⟩
-      (vowSlotWord ⟨1⟩ acc.2 I :: healRad I :: ⟨412⟩ :: sel :: [])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5001⟩
+      (vowSlotWord ⟨1⟩ acc I :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k5001 C5001 := by
     simpa [vowSlotWord, solcSlotWord] using rd5001Raw
   have hmload64 :
@@ -603,18 +603,18 @@ theorem RD.vowHealToHealExtcodesizeGuard
       healRad, kissRad] using rd5062⟩
 
 theorem RD.vowHealHealNoCode
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd5062⟩ := RD.vowHealToHealExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
     hcodeSize
@@ -623,21 +623,21 @@ theorem RD.vowHealHealNoCode
     (by native_decide) (by simp)
 
 theorem RD.vowHealToHealCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
-      (gasWord :: kissDaiTargetWord acc.2 I :: kissHealOutSize :: kissHealOutPtr ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
+      (gasWord :: kissDaiTargetWord acc I :: kissHealOutSize :: kissHealOutPtr ::
         kissHealInSize :: kissHealOutPtr :: kissHealOutSize :: kissHealEndPtr ::
-        kissHealSelector :: kissDaiTargetWord acc.2 I :: healRad I :: ⟨412⟩ :: sel :: [])
+        kissHealSelector :: kissDaiTargetWord acc I :: healRad I :: ⟨412⟩ :: sel :: [])
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd5062⟩ := RD.vowHealToHealExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1918, C1918, rd1918⟩ :=
@@ -649,38 +649,38 @@ theorem RD.vowHealToHealCall
   exact ⟨gasWord, k1918, C1918, by simpa [healRad, kissRad] using rd1918⟩
 
 theorem RD.vowHealHealPostCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
-          kissDaiTargetWord acc.2 I :: healRad I :: ⟨412⟩ :: sel :: [])
-        (kissHealCalldataMem I mem) (UInt256.ofNat 6) out (cA', σ') k' C'
+          kissDaiTargetWord acc I :: healRad I :: ⟨412⟩ :: sel :: [])
+        (kissHealCalldataMem I mem) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := acc.2, createdAccounts := acc.1 }
-        (EVM.address (kissVatAddress acc.2 I)) "heal" 0
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := acc }
+        (EVM.address (kissVatAddress acc I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, out) true
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨_, _, _, rd1918⟩ := RD.vowHealToHealCall rd hmem hread64 hcodeSize
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1919, C1919, hΘpack, rd1919raw, houtsz⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k1919, C1919, hΘpack, rd1919raw, houtsz⟩ :=
     RD.call rd1918 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k1919, C1919, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k1919, C1919, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           kissHealOutPtr.toNat kissHealInSize.toNat)
@@ -692,34 +692,34 @@ theorem RD.vowHealHealPostCall
       unfold kissHealOutSize
       rfl
     have rd1919 : RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
-          kissDaiTargetWord acc.2 I :: healRad I :: ⟨412⟩ :: sel :: [])
+          kissDaiTargetWord acc I :: healRad I :: ⟨412⟩ :: sel :: [])
         (out.write 0 (kissHealCalldataMem I mem) kissHealOutPtr.toNat
           (min kissHealOutSize (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 6) out (cA', σ') k1919 C1919 :=
+        (UInt256.ofNat 6) out σ' k1919 C1919 :=
       haw ▸ rd1919raw
     rw [hmin, byteArray_write_len_zero] at rd1919
     exact rd1919
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-      (callPerm := true) (targetWord := kissDaiTargetWord acc.2 I)
+      (callPerm := true) (targetWord := kissDaiTargetWord acc I)
       (mem := kissHealCalldataMem I mem) (inOff := kissHealOutPtr)
       (inSize := kissHealInSize)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      (kissVatAddress_eq_daiTarget acc.2 I) ?_ ?_
+      (kissVatAddress_eq_daiTarget acc I) ?_ ?_
     · simpa [healRad, kissRad] using kissHealEncode_eq I hmem
     · simpa [initState, hperm, healRad, kissRad] using hΘ
 
 theorem vowHealSourceSinDecodeRevert
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
     {outDai outSin : ByteArray} {vatDai : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -737,7 +737,7 @@ theorem vowHealSourceSinDecodeRevert
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin : config.externalABI.decode? "sin" outSin = none) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -815,15 +815,15 @@ theorem vowHealSourceSinDecodeRevert
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealSourceFreeSinUnderflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
     {outDai outSin : ByteArray} {vatDai vatSin SinVal : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -846,7 +846,7 @@ theorem vowHealSourceFreeSinUnderflow
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ = SinVal)
     (hlt : vatSin.toNat < SinVal.toNat) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -962,15 +962,15 @@ theorem vowHealSourceFreeSinUnderflow
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealSourceHealDebtUnderflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
     {outDai outSin : ByteArray} {vatDai vatSin SinVal freeSin AshVal : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -997,7 +997,7 @@ theorem vowHealSourceHealDebtUnderflow
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ = AshVal)
     (hlt : freeSin.toNat < AshVal.toNat) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -1155,16 +1155,16 @@ theorem vowHealSourceHealDebtUnderflow
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealSourceInsufficientDebt
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
     {outDai outSin : ByteArray}
     {vatDai vatSin SinVal freeSin AshVal healDebt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -1193,7 +1193,7 @@ theorem vowHealSourceInsufficientDebt
     (hdebtOk : AshVal.toNat ≤ freeSin.toNat)
     (hinsuff : healDebt.toNat < (healRad I).toNat) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -1378,8 +1378,8 @@ theorem vowHealSourceInsufficientDebt
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealSinDecodeShortBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatDai : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel target vatDai : UInt256}
+    {acc : AccountMap}
     {evmDai evmSin : EVM.State} {mem outDai outSin : ByteArray}
     {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1388,7 +1388,7 @@ theorem vowHealSinDecodeShortBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: healSinEndPtr :: healSinSelector :: target ::
         ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
@@ -1401,11 +1401,11 @@ theorem vowHealSinDecodeShortBodyCore
         ⟨128⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1413,28 +1413,28 @@ theorem vowHealSinDecodeShortBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd1295⟩ := RD.vowHealSinCallSuccessToDecode rd1277 (by simp)
   have hrev :=
     RD.vowHealSinReturnDecodeShortReverts rd1295 houtShort houtSize hMload64Value
-  have hbody := vowHealSourceSinDecodeRevert (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceSinDecodeRevert
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (outDai := outDai) (outSin := outSin)
     (vatDai := vatDai) hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai
     hvatCodeSin hcallSin (vatSinDecode_none_short houtShort)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowHealFreeSinUnderflowBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatDai vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatDai vatSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmSin : EVM.State} {mem outDai outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some healTransition)
@@ -1442,17 +1442,17 @@ theorem vowHealFreeSinUnderflowBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd1318 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
-    (hunder : vatSin.toNat < (vowSlotWord ⟨5⟩ acc.2 I).toNat)
+    (hunder : vatSin.toNat < (vowSlotWord ⟨5⟩ acc I).toNat)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1460,33 +1460,33 @@ theorem vowHealFreeSinUnderflowBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        vowSlotWord ⟨5⟩ acc I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealFreeSinSubUnderflow rd1318 hunder
-  have hbody := vowHealSourceFreeSinUnderflow (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceFreeSinUnderflow
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (outDai := outDai) (outSin := outSin)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc.2 I)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc I)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hunder
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowHealDebtUnderflowBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatDai vatSin freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatDai vatSin freeSin : UInt256}
+    {acc : AccountMap}
     {evmDai evmSin : EVM.State} {mem outDai outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some healTransition)
@@ -1494,17 +1494,17 @@ theorem vowHealDebtUnderflowBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd1325 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
-    (hunder : freeSin.toNat < (vowSlotWord ⟨6⟩ acc.2 I).toNat)
+    (hunder : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1512,39 +1512,39 @@ theorem vowHealDebtUnderflowBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ acc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ acc.2 I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        vowSlotWord ⟨6⟩ acc I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDebtSubUnderflow rd1325 hunder
-  have hbody := vowHealSourceHealDebtUnderflow (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceHealDebtUnderflow
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (outDai := outDai) (outSin := outSin)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc.2 I)
-    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc.2 I)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc I)
+    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc I)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hfree hfreeOk hAshLoad hunder
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowHealInsufficientDebtBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatDai vatSin freeSin healDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatDai vatSin freeSin healDebt : UInt256}
+    {acc : AccountMap}
     {evmDai evmSin : EVM.State} {mem outDai outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some healTransition)
@@ -1552,7 +1552,7 @@ theorem vowHealInsufficientDebtBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd4921 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4921⟩
       (healDebt :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
     (hinsuff : healDebt.toNat < (healRad I).toNat)
@@ -1560,11 +1560,11 @@ theorem vowHealInsufficientDebtBodyCore
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -1572,34 +1572,34 @@ theorem vowHealInsufficientDebtBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ acc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ acc.2 I)
-    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I))
-    (hdebtOk : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+        vowSlotWord ⟨6⟩ acc I)
+    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I))
+    (hdebtOk : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealInsufficientDebt rd4921 hinsuff hmem hread64
-  have hbody := vowHealSourceInsufficientDebt (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceInsufficientDebt
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (outDai := outDai) (outSin := outSin)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc.2 I)
-    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc.2 I) (healDebt := healDebt)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc I)
+    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc I) (healDebt := healDebt)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk hinsuff
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

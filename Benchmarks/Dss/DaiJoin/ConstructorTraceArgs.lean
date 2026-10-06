@@ -11,18 +11,16 @@ namespace Benchmarks.Dss.DaiJoin
 set_option maxRecDepth 2000000
 
 theorem daiJoinInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat dai : AccountAddress)
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (daiJoinCtorCode vat dai) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (daiJoinCtorCode vat dai) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := daiJoin_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -38,7 +36,7 @@ theorem daiJoinInitcodeNonpayableRevert
 set_option maxHeartbeats 1000000 in
 theorem daiJoinCtorArgCopyTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
     (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
@@ -91,7 +89,7 @@ theorem daiJoinCtorArgCopyTrace
 set_option maxHeartbeats 1000000 in
 theorem daiJoinCtorArgSizeGuardTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat dai : AccountAddress)
     (h : RD (daiJoinCtorCode vat dai) I g s0 ⟨38⟩
       [(UInt256.ofNat (daiJoinCtorCode vat dai).size).sub ⟨1876⟩, ⟨128⟩]
@@ -125,22 +123,20 @@ theorem daiJoinCtorArgSizeGuardTrace
   exact ⟨_, _, rd61'⟩
 
 theorem daiJoinCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat dai : AccountAddress)
     (hcode : I.code = daiJoinCtorCode vat dai)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (daiJoinCtorCode vat dai) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨61⟩
+      (initState σ σ₀ g A I) ⟨61⟩
       [EVM.word dai.val, EVM.word vat.val, ⟨32⟩]
       (daiJoinCtorArgFreeMem vat dai) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   have rd8 :
       RD (daiJoinCtorCode vat dai) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+        (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := daiJoinCtorCode vat dai) hcode
       (by daiJoin_ctor_decode) (by daiJoin_ctor_decode) (by daiJoin_ctor_decode)
       (by daiJoin_ctor_decode) (by daiJoin_ctor_decode) (by daiJoin_ctor_decode)
@@ -151,8 +147,8 @@ theorem daiJoinCtorArgsReach
       (by daiJoin_ctor_decode) (by daiJoin_ctor_jd)
   have rd18' :
       RD (daiJoinCtorCode vat dai) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
       using rd18
   obtain ⟨_, _, rd38⟩ := daiJoinCtorArgCopyTrace vat dai rd18'

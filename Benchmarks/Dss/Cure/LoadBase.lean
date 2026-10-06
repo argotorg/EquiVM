@@ -482,14 +482,14 @@ theorem evalExpr_loadPosGtZero_true (evm : EVM.State) (I : ExecutionEnv)
   · native_decide
   · native_decide
 
-theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hvar :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.var "src") = .ok (.address (loadSrc I)) := by
@@ -502,14 +502,15 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
       EVM.Word.ofNat ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size)) =
         ⟨0⟩ := by
     change EVM.Word.ofNat
-      ((σ.find? (loadSrc I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩
-    cases hacc : σ.find? (loadSrc I) with
+      ((σ.get? (loadSrc I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩
+    cases hacc : σ.get? (loadSrc I) with
     | none =>
         rfl
     | some acc =>
         have hnoAcc : UInt256.ofNat acc.code.size = ⟨0⟩ := by
-          simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hnoCode
-        simpa [hacc] using hnoAcc
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, extCodeSizeWord,
+            loadKey_address_eq I, hacc] using hnoCode
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hnoAcc
   have hext :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.extCodeSize (.var "src")) = .ok (.int 0) := by
@@ -527,23 +528,23 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
   · native_decide
   · native_decide
 
-theorem evalExpr_loadExtCodeSizeGtZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_false {σ σ₀ A I} {g : Sat256}
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := loadLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
   exact evalExpr_loadExtCodeSizeGtZero_false_of_src
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (locals := loadLocals I) (by simp [loadLocals]) hnoCode
 
-theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool true) := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hvar :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.var "src") = .ok (.address (loadSrc I)) := by
@@ -556,12 +557,14 @@ theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : 
       EVM.Word.ofNat ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠
         ⟨0⟩ := by
     change UInt256.ofNat
-      ((σ.find? (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
-    cases hacc : σ.find? (loadSrc I) with
+      ((σ.get? (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
+    cases hacc : σ.get? (loadSrc I) with
     | none =>
-        exact False.elim (hcode (by simp [extCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
+        exact False.elim (hcode (by simp [-Std.ExtTreeMap.get?_eq_getElem?,
+          extCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
     | some acc =>
-        simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hcode
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, extCodeSizeWord,
+          loadKey_address_eq I, hacc] using hcode
   have hcodePos :
       0 < (EVM.Word.ofNat
         ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size))).toNat :=

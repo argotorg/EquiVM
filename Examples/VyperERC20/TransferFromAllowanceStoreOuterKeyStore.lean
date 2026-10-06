@@ -8,24 +8,24 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAllowanceStoreAfterOuterKeyStore {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨483⟩
+theorem erc20X_transferFromAllowanceStoreAfterOuterKeyStore {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨483⟩
       [⟨32⟩, approveOwnerWord I,
         transferFromAllowanceInnerSlotI I,
         transferFromAllowanceInnerSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (transferFromAllowanceInnerScratchMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨484⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨484⟩
       [transferFromAllowanceInnerSlotI I,
         transferFromAllowanceInnerSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (wordAt32Mem (approveOwnerWord I) (transferFromAllowanceInnerScratchMemI σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd483⟩ := hreach
   have rd484 := rd483.mstore 0
     (wordAt32Mem (approveOwnerWord I) (transferFromAllowanceInnerScratchMemI σ I))

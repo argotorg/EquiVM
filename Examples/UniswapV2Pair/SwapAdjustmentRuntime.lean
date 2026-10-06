@@ -30,14 +30,14 @@ theorem swapAdjustmentBounds (balance amountIn : UInt256)
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAdjustmentInputMulEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {second : Bool}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw x1 amountIn x3 balance : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 (if second then ⟨2546⟩ else ⟨2492⟩)
-      (x1 :: amountIn :: x3 :: balance :: R) mem aw rdata acc k C)
+      (x1 :: amountIn :: x3 :: balance :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
       (⟨3⟩ :: amountIn :: ⟨2513⟩ :: (if second then ⟨2567⟩ else ⟨2543⟩) :: ⟨0⟩ ::
-        x1 :: amountIn :: x3 :: balance :: R) mem aw rdata acc k' C' := by
+        x1 :: amountIn :: x3 :: balance :: R) mem aw rdata σ k' C' := by
   cases second with
   | false =>
       have rdMul := evm_run rd with [push1 ⟨0⟩, push2 ⟨2543⟩, push2 ⟨2513⟩, dup5,
@@ -53,15 +53,15 @@ theorem RD.uniswapSwapAdjustmentInputMulEntry
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAdjustmentBalanceMulEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw inputProduct ret placeholder x1 amountIn x3 balance : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd2513 : RD uniswapV2PairBytecode I g s0 ⟨2513⟩
-      (inputProduct :: ret :: placeholder :: x1 :: amountIn :: x3 :: balance :: R) mem aw rdata acc k C)
+      (inputProduct :: ret :: placeholder :: x1 :: amountIn :: x3 :: balance :: R) mem aw rdata σ k C)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
       (⟨1000⟩ :: balance :: ⟨2531⟩ :: inputProduct :: ret :: placeholder :: x1 :: amountIn :: x3 :: balance :: R)
-      mem aw rdata acc k' C' := by
+      mem aw rdata σ k' C' := by
   have rdMul := evm_run rd2513 with [jumpdest, push2 ⟨2531⟩, dup8, push2 ⟨1000⟩,
     push4 ⟨4294967295⟩, push2 ⟨6780⟩, and]
   rw [show UInt256.land (⟨6780⟩ : UInt256) ⟨4294967295⟩ = ⟨6780⟩ by native_decide] at rdMul
@@ -70,14 +70,14 @@ theorem RD.uniswapSwapAdjustmentBalanceMulEntry
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAdjustmentSubEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw balanceProduct inputProduct ret : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd2531 : RD uniswapV2PairBytecode I g s0 ⟨2531⟩
-      (balanceProduct :: inputProduct :: ret :: R) mem aw rdata acc k C)
+      (balanceProduct :: inputProduct :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6879⟩
-      (inputProduct :: balanceProduct :: ret :: R) mem aw rdata acc k' C' := by
+      (inputProduct :: balanceProduct :: ret :: R) mem aw rdata σ k' C' := by
   have rdSub := evm_run rd2531 with [jumpdest, swap1, push4 ⟨4294967295⟩, push2 ⟨6879⟩, and]
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨4294967295⟩ = ⟨6879⟩ by native_decide] at rdSub
   exact ⟨_, _, evm_run rdSub with [jump (by jump_dest)]⟩
@@ -85,10 +85,10 @@ theorem RD.uniswapSwapAdjustmentSubEntry
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapAdjustmentRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {second : Bool}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr x1 amountIn x3 balance : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 (if second then ⟨2546⟩ else ⟨2492⟩)
-      (x1 :: amountIn :: x3 :: balance :: R) mem aw rdata acc k C)
+      (x1 :: amountIn :: x3 :: balance :: R) mem aw rdata σ k C)
     (hle : amountIn.toNat ≤ balance.toNat)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfitPtr : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
@@ -98,7 +98,7 @@ theorem uniswapSwapAdjustmentRuntimeCases
     (balance.toNat * 1000 < UInt256.size ∧ ∃ k' C',
       RD uniswapV2PairBytecode I g s0 (if second then ⟨2567⟩ else ⟨2543⟩)
         (swapAdjustedWord balance amountIn :: ⟨0⟩ :: x1 :: amountIn :: x3 :: balance :: R)
-        mem aw rdata acc k' C') := by
+        mem aw rdata σ k' C') := by
   obtain ⟨_, _, rdMul0⟩ := RD.uniswapSwapAdjustmentInputMulEntry rd (by omega)
   by_cases hfitI : amountIn.toNat * 3 < UInt256.size
   · obtain ⟨_, _, rd2513⟩ := RD.uniswapSafeMathMulSuccess rdMul0 hfitI (by jump_dest)

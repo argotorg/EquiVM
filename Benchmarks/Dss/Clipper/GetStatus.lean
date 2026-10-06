@@ -30,17 +30,17 @@ theorem clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+    0 < (UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -49,7 +49,7 @@ theorem clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem clipperDecode_getStatus_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
@@ -123,15 +123,15 @@ theorem clipperDispatch_getStatus (v : ClipperImmutables) {I : ExecutionEnv}
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachGetStatusBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperReachGetStatusBody {σ σ₀ A I} {g : Sat256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 11)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨760⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨760⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperGetStatusSelectorWord hsz hsel
   have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -261,16 +261,16 @@ theorem clipperJumpDest3185 (v : ClipperImmutables) {code : ByteArray}
       simp [hIlk]
       native_decide
 
-theorem clipperGetStatusX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperGetStatusX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨760⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨3185⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨760⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨3185⟩ : UInt256)
       (clipperGetStatusArgWord I :: ⟨789⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := solcOneUintExternalLenOk
     (entry := (⟨760⟩ : UInt256)) (ret := (⟨789⟩ : UInt256))
     (routine := (⟨3185⟩ : UInt256)) hreach (clipperGetStatusEntryWf v hpatch)
@@ -283,30 +283,30 @@ theorem clipperGetStatusX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (routine := (⟨3185⟩ : UInt256)) hdecoded (clipperGetStatusEntryWf v hpatch)
     (clipperJumpDest3185 v hpatch) (by simp)
 
-theorem clipperGetStatusX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperGetStatusX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨760⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨760⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   exact solcOneUintExternalShort (entry := (⟨760⟩ : UInt256))
     (ret := (⟨789⟩ : UInt256)) (routine := (⟨3185⟩ : UInt256)) hreach
     (clipperGetStatusEntryWf v hpatch) hsz4 hsize hshort
 
 theorem clipperGetStatusBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some getStatusTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (⟨760⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨760⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hdec := clipperDecode_getStatus_none_short v (I := I) hsz4 hshort
   exact (clipperGetStatusX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4
     hsize hshort hreach)
@@ -314,8 +314,7 @@ theorem clipperGetStatusBodyCoreDecodeFailed_short
 
 theorem clipperGetStatusPostCallReturnRuntime
     {v : ClipperImmutables} {code retBytes : ByteArray}
-    {cA cA' : Batteries.RBSet AccountAddress compare}
-    {gh bl σ_evm σ_solm σ₀ σ' A I g}
+    {σ σ₀ A I g}
     {cs retVal} {evmPrice : EVM.State}
     (hcode : I.code = code)
     (hdispatch : dispatchMsg (contract v) I.calldata = some getStatusTransition)
@@ -326,35 +325,32 @@ theorem clipperGetStatusPostCallReturnRuntime
           some (clipperGetStatusStore I))
     (hret :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA', σ') retBytes)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' retBytes)
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperGetStatusStore I) getStatusTransition.body
         (.returned cs evmPrice retVal))
-    (hCreated : cA' = evmPrice.createdAccounts)
-    (hAccountsPost : accountMapEquiv σ' evmPrice.accountMap)
+    (hAccountsPost : σ' = evmPrice.accountMap)
     (henc : returnEquiv retBytes retVal getStatusTransition.returnType) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I :=
-  hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody hCreated
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I :=
+  hret.reEquivExecutionGen hcode hdispatch hdec hbody
     hAccountsPost henc
 
 set_option maxHeartbeats 200000000 in
 theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 11)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 11) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some getStatusTransition :=
     clipperDispatch_getStatus v hsel
-  have hreach := clipperReachGetStatusBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachGetStatusBody (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdec := clipperDecode_getStatus_ok v (I := I) hsz36
@@ -365,10 +361,10 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
       (v := v) (hpatch := hpatch) rd3185 solcFreePtrMem_size
       (by simp only [List.length_singleton]; omega)
     let id : UInt256 := clipperGetStatusArgWord I
-    let packed : UInt256 := solcSlotWord σ_evm I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)
+    let packed : UInt256 := solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)
     let tic : UInt256 := clipperSalesPackedTicWord packed
-    let top : UInt256 := solcSlotWord σ_evm I ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩)
-    let calcAddr : UInt256 := UInt256.land (solcSlotWord σ_evm I ⟨4⟩) solcAddrMask
+    let top : UInt256 := solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩)
+    let calcAddr : UInt256 := UInt256.land (solcSlotWord σ I ⟨4⟩) solcAddrMask
     have hhashMem :
         (twoWordHashMem id (⟨12⟩ : UInt256) solcFreePtrMem).size = 96 := by
       exact twoWordHashMem_size_96 id ⟨12⟩ solcFreePtrMem_size
@@ -387,28 +383,16 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
       exact mloadFreePtrValue (by rw [hhashMem]; native_decide)
         hhashRead64
     let evmSolm : EVM.State :=
-      initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbaseSlot :
         clipperGetStatusSalesBaseSlot I = solcMappingSlot ⟨12⟩ id := by
       simpa [id] using clipperGetStatusSalesBaseSlot_eq I
-    have hpackedSlotSolm :
-        solcSlotWord σ_evm I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩) =
-          solcSlotWord σ_solm I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩) := by
-      exact accountMapEquiv_storage_findD (σ := σ_evm) (τ := σ_solm)
-        hAccounts I.codeOwner ((solcMappingSlot (⟨12⟩ : UInt256) id) + ⟨3⟩)
-        (⟨0⟩ : UInt256)
     have hpackedSolm :
-        packed = solcSlotWord σ_solm I (clipperGetStatusSalesPackedSlot I) := by
-      simpa [packed, clipperGetStatusSalesPackedSlot, hbaseSlot] using hpackedSlotSolm
-    have htopSlotSolm :
-        solcSlotWord σ_evm I ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩) =
-          solcSlotWord σ_solm I ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩) := by
-      exact accountMapEquiv_storage_findD (σ := σ_evm) (τ := σ_solm)
-        hAccounts I.codeOwner ((solcMappingSlot (⟨12⟩ : UInt256) id) + ⟨4⟩)
-        (⟨0⟩ : UInt256)
+        packed = solcSlotWord σ I (clipperGetStatusSalesPackedSlot I) := by
+      simp [packed, clipperGetStatusSalesPackedSlot, hbaseSlot]
     have htopSolm :
-        top = solcSlotWord σ_solm I (clipperGetStatusSalesTopSlot I) := by
-      simpa [top, clipperGetStatusSalesTopSlot, hbaseSlot] using htopSlotSolm
+        top = solcSlotWord σ I (clipperGetStatusSalesTopSlot I) := by
+      simp [top, clipperGetStatusSalesTopSlot, hbaseSlot]
     have hmask96 : clipperSalesUint96Mask.toNat = 2 ^ 96 - 1 := by
       native_decide
     have hticLt : tic.toNat < EVM.twoPow 96 := by
@@ -421,24 +405,20 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
     have hticCleanSolm :
         UInt256.land
             (clipperSalesPackedTicWord
-              (solcSlotWord σ_solm I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)))
+              (solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)))
             clipperSalesUint96Mask =
           clipperSalesPackedTicWord
-            (solcSlotWord σ_solm I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)) := by
-      simpa [tic, packed, hpackedSlotSolm] using hticClean
-    have hcalcSlotSolm :
-        solcSlotWord σ_evm I ⟨4⟩ = solcSlotWord σ_solm I ⟨4⟩ := by
-      exact accountMapEquiv_storage_findD (σ := σ_evm) (τ := σ_solm)
-        hAccounts I.codeOwner ⟨4⟩ (⟨0⟩ : UInt256)
+            (solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)) := by
+      simpa [tic, packed] using hticClean
     have _hstatusPricePostCall :
         ∀
         (hle :
           (UInt256.land tic clipperSalesUint96Mask).toNat ≤
             (UInt256.ofNat I.header.timestamp).toNat)
         (hcalcCode :
-          Reasoning.Theory.extCodeSizeWord σ_evm calcAddr ≠ ⟨0⟩)
+          Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩)
         (hdepth : I.depth.val < 1024),
-          runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+          runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
       intro hle hcalcCode hdepth
       obtain ⟨_, _, rd8502⟩ :=
         Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAgeForPrice
@@ -451,43 +431,65 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
           (by simpa [id] using hhashMem)
           (by simpa [id] using hhashRead64)
           (by simp only [List.length_cons, List.length_nil]; omega)
-      obtain ⟨cA', σ', z, o, A', k8565, C8565, rd8565, hcallPrice, hout⟩ :=
+      obtain ⟨σ', z, o, A', k8565, C8565, rd8565, hcallPrice, hout⟩ :=
         Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPricePostStaticcall
         (v := v) (hpatch := hpatch) rd8549
         (by simpa [calcAddr] using hcalcCode) hdepth (by simpa [id] using hhashMem)
         (by simp only [List.length_cons, List.length_nil]; omega)
+      have hcalcAddrSolm :
+          clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
+        simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
+          initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          solcSlotWord]
+      have htopWordSolm : clipperGetStatusTopWord evmSolm I = top := by
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTopWord, Solm.EVM.storageLoad,
+          State.lookupAccount, Account.lookupStorage, solcSlotWord,
+          clipperGetStatusSalesTopSlot, hbaseSlot] using htopSolm.symm
+      have htopRaw : top = solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨4⟩) := by
+        simpa [clipperGetStatusSalesTopSlot, hbaseSlot] using htopSolm
+      have hticWordSolm : clipperGetStatusTicWord evmSolm I = tic := by
+        have hpackedWord := congrArg clipperSalesPackedTicWord hpackedSolm.symm
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, Solm.EVM.storageLoad,
+          State.lookupAccount, Account.lookupStorage, solcSlotWord,
+          clipperGetStatusSalesPackedSlot, hbaseSlot, tic] using hpackedWord
+      have hticPacked : tic = clipperSalesPackedTicWord
+          (solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)) := by
+        simpa [tic, packed] using
+          congrArg clipperSalesPackedTicWord hpackedSolm
+      have hpriceAge :
+          UInt256.sub (UInt256.ofNat I.header.timestamp)
+              (UInt256.land
+                (clipperSalesPackedTicWord
+                  (solcSlotWord σ I ((solcMappingSlot ⟨12⟩ id) + ⟨3⟩)))
+                clipperSalesUint96Mask) =
+            UInt256.sub (UInt256.ofNat I.header.timestamp) tic := by
+        rw [hticCleanSolm, ← hticPacked]
+      have htimestampSolm :
+          clipperTimestampWord evmSolm = UInt256.ofNat I.header.timestamp := by
+        simp [evmSolm, initState, clipperTimestampWord]
       cases z
       · have hrev :=
           Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPriceCallFailure
             (v := v) (hpatch := hpatch) rd8565 hout
             (by simp only [List.length_cons, List.length_nil]; omega)
-        have hcalcAddrSolm :
-            clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
-          simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
-            initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-            solcSlotWord, hcalcSlotSolm]
         have hcalcCodeSolmNE :
-            Reasoning.Theory.extCodeSizeWord σ_solm calcAddr ≠ ⟨0⟩ := by
-          intro hzero
-          exact hcalcCode (by
-            rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts calcAddr]
-            exact hzero)
+            Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩ := by
+          exact hcalcCode
         have hcalcCodeSolm :
             0 < (UInt256.ofNat
               ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                 (fun acc => acc.code.size))).toNat := by
-          simpa [evmSolm, State.lookupAccount, initState] using
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
             clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-              (σ := σ_solm) (target := calcAddr)
+              (σ := σ) (target := calcAddr)
               (addr := clipperStatusCalcAddress evmSolm)
               hcalcAddrSolm hcalcCodeSolmNE
-        obtain ⟨σ'_solm, A'_solm, hcallPriceSolmRaw, _hPostAccounts⟩ :=
-          typedCallViaEVM_initState_accountMapEquiv hcallPrice hAccounts
+        let σ'_solm := σ'
+        let A'_solm := A'
         let evmPriceSolm : EVM.State :=
           { evmSolm with
             accountMap := σ'_solm
-            substate := A'_solm
-            createdAccounts := cA' }
+            substate := A'_solm }
         have hcallPriceSolm :
             typedCallViaEVM (config v) evmSolm
               (EVM.address (clipperStatusCalcAddress evmSolm)) "price" 0
@@ -496,24 +498,19 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                   (UInt256.sub (clipperTimestampWord evmSolm)
                     (clipperGetStatusTicWord evmSolm I)).toNat)]
               (false, evmPriceSolm, o) false := by
-          simpa [evmSolm, evmPriceSolm, initState, clipperStatusCalcAddress,
-            clipperStatusCalcWord, clipperGetStatusTopWord, clipperGetStatusTicWord,
-            clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount, solcSlotWord,
-            Account.lookupStorage,
-            clipperGetStatusSalesPackedSlot, clipperGetStatusSalesTopSlot, hbaseSlot,
-            hpackedSlotSolm, htopSlotSolm, hpackedSolm, htopSolm, hcalcSlotSolm,
-            calcAddr, top, tic, packed, id, hticClean, hticCleanSolm] using hcallPriceSolmRaw
+          have hcallPrice' := hcallPrice
+          rw [hpriceAge, ← hcalcAddrSolm, ← htopRaw, ← htopWordSolm,
+            ← htimestampSolm, ← hticWordSolm] at hcallPrice'
+          exact hcallPrice'
         have hlePriceSolm :
             (clipperGetStatusTicWord evmSolm I).toNat ≤
               (clipperTimestampWord evmSolm).toNat := by
-          simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
-            Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-            solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
-            tic, packed, hticClean, hticCleanSolm] using hle
+          rw [hticWordSolm, htimestampSolm, ← hticClean]
+          exact hle
         have hbody :=
           clipperGetStatusBodyRevertsPriceCallFailure v (evm := evmSolm)
             (evmPrice := evmPriceSolm) I (out := o)
-            (by simpa [evmSolm, initState] using hwv)
+            (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
             hlePriceSolm hcalcCodeSolm hcallPriceSolm
         exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
       · obtain ⟨_, _, rd8583⟩ :=
@@ -531,33 +528,24 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
           have hpriceDecode :
               (config v).externalABI.decode? "price" o = none :=
             clipperStatusPriceDecode_none_short hshortOut
-          have hcalcAddrSolm :
-              clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
-            simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
-              initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-              solcSlotWord, hcalcSlotSolm]
           have hcalcCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ_solm calcAddr ≠ ⟨0⟩ := by
-            intro hzero
-            exact hcalcCode (by
-              rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts calcAddr]
-              exact hzero)
+              Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩ := by
+            exact hcalcCode
           have hcalcCodeSolm :
               0 < (UInt256.ofNat
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
-            simpa [evmSolm, State.lookupAccount, initState] using
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
               clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-                (σ := σ_solm) (target := calcAddr)
+                (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE
-          obtain ⟨σ'_solm, A'_solm, hcallPriceSolmRaw, _hPostAccounts⟩ :=
-            typedCallViaEVM_initState_accountMapEquiv hcallPrice hAccounts
+          let σ'_solm := σ'
+          let A'_solm := A'
           let evmPriceSolm : EVM.State :=
             { evmSolm with
               accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' }
+              substate := A'_solm }
           have hcallPriceSolm :
               typedCallViaEVM (config v) evmSolm
                 (EVM.address (clipperStatusCalcAddress evmSolm)) "price" 0
@@ -566,24 +554,19 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                     (UInt256.sub (clipperTimestampWord evmSolm)
                       (clipperGetStatusTicWord evmSolm I)).toNat)]
                 (true, evmPriceSolm, o) false := by
-            simpa [evmSolm, evmPriceSolm, initState, clipperStatusCalcAddress,
-              clipperStatusCalcWord, clipperGetStatusTopWord, clipperGetStatusTicWord,
-              clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount, solcSlotWord,
-              Account.lookupStorage,
-              clipperGetStatusSalesPackedSlot, clipperGetStatusSalesTopSlot, hbaseSlot,
-              hpackedSlotSolm, htopSlotSolm, hpackedSolm, htopSolm, hcalcSlotSolm,
-              calcAddr, top, tic, packed, id, hticClean, hticCleanSolm] using hcallPriceSolmRaw
+            have hcallPrice' := hcallPrice
+            rw [hpriceAge, ← hcalcAddrSolm, ← htopRaw, ← htopWordSolm,
+              ← htimestampSolm, ← hticWordSolm] at hcallPrice'
+            exact hcallPrice'
           have hlePriceSolm :
               (clipperGetStatusTicWord evmSolm I).toNat ≤
                 (clipperTimestampWord evmSolm).toNat := by
-            simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
-              Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-              solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
-              tic, packed, hticClean, hticCleanSolm] using hle
+            rw [hticWordSolm, htimestampSolm, ← hticClean]
+            exact hle
           have hbody :=
             clipperGetStatusBodyRevertsPriceDecode v (evm := evmSolm)
               (evmPrice := evmPriceSolm) I (out := o)
-              (by simpa [evmSolm, initState] using hwv)
+              (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
               hlePriceSolm hcalcCodeSolm hcallPriceSolm hpriceDecode
           exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
         · have hloOut : 32 ≤ o.size := by omega
@@ -621,33 +604,26 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 UInt256.toByteArray ⟨128⟩ := by
             exact twoWordHashMem_read64_of_ge id ⟨12⟩
               (by rw [hpricePostMemSize]; omega) hpricePostRead64
-          have hcalcAddrSolm :
-              clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
-            simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
-              initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-              solcSlotWord, hcalcSlotSolm]
           have hcalcCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ_solm calcAddr ≠ ⟨0⟩ := by
-            intro hzero
-            exact hcalcCode (by
-              rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts calcAddr]
-              exact hzero)
+              Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩ := by
+            exact hcalcCode
           have hcalcCodeSolm :
               0 < (UInt256.ofNat
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
-            simpa [evmSolm, State.lookupAccount, initState] using
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
               clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-                (σ := σ_solm) (target := calcAddr)
+                (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE
-          obtain ⟨σ'_solm, A'_solm, hcallPriceSolmRaw, hPostAccounts⟩ :=
-            typedCallViaEVM_initState_accountMapEquiv hcallPrice hAccounts
+          let σ'_solm := σ'
+          let A'_solm := A'
           let evmPriceSolm : EVM.State :=
             { evmSolm with
               accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := cA' }
+              substate := A'_solm }
+          have hPostAccounts : σ' = evmPriceSolm.accountMap := by
+            rfl
           have hcallPriceSolm :
               typedCallViaEVM (config v) evmSolm
                 (EVM.address (clipperStatusCalcAddress evmSolm)) "price" 0
@@ -656,14 +632,10 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                     (UInt256.sub (clipperTimestampWord evmSolm)
                       (clipperGetStatusTicWord evmSolm I)).toNat)]
                 (true, evmPriceSolm, o) false := by
-            simpa [evmSolm, evmPriceSolm, initState, clipperStatusCalcAddress,
-              clipperStatusCalcWord, clipperGetStatusTopWord, clipperGetStatusTicWord,
-              clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount, solcSlotWord,
-              Account.lookupStorage,
-              clipperGetStatusSalesPackedSlot, clipperGetStatusSalesTopSlot, hbaseSlot,
-              hpackedSlotSolm, htopSlotSolm, hpackedSolm, htopSolm, hcalcSlotSolm,
-              calcAddr, top, tic, packed, id,
-              ageForPrice, hticClean, hticCleanSolm] using hcallPriceSolmRaw
+            have hcallPrice' := hcallPrice
+            rw [hpriceAge, ← hcalcAddrSolm, ← htopRaw, ← htopWordSolm,
+              ← htimestampSolm, ← hticWordSolm] at hcallPrice'
+            exact hcallPrice'
           have _hstatusDoneTailTrue :
               ∀
               (hleDone :
@@ -673,7 +645,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 (solcSlotWord σ' I ⟨6⟩).toNat <
                   (UInt256.sub (UInt256.ofNat I.header.timestamp)
                     (UInt256.land tic clipperSalesUint96Mask)).toNat),
-                runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+                runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
             intro hleDone htail
             obtain ⟨_, _, _rd3258⟩ :=
               Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAfterPriceDoneTailTrue
@@ -706,8 +678,8 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               solcSlotWord σ' I ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)
             have hret :
                 RDret code (Sat256.ofUInt256 g)
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                  (cA', σ')
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                  σ'
                   (clipperGetStatusReturnBytes needsWord priceWord lotWord tabWord) := by
               simpa [needsWord, usrWord, priceWord, lotWord, tabWord, packed, id] using _hret
             have hdecPrice :
@@ -717,50 +689,45 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
             have hlePriceSolm :
                 (clipperGetStatusTicWord evmSolm I).toNat ≤
                   (clipperTimestampWord evmSolm).toNat := by
-              simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
                 Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
+                solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot,
                 tic, packed, hticClean, hticCleanSolm] using hle
             have hleDoneSolm :
                 (clipperGetStatusTicWord evmSolm I).toNat ≤
                   (clipperTimestampWord evmPriceSolm).toNat := by
-              simpa [evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
                 clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                hbaseSlot, hpackedSlotSolm, tic, packed, hticClean, hticCleanSolm] using hleDone
+                hbaseSlot, tic, packed, hticClean, hticCleanSolm] using hleDone
             have htailSlotSolm :
                 solcSlotWord σ' I ⟨6⟩ = solcSlotWord σ'_solm I ⟨6⟩ := by
-              exact accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                hPostAccounts I.codeOwner ⟨6⟩ (⟨0⟩ : UInt256)
+              exact congrArg (fun m => solcSlotWord m I ⟨6⟩) hPostAccounts
             have htailSolm :
                 (clipperStatusTailWord evmPriceSolm).toNat <
                   (UInt256.sub (clipperTimestampWord evmPriceSolm)
                     (clipperGetStatusTicWord evmSolm I)).toNat := by
-              simpa [evmSolm, evmPriceSolm, initState, clipperStatusTailWord,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, evmPriceSolm, initState, clipperStatusTailWord,
                 clipperTimestampWord, clipperGetStatusTicWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage, solcSlotWord,
-                clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm, htailSlotSolm,
+                clipperGetStatusSalesPackedSlot, hbaseSlot, htailSlotSolm,
                 tic, packed, hticClean, hticCleanSolm] using htail
             have hbody :=
               clipperGetStatusBodyReturnsDoneTailTrue v (evm := evmSolm)
                 (evmPrice := evmPriceSolm) I priceWord (out := o)
-                (by simpa [evmSolm, initState] using hwv)
+                (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                 hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice hleDoneSolm htailSolm
             have hlotWordSolm :
                 lotWord = clipperGetStatusLotWord evmPriceSolm I := by
               have hslot :=
-                accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                  hPostAccounts I.codeOwner ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩)
-                  (⟨0⟩ : UInt256)
+                congrArg (fun m => solcSlotWord m I ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩)) hPostAccounts
               simpa [lotWord, evmPriceSolm, clipperGetStatusLotWord, initState,
                 Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                 solcSlotWord, clipperGetStatusSalesLotSlot, hbaseSlot] using hslot
             have htabWordSolm :
                 tabWord = clipperGetStatusTabWord evmPriceSolm I := by
               have hslot :=
-                accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                  hPostAccounts I.codeOwner ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)
-                  (⟨0⟩ : UInt256)
+                congrArg (fun m => solcSlotWord m I ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)) hPostAccounts
               simpa [tabWord, evmPriceSolm, clipperGetStatusTabWord, initState,
                 Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                 solcSlotWord, clipperGetStatusSalesTabSlot, hbaseSlot] using hslot
@@ -770,7 +737,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               simpa [needsWord, usrWord, evmSolm, initState, clipperGetStatusNeedsRedo,
                 clipperGetStatusUsrWord, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                hbaseSlot, hpackedSlotSolm, packed] using
+                hbaseSlot, packed] using
                   clipperGetStatusNeedsRedoWord_bool usrWord ⟨1⟩ true (by native_decide)
             have henc :
                 returnEquiv (clipperGetStatusReturnBytes needsWord priceWord lotWord tabWord)
@@ -783,7 +750,6 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               exact clipperGetStatusReturnEquiv needsWord
                 (clipperGetStatusNeedsRedo evmSolm I true) priceWord lotWord tabWord hneedsNorm
             exact clipperGetStatusPostCallReturnRuntime hcode hdispatch hdec hret hbody
-              (by simp [evmPriceSolm])
               (by simpa [evmPriceSolm] using hPostAccounts)
               henc
           let priceWord : UInt256 := clipperStatusPriceWord o
@@ -794,9 +760,9 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
           have hlePriceSolm :
               (clipperGetStatusTicWord evmSolm I).toNat ≤
                 (clipperTimestampWord evmSolm).toNat := by
-            simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
               Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-              solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
+              solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot,
               tic, packed, hticClean, hticCleanSolm] using hle
           by_cases hleDone :
               (UInt256.land tic clipperSalesUint96Mask).toNat ≤
@@ -804,10 +770,10 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
           · have hleDoneSolm :
                 (clipperGetStatusTicWord evmSolm I).toNat ≤
                   (clipperTimestampWord evmPriceSolm).toNat := by
-              simpa [evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
                 clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                hbaseSlot, hpackedSlotSolm, tic, packed, hticClean, hticCleanSolm] using
+                hbaseSlot, tic, packed, hticClean, hticCleanSolm] using
                 hleDone
             by_cases htailLt :
                 (solcSlotWord σ' I ⟨6⟩).toNat <
@@ -821,16 +787,15 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 exact Nat.le_of_not_gt htailLt
               have htailSlotSolm :
                   solcSlotWord σ' I ⟨6⟩ = solcSlotWord σ'_solm I ⟨6⟩ := by
-                exact accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                  hPostAccounts I.codeOwner ⟨6⟩ (⟨0⟩ : UInt256)
+                exact congrArg (fun m => solcSlotWord m I ⟨6⟩) hPostAccounts
               have htailSolm :
                   (UInt256.sub (clipperTimestampWord evmPriceSolm)
                       (clipperGetStatusTicWord evmSolm I)).toNat ≤
                     (clipperStatusTailWord evmPriceSolm).toNat := by
-                simpa [evmSolm, evmPriceSolm, initState, clipperStatusTailWord,
+                simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, evmPriceSolm, initState, clipperStatusTailWord,
                   clipperTimestampWord, clipperGetStatusTicWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, solcSlotWord,
-                  clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm, htailSlotSolm,
+                  clipperGetStatusSalesPackedSlot, hbaseSlot, htailSlotSolm,
                   tic, packed, hticClean, hticCleanSolm] using htailLe
               by_cases hmul :
                   priceWord.toNat * clipperRayWord.toNat < UInt256.size
@@ -841,14 +806,14 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                       (by simpa [priceWord] using hmul) htopZero
                       (by simp only [List.length_cons, List.length_nil]; omega)
                   have htopSolmZero : clipperGetStatusTopWord evmSolm I = ⟨0⟩ := by
-                    simpa [evmSolm, initState, clipperGetStatusTopWord,
+                    simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTopWord,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                      solcSlotWord, clipperGetStatusSalesTopSlot, hbaseSlot, htopSlotSolm,
+                      solcSlotWord, clipperGetStatusSalesTopSlot, hbaseSlot,
                       top] using htopZero
                   have hbody :=
                     clipperGetStatusBodyRevertsRdivDivZero v (evm := evmSolm)
                       (evmPrice := evmPriceSolm) I priceWord (out := o)
-                      (by simpa [evmSolm, initState] using hwv)
+                      (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                       hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice
                       hleDoneSolm htailSolm hmul htopSolmZero
                   exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdec hbody
@@ -886,13 +851,13 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                     solcSlotWord σ' I ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)
                   have hret :
                       RDret code (Sat256.ofUInt256 g)
-                        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                        (cA', σ')
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        σ'
                         (clipperGetStatusReturnBytes needsWord priceWord lotWord tabWord) := by
                     simpa [needsWord, usrWord, doneWord, ratioWord, cuspWord, priceWord,
                       lotWord, tabWord, packed, id] using _hret
                   have htopWordSolm : clipperGetStatusTopWord evmSolm I = top := by
-                    simpa [evmSolm, initState, clipperGetStatusTopWord,
+                    simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTopWord,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                       solcSlotWord, clipperGetStatusSalesTopSlot, hbaseSlot] using htopSolm.symm
                   have htopSolmNe : clipperGetStatusTopWord evmSolm I ≠ ⟨0⟩ := by
@@ -901,25 +866,20 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                   have hlotWordSolm :
                       lotWord = clipperGetStatusLotWord evmPriceSolm I := by
                     have hslot :=
-                      accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                        hPostAccounts I.codeOwner ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩)
-                        (⟨0⟩ : UInt256)
+                      congrArg (fun m => solcSlotWord m I ((solcMappingSlot ⟨12⟩ id) + ⟨2⟩)) hPostAccounts
                     simpa [lotWord, evmPriceSolm, clipperGetStatusLotWord, initState,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                       solcSlotWord, clipperGetStatusSalesLotSlot, hbaseSlot] using hslot
                   have htabWordSolm :
                       tabWord = clipperGetStatusTabWord evmPriceSolm I := by
                     have hslot :=
-                      accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                        hPostAccounts I.codeOwner ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)
-                        (⟨0⟩ : UInt256)
+                      congrArg (fun m => solcSlotWord m I ((solcMappingSlot ⟨12⟩ id) + ⟨1⟩)) hPostAccounts
                     simpa [tabWord, evmPriceSolm, clipperGetStatusTabWord, initState,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                       solcSlotWord, clipperGetStatusSalesTabSlot, hbaseSlot] using hslot
                   have hcuspWordSolm : cuspWord = clipperStatusCuspWord evmPriceSolm := by
                     have hslot :=
-                      accountMapEquiv_storage_findD (σ := σ') (τ := σ'_solm)
-                        hPostAccounts I.codeOwner ⟨7⟩ (⟨0⟩ : UInt256)
+                      congrArg (fun m => solcSlotWord m I ⟨7⟩) hPostAccounts
                     simpa [cuspWord, evmPriceSolm, clipperStatusCuspWord, initState,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                       solcSlotWord] using hslot
@@ -964,12 +924,12 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                       simpa [needsWord, usrWord, evmSolm, initState, clipperGetStatusNeedsRedo,
                         clipperGetStatusUsrWord, Solm.EVM.storageLoad, State.lookupAccount,
                         Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                        hbaseSlot, hpackedSlotSolm, packed] using
+                        hbaseSlot, packed] using
                           clipperGetStatusNeedsRedoWord_bool usrWord doneWord true hdoneNorm
                     have hbody :=
                       clipperGetStatusBodyReturnsRdivBranch v (evm := evmSolm)
                         (evmPrice := evmPriceSolm) I priceWord (out := o)
-                        (by simpa [evmSolm, initState] using hwv)
+                        (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                         hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice hleDoneSolm
                         htailSolm hmul htopSolmNe true hdoneEval
                     have henc :
@@ -985,9 +945,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                         (clipperGetStatusNeedsRedo evmSolm I true) priceWord lotWord tabWord
                         hneedsNorm
                     exact clipperGetStatusPostCallReturnRuntime hcode hdispatch hdec hret hbody
-                      (by simp [evmPriceSolm])
-                      (by simpa [evmPriceSolm] using hPostAccounts)
-                      henc
+                      (by simpa [evmPriceSolm] using hPostAccounts) henc
                   · have hratioLe :
                         (clipperStatusCuspWord evmPriceSolm).toNat ≤ ratioWord.toNat := by
                       exact Nat.le_of_not_gt hratio
@@ -1026,12 +984,12 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                       simpa [needsWord, usrWord, evmSolm, initState, clipperGetStatusNeedsRedo,
                         clipperGetStatusUsrWord, Solm.EVM.storageLoad, State.lookupAccount,
                         Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                        hbaseSlot, hpackedSlotSolm, packed] using
+                        hbaseSlot, packed] using
                           clipperGetStatusNeedsRedoWord_bool usrWord doneWord false hdoneNorm
                     have hbody :=
                       clipperGetStatusBodyReturnsRdivBranch v (evm := evmSolm)
                         (evmPrice := evmPriceSolm) I priceWord (out := o)
-                        (by simpa [evmSolm, initState] using hwv)
+                        (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                         hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice hleDoneSolm
                         htailSolm hmul htopSolmNe false hdoneEval
                     have henc :
@@ -1047,7 +1005,6 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                         (clipperGetStatusNeedsRedo evmSolm I false) priceWord lotWord tabWord
                         hneedsNorm
                     exact clipperGetStatusPostCallReturnRuntime hcode hdispatch hdec hret hbody
-                      (by simp [evmPriceSolm])
                       (by simpa [evmPriceSolm] using hPostAccounts)
                       henc
               · have hover :
@@ -1061,7 +1018,7 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 have hbody :=
                   clipperGetStatusBodyRevertsRdivMul v (evm := evmSolm)
                     (evmPrice := evmPriceSolm) I priceWord (out := o)
-                    (by simpa [evmSolm, initState] using hwv)
+                    (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                     hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice
                     hleDoneSolm htailSolm hover
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
@@ -1076,15 +1033,15 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
             have hltDoneSolm :
                 (clipperTimestampWord evmPriceSolm).toNat <
                   (clipperGetStatusTicWord evmSolm I).toNat := by
-              simpa [evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, evmPriceSolm, initState, clipperGetStatusTicWord,
                 clipperTimestampWord, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, solcSlotWord, clipperGetStatusSalesPackedSlot,
-                hbaseSlot, hpackedSlotSolm, tic, packed, hticClean, hticCleanSolm] using
+                hbaseSlot, tic, packed, hticClean, hticCleanSolm] using
                 hltDone
             have hbody :=
               clipperGetStatusBodyRevertsAgeForDone v (evm := evmSolm)
                 (evmPrice := evmPriceSolm) I priceWord (out := o)
-                (by simpa [evmSolm, initState] using hwv)
+                (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
                 hlePriceSolm hcalcCodeSolm hcallPriceSolm hdecPrice hltDoneSolm
             exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
     by_cases hle :
@@ -1104,12 +1061,12 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
       have hlePriceSolm :
           (clipperGetStatusTicWord evmSolm I).toNat ≤
             (clipperTimestampWord evmSolm).toNat := by
-        simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
+          solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot,
           tic, packed, hticClean, hticCleanSolm] using hle
       by_cases hcalcCode :
-          Reasoning.Theory.extCodeSizeWord σ_evm calcAddr ≠ ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩
       · by_cases hdepth : I.depth.val < 1024
         · exact _hstatusPricePostCall hle hcalcCode hdepth
         · have hdepthEq : I.depth = (1024 : Fin 1025) := by
@@ -1135,24 +1092,21 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
             simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
               initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-              solcSlotWord, hcalcSlotSolm]
+              solcSlotWord]
           have hcalcCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ_solm calcAddr ≠ ⟨0⟩ := by
-            intro hzero
-            exact hcalcCode (by
-              rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts calcAddr]
-              exact hzero)
+              Reasoning.Theory.extCodeSizeWord σ calcAddr ≠ ⟨0⟩ := by
+            exact hcalcCode
           have hcalcCodeSolm :
               0 < (UInt256.ofNat
                 ((evmSolm.lookupAccount (clipperStatusCalcAddress evmSolm)).option 0
                   (fun acc => acc.code.size))).toNat := by
-            simpa [evmSolm, State.lookupAccount, initState] using
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] using
               clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-                (σ := σ_solm) (target := calcAddr)
+                (σ := σ) (target := calcAddr)
                 (addr := clipperStatusCalcAddress evmSolm)
                 hcalcAddrSolm hcalcCodeSolmNE
           have hdepthInit : evmSolm.executionEnv.depth = 1024 := by
-            simpa [evmSolm, initState] using hdepthEq
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hdepthEq
           let evmPriceSolm : EVM.State :=
             { evmSolm with
               substate :=
@@ -1174,12 +1128,12 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
               simpa [priceCallMem, ageForPrice, top, id] using
                 clipperStatusPriceEncode_eq v top ageForPrice hhashMem
             have htopWordSolm : clipperGetStatusTopWord evmSolm I = top := by
-              simpa [evmSolm, initState, clipperGetStatusTopWord, Solm.EVM.storageLoad,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTopWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage, solcSlotWord,
                 clipperGetStatusSalesTopSlot, hbaseSlot] using htopSolm.symm
             have hticWordSolm : clipperGetStatusTicWord evmSolm I = tic := by
               have hpackedWord := congrArg clipperSalesPackedTicWord hpackedSolm.symm
-              simpa [evmSolm, initState, clipperGetStatusTicWord, Solm.EVM.storageLoad,
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage, solcSlotWord,
                 clipperGetStatusSalesPackedSlot, hbaseSlot, tic] using hpackedWord
             have htimestampSolm :
@@ -1216,11 +1170,11 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
           have hbody :=
             clipperGetStatusBodyRevertsPriceCallFailure v (evm := evmSolm)
               (evmPrice := evmPriceSolm) I (out := ByteArray.empty)
-              (by simpa [evmSolm, initState] using hwv)
+              (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
               hlePriceSolm hcalcCodeSolm hcallPriceSolm
           exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
       · have hcalcZero :
-            Reasoning.Theory.extCodeSizeWord σ_evm calcAddr = ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ calcAddr = ⟨0⟩ :=
           not_ne_iff.mp hcalcCode
         have hrev :=
           Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPriceNoCode
@@ -1231,10 +1185,9 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
             clipperStatusCalcAddress evmSolm = AccountAddress.ofUInt256 calcAddr := by
           simp [evmSolm, clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr,
             initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-            solcSlotWord, hcalcSlotSolm]
+            solcSlotWord]
         have hcalcZeroSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm calcAddr = ⟨0⟩ := by
-          rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts calcAddr]
+            Reasoning.Theory.extCodeSizeWord σ calcAddr = ⟨0⟩ := by
           exact hcalcZero
         have hnoCodeSolm :
             (UInt256.ofNat
@@ -1242,16 +1195,16 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
                 (fun acc => acc.code.size))).toNat = 0 := by
           rw [hcalcAddrSolm]
           unfold Reasoning.Theory.extCodeSizeWord at hcalcZeroSolm
-          simp [evmSolm, State.lookupAccount, initState] at hcalcZeroSolm ⊢
-          cases hacc : σ_solm.find? (AccountAddress.ofUInt256 calcAddr) with
+          simp [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, State.lookupAccount, initState] at hcalcZeroSolm ⊢
+          cases hacc : σ.get? (AccountAddress.ofUInt256 calcAddr) with
           | none =>
               native_decide
           | some acc =>
-              simp [hacc] at hcalcZeroSolm ⊢
+              simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc] at hcalcZeroSolm ⊢
               exact congrArg UInt256.toNat hcalcZeroSolm
         have hbody :=
           clipperGetStatusBodyRevertsPriceNoCode v evmSolm I
-            (by simpa [evmSolm, initState] using hwv)
+            (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
             hlePriceSolm hnoCodeSolm
         exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
     · have hlt :
@@ -1266,13 +1219,13 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
       have hltSolm :
           (clipperTimestampWord evmSolm).toNat <
             (clipperGetStatusTicWord evmSolm I).toNat := by
-        simpa [evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, clipperGetStatusTicWord, clipperTimestampWord,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot, hpackedSlotSolm,
+          solcSlotWord, clipperGetStatusSalesPackedSlot, hbaseSlot,
           tic, packed, hticClean, hticCleanSolm] using hlt
       have hbody :=
         clipperGetStatusBodyRevertsAgeForPrice v evmSolm I
-          (by simpa [evmSolm, initState] using hwv)
+          (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState] using hwv)
           hltSolm
       exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
   · exact clipperGetStatusBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4

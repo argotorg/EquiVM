@@ -32,18 +32,18 @@ theorem endLiveArmsWellFormed :
     (dsimp [armWellFormed]
      repeat' first | apply And.intro | native_decide)
 
-theorem endReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endLiveConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endLiveEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x957aa58c⟩ :=
     endSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
       (by native_decide) (by simpa [selIs, endLiveConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup223FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup223FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -63,7 +63,7 @@ theorem endReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endLiveBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some liveTransition)
@@ -71,20 +71,19 @@ theorem endLiveBodyCore
       decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
         (transitionSignature liveTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endLiveEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endLiveEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (liveWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
     simpa [liveTransition, liveWord, endSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
         (slot := ⟨8⟩)
         (by simp only [initState]; exact hwv) (by simp [liveRef])
@@ -92,7 +91,7 @@ theorem endLiveBodyCore
         (by decide) (by rfl)
   exact endUint256GetterBodyCore (entry := endLiveEntryPc)
     (returnPc := endWordReturnPc) (routine := endLiveRoutinePc) (slot := ⟨8⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -106,18 +105,16 @@ theorem endLiveBodyCore
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [liveWord] using hbody)
 
-theorem endLiveBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endLiveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf liveTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf liveTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endLiveConcreteSelector := by
     simpa [endLiveSelectorBytes, endLiveConcreteSelector] using hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endLiveConcreteSelector (by rfl) hsel'
   exact endLiveBodyCore hcode hwv (endDispatchLive hsel) (endDecode_live hsz)
     (endReachLiveBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel')
-    hAccounts
 
 end Benchmarks.Dss.End

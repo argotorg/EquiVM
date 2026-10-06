@@ -10,7 +10,7 @@ namespace SimpleAuction
 /-! ## `beneficiary()` getter -/
 
 def beneficiaryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 abbrev beneficiaryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (beneficiaryWord σ I) solcAddrMask
@@ -36,12 +36,12 @@ theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
       simpa [simpleAuctionAddrLoc] using
         congrArg EvalResult.ok (simpleAuctionStorageLocLoad_address_offset0 evm ⟨0⟩))
 
-theorem simpleAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_beneficiary {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret simpleAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (beneficiaryReturnWord σ I)) := by
   obtain ⟨_, _, rd144⟩ := hreach
   have rd155 := evm_run rd144 with [
@@ -63,12 +63,12 @@ theorem simpleAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [beneficiaryReturnWord, hclean] using hret
 
-theorem simpleAuctionX_beneficiary_nonzero {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem simpleAuctionX_beneficiary_nonzero {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨144⟩ [simpleAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev simpleAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd144⟩ := hreach
   exact evm_run rd144 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨155⟩,
@@ -105,42 +105,38 @@ theorem simpleAuctionDecode_beneficiary {I : ExecutionEnv} (hsz : 4 ≤ I.callda
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem simpleAuctionBeneficiaryBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨144⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨144⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+      σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := simpleAuctionBeneficiarySelector_size hsel
   have hd := simpleAuctionDispatch_beneficiary (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_beneficiary (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hword : beneficiaryWord σ_evm I = beneficiaryWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
-    have hbody :
-        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
-          (.returned { contract := simpleAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some [(.address (AccountAddress.ofNat (beneficiaryReturnWord σ_solm I).toNat))])) := by
-      simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
-        State.lookupAccount] using simpleAuctionBeneficiaryBodyReturns
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-          (by simp only [initState]; exact hwv) (by simp)
-    exact (simpleAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
-      |>.reEquivExecutionTransport hcode hd hdec hbody
-        (by simp [beneficiaryReturnWord, hword]) hAccounts
-        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ_evm I)))
   · have hbody :
         ExecTransitionBody simpleAuctionConfig simpleAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
+          (.returned { contract := simpleAuctionContract, locals := ∅ }
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (some [(.address (AccountAddress.ofNat (beneficiaryReturnWord σ I).toNat))])) := by
+      simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount] using simpleAuctionBeneficiaryBodyReturns
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (by simp only [initState]; exact hwv) (by simp)
+    exact (simpleAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
+      |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
+        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ I)))
+  · have hbody :
+        ExecTransitionBody simpleAuctionConfig simpleAuctionContract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ beneficiaryGetter.body
           .reverted := by
       exact bodyReverts_nonPayable (by simp only [initState]; exact hwv)
     exact (simpleAuctionX_beneficiary_nonzero (g := Sat256.ofUInt256 g) hwv hreach)

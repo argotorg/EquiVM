@@ -56,20 +56,20 @@ theorem createStoresSource {evm locals noun start finish}
       _ ha (by native_decide) rfl (by trivial) (storageLocStore_settledFalse _ ⟨211⟩)))
   exact ExecBlock.nil
 
-theorem durationSourceRead {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hd : locals.get? "duration" = none) :
+theorem durationSourceRead {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hd : locals.get? "duration" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage durationRef) = .ok (.int (Int.ofNat (storedWord σ I ⟨206⟩).toNat)) := by
   rw [durationRef, scalarRead evm locals "duration" (.int uint256Int) (auctionUint256Loc ⟨206⟩)
-    hd (by native_decide) rfl, loadUint256, storedWord_equiv hs.accounts, ← hs.env]
+    hd (by native_decide) rfl, loadUint256, hs.accounts, ← hs.env]
   rfl
 
 def createdLocals (locals : Store) (start finish : UInt256) : Store :=
   (locals.insert "startTime" (.int (Int.ofNat start.toNat))).insert "endTime"
     (.int (Int.ofNat finish.toNat))
 
-theorem createSuccessSource {s0 I cA σ evm locals noun}
-    (hs : SourceState s0 I cA σ evm) (ha : locals.get? "auction" = none)
+theorem createSuccessSource {s0 I σ evm locals noun}
+    (hs : SourceState s0 I σ evm) (ha : locals.get? "auction" = none)
     (hd : locals.get? "duration" = none)
     (hn : locals.get? "nounId" = some (.int (Int.ofNat (UInt256.toNat noun))))
     (hno : (UInt256.ofNat I.header.timestamp).toNat + (storedWord σ I ⟨206⟩).toNat < UInt256.size) :
@@ -91,8 +91,8 @@ theorem createSuccessSource {s0 I cA σ evm locals noun}
     ((store_get_ne _ _ (by decide)).trans ((store_get_ne _ _ (by decide)).trans hn))
     ((store_get_ne _ _ (by decide)).trans (store_get_self _ _ _)) (store_get_self _ _ _)
 
-theorem createSuccessSourceOverflow {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hd : locals.get? "duration" = none)
+theorem createSuccessSourceOverflow {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hd : locals.get? "duration" = none)
     (hover : UInt256.size ≤ (UInt256.ofNat I.header.timestamp).toNat +
       (storedWord σ I ⟨206⟩).toNat) :
     ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm createSuccessStmts

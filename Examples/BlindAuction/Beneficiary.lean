@@ -13,7 +13,7 @@ namespace BlindAuction
 /-! ## `beneficiary()` getter -/
 
 def beneficiaryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 abbrev beneficiaryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (beneficiaryWord σ I) solcAddrMask
@@ -40,12 +40,12 @@ theorem blindAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
         (hty := hty) (hloc := blindAuctionConfig_storage_beneficiary),
         blindAuctionStorageLocLoad_address_offset0])
 
-theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_beneficiary {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨278⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨278⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret blindAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (beneficiaryReturnWord σ I)) := by
   obtain ⟨_, _, rd278⟩ := hreach
   have rd289 := evm_run rd278 with [
@@ -54,9 +54,9 @@ theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd292 := evm_run rd289 with [jumpdest, pop, push0]
   obtain ⟨_, _, rd293₀⟩ := rd292.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd293⟩ :
-      ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨293⟩
+      ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨293⟩
         [beneficiaryWord σ I, blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [beneficiaryWord, initState] using rd293₀⟩
   have rd308 := evm_run rd293 with [
     push2 ⟨308⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩,
@@ -75,12 +75,12 @@ theorem blindAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [beneficiaryReturnWord, hclean] using hret
 
-theorem blindAuctionX_beneficiary_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_beneficiary_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨278⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨278⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd278⟩ := hreach
   have rd286 := evm_run rd278 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨289⟩,
@@ -121,18 +121,16 @@ theorem blindAuctionDecode_beneficiary {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
   exact decodeCalldata_empty_ok hsz
 
 /-- `beneficiary()` getter body (pc 278) refines its transition. -/
-theorem blindAuctionBeneficiaryBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem blindAuctionBeneficiaryBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨278⟩
-      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
-      k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
- :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨278⟩
+      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
+      k C) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
 
@@ -140,30 +138,27 @@ theorem blindAuctionBeneficiaryBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
   have hd := blindAuctionDispatch_beneficiary (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_beneficiary (I := I) hsz
   by_cases hwv : I.weiValue = ⟨0⟩
-  · have hword : beneficiaryWord σ_evm I = beneficiaryWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
-    have hbody :
-        ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-          beneficiaryGetter.body
-          (.returned { contract := blindAuctionContract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some [(.address (AccountAddress.ofNat (beneficiaryReturnWord σ_solm I).toNat))])) := by
-      simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
-        State.lookupAccount] using blindAuctionBeneficiaryBodyReturns
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-          (by simp only [initState]; exact hwv) (by simp)
-    exact (blindAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
-      |>.reEquivExecutionTransport hcode hd hdec hbody
-        (by simp [beneficiaryReturnWord, hword]) hAccounts
-        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ_evm I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          beneficiaryGetter.body
+          (.returned { contract := blindAuctionContract, locals := ∅ }
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (some [(.address (AccountAddress.ofNat (beneficiaryReturnWord σ I).toNat))])) := by
+      simpa [beneficiaryWord, beneficiaryReturnWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount] using blindAuctionBeneficiaryBodyReturns
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (by simp only [initState]; exact hwv) (by simp)
+    exact (blindAuctionX_beneficiary (g := Sat256.ofUInt256 g) hwv hreach)
+      |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
+        (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (beneficiaryWord σ I)))
+  · have hbody :
+        ExecTransitionBody blindAuctionConfig blindAuctionContract
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           beneficiaryGetter.body .reverted := by
       simpa [beneficiaryGetter, initState] using
         (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
-          (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (locals := (∅ : Store))
           (rest := [.return [(.storage beneficiaryRef)]])
           (by simp only [initState]; exact hwv))

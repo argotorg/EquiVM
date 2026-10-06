@@ -82,14 +82,14 @@ theorem clipperChipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals
       (clipperEvalChip v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachChipBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachChipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 3)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1258⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1258⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperChipSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
@@ -281,41 +281,30 @@ theorem clipperJumpDest6743 (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 3))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 3)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 3) (by native_decide) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ chipTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chipTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (UInt256.land (solcSlotWord σ_solm I ⟨8⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (UInt256.land (solcSlotWord σ I ⟨8⟩)
             (UInt256.ofNat (2 ^ 64 - 1))).toNat))])) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperChipBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hword : solcSlotWord σ_evm I ⟨8⟩ = solcSlotWord σ_solm I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat
-          (UInt256.land (solcSlotWord σ_solm I ⟨8⟩)
-            (UInt256.ofNat (2 ^ 64 - 1))).toNat)] =
-        some [Value.int (Int.ofNat
-          (UInt256.land (solcSlotWord σ_evm I ⟨8⟩)
-            (UInt256.ofNat (2 ^ 64 - 1))).toNat)] := by
-    rw [hword]
   have henc :
       returnEquiv
         (UInt256.toByteArray
-          (UInt256.land (solcSlotWord σ_evm I ⟨8⟩) (UInt256.ofNat (2 ^ 64 - 1))))
+          (UInt256.land (solcSlotWord σ I ⟨8⟩) (UInt256.ofNat (2 ^ 64 - 1))))
         (some [(.int (Int.ofNat
-          (UInt256.land (solcSlotWord σ_evm I ⟨8⟩)
+          (UInt256.land (solcSlotWord σ I ⟨8⟩)
             (UInt256.ofNat (2 ^ 64 - 1))).toNat))])
         chipTransition.returnType := by
     rw [show chipTransition.returnType = [uint64] from rfl]
@@ -323,14 +312,14 @@ theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
       (by
         simpa [uint64] using
           uintReturnEncoding ⟨64, by decide⟩
-            (UInt256.land (solcSlotWord σ_evm I ⟨8⟩) (UInt256.ofNat (2 ^ 64 - 1)))
-            (u256LandMaskToNatLtOfToNat (solcSlotWord σ_evm I ⟨8⟩)
+            (UInt256.land (solcSlotWord σ I ⟨8⟩) (UInt256.ofNat (2 ^ 64 - 1)))
+            (u256LandMaskToNatLtOfToNat (solcSlotWord σ I ⟨8⟩)
               (UInt256.ofNat (2 ^ 64 - 1)) (by native_decide)))
-  have hreach := clipperReachChipBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachChipBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
-  have hret := clipperPackedUintGetterExternal (code := code) (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+  have hret := clipperPackedUintGetterExternal (code := code)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := clipperSelWord I) (entry := (⟨1258⟩ : UInt256))
     (routine := (⟨6743⟩ : UInt256)) (slot := (⟨8⟩ : UInt256))
     (returnPc := (⟨1266⟩ : UInt256)) (mask := UInt256.ofNat (2 ^ 64 - 1))
@@ -339,7 +328,7 @@ theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
     (by native_decide) (clipperJumpDest6743 v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨1266⟩ : UInt256) (by native_decide))
     (clipperChipReturnMaskedWf v hpatch)
-  exact hret.reEquivExecutionTransport hcode (clipperDispatch_chip v hsel)
-    (clipperDecode_chip v hsz) hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode (clipperDispatch_chip v hsel)
+    (clipperDecode_chip v hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

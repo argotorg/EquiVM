@@ -96,12 +96,12 @@ theorem mintFeeSqrtPrefixSmall
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {o o1 outFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 toWord sel : UInt256} {zFee : Bool}
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
         reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
@@ -113,7 +113,7 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
       (feeToStaticcallMem
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
         outFee)
-      feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -133,7 +133,7 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
           reserve112Mask =
         reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
       [UInt256.mul
           (reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)
           (reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I),
@@ -148,7 +148,7 @@ theorem uniswapMintFeeRuntimeFactoryResultFeeOnKLastNonzeroRootEntry
       (feeToStaticcallMem
         (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
         outFee)
-      feeToStaticcallActiveWords outFee (cAFee, σFee) k' C' := by
+      feeToStaticcallActiveWords outFee σFee k' C' := by
   obtain ⟨_, _, hdecoded⟩ :=
     uniswapMintFeeRuntimeFactoryResultBranchesFromCall rd7781 ho32 hoSize ho132 ho1Size
       houtFeeSize

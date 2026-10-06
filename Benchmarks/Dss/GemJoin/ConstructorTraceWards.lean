@@ -12,22 +12,20 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd68 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨68⟩
+        (initState σ σ₀ g0 A I) ⟨68⟩
         [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨85⟩
+      (initState σ σ₀ g0 A I) ⟨85⟩
       [⟨1⟩, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ (gemJoinCtorCallerWardsSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σ (gemJoinCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   have rdBeforeHash := gem_ctor_run rd68 with [
     push1 ⟨0⟩, swap1, dup2,

@@ -286,7 +286,7 @@ theorem burnFunctionAfterBalance_codeOwner (evm : EVM.State)
     (burnFunctionAfterBalanceState evm holder value).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [burnFunctionAfterBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 

@@ -7,12 +7,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.solcCallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     {k C : ℕ} {gasArg target inOffset inSize outOffset outSize : UInt256}
     {t : List UInt256}
     (h : RD code ee g s0 pc
           (gasArg :: target :: ⟨0⟩ :: inOffset :: inSize :: outOffset :: outSize :: t)
-          mem aw rdata (cA, σ) k C)
+          mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hdepth : ee.depth = 1024)
     (hov : t.length + 1 ≤ 1024) :
@@ -21,7 +21,7 @@ theorem RD.solcCallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)
         (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
           outOffset.toNat outSize.toNat))
-        ByteArray.empty (cA, σ) k' C' := by
+        ByteArray.empty σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hworld⟩
@@ -69,8 +69,7 @@ theorem RD.solcCallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
       (⟨0⟩ : UInt256) s.accountMap s.substate with hce
     set gv := (s.machineState.gasAvailable.subNat mc).subNat (gc - (UInt256.ofNat G).toNat)
       with hgv
-    have hcA : s.createdAccounts = cA := congrArg Prod.fst hacc
-    have hσ : s.accountMap = σ := congrArg Prod.snd hacc
+    have hσ : s.accountMap = σ := hacc
     split at hXP
     · exact ⟨k, C, by unfold RD; exact Or.inl hXP⟩
     · rename_i hP
@@ -120,7 +119,7 @@ theorem RD.solcCallDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
       · simp [hmem]
       · rw [haw]
       · rfl
-      · simp [hcA, hσ]
+      · simp [hσ]
       · exact hee
       · exact hworld
 

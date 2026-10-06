@@ -754,16 +754,16 @@ theorem execRpowLoopBodyRevertZXRound {evm : EVM.State} {locals : Store}
   simpa [rpowLoopBody_eq_prefix_tail] using happ
 
 theorem RD.jugDripRpowLoopExit
-    {cA gh bl σ σ₀ A I} {g half scratch z b x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (rd2196 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
       (half :: scratch :: z :: b :: ⟨0⟩ :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
       (z :: R) mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2202 := evm_run rd2196 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -789,17 +789,17 @@ theorem RD.jugDripRpowLoopExit
   exact ⟨_, _, by simpa using rd1524⟩
 
 theorem RD.jugDripRpowLoopBodyEntry
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
     (rd2196 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k' C' := by
   have rd2202 := evm_run rd2196 with [
@@ -812,17 +812,17 @@ theorem RD.jugDripRpowLoopBodyEntry
   exact ⟨_, _, by simpa using rd2203⟩
 
 theorem RD.jugDripRpowLoopRevertXX
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ x.toNat * x.toNat)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hdivNe : UInt256.div (x * x) x ≠ x :=
     u256_mul_div_overflow_ne x x hover
   have rd2214 := evm_run rd2203 with [
@@ -843,18 +843,18 @@ theorem RD.jugDripRpowLoopRevertXX
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripRpowLoopRevertXXRound
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : x.toNat * x.toNat < UInt256.size)
     (hover : UInt256.size ≤ (x * x).toNat + half.toNat)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   have hdivWord : UInt256.div xx x = x := by
     by_cases hx0 : x = ⟨0⟩
@@ -904,22 +904,22 @@ theorem RD.jugDripRpowLoopRevertXXRound
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripRpowLoopOddTailEntry
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (hodd : n.toNat % 2 ≠ 0)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     let xx := x * x
     let xxRound := xx + half
     let x' := UInt256.div xxRound b
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2251⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2251⟩
       (half :: scratch :: z :: b :: n :: x' :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k' C' := by
   intro xx xxRound x'
@@ -996,8 +996,8 @@ theorem RD.jugDripRpowLoopOddTailEntry
   exact ⟨_, _, by simpa [xx, xxRound, x'] using rd2251⟩
 
 theorem RD.jugDripRpowLoopRevertZX
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -1006,11 +1006,11 @@ theorem RD.jugDripRpowLoopRevertZX
     (hover :
       UInt256.size ≤ z.toNat * (UInt256.div ((x * x) + half) b).toNat)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
@@ -1070,8 +1070,8 @@ theorem RD.jugDripRpowLoopRevertZX
     (by simp only [List.length_cons]; omega)
 
 theorem RD.jugDripRpowLoopRevertZXRound
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -1083,11 +1083,11 @@ theorem RD.jugDripRpowLoopRevertZXRound
       UInt256.size ≤
         (z * UInt256.div ((x * x) + half) b).toNat + half.toNat)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let xx := x * x
   let xxRound := xx + half
   let x' := UInt256.div xxRound b
@@ -1162,15 +1162,15 @@ theorem RD.jugDripRpowLoopRevertZXRound
     (by simp only [List.length_cons]; omega)
 
 theorem RD.jugDripRpowLoopStepEven
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
     (hfitXXRound : (x * x).toNat + half.toNat < UInt256.size)
     (heven : n.toNat % 2 = 0)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     let xx := x * x
@@ -1178,7 +1178,7 @@ theorem RD.jugDripRpowLoopStepEven
     let x' := UInt256.div xxRound b
     let n' := UInt256.div n ⟨2⟩
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
       (half :: scratch :: z :: b :: n' :: x' :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k' C' := by
   intro xx xxRound x' n'
@@ -1263,8 +1263,8 @@ theorem RD.jugDripRpowLoopStepEven
   exact ⟨_, _, by simpa [xx, xxRound, x', n', hland] using rd2196⟩
 
 theorem RD.jugDripRpowLoopStepOdd
-    {cA gh bl σ σ₀ A I} {g half scratch z b n x : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g half scratch z b n x : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -1275,7 +1275,7 @@ theorem RD.jugDripRpowLoopStepOdd
     (hfitZXRound :
       (z * UInt256.div ((x * x) + half) b).toNat + half.toNat < UInt256.size)
     (rd2203 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2203⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     let xx := x * x
@@ -1286,7 +1286,7 @@ theorem RD.jugDripRpowLoopStepOdd
     let z' := UInt256.div zxRound b
     let n' := UInt256.div n ⟨2⟩
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
       (half :: scratch :: z' :: b :: n' :: x' :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k' C' := by
   intro xx xxRound x' zx zxRound z' n'
@@ -1448,16 +1448,16 @@ theorem RD.jugDripRpowLoopStepOdd
 
 set_option maxHeartbeats 4000000 in
 theorem rpowLoopCoupled
-    {cA gh bl σ σ₀ A I} {g half scratch x n b z : UInt256}
+    {σ σ₀ A I} {g half scratch x n b z : UInt256}
     {evm : EVM.State} {locals : Store}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C v : ℕ}
     (hRlen : R.length ≤ 1000)
     (hstore : RpowLoopStore x n b z half locals)
     (hb : b ≠ ⟨0⟩)
     (hle : n.toNat ≤ v)
     (rd2196 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2196⟩
       (half :: scratch :: z :: b :: n :: x :: ⟨1524⟩ :: R)
       mem (UInt256.ofNat 6) out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
@@ -1466,12 +1466,12 @@ theorem rpowLoopCoupled
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody)
         (.ok { contract := contract, locals := localsFinal } evm) ∧
       RD jugBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1524⟩
         (zFinal :: R) mem (UInt256.ofNat 6) out acc k' C') ∨
     (ExecStmt config { contract := contract, locals := locals } evm
         (.while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody) .reverted ∧
       RDrev jugBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   revert x n z locals k C
   induction v with
   | zero =>

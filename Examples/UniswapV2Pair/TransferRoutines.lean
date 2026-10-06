@@ -107,9 +107,9 @@ def uniswapSafeMathAddOverflowStringWord : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathSubUnderflow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
-      mem (UInt256.ofNat 3) rdata acc k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hlt : a.toNat < b.toNat)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -134,9 +134,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {a b ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6879⟩ (b :: a :: ret :: R)
-      mem (UInt256.ofNat 6) rdata acc k C)
+      mem (UInt256.ofNat 6) rdata σ k C)
     (hlt : a.toNat < b.toNat)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -205,9 +205,9 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨8515⟩ (b :: a :: ret :: R)
-      mem (UInt256.ofNat 3) rdata acc k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hover : UInt256.size ≤ a.toNat + b.toNat)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -259,10 +259,10 @@ set_option maxHeartbeats 4000000 in
 theorem RD.uniswapTransferInternalStoreCreditMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {newTo value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7604⟩
       (newTo :: value :: toWord :: src :: ret :: R)
-      (uniswapTransferToHashMemOf src toWord mem) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (uniswapTransferToHashMemOf src toWord mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
     (hcanonTo : toWord.toNat < EVM.addressModulus)
@@ -270,7 +270,7 @@ theorem RD.uniswapTransferInternalStoreCreditMem {g : Sat256} {s0 : State}
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferCreditHashMemOf src toWord mem) (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (mapSlot toWord ⟨1⟩) newTo) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (mapSlot toWord ⟨1⟩) newTo) k' C' := by
   simpa [solcSingleMappingStoreCreditOutPc, uniswapTransferCreditHashMemOf,
     uniswapTransferToHashMemOf, mapSlot, solcMappingSlot] using
     RD.solcSingleMappingStoreCreditMem
@@ -429,10 +429,10 @@ set_option maxHeartbeats 4000000 in
 theorem RD.uniswapTransferInternalEmitAndJumpMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7638⟩
       (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
-      (uniswapTransferCreditHashMemOf src toWord mem) (UInt256.ofNat 3) rdata acc k C)
+      (uniswapTransferCreditHashMemOf src toWord mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true)
@@ -440,7 +440,7 @@ theorem RD.uniswapTransferInternalEmitAndJumpMem {g : Sat256} {s0 : State}
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
-      (uniswapTransferLogMemOf src toWord value mem) (UInt256.ofNat 5) rdata acc k' C' := by
+      (uniswapTransferLogMemOf src toWord value mem) (UInt256.ofNat 5) rdata σ k' C' := by
   simpa [uniswapTransferLogMemOf] using
     RD.solcMaskedTransferLog3AndJump
       (code := UniswapV2Pair.uniswapV2PairBytecode) (pc := ⟨7638⟩)
@@ -460,13 +460,13 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromContinuationReturnTrue {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {discard value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3082⟩
-      (discard :: value :: toWord :: src :: ret :: R) mem aw rdata acc k C)
+      (discard :: value :: toWord :: src :: ret :: R) mem aw rdata σ k C)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
-      (⟨1⟩ :: R) mem aw rdata acc k' C' := by
+      (⟨1⟩ :: R) mem aw rdata σ k' C' := by
   exact RD.solcDiscard4ReturnTrue (pc := ⟨3082⟩) h
     (by
       unfold solcDiscard4ReturnTrueWf
@@ -533,10 +533,10 @@ set_option maxHeartbeats 4000000 in
 theorem RD.uniswapTransferFromFiniteAllowanceStoreMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {newAllowance discard value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3034⟩
       (newAllowance :: discard :: value :: toWord :: src :: ret :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
@@ -545,7 +545,7 @@ theorem RD.uniswapTransferFromFiniteAllowanceStoreMem {g : Sat256} {s0 : State}
       (discard :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMemOf src (uniswapSourceWord ee) mem)
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)) newAllowance) k' C' := by
   simpa [solcNestedMappingCallerStoreMemOutPc, solcNestedMappingCallerHashMem,
     uniswapTransferFromAllowanceStoreMemOf, uniswapSourceWord, mapSlot, solcMappingSlot] using
@@ -563,10 +563,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromFiniteAllowanceStore {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {newAllowance discard value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3034⟩
       (newAllowance :: discard :: value :: toWord :: src :: ret :: R)
-      (uniswapApproveHashMem src (uniswapSourceWord ee)) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (uniswapApproveHashMem src (uniswapSourceWord ee)) (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
@@ -574,7 +574,7 @@ theorem RD.uniswapTransferFromFiniteAllowanceStore {g : Sat256} {s0 : State}
       (discard :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)) newAllowance) k' C' := by
   obtain ⟨_, _, rd3071⟩ := RD.uniswapTransferFromFiniteAllowanceStoreMem
     h (uniswapApproveHashMem_size src (uniswapSourceWord ee)) hperm hcanonSrc hov
@@ -584,10 +584,10 @@ set_option maxHeartbeats 4000000 in
 theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
       (value :: toWord :: src :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hnotMax :
       (uniswapCodeOwnerStorageWord ee σ
@@ -600,7 +600,7 @@ theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : Sta
           (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)) ::
         ⟨3034⟩ :: ⟨0⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   have hnotMax' :
       (solcSlotWord σ ee
         (solcMappingSlot (solcMappingSlot (⟨2⟩ : UInt256) src) (solcSourceWord ee))).toNat ≠
@@ -653,10 +653,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
       (value :: toWord :: src :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hnotMax :
       (uniswapCodeOwnerStorageWord ee σ
@@ -672,7 +672,7 @@ theorem RD.uniswapTransferFromAllowanceFiniteBranch {g : Sat256} {s0 : State}
             (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))) value ::
         ⟨0⟩ :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   let allowanceSlot := mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)
   let allowanceWord := uniswapCodeOwnerStorageWord ee σ allowanceSlot
   have hallowance' : value.toNat ≤ allowanceWord.toNat := by
@@ -689,10 +689,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromAllowanceFailureBranch {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
       (value :: toWord :: src :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hnotMax :
       (uniswapCodeOwnerStorageWord ee σ
@@ -723,10 +723,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromAllowanceFiniteToInternal {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
       (value :: toWord :: src :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hnotMax :
@@ -742,7 +742,7 @@ theorem RD.uniswapTransferFromAllowanceFiniteToInternal {g : Sat256} {s0 : State
       (uniswapTransferFromAllowanceStoreMemOf src (uniswapSourceWord ee)
         (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee)))
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))
         (UInt256.sub
           (uniswapCodeOwnerStorageWord ee σ
@@ -764,10 +764,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTransferFromFiniteAllowanceToInternal {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {newAllowance discard value toWord src ret : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨3034⟩
       (newAllowance :: discard :: value :: toWord :: src :: ret :: R)
-      (uniswapApproveHashMem src (uniswapSourceWord ee)) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (uniswapApproveHashMem src (uniswapSourceWord ee)) (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
@@ -775,7 +775,7 @@ theorem RD.uniswapTransferFromFiniteAllowanceToInternal {g : Sat256} {s0 : State
       (value :: toWord :: src :: ⟨3082⟩ :: discard :: value :: toWord :: src :: ret :: R)
       (uniswapTransferFromAllowanceStoreMem src (uniswapSourceWord ee))
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩)) newAllowance) k' C' := by
   obtain ⟨_, _, rd3071⟩ := RD.uniswapTransferFromFiniteAllowanceStore
     h hperm hcanonSrc hov

@@ -14,8 +14,8 @@ namespace Benchmarks.Dss.Clipper
 set_option maxHeartbeats 8000000 in
 theorem clipperTakeNonzeroStoreContinuationEquiv
     (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cACb : Batteries.RBSet AccountAddress compare} {σCbEvm : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σCbEvm : AccountMap}
     {evmCb : EVM.State} {locals : Store}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
@@ -29,16 +29,13 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
     (rd4701 : RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw rdata (cACb, σCbEvm) k C)
+      mem aw rdata σCbEvm k C)
     (hmem : clipperTakeMemoryWF mem aw)
-    (hAccountsCb : accountMapEquiv σCbEvm evmCb.accountMap)
+    (hAccountsCb : Eq σCbEvm evmCb.accountMap)
     (hevmCbSigma0 : evmCb.σ₀ = σ₀)
-    (hevmCbCreated : evmCb.createdAccounts = cACb)
-    (hevmCbGenesis : evmCb.genesisBlockHeader = gh)
-    (hevmCbBlocks : evmCb.blocks = bl)
     (hevmCbEnv : evmCb.executionEnv = I)
     (hdogClean : UInt256.land solcAddrMask dog = dog)
     (howe : locals.get? "owe" = some (.int (Int.ofNat owe.toNat)))
@@ -58,7 +55,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
           clipperTakeAfterMoveStmts v) .reverted →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted)
     (hsourceReturned : ∀ {finalFrame : Frame} {finalEvm : EVM.State},
       ExecBlock (config v) (Frame.mk (contract v) locals) evmCb
@@ -66,18 +63,18 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
           clipperTakeAfterMoveStmts v) (.ok finalFrame finalEvm) →
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body
         (.returned finalFrame finalEvm none))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
+      σ σ₀ g A I := by
   let evmCbEvm : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := σCbEvm, createdAccounts := cACb }
+    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+      accountMap := σCbEvm }
   have hvowWord : clipperTakeVowTarget σCbEvm I = clipperTakeVowEVMWord evmCb := by
-    have hslot := accountMapEquiv_storage_findD hAccountsCb I.codeOwner ⟨2⟩ ⟨0⟩
-    simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+    have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hslot]
   have hdogAddress : AccountAddress.ofNat dog.toNat =
@@ -87,13 +84,13 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     (v := v) (evm := evmCb) howe hvow
   have closeRevert
       (hrev : RDrev code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I))
       (htail : ExecBlock (config v) (Frame.mk (contract v) locals) evmCb
         (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
           clipperTakeAfterMoveStmts v) .reverted) :
       runtimeEquivalenceFor (config v) (contract v)
-        cA gh bl σ_evm σ_solm σ₀ g A I :=
+        σ σ₀ g A I :=
     hrev.reEquivExecutionRevert hcode hdispatch hdec (hsourceReverted htail)
   apply RD.clipperTakeGeneralContinuationElim v hpatch rd4701 hmem hdepth hperm (by simp)
   · intro hnoCode hrev
@@ -101,26 +98,32 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (UInt256.ofNat
           ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-          hAccountsCb (clipperTakeVatTargetAddress v).symm hnoCode
+        clipperExtCodeSizeWord_zero_lookup_code_zero
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsCb] using hnoCode)
     exact closeRevert hrev
       (execBlockAppendReverted (clipperTakeGenericVatMoveNoCode hnoCodeSolm))
-  · intro cAMove σMove outMove AMove hmoveCode hcallMove hrev
+  · intro σMove outMove AMove hmoveCode hcallMove hrev
     let evmMoveEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σMove, substate := AMove, createdAccounts := cAMove }
-    obtain ⟨evmMove, hcallMoveSolm, _, _, _, _, _, _⟩ :=
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σMove, substate := AMove }
+    obtain ⟨evmMove,
+      hcallMoveSolm,
+      _,
+      _,
+      _⟩ :=
       clipperTypedCallSyncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
-        (by simp [evmCbEvm, hevmCbCreated])
-        (by simp [evmCbEvm, initState, hevmCbGenesis])
-        (by simp [evmCbEvm, initState, hevmCbBlocks])
+
+
+
         (by simp [evmCbEvm, initState, hevmCbEnv]) hcallMove
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsCb (clipperTakeVatTargetAddress v).symm hmoveCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM (config v) evmCb
         (EVM.address v.vat) "move" 0
         [.address evmCb.executionEnv.source,
@@ -130,28 +133,33 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
     exact closeRevert hrev
       (execBlockAppendReverted
         (clipperTakeGenericVatMoveFailure hmoveArgs hmoveCodeSolm hcallMoveSolm'))
-  · intro _ _ _ _ hlotZero _ _ _ _
+  · intro _ _ _ hlotZero _ _ _ _
     exact (hlotNe hlotZero).elim
-  · intro _ _ _ _ _ _ _ _ hlotZero _ _ _ _ _
+  · intro _ _ _ _ _ _ hlotZero _ _ _ _ _
     exact (hlotNe hlotZero).elim
-  · intro _ _ _ _ _ _ _ _ _ _ hlotZero _ _ _ _ _ _
+  · intro _ _ _ _ _ _ _ _ hlotZero _ _ _ _ _ _
     exact (hlotNe hlotZero).elim
-  · intro cAMove σMove outMove AMove _hlot hmoveCode hcallMove hdogNoCode hrev
+  · intro σMove outMove AMove _hlot hmoveCode hcallMove hdogNoCode hrev
     let evmMoveEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σMove, substate := AMove, createdAccounts := cAMove }
-    obtain ⟨evmMove, hcallMoveSolm, hAccountsMove, _, _, _, _, _⟩ :=
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σMove, substate := AMove }
+    obtain ⟨evmMove,
+      hcallMoveSolm,
+      hAccountsMove,
+      _,
+      _⟩ :=
       clipperTypedCallSyncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
-        (by simp [evmCbEvm, hevmCbCreated])
-        (by simp [evmCbEvm, initState, hevmCbGenesis])
-        (by simp [evmCbEvm, initState, hevmCbBlocks])
+
+
+
         (by simp [evmCbEvm, initState, hevmCbEnv]) hcallMove
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsCb (clipperTakeVatTargetAddress v).symm hmoveCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM (config v) evmCb
         (EVM.address v.vat) "move" 0
         [.address evmCb.executionEnv.source,
@@ -162,8 +170,9 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-          hAccountsMove rfl hdogNoCode
+        clipperExtCodeSizeWord_zero_lookup_code_zero
+          rfl
+          (by simpa only [← hAccountsMove] using hdogNoCode)
     have hmove := clipperTakeGenericVatMoveSuccess hmoveArgs hmoveCodeSolm hcallMoveSolm'
     have hdogRev := clipperTakeGenericDogNonzeroNoCode (v := v)
       hdog hlot hlotNe hdogNoCodeSolm
@@ -172,36 +181,44 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (clipperTakeAfterMoveStmts v) .reverted := by
       simpa [clipperTakeAfterMoveStmts] using execBlockAppendReverted hdogRev
     exact closeRevert hrev (execBlockAppendOk hmove hafter)
-  · intro cAMove σMove outMove AMove cADog σDog outDog ADog _hlot
+  · intro σMove outMove AMove σDog outDog ADog _hlot
       hmoveCode hcallMove hdogCode hcallDog hrev
     let evmMoveEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σMove, createdAccounts := cAMove }
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σMove }
     let evmDogEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σDog, substate := ADog, createdAccounts := cADog }
-    obtain ⟨evmMove, hcallMoveSolm, hAccountsMove, hevmMoveSigma0,
-        hevmMoveCreated, hevmMoveGenesis, hevmMoveBlocks, hevmMoveEnv⟩ :=
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σDog, substate := ADog }
+    obtain ⟨evmMove,
+      hcallMoveSolm,
+      hAccountsMove,
+      hevmMoveSigma0,
+      hevmMoveEnv⟩ :=
       clipperTypedCallSyncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
-        (by simp [evmCbEvm, hevmCbCreated])
-        (by simp [evmCbEvm, initState, hevmCbGenesis])
-        (by simp [evmCbEvm, initState, hevmCbBlocks])
+
+
+
         (by simp [evmCbEvm, initState, hevmCbEnv]) hcallMove
-    obtain ⟨evmDog, hcallDogSolm, hAccountsDog, _, _, _, _, _⟩ :=
+    obtain ⟨evmDog,
+      hcallDogSolm,
+      hAccountsDog,
+      _,
+      _⟩ :=
       clipperTypedCallSyncFromState
         (cfg := config v) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
-        (by simp [evmMoveEvm, hevmMoveCreated])
-        (by simp [evmMoveEvm, initState, hevmMoveGenesis])
-        (by simp [evmMoveEvm, initState, hevmMoveBlocks])
+
+
+
         (by simp [evmMoveEvm, initState, hevmMoveEnv]) hcallDog
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsCb (clipperTakeVatTargetAddress v).symm hmoveCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM (config v) evmCb
         (EVM.address v.vat) "move" 0
         [.address evmCb.executionEnv.source,
@@ -212,8 +229,9 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsMove rfl hdogCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          rfl
+          (by simpa only [← hAccountsMove] using hdogCode)
     have hcallDogSolm' : typedCallViaEVM (config v) evmMove
         (EVM.address (AccountAddress.ofNat dog.toNat)) "digs" 0
         [v.ilk, .int (Int.ofNat owe.toNat)] (false, evmDog, outDog) true := by
@@ -227,37 +245,44 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (clipperTakeAfterMoveStmts v) .reverted := by
       simpa [clipperTakeAfterMoveStmts] using execBlockAppendReverted hdogRev
     exact closeRevert hrev (execBlockAppendOk hmove hafter)
-  · intro cAMove σMove outMove AMove cADog σDog outDog ADog kDog CDog _hlot
+  · intro σMove outMove AMove σDog outDog ADog kDog CDog _hlot
       hmoveCode hcallMove hdogCode hcallDog hmemDog rd5003
     let evmMoveEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σMove, createdAccounts := cAMove }
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σMove }
     let evmDogEvm : EVM.State :=
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σDog, substate := ADog, createdAccounts := cADog }
-    obtain ⟨evmMove, hcallMoveSolm, hAccountsMove, hevmMoveSigma0,
-        hevmMoveCreated, hevmMoveGenesis, hevmMoveBlocks, hevmMoveEnv⟩ :=
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := σDog, substate := ADog }
+    obtain ⟨evmMove,
+      hcallMoveSolm,
+      hAccountsMove,
+      hevmMoveSigma0,
+      hevmMoveEnv⟩ :=
       clipperTypedCallSyncFromState hAccountsCb
         (by simp [evmCbEvm, initState, hevmCbSigma0])
-        (by simp [evmCbEvm, hevmCbCreated])
-        (by simp [evmCbEvm, initState, hevmCbGenesis])
-        (by simp [evmCbEvm, initState, hevmCbBlocks])
+
+
+
         (by simp [evmCbEvm, initState, hevmCbEnv]) hcallMove
-    obtain ⟨evmDog, hcallDogSolm, hAccountsDog, _hevmDogSigma0,
-        hevmDogCreated, _hevmDogGenesis, _hevmDogBlocks, hevmDogEnv⟩ :=
+    obtain ⟨evmDog,
+      hcallDogSolm,
+      hAccountsDog,
+      _hevmDogSigma0,
+      hevmDogEnv⟩ :=
       clipperTypedCallSyncFromState
         (cfg := config v) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
-        (by simp [evmMoveEvm, hevmMoveCreated])
-        (by simp [evmMoveEvm, initState, hevmMoveGenesis])
-        (by simp [evmMoveEvm, initState, hevmMoveBlocks])
+
+
+
         (by simp [evmMoveEvm, initState, hevmMoveEnv]) hcallDog
     have hmoveCodeSolm : 0 < (UInt256.ofNat
         ((evmCb.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsCb (clipperTakeVatTargetAddress v).symm hmoveCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsCb] using hmoveCode)
     have hcallMoveSolm' : typedCallViaEVM (config v) evmCb
         (EVM.address v.vat) "move" 0
         [.address evmCb.executionEnv.source,
@@ -268,8 +293,9 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         ((evmMove.lookupAccount (AccountAddress.ofNat dog.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount, hdogAddress] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsMove rfl hdogCode
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          rfl
+          (by simpa only [← hAccountsMove] using hdogCode)
     have hcallDogSolm' : typedCallViaEVM (config v) evmMove
         (EVM.address (AccountAddress.ofNat dog.toNat)) "digs" 0
         [v.ilk, .int (Int.ofNat owe.toNat)] (true, evmDog, outDog) true := by
@@ -325,35 +351,30 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
         (solcMappingSlot ⟨12⟩ id + ⟨2⟩) lotNew) ⟨13⟩ ⟨0⟩
     let evmFinal := Solm.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩
     have hret : RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cADog, σFinal) ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σFinal ByteArray.empty := by
       simpa only [σFinal] using
         RD.clipperTakePostDogLotNonzeroTabNonzeroToReturnSuccessWF
           (v := v) (hpatch := hpatch) rd5025 htabNe hmemDog hperm
     have hownerDog : evmDog.executionEnv.codeOwner = I.codeOwner := by
       simpa [evmDogEvm, initState] using congrArg ExecutionEnv.codeOwner hevmDogEnv
-    have hAccountsFinal : accountMapEquiv σFinal evmFinal.accountMap := by
-      simpa only [σFinal, evmFinal, evmTab, evmLot, storageStore_accountMap,
+    have hAccountsFinal : Eq σFinal evmFinal.accountMap := by
+      simp only [σFinal, evmFinal, evmTab, evmLot, storageStore_accountMap,
         storageStore_executionEnv, hownerDog, clipperTakeSalesTabSlot,
-        clipperTakeSalesLotSlot, clipperTakeSalesBaseSlot_eq, ← hidWord] using
-        accountMapEquiv_sstoreAccountMap_three
-          I.codeOwner I.codeOwner I.codeOwner
-          (solcMappingSlot ⟨12⟩ id + ⟨1⟩) tabNew
-          (solcMappingSlot ⟨12⟩ id + ⟨2⟩) lotNew ⟨13⟩ ⟨0⟩ hAccountsDog
+        clipperTakeSalesLotSlot, clipperTakeSalesBaseSlot_eq, ← hidWord]
+      change σDog = evmDog.accountMap at hAccountsDog
+      rw [hAccountsDog]
     have hbody : ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body
         (.returned (Frame.mk (contract v) (clipperTakeGenericDigsRet locals))
           evmFinal none) := by
       simpa [evmFinal] using hsourceReturned htail
-    have hcreated : cADog = evmFinal.createdAccounts := by
-      simp [evmFinal, evmLot, evmTab, storageStore_createdAccounts,
-        hevmDogCreated, evmDogEvm]
     have henc : returnEquiv ByteArray.empty none (takeTransition v).returnType := by
       simpa [takeTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           rfl rfl (by native_decide))
-    exact RDret.reEquivExecutionGenAccountMapEquiv
-      hcode hret hdispatch hdec hbody hcreated hAccountsFinal henc
+    exact RDret.reEquivExecutionGen
+      hcode hret hdispatch hdec hbody hAccountsFinal henc
 
 end Benchmarks.Dss.Clipper

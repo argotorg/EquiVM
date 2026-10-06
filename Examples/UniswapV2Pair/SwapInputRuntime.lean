@@ -10,18 +10,18 @@ abbrev swapAmountInWord (balance reserve amountOut : UInt256) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapInputDifference
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {second : Bool}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw balance reserve amountOut x0 x1 x3 x5 x6 x7 x8 : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 (if second then ⟨2400⟩ else ⟨2356⟩)
       (x0 :: x1 :: balance :: x3 :: reserve :: x5 :: x6 :: x7 :: x8 :: amountOut :: R)
-      mem aw rdata acc k C)
+      mem aw rdata σ k C)
     (hclean : UInt256.land reserve reserve112Mask = reserve)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 (if second then ⟨2415⟩ else ⟨2371⟩)
       (UInt256.sub balance (UInt256.sub reserve amountOut) ::
         x0 :: x1 :: balance :: x3 :: reserve :: x5 :: x6 :: x7 :: x8 :: amountOut :: R)
-      mem aw rdata acc k' C' := by
+      mem aw rdata σ k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ = reserve112Mask := by native_decide
   cases second <;>
     (have rd' := evm_run rd with [jumpdest, dup10, dup6, push1 ⟨1⟩, push1 ⟨1⟩,
@@ -32,17 +32,17 @@ theorem RD.uniswapSwapInputDifference
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAmount0In
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw balance1 balance0 reserve1 reserve0 dataLen dataPtr
       toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd2331 : RD uniswapV2PairBytecode I g s0 ⟨2331⟩
       (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2374⟩
       (swapAmountInWord balance0 reserve0 amount0Out :: balance1 :: balance0 :: reserve1 :: reserve0 ::
-        dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k' C' := by
+        dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
   have rd2349 := evm_run rd2331 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub,
     dup6, and, dup11, swap1, sub, dup4, gt, push2 ⟨2356⟩]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ = reserve112Mask by native_decide,
@@ -61,17 +61,17 @@ theorem RD.uniswapSwapAmount0In
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapAmount1In
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr
       toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd2374 : RD uniswapV2PairBytecode I g s0 ⟨2374⟩
       (amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 17 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2418⟩
       (swapAmountInWord balance1 reserve1 amount1Out :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 ::
-        dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k' C' := by
+        dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k' C' := by
   have rd2393 := evm_run rd2374 with [push1 ⟨0⟩, dup10, dup6, push1 ⟨1⟩, push1 ⟨1⟩,
     push1 ⟨112⟩, shl, sub, and, sub, dup4, gt, push2 ⟨2400⟩]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ = reserve112Mask by native_decide,

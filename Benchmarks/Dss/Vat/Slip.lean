@@ -824,13 +824,13 @@ theorem vatDispatchSlip {I : ExecutionEnv}
     sinSelectorBytes, slipSelectorBytes]
   native_decide
 
-theorem vatReachSlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachSlipBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 23)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨1045⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x7cdd3fde⟩ :=
     vatSelWord_eq_of_beq I hsz 0x7c 0xdd 0x3f 0xde ⟨0x7cdd3fde⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -905,7 +905,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcSlipExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hwf : solcSlipExternalLoadAndJumpWf code decoded routine)
     (hroutine : (D_J code 0).contains routine = true)
@@ -946,14 +946,14 @@ theorem RD.solcSlipExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : Sta
         solcAddrMask from by decide, u256_land_comm]
       using rd27.jump hd27 hroutine (by evm_ov)⟩
 
-theorem vatSlipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatSlipX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1045⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4558⟩
+      (initState σ σ₀ g A I) ⟨1045⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
         [slipWadWord I, slipUsrMaskedWord I, slipIlkWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1045⟩) (ret := ⟨524⟩)
     (decoded := ⟨1067⟩) (need := ⟨96⟩) hreach
@@ -972,13 +972,13 @@ theorem vatSlipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, by
     simpa [slipWadWord, slipUsrMaskedWord, slipUsrWord, slipIlkWord] using hroutine⟩
 
-theorem vatSlipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatSlipX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD vatBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1045⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1045⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev vatBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -996,7 +996,7 @@ theorem vatSlipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem RD.vatSignedAddOkSecond {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6681⟩ (sum :: y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hpos : UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt sum x = ⟨0⟩)
@@ -1057,7 +1057,7 @@ theorem RD.vatSignedAddOkSecond {g : Sat256} {s0 : State}
 theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6681⟩ (sum :: y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hpos : ¬ (UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt sum x = ⟨0⟩))
@@ -1103,7 +1103,7 @@ theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
 theorem RD.vatSignedAddOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6653⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hneg : UInt256.slt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (y + x) x = ⟨0⟩)
@@ -1159,7 +1159,7 @@ theorem RD.vatSignedAddOk {g : Sat256} {s0 : State}
 theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {activeWords : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨6653⟩ (y :: x :: ret :: R) mem
       activeWords rdata acc k C)
     (hneg : ¬ (UInt256.slt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt (y + x) x = ⟨0⟩) ∨
@@ -1244,9 +1244,9 @@ theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
 
 theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {wad usr ilk ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨4640⟩ (wad :: usr :: ilk :: ret :: R) mem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (husrClean : UInt256.land usr solcAddrMask = usr)
     (hneg :
@@ -1262,7 +1262,7 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
       ((wad + solcSlotWord σ ee (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) usr)) ::
         wad :: usr :: ilk :: ret :: R)
       (twoWordHashMem usr (solcMappingSlot ⟨4⟩ ilk) (twoWordHashMem ilk ⟨4⟩ mem))
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
   let old := solcSlotWord σ ee slot
@@ -1320,7 +1320,7 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
     mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
   have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)
@@ -1338,9 +1338,9 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
 
 theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {wad usr ilk ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨4640⟩ (wad :: usr :: ilk :: ret :: R) mem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (husrClean : UInt256.land usr solcAddrMask = usr)
     (hfail :
@@ -1412,7 +1412,7 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
     mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
   have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)
@@ -1427,9 +1427,9 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
 
 theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum wad usr ilk ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨4685⟩ (sum :: wad :: usr :: ilk :: ret :: R) mem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (husrClean : UInt256.land usr solcAddrMask = usr)
     (hperm : ee.perm = true)
@@ -1438,7 +1438,7 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
     ∃ k' C', RD vatBytecode ee g s0 ret R
       (twoWordHashMem usr (solcMappingSlot ⟨4⟩ ilk) (twoWordHashMem ilk ⟨4⟩ mem))
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) usr) sum) k' C' := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
@@ -1509,10 +1509,10 @@ theorem slipUsrMaskedWord_clean (I : ExecutionEnv) :
   exact solcAddrMask_clean (solcAddrMask_result_canonical (slipUsrWord I))
 
 set_option maxHeartbeats 1000000 in
-theorem RD.vatSlipStoreOk {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
-    (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4558⟩
+theorem RD.vatSlipStoreOk {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
       [slipWadWord I, slipUsrMaskedWord I, slipIlkWord I, ⟨524⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩)
     (hneg :
       UInt256.slt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
@@ -1531,7 +1531,7 @@ theorem RD.vatSlipStoreOk {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel 
           (solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
             (slipUsrMaskedWord I))) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨524⟩ [sel]
+    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨524⟩ [sel]
       (twoWordHashMem (slipUsrMaskedWord I)
         (solcMappingSlot ⟨4⟩ (slipIlkWord I))
         (twoWordHashMem (slipIlkWord I) ⟨4⟩
@@ -1540,7 +1540,7 @@ theorem RD.vatSlipStoreOk {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel 
             (twoWordHashMem (slipIlkWord I) ⟨4⟩
               (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem)))))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I)) (slipUsrMaskedWord I))
         (slipWadWord I +
           solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
@@ -1576,11 +1576,11 @@ theorem RD.vatSlipStoreOk {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel 
   exact ⟨_, _, by simpa using hstored⟩
 
 theorem vatSlipSourceOk
-    {cA gh bl σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ_solm I = ⟨1⟩) :
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    let old := vatSlotWord (slipStorageSlot I) σ_solm I
+    (hauthEvm : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let old := vatSlotWord (slipStorageSlot I) σ I
     let gemNew := slipWadWord I + old
     evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
         (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
@@ -1604,10 +1604,10 @@ theorem vatSlipSourceOk
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
       slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
-  have hguardAuth := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hguardAuth := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by
-      simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
+      simpa [vatCallerWardsSlot, vatSlotWord] using hauthEvm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
         (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
@@ -1662,11 +1662,11 @@ theorem vatSlipSourceOk
     ExecFuncBody.execBlockOK hblock
 
 theorem vatSlipSourceRevertGuardNeg
-    {cA gh bl σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ_solm I = ⟨1⟩) :
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    let old := vatSlotWord (slipStorageSlot I) σ_solm I
+    (hauthEvm : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let old := vatSlotWord (slipStorageSlot I) σ I
     let gemNew := slipWadWord I + old
     evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
         (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
@@ -1683,10 +1683,10 @@ theorem vatSlipSourceRevertGuardNeg
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
       slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
-  have hguardAuth := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hguardAuth := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by
-      simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
+      simpa [vatCallerWardsSlot, vatSlotWord] using hauthEvm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
         (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
@@ -1722,11 +1722,11 @@ theorem vatSlipSourceRevertGuardNeg
     ExecFuncBody.execBlockRevert hblock
 
 theorem vatSlipSourceRevertGuardPos
-    {cA gh bl σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ_solm I = ⟨1⟩) :
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    let old := vatSlotWord (slipStorageSlot I) σ_solm I
+    (hauthEvm : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let old := vatSlotWord (slipStorageSlot I) σ I
     let gemNew := slipWadWord I + old
     evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
         (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
@@ -1747,10 +1747,10 @@ theorem vatSlipSourceRevertGuardPos
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
       slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
-  have hguardAuth := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hguardAuth := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by
-      simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
+      simpa [vatCallerWardsSlot, vatSlotWord] using hauthEvm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
         (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
@@ -1788,79 +1788,69 @@ theorem vatSlipSourceRevertGuardPos
 
 set_option maxHeartbeats 0 in
 theorem vatSlipBodyCore : VatBodyTheorem 23 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 23) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some slipTransition :=
     vatDispatchSlip hsel
-  have hreach := vatReachSlipBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachSlipBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hdecode := vatDecode_slip_ok (I := I) hsz100
     obtain ⟨_, _, hdecoded⟩ := vatSlipX_decoded
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hsz100 hsize hreach
     let callerSlot := vatCallerWardsSlot I
     let slot := slipStorageSlot I
-    let oldE := vatSlotWord slot σ_evm I
-    let oldS := vatSlotWord slot σ_solm I
-    have hcallerWord : vatSlotWord callerSlot σ_evm I = vatSlotWord callerSlot σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-    have holdWord : oldE = oldS := by
-      simpa [oldE, oldS, slot] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-    by_cases hauthEvm : vatSlotWord callerSlot σ_evm I = ⟨1⟩
-    · have hauthSolm : vatSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-        rw [← hcallerWord]
-        exact hauthEvm
-      have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
+    let old := vatSlotWord slot σ I
+    by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+    · have hauthSolc :
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
         simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hloadS :
-          Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner slot = oldS := by
-        simp [evm0, oldS, slot, vatSlotWord, solcSlotWord, initState,
+          Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner slot = old := by
+        simp [evm0, old, slot, vatSlotWord, solcSlotWord, initState,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       have hslotEq := slipStorageSlot_eq I hsz100
       have holdSolc :
-          solcSlotWord σ_evm I
+          solcSlotWord σ I
               (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                (slipUsrMaskedWord I)) = oldE := by
-        simpa [oldE, slot, vatSlotWord, hslotEq]
-      let gemNewE := slipWadWord I + oldE
-      let gemNewS := slipWadWord I + oldS
+                (slipUsrMaskedWord I)) = old := by
+        simpa [old, slot, vatSlotWord, hslotEq]
+      let gemNew := slipWadWord I + old
       by_cases hneg :
           UInt256.slt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
-            UInt256.gt gemNewE oldE = ⟨0⟩
+            UInt256.gt gemNew old = ⟨0⟩
       · by_cases hpos :
             UInt256.sgt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
-              UInt256.lt gemNewE oldE = ⟨0⟩
+              UInt256.lt gemNew old = ⟨0⟩
         · have hnegSolc :
               UInt256.slt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt
                   (slipWadWord I +
-                    solcSlotWord σ_evm I
+                    solcSlotWord σ I
                       (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                         (slipUsrMaskedWord I)))
-                  (solcSlotWord σ_evm I
+                  (solcSlotWord σ I
                     (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                       (slipUsrMaskedWord I))) = ⟨0⟩ := by
-            simpa [gemNewE, holdSolc] using hneg
+            simpa [gemNew, holdSolc] using hneg
           have hposSolc :
               UInt256.sgt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.lt
                   (slipWadWord I +
-                    solcSlotWord σ_evm I
+                    solcSlotWord σ I
                       (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                         (slipUsrMaskedWord I)))
-                  (solcSlotWord σ_evm I
+                  (solcSlotWord σ I
                     (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                       (slipUsrMaskedWord I))) = ⟨0⟩ := by
-            simpa [gemNewE, holdSolc] using hpos
+            simpa [gemNew, holdSolc] using hpos
           have hnegSource :
-              0 ≤ slipWadInt I ∨ gemNewS.toNat ≤ oldS.toNat := by
+              0 ≤ slipWadInt I ∨ gemNew.toNat ≤ old.toNat := by
             cases hneg with
             | inl hslt =>
                 exact Or.inl (by
@@ -1868,9 +1858,9 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             | inr hgt =>
                 exact Or.inr (by
                   have hle := ugt_eq_zero_to_le hgt
-                  simpa [gemNewE, gemNewS, oldE, oldS, holdWord] using hle)
+                  simpa [gemNew, old] using hle)
           have hposSource :
-              slipWadInt I ≤ 0 ∨ oldS.toNat ≤ gemNewS.toNat := by
+              slipWadInt I ≤ 0 ∨ old.toNat ≤ gemNew.toNat := by
             cases hpos with
             | inl hsgt =>
                 exact Or.inl (by
@@ -1878,96 +1868,72 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             | inr hlt =>
                 exact Or.inr (by
                   have hle := ult_eq_zero_to_le hlt
-                  simpa [gemNewE, gemNewS, oldE, oldS, holdWord] using hle)
+                  simpa [gemNew, old] using hle)
           have hguardNeg :
-              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNewS } evm0
+              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
                   (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
                     (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))) =
                   .ok (.bool true) :=
-            evalSlipGuardNeg_true (evm := evm0) (I := I) (old := oldS)
-              (gemNew := gemNewS) hsz100 hloadS hnegSource
+            evalSlipGuardNeg_true (evm := evm0) (I := I) (old := old)
+              (gemNew := gemNew) hsz100 hloadS hnegSource
           have hguardPos :
-              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNewS } evm0
+              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
                   (eitherExpr (.binary .le (.var "wad") (.intLit 0))
                     (.binary .ge (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))) =
                   .ok (.bool true) :=
-            evalSlipGuardPos_true (evm := evm0) (I := I) (old := oldS)
-              (gemNew := gemNewS) hsz100 hloadS hposSource
+            evalSlipGuardPos_true (evm := evm0) (I := I) (old := old)
+              (gemNew := gemNew) hsz100 hloadS hposSource
           have hbody := vatSlipSourceOk
-            (cA := cA) (gh := gh) (bl := bl) (σ_solm := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hsz100
-            (by simpa [callerSlot] using hauthSolm) hguardNeg hguardPos
+            (by simpa [callerSlot] using hauthEvm) hguardNeg hguardPos
           obtain ⟨_, _, hretPc⟩ := RD.vatSlipStoreOk
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g)
             hdecoded hauthSolc hnegSolc hposSolc hperm
           have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
           have hret :
               RDret vatBytecode (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                (cA, sstoreAccountMap I.codeOwner σ_evm
-                  (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                    (slipUsrMaskedWord I))
-                  (slipWadWord I +
-                    solcSlotWord σ_evm I
-                      (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                        (slipUsrMaskedWord I))))
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (sstoreAccountMap I.codeOwner σ slot gemNew)
                 ByteArray.empty := by
-            simpa using RD.stop hretPc' (by native_decide) (by simp)
+            simpa [slot, gemNew, old, vatSlotWord, hslotEq] using
+              RD.stop hretPc' (by native_decide) (by simp)
           let evm1 :=
-            Solm.EVM.storageStore evm0 I.codeOwner slot gemNewS
-          have hcreated :
-              (cA, sstoreAccountMap I.codeOwner σ_evm
-                (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                  (slipUsrMaskedWord I))
-                (slipWadWord I +
-                  solcSlotWord σ_evm I
-                    (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                      (slipUsrMaskedWord I)))).1 = evm1.createdAccounts := by
-            simp [evm1, evm0, initState, storageStore_createdAccounts]
+            Solm.EVM.storageStore evm0 I.codeOwner slot gemNew
           have haccounts :
-              accountMapEquiv
-                (cA, sstoreAccountMap I.codeOwner σ_evm
-                  (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                    (slipUsrMaskedWord I))
-                  (slipWadWord I +
-                    solcSlotWord σ_evm I
-                      (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-                        (slipUsrMaskedWord I)))).2
-                evm1.accountMap := by
-            simpa [evm1, evm0, initState, storageStore_accountMap, slot, hslotEq,
-              gemNewE, gemNewS, oldE, oldS, holdWord, holdSolc] using
-              accountMapEquiv_sstoreAccountMap I.codeOwner slot gemNewS hAccounts
+              sstoreAccountMap I.codeOwner σ slot gemNew = evm1.accountMap := by
+            simp [evm1, evm0, initState, storageStore_accountMap]
           have henc : returnEquiv ByteArray.empty none slipTransition.returnType := by
             rw [show slipTransition.returnType = [] by rfl]
             exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-            hcreated haccounts henc
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+            haccounts henc
         · have hposFailSolc :
               ¬ (UInt256.sgt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.lt
                   (slipWadWord I +
-                    solcSlotWord σ_evm I
+                    solcSlotWord σ I
                       (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                         (slipUsrMaskedWord I)))
-                  (solcSlotWord σ_evm I
+                  (solcSlotWord σ I
                     (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                       (slipUsrMaskedWord I))) = ⟨0⟩) := by
             intro hp
-            exact hpos (by simpa [gemNewE, holdSolc] using hp)
+            exact hpos (by simpa [gemNew, holdSolc] using hp)
           have hnegSolc :
               UInt256.slt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt
                   (slipWadWord I +
-                    solcSlotWord σ_evm I
+                    solcSlotWord σ I
                       (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                         (slipUsrMaskedWord I)))
-                  (solcSlotWord σ_evm I
+                  (solcSlotWord σ I
                     (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                       (slipUsrMaskedWord I))) = ⟨0⟩ := by
-            simpa [gemNewE, holdSolc] using hneg
+            simpa [gemNew, holdSolc] using hneg
           have hnegSource :
-              0 ≤ slipWadInt I ∨ gemNewS.toNat ≤ oldS.toNat := by
+              0 ≤ slipWadInt I ∨ gemNew.toNat ≤ old.toNat := by
             cases hneg with
             | inl hslt =>
                 exact Or.inl (by
@@ -1975,36 +1941,36 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             | inr hgt =>
                 exact Or.inr (by
                   have hle := ugt_eq_zero_to_le hgt
-                  simpa [gemNewE, gemNewS, oldE, oldS, holdWord] using hle)
+                  simpa [gemNew, old] using hle)
           have hguardNeg :
-              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNewS } evm0
+              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
                   (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
                     (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))) =
                   .ok (.bool true) :=
-            evalSlipGuardNeg_true (evm := evm0) (I := I) (old := oldS)
-              (gemNew := gemNewS) hsz100 hloadS hnegSource
-          have hposFalseCond : 0 < slipWadInt I ∧ gemNewS.toNat < oldS.toNat := by
+            evalSlipGuardNeg_true (evm := evm0) (I := I) (old := old)
+              (gemNew := gemNew) hsz100 hloadS hnegSource
+          have hposFalseCond : 0 < slipWadInt I ∧ gemNew.toNat < old.toNat := by
             constructor
             · have hsgtNe : UInt256.sgt (slipWadWord I) ⟨0⟩ ≠ ⟨0⟩ := by
                 intro hsgt
                 exact hpos (Or.inl hsgt)
               simpa [slipWadInt] using sgt_zero_ne_zero_to_pos (slipWadWord I) hsgtNe
-            · have hltNe : UInt256.lt gemNewE oldE ≠ ⟨0⟩ := by
+            · have hltNe : UInt256.lt gemNew old ≠ ⟨0⟩ := by
                 intro hlt
                 exact hpos (Or.inr hlt)
               have hltNat := ult_ne_zero_to_lt hltNe
-              simpa [gemNewE, gemNewS, oldE, oldS, holdWord] using hltNat
+              simpa [gemNew, old] using hltNat
           have hguardPosFalse :
-              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNewS } evm0
+              evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
                   (eitherExpr (.binary .le (.var "wad") (.intLit 0))
                     (.binary .ge (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))) =
                   .ok (.bool false) :=
-            evalSlipGuardPos_false (evm := evm0) (I := I) (old := oldS)
-              (gemNew := gemNewS) hsz100 hloadS hposFalseCond
+            evalSlipGuardPos_false (evm := evm0) (I := I) (old := old)
+              (gemNew := gemNew) hsz100 hloadS hposFalseCond
           have hbody := vatSlipSourceRevertGuardPos
-            (cA := cA) (gh := gh) (bl := bl) (σ_solm := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hsz100
-            (by simpa [callerSlot] using hauthSolm) hguardNeg hguardPosFalse
+            (by simpa [callerSlot] using hauthEvm) hguardNeg hguardPosFalse
           obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
             (code := vatBytecode) (pc := ⟨4558⟩) (okPc := ⟨4640⟩)
             (key := slipWadWord I) (ret := slipUsrMaskedWord I)
@@ -2024,36 +1990,36 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             ¬ (UInt256.slt (slipWadWord I) ⟨0⟩ = ⟨0⟩ ∨
               UInt256.gt
                 (slipWadWord I +
-                  solcSlotWord σ_evm I
+                  solcSlotWord σ I
                     (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                       (slipUsrMaskedWord I)))
-                (solcSlotWord σ_evm I
+                (solcSlotWord σ I
                   (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                     (slipUsrMaskedWord I))) = ⟨0⟩) := by
           intro hn
-          exact hneg (by simpa [gemNewE, holdSolc] using hn)
-        have hnegFalseCond : slipWadInt I < 0 ∧ oldS.toNat < gemNewS.toNat := by
+          exact hneg (by simpa [gemNew, holdSolc] using hn)
+        have hnegFalseCond : slipWadInt I < 0 ∧ old.toNat < gemNew.toNat := by
           constructor
           · have hsltNe : UInt256.slt (slipWadWord I) ⟨0⟩ ≠ ⟨0⟩ := by
               intro hslt
               exact hneg (Or.inl hslt)
             simpa [slipWadInt] using slt_zero_ne_zero_to_neg (slipWadWord I) hsltNe
-          · have hgtNe : UInt256.gt gemNewE oldE ≠ ⟨0⟩ := by
+          · have hgtNe : UInt256.gt gemNew old ≠ ⟨0⟩ := by
               intro hgt
               exact hneg (Or.inr hgt)
             have hgtNat := ugt_ne_zero_to_gt hgtNe
-            simpa [gemNewE, gemNewS, oldE, oldS, holdWord] using hgtNat
+            simpa [gemNew, old] using hgtNat
         have hguardNegFalse :
-            evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNewS } evm0
+            evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
                 (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
                   (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))) =
                 .ok (.bool false) :=
-          evalSlipGuardNeg_false (evm := evm0) (I := I) (old := oldS)
-            (gemNew := gemNewS) hsz100 hloadS hnegFalseCond
+          evalSlipGuardNeg_false (evm := evm0) (I := I) (old := old)
+            (gemNew := gemNew) hsz100 hloadS hnegFalseCond
         have hbody := vatSlipSourceRevertGuardNeg
-          (cA := cA) (gh := gh) (bl := bl) (σ_solm := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hwv hsz100
-          (by simpa [callerSlot] using hauthSolm) hguardNegFalse
+          (by simpa [callerSlot] using hauthEvm) hguardNegFalse
         obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
           (code := vatBytecode) (pc := ⟨4558⟩) (okPc := ⟨4640⟩)
           (key := slipWadWord I) (ret := slipUsrMaskedWord I)
@@ -2069,15 +2035,12 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
           (ret := ⟨524⟩) (R := [vatSelWord I]) hafterAuth hmemAuth
           (slipUsrMaskedWord_clean I) (Or.inl hnegFailSolc) (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : vatSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
-        intro hsolm
-        exact hauthEvm (by rw [hcallerWord, hsolm])
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody : ExecTransitionBody config contract evm0 (slipStore I) slipTransition.body .reverted := by
-        have hguard := vatAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguard := vatAuthGuardEval_false
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := slipStore I)
-          (slipStore_wards I) (by simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthSolm)
+          (slipStore_wards I) (by simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm)
         have hblock := nonpayableSecondRequireReverts
           (cfg := config) (solm := { contract := contract, locals := slipStore I })
           (evm := evm0)
@@ -2090,7 +2053,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
         simpa [ExecTransitionBody, slipTransition, nonpayable, auth, evm0] using
           ExecFuncBody.execBlockRevert hblock
       have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
         simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
       have hrev := RD.vatAuthCheckRevert
         (pc := ⟨4558⟩) (okPc := ⟨4640⟩) (key := slipWadWord I)

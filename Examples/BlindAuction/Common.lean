@@ -232,10 +232,10 @@ theorem blindAuctionPivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 6)
 
 /-! ## Payable dispatcher prefix and routing -/
 
-theorem blindAuctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionPayablePrologueRD {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode) :
-    RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5⟩ []
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 3 18 := by
+    RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨5⟩ []
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
@@ -243,15 +243,15 @@ theorem blindAuctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by decide) ]
 
-theorem blindAuctionReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) blindAuctionSplitPc
-        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) blindAuctionSplitPc
+        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h2⟩ := solcCalldataOk
     (bodyPc := (⟨5⟩ : UInt256)) (selLoadTgt := (⟨154⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (blindAuctionPayablePrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (blindAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide)
@@ -259,7 +259,7 @@ theorem blindAuctionReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
   refine ⟨k3, C3, ?_⟩
   simpa [blindAuctionSelWord] using h3
 
-theorem blindAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = blindAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -277,13 +277,13 @@ theorem blindAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J blindAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt blindAuctionBytecode
         (nthArmPc blindAuctionBytecode blindAuctionHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
-  have hfirstEx : ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have hfirstEx : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I)
       blindAuctionHighFirstArmPc [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨kS + 5, CS + 22, ?_⟩
     simpa [blindAuctionHighFirstArmPc, blindAuctionSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
@@ -293,7 +293,7 @@ theorem blindAuctionReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => blindAuctionHighArmsWellFormed j (le_trans hj hi))
     heq0 htake (by rw [hbody]; exact hjd) hbody (by simp)
 
-theorem blindAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionReachLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 4) (bodyPC : UInt256)
     (hcode : I.code = blindAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -311,21 +311,21 @@ theorem blindAuctionReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J blindAuctionBytecode 0).contains bodyPC = true)
     (hbody : armTgt blindAuctionBytecode
         (nthArmPc blindAuctionBytecode blindAuctionLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) bodyPC
+        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
-  have hlowJdEx : ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have hlowJdEx : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I)
       blindAuctionLowJumpdestPc [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨kS + 5, CS + 22, ?_⟩
     simpa [blindAuctionLowJumpdestPc, blindAuctionSplitPc, armTgt, pushAt,
       selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitTakenAuto hsplit blindAuctionSplitWellFormed hpivot (by jump_dest) (by simp)
   obtain ⟨kJd, CJd, hlowJd⟩ := hlowJdEx
-  have hfirstEx : ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have hfirstEx : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I)
       blindAuctionLowFirstArmPc [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨kJd + 1, CJd + 1, ?_⟩
     simpa [blindAuctionLowFirstArmPc, blindAuctionLowJumpdestPc] using
       hlowJd.jumpdest (by decide) (by simp)
@@ -389,22 +389,22 @@ theorem blindAuctionDispatch_none_nomatch {cd : ByteArray}
   · rw [selectorOf, blindAuctionBidsSelectorBytes]
     simpa [blindAuctionSelBytes] using hnm 10 (by omega)
 
-theorem blindAuctionX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode) (hsz : I.calldata.size < 4) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   exact solcCalldataShortRevert
     (bodyPc := (⟨5⟩ : UInt256)) (rtgt := (⟨154⟩ : UInt256))
     (opR := .PUSH2) (wR := 2)
-    (blindAuctionPayablePrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (blindAuctionPayablePrologueRD (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = blindAuctionBytecode)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 11 → (blindAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   have heqLow0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat blindAuctionBytecode
@@ -463,7 +463,7 @@ theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa [blindAuctionHighSelBytes, blindAuctionSelBytes] using hnm 9 (by omega)
       rw [blindAuctionHighArmEq I hsz 5 (by omega), hm]
       rfl
-  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨kS, CS, hsplit⟩ := blindAuctionReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   by_cases hpivot : UInt256.gt (armSelNat blindAuctionBytecode blindAuctionSplitPc)
       (blindAuctionSelWord I) = ⟨0⟩
@@ -481,8 +481,8 @@ theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           (heqHigh0 4 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (blindAuctionHighArmsWellFormed 5 (by omega))
           (heqHigh0 5 (by omega)) (by simp)
-    have h95' : ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨95⟩
-        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    have h95' : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨95⟩
+        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [blindAuctionHighFirstArmPc, blindAuctionSplitPc, nthArmPc, selArmNextPc,
         armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h95
@@ -502,8 +502,8 @@ theorem blindAuctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           (heqLow0 3 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (blindAuctionLowArmsWellFormed 4 (by omega))
           (heqLow0 4 (by omega)) (by simp)
-    have h154' : ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨154⟩
-        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    have h154' : ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨154⟩
+        [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5 + 5,
         CS + 22 + 1 + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [blindAuctionLowFirstArmPc, blindAuctionLowJumpdestPc, blindAuctionSplitPc,
@@ -523,7 +523,7 @@ theorem blindAuctionSubRet32_toNat :
 
 theorem blindAuctionRoutineEncodeAddress308 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD blindAuctionBytecode ee g s0 ⟨308⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -549,7 +549,7 @@ theorem blindAuctionRoutineEncodeAddress308 {g : Sat256} {s0 : State} {ee : Exec
 
 theorem blindAuctionRoutineEncodeWord373 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD blindAuctionBytecode ee g s0 ⟨373⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -571,7 +571,7 @@ theorem blindAuctionRoutineEncodeWord373 {g : Sat256} {s0 : State} {ee : Executi
 
 theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD blindAuctionBytecode ee g s0 ⟨206⟩ (blindAuctionOneWordRetEnd :: R)
         (solcReturnMem val) (UInt256.ofNat 5) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
@@ -591,20 +591,20 @@ theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEn
         simpa using solcReturnMem_read128 val)
       (by evm_ov)]
 
-theorem blindAuctionShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem blindAuctionShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   exact (blindAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
     (blindAuctionDispatch_none_short hsz)
 
-theorem blindAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem blindAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hnm : ∀ i, i < 11 → (blindAuctionSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (blindAuctionX_noMatch (g := Sat256.ofUInt256 g) hcode hsz hsize hnm)
       |>.reEquivNoDispatch hcode (blindAuctionDispatch_none_nomatch hnm)

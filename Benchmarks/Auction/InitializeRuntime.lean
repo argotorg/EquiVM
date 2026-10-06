@@ -22,7 +22,7 @@ def initializeFinalMap (args : InitializeArgs) (σ : AccountMap) (I : ExecutionE
 theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
     pausedWord (initializerPauseMap σ I) I = ⟨0⟩ := by
   unfold initializerPauseMap pausedWord
-  cases ha : σ.find? I.codeOwner with
+  cases ha : σ.get? I.codeOwner with
   | none =>
     rw [sstoreAccountMap_absent_same ha, storedWord_absent ha]
     decide
@@ -42,12 +42,12 @@ theorem initializeBaseMap_unpaused (σ : AccountMap) (I : ExecutionEnv) :
     storedWord_sstore_ne _ _ ⟨51⟩ ⟨101⟩ _ (by decide)]
   exact pausedWord_initializerPauseMap _ _
 
-theorem initializeNestedSetup {I g s0 R rdata cA σ k C}
+theorem initializeNestedSetup {I g s0 R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨2213⟩ R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, initializerEntered σ I) k C)
+      rdata (initializerEntered σ I) k C)
     (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨2237⟩ R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, initializeBaseMap σ I) k' C' := by
+      rdata (initializeBaseMap σ I) k' C' := by
   have hr := initializerEntered_ready σ I
   have rd3778 := evm_run h with [
     jumpdest, push2 ⟨2221⟩, push2 ⟨3778⟩, jump (by jump_dest) ]
@@ -62,16 +62,16 @@ theorem initializeNestedSetup {I g s0 R rdata cA σ k C}
     jumpdest, push2 ⟨2237⟩, push2 ⟨3987⟩, jump (by jump_dest) ]
   exact ownableInitializer rd3987 hr2 hperm (by jump_dest) hov
 
-theorem initializeRuntime {I g s0 ret R rdata cA σ k C} (args : InitializeArgs)
+theorem initializeRuntime {I g s0 ret R rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2130⟩ (args.words.reverse ++ ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hc : args.canonical) (hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R
       (addressEventMem solcFreePtrMem (solcSourceWord I))
       (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
-      rdata (cA, initializeFinalMap args σ I) k' C' := by
+      rdata (initializeFinalMap args σ I) k' C' := by
   change RD _ _ _ _ _
     (args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h

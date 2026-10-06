@@ -11,10 +11,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1In amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (rd2712 : RD uniswapV2PairBytecode I g s0 ⟨2712⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 159 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
@@ -23,7 +23,7 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R)
       (quadDynamicMem mem ptr amount0In amount1In amount0Out amount1Out)
-      (quadDynamicWords aw ptr) rdata acc k' C' := by
+      (quadDynamicWords aw ptr) rdata σ k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
   change memoryWordActiveWords aw ⟨64⟩ = aw at hw64
@@ -73,7 +73,7 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   simp only [hwQuad, pairDynamicWords, pairDynamicWords0, hsum] at hwLog
   simpa only [quadDynamicMem, pairDynamicMem, pairDynamicMem0, hwQuad,
     pairDynamicWords, pairDynamicWords0, hsum] using
-    (show ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata acc k' C' from
+    (show ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata σ k' C' from
       ⟨_, _, RD.log3 0 _ rd2796 (by native_decide) hperm (by
         simp only [M]
         change Cₘ (UInt256.ofNat (MachineState.M _ ptr.toNat 128)) - Cₘ _ = 0
@@ -83,12 +83,12 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapUnlockAndStop {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1In amount0In balance1 balance0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {aw : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (rd2797 : RD uniswapV2PairBytecode I g s0 ⟨2797⟩
       (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: ⟨570⟩ :: R) mem aw rdata (cA, σ) k C)
+        toWord :: amount1Out :: amount0Out :: ⟨570⟩ :: R) mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 14 ≤ 1024) :
-    RDret uniswapV2PairBytecode g s0 (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
+    RDret uniswapV2PairBytecode g s0 (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
   have rd2803 := evm_run rd2797 with [pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
   obtain ⟨_, _, rd2804⟩ := rd2803.sstore hperm (by native_decide) (by evm_ov)
   have rd571 := evm_run rd2804 with [pop, pop, pop, pop, pop, pop, pop, pop, pop,

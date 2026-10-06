@@ -15,24 +15,24 @@ This module continues the finite-allowance success path after `TransferFrom.lean
 
 /-- Chained finite-allowance success prefix for `transferFrom(address,address,uint256)`, through
     the recipient-balance `SSTORE` in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceFiniteAfterCreditStore {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceFiniteAfterCreditStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+        (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7638⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
       (⟨64⟩ :: transferFromToWord I :: solcAddrMask :: ⟨32⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -41,19 +41,19 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditStore {cA gh bl σ σ₀ 
         (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
           (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I))))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ
             (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-            (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+            (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
           (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWord (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7604⟩ := uniswapTransferFromX_allowanceFiniteAfterCreditCalc
     hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hbalance hfit hreach
   obtain ⟨_, _, rd7638⟩ := RD.uniswapTransferInternalStoreCreditMem
-    (newTo := transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)
+    (newTo := transferFromNewToWord (initState σ σ₀ g A I) I)
     (value := transferFromValueWord I) (toWord := transferFromToWord I)
     (src := transferFromFromWord I) (ret := ⟨3082⟩)
     (R := ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
@@ -67,24 +67,24 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditStore {cA gh bl σ σ₀ 
 
 /-- Chained finite-allowance success prefix for `transferFrom(address,address,uint256)`, through
     the shared `_transfer` event emission back to the `transferFrom` continuation. -/
-theorem uniswapTransferFromX_allowanceFiniteAfterTransferEvent {cA gh bl σ σ₀ A I}
+theorem uniswapTransferFromX_allowanceFiniteAfterTransferEvent {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+        (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3082⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferLogMemOf (transferFromFromWord I) (transferFromToWord I)
@@ -92,15 +92,15 @@ theorem uniswapTransferFromX_allowanceFiniteAfterTransferEvent {cA gh bl σ σ�
         (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
           (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I))))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ
             (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-            (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+            (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
           (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWord (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7638⟩ := uniswapTransferFromX_allowanceFiniteAfterCreditStore
     hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hbalance hfit hreach
   obtain ⟨_, _, rd3082⟩ := RD.uniswapTransferInternalEmitAndJumpMem
@@ -121,33 +121,33 @@ theorem uniswapTransferFromX_allowanceFiniteAfterTransferEvent {cA gh bl σ σ�
 
 /-- Successful EVM finite-allowance path for `transferFrom(address,address,uint256)`, including the
     finite allowance debit, shared `_transfer` event emission, continuation, and boolean return. -/
-theorem uniswapX_transferFrom_finiteAllowance {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapX_transferFrom_finiteAllowance {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+        (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ
             (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-            (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+            (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
           (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWord (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I))
+        (transferFromNewToWord (initState σ σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   let baseMem := uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I)
     (uniswapSourceWord I)
@@ -207,84 +207,42 @@ left as separate slices, matching the incremental style used by the surrounding 
 -/
 set_option maxHeartbeats 3000000 in
 theorem uniswapTransferFromBodyCoreOk_finiteAllowance
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hnotMax : (transferFromCurrentAllowanceWord
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠ UInt256.size - 1)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠ UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat)
     (hfit : transferFromNewToNat
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
         (transitionSignature transferFromTransition).paramTypes I.calldata = some (transferFromStore I))
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := by
-    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
-  have hAllowance :
-      transferFromCurrentAllowanceWord evmE I = transferFromCurrentAllowanceWord evmS I := by
-    unfold transferFromCurrentAllowanceWord
-    rw [hσ.executionEnv]
-    exact hσ.storageLoad_codeOwner (transferFromAllowanceSlot evmS I)
-  have hAllowanceDebit :
-      transferFromAllowanceDebitWord evmE I = transferFromAllowanceDebitWord evmS I := by
-    simp [transferFromAllowanceDebitWord, hAllowance]
-  have hσAllowance : EVMStateEquiv (transferFromAfterAllowanceState evmE I)
-      (transferFromAfterAllowanceState evmS I) := by
-    unfold transferFromAfterAllowanceState
-    rw [hσ.executionEnv, hAllowanceDebit]
-    exact hσ.storageStore_codeOwner (transferFromAllowanceSlot evmS I) rfl
-  have hFromBalance :
-      transferFromFromBalanceWord (transferFromAfterAllowanceState evmE I) I =
-        transferFromFromBalanceWord (transferFromAfterAllowanceState evmS I) I := by
-    unfold transferFromFromBalanceWord
-    exact hσAllowance.storageLoad_codeOwner (transferFromFromSlot I)
-  have hBalanceDebit :
-      transferFromBalanceDebitWord evmE I = transferFromBalanceDebitWord evmS I := by
-    simp [transferFromBalanceDebitWord, hFromBalance]
-  have hσBalance : EVMStateEquiv (transferFromAfterBalanceState evmE I)
-      (transferFromAfterBalanceState evmS I) := by
-    unfold transferFromAfterBalanceState
-    exact hσAllowance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferFromFromSlot I) hBalanceDebit
-  have hToBalance : transferFromToBalanceWord evmE I = transferFromToBalanceWord evmS I := by
-    unfold transferFromToBalanceWord
-    exact hσBalance.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferFromToSlot I)
-  have hNewToNat : transferFromNewToNat evmE I = transferFromNewToNat evmS I := by
-    simp [transferFromNewToNat, hToBalance]
-  have hNewToWord : transferFromNewToWord evmE I = transferFromNewToWord evmS I := by
-    simp [transferFromNewToWord, hNewToNat]
-  have hσPost : EVMStateEquiv (transferFromPostState evmE I)
-      (transferFromPostState evmS I) := by
-    unfold transferFromPostState
-    exact hσBalance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferFromToSlot I) hNewToWord
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hnotMaxS : (transferFromCurrentAllowanceWord evmS I).toNat ≠ UInt256.size - 1 := by
-    simpa [evmE, hAllowance] using hnotMax
+    simpa [evmE, evmS] using hnotMax
   have hallowanceS :
       (transferFromValueWord I).toNat ≤ (transferFromCurrentAllowanceWord evmS I).toNat := by
-    simpa [evmE, hAllowance] using hallowance
+    simpa [evmE, evmS] using hallowance
   have hbalanceS : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState evmS I) I).toNat := by
-    simpa [evmE, hFromBalance] using hbalance
+    simpa [evmE, evmS] using hbalance
   have hfitS : transferFromNewToNat evmS I < UInt256.size := by
-    simpa [evmE, hNewToNat] using hfit
+    simpa [evmE, evmS] using hfit
   have hbody :
       ExecTransitionBody config contract evmS (transferFromStore I) transferFromTransition.body
         (.returned { contract := contract, locals := transferFromStoreToBalance evmS I }
@@ -307,32 +265,17 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance
       mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩) := by
     simpa [evmE, initState, uniswapSourceWord] using
       transferFromAllowanceSlot_eq_mapSlot evmE I hcanonFrom
-  have hcreated :
-      (cA, sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ_evm
-            (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-            (transferFromAllowanceDebitWord evmE I))
-          (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWord evmE I))
-        (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWord evmE I)).1 =
-        (transferFromPostState evmE I).createdAccounts := by
-    simp [transferFromPostState, transferFromAfterBalanceState, transferFromAfterAllowanceState,
-      evmE, initState, storageStore_createdAccounts]
   have hAccountsPost :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
-            (sstoreAccountMap I.codeOwner σ_evm
+            (sstoreAccountMap I.codeOwner σ
               (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
               (transferFromAllowanceDebitWord evmE I))
             (mapSlot (transferFromFromWord I) ⟨1⟩)
             (transferFromBalanceDebitWord evmE I))
           (mapSlot (transferFromToWord I) ⟨1⟩)
-          (transferFromNewToWord evmE I))
+          (transferFromNewToWord evmE I)) =
         (transferFromPostState evmE I).accountMap := by
-    apply accountMapEquiv.of_eq
     simp only [transferFromPostState, storageStore_accountMap]
     simp only [transferFromAfterBalanceState, storageStore_accountMap]
     simp only [transferFromAfterAllowanceState, storageStore_accountMap]
@@ -340,13 +283,14 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance
     simp only [evmE, initState]
   exact (uniswapX_transferFrom_finiteAllowance (g := Sat256.ofUInt256 g)
       hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hbalance hfit hreach)
-    |>.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-      hcreated hAccountsPost hσPost (returnEquiv_of_encode boolTrueReturnEncoding)
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
+      (by simpa [evmE, evmS] using hAccountsPost)
+      (returnEquiv_of_encode boolTrueReturnEncoding)
 
 /-- Canonical finite-allowance `transferFrom(address,address,uint256)` refinement slice, packaged
 from selector dispatch through the body core. -/
 theorem uniswapTransferFromBodyOk_finiteAllowance
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
@@ -354,25 +298,23 @@ theorem uniswapTransferFromBodyOk_finiteAllowance
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hnotMax : (transferFromCurrentAllowanceWord
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≠
         UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
       (transferFromCurrentAllowanceWord
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat)
     (hfit : transferFromNewToNat
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
-    (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I < UInt256.size)
+    (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreOk_finiteAllowance hcode hsize hperm hwv hsz100
     hcanonFrom hcanonTo hnotMax hallowance hbalance hfit hdispatch
     (uniswapDecode_transferFrom_ok hsz100 hcanonFrom hcanonTo)
     (uniswapReachTransferFromBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    hAccounts
 
 end UniswapV2Pair

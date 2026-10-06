@@ -13,7 +13,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {k C : Nat}
     (vat : AccountAddress) (ilk dec : UInt256) (gem : AccountAddress)
     (hperm : I.perm = true)
@@ -24,9 +24,9 @@ theorem gemJoinCtorReturnTrace
         ⟨224⟩)
     (h : RD (gemJoinCtorCode vat ilk gem) I g s0 ⟨241⟩
       [dec, EVM.word gem.val, ilk, EVM.word vat.val]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     RDret (gemJoinCtorCode vat ilk gem) g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨4⟩ dec) gemJoinBytecode := by
+      (sstoreAccountMap I.codeOwner σ ⟨4⟩ dec) gemJoinBytecode := by
   have rd243 := gem_ctor_run h with [push1 ⟨4⟩]
   obtain ⟨_, _, rd244⟩ := rd243.sstore hperm (by gem_ctor_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)

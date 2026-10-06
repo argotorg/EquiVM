@@ -6,11 +6,11 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapAdjustmentsCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr amount1In amount0In balance1 balance0 : UInt256}
     {R : List UInt256} {k C : Nat} {caller : Frame} (evm : EVM.State)
     (rd2491 : RD uniswapV2PairBytecode I g s0 ⟨2491⟩
-      (amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata acc k C)
+      (amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hb0 : caller.locals.get? "balance0" = some (uniswapUint256Value balance0))
     (hb1 : caller.locals.get? "balance1" = some (uniswapUint256Value balance1))
     (hi0 : caller.locals.get? "amount0In" = some (uniswapUint256Value amount0In))
@@ -27,7 +27,7 @@ theorem uniswapSwapAdjustmentsCases
       balance0.toNat * 1000 < UInt256.size ∧ balance1.toNat * 1000 < UInt256.size ∧ ∃ k' C',
       RD uniswapV2PairBytecode I g s0 ⟨2570⟩
         (swapAdjustedWord balance1 amount1In :: swapAdjustedWord balance0 amount0In ::
-          amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata acc k' C') := by
+          amount1In :: amount0In :: balance1 :: balance0 :: R) mem aw rdata σ k' C') := by
   have rd2492 := evm_run rd2491 with [jumpdest]
   rcases uniswapSwapAdjustmentRuntimeCases (second := false) rd2492 hle0
       hin hlo hgap hfitPtr haw hawLo hread (by omega) with

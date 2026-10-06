@@ -340,13 +340,13 @@ theorem uint256_lnot_zero_max :
     UInt256.lnot (⟨0⟩ : UInt256) = UInt256.ofNat (UInt256.size - 1) := by
   decide
 
-theorem transferFromOperatorSlot_init {cA gh bl σ σ₀ A I} {g : Sat256} :
-    transferFromOperatorSlot (initState cA gh bl σ σ₀ g A I) I =
+theorem transferFromOperatorSlot_init {σ σ₀ A I} {g : Sat256} :
+    transferFromOperatorSlot (initState σ σ₀ g A I) I =
       transferFromOperatorSlotI I := by
   simp [transferFromOperatorSlot, transferFromOperatorSlotI, initState]
 
-theorem transferFromAllowanceSlot_init {cA gh bl σ σ₀ A I} {g : Sat256} :
-    transferFromAllowanceSlot (initState cA gh bl σ σ₀ g A I) I =
+theorem transferFromAllowanceSlot_init {σ σ₀ A I} {g : Sat256} :
+    transferFromAllowanceSlot (initState σ σ₀ g A I) I =
       transferFromAllowanceSlotI I := by
   simp [transferFromAllowanceSlot, transferFromAllowanceSlotI, initState]
 
@@ -379,7 +379,7 @@ theorem transferFromAfterAllowance_codeOwner (evm : EVM.State) (I : ExecutionEnv
     (transferFromAfterAllowanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterAllowanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -406,7 +406,7 @@ theorem transferFromAfterSenderBalance_codeOwner (evm : EVM.State) (I : Executio
     (transferFromAfterSenderBalanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterSenderBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases (transferFromAfterAllowanceState evm I).accountMap.find? evm.executionEnv.codeOwner with
+  cases (transferFromAfterAllowanceState evm I).accountMap.get? evm.executionEnv.codeOwner with
   | none => exact transferFromAfterAllowance_codeOwner evm I
   | some acc =>
       simp only [Option.option, State.setAccount, Account.updateStorage,
@@ -454,7 +454,7 @@ theorem transferFromTailAfterSenderBalance_codeOwner (evm : EVM.State)
       evm.executionEnv.codeOwner := by
   simp only [transferFromTailAfterSenderBalanceState, Solm.EVM.storageStore,
     State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 

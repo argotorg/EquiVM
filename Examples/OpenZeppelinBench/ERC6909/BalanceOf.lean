@@ -32,7 +32,7 @@ def balanceOfSlot (I : ExecutionEnv) : UInt256 :=
     (.int (Int.ofNat (balanceOfIdWord I).toNat))
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (balanceOfSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (balanceOfSlot I) ⟨0⟩)
 
 theorem erc6909BalanceOfSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x00, 0xfd, 0xd5, 0x8e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -446,69 +446,69 @@ theorem balanceOfReturnMem_read128 (owner id val : UInt256) :
 /-! ## EVM trace for `balanceOf(address,uint256)` -/
 
 
-theorem erc6909BalanceOfX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909BalanceOfX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1656⟩
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1656⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨150⟩, ⟨155⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨155⟩, push2 ⟨150⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨1656⟩, jump (by jump_dest) ]⟩
 
-theorem erc6909BalanceOfX_dec1629_owner {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909BalanceOfX_dec1629_owner {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1629⟩
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1629⟩
       [⟨4⟩, ⟨1682⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨150⟩,
         ⟨155⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1673⟩, jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push2 ⟨1682⟩, dup4, push2 ⟨1629⟩, jump (by jump_dest) ]⟩
 
-theorem erc6909BalanceOfX_dec1682 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909BalanceOfX_dec1682 {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1682⟩
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1682⟩
       [balanceOfOwnerWord I, ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size,
         ⟨150⟩, ⟨155⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1629_owner (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1629_owner
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
   simpa [balanceOfOwnerWord, calldataWord] using
     erc6909DecodeAddrOk rd hcanon (by jump_dest) (by evm_ov)
 
-theorem erc6909BalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909BalanceOfX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨407⟩
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨407⟩
       [balanceOfIdWord I, balanceOfOwnerWord I, ⟨155⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1682 (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1682
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanon hreach
   have rd1683 := evm_run rd with [jumpdest]
   have rd1684 := RD.swap5 rd1683 (by decide) (by evm_ov)
@@ -518,16 +518,16 @@ theorem erc6909BalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
       swap4, pop, pop, pop, jump (by jump_dest),
       jumpdest, push2 ⟨407⟩, jump (by jump_dest) ]⟩
 
-theorem erc6909X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909X_balanceOf {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
-  obtain ⟨_, _, rd407⟩ := erc6909BalanceOfX_decoded (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd407⟩ := erc6909BalanceOfX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanon hreach
   have hslot := balanceOfOuterKeccakSlot I hcanon
@@ -596,93 +596,90 @@ theorem erc6909X_balanceOf {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 /-! ## Decode-failure traces and top-level body theorem -/
 
-theorem erc6909BalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909BalanceOfX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1673⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909BalanceOfX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909BalanceOfX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1673⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909BalanceOfX_noncanon {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909BalanceOfX_noncanon {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (balanceOfOwnerWord I)
       (UInt256.land (balanceOfOwnerWord I) solcAddrMask) = ⟨0⟩)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1629_owner (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+      (initState σ σ₀ g A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd⟩ := erc6909BalanceOfX_dec1629_owner
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hreach
   simpa [balanceOfOwnerWord, calldataWord] using
     erc6909DecodeAddrRevert rd hnc (by evm_ov)
 
 theorem erc6909BalanceOfBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x00, 0xfd, 0xd5, 0x8e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true)
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨136⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨136⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have hsz4 := erc6909BalanceOfSelector_size hsel
   have hd := erc6909Dispatch_balanceOf (cd := I.calldata) hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus
       · have hdec := erc6909Decode_balanceOf_ok (I := I) hsz68 hbig hcanon
-        have hword : balanceOfWord σ_evm I = balanceOfWord σ_solm I :=
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
+        have hword : balanceOfWord σ I = balanceOfWord σ I := rfl
         have hbody :
             ExecTransitionBody config contract
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (balanceOfStore I)
               balanceOfTransition.body
               (.returned { contract := contract, locals := balanceOfStore I }
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (some [(.int (Int.ofNat (balanceOfWord σ_solm I).toNat))])) := by
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (some [(.int (Int.ofNat (balanceOfWord σ I).toNat))])) := by
           simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
             State.lookupAccount] using erc6909BalanceOfBodyReturns
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
         exact (erc6909X_balanceOf (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hcanon hreach)
-          |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [← hword])
-            hAccounts
+          |>.reEquivExecutionTransport hcode hd hdec hbody rfl
             (returnEquiv_of_encode (by
-              simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ_evm I)))
+              simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ I)))
       · have hdec := erc6909Decode_balanceOf_none_noncanon (I := I) hsz68 hbig hcanon
         have hnc : UInt256.eq (balanceOfOwnerWord I)
             (UInt256.land (balanceOfOwnerWord I) solcAddrMask) = ⟨0⟩ :=

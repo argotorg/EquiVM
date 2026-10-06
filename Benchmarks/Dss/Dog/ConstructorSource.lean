@@ -100,14 +100,12 @@ theorem dogCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address]
 
 theorem dogCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := dogCtorLocals vat
     let finalLocals := dogCtorFinalLocals vat
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := dogCtorAfterLiveState evm0
     let evm2 := dogCtorAfterWardsState evm1
@@ -150,20 +148,17 @@ theorem dogCtorBodySuccess
 
 set_option maxHeartbeats 1000000 in
 theorem dogSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address vat] createdAccounts
-      genesisBlockHeader blocks σ σ₀ g A I
+    solmCtorExec (config v) (contract v) [.address vat] σ σ₀ g A I
       (.returned { contract := contract v, locals := dogCtorFinalLocals vat }
         (dogCtorAfterWardsState
           (dogCtorAfterLiveState
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := dogCtorLocals vat) ?_ rfl ?_ ?_
   · rfl
@@ -171,26 +166,22 @@ theorem dogSolmCtorExecSuccess
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (dogCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v vat hwv)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v vat hwv)
 
 theorem dogSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (v : DogImmutables) (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec (config v) (contract v) [.address vat] createdAccounts
-      genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+    solmCtorExec (config v) (contract v) [.address vat] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := dogCtorLocals vat) ?_ rfl ?_ ?_
   · rfl
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config v) (contract := contract v)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := dogCtorLocals vat) hwv
 

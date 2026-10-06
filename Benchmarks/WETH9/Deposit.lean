@@ -20,17 +20,17 @@ namespace Benchmarks.WETH9
 
 /-- The Solm `deposit()` body credits `balanceOf[msg.sender] += msg.value` and falls through
     (no explicit return).  The unchecked `+=` truncates on store to the wrapping word. -/
-theorem weth9DepositBodyReturns {cA gh bl σ σ₀ A I} {g : Sat256} :
-    ExecTransitionBody config contract (initState cA gh bl σ σ₀ g A I) ∅
+theorem weth9DepositBodyReturns {σ σ₀ A I} {g : Sat256} :
+    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
       depositTransition.body
       (.returned { contract := contract, locals := ∅ }
-        (Solm.EVM.storageStore (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
-          (UInt256.add (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+          (UInt256.add (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
             (callerBalSlot I)) I.weiValue)) none) := by
-  have hsrc : (initState cA gh bl σ σ₀ g A I).executionEnv = I := by simp [initState]
-  have hco : (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := by rw [hsrc]
-  have hcv : (initState cA gh bl σ σ₀ g A I).executionEnv.weiValue = I.weiValue := by rw [hsrc]
-  set evm := initState cA gh bl σ σ₀ g A I with hevm
+  have hsrc : (initState σ σ₀ g A I).executionEnv = I := by simp [initState]
+  have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := by rw [hsrc]
+  have hcv : (initState σ σ₀ g A I).executionEnv.weiValue = I.weiValue := by rw [hsrc]
+  set evm := initState σ σ₀ g A I with hevm
   refine ExecFuncBody.execBlockOK (assignStorageBlock
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm I.codeOwner (callerBalSlot I)).toNat
       + Int.ofNat I.weiValue.toNat)) ?_ ?_)
@@ -59,12 +59,12 @@ theorem callerBalSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address]
 
 /-- Reach the deposit body entry (pc 760) from the shared handler (pc 156). -/
-theorem weth9DepositReachBody {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
+theorem weth9DepositReachBody {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
     (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨156⟩ R
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩ R
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have h760 := h.jumpdest (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.push2 ⟨164⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.push2 ⟨760⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
@@ -73,16 +73,16 @@ theorem weth9DepositReachBody {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sa
 
 /-- Deposit store: from pc 760 with `[164, w]`, run the caller-keyed keccak + load-add-store,
     reaching pc 789 with `balanceOf[msg.sender]` credited by `msg.value` (wrapping). -/
-theorem weth9DepositStore {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
+theorem weth9DepositStore {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true) (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨789⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨789⟩
       (I.weiValue :: ⟨32⟩ :: ⟨64⟩ :: solcSourceWord I :: ⟨164⟩ :: R)
       (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (I.weiValue + solcSlotWord σ I (callerBalSlot I))) k' C' := by
-  have hpermI : (initState cA gh bl σ σ₀ g A I).executionEnv.perm = true := by
+  have hpermI : (initState σ σ₀ g A I).executionEnv.perm = true := by
     simp [initState]; exact hperm
   have h779 := h.jumpdest (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.caller (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
@@ -121,14 +121,14 @@ theorem weth9DepositStore {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256
   exact ⟨_, _, h789⟩
 
 /-- The Deposit LOG2 tail (789→STOP): terminates with empty output (the log is invisible to `RD`). -/
-theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat256} {k C : ℕ}
+theorem weth9DepositLog {σ σ₀ A I acc} {R : List UInt256} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true) (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨789⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨789⟩
       (I.weiValue :: ⟨32⟩ :: ⟨64⟩ :: solcSourceWord I :: ⟨164⟩ :: R)
       (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
       acc k C) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
-  have hpermI : (initState cA gh bl σ σ₀ g A I).executionEnv.perm = true := by
+    RDret weth9Bytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+  have hpermI : (initState σ σ₀ g A I).executionEnv.perm = true := by
     simp [initState]; exact hperm
   have hread64 : (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 64 32
       = UInt256.toByteArray ⟨128⟩ :=
@@ -193,13 +193,13 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
 
 /-- The full deposit body EVM run (shared handler pc 156 → `STOP`): credits `balanceOf[msg.sender]`
     by `msg.value` and halts with empty output. -/
-theorem weth9DepositX {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
+theorem weth9DepositX {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨156⟩ R
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩ R
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret weth9Bytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (I.weiValue + solcSlotWord σ I (callerBalSlot I))) ByteArray.empty := by
   obtain ⟨_, _, h760⟩ := weth9DepositReachBody hR h
   obtain ⟨_, _, h789⟩ := weth9DepositStore hperm hR h760
@@ -217,66 +217,60 @@ theorem weth9SelectorDispatchDeposit {I : ExecutionEnv} (hsel : selIs I (weth9Se
   native_decide
 
 /-- The deposit source body's post-state accountMap is the caller-keyed store (commuted). -/
-theorem weth9DepositBody_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (Solm.EVM.storageStore (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
-        (UInt256.add (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+theorem weth9DepositBody_accountMap {σ σ₀ A I} {g : Sat256} :
+    (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+        (UInt256.add (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
           (callerBalSlot I)) I.weiValue)).accountMap
       = sstoreAccountMap I.codeOwner σ (callerBalSlot I)
           (UInt256.add (solcSlotWord σ I (callerBalSlot I)) I.weiValue) := by
-  have h : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+  have h : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner (callerBalSlot I)
       = solcSlotWord σ I (callerBalSlot I) := by
     simp [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, initState,
       Ethereum.Account.lookupStorage]
-  rw [storageStore_accountMap, show (initState cA gh bl σ σ₀ g A I).accountMap = σ from rfl, h]
+  rw [storageStore_accountMap, show (initState σ σ₀ g A I).accountMap = σ from rfl, h]
 
 /-- The `deposit()` selector dispatches (payable — any callvalue) to the deposit body. -/
-theorem weth9DepositBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9DepositBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 9))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 9)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 9) (by native_decide) hsel
-  obtain ⟨_, _, h156⟩ := weth9ReachDepositEntry (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  obtain ⟨_, _, h156⟩ := weth9ReachDepositEntry (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
   have hX := weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156
-  have hbody := weth9DepositBodyReturns (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+  have hbody := weth9DepositBodyReturns (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
-  have hbaleq : solcSlotWord σ_evm I (callerBalSlot I) = solcSlotWord σ_solm I (callerBalSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (callerBalSlot I) ⟨0⟩
-  have hvaleq : I.weiValue + solcSlotWord σ_evm I (callerBalSlot I)
-      = UInt256.add (solcSlotWord σ_solm I (callerBalSlot I)) I.weiValue := by
-    rw [hbaleq]; exact u256_add_comm _ _
+  have hvaleq : I.weiValue + solcSlotWord σ I (callerBalSlot I)
+      = UInt256.add (solcSlotWord σ I (callerBalSlot I)) I.weiValue := by
+    exact u256_add_comm _ _
   refine weth9ReEquivExecGen (t := depositTransition) hcode hX
-    (weth9SelectorDispatchDeposit hsel) ?_ hbody ?_ ?_ ?_
+    (weth9SelectorDispatchDeposit hsel) ?_ hbody ?_ ?_
   · show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
     exact decodeCalldataWithMode_empty_ok hsz4
-  · simp [storageStore_createdAccounts, initState]
   · rw [hvaleq, weth9DepositBody_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (callerBalSlot I) _ hAccounts
   · exact returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide)
 
 /-! ## Fallback dispatch (no selector / receive) -/
 
 /-- `RDret ⇒ fallback execution`: the payable fallback runs (no selector/receive dispatch). -/
 theorem weth9ReEquivFallbackGen {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     {o : ByteArray} {callargs cs retVal returnConv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evm'' : EVM.State}
+    {acc : AccountMap} {evm'' : EVM.State}
     (hcode : I.code = weth9Bytecode)
-    (h : RDret weth9Bytecode g (initState cA gh bl σ_evm σ₀ g A I) acc o)
+    (h : RDret weth9Bytecode g (initState σ σ₀ g A I) acc o)
     (hnosel : selectorDispatchMsg contract I.calldata = none)
     (hnorecv : receiveDispatchMsg contract I.calldata = none)
     (hfb : contract.fallback = some t)
     (hargs : fallbackCallargs I.calldata t.params = some callargs)
     (hret : fallbackReturnConvention t = some returnConv)
     (hbody : ExecTransitionBody cfg contract
-              (initState cA gh bl σ_solm σ₀ g A I) callargs t.body
+              (initState σ σ₀ g A I) callargs t.body
               (.returned cs evm'' retVal))
-    (hCreated : acc.1 = evm''.createdAccounts)
-    (hAccounts : accountMapEquiv acc.2 evm''.accountMap)
+    (hAccountMap : acc = evm''.accountMap)
     (hRetData : returnDataEquiv o retVal returnConv) :
-    runtimeEquivalenceFor cfg contract cA gh bl σ_evm σ_solm σ₀ g.toUInt256 A I := by
+    runtimeEquivalenceFor cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -286,26 +280,22 @@ theorem weth9ReEquivFallbackGen {cfg : Config} {contract : ContractDecl} {t : Tr
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
     have hbody' :
         ExecTransitionBody cfg contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
           callargs t.body (.returned cs evm'' retVal) := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
     refine runtimeEquivalenceFor.execution rfl
       (solmExec.fallback hnosel hnorecv hfb hargs hret rfl hbody') ?_
     rw [hxi]
-    have hcreated : s.createdAccounts = evm''.createdAccounts :=
-      (congrArg Prod.fst hsacc).trans hCreated
-    have haccounts : accountMapEquiv s.accountMap evm''.accountMap := by
-      change accountMapEquiv (s.createdAccounts, s.accountMap).2 evm''.accountMap
-      rw [congrArg Prod.snd hsacc]; exact hAccounts
-    exact execResultsEquiv.success rfl rfl hcreated haccounts hRetData
+    have haccounts : s.accountMap = evm''.accountMap := hsacc.trans hAccountMap
+    exact execResultsEquiv.success rfl rfl haccounts hRetData
 
 /-- Short calldata (`< 4` bytes): the prologue's `calldatasize < 4` guard jumps directly to the
     shared fallback handler (pc 156) with an empty stack. -/
-theorem weth9ReachShort156 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ReachShort156 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hshort : I.calldata.size < 4) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨156⟩ []
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have h5 := (RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩ []
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  have h5 := (RD.initState (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
     |>.push1 ⟨128⟩ (by native_decide) (by decide)
     |>.push1 ⟨64⟩ (by native_decide) (by decide)
@@ -332,45 +322,40 @@ theorem weth9_receive_none {cd : ByteArray} : receiveDispatchMsg contract cd = n
 
 /-- The deposit source body, transported to the fallback: `fallbackTransition.body` is defeq to
     `depositTransition.body`, and `∅` callargs. -/
-theorem weth9FallbackBody {cA gh bl σ σ₀ A I} {g : Sat256} :
-    ExecTransitionBody config contract (initState cA gh bl σ σ₀ g A I) ∅
+theorem weth9FallbackBody {σ σ₀ A I} {g : Sat256} :
+    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
       fallbackTransition.body
       (.returned { contract := contract, locals := ∅ }
-        (Solm.EVM.storageStore (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
-          (UInt256.add (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+          (UInt256.add (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
             (callerBalSlot I)) I.weiValue)) none) :=
   weth9DepositBodyReturns
 
 /-- The shared connect for a fallback-dispatched deposit run (no-match or short). -/
-theorem weth9FallbackConnect {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9FallbackConnect {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode)
     (hnosel : selectorDispatchMsg contract I.calldata = none)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hX : RDret weth9Bytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-      (cA, sstoreAccountMap I.codeOwner σ_evm (callerBalSlot I)
-        (I.weiValue + solcSlotWord σ_evm I (callerBalSlot I))) ByteArray.empty) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hbaleq : solcSlotWord σ_evm I (callerBalSlot I) = solcSlotWord σ_solm I (callerBalSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (callerBalSlot I) ⟨0⟩
-  have hvaleq : I.weiValue + solcSlotWord σ_evm I (callerBalSlot I)
-      = UInt256.add (solcSlotWord σ_solm I (callerBalSlot I)) I.weiValue := by
-    rw [hbaleq]; exact u256_add_comm _ _
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+        (I.weiValue + solcSlotWord σ I (callerBalSlot I))) ByteArray.empty) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hvaleq : I.weiValue + solcSlotWord σ I (callerBalSlot I)
+      = UInt256.add (solcSlotWord σ I (callerBalSlot I)) I.weiValue := by
+    exact u256_add_comm _ _
   refine weth9ReEquivFallbackGen (t := fallbackTransition) hcode hX
-    hnosel weth9_receive_none rfl rfl rfl weth9FallbackBody ?_ ?_ ?_
-  · simp [storageStore_createdAccounts, initState]
+    hnosel weth9_receive_none rfl rfl rfl weth9FallbackBody ?_ ?_
   · rw [hvaleq, weth9DepositBody_accountMap]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (callerBalSlot I) _ hAccounts
   · exact returnDataEquiv.abi (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
 
 /-- No named selector matches (`calldata ≥ 4`): the binary-search dispatch walks every arm and
     falls through to the shared fallback handler (pc 156) with the selector word on the stack. -/
-theorem weth9ReachNoMatch156 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ReachNoMatch156 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hsz4 : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 11 → (weth9SelBytes i == I.calldata.extract 0 4) = false) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨156⟩ [weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩ [weth9SelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hmiss (i : ℕ) (hi : i < 11) (c0 c1 c2 c3 : UInt8) (sel : UInt256)
       (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
       (hbytes : weth9SelBytes i = (⟨#[c0, c1, c2, c3]⟩ : ByteArray)) :
@@ -399,7 +384,7 @@ theorem weth9ReachNoMatch156 {cA gh bl σ σ₀ A I} {g : Sat256}
     · exact hmiss 2 (by omega) 0x18 0x16 0x0d 0xdd _ (by native_decide) rfl
     · exact hmiss 3 (by omega) 0x23 0xb8 0x72 0xdd _ (by native_decide) rfl
     · exact hmiss 4 (by omega) 0x2e 0x1a 0x7d 0x4d _ (by native_decide) rfl
-  obtain ⟨_, _, h19⟩ := weth9ReachSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h19⟩ := weth9ReachSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize
   by_cases hroot : UInt256.gt (armSelNat weth9Bytecode ⟨19⟩) (weth9SelWord I) = ⟨0⟩
   · have h30 := RD.selectorSplitNotTakenAuto h19 weth9RootSplitWellFormed hroot (by simp)
@@ -443,24 +428,22 @@ theorem weth9SelDispatch_none_nomatch {cd : ByteArray}
   · rw [selectorOf, weth9AllowanceSelectorBytes]; exact hnm 10 (by decide)
 
 /-- Calldata ≥ 4 that matches no named selector runs the payable fallback (the deposit body). -/
-theorem weth9FallbackBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9FallbackBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsz4 : 4 ≤ I.calldata.size)
-    (hnm : ∀ i, i < 11 → (weth9SelBytes i == I.calldata.extract 0 4) = false)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 11 → (weth9SelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h156⟩ := weth9ReachNoMatch156 (g := Sat256.ofUInt256 g) hcode hsz4 hsize hnm
-  exact weth9FallbackConnect hcode (weth9SelDispatch_none_nomatch hnm) hAccounts
+  exact weth9FallbackConnect hcode (weth9SelDispatch_none_nomatch hnm)
     (weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156)
 
 /-- Calldata shorter than a selector runs the payable fallback (the deposit body). -/
-theorem weth9ShortFallbackBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9ShortFallbackBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hshort : I.calldata.size < 4)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hshort : I.calldata.size < 4) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h156⟩ := weth9ReachShort156 (g := Sat256.ofUInt256 g) hcode hshort
-  exact weth9FallbackConnect hcode (weth9SelDispatch_none_short hshort) hAccounts
+  exact weth9FallbackConnect hcode (weth9SelDispatch_none_short hshort)
     (weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156)
 
 end Benchmarks.WETH9

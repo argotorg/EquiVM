@@ -15,7 +15,7 @@ set_option maxRecDepth 2000000
 namespace StringStoreLite
 
 def currentLengthStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 structure CurrentLengthLoopState where
   ptr : UInt256
@@ -2164,20 +2164,20 @@ theorem currentLengthConcreteWrapperStore_aw64
       (σ := σ) (I := I) (len := len) hlenLt hgt31
   exact wordMul32_not_le64_of_ge3 hge3 hNoWrap
 
-theorem stringStoreLiteX_clearCurrentLongReachCopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stringStoreLiteX_clearCurrentLongReachCopyLoop {σ σ₀ A I} {g : Sat256}
     {len : UInt256}
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨351⟩
+      (initState σ σ₀ g A I) ⟨351⟩
       [len, ⟨0⟩, ⟨160⟩, len, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩,
         ⟨153⟩, stringStoreLiteSelWord I]
-      (currentLengthMem len) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C)
+      (currentLengthMem len) (UInt256.ofNat 5) ByteArray.empty σ k C)
     (hnonzero : len ≠ ⟨0⟩)
     (hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩) :
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨397⟩
+      (initState σ σ₀ g A I) ⟨397⟩
       [⟨160⟩, bytesLikeDataBase ⟨0⟩, (⟨160⟩ : UInt256) + len, len, ⟨0⟩,
         ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
-      (currentLengthLongScratchMem len) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C := by
+      (currentLengthLongScratchMem len) (UInt256.ofNat 5) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd351⟩ := hreach
   have rd357 := evm_run rd351 with [jumpdest, dup1, iszero, push2 ⟨426⟩]
   have rd358 := rd357.jumpiNT (by decide) (isZero_eq_zero_of_ne hnonzero) (by evm_ov)
@@ -2202,14 +2202,14 @@ theorem stringStoreLiteX_clearCurrentLongReachCopyLoop {cA gh bl σ σ₀ A I} {
     (by evm_ov)
   exact ⟨_, _, evm_run rd396 with [swap1]⟩
 
-theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {cA gh bl σ σ₀ A I}
+theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore awLoad : UInt256} {m memout : ByteArray}
     {mstoreCost mloadCost : Nat}
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨397⟩
+      (initState σ σ₀ g A I) ⟨397⟩
       [ptr, slot, endp, len, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩,
         stringStoreLiteSelWord I]
-      m aw ByteArray.empty (cA, σ) k C)
+      m aw ByteArray.empty σ k C)
     (hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) = ⟨0⟩)
     (hmemout :
       (currentLengthStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
@@ -2222,17 +2222,17 @@ theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {cA gh bl σ σ₀ A 
     (hawLoad : UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32) =
       awLoad) :
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨453⟩
+      (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
-      memout awLoad ByteArray.empty (cA, σ) k C := by
+      memout awLoad ByteArray.empty σ k C := by
   obtain ⟨_, _, rd397⟩ := hreach
   have rd399 := evm_run rd397 with [jumpdest, dup2]
   obtain ⟨_, _, rd400₀⟩ := rd399.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd400⟩ : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨400⟩
+      (initState σ σ₀ g A I) ⟨400⟩
       [currentLengthStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
-      m aw ByteArray.empty (cA, σ) k C := by
+      m aw ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [currentLengthStorageWord, initState] using rd400₀⟩
   have rd401 := evm_run rd400 with [dup2]
   have rd402 := rd401.mstore mstoreCost memout awStore
@@ -2249,32 +2249,32 @@ theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {cA gh bl σ σ₀ A 
     swap2, pop, push0, push0, push2 ⟨449⟩, swap2, swap1, push2 ⟨453⟩,
     jump (by jump_dest)]⟩
 
-theorem stringStoreLiteX_clearCurrentLongCopyContinue {cA gh bl σ σ₀ A I}
+theorem stringStoreLiteX_clearCurrentLongCopyContinue {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore : UInt256} {m memout : ByteArray}
     {mstoreCost : Nat}
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨397⟩
+      (initState σ σ₀ g A I) ⟨397⟩
       [ptr, slot, endp, len, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩,
         stringStoreLiteSelWord I]
-      m aw ByteArray.empty (cA, σ) k C)
+      m aw ByteArray.empty σ k C)
     (hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) ≠ ⟨0⟩)
     (hmemout :
       (currentLengthStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
     (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨397⟩
+      (initState σ σ₀ g A I) ⟨397⟩
       [(⟨32⟩ : UInt256) + ptr, (⟨1⟩ : UInt256) + slot, endp, len, ⟨0⟩,
         ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
-      memout awStore ByteArray.empty (cA, σ) k C := by
+      memout awStore ByteArray.empty σ k C := by
   obtain ⟨_, _, rd397⟩ := hreach
   have rd399 := evm_run rd397 with [jumpdest, dup2]
   obtain ⟨_, _, rd400₀⟩ := rd399.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd400⟩ : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨400⟩
+      (initState σ σ₀ g A I) ⟨400⟩
       [currentLengthStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
-      m aw ByteArray.empty (cA, σ) k C := by
+      m aw ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [currentLengthStorageWord, initState] using rd400₀⟩
   have rd401 := evm_run rd400 with [dup2]
   have rd402 := rd401.mstore mstoreCost memout awStore
@@ -2284,22 +2284,22 @@ theorem stringStoreLiteX_clearCurrentLongCopyContinue {cA gh bl σ σ₀ A I}
   have rd397' := rd416.jumpiT (by decide) hcontinue (by jump_dest) (by evm_ov)
   exact ⟨_, _, rd397'⟩
 
-theorem stringStoreLiteX_clearCurrentLongCopyLoopSchedule {cA gh bl σ σ₀ A I}
+theorem stringStoreLiteX_clearCurrentLongCopyLoopSchedule {σ σ₀ A I}
     {g : Sat256} {endp len : UInt256} (fuel : Nat) (st : Nat → CurrentLengthLoopState)
     (hsteps : ∀ i, i < fuel → CurrentLengthLoopStep σ I endp len (st i) (st (i + 1)))
     (hfinal : CurrentLengthLoopFinal σ I endp len (st fuel))
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨397⟩
-      ((st 0).stack endp len I) (st 0).mem (st 0).aw ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨397⟩
+      ((st 0).stack endp len I) (st 0).mem (st 0).aw ByteArray.empty σ k C) :
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨453⟩
+      (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
-      hfinal.memout hfinal.awLoad ByteArray.empty (cA, σ) k C := by
+      hfinal.memout hfinal.awLoad ByteArray.empty σ k C := by
   induction fuel generalizing st with
   | zero =>
       simpa [CurrentLengthLoopState.stack] using
         stringStoreLiteX_clearCurrentLongFinalCopyToDelete
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) (ptr := (st 0).ptr) (slot := (st 0).slot) (endp := endp)
           (len := len) (aw := (st 0).aw) (m := (st 0).mem)
           (memout := hfinal.memout) (awStore := hfinal.awStore)
@@ -2311,17 +2311,17 @@ theorem stringStoreLiteX_clearCurrentLongCopyLoopSchedule {cA gh bl σ σ₀ A I
       have hs : CurrentLengthLoopStep σ I endp len (st 0) (st 1) := by
         simpa using hsteps 0 (Nat.zero_lt_succ fuel)
       have hnext₀ := stringStoreLiteX_clearCurrentLongCopyContinue
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) (ptr := (st 0).ptr) (slot := (st 0).slot) (endp := endp)
         (len := len) (aw := (st 0).aw) (m := (st 0).mem)
         (memout := (st 1).mem) (awStore := (st 1).aw)
         (mstoreCost := hs.mstoreCost)
         hreach hs.hcontinue hs.hmemout hs.hmstoreCost hs.hawStore
       have hnext : ∃ k C, RD stringStoreLiteBytecode I g
-          (initState cA gh bl σ σ₀ g A I) ⟨397⟩
+          (initState σ σ₀ g A I) ⟨397⟩
           (((fun i => st i.succ) 0).stack endp len I)
           ((fun i => st i.succ) 0).mem ((fun i => st i.succ) 0).aw
-          ByteArray.empty (cA, σ) k C := by
+          ByteArray.empty σ k C := by
         obtain ⟨k, C, rd⟩ := hnext₀
         exact ⟨k, C, by
           simpa [CurrentLengthLoopState.stack, hs.hptrNext, hs.hslotNext] using rd⟩
@@ -2334,11 +2334,11 @@ theorem stringStoreLiteX_clearCurrentLongCopyLoopSchedule {cA gh bl σ σ₀ A I
       exact ih (fun i => st i.succ) hsteps' hfinal hnext
 
 theorem stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
-    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    {σ σ₀ A I} {g : Sat256} {len : UInt256}
     (fuel : Nat) (st : Nat → CurrentLengthLoopState)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
@@ -2355,9 +2355,9 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
     (hfinal :
       CurrentLengthLoopFinal σ I ((⟨160⟩ : UInt256) + len) len (st fuel)) :
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨453⟩
+      (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
-      hfinal.memout hfinal.awLoad ByteArray.empty (cA, σ) k C := by
+      hfinal.memout hfinal.awLoad ByteArray.empty σ k C := by
   have hdecoded₀ := stringStoreLiteX_bytesLengthDecoderLongValid
     (hreach := stringStoreLiteX_clearCurrentReachDecoder hreach)
     (header := currentLengthHeaderWord σ I) (ret := ⟨307⟩)
@@ -2368,9 +2368,9 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
   obtain ⟨_, _, rd307₀⟩ := hdecoded₀
   obtain ⟨_, _, rd307⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨307⟩
+        (initState σ σ₀ g A I) ⟨307⟩
         [len, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [← hlen] using rd307₀⟩
   have rd330 := evm_run rd307 with [
     jumpdest, dup1, push1 ⟨31⟩, add, push1 ⟨32⟩, dup1, swap2, div, mul,
@@ -2396,11 +2396,11 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
   have rd343 := evm_run rd340 with [dup1]
   obtain ⟨_, _, rd343₀⟩ := rd343.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd343'⟩ : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨343⟩
+      (initState σ σ₀ g A I) ⟨343⟩
       [currentLengthHeaderWord σ I, ⟨0⟩, ⟨160⟩, len, ⟨0⟩, ⟨128⟩, ⟨0⟩,
         ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
       (currentLengthMem len) (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
     exact ⟨_, _, by simpa [currentLengthHeaderWord, initState] using rd343₀⟩
   have hdecodedCopy := stringStoreLiteX_bytesLengthDecoderLongValidMem
     (hreach := ⟨_, _, evm_run rd343' with [
@@ -2415,25 +2415,25 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
   obtain ⟨_, _, rd351₀⟩ := hdecodedCopy
   obtain ⟨_, _, rd351⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨351⟩
+        (initState σ σ₀ g A I) ⟨351⟩
         [len, ⟨0⟩, ⟨160⟩, len, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩,
           ⟨153⟩, stringStoreLiteSelWord I]
         (currentLengthMem len) (UInt256.ofNat 5) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
     exact ⟨_, _, by simpa [← hlen] using rd351₀⟩
   have hloop := stringStoreLiteX_clearCurrentLongReachCopyLoop
     (g := g) ⟨_, _, rd351⟩ hnonzero hgt31
   exact stringStoreLiteX_clearCurrentLongCopyLoopSchedule
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (endp := (⟨160⟩ : UInt256) + len) (len := len) fuel st
     hsteps hfinal (by
       simpa [CurrentLengthLoopState.stack, hinit] using hloop)
 
 theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
-    {cA gh bl σ σ₀ A I} {g : Sat256} {len : UInt256}
+    {σ σ₀ A I} {g : Sat256} {len : UInt256}
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
@@ -2449,7 +2449,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
         Cₘ awStore
     let awLoad := UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32)
     ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨453⟩
+      (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
       (currentLengthGeneratedLoopFinal
         (σ := σ) (I := I) (endp := (⟨160⟩ : UInt256) + len) (len := len)
@@ -2475,7 +2475,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
           (σ := σ) (I := I) (len := len)
           (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
         (by rfl)).awLoad
-      ByteArray.empty (cA, σ) k C := by
+      ByteArray.empty σ k C := by
   dsimp only
   let fuel := (len.toNat - 1) / 32
   let awStore := UInt256.ofNat
@@ -2523,7 +2523,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
       UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32) = awLoad := by
     rfl
   exact stringStoreLiteX_clearCurrentLongReachDeleteWithSchedule
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (len := len) fuel (currentLengthGeneratedLoopState σ I len)
     hreach hflag hvalid hlen hnonzero hgt31
     currentLengthGeneratedLoopState_zero
@@ -2536,13 +2536,13 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
       hdone hmloadCost hloadVal hawLoad)
 
 theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
-    {cA gh bl σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
+    {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {len freePtr aw awLoad awStore awFinal : UInt256}
     {mem memret rdata : ByteArray}
     {mloadCost mstoreCost finalMloadCost retCost : Nat}
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σinit σ₀ g A I) ⟨153⟩
-      [len, stringStoreLiteSelWord I] mem aw rdata (cA, τ) k C)
+      (initState σinit σ₀ g A I) ⟨153⟩
+      [len, stringStoreLiteSelWord I] mem aw rdata τ k C)
     (hmloadCost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = mloadCost)
     (hfreePtr : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat
@@ -2566,7 +2566,7 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
         (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat = UInt256.toByteArray len)
     (hretCost : Cₘ (M awFinal freePtr (UInt256.sub (freePtr + ⟨32⟩) freePtr)) -
       Cₘ awFinal = retCost) :
-    RDret stringStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) (cA, τ)
+    RDret stringStoreLiteBytecode g (initState σinit σ₀ g A I) τ
       (UInt256.toByteArray len) := by
   obtain ⟨_, _, rd153⟩ := hreach
   have rd155 := evm_run rd153 with [jumpdest, push1 ⟨64⟩]
@@ -2639,20 +2639,20 @@ theorem clearCurrentBaseMemFrom_size_eq {mem : ByteArray}
     ByteArray.size_extract, toByteArray_size, htail]
   omega
 
-theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
+theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     {g : Sat256} {len : UInt256}
     (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hflag : UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩ ≠ ⟨0⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨32⟩) ≠ ⟨0⟩)
     (hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hnonzero : len ≠ ⟨0⟩)
     (hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩) :
-    RDret stringStoreLiteBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, clearDataWordsForwardFrom I.codeOwner
+    RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
+      (clearDataWordsForwardFrom I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
         clearCurrentBaseWord ⟨0⟩
         (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat)
@@ -2709,9 +2709,9 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
     (fuel := fuel) (finalMloadCost := copyMloadCost) (awLoad := copyAwLoad)
     hdone hcopyMloadCost hcopyLoadVal hcopyAwLoad
   have hreadStart : ∃ k C, RD stringStoreLiteBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨453⟩
+      (initState σ σ₀ g A I) ⟨453⟩
       [⟨0⟩, ⟨0⟩, ⟨449⟩, ⟨128⟩, len, ⟨153⟩, stringStoreLiteSelWord I]
-      copyFinal.memout copyFinal.awLoad ByteArray.empty (cA, σ) k C := by
+      copyFinal.memout copyFinal.awLoad ByteArray.empty σ k C := by
     simpa [copyFinal, fuel, copyAwStore, copyMloadCost, copyAwLoad] using
       stringStoreLiteX_clearCurrentLongReachDeleteGenerated
         (g := g) (len := len) hreach hflag hvalid hlen hnonzero hgt31
@@ -2874,7 +2874,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
       (UInt256.sub (freePtr + ⟨32⟩) freePtr)) - Cₘ wrapperAwFinal = wrapperRetCost := by
     rfl
   exact stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
-    (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σinit := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g)
     (τ := clearDataWordsForwardFrom I.codeOwner
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)

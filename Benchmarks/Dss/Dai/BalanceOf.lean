@@ -26,8 +26,8 @@ def balanceOfStorageSlot (I : ExecutionEnv) : UInt256 :=
   balanceOfSlot (balanceOfArgKey I)
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (balanceOfStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (balanceOfStorageSlot I) ⟨0⟩)
 
 theorem balanceOfStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     balanceOfStorageSlot I = mapSlot (balanceOfArgMaskedWord I) ⟨2⟩ := by
@@ -86,14 +86,14 @@ theorem daiBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-theorem daiBalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiBalanceOfX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨734⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2392⟩
+      (initState σ σ₀ g A I) ⟨734⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨2392⟩
         [balanceOfArgMaskedWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd756⟩ := RD.daiOneAddressExternalLenOk
     (entry := ⟨734⟩) (ret := ⟨524⟩) (routine := ⟨2392⟩) hreach
     dai_one_address_external_entry_wf (by jump_dest) hsz36 hsize
@@ -103,23 +103,23 @@ theorem daiBalanceOfX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [balanceOfArgMaskedWord, balanceOfArgWord] using rd2392⟩
 
-theorem daiBalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiBalanceOfX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨734⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨734⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiOneAddressExternalShort
     (entry := ⟨734⟩) (ret := ⟨524⟩) (routine := ⟨2392⟩)
     hreach dai_one_address_external_entry_wf hsz4 hsize hshort
 
-theorem daiX_balanceOf_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨734⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨734⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
   obtain ⟨_, _, rd2392⟩ := daiBalanceOfX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨k524, C524, rd524raw⟩ := RD.daiSingleMappingGetter (pc := ⟨2392⟩)
@@ -128,16 +128,16 @@ theorem daiX_balanceOf_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := balanceOfStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (balanceOfArgMaskedWord I) ⟨2⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (balanceOfArgMaskedWord I) ⟨2⟩) ⟨0⟩))
         = balanceOfWord σ I := by
     unfold balanceOfWord
     rw [hslot]
-  have rd524 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨524⟩
+  have rd524 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨524⟩
       (balanceOfWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨2⟩ (balanceOfArgMaskedWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k524 C524 := by
-    simpa [hword] using rd524raw
+      (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
+    simpa only [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := balanceOfWord σ I) (ret := ⟨524⟩) (R := [sel])
     (mem := daiMappingHashMem ⟨2⟩ (balanceOfArgMaskedWord I))
@@ -151,7 +151,7 @@ theorem daiX_balanceOf_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
 
 theorem daiBalanceOfBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -160,61 +160,56 @@ theorem daiBalanceOfBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (balanceOfTransition.params.map Param.name)
         (transitionSignature balanceOfTransition).paramTypes I.calldata = some (balanceOfStore I))
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : balanceOfWord σ_evm I = balanceOfWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (balanceOfStore I)
         balanceOfTransition.body
         (.returned { contract := contract, locals := balanceOfStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (balanceOfWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (balanceOfWord σ I).toNat))])) := by
     simpa [balanceOfWord, balanceOfStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiBalanceOfBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   exact (daiX_balanceOf_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (returnEquiv_of_encode
-        (by simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ_evm I)))
+        (by simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ I)))
 
 theorem daiBalanceOfBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨734⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_balanceOf_none_short (I := I) hsz4 hshort
   exact (daiBalanceOfX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `balanceOf(address)` body refines its Solm transition. -/
-theorem daiBalanceOfBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiBalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 2)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 2) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition :=
     daiDispatchBalanceOf hsel
-  have hreach := daiReachBalanceOfBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := daiReachBalanceOfBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact daiBalanceOfBodyCoreOk hcode hsize hwv hsz36 hdispatch
-      (daiDecode_balanceOf_ok hsz36) hreach hAccounts
+      (daiDecode_balanceOf_ok hsz36) hreach
   · exact daiBalanceOfBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

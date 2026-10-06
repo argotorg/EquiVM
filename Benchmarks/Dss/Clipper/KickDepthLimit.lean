@@ -17,14 +17,14 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksDepthLimit {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {id sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (hrd : RD code ee g s0 ⟨8728⟩
       (⟨6061⟩ :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: id ::
         clipperKickKprMaskedWord ee :: clipperKickUsrMaskedWord ee ::
         clipperKickLotWord ee :: clipperKickTabWord ee :: ⟨476⟩ :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hcode : extCodeSizeWord σ (clipperSpotterTarget σ ee) ≠ ⟨0⟩)
     (hdepth : ee.depth = 1024)
     (hmem : mem.size = 96)
@@ -37,7 +37,7 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksDepthLimit {code : ByteArray}
         clipperKickUsrMaskedWord ee :: clipperKickLotWord ee ::
         clipperKickTabWord ee :: ⟨476⟩ :: sel :: R)
       (clipperSpotterIlksPostCallMem v mem ByteArray.empty)
-      (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 6) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd8824⟩ :=
     RD.clipperKickGetFeedPriceToSpotterIlksExtcodesizeGuard
       v hpatch hrd hmem hread64 (by simp only [List.length_cons]; omega)
@@ -69,28 +69,27 @@ theorem RD.clipperKickGetFeedPriceSpotterIlksDepthLimit {code : ByteArray}
 theorem clipperKickDepthLimitReverts
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA0 : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σStart σ₀ : AccountMap} {A : Substate}
+    {σStart σ₀ : AccountMap} {A : Substate}
     {g : UInt256} {I : ExecutionEnv} {evmLock sourceInit : EVM.State}
     {id sel : UInt256} {R : List UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     (hdepth : I.depth = 1024)
     (hspotter : extCodeSizeWord σ (clipperSpotterTarget σ I) ≠ ⟨0⟩)
     (halign : ClipperKickCallAligned
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I)
-      cA σ I sourceInit)
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I)
+      σ I sourceInit)
     (hrd : RD code I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) ⟨8728⟩
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) ⟨8728⟩
       (⟨6061⟩ :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ :: id ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 101 ≤ 1024) :
     ClipperKickTailOutcome v code g
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) I
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id := by
   obtain ⟨k8840, C8840, rd8840⟩ :=
     RD.clipperKickGetFeedPriceSpotterIlksDepthLimit

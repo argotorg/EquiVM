@@ -43,23 +43,23 @@ def transferCallMem (mem out : ByteArray) (ptr recipient amount : UInt256) :
 def transferCallWords (aw ptr : UInt256) : UInt256 :=
   callActiveWords (callWords2 aw ptr) ptr ⟨68⟩ ptr ⟨32⟩
 
-theorem transferCall {I g s0 amount recipient ret oldTarget R mem aw ptr rdata cA σ k C evm}
+theorem transferCall {I g s0 amount recipient ret oldTarget R mem aw ptr rdata σ k C evm}
     (h : RD auctionBytecode I g s0 ⟨3449⟩
       (amount :: ⟨0xd0e30db0⟩ :: oldTarget :: amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 68 ≤ 2 ^ 200)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
         (transferData recipient amount) (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨3518⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨68⟩) :: ⟨0xa9059cbb⟩ ::
           wethWord σ I :: amount :: recipient :: ret :: R)
         (transferCallMem mem out ptr recipient amount) (transferCallWords aw ptr)
-        out (cA', σ') k' C' ∧ out.size < 2 ^ 138 := by
+        out σ' k' C' ∧ out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd3517⟩ := transferPrefix h hm hb hov
   have hcd :
       (callMem2 mem ptr transferWord (UInt256.land recipient solcAddrMask) amount).readWithPadding

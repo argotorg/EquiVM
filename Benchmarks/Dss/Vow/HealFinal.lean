@@ -13,16 +13,16 @@ abbrev healLocalsDone
     "_healRet" (collapseReturns [])
 
 theorem vowHealSourceHealNoCode
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}
     {outDai outSin : ByteArray}
     {vatDai vatSin SinVal freeSin AshVal healDebt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -58,7 +58,7 @@ theorem vowHealSourceHealNoCode
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat =
           0) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -255,8 +255,8 @@ theorem vowHealSourceHealNoCode
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealHealNoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatDai vatSin freeSin healDebt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatDai vatSin freeSin healDebt : UInt256}
+    {acc : AccountMap}
     {evmDai evmSin : EVM.State} {mem outDai outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some healTransition)
@@ -264,20 +264,20 @@ theorem vowHealHealNoCodeBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd4997 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) outSin acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSizeEvm :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) =
         ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -285,58 +285,58 @@ theorem vowHealHealNoCodeBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ acc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ acc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ acc.2 I)
-    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I))
-    (hdebtOk : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat)
+        vowSlotWord ⟨6⟩ acc I)
+    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I))
+    (hdebtOk : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat)
     (hdebtEnough : (healRad I).toNat ≤ healDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatNoCodeHeal :
       (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealHealNoCode rd4997 hmem hread64 hcodeSizeEvm
-  have hbody := vowHealSourceHealNoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceHealNoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (outDai := outDai) (outSin := outSin)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc.2 I)
-    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc.2 I) (healDebt := healDebt)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ acc I)
+    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ acc I) (healDebt := healDebt)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk hdebtEnough hvatLoadSin
     hvatNoCodeHeal
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowHealSourceHealCallFailure
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin evmHeal : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin evmHeal : EVM.State}
     {outDai outSin outHeal : ByteArray}
     {vatDai vatSin SinVal freeSin AshVal healDebt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -374,7 +374,7 @@ theorem vowHealSourceHealCallFailure
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (false, evmHeal, outHeal) true) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body .reverted := by
   intro locals evm0
   let locals1 := healLocalsVatDai I vatDai
@@ -584,16 +584,16 @@ theorem vowHealSourceHealCallFailure
     checkedExternalCallStmts] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowHealSourceSuccess
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmDai evmSin evmHeal : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmDai evmSin evmHeal : EVM.State}
     {outDai outSin outHeal : ByteArray}
     {vatDai vatSin SinVal freeSin AshVal healDebt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
@@ -632,7 +632,7 @@ theorem vowHealSourceSuccess
         [.int (Int.ofNat (healRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some []) :
     let locals := healLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals healTransition.body
       (.returned
         { contract := contract, locals := healLocalsDone I vatDai vatSin freeSin healDebt }
@@ -851,8 +851,8 @@ theorem vowHealSourceSuccess
     checkedExternalCallStmts] using ExecFuncBody.execBlockOK hblock
 
 theorem vowHealHealCallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatDai vatSin freeSin healDebt : UInt256}
-    {preAcc acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel target vatDai vatSin freeSin healDebt : UInt256}
+    {preAcc acc : AccountMap}
     {evmDai evmSin evmHeal : EVM.State} {mem outDai outSin outHeal rdata : ByteArray}
     {aw : UInt256} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -861,18 +861,18 @@ theorem vowHealHealCallFailureBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd1919 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
       (⟨0⟩ :: kissHealEndPtr :: kissHealSelector :: target ::
         healRad I :: ⟨412⟩ :: sel :: [])
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -880,54 +880,54 @@ theorem vowHealHealCallFailureBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ preAcc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ preAcc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ preAcc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ preAcc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ preAcc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ preAcc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ preAcc.2 I)
-    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ preAcc.2 I))
-    (hdebtOk : (vowSlotWord ⟨6⟩ preAcc.2 I).toNat ≤ freeSin.toNat)
+        vowSlotWord ⟨6⟩ preAcc I)
+    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ preAcc I))
+    (hdebtOk : (vowSlotWord ⟨6⟩ preAcc I).toNat ≤ freeSin.toNat)
     (hdebtEnough : (healRad I).toNat ≤ healDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeHeal :
       0 < (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ_solm I)) "heal" 0
+      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowKissHealCallFailure (by simpa [kissRad] using rd1919) hrdataSize
-  have hbody := vowHealSourceHealCallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceHealCallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (evmHeal := evmHeal)
     (outDai := outDai) (outSin := outSin) (outHeal := outHeal)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ preAcc.2 I)
-    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ preAcc.2 I) (healDebt := healDebt)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ preAcc I)
+    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ preAcc I) (healDebt := healDebt)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk hdebtEnough hvatLoadSin
     hvatCodeHeal hcallHeal
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowHealHealSuccessBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatDai vatSin freeSin healDebt : UInt256}
-    {preAcc acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel target vatDai vatSin freeSin healDebt : UInt256}
+    {preAcc acc : AccountMap}
     {evmDai evmSin evmHeal : EVM.State} {mem outDai outSin outHeal rdata : ByteArray}
     {aw : UInt256} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -936,17 +936,17 @@ theorem vowHealHealSuccessBodyCore
       decodeCalldataWithMode config.abiDecodeMode (healTransition.params.map Param.name)
         (transitionSignature healTransition).paramTypes I.calldata = some (healLocals I))
     (rd1919 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target ::
         healRad I :: ⟨412⟩ :: sel :: [])
       mem aw rdata acc k C)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "dai" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "dai" 0 [.address I.codeOwner]
         (true, evmDai, outDai) false)
     (hdecDai :
       config.externalABI.decode? "dai" outDai =
@@ -954,56 +954,55 @@ theorem vowHealHealSuccessBodyCore
     (hvatDaiEnough : (healRad I).toNat ≤ vatDai.toNat)
     (hvatLoadDai :
       Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeSin :
       0 < (UInt256.ofNat
-        ((evmDai.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ_solm I)) "sin" 0
+      typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
         some [.int (Int.ofNat vatSin.toNat)])
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
-        vowSlotWord ⟨5⟩ preAcc.2 I)
-    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ preAcc.2 I))
-    (hfreeOk : (vowSlotWord ⟨5⟩ preAcc.2 I).toNat ≤ vatSin.toNat)
+        vowSlotWord ⟨5⟩ preAcc I)
+    (hfree : freeSin = UInt256.sub vatSin (vowSlotWord ⟨5⟩ preAcc I))
+    (hfreeOk : (vowSlotWord ⟨5⟩ preAcc I).toNat ≤ vatSin.toNat)
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
-        vowSlotWord ⟨6⟩ preAcc.2 I)
-    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ preAcc.2 I))
-    (hdebtOk : (vowSlotWord ⟨6⟩ preAcc.2 I).toNat ≤ freeSin.toNat)
+        vowSlotWord ⟨6⟩ preAcc I)
+    (hdebt : healDebt = UInt256.sub freeSin (vowSlotWord ⟨6⟩ preAcc I))
+    (hdebtOk : (vowSlotWord ⟨6⟩ preAcc I).toNat ≤ freeSin.toNat)
     (hdebtEnough : (healRad I).toNat ≤ healDebt.toNat)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeHeal :
       0 < (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallHeal :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ_solm I)) "heal" 0
+      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some [])
-    (hcreated : acc.1 = evmHeal.createdAccounts)
-    (hAccountsFinal : accountMapEquiv acc.2 evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hAccountsFinal : Eq acc evmHeal.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hret := RD.vowKissHealCallSuccess (by simpa [kissRad] using rd1919)
-  have hbody := vowHealSourceSuccess (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := vowHealSourceSuccess
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmDai := evmDai) (evmSin := evmSin) (evmHeal := evmHeal)
     (outDai := outDai) (outSin := outSin) (outHeal := outHeal)
-    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ preAcc.2 I)
-    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ preAcc.2 I) (healDebt := healDebt)
+    (vatDai := vatDai) (vatSin := vatSin) (SinVal := vowSlotWord ⟨5⟩ preAcc I)
+    (freeSin := freeSin) (AshVal := vowSlotWord ⟨6⟩ preAcc I) (healDebt := healDebt)
     hwv hvatCode hcallDai hdecDai hvatDaiEnough hvatLoadDai hvatCodeSin hcallSin
     hdecSin hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk hdebtEnough hvatLoadSin
     hvatCodeHeal hcallHeal hdecHeal
   have henc : returnEquiv ByteArray.empty none healTransition.returnType := by
     rw [show healTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    hcreated hAccountsFinal henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+    hAccountsFinal henc
 
 end Benchmarks.Dss.Vow

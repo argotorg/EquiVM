@@ -70,13 +70,13 @@ theorem catDecode_rely_none_short {I : ExecutionEnv}
   simpa [config, relyTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort)
 
-theorem catReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         ⟨445⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : catSelWord I = ⟨1710941022⟩ :=
     catSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨1710941022⟩
       (by native_decide) hsel
@@ -102,7 +102,7 @@ theorem catReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
 /-! ### Body core -/
 
 theorem catRelyBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -112,18 +112,17 @@ theorem catRelyBodyCore
         (transitionSignature relyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (relyUsr I))))
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨445⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨445⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := relyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := catCallerWardsSlot I
   let locals : Store := (∅ : Store).insert "usr" (.address (relyUsr I))
   have hslot : relySlotFor I = slot := by
     simp [slot, key, relySlotFor_eq]
-  have hcallerWord : catSlotWord callerSlot σ_evm I = catSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+  have hcallerWord : catSlotWord callerSlot σ I = catSlotWord callerSlot σ I :=
+    rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨445⟩) (ret := ⟨302⟩)
     (decoded := ⟨467⟩) hreach
@@ -137,17 +136,16 @@ theorem catRelyBodyCore
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : catSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : catSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-      rw [← hcallerWord]
+  by_cases hauthEvm : catSlotWord callerSlot σ I = ⟨1⟩
+  · have hauthSolm : catSlotWord callerSlot σ I = ⟨1⟩ := by
       exact hauthEvm
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨1⟩
     have hbody :
         ExecTransitionBody config contract evm0 locals relyTransition.body
           (.returned { contract := contract, locals := locals } evm1 none) := by
-      have hguard := catAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := catAuthGuardEval_true
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthSolm
       have hassign :
@@ -182,7 +180,7 @@ theorem catRelyBodyCore
         hguard (by simp [evalExpr?, pure]) hassign
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
         ExecFuncBody.execBlockOK hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
     obtain ⟨_, _, hokPc⟩ := RD.catAuthCheckOk
       (code := catBytecode) (pc := ⟨2715⟩) (okPc := ⟨2804⟩) (key := key)
@@ -209,29 +207,23 @@ theorem catRelyBodyCore
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
         RDret catBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩) ByteArray.empty := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (sstoreAccountMap I.codeOwner σ slot ⟨1⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
-    have hcreated :
-        (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).1 = evm1.createdAccounts := by
-      simp [evm1, evm0, initState, storageStore_createdAccounts]
     have haccounts :
-        accountMapEquiv (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).2
-          evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨1⟩ hAccounts
+        sstoreAccountMap I.codeOwner σ slot ⟨1⟩ = evm1.accountMap := by
+      simp [evm1, evm0, initState, storageStore_accountMap, hslot]
     have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
       rw [show relyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      hcreated haccounts henc
-  · have hauthSolm : catSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
-      intro hsolm
-      exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+      haccounts henc
+  · have hauthSolm : catSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+      exact hauthEvm
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 locals relyTransition.body .reverted := by
-      have hguard := catAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := catAuthGuardEval_false
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
@@ -243,7 +235,7 @@ theorem catRelyBodyCore
         hguard
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
     have hrev := RD.catAuthCheckRevert
       (code := catBytecode) (pc := ⟨2715⟩) (okPc := ⟨2804⟩) (key := key)
@@ -258,15 +250,14 @@ theorem catRelyBodyCore
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem catRelyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catRelyShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hreach :=
-    catReachRelyBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    catReachRelyBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :
@@ -285,22 +276,20 @@ theorem catRelyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact hrev.reEquivDecodingFailed hcode (catDispatch_rely hsel)
     (catDecode_rely_none_short hsz4 hshort)
 
-theorem catRelyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catRelyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩ (by native_decide) hsel
   by_cases hshort : I.calldata.size < 36
-  · exact catRelyShort hcode hsize hperm hwv hsz hshort hsel hAccounts
+  · exact catRelyShort hcode hsize hperm hwv hsz hshort hsel
   · have hsz36 : 36 ≤ I.calldata.size := by omega
     exact catRelyBodyCore hcode hwv hperm hsz36 hsize (catDispatch_rely hsel)
       (catDecode_rely_ok hsz36)
       (catReachRelyBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-      hAccounts
 
 end Benchmarks.Dss.Cat

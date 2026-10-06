@@ -31,13 +31,13 @@ namespace Benchmarks.Xxx
 
 -- theorem xxxCorrect : runtimeEquivalence config xxxBytecode contract := by
 --   refine runtimeEquivalence.intro ?_
---   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+--   intro σ σ₀ g A I hcode hsize hperm
 --   by_cases hwv : I.weiValue = ⟨0⟩
 --   · by_cases h0 : selIs I (xxxSelBytes 0)
---     · exact xxxSetValueBody hcode hsize hperm hwv h0 hAccounts
+--     · exact xxxSetValueBody hcode hsize hperm hwv h0
 --     · by_cases h1 : selIs I (xxxSelBytes 1)
---       · exact xxxValueBody hcode hsize hperm hwv h1 hAccounts
---       · exact xxxNoDispatch hcode hsize hperm hwv (xxxNoSelectorMatches h0 h1) hAccounts
+--       · exact xxxValueBody hcode hsize hperm hwv h1
+--       · exact xxxNoDispatch hcode hsize hperm hwv (xxxNoSelectorMatches h0 h1)
 --   · exact xxxNonPayable hcode hwv
 
 -- theorem xxxContractCorrect :

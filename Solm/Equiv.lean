@@ -7,7 +7,7 @@ The statement of Solm/EVM refinement, layered bottom-up:
 
 * **Result equivalence** — `returnEquiv`/`returnDataEquiv` couple returned bytes with spec
   return values; `execResultsEquiv` / `ctorResultEquiv` couple whole execution outcomes
-  (final account maps up to `accountMapEquiv`, plus the return data — for constructors, the
+  (equality of final account maps, plus the return data — for constructors, the
   returned bytes must be the deployed runtime code).
 * **Fixed-input relations** — `runtimeEquivalenceFor` / `constructorEquivalenceFor` couple one
   EVM execution (`Ethereum.EVM.Ξ`) with one Solm execution (`solmExec` / `solmCtorExec`) at
@@ -80,79 +80,14 @@ inductive returnDataEquiv (o : ByteArray) (r : Option (List Value)) : ReturnConv
     o = null →
     returnDataEquiv o r .rawBytes
 
-/-- Account equality up to storage-map representation.  The non-storage account fields must match
-    structurally, while persistent storage is compared by `find?` at every slot.  This abstracts
-    over `RBMap` tree shape without equating absent storage slots with explicitly stored zeroes. -/
-def accountEquiv (a b : Ethereum.Account) : Prop :=
-  a.nonce = b.nonce ∧
-  a.balance = b.balance ∧
-  a.code = b.code ∧
-  (∀ slot : Ethereum.UInt256,
-    a.storage.find? slot = b.storage.find? slot) ∧
-      (∀ slot : Ethereum.UInt256,
-        a.tstorage.find? slot = b.tstorage.find? slot)
-
-/-- Account-map equality up to the internal representation of each account's persistent storage
-    map.  Account presence is still exact. -/
-def accountMapEquiv (σ τ : Ethereum.AccountMap) : Prop :=
-  ∀ addr : Ethereum.AccountAddress,
-    match σ.find? addr, τ.find? addr with
-    | none, none => True
-    | some a, some b => accountEquiv a b
-    | _, _ => False
-
-theorem accountEquiv.refl (a : Ethereum.Account) : accountEquiv a a := by
-  exact ⟨rfl, rfl, rfl, fun _ => rfl, fun _ => rfl⟩
-
-theorem accountMapEquiv.refl (σ : Ethereum.AccountMap) : accountMapEquiv σ σ := by
-  intro addr
-  cases σ.find? addr <;> simp [accountEquiv.refl]
-
-theorem accountEquiv.symm {a b : Ethereum.Account}
-    (hab : accountEquiv a b) : accountEquiv b a := by
-  rcases hab with ⟨hn, hb, hc, hs, ht⟩
-  exact ⟨hn.symm, hb.symm, hc.symm, fun slot => (hs slot).symm,
-    fun slot => (ht slot).symm⟩
-
-theorem accountMapEquiv.symm {σ τ : Ethereum.AccountMap}
-    (hστ : accountMapEquiv σ τ) : accountMapEquiv τ σ := by
-  intro addr
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ] at hστ ⊢
-  exact accountEquiv.symm hστ
-
-theorem accountMapEquiv.of_eq {σ τ : Ethereum.AccountMap} (h : σ = τ) :
-    accountMapEquiv σ τ := by
-  subst h
-  exact accountMapEquiv.refl σ
-
-theorem accountEquiv.trans {a b c : Ethereum.Account}
-    (hab : accountEquiv a b) (hbc : accountEquiv b c) : accountEquiv a c := by
-  rcases hab with ⟨hn₁, hb₁, hc₁, hs₁, ht₁⟩
-  rcases hbc with ⟨hn₂, hb₂, hc₂, hs₂, ht₂⟩
-  exact ⟨hn₁.trans hn₂, hb₁.trans hb₂, hc₁.trans hc₂,
-    fun slot => (hs₁ slot).trans (hs₂ slot), fun slot => (ht₁ slot).trans (ht₂ slot)⟩
-
-theorem accountMapEquiv.trans {σ τ υ : Ethereum.AccountMap}
-    (hστ : accountMapEquiv σ τ) (hτυ : accountMapEquiv τ υ) : accountMapEquiv σ υ := by
-  intro addr
-  specialize hστ addr
-  specialize hτυ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;> cases hυ : υ.find? addr <;>
-    simp [hσ, hτ, hυ] at hστ hτυ ⊢
-  exact accountEquiv.trans hστ hτυ
-
 
 inductive execResultsEquiv
-  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (returnConvention : ReturnConvention) : Prop where
   | success :
-    -- Resulting states are compared up to storage-map representation (`accountMapEquiv`).
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned _ solmState retVal →
-    createdAccounts' = solmState.createdAccounts →
-    accountMapEquiv σ' solmState.accountMap →
+    σ' = solmState.accountMap →
     returnDataEquiv o retVal returnConvention →
     execResultsEquiv evmRes solmRes returnConvention
   | revert :
@@ -168,24 +103,20 @@ inductive execResultsEquiv
     execResultsEquiv evmRes solmRes returnConvention
 
 inductive ctorResultEquiv
-  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (runtimeCode : ByteArray) : Prop where
   | success :
-    -- Resulting states compared up to storage-map representation (`accountMapEquiv`); syntactic
-    -- equality is a special case, so this single constructor subsumes it.
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned _ solmState .none →
-    createdAccounts' = solmState.createdAccounts →
-    accountMapEquiv σ' solmState.accountMap →
+    σ' = solmState.accountMap →
     o = runtimeCode →
     ctorResultEquiv evmRes solmRes runtimeCode
   -- Twin of `success` for a ctor body ending in a bare `return` (explicit void return `some []`);
   -- kept separate so existing `.success` (fall-through `.none`) proofs are unchanged.
   | successVoidReturn :
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned _ solmState (some []) →
-    createdAccounts' = solmState.createdAccounts →
-    accountMapEquiv σ' solmState.accountMap →
+    σ' = solmState.accountMap →
     o = runtimeCode →
     ctorResultEquiv evmRes solmRes runtimeCode
   | revert :
@@ -201,9 +132,7 @@ inductive ctorResultEquiv
 /-- Runtime equivalence of a single message call at fixed transaction inputs: couples the EVM
     execution of the bytecode (`Ethereum.EVM.Ξ`) with the Solm execution of the spec (`solmExec`),
     both run from the given accounts, gas, substate, and environment `I` (which carries the code
-    and calldata).  The EVM side starts from `σ_evm`, the Solm side from `σ_solm`; the two are
-    only related up to `accountMapEquiv` — that coupling, and the quantification over all inputs,
-    are imposed by the entry points `runtimeEquivalence` / `runtimeEquivalenceWithWF`.
+    and calldata).
 
     Holds in exactly one of four ways:
     * `execution`: Solm dispatches and runs a transition to `solmRes`; the EVM result is
@@ -215,15 +144,7 @@ inductive ctorResultEquiv
       termination is not forced, a non-terminating EVM program is equivalent to any spec.) -/
 inductive runtimeEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
-    -- EVM-side initial maps (fed to `Ξ`).
-    (σ_evm : Ethereum.AccountMap)
-    -- Solm-side initial maps (fed to `solmExec`).  They need only be `accountMapEquiv` to the
-    -- EVM-side `σ_evm`/`σ₀` (not syntactically equal); the storage-observational semantics make
-    -- the two executions agree.  The coupling is imposed as a precondition at `runtimeEquivalence`.
-    (σ_solm : Ethereum.AccountMap)
+    (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
     (A : Ethereum.Substate)
@@ -231,27 +152,27 @@ inductive runtimeEquivalenceFor (cfg : Config)
 : Prop where
   | execution {Ξ_res solmRes returnConvention} : /- Both executions return -/
     /- Execute EVM transaction-/
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
+    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
     /- Solm transition dispatch + execution -/
-    solmExec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes returnConvention →
+    solmExec cfg contract σ σ₀ g A I solmRes returnConvention →
     /- Resulting states and return must be equivalent equivalence -/
     execResultsEquiv Ξ_res solmRes returnConvention →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
   | noDispatch : /- Dispatch fails in Solm, EVM reverts -/
     dispatchMsg contract I.calldata = .none →
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .ok (.revert g' o) →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    Ethereum.EVM.Ξ σ σ₀ g A I = .ok (.revert g' o) →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
   | decodingFailed {transition transitionSig g' o} : /- Decoding fails in Solm, EVM reverts -/
     selectorDispatchMsg contract I.calldata = .some transition →
     transitionSig = transitionSignature transition →
     decodeCalldataWithMode cfg.abiDecodeMode (transition.params.map Param.name)
       transitionSig.paramTypes I.calldata = .none →
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .ok (.revert g' o) →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    Ethereum.EVM.Ξ σ σ₀ g A I = .ok (.revert g' o) →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
   | outOfGas : /- EVM runs out of gas -/
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
 
 abbrev StorageWF := Ethereum.AccountMap → Ethereum.ExecutionEnv → Prop
 
@@ -261,17 +182,13 @@ def trivialStorageWF : StorageWF := fun _ _ => True
 /-- Runtime equivalence under a contract-specific storage well-formedness precondition.
 
 This is the same runtime relation as `runtimeEquivalence`, except the caller must additionally
-prove `wf σ_evm I` for the EVM-side initial storage and execution environment.  The old
+prove `wf σ I` for the EVM-side initial storage and execution environment.  The old
 unconditional relation remains available as before; new contracts that need reachable-state or
 layout invariants can use this parameterized entry point. -/
 inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : ByteArray)
     (contract : ContractDecl) : Prop where
   | intro :
-    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-      (genesisBlockHeader : Ethereum.BlockHeader)
-      (blocks : Ethereum.ProcessedBlocks)
-      (σ_evm : Ethereum.AccountMap)
-      (σ_solm : Ethereum.AccountMap)
+    (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
@@ -279,19 +196,14 @@ inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : B
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
     I.perm = true →
-    accountMapEquiv σ_evm σ_solm →
-    wf σ_evm I →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    wf σ I →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
     ) →
     runtimeEquivalenceWithWF wf cfg bytecode contract
 
 inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
   | intro :
-    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-      (genesisBlockHeader : Ethereum.BlockHeader)
-      (blocks : Ethereum.ProcessedBlocks)
-      (σ_evm : Ethereum.AccountMap)
-      (σ_solm : Ethereum.AccountMap)
+    (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
@@ -303,10 +215,7 @@ inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : C
     -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
     -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
     I.perm = true →
-    -- The Solm-side initial maps need only be observationally (`accountMapEquiv`) equal to the
-    -- EVM-side maps, not syntactically equal — see `runtimeEquivalenceFor`.
-    accountMapEquiv σ_evm σ_solm →
-    runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
     ) →
     runtimeEquivalence cfg bytecode contract
 
@@ -320,14 +229,14 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
     cases h with
     | intro hrun =>
         refine runtimeEquivalence.intro ?_
-        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
-        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts trivial
+        intro σ σ₀ g A I hcode hsize hperm
+        exact hrun σ σ₀ g A I hcode hsize hperm trivial
   · intro h
     cases h with
     | intro hrun =>
         refine runtimeEquivalenceWithWF.intro ?_
-        intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts _hwf
-        exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+        intro σ σ₀ g A I hcode hsize hperm _hwf
+        exact hrun σ σ₀ g A I hcode hsize hperm
 
 
 /-- Constructor (deployment) equivalence at fixed transaction inputs: couples the EVM
@@ -336,12 +245,11 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
     values `args`.  Unlike the runtime relation there is no dispatch or calldata-decoding case:
     creation calls are compiler-generated and trusted, so the *spec side* fixes `args`, and the
     ∀-closure (`constructorEquivalence`) ties them to the deployed initcode via
-    `cfg.selfDeployment`.  The EVM side starts from `σ_evm`, the Solm side from `σ_solm`,
-    related up to `accountMapEquiv` at the entry point.
+    `cfg.selfDeployment`.
 
     Holds in one of two ways:
     * `execution` — the Solm constructor runs to `solmRes`; the EVM result is
-      `ctorResultEquiv`-related: on success the final states agree up to `accountMapEquiv`
+      `ctorResultEquiv`-related: on success the final account maps are equal
       **and the EVM's returned bytes are exactly `runtimeCode`** (the deployed runtime bytecode);
       reverts and `INVALID` halts pair with a Solm revert.
     * `outOfGas` — the EVM exhausts its gas; the spec side is unconstrained. (same
@@ -350,14 +258,7 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
 inductive constructorEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
     (args : List Value)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
-    -- EVM-side initial maps (fed to `Ξ`).
-    (σ_evm : Ethereum.AccountMap)
-    -- Solm-side initial maps (fed to `solmCtorExec`); coupled by `accountMapEquiv` at
-    -- `constructorEquivalence` (need only be observationally, not syntactically, equal).
-    (σ_solm : Ethereum.AccountMap)
+    (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
     (A : Ethereum.Substate)
@@ -366,25 +267,21 @@ inductive constructorEquivalenceFor (cfg : Config)
 : Prop where
   | execution {Ξ_res solmRes} : /- Both executions return -/
     /- Execute EVM transaction-/
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
+    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
     /- Solm constructor + execution -/
-    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes →
+    solmCtorExec cfg contract args σ σ₀ g A I solmRes →
     /- Resulting states must be equivalent, and the EVM return bytes should equal the runtime code -/
     ctorResultEquiv Ξ_res solmRes runtimeCode →
-    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCode
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
   | outOfGas : /- EVM runs out of gas -/
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
-    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCode
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
 
 
 inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract : ContractDecl) (runtimeCode : ByteArray) : Prop where
   | intro :
-    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-      (genesisBlockHeader : Ethereum.BlockHeader)
-      (blocks : Ethereum.ProcessedBlocks)
-      (σ_evm : Ethereum.AccountMap)
-      (σ_solm : Ethereum.AccountMap)
+    (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
       (g : Ethereum.UInt256)
       (A : Ethereum.Substate)
@@ -406,11 +303,8 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
     -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
     -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
     I.perm = true →
-    -- The Solm-side initial maps need only be observationally (`accountMapEquiv`) equal to the
-    -- EVM-side maps, not syntactically equal — see `constructorEquivalenceFor`.
-    accountMapEquiv σ_evm σ_solm →
     -- We need to enforce that all successful execution paths return the same runtime code
-    constructorEquivalenceFor cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCode
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
     ) →
     constructorEquivalence cfg initcode contract runtimeCode
 
@@ -445,20 +339,18 @@ originals exactly (`ctorResultEquiv_const`).  The `∀`-over-immutable-values co
 per-benchmark theorem site, so no value type is baked in here. -/
 
 inductive ctorResultEquivWith
-  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
+  (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | success :
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned solmFrame solmState .none →
-    createdAccounts' = solmState.createdAccounts →
-    accountMapEquiv σ' solmState.accountMap →
+    σ' = solmState.accountMap →
     runtimeCodeOf solmFrame.locals = some o →
     ctorResultEquivWith evmRes solmRes runtimeCodeOf
   | successVoidReturn :
-    evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
+    evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned solmFrame solmState (some []) →
-    createdAccounts' = solmState.createdAccounts →
-    accountMapEquiv σ' solmState.accountMap →
+    σ' = solmState.accountMap →
     runtimeCodeOf solmFrame.locals = some o →
     ctorResultEquivWith evmRes solmRes runtimeCodeOf
   | revert :
@@ -476,45 +368,40 @@ theorem ctorResultEquiv_const {evmRes solmRes} {rc : ByteArray} :
     ctorResultEquiv evmRes solmRes rc ↔ ctorResultEquivWith evmRes solmRes (fun _ => some rc) := by
   constructor
   · intro h; cases h with
-    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
-    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | success e1 e2 e3 e4 => exact .success e1 e2 e3 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 => exact .successVoidReturn e1 e2 e3 (by simp_all)
     | revert e1 e2 => exact .revert e1 e2
     | invalidHalt e1 e2 => exact .invalidHalt e1 e2
   · intro h; cases h with
-    | success e1 e2 e3 e4 e5 => exact .success e1 e2 e3 e4 (by simp_all)
-    | successVoidReturn e1 e2 e3 e4 e5 => exact .successVoidReturn e1 e2 e3 e4 (by simp_all)
+    | success e1 e2 e3 e4 => exact .success e1 e2 e3 (by simp_all)
+    | successVoidReturn e1 e2 e3 e4 => exact .successVoidReturn e1 e2 e3 (by simp_all)
     | revert e1 e2 => exact .revert e1 e2
     | invalidHalt e1 e2 => exact .invalidHalt e1 e2
 
 inductive constructorEquivalenceForWith (cfg : Config)
     (contract : ContractDecl) (args : List Value)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
     (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
     (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | execution {Ξ_res solmRes} :
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = Ξ_res →
-    solmCtorExec cfg contract args createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I solmRes →
+    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
+    solmCtorExec cfg contract args σ σ₀ g A I solmRes →
     ctorResultEquivWith Ξ_res solmRes runtimeCodeOf →
-    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
   | outOfGas :
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass →
-    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
 
 inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
     (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | intro :
-    (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-      (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-      (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
       (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
     I.perm = true →
-    accountMapEquiv σ_evm σ_solm →
-    constructorEquivalenceForWith cfg contract args createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
     ) →
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf
 

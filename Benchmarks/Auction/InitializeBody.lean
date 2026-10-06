@@ -55,9 +55,9 @@ theorem initializeBody (evm : EVM.State) (args : InitializeArgs)
     rw [← hBfull]; exact initializeBaseState_env evm
   have hBp : pausedWord evmB.accountMap evmB.executionEnv = ⟨0⟩ := by
     have heq := initializeBaseState_accounts (σ := evm.accountMap) (evm := evm)
-      (accountMapEquiv.refl _)
+      rfl
     rw [hBfull] at heq
-    rw [henvB, ← pausedWord_equiv heq]
+    rw [henvB, ← heq]
     exact initializeBaseMap_unpaused _ _
   have hpa := pauseBlock evmB (args.bodyLocals (initializeTop evm))
     (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals]) hBp

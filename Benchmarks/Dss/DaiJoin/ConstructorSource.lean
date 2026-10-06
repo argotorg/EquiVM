@@ -227,13 +227,11 @@ theorem daiJoinCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address]
 
 theorem daiJoinCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat dai : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := daiJoinCtorLocals vat dai
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := daiJoinCtorAfterWardsState evm0
     let evm2 := daiJoinCtorAfterLiveState evm1
@@ -277,24 +275,21 @@ theorem daiJoinCtorBodySuccess
   · simpa [locals] using evalExpr_daiJoinCtorLocalDai (evm := evm3) vat dai
 
 theorem daiJoinSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat dai : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [.address vat, .address dai] createdAccounts genesisBlockHeader
-      blocks σ σ₀ g A I
+    solmCtorExec config contract [.address vat, .address dai] σ σ₀ g A I
       (.returned { contract := contract, locals := daiJoinCtorLocals vat dai }
         (daiJoinCtorAfterDaiState
           (daiJoinCtorAfterVatState
             (daiJoinCtorAfterLiveState
               (daiJoinCtorAfterWardsState
-                (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)))
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
             vat)
           dai)
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := daiJoinCtorLocals vat dai)
     ?_ rfl ?_ ?_
@@ -303,19 +298,15 @@ theorem daiJoinSolmCtorExecSuccess
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (daiJoinCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat dai hwv)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat dai hwv)
 
 theorem daiJoinSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat dai : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [.address vat, .address dai] createdAccounts genesisBlockHeader
-      blocks σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [.address vat, .address dai] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := daiJoinCtorLocals vat dai)
     ?_ rfl ?_ ?_
@@ -323,7 +314,7 @@ theorem daiJoinSolmCtorExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := daiJoinCtorLocals vat dai) hwv
 

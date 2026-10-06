@@ -392,9 +392,9 @@ theorem dogIlksReturnMem_read128 {mem : ByteArray} (clip chop hole dirt : UInt25
 
 theorem RD.dogIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : dogIlksStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
@@ -404,7 +404,7 @@ theorem RD.dogIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) ::
         UInt256.land (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key)) solcAddrMask ::
         ret :: R)
-      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
       hd17, hd18, hd19, hd20, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29,
@@ -554,7 +554,7 @@ theorem RD.dogIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.dogIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc clip chop hole dirt ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 pc (dirt :: hole :: chop :: clip :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : dogIlksReturnFromMemWf code pc)
@@ -754,36 +754,6 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
         ExecBlock.consReturn (ExecStmt.return hreturns))
 
-theorem dogIlksReturnValuesEquiv {I : ExecutionEnv} {σ_evm σ_solm : AccountMap}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    some [Value.address (AccountAddress.ofNat
-        (dogAddressReturnWord (ilksClipSlotFor I) σ_solm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ_solm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ_solm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ_solm I).toNat)] =
-    some [Value.address (AccountAddress.ofNat
-        (dogAddressReturnWord (ilksClipSlotFor I) σ_evm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ_evm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ_evm I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ_evm I).toNat)] := by
-  have hclip :
-      dogSlotWord (ilksClipSlotFor I) σ_evm I =
-        dogSlotWord (ilksClipSlotFor I) σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksClipSlotFor I) ⟨0⟩
-  have hchop :
-      dogSlotWord (ilksChopSlotFor I) σ_evm I =
-        dogSlotWord (ilksChopSlotFor I) σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksChopSlotFor I) ⟨0⟩
-  have hhole :
-      dogSlotWord (ilksHoleSlotFor I) σ_evm I =
-        dogSlotWord (ilksHoleSlotFor I) σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksHoleSlotFor I) ⟨0⟩
-  have hdirt :
-      dogSlotWord (ilksDirtSlotFor I) σ_evm I =
-        dogSlotWord (ilksDirtSlotFor I) σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksDirtSlotFor I) ⟨0⟩
-  simp [dogAddressReturnWord, hclip, hchop, hhole, hdirt]
-
 theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
     returnEquiv
       (UInt256.toByteArray (UInt256.land clip solcAddrMask) ++ UInt256.toByteArray chop ++
@@ -796,18 +766,18 @@ theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
   exact returnEquiv.returned rfl (dogIlksReturnEncoding clip chop hole dirt)
 
 theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 11)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨658⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨658⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xd9638d36⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨0xd9638d36⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
@@ -826,9 +796,9 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
+  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
       RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
   have hhigh :
@@ -838,9 +808,9 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨54⟩
+  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
       RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
   have hchop : UInt256.eq (dogSelectorWord 4) (solcSelectorWord I) = ⟨0⟩ := by
@@ -898,7 +868,7 @@ theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
 
 theorem dogIlksBodyCoreOk
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -907,15 +877,14 @@ theorem dogIlksBodyCoreOk
       decodeCalldataWithMode (config v).abiDecodeMode (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata = some (ilksLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let baseSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
-  let clipWord := dogSlotWord baseSlot σ_evm I
-  let chopWord := dogSlotWord (baseSlot + ⟨1⟩) σ_evm I
-  let holeWord := dogSlotWord (baseSlot + ⟨2⟩) σ_evm I
-  let dirtWord := dogSlotWord (baseSlot + ⟨3⟩) σ_evm I
+  let clipWord := dogSlotWord baseSlot σ I
+  let chopWord := dogSlotWord (baseSlot + ⟨1⟩) σ I
+  let holeWord := dogSlotWord (baseSlot + ⟨2⟩) σ I
+  let dirtWord := dogSlotWord (baseSlot + ⟨3⟩) σ I
   let locals := ilksLocals I
   have hclipSlot : ilksClipSlotFor I = baseSlot := by
     simp [baseSlot, ilksClipSlotFor_eq hsz36]
@@ -927,32 +896,30 @@ theorem dogIlksBodyCoreOk
     simp [baseSlot, ilksDirtSlotFor_eq hsz36]
   have hval :
       some [Value.address (AccountAddress.ofNat
-          (dogAddressReturnWord (ilksClipSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ_solm I).toNat)] =
+          (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat)] =
       some [Value.address (AccountAddress.ofNat (UInt256.land clipWord solcAddrMask).toNat),
         Value.int (Int.ofNat chopWord.toNat), Value.int (Int.ofNat holeWord.toNat),
         Value.int (Int.ofNat dirtWord.toNat)] := by
-    simpa [hclipSlot, hchopSlot, hholeSlot, hdirtSlot, clipWord, chopWord, holeWord,
-      dirtWord, dogAddressReturnWord] using
-      (dogIlksReturnValuesEquiv (I := I) (σ_evm := σ_evm) (σ_solm := σ_solm)
-        hAccounts)
+    simp [hclipSlot, hchopSlot, hholeSlot, hdirtSlot, clipWord, chopWord, holeWord,
+      dirtWord, dogAddressReturnWord]
   have henc := dogIlksReturnEquiv clipWord chopWord holeWord dirtWord
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         ilksTransition.body
         (.returned { contract := contract v, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord (ilksClipSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ_solm I).toNat))])) := by
+            (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       dogIlksBodyReturns (v := v) (I := I) hsz36
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (by simp only [initState]; exact hwv) rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨658⟩) (ret := ⟨687⟩)
@@ -993,7 +960,7 @@ theorem dogIlksBodyCoreOk
     (by simp)
   have hret :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (UInt256.land clipWord solcAddrMask) ++
           UInt256.toByteArray chopWord ++ UInt256.toByteArray holeWord ++
           UInt256.toByteArray dirtWord) := by
@@ -1026,19 +993,20 @@ theorem dogIlksBodyCoreOk
           UInt256.land clipWord solcAddrMask := by
       exact solcAddrMask_clean (solcAddrMask_result_canonical clipWord)
     simpa [hclean] using hret'
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  rw [hval] at hbody
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem dogIlksBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some ilksTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1068,25 +1036,24 @@ theorem dogIlksBodyCoreDecodeFailed_short
     (dogDecode_ilks_none_short (v := v) hsz4 hshort)
 
 theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (dogSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (dogSelBytes 11)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 11) rfl hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some ilksTransition :=
     dogDispatchIlks hsel
-  have hreach := dogReachIlksBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := dogReachIlksBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogIlksBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_ilks_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_ilks_ok (v := v) hsz36) hreach
   · exact dogIlksBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

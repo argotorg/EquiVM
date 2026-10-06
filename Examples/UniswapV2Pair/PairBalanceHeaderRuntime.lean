@@ -12,7 +12,7 @@ abbrev PairBalanceCallSite.headerPc : PairBalanceCallSite → UInt256
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPairBalanceHeaderStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 site.headerPc R mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)

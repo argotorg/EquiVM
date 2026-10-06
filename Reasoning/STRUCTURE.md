@@ -24,7 +24,7 @@ The shared reasoning library introduces no axioms.
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
 | `Initcode.lean` | Constructor-time facts: decode of the initcode prefix, jump-table survival, constructor-argument arithmetic. |
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
-| `Storage.lean` | Storage maps: red-black-map lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, `accountMapEquiv`/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |
+| `Storage.lean` | Storage maps: `ExtTreeMap` lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, account-map equality/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |
 | `Dispatch.lean` | Solm dispatcher facts: `dispatchMsg` as a list walk (`dispatchList`), single-transition instances, `SingleSelectorDispatch`, and the `RDret`/`RDrev.reEquiv*` bridges that connect a finished trace to the equivalence statement. |
 | `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
@@ -60,7 +60,7 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 - Memory read/write or keccak slot → `Memory` (chains of writes: `MemCascade`).
 - Decode calldata / encode a return value → `ABI` (solc-specific length checks: `Solc`).
 - A code shape the compiler always emits → `Solc`.
-- Storage read/write, packed values, bytes/string layout, account-map equivalence → `Storage`.
+- Storage read/write, packed values, bytes/string layout, account-map equality → `Storage`.
 - Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`.
 - An external call inside a function body → `ExternalCall` (EVM side: `RD.call` in `Reach`;
   Solm side: `SolmBody`).

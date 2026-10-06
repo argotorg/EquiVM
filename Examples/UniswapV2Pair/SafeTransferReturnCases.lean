@@ -17,14 +17,14 @@ def safeTransferRuntimeFinalActiveWords (out : ByteArray) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem uniswapSafeTransferReturnCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base out data : ByteArray} {value toWord tokenWord ret : UInt256} {R : List UInt256} {k C : ℕ}
     {caller : Frame} {tokenExpr toExpr valueExpr : Expr} {retVar : Ident} {z : Bool}
     (evm evm' : EVM.State) (token recipient : AccountAddress)
     (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨360⟩ :: UInt256.land tokenWord solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: tokenWord :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (hcaller : caller.contract = contract)
     (hargs : evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] =
       .ok (safeTransferArgs token recipient value))
@@ -41,7 +41,7 @@ theorem uniswapSafeTransferReturnCases
         (.ok (resumeAfterInternalCall caller retVar none) evm') ∧
       out.size < 2 ^ 255 ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
         (safeTransferRuntimeFinalMem base toWord value out) (safeTransferRuntimeFinalActiveWords out)
-        out acc k' C') := by
+        out σ k' C') := by
   cases z with
   | false =>
     refine Or.inl ⟨safeTransferInternalCallReverts_callFailure caller evm evm' token recipient value

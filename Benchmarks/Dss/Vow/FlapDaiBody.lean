@@ -21,16 +21,16 @@ def flapDai0AndTailStmts : List Stmt :=
   flapTailStmts
 
 theorem flapBeforeDaiSuccess
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
     {outSin : ByteArray}
     {vatSin0 BumpVal surplus0 HumpVal surplusNeed : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -45,7 +45,7 @@ theorem flapBeforeDaiSuccess
     (hsurplusNeed : surplusNeed = surplus0 + HumpVal)
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let locals3 := flapLocalsVatSin0Surplus0Need vatSin0 surplus0 surplusNeed
     ExecBlock config { contract := contract, locals := locals } evm0 flapBeforeDaiStmts
       (.ok { contract := contract, locals := locals3 } evmSin) := by
@@ -160,16 +160,16 @@ theorem flapBeforeDaiSuccess
   exact ExecBlock.consNormal hsurplusNeedStmt ExecBlock.nil
 
 theorem flapSourceDai0NoCode
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin : EVM.State}
     {outSin : ByteArray}
     {vatSin0 BumpVal surplus0 HumpVal surplusNeed : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -191,7 +191,7 @@ theorem flapSourceDai0NoCode
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flapTransition.body .reverted := by
   intro locals evm0
   let locals3 := flapLocalsVatSin0Surplus0Need vatSin0 surplus0 surplusNeed
@@ -199,7 +199,7 @@ theorem flapSourceDai0NoCode
       ExecBlock config { contract := contract, locals := locals } evm0 flapBeforeDaiStmts
         (.ok { contract := contract, locals := locals3 } evmSin) := by
     simpa [locals, evm0, locals3] using
-      flapBeforeDaiSuccess (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flapBeforeDaiSuccess (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) (evmSin := evmSin)
         (outSin := outSin) (vatSin0 := vatSin0) (BumpVal := BumpVal)
         (surplus0 := surplus0) (HumpVal := HumpVal) (surplusNeed := surplusNeed)
@@ -232,16 +232,16 @@ theorem flapSourceDai0NoCode
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem flapSourceDai0CallFailure
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin evmDai : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin evmDai : EVM.State}
     {outSin outDai : ByteArray}
     {vatSin0 BumpVal surplus0 HumpVal surplusNeed : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -266,7 +266,7 @@ theorem flapSourceDai0CallFailure
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (false, evmDai, outDai) false) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flapTransition.body .reverted := by
   intro locals evm0
   let locals3 := flapLocalsVatSin0Surplus0Need vatSin0 surplus0 surplusNeed
@@ -274,7 +274,7 @@ theorem flapSourceDai0CallFailure
       ExecBlock config { contract := contract, locals := locals } evm0 flapBeforeDaiStmts
         (.ok { contract := contract, locals := locals3 } evmSin) := by
     simpa [locals, evm0, locals3] using
-      flapBeforeDaiSuccess (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flapBeforeDaiSuccess (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) (evmSin := evmSin)
         (outSin := outSin) (vatSin0 := vatSin0) (BumpVal := BumpVal)
         (surplus0 := surplus0) (HumpVal := HumpVal) (surplusNeed := surplusNeed)
@@ -320,16 +320,16 @@ theorem flapSourceDai0CallFailure
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem flapSourceDai0DecodeRevert
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmSin evmDai : EVM.State}
+    {σ σ₀ A I} {g : UInt256} {evmSin evmDai : EVM.State}
     {outSin outDai : ByteArray}
     {vatSin0 BumpVal surplus0 HumpVal surplusNeed : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
@@ -355,7 +355,7 @@ theorem flapSourceDai0DecodeRevert
         [.address I.codeOwner] (true, evmDai, outDai) false)
     (hdecDai : config.externalABI.decode? "dai" outDai = none) :
     let locals := (∅ : Store)
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals flapTransition.body .reverted := by
   intro locals evm0
   let locals3 := flapLocalsVatSin0Surplus0Need vatSin0 surplus0 surplusNeed
@@ -363,7 +363,7 @@ theorem flapSourceDai0DecodeRevert
       ExecBlock config { contract := contract, locals := locals } evm0 flapBeforeDaiStmts
         (.ok { contract := contract, locals := locals3 } evmSin) := by
     simpa [locals, evm0, locals3] using
-      flapBeforeDaiSuccess (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flapBeforeDaiSuccess (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) (evmSin := evmSin)
         (outSin := outSin) (vatSin0 := vatSin0) (BumpVal := BumpVal)
         (surplus0 := surplus0) (HumpVal := HumpVal) (surplusNeed := surplusNeed)
@@ -409,9 +409,9 @@ theorem flapSourceDai0DecodeRevert
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem vowFlapDai0NoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel vatSin0 BumpVal surplus0 HumpVal
+    {σ σ₀ A I} {g sel vatSin0 BumpVal surplus0 HumpVal
       surplusNeed : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {evmSin : EVM.State} {mem outSin : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flapTransition)
@@ -419,20 +419,20 @@ theorem vowFlapDai0NoCodeBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flapTransition.params.map Param.name)
         (transitionSignature flapTransition).paramTypes I.calldata = some ∅)
     (rd993 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨993⟩
       (surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) outSin acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -447,15 +447,15 @@ theorem vowFlapDai0NoCodeBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatNoCodeDai :
       (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDai0NoCode rd993 hmem hread64 hcodeSize
-  have hbody := flapSourceDai0NoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := flapSourceDai0NoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (outSin := outSin) (vatSin0 := vatSin0)
     (BumpVal := BumpVal) (surplus0 := surplus0) (HumpVal := HumpVal)
     (surplusNeed := surplusNeed)
@@ -464,9 +464,9 @@ theorem vowFlapDai0NoCodeBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlapDai0CallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatSin0 BumpVal surplus0 HumpVal
+    {σ σ₀ A I} {g sel target vatSin0 BumpVal surplus0 HumpVal
       surplusNeed : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {evmSin evmDai : EVM.State} {mem outSin outDai : ByteArray} {aw : UInt256} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flapTransition)
@@ -474,18 +474,18 @@ theorem vowFlapDai0CallFailureBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flapTransition.params.map Param.name)
         (transitionSignature flapTransition).paramTypes I.calldata = some ∅)
     (rd1072 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
       (⟨0⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: surplusNeed :: ⟨0⟩ ::
         ⟨357⟩ :: sel :: [])
       mem aw outDai acc k C)
     (houtDaiSize : outDai.size < UInt256.size)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -500,18 +500,18 @@ theorem vowFlapDai0CallFailureBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ_solm I)) "dai" 0
+      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (false, evmDai, outDai) false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDai0CallFailure rd1072 houtDaiSize (by simp)
-  have hbody := flapSourceDai0CallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := flapSourceDai0CallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (outSin := outSin) (outDai := outDai)
     (vatSin0 := vatSin0) (BumpVal := BumpVal) (surplus0 := surplus0)
     (HumpVal := HumpVal) (surplusNeed := surplusNeed)
@@ -520,9 +520,9 @@ theorem vowFlapDai0CallFailureBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowFlapDai0DecodeShortBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel target vatSin0 BumpVal surplus0 HumpVal
+    {σ σ₀ A I} {g sel target vatSin0 BumpVal surplus0 HumpVal
       surplusNeed : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {evmSin evmDai : EVM.State} {mem outSin outDai : ByteArray} {k C : ℕ}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some flapTransition)
@@ -530,7 +530,7 @@ theorem vowFlapDai0DecodeShortBodyCore
       decodeCalldataWithMode config.abiDecodeMode (flapTransition.params.map Param.name)
         (transitionSignature flapTransition).paramTypes I.calldata = some ∅)
     (rd1072 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1072⟩
       (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: surplusNeed :: ⟨0⟩ ::
         ⟨357⟩ :: sel :: [])
       (outDai.write 0 (vatDaiCalldataMem I mem) 128
@@ -542,11 +542,11 @@ theorem vowFlapDai0DecodeShortBodyCore
     (hosz : outDai.size < UInt256.size)
     (hvatCode :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat)
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallSin :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (kissVatAddress σ_solm I)) "sin" 0 [.address I.codeOwner]
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (kissVatAddress σ I)) "sin" 0 [.address I.codeOwner]
         (true, evmSin, outSin) false)
     (hdecSin :
       config.externalABI.decode? "sin" outSin =
@@ -561,15 +561,15 @@ theorem vowFlapDai0DecodeShortBodyCore
     (hsurplusNeedFit : surplus0.toNat + HumpVal.toNat < UInt256.size)
     (hvatLoadSin :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ σ_solm I)
+        vowSlotWord ⟨1⟩ σ I)
     (hvatCodeDai :
       0 < (UInt256.ofNat
-        ((evmSin.lookupAccount (kissVatAddress σ_solm I)).option 0
+        ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ_solm I)) "dai" 0
+      typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "dai" 0
         [.address I.codeOwner] (true, evmDai, outDai) false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat =
       outDai.size :=
     kissDaiMin32_toNat_of_lt hshort
@@ -596,8 +596,8 @@ theorem vowFlapDai0DecodeShortBodyCore
   have hrev := RD.vowFlapDai0ReturnDecodeShortReverts rd1090 hshort hosz hmload64
   have hdecDai : config.externalABI.decode? "dai" outDai = none :=
     kissDaiDecode_none_short hshort
-  have hbody := flapSourceDai0DecodeRevert (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := flapSourceDai0DecodeRevert
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (evmSin := evmSin) (evmDai := evmDai) (outSin := outSin) (outDai := outDai)
     (vatSin0 := vatSin0) (BumpVal := BumpVal) (surplus0 := surplus0)
     (HumpVal := HumpVal) (surplusNeed := surplusNeed)

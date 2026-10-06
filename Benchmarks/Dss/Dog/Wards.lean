@@ -39,18 +39,18 @@ theorem dogDecode_wards_none_short {v : DogImmutables} {I : ExecutionEnv}
       hshort)
 
 theorem dogReachWardsBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 16)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨512⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨512⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xbf353dbb⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
@@ -69,9 +69,9 @@ theorem dogReachWardsBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
+  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
       RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
   have hhigh :
@@ -81,18 +81,18 @@ theorem dogReachWardsBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h113 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨113⟩
+  have h113 : RD code I g (initState σ σ₀ g A I) ⟨113⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [hhighTgt] using
       RD.selectorSplitTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh
         (by
           rw [hhighTgt]
           exact dogPatchedDJumpPrefix1405 ⟨113⟩ hpatch (by native_decide))
         (by simp)
-  have h114 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨114⟩
+  have h114 : RD code I g (initState σ σ₀ g A I) ⟨114⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
+      σ (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa using
       h113.jumpdest
         (by
@@ -154,7 +154,7 @@ theorem dogReachWardsBody {v : DogImmutables} {code : ByteArray}
 
 theorem dogWardsBodyCoreOk
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -164,10 +164,9 @@ theorem dogWardsBodyCoreOk
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
@@ -175,16 +174,16 @@ theorem dogWardsBodyCoreOk
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         wardsTransition.body
         (.returned { contract := contract v, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (dogSlotWord (wardsMappingSlotFor I) σ_solm I).toNat))])) := by
+            (dogSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
     simpa [wardsTransition, wardsMappingSlotFor, dogSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals, key] using
       dogUint256GetterBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := wardsRef (.var "arg0")) (er := wardsMappingEvaledRef I)
         (slot := wardsMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, wardsRef])
@@ -238,12 +237,12 @@ theorem dogWardsBodyCoreOk
     (by simp)
   have hret :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (dogSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (dogSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨448⟩) (val := dogSlotWord slot σ_evm I) (ret := ⟨448⟩) (R := [sel])
+      (pc := ⟨448⟩) (val := dogSlotWord slot σ I) (ret := ⟨448⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (dogSlotWord slot σ_evm I))
+        (dogSlotWord slot σ I))
       (by simpa [slot, dogSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -254,39 +253,34 @@ theorem dogWardsBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (dogSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (dogSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (dogSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (dogSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, dogSlotWord] using hret'
-  have hword : dogSlotWord slot σ_evm I = dogSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (dogSlotWord (wardsMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (dogSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (dogSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (dogSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (dogSlotWord slot σ I))
+        (some [(.int (Int.ofNat (dogSlotWord slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ I))
+  rw [hslot] at hbody
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem dogWardsBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨512⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -316,25 +310,24 @@ theorem dogWardsBodyCoreDecodeFailed_short
     (dogDecode_wards_none_short (v := v) hsz4 hshort)
 
 theorem dogWardsBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
-    (_hsel : selIs I (dogSelBytes 16))
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (_hsel : selIs I (dogSelBytes 16)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 16) rfl _hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition :=
     dogDispatchWards _hsel
-  have hreach := dogReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := dogReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     _hpatch _hcode _hwv hsz4 _hsize _hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogWardsBodyCoreOk _hpatch _hcode _hwv hsz36 _hsize hdispatch
-      (dogDecode_wards_ok (v := v) hsz36) hreach _hAccounts
+      (dogDecode_wards_ok (v := v) hsz36) hreach
   · exact dogWardsBodyCoreDecodeFailed_short _hpatch _hcode _hsize hsz4 (by omega)
       hdispatch hreach
 

@@ -31,22 +31,21 @@ theorem cureDecode_tCount {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem cureTCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 15))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 15)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 15) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ tCountTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tCountTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (tCountWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (tCountWord σ I).toNat))])) := by
     apply nonpayableReturnExprBodyReturns
     · simp only [initState]
       exact hwv
@@ -56,14 +55,14 @@ theorem cureTCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
       change
         (match storageLocLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (wordLoc ⟨2⟩) with
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wordLoc ⟨2⟩) with
         | Value.int n => EvalResult.ok (Value.int n)
         | _ => EvalResult.error EvalError.storageError) =
-          EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ_solm I).toNat)
+          EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ I).toNat)
       rw [cureStorageLocLoad_uint256]
       simp [cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage]
-  have hreach := cureReachTCountBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := cureReachTCountBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨578⟩ ⟨343⟩ ⟨2333⟩ := by
@@ -81,33 +80,27 @@ theorem cureTCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (by simp)
   have hret :
       RDret cureBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (tCountWord σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (tCountWord σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨343⟩) (val := tCountWord σ_evm I) (ret := cureSelWord I) (R := [])
-      (memout := solcReturnMem (tCountWord σ_evm I))
+      (pc := ⟨343⟩) (val := tCountWord σ I) (ret := cureSelWord I) (R := [])
+      (memout := solcReturnMem (tCountWord σ I))
       (by simpa [tCountWord, cureSlotWord] using hretPc)
       hretmem
       solcFreePtrMem_mload64
       (by rfl)
-      (solcReturnMem_mload64 (tCountWord σ_evm I))
-      (solcReturnMem_read128 (tCountWord σ_evm I))
+      (solcReturnMem_mload64 (tCountWord σ I))
+      (solcReturnMem_read128 (tCountWord σ I))
       (by simp)
     simpa using hret'
-  have hword : tCountWord σ_evm I = tCountWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (tCountWord σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (tCountWord σ_evm I).toNat)] := by
-    rw [hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (tCountWord σ_evm I))
-        (some [(.int (Int.ofNat (tCountWord σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (tCountWord σ I))
+        (some [(.int (Int.ofNat (tCountWord σ I).toNat))])
         tCountTransition.returnType := by
     rw [show tCountTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (tCountWord σ_evm I))
-  exact hret.reEquivExecutionTransport hcode (cureDispatchTCount hsel)
-    (cureDecode_tCount hsz) hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (tCountWord σ I))
+  exact hret.reEquivExecutionGen hcode (cureDispatchTCount hsel)
+    (cureDecode_tCount hsz) hbody rfl henc
 
 end Benchmarks.Dss.Cure

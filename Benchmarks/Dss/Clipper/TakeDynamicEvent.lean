@@ -72,16 +72,16 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5250⟩
       (owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen ::
         dataStart :: who :: max :: amt :: id :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hperm : ee.perm = true) :
-    RDret code g s0 (cA, sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
+    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩) ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨2662707474673484271508566864567884168301912169458095775925153504702713661105⟩
   have haw64 := clipperTakeMemoryWF_mstore_aw_event mem aw (⟨64⟩ : UInt256) hmem

@@ -8,17 +8,17 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000000 in
 theorem uniswapMintAfterUpdateRuntimeReturns
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σUpd : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σUpd : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (fee : Bool)
     (rd3926 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3926⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3926⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         liquidity, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σUpd) k C)
-    (hAccounts : accountMapEquiv σUpd evm.accountMap)
+      mem feeToStaticcallActiveWords rdata σUpd k C)
+    (hAccounts : Eq σUpd evm.accountMap)
     (henv : evm.executionEnv = I)
     (hflag : feeOn = if fee then ⟨1⟩ else ⟨0⟩)
     (hfee : locals.get? "feeOn" = some (.bool fee))
@@ -38,24 +38,23 @@ theorem uniswapMintAfterUpdateRuntimeReturns
           lockExit ++ [.return [.var "liquidity"]])
         (.returned { contract := contract, locals := locals } evm'
           (some [uniswapUint256Value liquidity])) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.createdAccounts = evm.createdAccounts ∧
+      σ' = evm'.accountMap ∧
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, σ') (UInt256.toByteArray liquidity) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' (UInt256.toByteArray liquidity) := by
   cases fee with
   | false =>
     refine ⟨uniswapLockExitedState evm, _,
-      uniswapMintAfterUpdateFeeOffReturn evm liquidity hfee hliq hunlocked, ?_, ?_,
+      uniswapMintAfterUpdateFeeOffReturn evm liquidity hfee hliq hunlocked, ?_,
       uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hflag hmem hmem64 hperm⟩
     · simpa only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
-        henv] using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hAccounts
-    · simp only [uniswapLockExitedState, uniswapUnlockedState, storageStore_createdAccounts]
+        henv] using congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩) hAccounts
   | true =>
     have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σUpd I := by
-      have h := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
       simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-        uniswapSlotWord, henv] using h.symm
+        uniswapSlotWord, henv, ← hAccounts]
     have hkLastValue :
         mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm) =
           UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
@@ -63,9 +62,11 @@ theorem uniswapMintAfterUpdateRuntimeReturns
               reserve112Mask) := by
       rw [mintFeeReserveProductWord_eq_mul _ _ (mintFeeReserveProductNat_source_lt evm)]
       simp only [uniswapReserve0Word, uniswapReserve1Word, hslot8]
-    have hKLastAccounts := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩
-      (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm)) hAccounts
-    have hAfterKLast : accountMapEquiv
+    have hKLastAccounts := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩
+        (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm)))
+      hAccounts
+    have hAfterKLast : Eq
         (sstoreAccountMap I.codeOwner σUpd ⟨11⟩
           (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
             (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
@@ -74,13 +75,12 @@ theorem uniswapMintAfterUpdateRuntimeReturns
         using hKLastAccounts
     refine ⟨uniswapLockExitedState (mintKLastUpdatedState evm), _,
       uniswapMintAfterUpdateFeeOnReturn evm liquidity hfee hliq hreserve0 hreserve1
-        hkLast hunlocked (mintFeeReserveProductNat_source_lt evm), ?_, ?_,
+        hkLast hunlocked (mintFeeReserveProductNat_source_lt evm), ?_,
       uniswapMintRuntimeAfterUpdateFeeOnReturns rd3926
         (by rw [hflag]; native_decide) (mintFeeReserveProductNat_masked_lt _) hmem hmem64 hperm⟩
     · simpa only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
         storageStore_executionEnv, mintKLastUpdatedState, henv]
-        using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hAfterKLast
-    · simp only [uniswapLockExitedState, uniswapUnlockedState, mintKLastUpdatedState,
-        storageStore_createdAccounts]
+        using congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩) hAfterKLast
 
 end UniswapV2Pair

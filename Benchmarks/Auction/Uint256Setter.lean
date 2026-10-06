@@ -112,13 +112,13 @@ theorem setterFromDecoder {I g s0 value R mem aw rdata acc k C} (i : Uint256Sett
     raw jumpdest h0 (by evm_ov), raw push2 (ownerPc (setterOwner i)) h1 (by evm_ov),
     raw jump h2 hd (by evm_ov) ]⟩
 
-theorem setterStoreEvent {I g s0 value ret R rdata cA σ k C} (i : Uint256Setter)
+theorem setterStoreEvent {I g s0 value ret R rdata σ k C} (i : Uint256Setter)
     (h : RD auctionBytecode I g s0 (ownerSuccessPc (setterOwner i))
-      (value :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (value :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
-      rdata (cA, sstoreAccountMap I.codeOwner σ (setterSlot i) value) k' C' := by
+      rdata (sstoreAccountMap I.codeOwner σ (setterSlot i) value) k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ :=
     setterWriteWfAll i
   have rdStore := evm_run h with [

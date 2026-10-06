@@ -6,21 +6,21 @@ set_option maxRecDepth 2000000
 
 theorem RD.uniswapSwapLockedReverts {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : Nat} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨1475⟩ R solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
-    (hlocked : (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩)
+    {σ : AccountMap}
+    (rd : RD uniswapV2PairBytecode I g s0 ⟨1475⟩ R solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hlocked : (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩)
     (hov : R.length + 6 ≤ 1024) : RDrev uniswapV2PairBytecode g s0 := by
   exact RD.uniswapLockEnterLocked (okPc := ⟨1550⟩) rd
     uniswap_lock_enter_guard_wf uniswap_lock_revert_tail_wf hlocked hov
 
 theorem RD.uniswapSwapLockEntered {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : Nat} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (rd : RD uniswapV2PairBytecode I g s0 ⟨1475⟩ R mem aw rdata (cA, σ) k C)
-    (hunlocked : (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+    {σ : AccountMap}
+    (rd : RD uniswapV2PairBytecode I g s0 ⟨1475⟩ R mem aw rdata σ k C)
+    (hunlocked : (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (hperm : I.perm = true) (hov : R.length + 2 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1556⟩ R mem aw rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k' C' := by
   exact RD.uniswapLockEnterOk (okPc := ⟨1550⟩) rd uniswap_lock_enter_ok_wf hperm hunlocked
     (by jump_dest) hov
 

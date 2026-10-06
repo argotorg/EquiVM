@@ -9,27 +9,27 @@ namespace Benchmarks.Dss.Vow
 /-! ## `flap()` second `vat.sin(address(this))` call -/
 
 theorem RD.vowFlapToSin1ExtcodesizeGuard
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1261⟩
-      (kissDaiTargetWord acc.2 I :: kissDaiTargetWord acc.2 I :: healSinOutPtr ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1261⟩
+      (kissDaiTargetWord acc I :: kissDaiTargetWord acc I :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
-        kissDaiTargetWord acc.2 I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+        kissDaiTargetWord acc I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (healSinCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
-  let target := kissDaiTargetWord acc.2 I
-  let rawTarget := vowSlotWord ⟨1⟩ acc.2 I
+  let target := kissDaiTargetWord acc I
+  let rawTarget := vowSlotWord ⟨1⟩ acc I
   have rd1191 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1193 := rd1191.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1194, C1194, rd1194Raw⟩ := rd1193.sload (by native_decide) (by evm_ov)
   have rd1194 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1194⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1194⟩
       (rawTarget :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1194 C1194 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd1194Raw
@@ -109,18 +109,18 @@ theorem RD.vowFlapToSin1ExtcodesizeGuard
       vowSlotWord, solcSlotWord, solcAddrMask] using rd1261⟩
 
 theorem RD.vowFlapSin1NoCode
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1261⟩ := RD.vowFlapToSin1ExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1261⟩) (okPc := ⟨1273⟩) rd1261
     hcodeSize
@@ -129,21 +129,21 @@ theorem RD.vowFlapSin1NoCode
     (by native_decide) (by simp)
 
 theorem RD.vowFlapToSin1Staticcall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
-      (gasWord :: kissDaiTargetWord acc.2 I :: healSinOutPtr :: healSinInSize ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
+      (gasWord :: kissDaiTargetWord acc I :: healSinOutPtr :: healSinInSize ::
         healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
-        kissDaiTargetWord acc.2 I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+        kissDaiTargetWord acc I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (healSinCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd1261⟩ := RD.vowFlapToSin1ExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1276, C1276, rd1276⟩ :=
@@ -155,39 +155,39 @@ theorem RD.vowFlapToSin1Staticcall
   exact ⟨gasWord, k1276, C1276, by simpa using rd1276⟩
 
 theorem RD.vowFlapSin1PostCall
-    {cA gh bl σ σ₀ A I} {g sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1190⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
-          kissDaiTargetWord acc.2 I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+          kissDaiTargetWord acc I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (out.write 0 (healSinCalldataMem I mem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 6) out (cA', σ') k' C'
+        (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := acc.2, createdAccounts := acc.1 }
-        (EVM.address (kissVatAddress acc.2 I)) "sin" 0 [.address I.codeOwner]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, out) false
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := acc }
+        (EVM.address (kissVatAddress acc I)) "sin" 0 [.address I.codeOwner]
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, out) false
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1276⟩ :=
     RD.vowFlapToSin1Staticcall rd hmem hread64 hcodeSize
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, houtsz⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, houtsz⟩ :=
     RD.solcStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k1277, C1277, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k1277, C1277, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           healSinOutPtr.toNat healSinInSize.toNat)
@@ -199,34 +199,34 @@ theorem RD.vowFlapSin1PostCall
       unfold healSinOutPtr
       native_decide
     have rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
-          kissDaiTargetWord acc.2 I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+          kissDaiTargetWord acc I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
         (out.write 0 (healSinCalldataMem I mem) healSinOutPtr.toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 6) out (cA', σ') k1277 C1277 :=
+        (UInt256.ofNat 6) out σ' k1277 C1277 :=
       haw ▸ rd1277raw
     rw [hoff] at rd1277
     exact rd1277
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-      (callPerm := false) (targetWord := kissDaiTargetWord acc.2 I)
+      (callPerm := false) (targetWord := kissDaiTargetWord acc I)
       (mem := healSinCalldataMem I mem) (inOff := healSinOutPtr)
       (inSize := healSinInSize)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      (kissVatAddress_eq_daiTarget acc.2 I) (healSinEncode_eq I hmem) ?_
+      (kissVatAddress_eq_daiTarget acc I) (healSinEncode_eq I hmem) ?_
     simpa [initState] using hΘ
 
 theorem RD.vowFlapSin1CallFailure
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -234,16 +234,16 @@ theorem RD.vowFlapSin1CallFailure
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
 
 theorem RD.vowFlapSin1CallSuccessToDecode
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1277⟩
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -252,11 +252,11 @@ theorem RD.vowFlapSin1CallSuccessToDecode
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowFlapSin1ReturnDecodeShortReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hshort : o.size < 32)
@@ -267,7 +267,7 @@ theorem RD.vowFlapSin1ReturnDecodeShortReverts
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hshort hhi
     (by native_decide) hMload64Value
@@ -277,11 +277,11 @@ theorem RD.vowFlapSin1ReturnDecodeShortReverts
     (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem RD.vowFlapSin1ReturnDecodeOk
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hlo : 32 ≤ o.size)
@@ -297,7 +297,7 @@ theorem RD.vowFlapSin1ReturnDecodeOk
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (retWord :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
@@ -309,21 +309,21 @@ theorem RD.vowFlapSin1ReturnDecodeOk
     (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 theorem RD.vowFlapFreeSinSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc.2 I).toNat) :
+    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -341,24 +341,24 @@ theorem RD.vowFlapFreeSinSubUnderflow
     (by simp)
 
 theorem RD.vowFlapFreeSinSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel vatSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel vatSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨5⟩ acc.2 I).toNat ≤ vatSin.toNat) :
+    (hle : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
-      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc.2 I) ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I) ::
         ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let SinVal := vowSlotWord ⟨5⟩ acc.2 I
+  let SinVal := vowSlotWord ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
@@ -376,22 +376,22 @@ theorem RD.vowFlapFreeSinSubSuccess
   exact ⟨k1325, C1325, by simpa [SinVal] using rd1325⟩
 
 theorem RD.vowFlapDebtSubUnderflow
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc.2 I).toNat) :
+    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -409,25 +409,25 @@ theorem RD.vowFlapDebtSubUnderflow
     (by simp)
 
 theorem RD.vowFlapDebtSubSuccess
-    {cA gh bl σ σ₀ A I} {g sel freeSin : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel freeSin : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨6⟩ acc.2 I).toNat ≤ freeSin.toNat) :
+    (hle : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
-      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I) ::
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
+      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I) ::
         ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let AshVal := vowSlotWord ⟨6⟩ acc.2 I
+  let AshVal := vowSlotWord ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
@@ -451,18 +451,18 @@ abbrev vowDebtNotZeroStringWord : UInt256 :=
   UInt256.shiftLeft vowDebtNotZeroRawWord ⟨120⟩
 
 theorem RD.vowFlapDebtNotZero
-    {cA gh bl σ σ₀ A I} {g sel debt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel debt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
       (debt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hdebt : debt ≠ ⟨0⟩)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rd1334 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1335₀ := rd1334.iszero (by native_decide) (by evm_ov)
   have rd1335 := rd1335₀
@@ -528,16 +528,16 @@ theorem RD.vowFlapDebtNotZero
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem RD.vowFlapDebtZero
-    {cA gh bl σ σ₀ A I} {g sel debt : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g sel debt : UInt256}
+    {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
       (debt :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
     (hdebt : debt = ⟨0⟩) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1403⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: []) mem (UInt256.ofNat 6) o acc k' C' := by
   have rd1334 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1335₀ := rd1334.iszero (by native_decide) (by evm_ov)

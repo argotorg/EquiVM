@@ -8,25 +8,25 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAfterFromLoadSlot {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterFromLoadSlot {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨502⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨502⟩
       [transferFromSelectorWord]
       (wordAt0Mem ⟨0⟩
         (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I)))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterAllowanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨508⟩
+      (transferFromAccountMapAfterAllowanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨508⟩
       [transferFromFromBalanceRawAfterAllowance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g),
+          (transferFromAllowanceDebitI σ σ₀ A I g),
         transferFromFromSlot I, transferFromSelectorWord]
       (transferFromAfterFromLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterAllowanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C := by
+      (transferFromAccountMapAfterAllowanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)) k C := by
   obtain ⟨k, C, rd502⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   let evm1 := transferFromAfterAllowanceState evm0 I
   have hread0_64 :
       ((wordAt0Mem ⟨0⟩
@@ -49,10 +49,10 @@ theorem erc20X_transferFromAfterFromLoadSlot {cA gh bl σ σ₀ A I} {g : Sat256
     exact keccakSlot_eq _
   have hfromLoadRaw :
       transferFromFromBalanceRawAfterAllowance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g) =
+          (transferFromAllowanceDebitI σ σ₀ A I g) =
         transferFromFromBalanceWord evm1 I := by
     simpa [evm0, evm1] using
-      (transferFromFromBalanceRawAfterAllowance_initState (cA := cA) (gh := gh) (bl := bl)
+      (transferFromFromBalanceRawAfterAllowance_initState
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g))
   have hpc508 :
       (⟨502⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =

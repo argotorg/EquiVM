@@ -385,20 +385,20 @@ theorem RD.clipperYankVatFluxExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {k C : ℕ} {sel dogTarget tab : UInt256} {rdata : ByteArray}
     (h : RD code ee g s0 ⟨2335⟩
       (⟨196⟩ :: clipperDogDigsSelectorWord :: dogTarget ::
         clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh ee))
-      (UInt256.ofNat 7) rdata (cA, σ) k C) :
+      (UInt256.ofNat 7) rdata σ k C) :
     ∃ k' C', RD code ee g s0 ⟨2495⟩
       (clipperYankVatTarget v :: clipperYankVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperVatFluxSelectorWord ::
         clipperYankVatTarget v :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       (clipperVatFluxCalldataMem v ee (clipperYankSalesLotWord σ ee)
         (clipperYankVatFluxBaseMem v ee tab))
-      (UInt256.ofNat 9) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 9) rdata σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
@@ -460,7 +460,7 @@ theorem RD.clipperYankVatFluxExtcodesizeGuard {code : ByteArray}
       (clipperYankSalesLotWord σ ee :: ⟨64⟩ :: ⟨0⟩ :: dogTarget ::
         clipperYankArgWord ee :: ⟨502⟩ :: [sel])
       (clipperYankVatFluxBaseMem v ee tab) (UInt256.ofNat 7) rdata
-      (cA, σ) k2356 C2356 := by
+      σ k2356 C2356 := by
     simpa [clipperYankSalesLotWord, clipperYankSalesLotSlot, solcSlotWord] using
       rd2356raw
   have rd2357pre := evm_run rd2356 with [
@@ -574,7 +574,7 @@ theorem RD.clipperYankVatFluxExtcodesizeGuard {code : ByteArray}
   rw [show (⟨0⟩ : UInt256) + ⟨132⟩ = ⟨132⟩ from by native_decide] at rd2495
   exact ⟨_, _, by simpa [clipperYankVatTarget, vatWord, u256_land_comm] using rd2495⟩
 
-theorem clipperYankX_vatFluxNoCode {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperYankX_vatFluxNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel tab : UInt256} {rdata : ByteArray}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -584,7 +584,7 @@ theorem clipperYankX_vatFluxNoCode {cA σ I} {g : Sat256} {s0 : State}
         clipperYankVatTarget v :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ I)
         (clipperYankVatFluxBaseMem v I tab))
-      (UInt256.ofNat 9) rdata (cA, σ) k C)
+      (UInt256.ofNat 9) rdata σ k C)
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperYankVatTarget v) = ⟨0⟩) :
     RDrev code g s0 := by
@@ -596,23 +596,23 @@ theorem clipperYankX_vatFluxNoCode {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.clipperYankVatFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
+theorem RD.clipperYankVatFluxPostCall {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ} {sel tab : UInt256}
     {rdata : ByteArray} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd2495 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨2495⟩
+    (rd2495 : RD code I g (initState σStart σ₀ g A I) ⟨2495⟩
       (clipperYankVatTarget v :: clipperYankVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: clipperVatFluxSelectorWord ::
         clipperYankVatTarget v :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ I)
         (clipperYankVatFluxBaseMem v I tab))
-      (UInt256.ofNat 9) rdata (cA, σ) k C)
+      (UInt256.ofNat 9) rdata σ k C)
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperYankVatTarget v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    ∃ (cA_vat : Batteries.RBSet AccountAddress compare) (σ_vat : AccountMap)
+    ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨2511⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨2511⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: clipperVatFluxSelectorWord ::
           clipperYankVatTarget v :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
         (outVat.write 0
@@ -623,18 +623,18 @@ theorem RD.clipperYankVatFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
           (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
             (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
-        outVat (cA_vat, σ_vat) k' C' ∧
+        outVat σ_vat k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address I.source,
           .int (Int.ofNat (clipperYankSalesLotWord σ I).toNat)]
         (zVat,
-          { initState cA0 gh bl σStart σ₀ g A I with
+          { initState σStart σ₀ g A I with
             accountMap := σ_vat
             substate := A_vat
-            createdAccounts := cA_vat },
+          },
           outVat) true ∧
       outVat.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2510⟩ :=
@@ -647,23 +647,24 @@ theorem RD.clipperYankVatFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
       (by clipper_yank_decode) (by clipper_yank_decode)
       (by clipper_yank_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA_vat, σ_vat, zVat, outVat, A_in, callGas, k2511, C2511, hΘpack,
+  obtain ⟨σ_vat, zVat, outVat, A_in, callGas, k2511, C2511, hΘpack,
       rd2511raw, houtVatSize⟩ :=
     RD.call rd2510 (by clipper_yank_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_vat, hΘ⟩ := hΘpack
-  refine ⟨cA_vat, σ_vat, zVat, outVat, A_vat, k2511, C2511, ?_, ?_,
+  refine ⟨σ_vat, zVat, outVat, A_vat, k2511, C2511, ?_, ?_,
     houtVatSize⟩
   · exact rd2511raw
   · let evmVat : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A I with
-        accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A I with
+        accountMap := σ }
+    simp only [evmVat, initState]
     refine callCoincides (cfg := config v)
       (evm := evmVat)
       (name := "flux")
       (args := [v.ilk, .address I.codeOwner, .address I.source,
         .int (Int.ofNat (clipperYankSalesLotWord σ I).toNat)])
       (tgt := EVM.address v.vat) (targetWord := clipperYankVatTarget v)
-      (cA' := cA_vat) (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
+      (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
       (z := zVat) (o := outVat) (g'' := g'') (callGas := callGas)
       (mem := clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ I)
         (clipperYankVatFluxBaseMem v I tab))
@@ -686,7 +687,7 @@ theorem RD.clipperYankVatFluxCallFailure
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨2511⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -706,7 +707,7 @@ theorem RD.clipperYankVatFluxCallSuccessToRemove
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256}
     (rd : RD code ee g s0 ⟨2511⟩
       (⟨1⟩ :: ⟨260⟩ :: clipperVatFluxSelectorWord :: clipperYankVatTarget v ::
@@ -739,10 +740,10 @@ theorem RD.clipperYankRemoveEmptyInvalid
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩) :
     RDinvalid code g s0 := by
   have rd8277 := evm_run rd with [
@@ -777,10 +778,10 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
@@ -792,7 +793,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
     let aw2 := UInt256.ofNat (MachineState.M aw1.toNat 0 32)
     ∃ k' C', RD code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      activeMem aw2 o (cA, σ) k' C' := by
+      activeMem aw2 o σ k' C' := by
   intro lastIndex move activeMem aw1 aw2
   have rd8277 := evm_run rd with [
     raw jumpdest (by clipper_yank_remove_decode) (by evm_ov),
@@ -868,14 +869,14 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        activeMem aw2 o (cA, σ) k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+        activeMem aw2 o σ k C := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        activeMem aw2 o (cA, σ) k C := by
+        activeMem aw2 o σ k C := by
     exact ⟨_, _, by simpa [move, solcSlotWord] using rd8308raw⟩
   have rd8312 := evm_run rd8308 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
@@ -900,33 +901,21 @@ abbrev clipperYankMoveAccountMap (σ : AccountMap) (I : ExecutionEnv)
     (sstoreAccountMap I.codeOwner σ (clipperYankActiveSlot idx) move)
     (clipperYankSalesMovePosSlot move) idx
 
-theorem clipperYankMoveAccountMap_state_accountMapEquiv
+theorem clipperYankMoveAccountMap_state_accounts_eq
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (idx move : UInt256)
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hevm : evm.accountMap = τ)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
-    accountMapEquiv (clipperYankMoveAccountMap σ I idx move)
+    Eq (clipperYankMoveAccountMap σ I idx move)
       (let evmIndex := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
         (clipperYankActiveSlot idx) move
        let evmMovePos := Solm.EVM.storageStore evmIndex evmIndex.executionEnv.codeOwner
         (clipperYankSalesMovePosSlot move) idx
        evmMovePos.accountMap) := by
-  let evmIndex := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-    (clipperYankActiveSlot idx) move
-  have hindex :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner σ (clipperYankActiveSlot idx) move)
-        evmIndex.accountMap := by
-    simpa [evmIndex, storageStore_accountMap, howner] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (clipperYankActiveSlot idx) move
-        (by simpa [hevm] using hAccounts)
-  have hownerIndex : evmIndex.executionEnv.codeOwner = I.codeOwner := by
-    simp [evmIndex, storageStore_executionEnv, howner]
-  simpa [clipperYankMoveAccountMap, evmIndex, storageStore_accountMap,
-    storageStore_executionEnv, howner, hownerIndex] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (clipperYankSalesMovePosSlot move) idx
-      hindex
+  subst τ
+  simp [clipperYankMoveAccountMap, storageStore_accountMap, storageStore_executionEnv,
+    hevm, howner]
 
 set_option maxHeartbeats 4000000 in
 theorem RD.clipperYankRemoveIdNeMoveToJoin
@@ -935,9 +924,9 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {ret : UInt256}
     {R : List UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8274⟩ (clipperYankArgWord ee :: ret :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
@@ -968,7 +957,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     ∃ k' C',
       RD code ee g s0 ⟨8379⟩
         (move :: clipperYankArgWord ee :: ret :: R)
-        moveHashMem aw10 o (cA, clipperYankMoveAccountMap σ ee idx move) k' C' ∧
+        moveHashMem aw10 o (clipperYankMoveAccountMap σ ee idx move) k' C' ∧
       64 ≤ (wordAt0Mem (⟨11⟩ : UInt256) moveHashMem).size := by
   intro lastIndex move idx activeMem aw1 aw2 saleHashMem aw3 aw4 aw5 activeIndexMem
     aw6 aw7 aw8 moveHashMem aw9 aw10
@@ -1010,7 +999,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8301 := rd8300.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw1])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw1])
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -1026,7 +1015,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8306 := rd8305.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw2])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw2])
     hslot (by rfl) (by evm_ov)
   have rd8307pre := evm_run rd8306 with [
     raw add (by clipper_yank_remove_decode) (by evm_ov)]
@@ -1048,13 +1037,13 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   obtain ⟨k8307, C8307, rd8307slot⟩ :
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
-        activeMem aw2 o (cA, σ) k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+        activeMem aw2 o σ k C := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
-        activeMem aw2 o (cA, σ) k C := by
+        activeMem aw2 o σ k C := by
     exact ⟨_, _, by simpa [move, solcSlotWord] using rd8308raw⟩
   have rd8312 := evm_run rd8308 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1078,14 +1067,14 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8322 := rd8321pre.mstore (Cₘ aw3 - Cₘ aw2) saleKeyMem aw3
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw3])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw3])
     (by simpa [saleKeyMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have rd8326pre := evm_run rd8322 with [
     raw push1 ⟨12⟩ (by clipper_yank_remove_decode) (by evm_ov),
     raw push1 ⟨32⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8327 := rd8326pre.mstore (Cₘ aw4 - Cₘ aw3) saleHashMem aw4
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw4])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw4])
     (by rfl) (by rfl) (by evm_ov)
   have hsalesBase :
       UInt256.ofNat
@@ -1108,13 +1097,13 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8331pre := rd8330pre.keccak256 (Cₘ aw5 - Cₘ aw4) (clipperYankSalesBaseSlot ee) aw5
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw5])
+    (by simp [M, MachineState.M, clipperYankU256_64_toNat, aw5])
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
       ∃ k C, RD code ee g s0 ⟨8332⟩
         (idx :: move :: clipperYankArgWord ee :: ret :: R)
-        saleHashMem aw5 o (cA, σ) k C := by
+        saleHashMem aw5 o σ k C := by
     exact ⟨_, _, by simpa [idx, clipperYankSalesPosSlot, solcSlotWord] using rd8332raw⟩
   have rd8346 := evm_run rd8332 with [
     raw push1 ⟨11⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1142,7 +1131,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw dup3 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8353 := rd8352pre.mstore (Cₘ aw6 - Cₘ aw5) activeIndexMem aw6
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw6])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw6])
     (by simpa [activeIndexMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hactiveBase :
       UInt256.ofNat
@@ -1159,7 +1148,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw dup4 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8359pre := rd8358pre.keccak256 (Cₘ aw7 - Cₘ aw6) activeDataSlot aw7
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw7])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw7])
     hactiveBase (by rfl) (by evm_ov)
   have rd8365pre := evm_run rd8359pre with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1171,7 +1160,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   obtain ⟨k8366, C8366, rd8366⟩ :
       ∃ k C, RD code ee g s0 ⟨8366⟩
         (⟨0⟩ :: ⟨32⟩ :: idx :: move :: clipperYankArgWord ee :: ret :: R)
-        activeIndexMem aw7 o (cA, σIndex) k C := by
+        activeIndexMem aw7 o σIndex k C := by
     obtain ⟨k', C', rd'⟩ := rd8365pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by
@@ -1181,7 +1170,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8369 := rd8368pre.mstore (Cₘ aw8 - Cₘ aw7) moveKeyMem aw8
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw8])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw8])
     (by simpa [moveKeyMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have rd8373pre := evm_run rd8369 with [
     raw push1 ⟨12⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1189,7 +1178,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw swap2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8374 := rd8373pre.mstore (Cₘ aw9 - Cₘ aw8) moveHashMem aw9
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw9])
+    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw9])
     (by rfl) (by rfl) (by evm_ov)
   have hsaleHashMemSize : 64 ≤ saleHashMem.size := by
     unfold saleHashMem twoWordHashMem wordAt32Mem
@@ -1246,12 +1235,12 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   have rd8378pre := rd8377pre.keccak256 (Cₘ aw10 - Cₘ aw9)
     (clipperYankSalesMovePosSlot move) aw10
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, clipperYankU256_64_toNat, aw10])
+    (by simp [M, MachineState.M, clipperYankU256_64_toNat, aw10])
     hmoveBase (by rfl) (by evm_ov)
   obtain ⟨k8379, C8379, rd8379raw⟩ :
       ∃ k C, RD code ee g s0 ⟨8379⟩
         (move :: clipperYankArgWord ee :: ret :: R)
-        moveHashMem aw10 o (cA, clipperYankMoveAccountMap σ ee idx move) k C := by
+        moveHashMem aw10 o (clipperYankMoveAccountMap σ ee idx move) k C := by
     obtain ⟨k', C', rd'⟩ := rd8378pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by
@@ -1283,10 +1272,10 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8274⟩
       (clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
@@ -1370,14 +1359,14 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        activeMem aw2 o (cA, σ) k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+        activeMem aw2 o σ k C := by
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        activeMem aw2 o (cA, σ) k C := by
+        activeMem aw2 o σ k C := by
     exact ⟨_, _, by simpa [move, solcSlotWord] using rd8308raw⟩
   have rd8312 := evm_run rd8308 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1438,7 +1427,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
       ∃ k C, RD code ee g s0 ⟨8332⟩
         (idx :: move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ ::
           [sel])
-        saleHashMem aw5 o (cA, σ) k C := by
+        saleHashMem aw5 o σ k C := by
     exact ⟨_, _, by simpa [idx, clipperYankSalesPosSlot, solcSlotWord] using rd8332raw⟩
   have rd8346 := evm_run rd8332 with [
     raw push1 ⟨11⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1482,25 +1471,6 @@ abbrev clipperYankSuccessAccountMap (σ : AccountMap) (I : ExecutionEnv)
     (lastIndex : UInt256) : AccountMap :=
   sstoreAccountMap I.codeOwner (clipperYankRemoveAccountMap σ I lastIndex) ⟨13⟩ ⟨0⟩
 
-theorem clipperAccountEquiv_trans {a b c : Account}
-    (hab : accountEquiv a b) (hbc : accountEquiv b c) :
-    accountEquiv a c := by
-  rcases hab with ⟨hn1, hb1, hc1, hs1, ht1⟩
-  rcases hbc with ⟨hn2, hb2, hc2, hs2, ht2⟩
-  exact ⟨hn1.trans hn2, hb1.trans hb2, hc1.trans hc2,
-    fun slot => (hs1 slot).trans (hs2 slot),
-    fun slot => (ht1 slot).trans (ht2 slot)⟩
-
-theorem clipperAccountMapEquiv_trans {σ τ υ : AccountMap}
-    (hστ : accountMapEquiv σ τ) (hτυ : accountMapEquiv τ υ) :
-    accountMapEquiv σ υ := by
-  intro addr
-  specialize hστ addr
-  specialize hτυ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    cases hυ : υ.find? addr <;> simp [hσ, hτ, hυ] at hστ hτυ ⊢
-  exact clipperAccountEquiv_trans hστ hτυ
-
 theorem clipperYankRemovePopState_accountMap (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex : UInt256)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
@@ -1509,136 +1479,52 @@ theorem clipperYankRemovePopState_accountMap (evm : EVM.State)
   simp [clipperYankRemovePopState, clipperYankPopAccountMap, storageStore_accountMap,
     howner]
 
-theorem clipperYankPopAccountMap_accountMapEquiv {σ τ : AccountMap}
-    (I : ExecutionEnv) (lastIndex : UInt256)
-    (hAccounts : accountMapEquiv σ τ) :
-    accountMapEquiv (clipperYankPopAccountMap σ I lastIndex)
-      (clipperYankPopAccountMap τ I lastIndex) := by
-  unfold clipperYankPopAccountMap
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ lastIndex
-    (accountMapEquiv_sstoreAccountMap I.codeOwner
-      (clipperYankActiveSlot lastIndex) ⟨0⟩ hAccounts)
-
 set_option maxHeartbeats 2000000 in
-theorem clipperYankDeleteSaleState_accountMapEquiv
+theorem clipperYankDeleteSaleState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
-    accountMapEquiv (clipperYankDeleteSaleAccountMap σ I)
+    Eq (clipperYankDeleteSaleAccountMap σ I)
       (clipperYankDeleteSaleState evm I).accountMap := by
-  let base := clipperYankSalesBaseSlot I
-  let σ0 := sstoreAccountMap I.codeOwner σ base ⟨0⟩
-  let σ1 := sstoreAccountMap I.codeOwner σ0 (base + ⟨1⟩) ⟨0⟩
-  let σ2 := sstoreAccountMap I.codeOwner σ1 (base + ⟨2⟩) ⟨0⟩
-  let σ3 := sstoreAccountMap I.codeOwner σ2 (base + ⟨3⟩) ⟨0⟩
-  let evm0 := Solm.EVM.storageStore evm evm.executionEnv.codeOwner base ⟨0⟩
-  let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (base + ⟨1⟩) ⟨0⟩
-  let evm2 := Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner (base + ⟨2⟩) ⟨0⟩
-  let usrVal :=
-    UInt256.land (Solm.EVM.storageLoad evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩))
-      (UInt256.lnot solcAddrMask)
-  let evmUsr := Solm.EVM.storageStore evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩) usrVal
-  let evm3 := Solm.EVM.storageStore evmUsr evmUsr.executionEnv.codeOwner (base + ⟨3⟩) ⟨0⟩
-  have howner0 : evm0.executionEnv.codeOwner = I.codeOwner := by
-    simp [evm0, storageStore_executionEnv, howner]
-  have howner1 : evm1.executionEnv.codeOwner = I.codeOwner := by
-    simp [evm1, storageStore_executionEnv, howner0]
-  have howner2 : evm2.executionEnv.codeOwner = I.codeOwner := by
-    simp [evm2, storageStore_executionEnv, howner1]
-  have hownerUsr : evmUsr.executionEnv.codeOwner = I.codeOwner := by
-    simp [evmUsr, storageStore_executionEnv, howner2]
-  have howner3 : evm3.executionEnv.codeOwner = I.codeOwner := by
-    simp [evm3, storageStore_executionEnv, hownerUsr]
-  have h0 : accountMapEquiv σ0 evm0.accountMap := by
-    simpa [σ0, evm0, storageStore_accountMap, howner] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner base ⟨0⟩ hAccounts
-  have h1 : accountMapEquiv σ1 evm1.accountMap := by
-    simpa [σ1, evm1, storageStore_accountMap, howner0] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (base + ⟨1⟩) ⟨0⟩ h0
-  have h2 : accountMapEquiv σ2 evm2.accountMap := by
-    simpa [σ2, evm2, storageStore_accountMap, howner1] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (base + ⟨2⟩) ⟨0⟩ h1
-  have h3same : accountMapEquiv σ3
-      (Solm.EVM.storageStore evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩) ⟨0⟩).accountMap := by
-    simpa [σ3, storageStore_accountMap, howner2] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (base + ⟨3⟩) ⟨0⟩ h2
-  have h3extra :
-      accountMapEquiv
-        (Solm.EVM.storageStore evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩) ⟨0⟩).accountMap
-        evm3.accountMap := by
-    let τ := evm2.accountMap
-    have hleft :
-        (Solm.EVM.storageStore evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩) ⟨0⟩).accountMap =
-          sstoreAccountMap I.codeOwner τ (base + ⟨3⟩) ⟨0⟩ := by
-      simp [τ, storageStore_accountMap, howner2]
-    have husrMap :
-        evmUsr.accountMap =
-          sstoreAccountMap I.codeOwner τ (base + ⟨3⟩) usrVal := by
-      simp [τ, evmUsr, storageStore_accountMap, howner2]
-    have hright :
-        evm3.accountMap =
-          sstoreAccountMap I.codeOwner
-            (sstoreAccountMap I.codeOwner τ (base + ⟨3⟩) usrVal)
-            (base + ⟨3⟩) ⟨0⟩ := by
-      simp [evm3, storageStore_accountMap, hownerUsr, husrMap]
-    rw [hleft, hright]
-    have hfinalTrue : ((⟨0⟩ : UInt256) == (default : UInt256)) = true := by native_decide
-    intro addr
-    by_cases haddr : addr = I.codeOwner
-    · subst addr
-      unfold sstoreAccountMap
-      cases hτ : τ.find? I.codeOwner with
-      | none =>
-          simp [hτ, Option.option]
-      | some acc =>
-          simp [Option.option, accountMap_find_insert_self]
-          by_cases hzero : usrVal = (default : UInt256)
-          · simpa [hzero] using accountEquiv_update_erase_self acc (base + ⟨3⟩) usrVal
-          · simpa [hzero] using accountEquiv_update_erase_self acc (base + ⟨3⟩) usrVal
-    · unfold sstoreAccountMap
-      cases hτ : τ.find? I.codeOwner
-      · simp only [hτ, Option.option]
-        cases τ.find? addr <;> simp [accountEquiv_refl]
-      · simp only [Option.option, hfinalTrue]
-        rw [accountMap_find_insert_self]
-        rw [accountMap_find?_insert_ne τ addr I.codeOwner _ haddr]
-        rw [accountMap_find?_insert_ne (τ.insert I.codeOwner _) addr I.codeOwner _ haddr]
-        rw [accountMap_find?_insert_ne τ addr I.codeOwner _ haddr]
-        cases τ.find? addr <;> simp [accountEquiv_refl]
-  have h3 : accountMapEquiv σ3 evm3.accountMap :=
-    clipperAccountMapEquiv_trans h3same h3extra
-  have h4 :
-      accountMapEquiv (sstoreAccountMap I.codeOwner σ3 (base + ⟨4⟩) ⟨0⟩)
-        (Solm.EVM.storageStore evm3 evm3.executionEnv.codeOwner (base + ⟨4⟩) ⟨0⟩).accountMap := by
-    simpa [storageStore_accountMap, howner3] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (base + ⟨4⟩) ⟨0⟩ h3
-  simpa [clipperYankDeleteSaleAccountMap, clipperYankDeleteSaleState, base, σ0, σ1, σ2,
-    σ3, evm0, evm1, evm2, usrVal, evmUsr, evm3, storageStore_executionEnv] using h4
+  subst σ
+  let σ2 := sstoreAccountMap I.codeOwner
+    (sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner evm.accountMap (clipperYankSalesBaseSlot I) ⟨0⟩)
+      (clipperYankSalesBaseSlot I + ⟨1⟩) ⟨0⟩)
+    (clipperYankSalesBaseSlot I + ⟨2⟩) ⟨0⟩
+  let slot3 := clipperYankSalesBaseSlot I + ⟨3⟩
+  let masked := UInt256.land (solcSlotWord σ2 I slot3) (UInt256.lnot solcAddrMask)
+  have hupdate := sstoreAccountMap_self_update σ2 I.codeOwner slot3 masked ⟨0⟩
+  simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperYankDeleteSaleAccountMap, clipperYankDeleteSaleState,
+    storageStore_accountMap, storageStore_executionEnv, howner,
+    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
+  rw [hupdate]
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankSuccessAccountMap_state_accountMapEquiv
+theorem clipperYankSuccessAccountMap_state_accounts_eq
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (lastIndex : UInt256)
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hevm : evm.accountMap = τ)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
-    accountMapEquiv (clipperYankSuccessAccountMap σ I lastIndex)
+    Eq (clipperYankSuccessAccountMap σ I lastIndex)
       (let evmPop := clipperYankRemovePopState evm lastIndex
        let evmRemove := clipperYankDeleteSaleState evmPop I
        (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner ⟨13⟩ ⟨0⟩).accountMap) := by
   have hpop :
-      accountMapEquiv (clipperYankPopAccountMap σ I lastIndex)
+      Eq (clipperYankPopAccountMap σ I lastIndex)
         (clipperYankRemovePopState evm lastIndex).accountMap := by
     rw [clipperYankRemovePopState_accountMap evm I lastIndex howner]
-    exact clipperYankPopAccountMap_accountMapEquiv I lastIndex (by simpa [hevm] using hAccounts)
+    exact congrArg (fun m => clipperYankPopAccountMap m I lastIndex)
+      (hAccounts.trans hevm.symm)
   have hpopOwner :
       (clipperYankRemovePopState evm lastIndex).executionEnv.codeOwner = I.codeOwner := by
     simp [clipperYankRemovePopState, storageStore_executionEnv, howner]
   have hdel :=
-    clipperYankDeleteSaleState_accountMapEquiv (clipperYankRemovePopState evm lastIndex) I
+    clipperYankDeleteSaleState_accounts_eq (clipperYankRemovePopState evm lastIndex) I
       hpop hpopOwner
   simpa [clipperYankSuccessAccountMap, clipperYankRemoveAccountMap,
     storageStore_accountMap, storageStore_executionEnv, howner] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩ hdel
+    congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hdel
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperYankRemoveJoinSuccess
@@ -1646,15 +1532,15 @@ theorem RD.clipperYankRemoveJoinSuccess
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel move : UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hactiveMemSize : 64 ≤ (wordAt0Mem (⟨11⟩ : UInt256) mem).size)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
-    RDret code g s0 (cA, clipperYankSuccessAccountMap σ ee lastIndex) ByteArray.empty := by
+    RDret code g s0 (clipperYankSuccessAccountMap σ ee lastIndex) ByteArray.empty := by
   intro lastIndex
   let len := solcSlotWord σ ee ⟨11⟩
   let activeMem := wordAt0Mem (⟨11⟩ : UInt256) mem
@@ -1740,11 +1626,11 @@ theorem RD.clipperYankRemoveJoinSuccess
           move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ ::
             [sel])
         activeMem aw2 o
-        (cA, sstoreAccountMap ee.codeOwner σ (clipperYankActiveSlot lastIndex) ⟨0⟩)
+        (sstoreAccountMap ee.codeOwner σ (clipperYankActiveSlot lastIndex) ⟨0⟩)
         k C := by
     obtain ⟨k', C', rd'⟩ := rd8411pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-    exact ⟨k', C', by simpa [solcSlotWord, hslotActive'] using rd'⟩
+    exact ⟨k', C', by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive'] using rd'⟩
   have rd8417pre := evm_run rd8412 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1755,7 +1641,7 @@ theorem RD.clipperYankRemoveJoinSuccess
       ∃ k C, RD code ee g s0 ⟨8418⟩
         (⟨32⟩ :: ⟨0⟩ :: move :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        activeMem aw2 o (cA, clipperYankPopAccountMap σ ee lastIndex) k C := by
+        activeMem aw2 o (clipperYankPopAccountMap σ ee lastIndex) k C := by
     obtain ⟨k', C', rd'⟩ := rd8417pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by
@@ -1804,7 +1690,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   obtain ⟨k8434, C8434, rd8434⟩ :
       ∃ k C, RD code ee g s0 ⟨8434⟩
         (base :: ⟨0⟩ :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        saleHashMem aw5 o (cA, σSale0) k C := by
+        saleHashMem aw5 o σSale0 k C := by
     obtain ⟨k', C', rd'⟩ := rd8433pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by simpa [base, σSale0] using rd'⟩
@@ -1817,7 +1703,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   obtain ⟨k8441, C8441, rd8441⟩ :
       ∃ k C, RD code ee g s0 ⟨8441⟩
         (base :: ⟨0⟩ :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        saleHashMem aw5 o (cA, σSale1) k C := by
+        saleHashMem aw5 o σSale1 k C := by
     obtain ⟨k', C', rd'⟩ := rd8440pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by simpa [σSale1] using rd'⟩
@@ -1830,7 +1716,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   obtain ⟨k8448, C8448, rd8448⟩ :
       ∃ k C, RD code ee g s0 ⟨8448⟩
         (base :: ⟨0⟩ :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        saleHashMem aw5 o (cA, σSale2) k C := by
+        saleHashMem aw5 o σSale2 k C := by
     obtain ⟨k', C', rd'⟩ := rd8447pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by simpa [σSale2] using rd'⟩
@@ -1843,7 +1729,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   obtain ⟨k8455, C8455, rd8455⟩ :
       ∃ k C, RD code ee g s0 ⟨8455⟩
         (base :: ⟨0⟩ :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        saleHashMem aw5 o (cA, σSale3) k C := by
+        saleHashMem aw5 o σSale3 k C := by
     obtain ⟨k', C', rd'⟩ := rd8454pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by simpa [σSale3] using rd'⟩
@@ -1853,7 +1739,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   obtain ⟨k8459, C8459, rd8459⟩ :
       ∃ k C, RD code ee g s0 ⟨8459⟩
         (⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-        saleHashMem aw5 o (cA, σRemoved) k C := by
+        saleHashMem aw5 o σRemoved k C := by
     obtain ⟨k', C', rd'⟩ := rd8458pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by
@@ -1917,7 +1803,7 @@ theorem RD.clipperYankRemoveJoinSuccess
   let aw9 := UInt256.ofNat (MachineState.M aw8.toNat freePtrBase.toNat logSize.toNat)
   have rd2592 : RD code ee g s0 ⟨2592⟩
       (clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      eventMem aw9 o (cA, σRemoved) (k8459 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
+      eventMem aw9 o σRemoved (k8459 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
       (C8459 + 8 + 1 + 3 + 3 + (Cₘ aw6 - Cₘ aw5 + 3) + 3 + 3 +
         (Cₘ aw7 - Cₘ aw6 + 3) + 3 + (Cₘ aw8 - Cₘ aw7 + 3) + 3 + 3 + 3 +
         3 + 3 + 3 + 3 + 3 +
@@ -1937,7 +1823,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw push1 ⟨13⟩ (by clipper_yank_post_remove_decode) (by evm_ov)]
   obtain ⟨k2598, C2598, rd2598⟩ :
       ∃ k C, RD code ee g s0 ⟨2598⟩ (⟨502⟩ :: [sel])
-        eventMem aw9 o (cA, clipperYankSuccessAccountMap σ ee lastIndex) k C := by
+        eventMem aw9 o (clipperYankSuccessAccountMap σ ee lastIndex) k C := by
     obtain ⟨k', C', rd'⟩ := rd2597pre.sstore hperm (by clipper_yank_post_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
     exact ⟨k', C', by simpa [clipperYankSuccessAccountMap, σRemoved] using rd'⟩
@@ -1951,10 +1837,10 @@ theorem RD.clipperYankRemoveJoinEmptyInvalid
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel move : UInt256}
-    {cA σ}
+    {σ}
     (rd : RD code ee g s0 ⟨8379⟩
       (move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩) :
     RDinvalid code g s0 := by
   let len := solcSlotWord σ ee ⟨11⟩
