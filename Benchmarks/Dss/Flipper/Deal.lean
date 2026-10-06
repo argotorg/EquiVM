@@ -13,14 +13,14 @@ theorem flipperDecode_deal_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size
       (transitionSignature dealTransition).paramTypes I.calldata =
         some (dealLocals I) := by
   simpa [config, dealTransition, transitionSignature, dealLocals, dealId]
-    using (flipperDecodeCalldataLegacyUInt256_ok (cd := I.calldata) (x := "id") hsz36)
+    using (decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "id") hsz36)
 
 theorem flipperDecode_deal_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
       (transitionSignature dealTransition).paramTypes I.calldata = none := by
   simpa [config, dealTransition, transitionSignature]
-    using (flipperDecodeCalldataLegacyUInt256_none_short (cd := I.calldata)
+    using (decodeCalldata_legacyUInt256_none_short (cd := I.calldata)
       (x := "id") hsz4 hshort)
 
 theorem flipperReachDealBody {σ σ₀ A I} {g : Sat256}
@@ -283,7 +283,7 @@ theorem flipperDealBodyCoreCatCallDepthLimit {σ σ₀ A I}
       config.externalABI.encode? "claw"
         (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
           some ((dealCatCallMem σ I).readWithPadding 128 36) := by
-    simpa [dealClawArgVals, dealClawArgValsOf, initState, flipperSlotWord,
+    simpa [dealClawArgVals, dealClawArgValsOf, initState, solcSlotWordAt,
       solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       bidTabWord, bidSlotOfWord, bidBaseOfWord] using dealCatCallMem_encode σ I
   have hcallCat :=
@@ -372,7 +372,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
         dealClawArgVals evm0 := by
     simpa [dealClawArgVals, dealClawArgValsOf, evm0, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      bidTabWord, flipperSlotWord, solcSlotWord] using
+      bidTabWord, solcSlotWordAt, solcSlotWord] using
       (rfl : [Value.int (Int.ofNat (bidTabWord (dealId I) σ I).toNat)] =
         [Value.int (Int.ofNat (bidTabWord (dealId I) σ I).toNat)])
   have hcallCat :
@@ -417,7 +417,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
               (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
               0 (fun acc => acc.code.size))).toNat = 0 := by
         simpa [evmCat, evm0, initState, State.lookupAccount] using
-          flipper_extCodeSizeWord_zero_lookup_code_zero
+          extCodeSizeWord_zero_lookup_code_zero
             (σ := σ_cat) (target := flipperVatTargetWord σ_cat I)
             (addr := flipperVatAddress σ_cat I)
             (flipperVatAddress_eq_target σ_cat I) hvatZero
@@ -438,7 +438,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
                 (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
                 0 (fun acc => acc.code.size))).toNat := by
         simpa [evmCat, evm0, initState, State.lookupAccount] using
-          flipper_extCodeSizeWord_pos_lookup_code_pos
+          extCodeSizeWord_ne_zero_lookup_code_pos
             (σ := σ_cat) (target := flipperVatTargetWord σ_cat I)
             (addr := flipperVatAddress σ_cat I)
             (flipperVatAddress_eq_target σ_cat I) hvatZero

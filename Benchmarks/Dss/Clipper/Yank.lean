@@ -584,7 +584,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                 evmVatSolm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
                         rw [show lastIndexEvm =
                             solcSlotWord σ_vat I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-                        rw [clipperYankLenAddLnotZero_eq_subOne]
+                        rw [yankLenAddLnotZero_eq_subOne]
                         rw [hloadLenSolm, ← hactiveLenEq]
                       have hownerVatSolm : evmVatSolm.executionEnv.codeOwner = I.codeOwner := by
                         simp [evmVatSolm, evmDogSolm, evmDogSolmStart, initState]
@@ -918,7 +918,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   solcSlotWord
                                     (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                     I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-                              rw [clipperYankLenAddLnotZero_eq_subOne]
+                              rw [yankLenAddLnotZero_eq_subOne]
                               rw [hloadLenAfterSolm, ← hlenAfterEq]
                             have hafter :
                                 ExecBlock (config v)

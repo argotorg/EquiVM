@@ -17,7 +17,7 @@ private theorem clipperKickTailJumpDest
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch <;>
     unfold patches patchesFrom offsets immValues <;>
     simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons] <;>
-    cases hIlk : wordBytes? v.ilk <;> simp [hIlk] <;> native_decide
+    cases hIlk : Reasoning.Theory.wordBytes? v.ilk <;> simp [hIlk] <;> native_decide
 
 theorem clipperKickJumpDest6061 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -107,7 +107,7 @@ theorem RD.clipperKickGetFeedPriceToRmul {code : ByteArray}
         apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch
         unfold patches patchesFrom offsets immValues
         simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-        cases hIlk : wordBytes? v.ilk <;> simp [hIlk] <;> native_decide)
+        cases hIlk : Reasoning.Theory.wordBytes? v.ilk <;> simp [hIlk] <;> native_decide)
       (by evm_ov)]⟩
 
 theorem RD.clipperKickRmulOverflowReverts {code : ByteArray}
@@ -214,7 +214,7 @@ theorem RD.clipperKickTopZeroReverts {code : ByteArray}
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by clipper_runtime_decode)
       mem_cost
-      (clipperKickErrorStringMem3_mload64 ⟨22⟩
+      (errorStringMem3_mload64 ⟨22⟩
         (UInt256.shiftLeft rawWord ⟨80⟩) hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov),

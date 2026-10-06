@@ -1,3 +1,4 @@
+import Reasoning.MemoryShapes
 import Benchmarks.Dss.End.Dispatch
 import Reasoning.ExternalCall
 
@@ -85,13 +86,13 @@ abbrev endPackStoreBagNew (I : ExecutionEnv) (bagNew : UInt256) : Store :=
   (endPackStoreMove I).insert "bagNew" (.int (Int.ofNat bagNew.toNat))
 
 abbrev endPackDebtWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨11⟩ σ I
+  solcSlotWordAt ⟨11⟩ σ I
 
 abbrev endPackVatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (endSlotWord ⟨1⟩ σ I) solcAddrMask
+  UInt256.land (solcSlotWordAt ⟨1⟩ σ I) solcAddrMask
 
 abbrev endPackVowWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (endSlotWord ⟨4⟩ σ I) solcAddrMask
+  UInt256.land (solcSlotWordAt ⟨4⟩ σ I) solcAddrMask
 
 abbrev endPackVatAddr (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (endPackVatWord σ I).toNat
@@ -106,7 +107,7 @@ def endPackBagSlot (I : ExecutionEnv) : UInt256 :=
   bagSlot (endPackBagKey I)
 
 abbrev endPackBagWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord (endPackBagSlot I) σ I
+  solcSlotWordAt (endPackBagSlot I) σ I
 
 abbrev endPackEvaledBagRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "bag", steps := [.mindex (endPackBagKey I)] }
@@ -271,76 +272,6 @@ theorem endPackMovePostCallMem_read64 (σ : AccountMap) (I : ExecutionEnv)
   rw [endPackMovePostCallMem_eq]
   exact endPackMoveCalldataMem_read64 σ I amt solcFreePtrMem_size solcFreePtrMem_read64
 
-theorem endWordAt0Mem_size_228 (word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228) :
-    (wordAt0Mem word mem).size = 228 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 228 228 hmem (by omega) (by omega)
-
-theorem endTwoWordHashMem_size_228 (key slot : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228) :
-    (twoWordHashMem key slot mem).size = 228 := by
-  unfold twoWordHashMem wordAt32Mem
-  exact toByteArray_write32_size_of_le (wordAt0Mem key mem) slot 32 228 228
-    (endWordAt0Mem_size_228 key hmem)
-    (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)
-
-theorem endTwoWordHashMem_read64_228 (key slot : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)
-      (by rw [endWordAt0Mem_size_228 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread64
-
-theorem endTwoWordHashMem_read0_228 (key slot : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-theorem endTwoWordHashMem_read32_228 (key slot : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [endWordAt0Mem_size_228 key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem endTwoWordHashMem_read0_64_228 (key slot : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 228) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega),
-      endTwoWordHashMem_read0_228 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega),
-      endTwoWordHashMem_read32_228 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
 
 theorem endPackBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
@@ -349,7 +280,7 @@ theorem endPackBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagHashMem
-  rw [endTwoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
+  rw [twoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) ⟨16⟩
@@ -358,7 +289,7 @@ theorem endPackBagHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endPackBagHashMem σ I amt out).size = 228 := by
   unfold endPackBagHashMem
-  exact endTwoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
+  exact twoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)
 
 theorem endPackBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -366,7 +297,7 @@ theorem endPackBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endPackBagHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endPackBagHashMem
-  exact endTwoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
+  exact twoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)
     (endPackMovePostCallMem_read64 σ I amt out)
 
@@ -374,7 +305,7 @@ theorem endPackBagStoreSlotMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endPackBagStoreSlotMem σ I amt out).size = 228 := by
   unfold endPackBagStoreSlotMem
-  exact endTwoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
+  exact twoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)
 
 theorem endPackBagStoreSlotMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -382,7 +313,7 @@ theorem endPackBagStoreSlotMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endPackBagStoreSlotMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endPackBagStoreSlotMem
-  exact endTwoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
+  exact twoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)
     (endPackBagHashMem_read64 σ I amt out)
 
@@ -393,7 +324,7 @@ theorem endPackBagStoreSlotMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagStoreSlotMem
-  rw [endTwoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
+  rw [twoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) ⟨16⟩
@@ -553,7 +484,7 @@ theorem endPackMoveEncode_eq (σ : AccountMap) (I : ExecutionEnv) (amt : UInt256
     rfl
   have hvowCanon : (endPackVowWord σ I).toNat < EVM.addressModulus := by
     simpa [endPackVowWord] using
-      solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σ I)
   have hvowVal :
       (endPackVowAddr σ I).val = (endPackVowWord σ I).toNat := by
     unfold endPackVowAddr AccountAddress.ofNat
@@ -589,7 +520,7 @@ theorem endPackX_debtZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hdebtRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [endPackDebtWord, endSlotWord, solcSlotWord] using hdebt
+    simpa [endPackDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have rd6349zero := rd6349raw
   rw [hdebtRaw] at rd6349zero
   obtain ⟨_, _, rd6349⟩ : ∃ k' C',
@@ -638,7 +569,7 @@ theorem endPackX_mulEntry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (endPackDebtWord σ I :: endPackWadWord I :: endPackReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
-      simpa [endPackDebtWord, endSlotWord, solcSlotWord] using rd6349raw⟩
+      simpa [endPackDebtWord, solcSlotWordAt, solcSlotWord] using rd6349raw⟩
   obtain ⟨_, _, rd6349⟩ := rd6349
   have rd6352 := rd6349.push2 ⟨6413⟩ (by native_decide) (by evm_ov)
   have rd6413 := rd6352.jumpiT (by native_decide) hdebt (by jump_dest) (by evm_ov)
@@ -648,18 +579,18 @@ theorem endPackX_mulEntry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd6417raw⟩ := rd6416.sload (by native_decide) (by evm_ov)
   have rd6417 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨6417⟩
-        (endSlotWord ⟨1⟩ σ I :: endPackWadWord I :: endPackReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ I :: endPackWadWord I :: endPackReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd6417raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd6417raw⟩
   obtain ⟨_, _, rd6417⟩ := rd6417
   have rd6419 := rd6417.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd6420raw⟩ := rd6419.sload (by native_decide) (by evm_ov)
   have rd6420 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨6420⟩
-        (endSlotWord ⟨4⟩ σ I :: endSlotWord ⟨1⟩ σ I :: endPackWadWord I ::
+        (solcSlotWordAt ⟨4⟩ σ I :: solcSlotWordAt ⟨1⟩ σ I :: endPackWadWord I ::
           endPackReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd6420raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd6420raw⟩
   obtain ⟨_, _, rd6420⟩ := rd6420
   have rd6445 := evm_run rd6420 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -684,7 +615,7 @@ theorem endPackX_mulEntry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd10170 := rd6461.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by
     simpa [endPackRayWord, endPackVatWord, endPackVowWord, endPackMoveSelectorWord,
-      endSlotWord, solcSlotWord, solcAddrMask, u256_land_comm] using rd10170⟩
+      solcSlotWordAt, solcSlotWord, solcAddrMask, u256_land_comm] using rd10170⟩
 
 theorem endPackX_mulOverflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
@@ -702,7 +633,7 @@ theorem endPackX_mulOverflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         UInt256.div (endPackRayWord * endPackWadWord I) endPackRayWord ≠
           endPackWadWord I := by
       simpa [endPackRayWord] using
-        endU256_mul_div_overflow_ne (endPackWadWord I) endPackRayWord hover
+        u256_mul_div_overflow_ne (endPackWadWord I) endPackRayWord hover
     intro hbad
     have hmul : endPackRayWord * endPackWadWord I = endPackWadWord I * endPackRayWord := by
       simpa using u256_mul_comm endPackRayWord (endPackWadWord I)
@@ -873,7 +804,7 @@ theorem endPackX_moveExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by native_decide]
-    exact solcAddrMask_clean (solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σ I))
+    exact solcAddrMask_clean (solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σ I))
   have rd6536 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -952,7 +883,7 @@ theorem endPackX_moveExtcodesizeGuard {σ σ₀ A I} {g : Sat256} {sel : UInt256
     simpa [endPackMoveSelectorMem, endPackMoveArg0Mem, endPackMoveArg1Mem,
       endPackMoveCalldataMem, endPackMoveOutPtr, endPackMoveInSize, endPackMoveEndPtr,
       endPackMoveSelectorShifted, endPackMoveSelectorWord, endPackVatWord, endPackVowWord,
-      endSlotWord, solcSlotWord, solcAddrMask, hselectorMask, hsourceMask, hvowMask,
+      solcSlotWordAt, solcSlotWord, solcAddrMask, hselectorMask, hsourceMask, hvowMask,
       u256_land_comm] using rd6536⟩
 
 theorem endPackX_moveNoCode {σ σ₀ A I} {g : Sat256} {sel amt : UInt256}
@@ -1148,7 +1079,7 @@ theorem endPackX_bagAddEntry {σ σ' σ₀ A I} {g sel : UInt256}
         endPackWadWord I :: endPackReturnPc :: sel :: [])
       (endPackBagHashMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
       σ' k' C' := by
-    exact ⟨_, _, by simpa [endPackBagWord, endSlotWord, solcSlotWord] using rdLoadedRaw⟩
+    exact ⟨_, _, by simpa [endPackBagWord, solcSlotWordAt, solcSlotWord] using rdLoadedRaw⟩
   obtain ⟨_, _, rdLoaded⟩ := rdLoaded
   have rdJumpTarget := evm_run rdLoaded with [
     raw push2 ⟨6599⟩ (by native_decide) (by evm_ov),
@@ -1449,7 +1380,7 @@ theorem evalExpr_endPack_debt (evm : EVM.State) (I : ExecutionEnv) :
     (her := evalStorageRef_endPack_debt evm I)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm ⟨11⟩)
+    (hload := storageLocLoad_uint256 evm ⟨11⟩)
 
 theorem evalExpr_endPack_debt_ne_false (evm : EVM.State) (I : ExecutionEnv)
     (hdebt : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩) :
@@ -1507,7 +1438,7 @@ theorem evalExpr_endPack_vat {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endPack_vat hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_address_offset0 evm ⟨1⟩)
+    (hload := storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem evalExpr_endPack_vat_addr {locals : Store} (evm : EVM.State)
     (I : ExecutionEnv) (hbase : locals.get? "vat" = none)
@@ -1515,7 +1446,7 @@ theorem evalExpr_endPack_vat_addr {locals : Store} (evm : EVM.State)
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (endPackVatAddr evm.accountMap I)) := by
   simpa [howner, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+    endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
     evalExpr_endPack_vat (locals := locals) evm hbase
 
 theorem evalStorageRef_endPack_vow {locals : Store} (_hbase : locals.get? "vow" = none)
@@ -1541,7 +1472,7 @@ theorem evalExpr_endPack_vow {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endPack_vow hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_address_offset0 evm ⟨4⟩)
+    (hload := storageLocLoad_address_offset0 evm ⟨4⟩)
 
 theorem evalExpr_endPack_vow_addr {locals : Store} (evm : EVM.State)
     (I : ExecutionEnv) (hbase : locals.get? "vow" = none)
@@ -1549,7 +1480,7 @@ theorem evalExpr_endPack_vow_addr {locals : Store} (evm : EVM.State)
     evalExpr? config { contract := contract, locals := locals } evm vowAddr =
       .ok (.address (endPackVowAddr evm.accountMap I)) := by
   simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+    endPackVowAddr, endPackVowWord, solcSlotWordAt, solcSlotWord] using
     evalExpr_endPack_vow (locals := locals) evm hbase
 
 theorem evalStorageRef_endPack_bag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
@@ -1578,7 +1509,7 @@ theorem evalExpr_endPack_bag {locals : Store} (evm : EVM.State) (I : ExecutionEn
     (her := evalStorageRef_endPack_bag evm I hbase hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm (endPackBagSlot I))
+    (hload := storageLocLoad_uint256 evm (endPackBagSlot I))
 
 theorem endPackAssignBag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     (bagNew : UInt256)
@@ -1595,7 +1526,7 @@ theorem endPackAssignBag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endPackPostState] using
-    endStorageLocStore_uint256 evm (endPackBagSlot I) bagNew
+    storageLocStore_uint256 evm (endPackBagSlot I) bagNew
 
 theorem endPackTailReverts_bagAddOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
@@ -1746,7 +1677,7 @@ theorem endPackVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endPackVatWord σ I) (addr := endPackVatAddr σ I)
       (endPackVatAddr_eq_ofUInt256 σ I) hzero
 
@@ -1756,7 +1687,7 @@ theorem endPackVatCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endPackVatWord σ I) (addr := endPackVatAddr σ I)
       (endPackVatAddr_eq_ofUInt256 σ I) hne
 
@@ -1769,7 +1700,7 @@ theorem endPackBodyReverts_debtZero {σ σ₀ A I} {g : UInt256}
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endPackDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguard :
       evalExpr? config { contract := contract, locals := endPackStore I } evm0
         (.binary .ne (.storage debtRef) (.intLit 0)) = .ok (.bool false) :=
@@ -1802,7 +1733,7 @@ theorem endPackBodyReverts_mulOverflow {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hdebt
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackDebtWord, endSlotWord, solcSlotWord] using hbad
+      endPackDebtWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := endPackStore I } evm0
         (.binary .ne (.storage debtRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1871,7 +1802,7 @@ theorem endPackBodyReverts_moveNoCode {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hdebt
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackDebtWord, endSlotWord, solcSlotWord] using hbad
+      endPackDebtWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguardDebt :
       evalExpr? config { contract := contract, locals := endPackStore I } evm0
         (.binary .ne (.storage debtRef) (.intLit 0)) = .ok (.bool true) :=
@@ -1924,7 +1855,7 @@ theorem endPackBodyReverts_moveNoCode {σ σ₀ A I} {g : UInt256}
     have hbase : (endPackStoreAmt I).get? "vat" = none := by
       simp [endPackStoreAmt, endPackStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endPackStoreAmt I) evm0 hbase
   have hcodeZero :
       (UInt256.ofNat
@@ -1994,7 +1925,7 @@ theorem endPackBodyReverts_moveCallFailed {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hdebt
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackDebtWord, endSlotWord, solcSlotWord] using hbad
+      endPackDebtWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguardDebt :
       evalExpr? config { contract := contract, locals := endPackStore I } evm0
         (.binary .ne (.storage debtRef) (.intLit 0)) = .ok (.bool true) :=
@@ -2047,7 +1978,7 @@ theorem endPackBodyReverts_moveCallFailed {σ σ₀ A I} {g : UInt256}
     have hbase : (endPackStoreAmt I).get? "vat" = none := by
       simp [endPackStoreAmt, endPackStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endPackStoreAmt I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -2070,7 +2001,7 @@ theorem endPackBodyReverts_moveCallFailed {σ σ₀ A I} {g : UInt256}
     have hbase : (endPackStoreAmt I).get? "vow" = none := by
       simp [endPackStoreAmt, endPackStore]
     simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+      endPackVowAddr, endPackVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vow (locals := endPackStoreAmt I) evm0 hbase
   have hamt :
       evalExpr? config { contract := contract, locals := endPackStoreAmt I } evm0
@@ -2150,7 +2081,7 @@ theorem endPackPrefixMoveSuccess {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hdebt
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackDebtWord, endSlotWord, solcSlotWord] using hbad
+      endPackDebtWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguardDebt :
       evalExpr? config { contract := contract, locals := endPackStore I } evm0
         (.binary .ne (.storage debtRef) (.intLit 0)) = .ok (.bool true) :=
@@ -2203,7 +2134,7 @@ theorem endPackPrefixMoveSuccess {σ σ₀ A I} {g : UInt256}
     have hbase : (endPackStoreAmt I).get? "vat" = none := by
       simp [endPackStoreAmt, endPackStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endPackStoreAmt I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -2226,7 +2157,7 @@ theorem endPackPrefixMoveSuccess {σ σ₀ A I} {g : UInt256}
     have hbase : (endPackStoreAmt I).get? "vow" = none := by
       simp [endPackStoreAmt, endPackStore]
     simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+      endPackVowAddr, endPackVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vow (locals := endPackStoreAmt I) evm0 hbase
   have hamt :
       evalExpr? config { contract := contract, locals := endPackStoreAmt I } evm0
@@ -2387,7 +2318,7 @@ theorem endDecode_pack_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
       (transitionSignature packTransition).paramTypes I.calldata = some (endPackStore I) := by
   show decodeCalldataWithMode config.abiDecodeMode ["wad"] [uint256] I.calldata = _
   simpa [config, endPackStore, endPackWadValue, endPackWadWord, uint256, uint256Int]
-    using endDecode_legacyUint256_ok (cd := I.calldata) (x := "wad") hsz36
+    using decode_legacyUint256_ok (cd := I.calldata) (x := "wad") hsz36
 
 theorem endDecode_pack_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -2395,7 +2326,7 @@ theorem endDecode_pack_none_short {I : ExecutionEnv}
       (transitionSignature packTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["wad"] [uint256] I.calldata = none
   simpa [config, uint256, uint256Int] using
-    endDecode_legacyUint256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
+    decode_legacyUint256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
 
 theorem endDispatchPack {I : ExecutionEnv}
     (hsel : selIs I (selectorOf packTransition)) :
@@ -2660,7 +2591,7 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                       (endPackBagSlot I) := by
                 simp [evmMoveSolm, evmSolm, initState, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, endPackBagWord,
-                  endSlotWord, solcSlotWord]
+                  solcSlotWordAt, solcSlotWord]
               obtain ⟨_, _, rdAddEntry⟩ := endPackX_bagAddEntry (g := g) rd6552
               by_cases hoverAdd :
                   UInt256.size ≤

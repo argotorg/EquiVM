@@ -1,3 +1,6 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Flipper.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping
@@ -52,145 +55,6 @@ def flipperSelBytes : ℕ → ByteArray
   | 17 => ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩ -- wards(address)
   | _ => ⟨#[0x26, 0xe0, 0x27, 0xf1]⟩  -- yank(uint256)
 
-def flipperSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
-
-theorem flipperDecodeCalldataLegacyUInt256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, hlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  simp [decodeCalldata.insertValues, hword4]
-
-theorem flipperDecodeCalldataLegacyUInt256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, hlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
-
-theorem flipperDecodeCalldataLegacyUInt256UInt256UInt256_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-        [abiUInt256, abiUInt256, abiUInt256] cd =
-      some ((((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, hlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, hlen]
-    omega
-  have htake68 : ((cd.toList.drop 4).drop 64 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, hlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 :
-      ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) = calldataWord cd 36 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 :
-      ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) = calldataWord cd 68 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using decode_word_at_eq cd 68 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y, z])
-    (types := [abiUInt256, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 32) htake36]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 64) htake68]
-  simp only [Option.bind, bind]
-  change decodeCalldata.insertValues [x, y, z]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat)] ∅ =
-    some ((((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
-      (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-      (.int (Int.ofNat (calldataWord cd 68).toNat)))
-  rw [hword4, hword36, hword68]
-  simp [decodeCalldata.insertValues]
-
-theorem flipperDecodeCalldataLegacyUInt256UInt256UInt256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-      [abiUInt256, abiUInt256, abiUInt256] cd = none := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y, z])
-    (types := [abiUInt256, abiUInt256, abiUInt256]) (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
-  · have htake0 : ((cd.toList.drop 4).take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp only [decodeScalarWordsWithMode?]
-    rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := cd.toList.drop 4) (start := 0) htake0]
-    by_cases hlen32 : 64 ≤ (cd.toList.drop 4).length
-    · have htake32 : (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-        (bytes := cd.toList.drop 4) (start := 32) htake32]
-      have htake64n : ¬ (((cd.toList.drop 4).drop 64).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop, List.length_drop, hlen]
-        omega
-      rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-        (start := 64) (by simpa using htake64n)]
-      simp only [Option.bind, bind]
-    · have htake32n : ¬ (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-        (start := 32) (by simpa using htake32n)]
-      simp only [Option.bind, bind]
-  · have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp only [decodeScalarWordsWithMode?]
-    rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (start := 0) (by simpa using htake0n)]
-    simp only [Option.bind, bind]
-
-abbrev flipperAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
-    UInt256 :=
-  UInt256.land (flipperSlotWord slot σ I) solcAddrMask
 
 def uint48Mask : UInt256 := ⟨281474976710655⟩
 
@@ -198,11 +62,11 @@ def uint48Divisor : UInt256 := ⟨281474976710656⟩
 
 abbrev flipperUint48Offset0Word (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
-  UInt256.land (flipperSlotWord slot σ I) uint48Mask
+  UInt256.land (solcSlotWordAt slot σ I) uint48Mask
 
 abbrev flipperUint48Offset6Word (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
-  UInt256.land (UInt256.div (flipperSlotWord slot σ I) uint48Divisor) uint48Mask
+  UInt256.land (UInt256.div (solcSlotWordAt slot σ I) uint48Divisor) uint48Mask
 
 theorem uint48Mask_toNat :
     uint48Mask.toNat = 256 ^ 6 - 1 := by
@@ -246,29 +110,6 @@ theorem uint48ReturnEncodingMasked (w : UInt256) :
     decide
   · simp [encodeABIValue?, encodeABIWord?, hword, uint48Mask_bound w]
 
-theorem flipperStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem flipperStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-theorem flipperStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
-
-theorem flipperStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (bytes32Loc slot) =
-      .fixedBytes bytes32Width
-        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width] using
-    storageLocLoad_bytes32 evm slot
 
 theorem flipperStorageLocLoad_uint48_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨0, by decide⟩ (by decide)) =
@@ -372,65 +213,6 @@ theorem flipperStorageLocStore_uint48_offset0 (evm : EVM.State) (slot val : UInt
     rw [← show (2 : Nat) ^ 48 = 281474976710656 by norm_num]
     exact hval
 
-theorem natLandClearMiddle48_96 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 96 + 2 ^ 48 - 1) =
-      n % 2 ^ 48 + (n / 2 ^ 96) * 2 ^ 96 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 96 + 2 ^ 48 - 1)).testBit i =
-    (n % 2 ^ 48 + n / 2 ^ 96 * 2 ^ 96).testBit i
-  have hmask :
-      (2 : Nat) ^ 256 - 2 ^ 96 + 2 ^ 48 - 1 =
-        Nat.lor (2 ^ 48 - 1) ((2 ^ 160 - 1) <<< 96) := by
-    rw [Nat.shiftLeft_eq]
-    rw [nat_lor_shift_add (2 ^ 48 - 1) (2 ^ 160 - 1) 96]
-    · norm_num [Nat.pow_add]
-    · norm_num
-  have hrhs :
-      n % 2 ^ 48 + n / 2 ^ 96 * 2 ^ 96 =
-        Nat.lor (n % 2 ^ 48) ((n / 2 ^ 96) * 2 ^ 96) := by
-    rw [nat_lor_shift_add (n % 2 ^ 48) (n / 2 ^ 96) 96]
-    · exact (Nat.mod_lt _ (by positivity : 0 < 2 ^ 48)).trans_le (by norm_num)
-  rw [hmask, hrhs]
-  rw [Nat.testBit_and]
-  change (n.testBit i && (((2 ^ 48 - 1) ||| ((2 ^ 160 - 1) <<< 96)).testBit i)) =
-    (((n % 2 ^ 48) ||| (n / 2 ^ 96 * 2 ^ 96)).testBit i)
-  rw [Nat.testBit_or, Nat.testBit_or]
-  rw [Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  rw [show (n / 2 ^ 96) * 2 ^ 96 = (n / 2 ^ 96) <<< 96 by rw [Nat.shiftLeft_eq]]
-  rw [testBit_shiftLeft, testBit_shiftLeft]
-  by_cases hi48 : i < 48
-  · have hi96 : i < 96 := by omega
-    simp [hi48, hi96]
-  · have hnot48 : ¬ i < 48 := hi48
-    by_cases hi96 : i < 96
-    · simp [hnot48, hi96]
-    · have h96le : 96 ≤ i := Nat.le_of_not_gt hi96
-      by_cases hi256 : i < 256
-      · have hlt160 : i - 96 < 160 := by omega
-        have hmaskBit :
-            Nat.testBit 1461501637330902918203684832716283019655932542975
-              (i - 96) = true := by
-          change Nat.testBit (2 ^ 160 - 1) (i - 96) = true
-          rw [Nat.testBit_two_pow_sub_one]
-          simp [hlt160]
-        simp [hnot48, hi96, hmaskBit]
-        exact (divPow_testBit n 96 i h96le).symm
-      · have hnot160 : ¬ i - 96 < 160 := by omega
-        have hmaskBit :
-            Nat.testBit 1461501637330902918203684832716283019655932542975
-              (i - 96) = false := by
-          change Nat.testBit (2 ^ 160 - 1) (i - 96) = false
-          rw [Nat.testBit_two_pow_sub_one]
-          simp [hnot160]
-        simp [hnot48, hi96, hmaskBit]
-        have hq : n / 2 ^ 96 < 2 ^ 160 := by
-          apply Nat.div_lt_of_lt_mul
-          rw [show 2 ^ 96 * 2 ^ 160 = (2 : Nat) ^ 256 by
-            rw [← Nat.pow_add]]
-          exact hn
-        exact Nat.testBit_lt_two_pow
-          (lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega)))
 
 abbrev setUint48Offset6Word (old val : UInt256) : UInt256 :=
   UInt256.lor
@@ -614,7 +396,7 @@ theorem flipperCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Sto
 
 theorem flipperAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩) :
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
@@ -623,7 +405,7 @@ theorem flipperAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
   have hload :
       Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (flipperCallerWardsSlot I) = ⟨1⟩ := by
-    simpa [flipperSlotWord] using hauth
+    simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -636,7 +418,7 @@ theorem flipperAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         flipperCallerWardsEvaledRef, flipperCallerWardsSlot, wardsSlot, mapSlot,
         solcMappingSlot, keyValueToWord_address, solcSourceWord])]
-  rw [flipperStorageLocLoad_uint256]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -644,7 +426,7 @@ theorem flipperAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem flipperAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
@@ -654,7 +436,7 @@ theorem flipperAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (flipperCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hauth (by simpa [w, flipperSlotWord] using hw)
+    exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -667,7 +449,7 @@ theorem flipperAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         flipperCallerWardsEvaledRef, flipperCallerWardsSlot, wardsSlot, mapSlot,
         solcMappingSlot, keyValueToWord_address, solcSourceWord])]
-  rw [flipperStorageLocLoad_uint256]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -691,7 +473,7 @@ theorem flipperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (flipperStorageLocLoad_address_offset0 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem flipperUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -707,7 +489,7 @@ theorem flipperUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (flipperStorageLocLoad_uint256 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem flipperBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -723,7 +505,7 @@ theorem flipperBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm slot))
 
 theorem flipperUint48Offset0GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -785,24 +567,24 @@ theorem flipperAddressGetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (flipperAddressReturnWord slot σ I).toNat))]))) :
+            (solcAddressSlotWord slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flipperAddressReturnWord slot σ I))
-        (some [(.address (AccountAddress.ofNat (flipperAddressReturnWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
-    simpa [flipperAddressReturnWord] using
+    simpa [solcAddressSlotWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (flipperSlotWord slot σ I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWordAt slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := flipperBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (flipperAddressReturnWord slot σ I)) := by
-    simpa [flipperAddressReturnWord, flipperSlotWord] using hret
+        (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
+    simpa [solcAddressSlotWord, solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flipperBytes32GetterBodyCore
@@ -828,23 +610,23 @@ theorem flipperBytes32GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (flipperSlotWord slot σ I)))]))) :
+            (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flipperSlotWord slot σ I))
-        (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (flipperSlotWord slot σ I)))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [bytes32, bytes32Width] using bytes32ReturnEncoding (flipperSlotWord slot σ I))
+      (by simpa [bytes32, bytes32Width] using bytes32ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := flipperBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (flipperSlotWord slot σ I)) := by
-    simpa [flipperSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flipperUint256GetterBodyCore
@@ -869,23 +651,23 @@ theorem flipperUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (flipperSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flipperSlotWord slot σ I))
-        (some [(.int (Int.ofNat (flipperSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (flipperSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := flipperBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (flipperSlotWord slot σ I)) := by
-    simpa [flipperSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 @[reducible] def solcUint48Offset0SlotGetterWf
@@ -1182,7 +964,7 @@ theorem flipperUint48Offset0GetterBodyCore
     rw [hreturn]
     exact returnEquiv_of_encode
       (by simpa [flipperUint48Offset0Word] using
-        uint48ReturnEncodingMasked (flipperSlotWord slot σ I))
+        uint48ReturnEncodingMasked (solcSlotWordAt slot σ I))
   have hret := RD.flipperUint48Offset0GetterExternal
     (g := Sat256.ofUInt256 g) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd
@@ -1190,7 +972,7 @@ theorem flipperUint48Offset0GetterBodyCore
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (flipperUint48Offset0Word slot σ I)) := by
-    simpa [flipperUint48Offset0Word, flipperSlotWord] using hret
+    simpa [flipperUint48Offset0Word, solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flipperUint48Offset6GetterBodyCore
@@ -1223,7 +1005,7 @@ theorem flipperUint48Offset6GetterBodyCore
     rw [hreturn]
     exact returnEquiv_of_encode
       (by simpa [flipperUint48Offset6Word] using
-        uint48ReturnEncodingMasked (UInt256.div (flipperSlotWord slot σ I) uint48Divisor))
+        uint48ReturnEncodingMasked (UInt256.div (solcSlotWordAt slot σ I) uint48Divisor))
   have hret := RD.flipperUint48Offset6GetterExternal
     (g := Sat256.ofUInt256 g) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd
@@ -1231,7 +1013,7 @@ theorem flipperUint48Offset6GetterBodyCore
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (flipperUint48Offset6Word slot σ I)) := by
-    simpa [flipperUint48Offset6Word, flipperSlotWord] using hret
+    simpa [flipperUint48Offset6Word, solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 @[reducible] def flipperAuthTailPc (pc : UInt256) : UInt256 :=
@@ -1298,52 +1080,6 @@ abbrev flipperAuthErrorLen : UInt256 := ⟨22⟩
 
 abbrev flipperAuthErrorOffset : UInt256 := ⟨6342⟩
 
-theorem write32_read_above_from (src base : ByteArray) (srcAddr destAddr readAddr : ℕ)
-    (hsrc : srcAddr + 32 ≤ src.size) (hinwrite : destAddr + 32 ≤ base.size)
-    (habove : destAddr + 32 ≤ readAddr) (hin : readAddr + 32 ≤ base.size) :
-    (src.write srcAddr base destAddr 32).readWithPadding readAddr 32 =
-      base.readWithPadding readAddr 32 := by
-  have hbsz : (base.extract 0 destAddr).size = destAddr := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsz32 : (src.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [ByteArray.size_extract]
-    omega
-  have hcsz : (base.extract (destAddr + 32) base.size).size =
-      base.size - (destAddr + 32) := by
-    rw [ByteArray.size_extract]
-    omega
-  have habsz :
-      (base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + 32)).size =
-        destAddr + 32 := by
-    rw [ByteArray.size_append, hbsz, hsz32]
-  rw [write_eq_gen_from src base srcAddr destAddr 32 (by decide) hsrc hinwrite,
-    readWithPadding_eq_extract _ readAddr
-      (by rw [ByteArray.size_append, habsz, hcsz]; omega),
-    readWithPadding_eq_extract _ readAddr (by omega),
-    extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz,
-    extract_extract_BA,
-    show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
-    show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size =
-      readAddr + 32 from by omega]
-
-theorem flipperSolcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem2 len mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
 
 def flipperAuthScratchMem (mem : ByteArray) : ByteArray :=
   flipperBytecode.write flipperAuthErrorOffset.toNat
@@ -1390,7 +1126,7 @@ theorem flipperAuthScratchMem_read64 {mem : ByteArray}
     (by rw [solcErrorStringMem2_size flipperAuthErrorLen hmem]; omega)
     (by omega)
     (by rw [solcErrorStringMem2_size flipperAuthErrorLen hmem]; omega)]
-  exact flipperSolcErrorStringMem2_read64 flipperAuthErrorLen hmem hread64
+  exact solcErrorStringMem2_read64 flipperAuthErrorLen hmem hread64
 
 theorem flipperAuthRestoredMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (flipperAuthRestoredMem mem).size = 196 := by

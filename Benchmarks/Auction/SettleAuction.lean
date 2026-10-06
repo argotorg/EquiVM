@@ -36,7 +36,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     · obtain ⟨_, _, rd2424⟩ := settlePaused rd2351 hp (by evm_ov)
       have hpaused := readPausedTrue evm0 ∅ (by simp) hp
       have hstatus := statusGuardSource (locals := ∅) hs0 (by simp)
-      by_cases hentered : storedWord σ I ⟨101⟩ = ⟨2⟩
+      by_cases hentered : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
       · rw [decide_eq_false (not_not_intro hentered)] at hstatus
         have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
             settleAuctionTransition.body .reverted := by
@@ -56,7 +56,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
               UInt256).toNat)] := by
           simp only [evalExprs?, evalExpr?, pure, bind, EvalResult.bind]
           rfl
-        rcases settleInternalRoutine rd4086 (hs0.status ⟨2⟩) hperm freshHeapMemory
+        rcases settleInternalRoutine rd4086 ((SourceState.status hs0) ⟨2⟩) hperm freshHeapMemory
             (by change 128 + 2 ^ 142 ≤ 2 ^ 200; decide) hargs (retVar := "_s")
             (by jump_dest) (by evm_ov) with
           ⟨evm', σ', mem', aw', ptr', out, _, _, hcall, hs', rd2471, _, _, _, _, _⟩ |
@@ -77,7 +77,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
                 (ExecBlock.consNormal (ExecStmt.requireTrue hstatus)
                   (ExecBlock.consNormal hstore (ExecBlock.consNormal hcall
                     (ExecBlock.consNormal hexit ExecBlock.nil)))))
-          have hsFinal := hs'.status ⟨1⟩
+          have hsFinal := (SourceState.status hs') ⟨1⟩
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody hsFinal.accounts
             (.fallthrough rfl rfl (by native_decide))

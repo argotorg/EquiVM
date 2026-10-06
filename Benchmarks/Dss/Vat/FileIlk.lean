@@ -1,3 +1,4 @@
+import Reasoning.ABILegacy
 import Benchmarks.Dss.Vat.FileLine
 import Benchmarks.Dss.Vat.Ilks
 
@@ -272,7 +273,7 @@ theorem assign_fileIlkSpotStorage (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using vatStorageLocStore_uint256 evm (fileIlkSpotSlotFor I) (fileIlkData I)
+  simpa [evm'] using storageLocStore_uint256 evm (fileIlkSpotSlotFor I) (fileIlkData I)
 
 theorem assign_fileIlkLineStorage (evm : EVM.State) (I : ExecutionEnv)
     (hsz100 : 100 ≤ I.calldata.size) :
@@ -292,7 +293,7 @@ theorem assign_fileIlkLineStorage (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using vatStorageLocStore_uint256 evm (fileIlkLineSlotFor I) (fileIlkData I)
+  simpa [evm'] using storageLocStore_uint256 evm (fileIlkLineSlotFor I) (fileIlkData I)
 
 theorem assign_fileIlkDustStorage (evm : EVM.State) (I : ExecutionEnv)
     (hsz100 : 100 ≤ I.calldata.size) :
@@ -312,7 +313,7 @@ theorem assign_fileIlkDustStorage (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using vatStorageLocStore_uint256 evm (fileIlkDustSlotFor I) (fileIlkData I)
+  simpa [evm'] using storageLocStore_uint256 evm (fileIlkDustSlotFor I) (fileIlkData I)
 
 private theorem fileIlkLine_ne_spot : fileIlkLineBytes ≠ fileIlkSpotBytes := by
   native_decide
@@ -326,8 +327,8 @@ private theorem fileIlkDust_ne_line : fileIlkDustBytes ≠ fileIlkLineBytes := b
 theorem vatFileIlkSourceBodySpot {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkSpotBytes) :
     let locals := fileIlkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -376,8 +377,8 @@ theorem vatFileIlkSourceBodySpot {σ σ₀ A I} {g : UInt256}
 theorem vatFileIlkSourceBodyLine {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkLineBytes) :
     let locals := fileIlkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -442,8 +443,8 @@ theorem vatFileIlkSourceBodyLine {σ σ₀ A I} {g : UInt256}
 theorem vatFileIlkSourceBodyDust {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkDustBytes) :
     let locals := fileIlkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -521,7 +522,7 @@ theorem vatFileIlkSourceBodyDust {σ σ₀ A I} {g : UInt256}
 
 theorem vatFileIlkSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileIlkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileIlkTransition.body .reverted := by
@@ -542,8 +543,8 @@ theorem vatFileIlkSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
 
 theorem vatFileIlkSourceBodyNotLive {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I ≠ ⟨1⟩) :
     let locals := fileIlkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileIlkTransition.body .reverted := by
@@ -570,8 +571,8 @@ theorem vatFileIlkSourceBodyNotLive {σ σ₀ A I} {g : UInt256}
 
 theorem vatFileIlkSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hspotNe : fileIlkWhat I ≠ fileIlkSpotBytes)
     (hlineNe : fileIlkWhat I ≠ fileIlkLineBytes)
     (hdustNe : fileIlkWhat I ≠ fileIlkDustBytes) :
@@ -636,110 +637,6 @@ theorem vatFileIlkSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, fileIlkTransition, nonpayable, auth, requireLive, locals, evm0]
     using ExecFuncBody.execBlockRevert hblock
 
-theorem decodeABIValues_bytes32_bytes32_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32) :
-    decodeABIValues? [bytes32, bytes32, uint256] bytes 0 0 96 96 DecodeMode.legacySolc05 =
-      some ([.fixedBytes bytes32Width (bytes.take 32),
-        .fixedBytes bytes32Width ((bytes.drop 32).take 32),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)], 96) := by
-  have hge32 : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  have hge64 : 32 ≤ bytes.length - 64 := by
-    rw [List.length_take, List.length_drop] at hlen64
-    omega
-  simp [decodeABIValues?, bytes32, uint256, bytes32Width, uint256Int, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, readWord?, decodeABIWord?, hlen0,
-    hlen32, hge32, hge64]
-  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 64).take 32))
-
-theorem decodeABIValues_bytes32_bytes32_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeABIValues? [bytes32, bytes32, uint256] bytes 0 0 96 96 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, bytes32, uint256, bytes32Width, uint256Int, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    by_cases h64 : bytes.length < 64
-    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hnot : ¬ 32 ≤ bytes.length - 32 := by
-        rw [List.length_take, List.length_drop] at htake32n
-        omega
-      simp [hnot]
-    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hge32 : 32 ≤ bytes.length - 32 := by
-        omega
-      have hnot : ¬ 32 ≤ bytes.length - 64 := by
-        omega
-      simp [readWord?, readBytes?, hge32, hnot]
-
-theorem decodeCalldata_legacyBytes32_bytes32_uint256_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z] [bytes32, bytes32, uint256] cd =
-      some ((((∅ : Store).insert x
-        (.fixedBytes bytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.fixedBytes bytes32Width ((cd.toList.drop 36).take 32))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 96)]
-  simp [decodeCalldata.insertValues]
-  rw [hword68]
-
-theorem decodeCalldata_legacyBytes32_bytes32_uint256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z] [bytes32, bytes32, uint256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 96
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_bytes32_uint256_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem vatDecode_fileIlk_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileIlkTransition.params.map Param.name)
@@ -1197,8 +1094,8 @@ theorem vatFileIlkBodyCoreOkSpot
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkSpotBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkTransition)
     (hdecode :
@@ -1222,7 +1119,7 @@ theorem vatFileIlkBodyCoreOkSpot
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1230,7 +1127,7 @@ theorem vatFileIlkBodyCoreOkSpot
     (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1269,8 +1166,8 @@ theorem vatFileIlkBodyCoreOkLine
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkLineBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkTransition)
     (hdecode :
@@ -1296,7 +1193,7 @@ theorem vatFileIlkBodyCoreOkLine
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1304,7 +1201,7 @@ theorem vatFileIlkBodyCoreOkLine
     (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1350,8 +1247,8 @@ theorem vatFileIlkBodyCoreOkDust
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hwhat : fileIlkWhat I = fileIlkDustBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkTransition)
     (hdecode :
@@ -1379,7 +1276,7 @@ theorem vatFileIlkBodyCoreOkDust
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1387,7 +1284,7 @@ theorem vatFileIlkBodyCoreOkDust
     (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1439,7 +1336,7 @@ theorem vatFileIlkBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileIlkTransition.params.map Param.name)
@@ -1460,7 +1357,7 @@ theorem vatFileIlkBodyCoreUnauthorized
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   have hrev := RD.vatAuthCheckRevert
     (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1474,8 +1371,8 @@ theorem vatFileIlkBodyCoreNotLive
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I ≠ ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileIlkTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileIlkTransition.params.map Param.name)
@@ -1496,7 +1393,7 @@ theorem vatFileIlkBodyCoreNotLive
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1504,7 +1401,7 @@ theorem vatFileIlkBodyCoreNotLive
     (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨10⟩ ≠ ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   have hmemAuth :
       (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -1528,8 +1425,8 @@ theorem vatFileIlkBodyCoreUnrecognized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hspotNe : fileIlkWhat I ≠ fileIlkSpotBytes)
     (hlineNe : fileIlkWhat I ≠ fileIlkLineBytes)
     (hdustNe : fileIlkWhat I ≠ fileIlkDustBytes)
@@ -1554,7 +1451,7 @@ theorem vatFileIlkBodyCoreUnrecognized
     hsz100 hsize hreach
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-    simpa [vatCallerWardsSlot, vatSlotWord] using hauth
+    simpa [vatCallerWardsSlot, solcSlotWordAt] using hauth
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1562,7 +1459,7 @@ theorem vatFileIlkBodyCoreUnrecognized
     (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
@@ -1622,8 +1519,8 @@ theorem vatFileIlkBodyCore : VatBodyTheorem 6 := by
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
-  · by_cases hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩
-    · by_cases hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
+  · by_cases hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩
+    · by_cases hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩
       · by_cases hspot : fileIlkWhat I = fileIlkSpotBytes
         · exact vatFileIlkBodyCoreOkSpot hcode hsize hperm hwv hsz100 hauth hlive hspot
             hdispatch (vatDecode_fileIlk_ok hsz100) hreach

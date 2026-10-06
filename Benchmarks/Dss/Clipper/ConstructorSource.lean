@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ConstructorBase
 import Reasoning.ExternalCall
 
@@ -44,10 +46,6 @@ abbrev clipperCtorAfterWardsState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner
     (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_clipperCtorLocalVat {v : ClipperImmutables} {evm : EVM.State}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) :
@@ -149,7 +147,7 @@ private theorem assign_clipperCtorAddressStorage {v : ClipperImmutables}
       storageLocStore evm (addrLoc slot)
           (.address (AccountAddress.ofNat (EVM.word addrValue.val).toNat)) = some evm' := by
     simpa [addrLoc, evm'] using storageLocStore_address_offset0 evm slot
-      (EVM.word addrValue.val) (clipperCtorAddressWord_canonical addrValue)
+      (EVM.word addrValue.val) (word_val_addr_canonical addrValue)
   exact assignStorageRef_storage_scalar_value
     (ty := addrSt) (loc := addrLoc slot) (hbase := hbase) (her := her) (hty := hty)
     (hloc := hloc) (hscalar := by trivial) (hstore := hstore)
@@ -235,11 +233,6 @@ theorem clipperCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   unfold wardsSlot mapSlot clipperCtorCallerWardsSlot solcMappingSlot solcSourceWord
   rw [keyValueToWord_address]
 
-private theorem clipperCtor_storageStore_executionEnv (evm : EVM.State)
-    (addr : AccountAddress) (slot value : UInt256) :
-    (Solm.EVM.storageStore evm addr slot value).executionEnv = evm.executionEnv := by
-  unfold Solm.EVM.storageStore
-  cases State.lookupAccount evm addr <;> rfl
 
 theorem clipperCtorFinalLocals_get_imm_vat (vat spotter dog : AccountAddress)
     (ilk : List UInt8) :
@@ -260,7 +253,7 @@ theorem clipperCtorRuntimeCodeOf (vat spotter dog : AccountAddress)
   unfold runtimeCodeOf patches patchesFrom immValues
   simp only [offsets, List.foldrM_cons, List.foldrM_nil, pure, bind]
   rw [clipperCtorFinalLocals_get_imm_ilk, clipperCtorFinalLocals_get_imm_vat]
-  simp [clipperCtorImmutables, List.lookup_cons, wordBytes?, valueToWord,
+  simp [clipperCtorImmutables, List.lookup_cons, Reasoning.Theory.wordBytes?, valueToWord,
     bytes32Width, hilk]
 
 theorem clipperCtorBodySuccess
@@ -293,7 +286,7 @@ theorem clipperCtorBodySuccess
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by
-      rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
+      rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
       simpa [evm0, initState] using hwv)
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
   · simpa [locals] using evalExpr_clipperCtorLocalVat (v := v) (evm := evm1)
@@ -359,7 +352,7 @@ theorem clipperSolmCtorExecReverts_nonpayable
     refine ExecBlock.consNormal
       (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
     exact blockReverts_nonPayable (by
-      rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
+      rw [clipperCtorAfterStoppedState, storageStore_executionEnv']
       simpa [evm0, initState] using hwv)
   refine solmCtorExec.intro (evmState := evm0)
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_

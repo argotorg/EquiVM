@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Benchmarks.Dss.Vat.Nope
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -35,14 +36,6 @@ theorem relySlotFor_eq (I : ExecutionEnv) :
   unfold relySlotFor relyUsr relyKey wardsSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address_ofNat_mask]
 
-theorem byteArray_write_from_zero_size_of_cover
-    (src base : ByteArray) (srcAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hbase : len ≤ base.size) :
-    (src.write srcAddr base 0 len).size = base.size := by
-  rw [write_eq_gen_from src base srcAddr 0 len hlen hsrc (by simpa using hbase)]
-  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract]
-  omega
 
 theorem vatCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Store}
     (_hbase : locals.get? "wards" = none) :
@@ -55,7 +48,7 @@ theorem vatCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem vatAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩) :
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
@@ -63,7 +56,7 @@ theorem vatAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
   have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (vatCallerWardsSlot I) = ⟨1⟩ := by
-    simpa [vatSlotWord] using hauth
+    simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -76,7 +69,7 @@ theorem vatAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         vatCallerWardsEvaledRef, vatCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, hopeSourceWord])]
-  rw [vatStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -84,7 +77,7 @@ theorem vatAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem vatAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
@@ -94,7 +87,7 @@ theorem vatAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       (vatCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hauth (by simpa [w, vatSlotWord] using hw)
+    exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -107,7 +100,7 @@ theorem vatAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         vatCallerWardsEvaledRef, vatCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, hopeSourceWord])]
-  rw [vatStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -118,13 +111,13 @@ theorem vatAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem vatLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
   have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       ⟨10⟩ = ⟨1⟩ := by
-    simpa [vatSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok vatLiveEvaledRef := by
@@ -140,7 +133,7 @@ theorem vatLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, vatLiveEvaledRef])]
-  rw [vatStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -148,14 +141,14 @@ theorem vatLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem vatLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : vatSlotWord ⟨10⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨10⟩ σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
   let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨10⟩
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hlive (by simpa [w, vatSlotWord] using hw)
+    exact hlive (by simpa [w, solcSlotWordAt] using hw)
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok vatLiveEvaledRef := by
@@ -171,7 +164,7 @@ theorem vatLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, vatLiveEvaledRef])]
-  rw [vatStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -951,10 +944,10 @@ theorem vatRelyBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   ·
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
       (code := vatBytecode) (pc := ⟨2687⟩) (okPc := ⟨2769⟩) (key := key)
       (ret := ⟨524⟩) (R := [sel])
@@ -963,7 +956,7 @@ theorem vatRelyBodyCoreOk
         unfold vatAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
-    by_cases hliveEvm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
+    by_cases hliveEvm : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩
     ·
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨1⟩
@@ -990,7 +983,7 @@ theorem vatRelyBodyCoreOk
               EvalResult.ofOption, EvalResult.bind, pure, bind, locals]
           have hstore :
               storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 1) = some evm1 := by
-            simpa [evm1] using vatStorageLocStore_uint256 evm0 (relySlotFor I) ⟨1⟩
+            simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨1⟩
           exact assignStorageRef_storage_scalar
             (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
             (hbase := by simp [locals, wardsRef])
@@ -1017,7 +1010,7 @@ theorem vatRelyBodyCoreOk
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, requireLive, evm0, evm1] using
           ExecFuncBody.execBlockOK hblock
       have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-        simpa [vatSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
         (code := vatBytecode) (pc := ⟨2769⟩) (okPc := ⟨2839⟩) (key := key)
         (ret := ⟨524⟩) (R := [sel]) hafterAuth
@@ -1078,7 +1071,7 @@ theorem vatRelyBodyCoreOk
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, requireLive, evm0] using
           ExecFuncBody.execBlockRevert hblock
       have hliveSolc : solcSlotWord σ I ⟨10⟩ ≠ ⟨1⟩ := by
-        simpa [vatSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hmemAuth :
           (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
         twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -1117,7 +1110,7 @@ theorem vatRelyBodyCoreOk
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.vatAuthCheckRevert
       (pc := ⟨2687⟩) (okPc := ⟨2769⟩) (key := key)
       (ret := ⟨524⟩) (R := [sel])

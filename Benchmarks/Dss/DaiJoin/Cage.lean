@@ -29,7 +29,7 @@ theorem cageAssign (evm : EVM.State) :
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [cagePostState] using daiJoinStorageLocStore_uint256 evm ⟨3⟩ ⟨0⟩
+  simpa [cagePostState] using storageLocStore_uint256 evm ⟨3⟩ ⟨0⟩
 
 theorem evalStorageRef_cage_auth (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source) :
@@ -61,7 +61,7 @@ theorem evalExpr_cage_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using daiJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -88,7 +88,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_cage_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact daiJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -96,7 +96,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -239,7 +239,7 @@ theorem daiJoinCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd953 : RD daiJoinBytecode I g s0 ⟨953⟩
       (relyAuthWord σ I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k953 C953 := by
-    simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd953raw
   have rd956pre := evm_run rd953 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -290,7 +290,7 @@ theorem daiJoinCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd953 : RD daiJoinBytecode I g s0 ⟨953⟩
       (relyAuthWord σ I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k953 C953 := by
-    simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd953raw
   have rd956pre := evm_run rd953 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -402,7 +402,7 @@ theorem daiJoinCageBodyCoreOk
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := ∅ } (cagePostState evmSolm) none) := by
-    simpa [evmSolm, relyAuthWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiJoinCageBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -432,7 +432,7 @@ theorem daiJoinCageBodyCoreUnauthorized
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiJoinCageBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

@@ -1,3 +1,6 @@
+import Reasoning.StateFacts
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ListStorage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,47 +15,22 @@ theorem clipperStorageWF_returnSize_lt_u64 {σ : AccountMap} {I : ExecutionEnv}
     64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 := by
   simpa [clipperStorageWF] using hwf.2.1
 
-theorem clipperMk_toArray_eq (l : List UInt8) : (⟨l.toArray⟩ : ByteArray) = l.toByteArray := by
-  rw [← List.data_toByteArray]
-
-theorem clipperNatBytes_toByteArray (n : Nat) :
-    (ABI.natBytes n).toByteArray = UInt256.toByteArray (UInt256.ofNat n) := by
-  show (EVM.Word.toBytesBE (UInt256.ofNat n)).toByteArray = _
-  exact word_toBytesBE_toByteArray_eq_toByteArray _
-
-theorem clipperUInt256_toByteArray_natBytes (w : UInt256) :
-    UInt256.toByteArray w = ⟨(ABI.natBytes w.toNat).toArray⟩ := by
-  symm
-  rw [clipperMk_toArray_eq, clipperNatBytes_toByteArray, u256_ofNat_toNat]
-
-theorem clipperKeyValueToWord_int_ofNat_of_lt {n : Nat} (hn : n < UInt256.size) :
-    keyValueToWord (.int (Int.ofNat n)) = UInt256.ofNat n := by
-  have hto : (UInt256.ofNat n).toNat = n := ulit_toNat' n hn
-  simpa [hto] using keyValueToWord_uint256 (UInt256.ofNat n)
-
-theorem clipperUInt256_one_add_ofNat_of_lt {n : Nat} (hn : n + 1 < UInt256.size) :
-    (⟨1⟩ : UInt256) + UInt256.ofNat n = UInt256.ofNat (n + 1) := by
-  apply u256_inj
-  rw [uadd_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by decide,
-    ulit_toNat' n (by omega), ulit_toNat' (n + 1) hn]
-  rw [Nat.mod_eq_of_lt (by omega)]
-  omega
 
 theorem clipperListArraySlot_eq_activeSlot_of_lt :
     ∀ n, n < UInt256.size → clipperListArraySlot n = activeSlot (.int (Int.ofNat n))
   | 0, _ => by
       unfold clipperListArraySlot activeSlot
-      rw [clipperKeyValueToWord_int_ofNat_of_lt (n := 0) (by native_decide)]
+      rw [keyValueToWord_int_ofNat_of_lt (n := 0) (by native_decide)]
       rw [show UInt256.ofNat 0 = (⟨0⟩ : UInt256) from rfl]
       rw [u256_add_comm activeDataSlot (⟨0⟩ : UInt256), u256_zero_add]
   | n + 1, hn => by
       have hn' : n < UInt256.size := by omega
       rw [clipperListArraySlot, clipperListArraySlot_eq_activeSlot_of_lt n hn']
       unfold activeSlot
-      rw [clipperKeyValueToWord_int_ofNat_of_lt hn,
-        clipperKeyValueToWord_int_ofNat_of_lt hn']
+      rw [keyValueToWord_int_ofNat_of_lt hn,
+        keyValueToWord_int_ofNat_of_lt hn']
       rw [← u256_add_assoc, u256_add_comm (⟨1⟩ : UInt256) activeDataSlot,
-        u256_add_assoc, clipperUInt256_one_add_ofNat_of_lt hn]
+        u256_add_assoc, uInt256_one_add_ofNat_of_lt hn]
 
 def clipperListArrayWordBytesFrom (σ : AccountMap) (I : ExecutionEnv) : Nat → Nat → List UInt8
   | _, 0 => []
@@ -430,10 +408,10 @@ theorem clipperListReturnCopiedMem_activeReturnBytes_of_wf
   rw [clipperListReturnCopiedMem_returnBytes_of_wf hwf
     (solcSlotWord σ I ⟨11⟩).toNat le_rfl]
   rw [clipperActiveArrayReturnBytes_eq_listSlots hwf]
-  rw [clipperUInt256_toByteArray_natBytes (⟨32⟩ : UInt256),
-    clipperUInt256_toByteArray_natBytes (solcSlotWord σ I ⟨11⟩)]
+  rw [uInt256_toByteArray_natBytes (⟨32⟩ : UInt256),
+    uInt256_toByteArray_natBytes (solcSlotWord σ I ⟨11⟩)]
   rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-  simp [clipperMk_toArray_eq, List.toByteArray_append, ByteArray.append_assoc]
+  simp [mk_toArray_eq, List.toByteArray_append, ByteArray.append_assoc]
 
 set_option maxHeartbeats 1000000 in
 theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}

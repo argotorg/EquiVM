@@ -230,7 +230,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               (fun acc => acc.code.size))).toNat := by
                         simpa [σLock, evmLockSolm, evmSolm, State.lookupAccount,
                           initState, storageStore_accountMap] using
-                          clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+                          extCodeSizeWord_ne_zero_lookup_code_pos
                             (σ := σLock) (target := calcAddr)
                             (addr := clipperStatusCalcAddress evmLockSolm)
                             hcalcAddrSolm hcalcCodeSolmNE

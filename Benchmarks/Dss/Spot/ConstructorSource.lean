@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Spot.ConstructorBase
 
 /-!
@@ -28,10 +29,6 @@ abbrev spotCtorAfterParState (evm : EVM.State) : EVM.State :=
 abbrev spotCtorAfterLiveState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ ⟨1⟩
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_spotCtorLocalVat {evm : EVM.State} (vat : AccountAddress) :
     evalExpr? config { contract := contract, locals := spotCtorLocals vat } evm (.var "vat_") =

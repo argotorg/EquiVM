@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.MemoryArithmetic
+import Reasoning.SolcMemory
 import Benchmarks.Dss.Clipper.Arithmetic
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.GetStatusEVM
@@ -50,7 +53,7 @@ theorem clipperEvalGetFeedPriceSpotterTarget (v : ClipperImmutables) (evm : EVM.
     funext evm'
     rfl
   have hload := evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨3⟩)
+    (storageLocLoad_address_offset0 evm ⟨3⟩)
   simpa [clipperGetFeedPriceSpotterAddress, clipperSpotterTarget,
     accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm] using hload
 
@@ -477,47 +480,11 @@ theorem clipperPipPeekEncode_eq (v : ClipperImmutables) {mem : ByteArray}
   rw [clipperPipPeekSelectorMem_read128_4 hmem]
   simp [config, externalABI]
 
-theorem clipperGetFeedPriceBytesToWord_drop_take32_eq_extract
-    (out : ByteArray) (start : Nat) :
-    ABI.bytesToWord ((out.toList.drop start).take 32) =
-      UInt256.ofNat (fromByteArrayBigEndian (out.extract start (start + 32))) := by
-  unfold ABI.bytesToWord fromByteArrayBigEndian
-  congr 1
-  rw [byteArray_toList_eq (out.extract start (start + 32)), ByteArray.data_extract,
-    Array.toList_extract, List.extract_eq_take_drop, byteArray_toList_eq]
-  simp [byteArray_toList_eq]
-
-theorem clipperSpotterIlksDecode_none_short_aux {out : ByteArray}
-    (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiAddress, abiUInt256] out =
-      none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq
-    (types := [abiAddress, abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiAddress, abiUInt256]) (bytes := out.toList)
-    (cursor := 0) (total := 32 * [abiAddress, abiUInt256].length)
-    (by decide) (by simp)]
-  cases hdec : decodeScalarWordsWithMode? DecodeMode.legacySolc05
-      [abiAddress, abiUInt256] out.toList 0 with
-  | none => rfl
-  | some values =>
-      have hlenDecoded :=
-        decodeScalarWordsWithMode?_some_length (mode := DecodeMode.legacySolc05)
-          (types := [abiAddress, abiUInt256]) (bytes := out.toList)
-          (cursor := 0) (values := values) (by omega) hdec
-      rw [hlen] at hlenDecoded
-      simp only [List.length_cons, List.length_nil, Nat.zero_add] at hlenDecoded
-      omega
 
 theorem clipperSpotterIlksDecode_none_short {v : ClipperImmutables} {out : ByteArray}
     (hshort : out.size < 64) :
     (config v).externalABI.decode? "spotterIlks" out = none := by
-  have h := clipperSpotterIlksDecode_none_short_aux (out := out) hshort
+  have h := spotterIlksDecode_none_short_aux (out := out) hshort
   simpa [config, externalABI, addr, uint256, uint256Int, abiAddress, abiUInt256] using h
 
 theorem clipperSpotterIlksDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
@@ -535,11 +502,11 @@ theorem clipperSpotterIlksDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size
   have hword0 : ABI.bytesToWord ((out.toList.drop 0).take 32) =
       clipperSpotterIlksPipWord out := by
     simpa [clipperSpotterIlksPipWord] using
-      clipperGetFeedPriceBytesToWord_drop_take32_eq_extract out 0
+      bytesToWord_drop_take32_eq_extract out 0
   have hword1 : ABI.bytesToWord ((out.toList.drop 32).take 32) =
       clipperSpotterIlksMatWord out := by
     simpa [clipperSpotterIlksMatWord] using
-      clipperGetFeedPriceBytesToWord_drop_take32_eq_extract out 32
+      bytesToWord_drop_take32_eq_extract out 32
   unfold ABI.decodeReturnValuesWithMode?
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiAddress, abiUInt256]) (by decide)]
@@ -561,38 +528,11 @@ theorem clipperSpotterIlksDecode_ok {v : ClipperImmutables} {out : ByteArray}
   have h := clipperSpotterIlksDecode_ok_aux (out := out) hlo
   simpa [config, externalABI, addr, uint256, uint256Int, abiAddress, abiUInt256] using h
 
-theorem clipperPipPeekDecode_none_short_aux {out : ByteArray}
-    (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiBytes32, abiBool] out =
-      none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiBool, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, decodeABIValue?, readBytes?, bind,
-    Option.bind, readWord?, decodeABIWord?]
-  by_cases h32 : out.size < 32
-  · have hnot : ¬ (List.take 32 (List.drop 0 out.toList)).length = 32 := by
-      rw [List.drop_zero, List.length_take, hlen]
-      omega
-    rw [if_neg hnot]
-  · have htake0 : (List.take 32 (List.drop 0 out.toList)).length = 32 := by
-      rw [List.drop_zero, List.length_take, hlen]
-      omega
-    rw [if_pos htake0]
-    norm_num
-    have hnot : ¬ 32 ≤ out.toList.length - 32 := by
-      rw [hlen]
-      omega
-    rw [if_neg hnot]
 
 theorem clipperPipPeekDecode_none_short {v : ClipperImmutables} {out : ByteArray}
     (hshort : out.size < 64) :
     (config v).externalABI.decode? "peek" out = none := by
-  have h := clipperPipPeekDecode_none_short_aux (out := out) hshort
+  have h := decode_none_short_aux (out := out) hshort
   simpa [config, externalABI, bytes32, bytes32Width, boolTy, abiBytes32, abiBytes32Width,
     abiBool] using h
 
@@ -608,7 +548,7 @@ theorem clipperPipPeekDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
   have hword1 : ABI.bytesToWord ((out.toList.drop 32).take 32) =
       clipperPipPeekHasWord out := by
     simpa [clipperPipPeekHasWord] using
-      clipperGetFeedPriceBytesToWord_drop_take32_eq_extract out 32
+      bytesToWord_drop_take32_eq_extract out 32
   unfold ABI.decodeReturnValuesWithMode?
   rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
   simp only [bind, Option.bind]
@@ -1313,66 +1253,6 @@ theorem clipperGetFeedPriceCallRevertsSpotterIlksDecode
     (clipperBindParamsGetFeedPrice v)
     (clipperGetFeedPriceFunctionRevertsSpotterIlksDecode v hcode hcall hdec)
 
-theorem byteArray_write_read_first_word_back (src base : ByteArray)
-    (destAddr len : ℕ) (hlen : len ≠ 0) (hsrc : len ≤ src.size)
-    (hword : 32 ≤ len) (hin : destAddr + len ≤ base.size) :
-    (src.write 0 base destAddr len).readWithPadding destAddr 32 =
-      src.extract 0 32 := by
-  rw [write_eq_gen src base destAddr len hlen hsrc hin]
-  have hprefix : (base.extract 0 destAddr).size = destAddr := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsrcPrefix : (src.extract 0 len).size = len := by
-    rw [ByteArray.size_extract]
-    omega
-  have htail : (base.extract (destAddr + len) base.size).size = base.size - (destAddr + len) := by
-    rw [ByteArray.size_extract]
-    omega
-  rw [readWithPadding_eq_extract _ destAddr (by
-    rw [ByteArray.append_assoc, ByteArray.size_append, ByteArray.size_append, hprefix,
-      hsrcPrefix, htail]
-    omega)]
-  rw [ByteArray.append_assoc]
-  rw [extract_append_right_window (base.extract 0 destAddr)
-    (src.extract 0 len ++ base.extract (destAddr + len) base.size)
-    destAddr (destAddr + 32) (by rw [hprefix])]
-  rw [show destAddr - (base.extract 0 destAddr).size = 0 by rw [hprefix]; omega]
-  rw [show destAddr + 32 - (base.extract 0 destAddr).size = 32 by
-    rw [hprefix]; omega]
-  rw [extract_append_left (src.extract 0 len)
-    (base.extract (destAddr + len) base.size) 0 32 (by rw [hsrcPrefix]; omega)]
-  exact extract_prefix src len 0 32 hword
-
-theorem byteArray_write_read_second_word_back (src base : ByteArray)
-    (destAddr len : ℕ) (hlen : len ≠ 0) (hsrc : len ≤ src.size)
-    (hword : 64 ≤ len) (hin : destAddr + len ≤ base.size) :
-    (src.write 0 base destAddr len).readWithPadding (destAddr + 32) 32 =
-      src.extract 32 64 := by
-  rw [write_eq_gen src base destAddr len hlen hsrc hin]
-  have hprefix : (base.extract 0 destAddr).size = destAddr := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsrcPrefix : (src.extract 0 len).size = len := by
-    rw [ByteArray.size_extract]
-    omega
-  have htail : (base.extract (destAddr + len) base.size).size = base.size - (destAddr + len) := by
-    rw [ByteArray.size_extract]
-    omega
-  rw [readWithPadding_eq_extract _ (destAddr + 32) (by
-    rw [ByteArray.append_assoc, ByteArray.size_append, ByteArray.size_append, hprefix,
-      hsrcPrefix, htail]
-    omega)]
-  rw [ByteArray.append_assoc]
-  rw [extract_append_right_window (base.extract 0 destAddr)
-    (src.extract 0 len ++ base.extract (destAddr + len) base.size)
-    (destAddr + 32) (destAddr + 32 + 32) (by rw [hprefix]; omega)]
-  rw [show destAddr + 32 - (base.extract 0 destAddr).size = 32 by
-    rw [hprefix]; omega]
-  rw [show destAddr + 32 + 32 - (base.extract 0 destAddr).size = 64 by
-    rw [hprefix]; omega]
-  rw [extract_append_left (src.extract 0 len)
-    (base.extract (destAddr + len) base.size) 32 64 (by rw [hsrcPrefix]; omega)]
-  exact extract_prefix src len 32 64 hword
 
 theorem clipperSpotterIlksPostCallMem_size_long
     (v : ClipperImmutables) {mem out : ByteArray}
@@ -1685,67 +1565,6 @@ theorem clipperPipPeekPostCallMem_mload160_long {mem out : ByteArray}
     clipperPipPeekHasWord out
   rw [hread]
 
-theorem solcErrorStringMem0_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
-    (solcErrorStringMem0 mem).size = 196 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem]
-
-theorem solcErrorStringMem1_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
-    (solcErrorStringMem1 mem).size = 196 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem0_size_of_size196 hmem]
-
-theorem solcErrorStringMem2_size_of_size196 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem1_size_of_size196 hmem]
-
-theorem solcErrorStringMem3_size_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem2_size_of_size196 len hmem]
-
-theorem solcErrorStringMem3_read64_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size_of_size196 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem solcErrorStringMem3_mload64_of_size196 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 196)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size196 len word hmem]; decide) (solcErrorStringMem3_read64_of_size196 len word hmem hread64)
 
 theorem clipperGetFeedPriceIlkPatchPayload8747 (v : ClipperImmutables)
     {code : ByteArray}
@@ -1776,7 +1595,8 @@ theorem clipperGetFeedPriceIlkPatchPayload8747 (v : ClipperImmutables)
     (post := [])
     (off := 8747) (value := ilkBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk, hlen,
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -1804,7 +1624,7 @@ theorem clipperGetFeedPriceJumpDest8836 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1818,7 +1638,7 @@ theorem clipperGetFeedPriceJumpDest8856 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1832,7 +1652,7 @@ theorem clipperGetFeedPriceJumpDest8878 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1846,7 +1666,7 @@ theorem clipperGetFeedPriceJumpDest8949 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1860,7 +1680,7 @@ theorem clipperGetFeedPriceJumpDest8969 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1874,7 +1694,7 @@ theorem clipperGetFeedPriceJumpDest8991 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9100) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -1888,7 +1708,7 @@ theorem clipperGetFeedPriceJumpDest9079 (v : ClipperImmutables) {code : ByteArra
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9100) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

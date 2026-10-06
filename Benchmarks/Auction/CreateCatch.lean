@@ -13,9 +13,10 @@ def pauseState (evm : EVM.State) : EVM.State :=
 
 theorem SourceState.pause {s0 I σ evm} (hs : SourceState s0 I σ evm) :
     SourceState s0 I
-      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (storedWord σ I ⟨51⟩))) (pauseState evm) := by
+      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (solcSlotWord σ I ⟨51⟩))) (pauseState evm) :=
+        by
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩ =
-      storedWord σ I ⟨51⟩ := by
+      solcSlotWord σ I ⟨51⟩ := by
     exact hs.storageRead _
   unfold pauseState
   rw [hw, hs.env]
@@ -49,7 +50,7 @@ theorem createCatchRoutine {I g s0 ret R mem aw ptr out σ k C evm locals}
           have hsp : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩ := by
             rw [hs.env, ← hs.accounts]
             exact hpaused
-          refine Or.inl ⟨pauseState evm, _, locals', _, _, _, _, ?_, hs.pause,
+          refine Or.inl ⟨pauseState evm, _, locals', _, _, _, _, ?_, (SourceState.pause hs),
             evm_run rd2850 with [jumpdest, pop, jump hret]⟩
           exact ExecBlock.consNormal (ExecStmt.iteTrue hse
             (execBlock_append hdecode (pauseBlock evm locals' hpause' hsp))) ExecBlock.nil

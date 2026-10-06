@@ -117,7 +117,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
             (inOff := pokePeekOutPtr) (inSize := pokePeekInSize) (callPerm := true)
             hdepthNe (by
               rw [pokePipAddress_eq_target]
-              exact spotEvmAddress_accountAddress _)
+              exact address_of_val _)
             (pokePeekEncode_eq I) hΘE
             (by simp [evmE, evmS, initState])
             (by simp [evmE, evmS, initState])
@@ -254,7 +254,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     (by simpa [evmPipE, evmE, initState] using hdepthNe)
                     (by
                       rw [← hMap', pokeVatAddress_eq_target]
-                      exact spotEvmAddress_accountAddress _)
+                      exact address_of_val _)
                     (pokeVatFileEncode_eq I ⟨0⟩ hsz36 hmem192)
                     hΘFileE
                     (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')
@@ -461,13 +461,13 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (pokePeekPostCallMem I out)
                     have hmemHash192 : memHash.size = 192 := by
                       dsimp [memHash]
-                      rw [poke_twoWordHashMem_size_of_ge64]
+                      rw [twoWordHashMem_size_of_ge64]
                       · exact hmem192
                       · rw [hmem192]; omega
                     have hread64Hash :
                         memHash.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
                       dsimp [memHash]
-                      exact poke_twoWordHashMem_read64_of_ge96
+                      exact twoWordHashMem_read64_of_ge_96
                         (pokeIlkWord I) (⟨1⟩ : UInt256)
                         (by rw [hmem192]; omega) hread64
                     have hparNeS :
@@ -622,7 +622,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                               (by simpa [evmPipE, evmE, initState] using hdepthNe)
                               (by
                                 rw [← hMap', pokeVatAddress_eq_target]
-                                exact spotEvmAddress_accountAddress _)
+                                exact address_of_val _)
                               (pokeVatFileEncode_eq I spot2 hsz36 hmemHash192)
                               hΘFileE
                               (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')

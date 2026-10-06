@@ -93,7 +93,7 @@ theorem contextInitializer {I g s0 ret R mem aw rdata σ k C}
   obtain ⟨_, _, rd4946⟩ := rd4945.sload (by native_decide) (by evm_ov)
   have rd4955 := evm_run rd4946 with [push2 ⟨256⟩, swap1, div, push1 ⟨255⟩, and, iszero]
   change RD _ _ _ _ _
-    (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (storedWord σ I ⟨0⟩) ⟨256⟩)) :: ret :: R)
+    (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩)) :: ret :: R)
     _ _ _ _ _ _ at rd4955
   rw [u256_land_comm ⟨255⟩] at rd4955
   by_cases hi : initializingWord σ I = ⟨0⟩

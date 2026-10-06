@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Auction.ErrorPayloadMemory
 import Benchmarks.Auction.ReturnDataCopy
 
@@ -18,15 +19,6 @@ theorem errorDecodeShort {I g s0 ret R mem aw out acc k C}
     raw returndatasize (by native_decide) (by evm_ov), lt, iszero, push2 ⟨5938⟩,
     jumpiNT (by rw [hlt]; decide), swap1, jump hret]⟩
 
-theorem lnot3_add_returnSize {size : Nat} (hl : 4 ≤ size) (hb : size < UInt256.size) :
-    UInt256.lnot ⟨3⟩ + UInt256.ofNat size = UInt256.ofNat (size - 4) := by
-  apply u256_inj
-  rw [uadd_toNat, ulit_toNat' size hb, ulit_toNat' (size - 4) (by omega)]
-  have hn : (UInt256.lnot (⟨3⟩ : UInt256)).toNat = 2 ^ 256 - 4 := by native_decide
-  rw [hn]
-  change (2 ^ 256 - 4 + size) % (2 ^ 256) = size - 4
-  change size < 2 ^ 256 at hb
-  omega
 
 theorem errorDecodeLongPrefix {I g s0 ret R mem aw ptr out acc k C}
     (h : RD auctionBytecode I g s0 ⟨5925⟩ (ret :: R) mem aw out acc k C)

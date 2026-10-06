@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.Snapshot
 import Benchmarks.Auction.SparseMemory
 import Benchmarks.Auction.MemoryGrowth
@@ -28,26 +29,6 @@ theorem Snapshot.mem_free (s : Snapshot) {mem : ByteArray} {ptr : UInt256} (_hm 
       · left
         constructor <;> (try simp only [writeWord_sparse_size]) <;> omega
 
-theorem sparseCascade_read_below (mem : ByteArray) (writes : List (Nat × UInt256)) (read : Nat)
-    (hin : read + 32 ≤ mem.size) (hbelow : ∀ w ∈ writes, read + 32 ≤ w.1) :
-    (writeCascade mem writes).readWithPadding read 32 = mem.readWithPadding read 32 := by
-  induction writes generalizing mem with
-  | nil => rfl
-  | cons w ws ih =>
-    rw [writeCascade_cons]
-    have hin' : read + 32 ≤ (writeWord mem w.1 w.2).size := by
-      rw [writeWord_sparse_size]
-      exact le_trans hin (Nat.le_max_left _ _)
-    rw [ih (writeWord mem w.1 w.2) hin' (fun w hw ↦ hbelow w (List.mem_cons_of_mem _ hw))]
-    exact writeWord_sparse_read_preserved mem w.1 read w.2
-      (Or.inl ⟨hbelow w List.mem_cons_self, hin⟩)
-
-theorem sparseCascade_read_word (mem : ByteArray) (off : Nat) (word : UInt256)
-    (rest : List (Nat × UInt256)) (hlater : ∀ w ∈ rest, off + 32 ≤ w.1) :
-    (writeCascade mem ((off, word) :: rest)).readWithPadding off 32 = word.toByteArray := by
-  rw [writeCascade_cons, sparseCascade_read_below _ rest off
-    (by rw [writeWord_sparse_size]; exact Nat.le_max_right _ _) hlater]
-  exact writeWord_sparse_read_back _ _ _
 
 theorem Snapshot.mem_read (s : Snapshot) (mem : ByteArray) (ptr : UInt256) (i : Fin 6) :
     (s.mem mem ptr).readWithPadding (ptr.toNat + 32 * i.val) 32 =
@@ -101,14 +82,6 @@ theorem Snapshot.mem_read (s : Snapshot) (mem : ByteArray) (ptr : UInt256) (i : 
     intro w hw
     simp at hw
 
-theorem memoryPrefix_sparse_cascade (mem : ByteArray) (writes : List (Nat × UInt256)) (limit : Nat)
-    (hdisj : ∀ write ∈ writes, limit ≤ write.1 ∨ write.1 + 32 ≤ 96) :
-    MemoryPrefix mem (writeCascade mem writes) limit := by
-  induction writes generalizing mem with
-  | nil => exact .refl _ _
-  | cons w ws ih =>
-    exact (memoryPrefix_sparse_writeWord mem w.1 limit w.2 (hdisj w (by simp))).trans
-      (ih _ (fun w hw ↦ hdisj w (List.mem_cons_of_mem _ hw)))
 
 theorem Snapshot.mem_prefix (s : Snapshot) (mem : ByteArray) (ptr : UInt256) :
     MemoryPrefix mem (s.mem mem ptr) ptr.toNat := by

@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.Memory
 
@@ -18,22 +19,6 @@ set_option maxHeartbeats 6000000
 
 /-! ## Active-words and memory-cost helpers (abstract active-words `aw`) -/
 
-theorem weth9AwM0_eq (aw : UInt256) (h : 1 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat 0 32 = aw.toNat := by
-    simp only [MachineState.M]; change max aw.toNat 1 = aw.toNat; exact max_eq_left h
-  rw [hM]; exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
-
-theorem weth9AwMemPtr_eq (aw : UInt256) (memPtr : Nat)
-    (h : memPtr + 32 ≤ aw.toNat * 32) :
-    UInt256.ofNat (MachineState.M aw.toNat memPtr 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat memPtr 32 = aw.toNat := by
-    simp only [MachineState.M]
-    rw [max_eq_left]
-    omega
-  rw [hM]; exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
 
 /-! ## The computed old-word count equals the Solm `solidityBytesDataWordCount` -/
 
@@ -105,7 +90,7 @@ theorem weth9StringStoreSubroutine
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 32)) - Cₘ aw) mem1 aw
     (by native_decide)
     (by rfl)
-    rfl (weth9AwM0_eq aw haw1) (by evm_ov)
+    rfl (awM0_eq aw haw1) (by evm_ov)
   -- Phase C: KECCAK256(0,32) = keccak(slot).
   have hC := evm_run hMstore with [push1 ⟨32⟩, push1 ⟨0⟩]
   have hKecc := hC.keccak256
@@ -119,7 +104,7 @@ theorem weth9StringStoreSubroutine
               (by omega), toByteArray_extract_all]]
       rw [hKdef, Solm.solidityBytesDataBaseSlot]
       exact keccakSlot_eq _)
-    (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; exact weth9AwM0_eq aw haw1)
+    (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; exact awM0_eq aw haw1)
     (by evm_ov)
   -- Phase D: compute oldWords, take the SHORT branch, MLOAD the data word.
   have hcondBranch : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
@@ -139,7 +124,7 @@ theorem weth9StringStoreSubroutine
       · rw [hmem1def, write32_read_above (UInt256.toByteArray slot) mem 0 memPtr.toNat
           (by rw [toByteArray_size]) (by omega) (by omega) (by omega)]
         exact hmemData)
-    (weth9AwMemPtr_eq aw memPtr.toNat hawMem) (by evm_ov)
+    (awMemPtr_eq aw memPtr.toNat hawMem) (by evm_ov)
   -- Phase E: build the short word, SSTORE it at `slot`.
   have hE := evm_run hMload with [push1 ⟨255⟩, not, and, dup4, dup1, add, or, dup6]
   obtain ⟨_, _, hSstore⟩ := hE.sstore hperm (by native_decide) (by evm_ov)

@@ -1,3 +1,8 @@
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.SolcMemory
+import Reasoning.MemoryShapes
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.Signed
 
 namespace Benchmarks.Dss.Vat
@@ -156,12 +161,12 @@ def forkAfterDstArt (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 
 abbrev forkSrcWishWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
-    (UInt256.eq (vatSlotWord (forkSrcWishSlot I) σ I) ⟨1⟩)
+    (UInt256.eq (solcSlotWordAt (forkSrcWishSlot I) σ I) ⟨1⟩)
     (UInt256.eq (forkSrcMaskedWord I) (hopeSourceWord I))
 
 abbrev forkDstWishWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
-    (UInt256.eq (vatSlotWord (forkDstWishSlot I) σ I) ⟨1⟩)
+    (UInt256.eq (solcSlotWordAt (forkDstWishSlot I) σ I) ⟨1⟩)
     (UInt256.eq (forkDstMaskedWord I) (hopeSourceWord I))
 
 abbrev forkBothWishWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
@@ -233,7 +238,7 @@ theorem forkDinkAddGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
   · exact sgt_zero_ne_zero_to_pos (forkDinkWord I) (by
       intro hsgt
       exact h (Or.inl hsgt))
-  · exact ult_ne_zero_to_lt (by
+  · exact ult_ne_zero_toNat_lt (by
       intro hlt
       exact h (Or.inr hlt))
 
@@ -259,7 +264,7 @@ theorem forkDartAddGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
   · exact sgt_zero_ne_zero_to_pos (forkDartWord I) (by
       intro hsgt
       exact h (Or.inl hsgt))
-  · exact ult_ne_zero_to_lt (by
+  · exact ult_ne_zero_toNat_lt (by
       intro hlt
       exact h (Or.inr hlt))
 
@@ -329,7 +334,7 @@ theorem forkDinkSubGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
   · exact slt_zero_ne_zero_to_neg (forkDinkWord I) (by
       intro hslt
       exact h (Or.inl hslt))
-  · exact ult_ne_zero_to_lt (by
+  · exact ult_ne_zero_toNat_lt (by
       intro hlt
       exact h (Or.inr hlt))
 
@@ -355,7 +360,7 @@ theorem forkDartSubGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
   · exact slt_zero_ne_zero_to_neg (forkDartWord I) (by
       intro hslt
       exact h (Or.inl hslt))
-  · exact ult_ne_zero_to_lt (by
+  · exact ult_ne_zero_toNat_lt (by
       intro hlt
       exact h (Or.inr hlt))
 
@@ -1518,14 +1523,6 @@ theorem forkHopeSource_ofNat (I : ExecutionEnv) :
   rw [AccountAddress.ofNat, Fin.val_ofNat, hopeSourceWord_toNat, Nat.mod_eq_of_lt]
   exact I.source.isLt
 
-private theorem forkIlkBytes_len (I : ExecutionEnv) (hsz164 : 164 ≤ I.calldata.size) :
-    ((I.calldata.toList.drop 4).take 32).length = ↑bytes32Width + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [List.length_take, List.length_drop, htlen]
-  simp [bytes32Width]
-  omega
 
 theorem evalStorageRef_fork_src_ink (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1535,7 +1532,7 @@ theorem evalStorageRef_fork_src_ink (evm : EVM.State) (I : ExecutionEnv)
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
     ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk, forkStore_get_src,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_src_art (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1545,7 +1542,7 @@ theorem evalStorageRef_fork_src_art (evm : EVM.State) (I : ExecutionEnv)
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
     ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk, forkStore_get_src,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_dst_ink (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1555,7 +1552,7 @@ theorem evalStorageRef_fork_dst_ink (evm : EVM.State) (I : ExecutionEnv)
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
     ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk, forkStore_get_dst,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_dst_art (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1565,7 +1562,7 @@ theorem evalStorageRef_fork_dst_art (evm : EVM.State) (I : ExecutionEnv)
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
     ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk, forkStore_get_dst,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_ilk_rate (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1574,7 +1571,7 @@ theorem evalStorageRef_fork_ilk_rate (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkRateEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_ilk_spot (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1583,7 +1580,7 @@ theorem evalStorageRef_fork_ilk_spot (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkSpotEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_ilk_dust (evm : EVM.State) (I : ExecutionEnv)
     (hsz164 : 164 ≤ I.calldata.size) :
@@ -1592,7 +1589,7 @@ theorem evalStorageRef_fork_ilk_dust (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkDustEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, forkStore_get_ilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem forkStorageType_urn_uint256 (I : ExecutionEnv) (er : EvaledStorageRef)
     (her : er = forkSrcInkEvaledRef I ∨ er = forkSrcArtEvaledRef I ∨
@@ -1689,7 +1686,7 @@ theorem evalExpr_fork_src_ink {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_src_ink evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_src_ink I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcInkSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcInkSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_src_art {evm : EVM.State} {I : ExecutionEnv}
@@ -1703,7 +1700,7 @@ theorem evalExpr_fork_src_art {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_src_art evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
     (hloc := forkStorageLayout_src_art I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcArtSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcArtSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_dst_ink {evm : EVM.State} {I : ExecutionEnv}
@@ -1718,7 +1715,7 @@ theorem evalExpr_fork_dst_ink {evm : EVM.State} {I : ExecutionEnv}
     (hty := forkStorageType_urn_uint256 I (forkDstInkEvaledRef I)
       (Or.inr (Or.inr (Or.inl rfl))))
     (hloc := forkStorageLayout_dst_ink I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstInkSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstInkSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_dst_art {evm : EVM.State} {I : ExecutionEnv}
@@ -1733,7 +1730,7 @@ theorem evalExpr_fork_dst_art {evm : EVM.State} {I : ExecutionEnv}
     (hty := forkStorageType_urn_uint256 I (forkDstArtEvaledRef I)
       (Or.inr (Or.inr (Or.inr rfl))))
     (hloc := forkStorageLayout_dst_art I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstArtSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstArtSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_ilk_rate {evm : EVM.State} {I : ExecutionEnv}
@@ -1747,7 +1744,7 @@ theorem evalExpr_fork_ilk_rate {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_rate evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkRateEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_ilk_rate I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkRateSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkRateSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_ilk_spot {evm : EVM.State} {I : ExecutionEnv}
@@ -1761,7 +1758,7 @@ theorem evalExpr_fork_ilk_spot {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_spot evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkSpotEvaledRef I) (Or.inr (Or.inl rfl)))
     (hloc := forkStorageLayout_ilk_spot I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkSpotSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkSpotSlot I))
 
 set_option maxHeartbeats 0 in
 theorem evalExpr_fork_ilk_dust {evm : EVM.State} {I : ExecutionEnv}
@@ -1775,7 +1772,7 @@ theorem evalExpr_fork_ilk_dust {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_dust evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkDustEvaledRef I) (Or.inr (Or.inr rfl)))
     (hloc := forkStorageLayout_ilk_dust I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkDustSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkDustSlot I))
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_src_ink_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1787,7 +1784,8 @@ theorem evalStorageRef_fork_src_ink_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkSrcInkEvaledRef, forkIlkValue, forkSrcValue, forkIlkKey, forkSrcKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hilk, hsrc, forkIlkBytes_len I hsz164]
+    ← Std.HashMap.get?_eq_getElem?, hilk, hsrc, forkIlkBytes_len I hsz164,
+      show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_src_art_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1799,7 +1797,8 @@ theorem evalStorageRef_fork_src_art_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkSrcArtEvaledRef, forkIlkValue, forkSrcValue, forkIlkKey, forkSrcKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hilk, hsrc, forkIlkBytes_len I hsz164]
+    ← Std.HashMap.get?_eq_getElem?, hilk, hsrc, forkIlkBytes_len I hsz164,
+      show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_dst_ink_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1811,7 +1810,8 @@ theorem evalStorageRef_fork_dst_ink_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkDstInkEvaledRef, forkIlkValue, forkDstValue, forkIlkKey, forkDstKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hilk, hdst, forkIlkBytes_len I hsz164]
+    ← Std.HashMap.get?_eq_getElem?, hilk, hdst, forkIlkBytes_len I hsz164,
+      show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_dst_art_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1823,7 +1823,8 @@ theorem evalStorageRef_fork_dst_art_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkDstArtEvaledRef, forkIlkValue, forkDstValue, forkIlkKey, forkDstKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hilk, hdst, forkIlkBytes_len I hsz164]
+    ← Std.HashMap.get?_eq_getElem?, hilk, hdst, forkIlkBytes_len I hsz164,
+      show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_ilk_rate_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1834,7 +1835,7 @@ theorem evalStorageRef_fork_ilk_rate_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkRateEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_ilk_spot_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1845,7 +1846,7 @@ theorem evalStorageRef_fork_ilk_spot_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkSpotEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_fork_ilk_dust_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1856,7 +1857,7 @@ theorem evalStorageRef_fork_ilk_dust_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [forkIlkDustEvaledRef, forkIlkValue, forkIlkKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hilk,
-    forkIlkBytes_len I hsz164]
+    forkIlkBytes_len I hsz164, show bytes32Width = abiBytes32Width from rfl]
 
 theorem evalStorageRef_fork_src_can_locals (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store)
@@ -1894,7 +1895,7 @@ theorem evalExpr_fork_src_ink_locals {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_src_ink_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_src_ink I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcInkSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcInkSlot I))
 
 theorem evalExpr_fork_src_art_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1910,7 +1911,7 @@ theorem evalExpr_fork_src_art_locals {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_src_art_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
     (hloc := forkStorageLayout_src_art I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcArtSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcArtSlot I))
 
 theorem evalExpr_fork_dst_ink_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1927,7 +1928,7 @@ theorem evalExpr_fork_dst_ink_locals {evm : EVM.State} {I : ExecutionEnv}
     (hty := forkStorageType_urn_uint256 I (forkDstInkEvaledRef I)
       (Or.inr (Or.inr (Or.inl rfl))))
     (hloc := forkStorageLayout_dst_ink I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstInkSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstInkSlot I))
 
 theorem evalExpr_fork_dst_art_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1944,7 +1945,7 @@ theorem evalExpr_fork_dst_art_locals {evm : EVM.State} {I : ExecutionEnv}
     (hty := forkStorageType_urn_uint256 I (forkDstArtEvaledRef I)
       (Or.inr (Or.inr (Or.inr rfl))))
     (hloc := forkStorageLayout_dst_art I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstArtSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstArtSlot I))
 
 theorem evalExpr_fork_ilk_rate_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1959,7 +1960,7 @@ theorem evalExpr_fork_ilk_rate_locals {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_rate_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkRateEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_ilk_rate I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkRateSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkRateSlot I))
 
 theorem evalExpr_fork_ilk_spot_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1974,7 +1975,7 @@ theorem evalExpr_fork_ilk_spot_locals {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_spot_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkSpotEvaledRef I) (Or.inr (Or.inl rfl)))
     (hloc := forkStorageLayout_ilk_spot I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkSpotSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkSpotSlot I))
 
 theorem evalExpr_fork_ilk_dust_locals {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (hsz164 : 164 ≤ I.calldata.size)
@@ -1989,7 +1990,7 @@ theorem evalExpr_fork_ilk_dust_locals {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_fork_ilk_dust_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkDustEvaledRef I) (Or.inr (Or.inr rfl)))
     (hloc := forkStorageLayout_ilk_dust I)
-    (hload := vatStorageLocLoad_uint256 evm (forkIlkDustSlot I))
+    (hload := storageLocLoad_uint256 evm (forkIlkDustSlot I))
 
 theorem assignStorageRef_fork_src_ink (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (srcInkNew : UInt256) (hsz164 : 164 ≤ I.calldata.size)
@@ -2008,7 +2009,7 @@ theorem assignStorageRef_fork_src_ink (evm : EVM.State) (I : ExecutionEnv)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_src_ink I)
     (hstore := by simpa [evm'] using
-      vatStorageLocStore_uint256 evm (forkSrcInkSlot I) srcInkNew)
+      storageLocStore_uint256 evm (forkSrcInkSlot I) srcInkNew)
 
 theorem assignStorageRef_fork_src_art (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (srcArtNew : UInt256) (hsz164 : 164 ≤ I.calldata.size)
@@ -2027,7 +2028,7 @@ theorem assignStorageRef_fork_src_art (evm : EVM.State) (I : ExecutionEnv)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
     (hloc := forkStorageLayout_src_art I)
     (hstore := by simpa [evm'] using
-      vatStorageLocStore_uint256 evm (forkSrcArtSlot I) srcArtNew)
+      storageLocStore_uint256 evm (forkSrcArtSlot I) srcArtNew)
 
 theorem assignStorageRef_fork_dst_ink (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (dstInkNew : UInt256) (hsz164 : 164 ≤ I.calldata.size)
@@ -2047,7 +2048,7 @@ theorem assignStorageRef_fork_dst_ink (evm : EVM.State) (I : ExecutionEnv)
       (Or.inr (Or.inr (Or.inl rfl))))
     (hloc := forkStorageLayout_dst_ink I)
     (hstore := by simpa [evm'] using
-      vatStorageLocStore_uint256 evm (forkDstInkSlot I) dstInkNew)
+      storageLocStore_uint256 evm (forkDstInkSlot I) dstInkNew)
 
 theorem assignStorageRef_fork_dst_art (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (dstArtNew : UInt256) (hsz164 : 164 ≤ I.calldata.size)
@@ -2067,7 +2068,7 @@ theorem assignStorageRef_fork_dst_art (evm : EVM.State) (I : ExecutionEnv)
       (Or.inr (Or.inr (Or.inr rfl))))
     (hloc := forkStorageLayout_dst_art I)
     (hstore := by simpa [evm'] using
-      vatStorageLocStore_uint256 evm (forkDstArtSlot I) dstArtNew)
+      storageLocStore_uint256 evm (forkDstArtSlot I) dstArtNew)
 
 theorem execForkCheckedSubSignedRevertGuardNeg {evm : EVM.State} {locals : Store}
     {x y : Expr} {name : Ident} {old new : UInt256} {subtrahendInt : Int}
@@ -3517,62 +3518,6 @@ theorem evalExpr_fork_mul256_ok {evm : EVM.State} {locals : Store}
     · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
     · exact hlt hbad
 
-theorem forkUintCheckedMulFail_to_overflow {a b : UInt256}
-    (hfail :
-      ¬ (b = ⟨0⟩ ∨
-        UInt256.eq (UInt256.div (UInt256.mul a b) b) a ≠ ⟨0⟩)) :
-    UInt256.size ≤ a.toNat * b.toNat := by
-  by_contra hnot
-  have hfit : a.toNat * b.toNat < UInt256.size := by omega
-  by_cases hbzeroNat : b.toNat = 0
-  · exact hfail (Or.inl (uint256_toNat_eq_zero hbzeroNat))
-  · have hbpos : 0 < b.toNat := Nat.pos_of_ne_zero hbzeroNat
-    let prod := UInt256.mul a b
-    have hprodNat : prod.toNat = a.toNat * b.toNat := by
-      dsimp [prod]
-      rw [u256_mul_toNat, Nat.mod_eq_of_lt hfit]
-    have hdivNat : (UInt256.div prod b).toNat = a.toNat := by
-      rw [udiv_toNat, hprodNat]
-      simpa [Nat.mul_comm] using Nat.mul_div_right a.toNat hbpos
-    have hdivWord : UInt256.div prod b = a := by
-      rw [← u256_ofNat_toNat (UInt256.div prod b), hdivNat, u256_ofNat_toNat]
-    have heq : UInt256.eq (UInt256.div (UInt256.mul a b) b) a ≠ ⟨0⟩ := by
-      rw [show UInt256.div (UInt256.mul a b) b = a by simpa [prod] using hdivWord]
-      rw [uInt256_eq_self]
-      exact one_ne_zero_uint
-    exact hfail (Or.inr heq)
-
-theorem forkUintCheckedMulGuard_to_fit_and_source_guard {a b : UInt256}
-    (hguard :
-      b = ⟨0⟩ ∨
-        UInt256.eq (UInt256.div (UInt256.mul a b) b) a ≠ ⟨0⟩) :
-    a.toNat * b.toNat < UInt256.size ∧
-      (b.toNat = 0 ∨ (UInt256.mul a b).toNat / b.toNat = a.toNat) := by
-  let prod := UInt256.mul a b
-  by_cases hbzeroNat : b.toNat = 0
-  · constructor
-    · rw [hbzeroNat, Nat.mul_zero]
-      native_decide
-    · exact Or.inl hbzeroNat
-  · have hbzeroWord : b ≠ ⟨0⟩ := by
-      intro hzero
-      exact hbzeroNat (by rw [hzero]; rfl)
-    have hdivWord : UInt256.div prod b = a := by
-      cases hguard with
-      | inl hzero => exact False.elim (hbzeroWord hzero)
-      | inr heq =>
-          exact u256_eq_ne_zero_to_eq (by simpa [prod] using heq)
-    have hdivNat : prod.toNat / b.toNat = a.toNat := by
-      have h := congrArg UInt256.toNat hdivWord
-      simpa [prod, udiv_toNat] using h
-    have hleDiv : a.toNat ≤ prod.toNat / b.toNat := by
-      rw [hdivNat]
-    have hprodLe : a.toNat * b.toNat ≤ prod.toNat := by
-      have hle := Nat.mul_le_of_le_div b.toNat a.toNat prod.toNat hleDiv
-      simpa [Nat.mul_comm] using hle
-    constructor
-    · exact lt_of_le_of_lt hprodLe prod.val.isLt
-    · exact Or.inr hdivNat
 
 theorem evalExpr_fork_mul256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -5126,7 +5071,7 @@ theorem evalExpr_fork_src_can_final {evm : EVM.State} {I : ExecutionEnv}
           srcInkSpot dstInkSpot))
     (hty := forkStorageType_can I (forkSrcWishEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_src_can I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcWishSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcWishSlot I))
 
 theorem evalExpr_fork_dst_can_final {evm : EVM.State} {I : ExecutionEnv}
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256)
@@ -5154,7 +5099,7 @@ theorem evalExpr_fork_dst_can_final {evm : EVM.State} {I : ExecutionEnv}
           srcInkSpot dstInkSpot))
     (hty := forkStorageType_can I (forkDstWishEvaledRef I) (Or.inr rfl))
     (hloc := forkStorageLayout_dst_can I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstWishSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstWishSlot I))
 
 theorem evalExpr_fork_src_sender_eq_true_final {evm : EVM.State} {I : ExecutionEnv}
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256)
@@ -5553,7 +5498,7 @@ theorem evalExpr_fork_wish_both_false_right_final {evm : EVM.State} {I : Executi
 theorem forkSrcWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     (heq : forkSrcMaskedWord I = hopeSourceWord I) :
     forkSrcWishWord σ I ≠ ⟨0⟩ := by
-  by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+  by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
   · unfold forkSrcWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
     native_decide
@@ -5563,7 +5508,7 @@ theorem forkSrcWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     exact one_ne_zero_uint
 
 theorem forkSrcWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
-    (hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩) :
+    (hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩) :
     forkSrcWishWord σ I ≠ ⟨0⟩ := by
   by_cases hsrc : forkSrcMaskedWord I = hopeSourceWord I
   · unfold forkSrcWishWord
@@ -5577,7 +5522,7 @@ theorem forkSrcWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
 theorem forkDstWishWord_true_dst {σ : AccountMap} {I : ExecutionEnv}
     (heq : forkDstMaskedWord I = hopeSourceWord I) :
     forkDstWishWord σ I ≠ ⟨0⟩ := by
-  by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+  by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
   · unfold forkDstWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
     native_decide
@@ -5587,7 +5532,7 @@ theorem forkDstWishWord_true_dst {σ : AccountMap} {I : ExecutionEnv}
     exact one_ne_zero_uint
 
 theorem forkDstWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
-    (hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩) :
+    (hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩) :
     forkDstWishWord σ I ≠ ⟨0⟩ := by
   by_cases hdst : forkDstMaskedWord I = hopeSourceWord I
   · unfold forkDstWishWord
@@ -5600,7 +5545,7 @@ theorem forkDstWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
 
 theorem forkSrcWishWord_false {σ : AccountMap} {I : ExecutionEnv}
     (hne : forkSrcMaskedWord I ≠ hopeSourceWord I)
-    (hcan : vatSlotWord (forkSrcWishSlot I) σ I ≠ ⟨1⟩) :
+    (hcan : solcSlotWordAt (forkSrcWishSlot I) σ I ≠ ⟨1⟩) :
     forkSrcWishWord σ I = ⟨0⟩ := by
   unfold forkSrcWishWord
   rw [u256_eq_of_ne hcan, u256_eq_of_ne hne]
@@ -5608,57 +5553,26 @@ theorem forkSrcWishWord_false {σ : AccountMap} {I : ExecutionEnv}
 
 theorem forkDstWishWord_false {σ : AccountMap} {I : ExecutionEnv}
     (hne : forkDstMaskedWord I ≠ hopeSourceWord I)
-    (hcan : vatSlotWord (forkDstWishSlot I) σ I ≠ ⟨1⟩) :
+    (hcan : solcSlotWordAt (forkDstWishSlot I) σ I ≠ ⟨1⟩) :
     forkDstWishWord σ I = ⟨0⟩ := by
   unfold forkDstWishWord
   rw [u256_eq_of_ne hcan, u256_eq_of_ne hne]
   rfl
 
-theorem fork_u256_land_zero_left (a : UInt256) :
-    UInt256.land (⟨0⟩ : UInt256) a = ⟨0⟩ := by
-  apply u256_inj
-  rw [u256_land_toNat]
-  change Nat.land 0 a.toNat % UInt256.size = 0
-  have hzero : Nat.land 0 a.toNat = 0 := by
-    apply Nat.eq_of_testBit_eq
-    intro i
-    change (0 &&& a.toNat).testBit i = (0 : Nat).testBit i
-    rw [Nat.testBit_and]
-    simp
-  simpa [hzero]
-
-theorem fork_u256_land_zero_right (a : UInt256) :
-    UInt256.land a (⟨0⟩ : UInt256) = ⟨0⟩ := by
-  rw [u256_land_comm]
-  exact fork_u256_land_zero_left a
-
-theorem fork_u256_land_left_ne_zero_of_land_ne_zero {a b : UInt256}
-    (h : UInt256.land a b ≠ ⟨0⟩) :
-    a ≠ ⟨0⟩ := by
-  intro hzero
-  rw [hzero, fork_u256_land_zero_left] at h
-  exact h rfl
-
-theorem fork_u256_land_right_ne_zero_of_land_ne_zero {a b : UInt256}
-    (h : UInt256.land a b ≠ ⟨0⟩) :
-    b ≠ ⟨0⟩ := by
-  intro hzero
-  rw [hzero, fork_u256_land_zero_right] at h
-  exact h rfl
 
 theorem forkBothWishWord_false_src {σ : AccountMap} {I : ExecutionEnv}
     (hsrc : forkSrcWishWord σ I = ⟨0⟩) :
     forkBothWishWord σ I = ⟨0⟩ := by
   unfold forkBothWishWord
   rw [hsrc]
-  exact fork_u256_land_zero_right (forkDstWishWord σ I)
+  exact u256_land_zero_right (forkDstWishWord σ I)
 
 theorem forkBothWishWord_false_dst {σ : AccountMap} {I : ExecutionEnv}
     (hdst : forkDstWishWord σ I = ⟨0⟩) :
     forkBothWishWord σ I = ⟨0⟩ := by
   unfold forkBothWishWord
   rw [hdst]
-  exact fork_u256_land_zero_left (forkSrcWishWord σ I)
+  exact u256_land_zero_left (forkSrcWishWord σ I)
 
 theorem forkBothWishWord_true {σ : AccountMap} {I : ExecutionEnv}
     (hsrc : forkSrcWishWord σ I ≠ ⟨0⟩)
@@ -5671,7 +5585,7 @@ theorem forkBothWishWord_true {σ : AccountMap} {I : ExecutionEnv}
     · exact False.elim (hdst hdstZero)
     · have hsrcOne : forkSrcWishWord σ I = ⟨1⟩ := by
         unfold forkSrcWishWord at hsrcZero ⊢
-        by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+        by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
         · rw [hcan, u256_eq_refl]
           by_cases haddr : forkSrcMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
@@ -5687,7 +5601,7 @@ theorem forkBothWishWord_true {σ : AccountMap} {I : ExecutionEnv}
             exact False.elim (hsrcZero hz)
       have hdstOne : forkDstWishWord σ I = ⟨1⟩ := by
         unfold forkDstWishWord at hdstZero ⊢
-        by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+        by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
         · rw [hcan, u256_eq_refl]
           by_cases haddr : forkDstMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
@@ -5708,13 +5622,13 @@ theorem forkBothWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     (h : forkBothWishWord σ I ≠ ⟨0⟩) :
     forkSrcWishWord σ I ≠ ⟨0⟩ := by
   unfold forkBothWishWord at h
-  exact fork_u256_land_right_ne_zero_of_land_ne_zero h
+  exact u256_land_right_ne_zero_of_land_ne_zero h
 
 theorem forkBothWishWord_true_dst {σ : AccountMap} {I : ExecutionEnv}
     (h : forkBothWishWord σ I ≠ ⟨0⟩) :
     forkDstWishWord σ I ≠ ⟨0⟩ := by
   unfold forkBothWishWord at h
-  exact fork_u256_land_left_ne_zero_of_land_ne_zero h
+  exact u256_land_left_ne_zero_of_land_ne_zero h
 
 theorem evalExpr_fork_src_wish_true_of_word_final {evm : EVM.State}
     {σ : AccountMap} {I : ExecutionEnv}
@@ -5722,7 +5636,7 @@ theorem evalExpr_fork_src_wish_true_of_word_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hword : forkSrcWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5734,7 +5648,7 @@ theorem evalExpr_fork_src_wish_true_of_word_final {evm : EVM.State}
   · exact evalExpr_fork_src_wish_true_src_final
       (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
       utab vtab srcInkSpot dstInkSpot hsource hsrc
-  · by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
     · exact evalExpr_fork_src_wish_true_can_final
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
         utab vtab srcInkSpot dstInkSpot hsource hsrc
@@ -5747,7 +5661,7 @@ theorem evalExpr_fork_dst_wish_true_of_word_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkDstWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5759,7 +5673,7 @@ theorem evalExpr_fork_dst_wish_true_of_word_final {evm : EVM.State}
   · exact evalExpr_fork_dst_wish_true_dst_final
       (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
       utab vtab srcInkSpot dstInkSpot hsource hdst
-  · by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
     · exact evalExpr_fork_dst_wish_true_can_final
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
         utab vtab srcInkSpot dstInkSpot hsource hdst
@@ -5772,10 +5686,10 @@ theorem evalExpr_fork_wish_both_true_of_word_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hloadSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hloadDst :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkBothWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5800,7 +5714,7 @@ theorem evalExpr_fork_src_wish_false_of_word_zero_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hword : forkSrcWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5810,7 +5724,7 @@ theorem evalExpr_fork_src_wish_false_of_word_zero_final {evm : EVM.State}
       (wishExpr (.var "src") sender) = .ok (.bool false) := by
   by_cases hsrc : forkSrcMaskedWord I = hopeSourceWord I
   · exact False.elim ((forkSrcWishWord_true_src (σ := σ) hsrc) hword)
-  · by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
     · exact False.elim ((forkSrcWishWord_true_can (σ := σ) hcan) hword)
     · exact evalExpr_fork_src_wish_false_final
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
@@ -5823,7 +5737,7 @@ theorem evalExpr_fork_dst_wish_false_of_word_zero_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkDstWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5833,7 +5747,7 @@ theorem evalExpr_fork_dst_wish_false_of_word_zero_final {evm : EVM.State}
       (wishExpr (.var "dst") sender) = .ok (.bool false) := by
   by_cases hdst : forkDstMaskedWord I = hopeSourceWord I
   · exact False.elim ((forkDstWishWord_true_dst (σ := σ) hdst) hword)
-  · by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
     · exact False.elim ((forkDstWishWord_true_can (σ := σ) hcan) hword)
     · exact evalExpr_fork_dst_wish_false_final
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
@@ -5846,10 +5760,10 @@ theorem evalExpr_fork_wish_both_false_of_word_zero_final {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hloadSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hloadDst :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkBothWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -5908,7 +5822,7 @@ theorem evalExpr_fork_src_can_final_store {evm : EVM.State} {I : ExecutionEnv}
           dstInkSpot))
     (hty := forkStorageType_can I (forkSrcWishEvaledRef I) (Or.inl rfl))
     (hloc := forkStorageLayout_src_can I)
-    (hload := vatStorageLocLoad_uint256 evm (forkSrcWishSlot I))
+    (hload := storageLocLoad_uint256 evm (forkSrcWishSlot I))
 
 theorem evalExpr_fork_dst_can_final_store {evm : EVM.State} {I : ExecutionEnv}
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -5941,7 +5855,7 @@ theorem evalExpr_fork_dst_can_final_store {evm : EVM.State} {I : ExecutionEnv}
           dstInkSpot))
     (hty := forkStorageType_can I (forkDstWishEvaledRef I) (Or.inr rfl))
     (hloc := forkStorageLayout_dst_can I)
-    (hload := vatStorageLocLoad_uint256 evm (forkDstWishSlot I))
+    (hload := storageLocLoad_uint256 evm (forkDstWishSlot I))
 
 theorem evalExpr_fork_src_sender_eq_true_final_store {evm : EVM.State} {I : ExecutionEnv}
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -6399,7 +6313,7 @@ theorem evalExpr_fork_src_wish_true_of_word_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hword : forkSrcWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6413,7 +6327,7 @@ theorem evalExpr_fork_src_wish_true_of_word_final_store {evm : EVM.State}
       (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot
       dstInkSpot hsource hsrc
-  · by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
     · exact evalExpr_fork_src_wish_true_can_final_store
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot
@@ -6428,7 +6342,7 @@ theorem evalExpr_fork_dst_wish_true_of_word_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkDstWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6442,7 +6356,7 @@ theorem evalExpr_fork_dst_wish_true_of_word_final_store {evm : EVM.State}
       (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot
       dstInkSpot hsource hdst
-  · by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
     · exact evalExpr_fork_dst_wish_true_can_final_store
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot
@@ -6457,10 +6371,10 @@ theorem evalExpr_fork_wish_both_true_of_word_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hloadSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hloadDst :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkBothWishWord σ I ≠ ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6490,7 +6404,7 @@ theorem evalExpr_fork_src_wish_false_of_word_zero_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hword : forkSrcWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6501,7 +6415,7 @@ theorem evalExpr_fork_src_wish_false_of_word_zero_final_store {evm : EVM.State}
       (wishExpr (.var "src") sender) = .ok (.bool false) := by
   by_cases hsrc : forkSrcMaskedWord I = hopeSourceWord I
   · exact False.elim ((forkSrcWishWord_true_src (σ := σ) hsrc) hword)
-  · by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkSrcWishSlot I) σ I = ⟨1⟩
     · exact False.elim ((forkSrcWishWord_true_can (σ := σ) hcan) hword)
     · exact evalExpr_fork_src_wish_false_final_store
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
@@ -6517,7 +6431,7 @@ theorem evalExpr_fork_dst_wish_false_of_word_zero_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkDstWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6528,7 +6442,7 @@ theorem evalExpr_fork_dst_wish_false_of_word_zero_final_store {evm : EVM.State}
       (wishExpr (.var "dst") sender) = .ok (.bool false) := by
   by_cases hdst : forkDstMaskedWord I = hopeSourceWord I
   · exact False.elim ((forkDstWishWord_true_dst (σ := σ) hdst) hword)
-  · by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
+  · by_cases hcan : solcSlotWordAt (forkDstWishSlot I) σ I = ⟨1⟩
     · exact False.elim ((forkDstWishWord_true_can (σ := σ) hcan) hword)
     · exact evalExpr_fork_dst_wish_false_final_store
         (evm := evm) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
@@ -6544,10 +6458,10 @@ theorem evalExpr_fork_wish_both_false_of_word_zero_final_store {evm : EVM.State}
     (hsource : evm.executionEnv.source = I.source)
     (hloadSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcWishSlot I) =
-        vatSlotWord (forkSrcWishSlot I) σ I)
+        solcSlotWordAt (forkSrcWishSlot I) σ I)
     (hloadDst :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstWishSlot I) =
-        vatSlotWord (forkDstWishSlot I) σ I)
+        solcSlotWordAt (forkDstWishSlot I) σ I)
     (hword : forkBothWishWord σ I = ⟨0⟩) :
     evalExpr? config
       { contract := contract,
@@ -6581,94 +6495,6 @@ theorem evalExpr_fork_wish_both_false_of_word_zero_final_store {evm : EVM.State}
           hsource hloadDst hdstZero)
     · exact False.elim ((forkBothWishWord_true hsrcZero hdstZero) hword)
 
-theorem fork_u256_isZero_ne_zero_to_eq_zero {a : UInt256}
-    (h : UInt256.isZero a ≠ ⟨0⟩) :
-    a = ⟨0⟩ := by
-  by_contra hne
-  have hz : UInt256.isZero a = ⟨0⟩ := isZero_eq_zero_of_ne hne
-  exact h hz
-
-theorem fork_u256_lor_left_ne_zero_of_lor_ne_zero_right_zero {a b : UInt256}
-    (h : UInt256.lor a b ≠ ⟨0⟩) (hb : b = ⟨0⟩) :
-    a ≠ ⟨0⟩ := by
-  rw [hb, u256_lor_zero] at h
-  exact h
-
-theorem fork_u256_lor_one_ne_zero (w : UInt256) :
-    UInt256.lor (⟨1⟩ : UInt256) w ≠ ⟨0⟩ := by
-  intro h
-  have hbit := congrArg (fun x : UInt256 => x.toNat % 2) h
-  simp [UInt256.lor, Fin.lor, UInt256.size] at hbit
-  change (Nat.lor 1 w.toNat % UInt256.size) % 2 = 0 at hbit
-  rw [Nat.mod_mod_of_dvd _ (by norm_num [UInt256.size] : 2 ∣ UInt256.size)] at hbit
-  have hlorOdd : Nat.lor 1 w.toNat % 2 = 1 := by
-    have htest : Nat.testBit (Nat.lor 1 w.toNat) 0 = true := by
-      change Nat.testBit (1 ||| w.toNat) 0 = true
-      rw [Nat.testBit_or]
-      simp
-    simpa [Nat.testBit_zero] using htest
-  omega
-
-theorem forkDustSourceCond_of_evm {art tab dust : UInt256}
-    (h :
-      UInt256.lor
-        (UInt256.eq ⟨0⟩ art)
-        (UInt256.isZero (UInt256.lt tab dust)) ≠ ⟨0⟩) :
-    dust.toNat ≤ tab.toNat ∨ art.toNat = 0 := by
-  by_cases hzero : UInt256.eq ⟨0⟩ art = ⟨0⟩
-  · have hcomm := h
-    rw [u256_lor_comm] at hcomm
-    have hltIsZero : UInt256.isZero (UInt256.lt tab dust) ≠ ⟨0⟩ :=
-      fork_u256_lor_left_ne_zero_of_lor_ne_zero_right_zero hcomm hzero
-    have hlt : UInt256.lt tab dust = ⟨0⟩ :=
-      fork_u256_isZero_ne_zero_to_eq_zero hltIsZero
-    exact Or.inl (ult_eq_zero_to_le hlt)
-  · have heq : (⟨0⟩ : UInt256) = art :=
-      u256_eq_ne_zero_to_eq hzero
-    exact Or.inr (by rw [← heq]; rfl)
-
-theorem forkDustSourceCond_false_of_evm {art tab dust : UInt256}
-    (h :
-      UInt256.lor
-        (UInt256.eq ⟨0⟩ art)
-        (UInt256.isZero (UInt256.lt tab dust)) = ⟨0⟩) :
-    tab.toNat < dust.toNat ∧ 0 < art.toNat := by
-  have heqZero : UInt256.eq ⟨0⟩ art = ⟨0⟩ := by
-    by_contra hne
-    have hart : (⟨0⟩ : UInt256) = art := u256_eq_ne_zero_to_eq hne
-    have hone : UInt256.eq ⟨0⟩ art = ⟨1⟩ := by
-      rw [← hart, u256_eq_refl]
-    exact fork_u256_lor_one_ne_zero (UInt256.isZero (UInt256.lt tab dust))
-      (by simpa [hone] using h)
-  have hisZeroZero : UInt256.isZero (UInt256.lt tab dust) = ⟨0⟩ := by
-    by_contra hne
-    have hlor := h
-    rw [u256_lor_comm] at hlor
-    have hltZero : UInt256.lt tab dust = ⟨0⟩ :=
-      fork_u256_isZero_ne_zero_to_eq_zero hne
-    have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
-      rw [hltZero]
-      native_decide
-    exact fork_u256_lor_one_ne_zero (UInt256.eq ⟨0⟩ art)
-      (by simpa [hone] using hlor)
-  have hltNe : UInt256.lt tab dust ≠ ⟨0⟩ := by
-    intro hltZero
-    have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
-      rw [hltZero]
-      native_decide
-    rw [hone] at hisZeroZero
-    exact one_ne_zero_uint hisZeroZero
-  have hartPos : 0 < art.toNat := by
-    apply Nat.pos_of_ne_zero
-    intro hartNat
-    have hart : (⟨0⟩ : UInt256) = art := by
-      apply u256_inj
-      simpa [hartNat]
-    have hone : UInt256.eq ⟨0⟩ art = ⟨1⟩ := by
-      rw [← hart, u256_eq_refl]
-    rw [hone] at heqZero
-    exact one_ne_zero_uint heqZero
-  exact ⟨ult_ne_zero_to_lt hltNe, hartPos⟩
 
 theorem vatEvalExpr_eq_uint256_zero_true {evm : EVM.State} {locals : Store}
     {x : Expr} {a : UInt256}
@@ -9475,178 +9301,6 @@ theorem execForkSourceRevertWish {evm0 : EVM.State} {I : ExecutionEnv}
       simpa [evm1, evm2, evm3, evm4, finalLocals, storageStore_executionEnv] using
         execForkFinalRequiresRevertWish hwish)
 
-set_option maxHeartbeats 0 in
-theorem decodeABIValues_bytes32_address_address_int256_int256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hlen96 : ((bytes.drop 96).take 32).length = 32)
-    (hlen128 : ((bytes.drop 128).take 32).length = 32) :
-    decodeABIValues? [bytes32, addr, addr, int256, int256] bytes 0 0 160 160
-      DecodeMode.legacySolc05 =
-      some
-        ([ .fixedBytes bytes32Width (bytes.take 32),
-           .address (AccountAddress.ofNat
-             (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-           .address (AccountAddress.ofNat
-             (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-           .int
-             (if (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat < EVM.twoPow 255 then
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat
-             else
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat -
-                 Int.ofNat EVM.wordModulus),
-           .int
-             (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-             else
-               Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                 Int.ofNat EVM.wordModulus) ],
-         160) := by
-  have hbytes32 :
-      decodeABIValue? (.elem (.bytes bytes32Width)) bytes 0 DecodeMode.legacySolc05 =
-        some (.fixedBytes bytes32Width (bytes.take 32), 32) := by
-    simp only [bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-    rw [if_pos (by simpa using hlen0)]
-    simp [zeroPadding?, readBytes?]
-  have haddr32 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 32 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 32) hlen32
-  have haddr64 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 64 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat), 64 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 64) hlen64
-  have hint96 := vatDecodeScalarWordWithMode_legacyInt256_ok
-    (bytes := bytes) (start := 96) hlen96
-  have hint128 := vatDecodeScalarWordWithMode_legacyInt256_ok
-    (bytes := bytes) (start := 128) hlen128
-  have htail :
-      decodeScalarWordsWithMode? DecodeMode.legacySolc05
-        [addr, addr, int256, int256] bytes 32 =
-        some
-          [ .address (AccountAddress.ofNat
-              (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-            .address (AccountAddress.ofNat
-              (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
-            .int
-              (if (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat < EVM.twoPow 255 then
-                Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat
-              else
-                Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat -
-                  Int.ofNat EVM.wordModulus),
-            .int
-              (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
-                Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
-              else
-                Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
-                  Int.ofNat EVM.wordModulus) ] := by
-    simp only [decodeScalarWordsWithMode?]
-    norm_num
-    rw [haddr32]
-    simp only [Option.bind, bind]
-    rw [haddr64]
-    simp only [Option.bind, bind]
-    rw [hint96]
-    simp only [Option.bind, bind]
-    rw [hint128]
-    rfl
-  rw [decodeABIValues?]
-  simp only [bytes32, isDynamicABIType, staticABIEncodedSize?, Bool.false_eq_true, if_false,
-    Nat.zero_add, Option.bind, bind]
-  rw [hbytes32]
-  simp only [Option.bind, bind]
-  rw [if_pos (by norm_num)]
-  rw [show max 160 32 = 160 by norm_num]
-  rw [decodeABIValues_scalarWordsWithMode_eq
-    (mode := DecodeMode.legacySolc05)
-    (types := [addr, addr, int256, int256])
-    (bytes := bytes) (cursor := 32) (total := 160)
-    (by native_decide) (by norm_num)]
-  rw [htail]
-
-set_option maxHeartbeats 0 in
-theorem decodeCalldata_legacyBytes32_address_address_int256_int256_ok {cd : ByteArray}
-    {v w x y z : Solm.Ident} (hsz164 : 164 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [v, w, x, y, z]
-      [bytes32, addr, addr, int256, int256] cd =
-      some ((((((∅ : Store).insert v
-        (.fixedBytes bytes32Width ((cd.toList.drop 4).take 32))).insert w
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))).insert x
-        (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))).insert y
-        (.int
-          (if (calldataWord cd 100).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 100).toNat
-          else
-            Int.ofNat (calldataWord cd 100).toNat - Int.ofNat EVM.wordModulus))).insert z
-        (.int
-          (if (calldataWord cd 132).toNat < EVM.twoPow 255 then
-            Int.ofNat (calldataWord cd 132).toNat
-          else
-            Int.ofNat (calldataWord cd 132).toNat - Int.ofNat EVM.wordModulus))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake100 : ((cd.toList.drop 100).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake132 : ((cd.toList.drop 132).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  have hword100 : ABI.bytesToWord ((cd.toList.drop 100).take 32) = calldataWord cd 100 :=
-    decode_word_at_eq cd 100 (by omega) (by norm_num)
-  have hword132 : ABI.bytesToWord ((cd.toList.drop 132).take 32) = calldataWord cd 132 :=
-    decode_word_at_eq cd 132 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
-  simp only
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, int256, int256] = some 160 by native_decide]
-  simp only [bind, Option.bind]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 160)]
-  rw [decodeABIValues_bytes32_address_address_int256_int256_legacy_ok
-    (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake68)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake100)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using htake132)]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32) =
-      calldataWord cd 68 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 96).take 32) =
-      calldataWord cd 100 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword100]
-  rw [show ABI.bytesToWord (((cd.toList.drop 4).drop 128).take 32) =
-      calldataWord cd 132 from by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword132]
-  simp [decodeCalldata.insertValues]
 
 set_option maxHeartbeats 0 in
 theorem vatDecode_fork_ok {I : ExecutionEnv} (hsz164 : 164 ≤ I.calldata.size) :
@@ -9930,49 +9584,6 @@ theorem vatForkBodyCoreDecodeFailed_short
     |>.reEquivDecodingFailed hcode (vatDispatchFork hsel)
       (vatDecode_fork_none_short hsz4 hshort)
 
-set_option maxHeartbeats 1000000 in
-theorem forkWordAt0Mem_twoWordHashMem_solcMappingSlot (baseSlot key oldKey : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 96) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  have hbase : (twoWordHashMem oldKey baseSlot mem).size = 96 :=
-    twoWordHashMem_size_96 oldKey baseSlot hmem
-  have hread64 :
-      (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64 =
-        UInt256.toByteArray key ++ UInt256.toByteArray baseSlot := by
-    rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-        (by rw [wordAt0Mem_size_96 key hbase]; omega)]
-    have hleft :
-        (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).extract 0 32 =
-          UInt256.toByteArray key := by
-      rw [← readWithPadding_eq_extract _ 0
-          (by rw [wordAt0Mem_size_96 key hbase]; omega),
-        wordAt0Mem_read0]
-    have hright :
-        (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).extract 32 64 =
-          UInt256.toByteArray baseSlot := by
-      rw [← readWithPadding_eq_extract _ 32
-          (by rw [wordAt0Mem_size_96 key hbase]; omega)]
-      unfold wordAt0Mem
-      rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size]) (by rw [hbase]; omega)
-        (by omega) (by rw [hbase]; norm_num)]
-      exact twoWordHashMem_read32 oldKey baseSlot hmem
-    rw [show (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).extract 0 64 =
-        (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).extract 0 32 ++
-          (wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).extract 32 64 by
-        rw [ByteArray.extract_append_extract]
-        norm_num]
-    rw [hleft, hright]
-  rw [hread64]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem wordAt0Mem_read64 (key : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :
-    (wordAt0Mem key mem).readWithPadding 64 32 = mem.readWithPadding 64 32 := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-    (by omega) (by omega) (by rw [hmem])]
 
 theorem RD.vatCheckedMulUintOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
@@ -10241,7 +9852,7 @@ theorem RD.vatForkSrcInkSubSuccess
               (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         dstBase := by
     simpa [dstBase] using
-      forkWordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
+      wordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
         (forkSrcMaskedWord I) hmemIlk3
   have rd4771 := rd4770pre.keccak256 0 dstBase (UInt256.ofNat 3)
     (by native_decide) mem_cost hdstBase (by native_decide) (by evm_ov)
@@ -10436,7 +10047,7 @@ theorem RD.vatForkSrcInkSubRevert
               (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         dstBase := by
     simpa [dstBase] using
-      forkWordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
+      wordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
         (forkSrcMaskedWord I) hmemIlk3
   have rd4771 := rd4770pre.keccak256 0 dstBase (UInt256.ofNat 3)
     (by native_decide) mem_cost hdstBase (by native_decide) (by evm_ov)
@@ -11614,7 +11225,7 @@ theorem RD.vatForkWishLoadedAt6557
     (hslot : slot = solcMappingSlot (solcMappingSlot ⟨1⟩ usr) (hopeSourceWord I))
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
-      (vatSlotWord slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
+      (solcSlotWordAt slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
         UInt256.ofNat I.source.val :: usr :: ret :: R)
       (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ usr)
         (twoWordHashMem usr ⟨1⟩ mem))
@@ -11713,21 +11324,21 @@ theorem RD.vatForkWishLoadedAt6557
   have rd6597 := rd6597pre.keccak256 0 slot (UInt256.ofNat 3)
     (by native_decide) mem_cost houter (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by native_decide) (by evm_ov)
-  exact ⟨_, _, by simpa [vatSlotWord, solcSlotWord] using rd6599raw⟩
+  exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd6599raw⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishReturnOk
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {usr slot ret : UInt256} {R : List UInt256} {mem : ByteArray}
     (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨6599⟩
-      (vatSlotWord slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
+      (solcSlotWordAt slot σ I :: ⟨1⟩ :: ⟨0⟩ :: usr :: hopeSourceWord I ::
         UInt256.ofNat I.source.val :: usr :: ret :: R)
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ret
       (UInt256.lor
-        (UInt256.eq (vatSlotWord slot σ I) ⟨1⟩)
+        (UInt256.eq (solcSlotWordAt slot σ I) ⟨1⟩)
         (UInt256.eq usr (hopeSourceWord I)) :: R)
       mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd6608pre := evm_run h with [
@@ -13525,13 +13136,13 @@ theorem vatForkSourceSuccessBodyFromFinalGuards
         (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (forkSrcInkNew σ I) (forkSrcArtNew σ I) (forkDstInkNew σ I)
         (forkDstArtNew σ I) slot rfl rfl rfl rfl
-  have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hutabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := srcArtFinal) (b := rate) hutabOk
-  have hvtabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hvtabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := dstArtFinal) (b := rate) hvtabOk
-  have hsrcInkSpotFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hsrcInkSpotFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := srcInkFinal) (b := spot) hsrcInkSpotOk
-  have hdstInkSpotFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hdstInkSpotFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := dstInkFinal) (b := spot) hdstInkSpotOk
   exact execForkSourceOk
     (evm0 := evm0) (I := I)
@@ -13582,8 +13193,8 @@ theorem vatForkSourceSuccessBodyFromFinalGuards
         srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
         srcInkFinal dstInkFinal utab vtab srcInkSpot dstInkSpot
         (by simp [evm4, evm3, evm2, evm1, evm0, initState, storageStore_executionEnv])
-        (by simpa [vatSlotWord] using hloadFinal (forkSrcWishSlot I))
-        (by simpa [vatSlotWord] using hloadFinal (forkDstWishSlot I))
+        (by simpa [solcSlotWordAt] using hloadFinal (forkSrcWishSlot I))
+        (by simpa [solcSlotWordAt] using hloadFinal (forkDstWishSlot I))
         hwish)
     (evalExpr_fork_utab_le_srcInkSpot_final_store
       (evm := evm4) (I := I) srcInkNew srcArtNew dstInkNew dstArtNew
@@ -13755,13 +13366,13 @@ theorem vatForkSourceRevertBodyFromFinalBlock
         (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (forkSrcInkNew σ I) (forkSrcArtNew σ I) (forkDstInkNew σ I)
         (forkDstArtNew σ I) slot rfl rfl rfl rfl
-  have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hutabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := srcArtFinal) (b := rate) hutabOk
-  have hvtabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hvtabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := dstArtFinal) (b := rate) hvtabOk
-  have hsrcInkSpotFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hsrcInkSpotFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := srcInkFinal) (b := spot) hsrcInkSpotOk
-  have hdstInkSpotFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+  have hdstInkSpotFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
     (a := dstInkFinal) (b := spot) hdstInkSpotOk
   exact execForkSourceRevertFinal
     (evm0 := evm0) (I := I)
@@ -14557,7 +14168,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   apply twoWordHashMem_size_96
                                   apply twoWordHashMem_size_96
                                   exact solcFreePtrMem_size
-                                · rw [wordAt0Mem_read64]
+                                · rw [wordAt0Mem_read64_preserved_key]
                                   apply twoWordHashMem_read64
                                   · apply twoWordHashMem_size_96
                                     exact solcFreePtrMem_size
@@ -14725,9 +14336,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                               srcArtFinalS dstArtFinalS srcInkFinalS
                                               dstInkFinalS utabS vtabS srcInkSpotS
                                               dstInkSpotS hsourceEq
-                                              (by simpa [vatSlotWord] using
+                                              (by simpa [solcSlotWordAt] using
                                                 hloadFinalS (forkSrcWishSlot I))
-                                              (by simpa [vatSlotWord] using
+                                              (by simpa [solcSlotWordAt] using
                                                 hloadFinalS (forkDstWishSlot I))
                                               hwishS)
                                             (evalExpr_fork_utab_le_srcInkSpot_final_store
@@ -14812,9 +14423,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                                 srcArtFinalS dstArtFinalS srcInkFinalS
                                                 dstInkFinalS utabS vtabS srcInkSpotS
                                                 dstInkSpotS hsourceEq
-                                                (by simpa [vatSlotWord] using
+                                                (by simpa [solcSlotWordAt] using
                                                   hloadFinalS (forkSrcWishSlot I))
-                                                (by simpa [vatSlotWord] using
+                                                (by simpa [solcSlotWordAt] using
                                                   hloadFinalS (forkDstWishSlot I))
                                                 hwishS)
                                             (by
@@ -14888,9 +14499,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             srcArtFinalS dstArtFinalS srcInkFinalS
                                             dstInkFinalS utabS vtabS srcInkSpotS
                                             dstInkSpotS hsourceEq
-                                            (by simpa [vatSlotWord] using
+                                            (by simpa [solcSlotWordAt] using
                                               hloadFinalS (forkSrcWishSlot I))
-                                            (by simpa [vatSlotWord] using
+                                            (by simpa [solcSlotWordAt] using
                                               hloadFinalS (forkDstWishSlot I))
                                             hwishS)
                                           (evalExpr_fork_utab_le_srcInkSpot_final_store
@@ -14935,9 +14546,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                           srcArtFinalS dstArtFinalS srcInkFinalS
                                           dstInkFinalS utabS vtabS srcInkSpotS
                                           dstInkSpotS hsourceEq
-                                          (by simpa [vatSlotWord] using
+                                          (by simpa [solcSlotWordAt] using
                                             hloadFinalS (forkSrcWishSlot I))
-                                          (by simpa [vatSlotWord] using
+                                          (by simpa [solcSlotWordAt] using
                                             hloadFinalS (forkDstWishSlot I))
                                           hwishS)
                                         (evalExpr_fork_utab_le_srcInkSpot_false_final_store
@@ -14969,9 +14580,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                         (forkDstInkNew σ I) (forkDstArtNew σ I)
                                         srcArtFinalS dstArtFinalS srcInkFinalS dstInkFinalS
                                         utabS vtabS srcInkSpotS dstInkSpotS hsourceEq
-                                        (by simpa [vatSlotWord] using
+                                        (by simpa [solcSlotWordAt] using
                                           hloadFinalS (forkSrcWishSlot I))
-                                        (by simpa [vatSlotWord] using
+                                        (by simpa [solcSlotWordAt] using
                                           hloadFinalS (forkDstWishSlot I))
                                         hwishZeroS))
                                 exact hrev.reEquivExecutionRevert hcode
@@ -15136,20 +14747,20 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                           (forkDstInkSlot I)) ≠ ⟨0⟩) := by
                                 intro hokS
                                 exact hdstInkSpotOk (by simpa [σFinal] using hokS)
-                              have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+                              have hutabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
                                 (a := solcSlotWord (forkAfterDstArt σ I) I
                                   (forkSrcArtSlot I))
                                 (b := solcSlotWord (forkAfterDstArt σ I) I
                                   (forkIlkRateSlot I))
                                 hutabOkS
-                              have hvtabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+                              have hvtabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
                                 (a := solcSlotWord (forkAfterDstArt σ I) I
                                   (forkDstArtSlot I))
                                 (b := solcSlotWord (forkAfterDstArt σ I) I
                                   (forkIlkRateSlot I))
                                 hvtabOkS
                               have hsrcInkSpotFitGuard :=
-                                forkUintCheckedMulGuard_to_fit_and_source_guard
+                                uintCheckedMulGuard_to_fit_and_source_guard
                                   (a := solcSlotWord (forkAfterDstArt σ I) I
                                     (forkSrcInkSlot I))
                                   (b := solcSlotWord (forkAfterDstArt σ I) I
@@ -15234,7 +14845,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                 rfl hutabFitGuard.1 hutabFitGuard.2
                                 rfl hvtabFitGuard.1 hvtabFitGuard.2
                                 rfl hsrcInkSpotFitGuard.1 hsrcInkSpotFitGuard.2
-                                (forkUintCheckedMulFail_to_overflow hdstInkSpotFailS)
+                                (uintCheckedMulFail_to_overflow hdstInkSpotFailS)
                               obtain ⟨_, _, h4792⟩ := RD.vatForkSrcInkSubSuccess
                                 (h := hdecoded) solcFreePtrMem_size hsz164
                                 (by simpa [forkSrcInkNew] using hsrcInkNeg)
@@ -15287,7 +14898,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   apply twoWordHashMem_size_96
                                   apply twoWordHashMem_size_96
                                   exact solcFreePtrMem_size
-                                · rw [wordAt0Mem_read64]
+                                · rw [wordAt0Mem_read64_preserved_key]
                                   apply twoWordHashMem_read64
                                   · apply twoWordHashMem_size_96
                                     exact solcFreePtrMem_size
@@ -15532,13 +15143,13 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                         (forkSrcInkSlot I)) ≠ ⟨0⟩) := by
                               intro hokS
                               exact hsrcInkSpotOk (by simpa [σFinal] using hokS)
-                            have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+                            have hutabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
                               (a := solcSlotWord (forkAfterDstArt σ I) I
                                 (forkSrcArtSlot I))
                               (b := solcSlotWord (forkAfterDstArt σ I) I
                                 (forkIlkRateSlot I))
                               hutabOkS
-                            have hvtabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+                            have hvtabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
                               (a := solcSlotWord (forkAfterDstArt σ I) I
                                 (forkDstArtSlot I))
                               (b := solcSlotWord (forkAfterDstArt σ I) I
@@ -15617,7 +15228,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   using hloadFinal (forkIlkSpotSlot I))
                               rfl hutabFitGuard.1 hutabFitGuard.2
                               rfl hvtabFitGuard.1 hvtabFitGuard.2
-                              (forkUintCheckedMulFail_to_overflow hsrcInkSpotFailS)
+                              (uintCheckedMulFail_to_overflow hsrcInkSpotFailS)
                             obtain ⟨_, _, h4792⟩ := RD.vatForkSrcInkSubSuccess
                               (h := hdecoded) solcFreePtrMem_size hsz164
                               (by simpa [forkSrcInkNew] using hsrcInkNeg)
@@ -15670,7 +15281,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                 apply twoWordHashMem_size_96
                                 apply twoWordHashMem_size_96
                                 exact solcFreePtrMem_size
-                              · rw [wordAt0Mem_read64]
+                              · rw [wordAt0Mem_read64_preserved_key]
                                 apply twoWordHashMem_read64
                                 · apply twoWordHashMem_size_96
                                   exact solcFreePtrMem_size
@@ -15836,7 +15447,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                       (forkDstArtSlot I)) ≠ ⟨0⟩) := by
                             intro hokS
                             exact hvtabOk (by simpa [σFinal] using hokS)
-                          have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
+                          have hutabFitGuard := uintCheckedMulGuard_to_fit_and_source_guard
                             (a := solcSlotWord (forkAfterDstArt σ I) I
                               (forkSrcArtSlot I))
                             (b := solcSlotWord (forkAfterDstArt σ I) I
@@ -15904,7 +15515,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                               simpa [evm4, evm3, evm2, evm1, storageStore_executionEnv]
                                 using hloadFinal (forkIlkRateSlot I))
                             rfl hutabFitGuard.1 hutabFitGuard.2
-                            (forkUintCheckedMulFail_to_overflow hvtabFailS)
+                            (uintCheckedMulFail_to_overflow hvtabFailS)
                           obtain ⟨_, _, h4792⟩ := RD.vatForkSrcInkSubSuccess
                             (h := hdecoded) solcFreePtrMem_size hsz164
                             (by simpa [forkSrcInkNew] using hsrcInkNeg)
@@ -16095,7 +15706,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                           (by
                             simpa [evm4, evm3, evm2, evm1, storageStore_executionEnv]
                               using hloadFinal (forkIlkRateSlot I))
-                          (forkUintCheckedMulFail_to_overflow hutabFailS)
+                          (uintCheckedMulFail_to_overflow hutabFailS)
                         obtain ⟨_, _, h4792⟩ := RD.vatForkSrcInkSubSuccess
                           (h := hdecoded) solcFreePtrMem_size hsz164
                           (by simpa [forkSrcInkNew] using hsrcInkNeg)

@@ -179,7 +179,7 @@ theorem flipperTendX_bidGuardPrefix {σ I} {g : Sat256} {s0 : State}
       (bidBidWord (tendId I) σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k3254 C3254 := by
-    simpa [bidBidWord, flipperSlotWord] using rd3254raw
+    simpa [bidBidWord, solcSlotWordAt] using rd3254raw
   exact ⟨_, _, evm_run rd3255 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]⟩

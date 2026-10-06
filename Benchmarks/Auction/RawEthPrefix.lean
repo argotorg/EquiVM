@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.EmptyBytes
 import Benchmarks.Auction.CallBridge
 
@@ -48,20 +49,6 @@ theorem rawEthPrefix {I g s0 amount recipient ret R mem aw ptr rdata acc k C}
   rw [u256_sub_self] at rd4827
   exact ⟨_, _, rd4827⟩
 
-theorem callOutputMem_zero (mem out : ByteArray) (off : UInt256) :
-    callOutputMem mem out off ⟨0⟩ = mem := by
-  unfold callOutputMem
-  have hmin : min (⟨0⟩ : UInt256) (UInt256.ofNat out.size) = ⟨0⟩ := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat out.size := by
-      change (0 : Nat) ≤ _
-      omega
-    simp [min, hle]
-  rw [hmin]
-  exact byteArray_write_len_zero _ _ _ _
-
-theorem callActiveWords_zero (aw inOff outOff : UInt256) :
-    callActiveWords aw inOff ⟨0⟩ outOff ⟨0⟩ = aw := by
-  exact u256_ofNat_toNat aw
 
 theorem rawEthCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
     (h : RD auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)

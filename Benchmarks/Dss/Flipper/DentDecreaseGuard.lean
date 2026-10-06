@@ -11,7 +11,7 @@ abbrev flipperDentInsufficientDecreaseWord : UInt256 :=
   ⟨31853446598541861569293789059947845366293458314517486776447481245590548905984⟩
 
 abbrev dentBegWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 abbrev dentLotOneWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.mul (bidLotWord (dentId I) σ I) flipperONEWord
@@ -561,7 +561,7 @@ theorem flipperDentX_lotOneCheckedMulCall {σ I} {g : Sat256} {s0 : State}
         (⟨1⟩ : UInt256) + bidBaseOfWord (dentId I) = bidSlotOfWord (dentId I) ⟨1⟩ := by
       simpa [bidSlotOfWord] using
         (u256_add_comm (⟨1⟩ : UInt256) (bidBaseOfWord (dentId I)))
-    simpa [bidLotWord, flipperSlotWord, hslotAdd] using rd4619raw
+    simpa [bidLotWord, solcSlotWordAt, hslotAdd] using rd4619raw
   have rd4625 := evm_run rd4621 with [
     raw push2 ⟨4638⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
@@ -619,7 +619,7 @@ theorem flipperDentX_begLotCheckedMulCall {σ I} {g : Sat256} {s0 : State}
       [dentBegWord σ I, ⟨4650⟩, dentLotOneWord σ I, dentBid I, dentLot I,
         dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k4644 C4644 := by
-    simpa [dentBegWord, flipperSlotWord] using rd4644raw
+    simpa [dentBegWord, solcSlotWordAt] using rd4644raw
   exact ⟨_, _, evm_run rd4645 with [
     raw dup5 (by native_decide) (by evm_ov),
     raw push2 ⟨6305⟩ (by native_decide) (by evm_ov),

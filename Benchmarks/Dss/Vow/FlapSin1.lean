@@ -24,7 +24,7 @@ theorem RD.vowFlapToSin1ExtcodesizeGuard
         kissDaiTargetWord acc I :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (healSinCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   let target := kissDaiTargetWord acc I
-  let rawTarget := vowSlotWord ⟨1⟩ acc I
+  let rawTarget := solcSlotWordAt ⟨1⟩ acc I
   have rd1191 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1193 := rd1191.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1194, C1194, rd1194Raw⟩ := rd1193.sload (by native_decide) (by evm_ov)
@@ -32,7 +32,7 @@ theorem RD.vowFlapToSin1ExtcodesizeGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1194⟩
       (rawTarget :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1194 C1194 := by
-    simpa [rawTarget, vowSlotWord, solcSlotWord] using rd1194Raw
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd1194Raw
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -106,7 +106,7 @@ theorem RD.vowFlapToSin1ExtcodesizeGuard
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, healSinSelectorShifted, healSinSelector,
       healSinSelectorMem, healSinCalldataMem, healSinOutPtr, healSinInSize, healSinEndPtr,
-      vowSlotWord, solcSlotWord, solcAddrMask] using rd1261⟩
+      solcSlotWordAt, solcSlotWord, solcAddrMask] using rd1261⟩
 
 theorem RD.vowFlapSin1NoCode
     {σ σ₀ A I} {g sel : UInt256}
@@ -316,17 +316,17 @@ theorem RD.vowFlapFreeSinSubUnderflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : vatSin.toNat < (vowSlotWord ⟨5⟩ acc I).toNat) :
+    (hlt : vatSin.toNat < (solcSlotWordAt ⟨5⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let SinVal := vowSlotWord ⟨5⟩ acc I
+  let SinVal := solcSlotWordAt ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
-    simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
+    simpa [SinVal, solcSlotWordAt, solcSlotWord] using rd1321Raw
   have rd1324 := rd1321.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
   have rd5096 := rd1324.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
@@ -348,20 +348,20 @@ theorem RD.vowFlapFreeSinSubSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1318⟩
       (vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨5⟩ acc I).toNat ≤ vatSin.toNat) :
+    (hle : (solcSlotWordAt ⟨5⟩ acc I).toNat ≤ vatSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
-      (UInt256.sub vatSin (vowSlotWord ⟨5⟩ acc I) ::
+      (UInt256.sub vatSin (solcSlotWordAt ⟨5⟩ acc I) ::
         ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let SinVal := vowSlotWord ⟨5⟩ acc I
+  let SinVal := solcSlotWordAt ⟨5⟩ acc I
   have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
-    simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
+    simpa [SinVal, solcSlotWordAt, solcSlotWord] using rd1321Raw
   have rd1324 := rd1321.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
   have rd5096 := rd1324.jump (by native_decide) (by jump_dest) (by evm_ov)
   obtain ⟨k1325, C1325, rd1325⟩ := RD.solcCheckedSubSuccess
@@ -383,10 +383,10 @@ theorem RD.vowFlapDebtSubUnderflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hlt : freeSin.toNat < (vowSlotWord ⟨6⟩ acc I).toNat) :
+    (hlt : freeSin.toNat < (solcSlotWordAt ⟨6⟩ acc I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let AshVal := vowSlotWord ⟨6⟩ acc I
+  let AshVal := solcSlotWordAt ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
@@ -394,7 +394,7 @@ theorem RD.vowFlapDebtSubUnderflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
-    simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
+    simpa [AshVal, solcSlotWordAt, solcSlotWord] using rd1329Raw
   have rd1332 := rd1329.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
   have rd5096 := rd1332.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
@@ -416,13 +416,13 @@ theorem RD.vowFlapDebtSubSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1325⟩
       (freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k C)
-    (hle : (vowSlotWord ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
+    (hle : (solcSlotWordAt ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1333⟩
-      (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc I) ::
+      (UInt256.sub freeSin (solcSlotWordAt ⟨6⟩ acc I) ::
         ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
-  let AshVal := vowSlotWord ⟨6⟩ acc I
+  let AshVal := solcSlotWordAt ⟨6⟩ acc I
   have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
@@ -430,7 +430,7 @@ theorem RD.vowFlapDebtSubSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨1333⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
-    simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
+    simpa [AshVal, solcSlotWordAt, solcSlotWord] using rd1329Raw
   have rd1332 := rd1329.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
   have rd5096 := rd1332.jump (by native_decide) (by jump_dest) (by evm_ov)
   obtain ⟨k1333, C1333, rd1333⟩ := RD.solcCheckedSubSuccess

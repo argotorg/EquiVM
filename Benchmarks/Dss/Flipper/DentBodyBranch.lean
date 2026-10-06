@@ -58,11 +58,11 @@ theorem flipperDentBodyFrom4601LotLower
   have hlotWordEq : bidLotWord (dentId I) σ I = bidLotWord (dentId I) σ I := rfl
   have hbegWordEq : dentBegWord σ I = dentBegWord σ I := rfl
   have hpacked :
-      flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I =
-        flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I :=
+      solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I =
+        solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I :=
     rfl
   have hguyEq : bidGuyWord (dentId I) σ I = bidGuyWord (dentId I) σ I := by
-    simp [bidGuyWord, flipperAddressReturnWord, hpacked]
+    simp [bidGuyWord, solcAddressSlotWord, hpacked]
   have hlotOneWordEq : dentLotOneWord σ I = dentLotOneWord σ I := by
     simp [dentLotOneWord, hlotWordEq]
   have hbegLotWordEq : dentBegLotWord σ I = dentBegLotWord σ I := by

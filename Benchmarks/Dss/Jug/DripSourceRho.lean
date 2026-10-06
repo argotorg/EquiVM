@@ -1,6 +1,9 @@
+import Reasoning.SolmRpow
 import Benchmarks.Dss.Jug.DripBase
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+open Reasoning.Theory.RpowB
 
 namespace Benchmarks.Dss.Jug
 
@@ -9,7 +12,7 @@ theorem jugDripSourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat) :
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
@@ -18,9 +21,9 @@ theorem jugDripSourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool false) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_false (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hlt))
+        simpa [evm0, initState, solcSlotWordAt] using hlt))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -103,7 +106,7 @@ theorem jugDripX_loadRho {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [fileDutyIlkWord I, ⟨357⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD jugBytecode I g s0 ⟨1254⟩
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I :: ⟨0⟩ :: fileDutyIlkWord I ::
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I :: ⟨0⟩ :: fileDutyIlkWord I ::
         ⟨357⟩ :: [sel])
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
@@ -134,13 +137,13 @@ theorem jugDripX_loadRho {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1253 := rd1252.add (by native_decide) (by evm_ov)
   obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by native_decide) (by evm_ov)
   exact ⟨k1254, C1254, by
-    simpa [jugSlotWord, fileDutyRhoSlotFor_eq hsz36] using rd1254raw⟩
+    simpa [solcSlotWordAt, fileDutyRhoSlotFor_eq hsz36] using rd1254raw⟩
 
 theorem jugDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat)
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat)
     (h : RD jugBytecode I g s0 ⟨1235⟩
       [fileDutyIlkWord I, ⟨357⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -150,7 +153,7 @@ theorem jugDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1256 := rd1255.lt (by native_decide) (by evm_ov)
   have hltWord :
       UInt256.lt (UInt256.ofNat I.header.timestamp)
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I) = ⟨1⟩ := by
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I) = ⟨1⟩ := by
     exact ult_one hlt
   rw [hltWord] at rd1256
   have rd1257 := rd1256.iszero (by native_decide) (by evm_ov)
@@ -179,7 +182,7 @@ theorem jugDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 theorem jugDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (h : RD jugBytecode I g s0 ⟨1235⟩
       [fileDutyIlkWord I, ⟨357⟩, sel]
@@ -192,7 +195,7 @@ theorem jugDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1256 := rd1255.lt (by native_decide) (by evm_ov)
   have hltWord :
       UInt256.lt (UInt256.ofNat I.header.timestamp)
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I) = ⟨0⟩ := by
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I) = ⟨0⟩ := by
     exact ult_zero hle
   rw [hltWord] at rd1256
   have rd1257 := rd1256.iszero (by native_decide) (by evm_ov)
@@ -206,7 +209,7 @@ theorem jugDripSourceBodyVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatNoCode :
       (UInt256.ofNat
@@ -220,9 +223,9 @@ theorem jugDripSourceBodyVatIlksNoCode {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hle))
+        simpa [evm0, initState, solcSlotWordAt] using hle))
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (dripVatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -253,7 +256,7 @@ theorem jugDripSourceBodyVatIlksCallFailed {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatCode :
       0 <
@@ -272,9 +275,9 @@ theorem jugDripSourceBodyVatIlksCallFailed {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hle))
+        simpa [evm0, initState, solcSlotWordAt] using hle))
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (dripVatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -313,7 +316,7 @@ theorem jugDripSourceBodyVatIlksReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatCode :
       0 <
@@ -333,9 +336,9 @@ theorem jugDripSourceBodyVatIlksReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hle))
+        simpa [evm0, initState, solcSlotWordAt] using hle))
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (dripVatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -374,7 +377,7 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatCode :
       0 <
@@ -390,21 +393,21 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {σ σ₀ A I} {g : UInt256}
         some [.int (Int.ofNat (dripVatIlksArtWord out).toNat),
           .int (Int.ofNat (dripVatIlksPrevWord out).toNat)])
     (hover :
-      UInt256.size ≤ (jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv).toNat +
-        (jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv).toNat) :
+      UInt256.size ≤ (solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv).toNat +
+        (solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv).toNat) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
-  let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
-  let duty := jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
+  let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
+  let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
   have htimeGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hle))
+        simpa [evm0, initState, solcSlotWordAt] using hle))
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (dripVatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -492,7 +495,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatCode :
       0 <
@@ -509,26 +512,26 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {σ σ₀ A I} {g : UInt256}
           .int (Int.ofNat (dripVatIlksPrevWord out).toNat)])
     (haddNo :
       ¬ UInt256.size ≤
-        (jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv).toNat +
-          (jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv).toNat)
+        (solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv).toNat +
+          (solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv).toNat)
     (hage :
       UInt256.sub (UInt256.ofNat evmVat.executionEnv.header.timestamp)
-        (jugSlotWord (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = ⟨0⟩)
+        (solcSlotWordAt (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = ⟨0⟩)
     (hrmulOverflow : UInt256.size ≤ jugRay.toNat * (dripVatIlksPrevWord out).toNat) :
     let locals := dripLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
-  let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
-  let duty := jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
+  let base := solcSlotWordAt ⟨4⟩ evmVat.accountMap evmVat.executionEnv
+  let duty := solcSlotWordAt (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
   let fee := base + duty
   have htimeGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_dripNowGeRho_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hle))
+        simpa [evm0, initState, solcSlotWordAt] using hle))
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0 (.storage vatRef) =
         .ok (.address (dripVatAddress evm0.accountMap evm0.executionEnv)) := by
@@ -593,7 +596,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {σ σ₀ A I} {g : UInt256}
       bindParams? rpowFunction.params
           [.int (Int.ofNat fee.toNat), .int 0, .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨0⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256Zero_toNat]
+    simp [rpowFunction, uintTernaryLocals, bindParams?, u256_zero_toNat]
   have hrpowBody :
       ∃ doneLocals,
         ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨0⟩ jugRay }

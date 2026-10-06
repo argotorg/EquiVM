@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Dss.Vow.CageHealRuntime
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -8,15 +9,10 @@ namespace Benchmarks.Dss.Vow
 
 /-! ## `cage()` top-level runtime wrapper helpers -/
 
--- LIBRARY CANDIDATE: field preservation facts for `Solm.EVM.storageStore`.
-theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem cageFlapperAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
-    EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σ I).toNat) =
-      AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ σ I) := by
+    EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σ I).toNat) =
+      AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
   apply Fin.ext
   simp [EVM.address, EVM.uintN]
@@ -27,22 +23,22 @@ theorem cageFlapperAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
 theorem cageFlopperAddressOf_eq_vowAddressReturnWord (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     flopFlopperAddressOf evm =
-      AccountAddress.ofUInt256 (vowAddressReturnWord ⟨3⟩ evm.accountMap I) := by
+      AccountAddress.ofUInt256 (solcAddressSlotWord ⟨3⟩ evm.accountMap I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-  simp [flopFlopperAddressOf, vowAddressReturnWord,
-    flapStorageLoad_codeOwner_eq_vowSlotWord evm I ⟨3⟩ howner]
+  simp [flopFlopperAddressOf, solcAddressSlotWord,
+    storageLoad_codeOwner_eq_solcSlotWordAt evm I ⟨3⟩ howner]
 
 theorem cageFlopperCode_pos_of_codeSize_ne (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hne :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (vowAddressReturnWord ⟨3⟩ evm.accountMap I) ≠ ⟨0⟩) :
+        (solcAddressSlotWord ⟨3⟩ evm.accountMap I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (flopFlopperAddressOf evm)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
     extCodeSizeWord_ne_zero_lookup_code_pos
-      (σ := evm.accountMap) (target := vowAddressReturnWord ⟨3⟩ evm.accountMap I)
+      (σ := evm.accountMap) (target := solcAddressSlotWord ⟨3⟩ evm.accountMap I)
       (addr := flopFlopperAddressOf evm)
       (cageFlopperAddressOf_eq_vowAddressReturnWord evm I howner) hne
 
@@ -50,13 +46,13 @@ theorem cageFlopperCode_zero_of_codeSize_zero (evm : EVM.State) (I : ExecutionEn
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hzero :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (vowAddressReturnWord ⟨3⟩ evm.accountMap I) = ⟨0⟩) :
+        (solcAddressSlotWord ⟨3⟩ evm.accountMap I) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (flopFlopperAddressOf evm)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
     extCodeSizeWord_zero_lookup_code_zero
-      (σ := evm.accountMap) (target := vowAddressReturnWord ⟨3⟩ evm.accountMap I)
+      (σ := evm.accountMap) (target := solcAddressSlotWord ⟨3⟩ evm.accountMap I)
       (addr := flopFlopperAddressOf evm)
       (cageFlopperAddressOf_eq_vowAddressReturnWord evm I howner) hzero
 
@@ -65,9 +61,9 @@ theorem cageVatAddressOf_eq_kissVatAddress (evm : EVM.State) (I : ExecutionEnv)
     cageVatAddressOf evm = kissVatAddress evm.accountMap I := by
   have hload :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ =
-        vowSlotWord ⟨1⟩ evm.accountMap I := by
-    simpa [howner] using flapStorageLoad_codeOwner_eq_vowSlotWord evm I ⟨1⟩ howner
-  simp only [cageVatAddressOf, kissVatAddress, vowAddressReturnWord]
+        solcSlotWordAt ⟨1⟩ evm.accountMap I := by
+    simpa [howner] using storageLoad_codeOwner_eq_solcSlotWordAt evm I ⟨1⟩ howner
+  simp only [cageVatAddressOf, kissVatAddress, solcAddressSlotWord]
   rw [hload]
 
 theorem cageVatCode_pos_of_codeSize_ne (evm : EVM.State) (I : ExecutionEnv)
@@ -118,13 +114,13 @@ theorem RD.vowCageFirstDaiCallDepthLimit
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2754⟩
       (⟨0⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord σCall I ::
-        ⟨2734234354⟩ :: vowAddressReturnWord ⟨2⟩ σCall I :: ret :: R)
-      (vatDaiCalldataMemFor (vowAddressReturnWord ⟨2⟩ σCall I) mem)
+        ⟨2734234354⟩ :: solcAddressSlotWord ⟨2⟩ σCall I :: ret :: R)
+      (vatDaiCalldataMemFor (solcAddressSlotWord ⟨2⟩ σCall I) mem)
       (UInt256.ofNat 6) ByteArray.empty σCall k' C' := by
   have hcodeSizeRaw :
       Reasoning.Theory.extCodeSizeWord σCall
         (UInt256.land solcAddrMask (solcSlotWord σCall I ⟨1⟩)) ≠ ⟨0⟩ := by
-    simpa [kissDaiTargetWord, vowSlotWord, solcSlotWord, u256_land_comm] using hcodeSize
+    simpa [kissDaiTargetWord, solcSlotWordAt, solcSlotWord, u256_land_comm] using hcodeSize
   obtain ⟨_, _, _, rd2753⟩ :=
     RD.vowCageFirstDaiStaticcallSetup rd hmem hread64 hcodeSizeRaw hov
   obtain ⟨k2754, C2754, rd2754raw⟩ :=
@@ -150,7 +146,7 @@ theorem RD.vowCageFirstDaiCallDepthLimit
     haw ▸ rd2754raw
   rw [hmin, byteArray_write_len_zero] at rd2754
   exact ⟨k2754, C2754, by
-    simpa [kissDaiTargetWord, vowAddressReturnWord, vowSlotWord, solcSlotWord,
+    simpa [kissDaiTargetWord, solcAddressSlotWord, solcSlotWordAt, solcSlotWord,
       u256_land_comm] using rd2754⟩
 
 theorem vowCageFirstDaiCallDepthLimitBody
@@ -158,8 +154,8 @@ theorem vowCageFirstDaiCallDepthLimitBody
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
-    (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hliveEvm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hliveEvm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord
         (vowCageClearedAccountMap I.codeOwner σ)
@@ -195,8 +191,8 @@ theorem vowCageFirstDaiCallDepthLimitBody
       (σCall := σClearedEvm) (ret := ⟨412⟩) (R := [vowSelWord I])
       rdLoads hmemAuth hread64 (by simpa [σClearedEvm] using hcodeSize) hdepth
       (by simp)
-  have hauthSolm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ := hauthEvm
-  have hliveSolm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩ := hliveEvm
+  have hauthSolm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ := hauthEvm
+  have hliveSolm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ := hliveEvm
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σClearedSolm
         (kissDaiTargetWord σClearedSolm I) ≠ ⟨0⟩ := by
@@ -211,10 +207,10 @@ theorem vowCageFirstDaiCallDepthLimitBody
       cageVatAddressOf evmAsh = kissVatAddress σClearedSolm I := by
     have hload :
         Solm.EVM.storageLoad evmAsh I.codeOwner ⟨1⟩ =
-          vowSlotWord ⟨1⟩ evmAsh.accountMap I := by
+          solcSlotWordAt ⟨1⟩ evmAsh.accountMap I := by
       simpa [hownerAsh] using
-        flapStorageLoad_codeOwner_eq_vowSlotWord evmAsh I ⟨1⟩ hownerAsh
-    simp only [cageVatAddressOf, kissVatAddress, vowAddressReturnWord]
+        storageLoad_codeOwner_eq_solcSlotWordAt evmAsh I ⟨1⟩ hownerAsh
+    simp only [cageVatAddressOf, kissVatAddress, solcAddressSlotWord]
     rw [hownerAsh, hload]
     simp [
       σClearedSolm, evmAsh, evmSin, evmLive, evm0, initState, storageStore_accountMap,
@@ -234,10 +230,10 @@ theorem vowCageFirstDaiCallDepthLimitBody
       storageStore_accountMap, σClearedSolm, vowCageClearedAccountMap] using hpos
   have hflapperArg :
       flapFlapperAddressOf evmAsh =
-        AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σClearedSolm I).toNat := by
+        AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σClearedSolm I).toNat := by
     have hslot :
-        vowAddressReturnWord ⟨2⟩ evmAsh.accountMap I =
-          vowAddressReturnWord ⟨2⟩ σClearedSolm I := by
+        solcAddressSlotWord ⟨2⟩ evmAsh.accountMap I =
+          solcAddressSlotWord ⟨2⟩ σClearedSolm I := by
       simp [evmAsh, evmSin, evmLive, evm0, initState, storageStore_accountMap,
         σClearedSolm, vowCageClearedAccountMap]
     rw [flapFlapperAddressOf_eq_vowAddressReturnWord evmAsh I hownerAsh, hslot,
@@ -249,10 +245,10 @@ theorem vowCageFirstDaiCallDepthLimitBody
         (false, { evmAsh with substate := A_dai }, ByteArray.empty) false := by
     have henc :
         config.externalABI.encode? "dai" [.address (flapFlapperAddressOf evmAsh)] =
-          some ((vatDaiCalldataMemFor (vowAddressReturnWord ⟨2⟩ σClearedSolm I)
+          some ((vatDaiCalldataMemFor (solcAddressSlotWord ⟨2⟩ σClearedSolm I)
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)).readWithPadding 128 36) := by
       rw [hflapperArg]
-      simpa [vowAddressReturnWord, vowSlotWord, solcSlotWord, u256_land_comm] using
+      simpa [solcAddressSlotWord, solcSlotWordAt, solcSlotWord, u256_land_comm] using
         vatDaiEncodeMasked_eq_of_size96 (solcSlotWord σClearedSolm I ⟨2⟩) hmemAuth
     simpa [A_dai, evmAsh, evmSin, evmLive, evm0, initState, storageStore_executionEnv]
       using
@@ -279,7 +275,7 @@ theorem vowCageBodyToFlapperCage
         RD vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2795⟩
           (flapperDai :: flapCageSelectorWord ::
-            vowAddressReturnWord ⟨2⟩ (vowCageClearedAccountMap I.codeOwner σ) I ::
+            solcAddressSlotWord ⟨2⟩ (vowCageClearedAccountMap I.codeOwner σ) I ::
             ⟨412⟩ :: vowSelWord I :: [])
           memDai (UInt256.ofNat 6) outDai σ_dai k2795 C2795 →
         memDai.size = 164 →
@@ -300,8 +296,8 @@ theorem vowCageBodyToFlapperCage
            false) →
           config.externalABI.decode? "dai" outDai =
             some [.int (Int.ofNat flapperDai.toNat)] →
-          vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ →
-          vowSlotWord ⟨12⟩ σ I = ⟨1⟩ →
+          solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ →
+          solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ →
           I.depth.val < 1024 →
         evmDai.σ₀ = σ₀ →
         evmDai.executionEnv = I →
@@ -311,8 +307,8 @@ theorem vowCageBodyToFlapperCage
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  by_cases hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩
-  · by_cases hliveEvm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩
+  · by_cases hliveEvm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩
     · let σClearedEvm := vowCageClearedAccountMap I.codeOwner σ
       let σClearedSolm := vowCageClearedAccountMap I.codeOwner σ
       have hsz : 4 ≤ I.calldata.size :=
@@ -355,16 +351,16 @@ theorem vowCageBodyToFlapperCage
             (σCall := σClearedEvm) (ret := ⟨412⟩) (R := [vowSelWord I])
             rdLoads hmemAuth hread64 (by simpa [σClearedEvm] using hcodeSizeFirstNE)
             hdepthLt (by simp)
-        have hauthSolm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ := hauthEvm
-        have hliveSolm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩ := hliveEvm
+        have hauthSolm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ := hauthEvm
+        have hliveSolm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ := hliveEvm
         have hClearedAccounts : Eq σClearedEvm σClearedSolm := rfl
         have hTargetCleared :
             kissDaiTargetWord σClearedEvm I = kissDaiTargetWord σClearedSolm I := by
           exact congrArg (fun accounts => kissDaiTargetWord accounts I) hClearedAccounts
         have hFlapperCleared :
-            vowAddressReturnWord ⟨2⟩ σClearedEvm I =
-              vowAddressReturnWord ⟨2⟩ σClearedSolm I := by
-          exact congrArg (fun accounts => vowAddressReturnWord ⟨2⟩ accounts I)
+            solcAddressSlotWord ⟨2⟩ σClearedEvm I =
+              solcAddressSlotWord ⟨2⟩ σClearedSolm I := by
+          exact congrArg (fun accounts => solcAddressSlotWord ⟨2⟩ accounts I)
             hClearedAccounts
         have hcodeSizeSolm :
             Reasoning.Theory.extCodeSizeWord σClearedSolm
@@ -380,10 +376,10 @@ theorem vowCageBodyToFlapperCage
             cageVatAddressOf evmAsh = kissVatAddress σClearedSolm I := by
           have hload :
               Solm.EVM.storageLoad evmAsh I.codeOwner ⟨1⟩ =
-                vowSlotWord ⟨1⟩ evmAsh.accountMap I := by
+                solcSlotWordAt ⟨1⟩ evmAsh.accountMap I := by
             simpa [hownerAsh] using
-              flapStorageLoad_codeOwner_eq_vowSlotWord evmAsh I ⟨1⟩ hownerAsh
-          simp only [cageVatAddressOf, kissVatAddress, vowAddressReturnWord]
+              storageLoad_codeOwner_eq_solcSlotWordAt evmAsh I ⟨1⟩ hownerAsh
+          simp only [cageVatAddressOf, kissVatAddress, solcAddressSlotWord]
           rw [hownerAsh, hload]
           simp [
             σClearedSolm, evmAsh, evmSin, evmLive, evm0, initState,
@@ -391,7 +387,7 @@ theorem vowCageBodyToFlapperCage
         have hVatAddrCleared :
             kissVatAddress σClearedEvm I = kissVatAddress σClearedSolm I := by
           apply Fin.ext
-          simp [kissVatAddress, vowAddressReturnWord, hTargetCleared]
+          simp [kissVatAddress, solcAddressSlotWord, hTargetCleared]
         have hVatTarget :
             EVM.address (kissVatAddress σClearedEvm I) =
               EVM.address (cageVatAddressOf evmAsh) := by
@@ -412,10 +408,10 @@ theorem vowCageBodyToFlapperCage
             storageStore_accountMap, σClearedSolm, vowCageClearedAccountMap] using hpos
         have hflapperArg :
             flapFlapperAddressOf evmAsh =
-              AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σClearedSolm I).toNat := by
+              AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σClearedSolm I).toNat := by
           have hslot :
-              vowAddressReturnWord ⟨2⟩ evmAsh.accountMap I =
-                vowAddressReturnWord ⟨2⟩ σClearedSolm I := by
+              solcAddressSlotWord ⟨2⟩ evmAsh.accountMap I =
+                solcAddressSlotWord ⟨2⟩ σClearedSolm I := by
             simp [evmAsh, evmSin, evmLive, evm0, initState, storageStore_accountMap,
               σClearedSolm, vowCageClearedAccountMap]
           rw [flapFlapperAddressOf_eq_vowAddressReturnWord evmAsh I hownerAsh, hslot,
@@ -431,7 +427,7 @@ theorem vowCageBodyToFlapperCage
         have hcallDaiEvm :
             typedCallViaEVM config evmDaiEvmIn (EVM.address (kissVatAddress σClearedEvm I))
               "dai" 0 [.address (AccountAddress.ofNat
-                (vowAddressReturnWord ⟨2⟩ σClearedEvm I).toNat)]
+                (solcAddressSlotWord ⟨2⟩ σClearedEvm I).toNat)]
               (zDai, evmDaiEvmOut, outDai) false := by
           simpa [evmDaiEvmIn, evmDaiEvmOut] using hcallDaiEvmRaw
         have hDaiTargetPostEvm :
@@ -442,11 +438,11 @@ theorem vowCageBodyToFlapperCage
               (evm' := evmDaiEvmOut) (target := EVM.address (kissVatAddress σClearedEvm I))
               (name := "dai")
               (args := [.address (AccountAddress.ofNat
-                (vowAddressReturnWord ⟨2⟩ σClearedEvm I).toNat)])
+                (solcAddressSlotWord ⟨2⟩ σClearedEvm I).toNat)])
               (z := zDai) (out := outDai) (slot := ⟨1⟩) (default := ⟨0⟩)
               (by simp [evmDaiEvmIn])
               hcallDaiEvm
-          simpa [kissDaiTargetWord, vowSlotWord, solcSlotWord, evmDaiEvmIn,
+          simpa [kissDaiTargetWord, solcSlotWordAt, solcSlotWord, evmDaiEvmIn,
             evmDaiEvmOut, initState] using
             congrArg (fun word => UInt256.land word solcAddrMask) hslot
         obtain ⟨σ_dai_solm, A_dai_solm, hcallDaiSolmRaw, hAccountsDai⟩ :=
@@ -477,10 +473,10 @@ theorem vowCageBodyToFlapperCage
         · have rd2754True : RD vowBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2754⟩
               (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord σClearedEvm I ::
-                flapCageSelectorWord :: vowAddressReturnWord ⟨2⟩ σClearedEvm I ::
+                flapCageSelectorWord :: solcAddressSlotWord ⟨2⟩ σClearedEvm I ::
                 ⟨412⟩ :: vowSelWord I :: [])
               (outDai.write 0
-                (vatDaiCalldataMemFor (vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+                (vatDaiCalldataMemFor (solcAddressSlotWord ⟨2⟩ σClearedEvm I)
                   (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem))
                 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat)
               (UInt256.ofNat 6) outDai σ_dai k2754 C2754 := by
@@ -493,26 +489,26 @@ theorem vowCageBodyToFlapperCage
           have rd2754TruePost : RD vowBytecode I (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2754⟩
               (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord σ_dai I ::
-                flapCageSelectorWord :: vowAddressReturnWord ⟨2⟩ σClearedEvm I ::
+                flapCageSelectorWord :: solcAddressSlotWord ⟨2⟩ σClearedEvm I ::
                 ⟨412⟩ :: vowSelWord I :: [])
               (outDai.write 0
-                (vatDaiCalldataMemFor (vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+                (vatDaiCalldataMemFor (solcAddressSlotWord ⟨2⟩ σClearedEvm I)
                   (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem))
                 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat)
               (UInt256.ofNat 6) outDai σ_dai k2754 C2754 := by
             simpa [hDaiTargetPostEvm] using rd2754True
           let baseDai :=
-            vatDaiCalldataMemFor (vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+            vatDaiCalldataMemFor (solcAddressSlotWord ⟨2⟩ σClearedEvm I)
               (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
           have hbaseDai : baseDai.size = 164 := by
             simpa [baseDai] using
               vatDaiCalldataMemFor_size_of_size96
-                (vowAddressReturnWord ⟨2⟩ σClearedEvm I) hmemAuth
+                (solcAddressSlotWord ⟨2⟩ σClearedEvm I) hmemAuth
           have hbaseDaiRead64 :
               baseDai.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
             simpa [baseDai] using
               vatDaiCalldataMemFor_read64_of_size96
-                (vowAddressReturnWord ⟨2⟩ σClearedEvm I) hmemAuth hread64
+                (solcAddressSlotWord ⟨2⟩ σClearedEvm I) hmemAuth hread64
           by_cases ho32Dai : 32 ≤ outDai.size
           · let flapperDai : UInt256 :=
               UInt256.ofNat (fromByteArrayBigEndian (outDai.extract 0 32))
@@ -520,7 +516,7 @@ theorem vowCageBodyToFlapperCage
               RD.vowCageFirstDaiPostCallDecodeOk
                 (acc := σ_dai)
                 (mem := twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-                (target := vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+                (target := solcAddressSlotWord ⟨2⟩ σClearedEvm I)
                 (ret := ⟨412⟩) (R := [vowSelWord I])
                 rd2754TruePost hmemAuth hread64 ho32Dai houtDaiSize (by simp)
             let memDai := outDai.write 0 baseDai 128 32
@@ -590,8 +586,8 @@ theorem vowCageBodyToFlopperCage
            false) →
           config.externalABI.decode? "dai" outDai =
             some [.int (Int.ofNat flapperDai.toNat)] →
-          vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ →
-          vowSlotWord ⟨12⟩ σ I = ⟨1⟩ →
+          solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ →
+          solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ →
           0 < (UInt256.ofNat
           ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
             (fun acc => acc.code.size))).toNat →
@@ -630,8 +626,8 @@ theorem vowCageBodyToFlopperCage
   have hownerAsh : evmAsh.executionEnv.codeOwner = I.codeOwner := by
     simp [evmAsh, evmSin, evmLive, evm0, initState, storageStore_executionEnv]
   have hslotFlapperStatic :
-      vowAddressReturnWord ⟨2⟩ evmDai.accountMap I =
-        vowAddressReturnWord ⟨2⟩ σClearedSolm I := by
+      solcAddressSlotWord ⟨2⟩ evmDai.accountMap I =
+        solcAddressSlotWord ⟨2⟩ σClearedSolm I := by
     have hslot :=
       typedCallViaEVM_static_storage_getD_of_accounts_eq
         (cfg := config) (σ := σClearedSolm) (evm := evmAsh) (evm' := evmDai)
@@ -642,29 +638,29 @@ theorem vowCageBodyToFlopperCage
           simp [evmAsh, evmSin, evmLive, evm0, initState, storageStore_accountMap,
             σClearedSolm, vowCageClearedAccountMap])
         (by simpa [evmAsh, evmSin, evmLive, evm0] using hcallDai)
-    simpa [vowAddressReturnWord, vowSlotWord, solcSlotWord, henvDai, hownerAsh] using
+    simpa [solcAddressSlotWord, solcSlotWordAt, solcSlotWord, henvDai, hownerAsh] using
       congrArg (fun word => UInt256.land word solcAddrMask) hslot
   have hflapperTarget :
-      vowAddressReturnWord ⟨2⟩ σ_dai I =
-        vowAddressReturnWord ⟨2⟩ σClearedEvm I := by
+      solcAddressSlotWord ⟨2⟩ σ_dai I =
+        solcAddressSlotWord ⟨2⟩ σClearedEvm I := by
     calc
-      vowAddressReturnWord ⟨2⟩ σ_dai I =
-          vowAddressReturnWord ⟨2⟩ evmDai.accountMap I :=
-        congrArg (fun accounts => vowAddressReturnWord ⟨2⟩ accounts I) hAccountsDai
-      _ = vowAddressReturnWord ⟨2⟩ σClearedSolm I := hslotFlapperStatic
-      _ = vowAddressReturnWord ⟨2⟩ σClearedEvm I :=
-        (congrArg (fun accounts => vowAddressReturnWord ⟨2⟩ accounts I)
+      solcAddressSlotWord ⟨2⟩ σ_dai I =
+          solcAddressSlotWord ⟨2⟩ evmDai.accountMap I :=
+        congrArg (fun accounts => solcAddressSlotWord ⟨2⟩ accounts I) hAccountsDai
+      _ = solcAddressSlotWord ⟨2⟩ σClearedSolm I := hslotFlapperStatic
+      _ = solcAddressSlotWord ⟨2⟩ σClearedEvm I :=
+        (congrArg (fun accounts => solcAddressSlotWord ⟨2⟩ accounts I)
           hClearedAccounts).symm
   by_cases hcodeSizeFlapper :
       Reasoning.Theory.extCodeSizeWord σ_dai
-        (vowAddressReturnWord ⟨2⟩ σClearedEvm I) = ⟨0⟩
+        (solcAddressSlotWord ⟨2⟩ σClearedEvm I) = ⟨0⟩
   · have hcodeSizeFlapperDai :
         Reasoning.Theory.extCodeSizeWord σ_dai
-            (vowAddressReturnWord ⟨2⟩ σ_dai I) = ⟨0⟩ := by
+            (solcAddressSlotWord ⟨2⟩ σ_dai I) = ⟨0⟩ := by
       simpa [hflapperTarget] using hcodeSizeFlapper
     have hcodeSizeFlapperSolm :
         Reasoning.Theory.extCodeSizeWord evmDai.accountMap
-            (vowAddressReturnWord ⟨2⟩ evmDai.accountMap I) = ⟨0⟩ := by
+            (solcAddressSlotWord ⟨2⟩ evmDai.accountMap I) = ⟨0⟩ := by
       simpa only [← hAccountsDai] using hcodeSizeFlapperDai
     have hownerDai : evmDai.executionEnv.codeOwner = I.codeOwner := by
       simp [henvDai]
@@ -674,24 +670,24 @@ theorem vowCageBodyToFlopperCage
             (fun acc => acc.code.size))).toNat = 0 :=
       flapFlapperCode_zero_of_codeSize_zero evmDai I hownerDai hcodeSizeFlapperSolm
     exact vowCageFlapperCageNoCodeBodyCore (acc := σ_dai)
-      (evmDai := evmDai) (target := vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+      (evmDai := evmDai) (target := solcAddressSlotWord ⟨2⟩ σClearedEvm I)
       (ret := ⟨412⟩) (R := [vowSelWord I])
       hcode hwv hauthSolm hliveSolm hdispatch hdecode
       (by simpa [hflapperTarget] using rd2795) hmemDai hread64Dai
       hcodeSizeFlapper (by simp) hvatCode hcallDai hdecDai hflapperNoCode
   have hcodeSizeFlapperNE :
       Reasoning.Theory.extCodeSizeWord σ_dai
-        (vowAddressReturnWord ⟨2⟩ σClearedEvm I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σClearedEvm I) ≠ ⟨0⟩ :=
     hcodeSizeFlapper
   have hcodeSizeFlapperDaiNE :
       Reasoning.Theory.extCodeSizeWord σ_dai
-          (vowAddressReturnWord ⟨2⟩ σ_dai I) ≠ ⟨0⟩ := by
+          (solcAddressSlotWord ⟨2⟩ σ_dai I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeFlapperNE
     simpa [hflapperTarget] using hzero
   have hcodeSizeFlapperSolmNE :
       Reasoning.Theory.extCodeSizeWord evmDai.accountMap
-          (vowAddressReturnWord ⟨2⟩ evmDai.accountMap I) ≠ ⟨0⟩ := by
+          (solcAddressSlotWord ⟨2⟩ evmDai.accountMap I) ≠ ⟨0⟩ := by
     simpa only [← hAccountsDai] using hcodeSizeFlapperDaiNE
   have hownerDai : evmDai.executionEnv.codeOwner = I.codeOwner := by
     simp [henvDai]
@@ -704,7 +700,7 @@ theorem vowCageBodyToFlopperCage
       hcallFlapEvmRaw, houtFlapSize⟩ :=
     RD.vowCageFlapperCageCall
       (σCall := σ_dai)
-      (target := vowAddressReturnWord ⟨2⟩ σClearedEvm I)
+      (target := solcAddressSlotWord ⟨2⟩ σClearedEvm I)
       (R := [⟨412⟩, vowSelWord I])
       rd2795 hmemDai hread64Dai hcodeSizeFlapperNE hdepthLt hperm
       (cageFlapperAddress_eq_target σClearedEvm I)
@@ -720,19 +716,19 @@ theorem vowCageBodyToFlopperCage
     }
   have hFlapperAddr :
       flapFlapperAddressOf evmDai =
-        AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ evmDai.accountMap I) :=
+        AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ evmDai.accountMap I) :=
     flapFlapperAddressOf_eq_vowAddressReturnWord evmDai I hownerDai
   have hFlapperTargetAddr :
-      EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σClearedEvm I).toNat) =
+      EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σClearedEvm I).toNat) =
         EVM.address (flapFlapperAddressOf evmDai) := by
     calc
-      EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σClearedEvm I).toNat) =
-          AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ σClearedEvm I) :=
+      EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σClearedEvm I).toNat) =
+          AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ σClearedEvm I) :=
         cageFlapperAddress_eq_target σClearedEvm I
-      _ = AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ σ_dai I) := by
+      _ = AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ σ_dai I) := by
         rw [hflapperTarget]
-      _ = AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ evmDai.accountMap I) := by
-        rw [congrArg (fun accounts => vowAddressReturnWord ⟨2⟩ accounts I)
+      _ = AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ evmDai.accountMap I) := by
+        rw [congrArg (fun accounts => solcAddressSlotWord ⟨2⟩ accounts I)
           hAccountsDai]
       _ = EVM.address (flapFlapperAddressOf evmDai) := by
         rw [← hFlapperAddr]
@@ -763,7 +759,7 @@ theorem vowCageBodyToFlopperCage
   cases zFlap
   · exact vowCageFlapperCageCallFailureBodyCore (acc := σ_flap)
       (evmDai := evmDai) (evmFlap := evmFlapSolm)
-      (target := vowAddressReturnWord ⟨2⟩ σClearedEvm I) (ret := ⟨412⟩)
+      (target := solcAddressSlotWord ⟨2⟩ σClearedEvm I) (ret := ⟨412⟩)
       (R := [vowSelWord I])
       hcode hwv hauthSolm hliveSolm hdispatch hdecode
       (by simpa using rd2860) houtFlapSize (by simp) hvatCode hcallDai hdecDai
@@ -771,7 +767,7 @@ theorem vowCageBodyToFlopperCage
   · have rd2860True : RD vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2860⟩
         (⟨1⟩ :: flapCageEndPtr :: flapCageSelectorWord ::
-          vowAddressReturnWord ⟨2⟩ σClearedEvm I :: ⟨412⟩ :: vowSelWord I :: [])
+          solcAddressSlotWord ⟨2⟩ σClearedEvm I :: ⟨412⟩ :: vowSelWord I :: [])
         (flapCageCalldataMem flapperDai memDai)
         (UInt256.ofNat 6) outFlap σ_flap k2860 C2860 := by
       simpa using rd2860
@@ -807,7 +803,7 @@ theorem vowCageBodyToSecondDai
         {flapperDai : UInt256},
         RD vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
-          (flopCageSelectorWord :: vowAddressReturnWord ⟨3⟩ σ_flap I ::
+          (flopCageSelectorWord :: solcAddressSlotWord ⟨3⟩ σ_flap I ::
             ⟨412⟩ :: vowSelWord I :: [])
           memFlop (UInt256.ofNat 6) outFlop σ_flop k2983 C2983 →
         memFlop.size = 164 →
@@ -828,8 +824,8 @@ theorem vowCageBodyToSecondDai
            false) →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat flapperDai.toNat)] →
-        vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ →
-        vowSlotWord ⟨12⟩ σ I = ⟨1⟩ →
+        solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ →
+        solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ →
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
             (fun acc => acc.code.size))).toNat →
@@ -867,10 +863,10 @@ theorem vowCageBodyToSecondDai
       hcode hsize hperm hwv hsel
   by_cases hcodeSizeFlopper :
       Reasoning.Theory.extCodeSizeWord σ_flap
-        (vowAddressReturnWord ⟨3⟩ σ_flap I) = ⟨0⟩
+        (solcAddressSlotWord ⟨3⟩ σ_flap I) = ⟨0⟩
   · have hcodeSizeFlopperSolm :
         Reasoning.Theory.extCodeSizeWord evmFlap.accountMap
-            (vowAddressReturnWord ⟨3⟩ evmFlap.accountMap I) = ⟨0⟩ := by
+            (solcAddressSlotWord ⟨3⟩ evmFlap.accountMap I) = ⟨0⟩ := by
       simpa only [← hAccountsFlap] using hcodeSizeFlopper
     have hownerFlap : evmFlap.executionEnv.codeOwner = I.codeOwner := by
       simp [henvFlap]
@@ -887,11 +883,11 @@ theorem vowCageBodyToSecondDai
       hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperNoCode
   have hcodeSizeFlopperNE :
       Reasoning.Theory.extCodeSizeWord σ_flap
-        (vowAddressReturnWord ⟨3⟩ σ_flap I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨3⟩ σ_flap I) ≠ ⟨0⟩ :=
     hcodeSizeFlopper
   have hcodeSizeFlopperSolmNE :
       Reasoning.Theory.extCodeSizeWord evmFlap.accountMap
-          (vowAddressReturnWord ⟨3⟩ evmFlap.accountMap I) ≠ ⟨0⟩ := by
+          (solcAddressSlotWord ⟨3⟩ evmFlap.accountMap I) ≠ ⟨0⟩ := by
     simpa only [← hAccountsFlap] using hcodeSizeFlopperNE
   have hownerFlap : evmFlap.executionEnv.codeOwner = I.codeOwner := by
     simp [henvFlap]
@@ -916,17 +912,17 @@ theorem vowCageBodyToSecondDai
     }
   have hFlopperAddr :
       flopFlopperAddressOf evmFlap =
-        AccountAddress.ofUInt256 (vowAddressReturnWord ⟨3⟩ evmFlap.accountMap I) :=
+        AccountAddress.ofUInt256 (solcAddressSlotWord ⟨3⟩ evmFlap.accountMap I) :=
     cageFlopperAddressOf_eq_vowAddressReturnWord evmFlap I hownerFlap
   have hFlopperTargetAddr :
-      EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨3⟩ σ_flap I).toNat) =
+      EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨3⟩ σ_flap I).toNat) =
         EVM.address (flopFlopperAddressOf evmFlap) := by
     calc
-      EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨3⟩ σ_flap I).toNat) =
-          AccountAddress.ofUInt256 (vowAddressReturnWord ⟨3⟩ σ_flap I) :=
+      EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨3⟩ σ_flap I).toNat) =
+          AccountAddress.ofUInt256 (solcAddressSlotWord ⟨3⟩ σ_flap I) :=
         cageFlopperAddress_eq_target σ_flap I
-      _ = AccountAddress.ofUInt256 (vowAddressReturnWord ⟨3⟩ evmFlap.accountMap I) := by
-        rw [congrArg (fun accounts => vowAddressReturnWord ⟨3⟩ accounts I)
+      _ = AccountAddress.ofUInt256 (solcAddressSlotWord ⟨3⟩ evmFlap.accountMap I) := by
+        rw [congrArg (fun accounts => solcAddressSlotWord ⟨3⟩ accounts I)
           hAccountsFlap]
       _ = EVM.address (flopFlopperAddressOf evmFlap) := by
         rw [← hFlopperAddr]
@@ -955,7 +951,7 @@ theorem vowCageBodyToSecondDai
   cases zFlop
   · exact vowCageFlopperCageCallFailureBodyCore (acc := σ_flop)
       (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlopSolm)
-      (target := vowAddressReturnWord ⟨3⟩ σ_flap I) (ret := ⟨412⟩)
+      (target := solcAddressSlotWord ⟨3⟩ σ_flap I) (ret := ⟨412⟩)
       (R := [vowSelWord I])
       hcode hwv hauthSolm hliveSolm hdispatch hdecode
       (by simpa using rd2964) houtFlopSize (by simp) hvatCode hcallDai hdecDai
@@ -963,7 +959,7 @@ theorem vowCageBodyToSecondDai
   · have rd2964True : RD vowBytecode I (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2964⟩
         (⟨1⟩ :: flopCageEndPtr :: flopCageSelectorWord ::
-          vowAddressReturnWord ⟨3⟩ σ_flap I :: ⟨412⟩ :: vowSelWord I :: [])
+          solcAddressSlotWord ⟨3⟩ σ_flap I :: ⟨412⟩ :: vowSelWord I :: [])
         (flopCageCalldataMem memFlap)
         (UInt256.ofNat 6) outFlop σ_flop k2964 C2964 := by
       simpa using rd2964
@@ -1022,8 +1018,8 @@ theorem vowCageBodyToVatSin
            false) →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat flapperDai.toNat)] →
-        vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ →
-        vowSlotWord ⟨12⟩ σ I = ⟨1⟩ →
+        solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ →
+        solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ →
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
             (fun acc => acc.code.size))).toNat →
@@ -1085,7 +1081,7 @@ theorem vowCageBodyToVatSin
     exact vowCageSecondDaiNoCodeBodyCore (acc := σ_flop)
       (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
       (flapperDai := flapperDai) (d1 := flopCageSelectorWord)
-      (d2 := vowAddressReturnWord ⟨3⟩ σ_flap I) (R := [⟨412⟩, vowSelWord I])
+      (d2 := solcAddressSlotWord ⟨3⟩ σ_flap I) (R := [⟨412⟩, vowSelWord I])
       hcode hwv hauthSolm hliveSolm hdispatch hdecode
       (by simpa using rd2983) hmemFlop hread64Flop hcodeSizeVat (by simp)
       hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperCode hcallFlop
@@ -1133,7 +1129,7 @@ theorem vowCageBodyToVatSin
         (out := outDai2) (slot := ⟨1⟩) (default := ⟨0⟩)
         (by simp [evmDai2EvmIn])
         hcallDai2Evm
-    simpa [kissDaiTargetWord, vowSlotWord, evmDai2EvmIn, evmDai2EvmOut, initState] using
+    simpa [kissDaiTargetWord, solcSlotWordAt, evmDai2EvmIn, evmDai2EvmOut, initState] using
       congrArg (fun word => UInt256.land word solcAddrMask) hslot
   have hVatAddrMap : kissVatAddress σ_flop I = kissVatAddress evmFlop.accountMap I :=
     congrArg (fun accounts => kissVatAddress accounts I) hAccountsFlop
@@ -1197,7 +1193,7 @@ theorem vowCageBodyToVatSin
         UInt256.ofNat (fromByteArrayBigEndian (outDai2.extract 0 32))
       have hmin :
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat = 32 :=
-        kissDaiMin32_toNat_of_ge ho32Dai2 houtDai2Size
+        ctorMin32_toNat_of_ge ho32Dai2 houtDai2Size
       have rd3074Write := rd3074True
       rw [hmin] at rd3074Write
       obtain ⟨_, _, rd3092⟩ :=

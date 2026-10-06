@@ -1,3 +1,5 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.ABILegacy
 import Benchmarks.Dss.Cat.Storage
 import Reasoning.ExternalCall
 
@@ -92,106 +94,6 @@ theorem fileIlkFlipFlipKey_canonical (I : ExecutionEnv) :
 
 /-! ### ABI decode (`bytes32`, `bytes32`, `address`) -/
 
-theorem decodeABIValues_bytes32_bytes32_address_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .fixedBytes abiBytes32Width ((bytes.drop 32).take 32),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)], 96) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  have hlen32le : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  rw [if_pos hlen32le]
-  have hlen64le : 32 ≤ bytes.length - 64 := by
-    rw [List.length_take, List.length_drop] at hlen64
-    omega
-  simp [readWord?, readBytes?, decodeABIWord?, UInt256.toNat, hlen64]
-
-theorem decodeABIValues_bytes32_bytes32_address_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeABIValues? [abiBytes32, abiBytes32, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    by_cases h64 : bytes.length < 64
-    · have hnot : ¬ 32 ≤ bytes.length - 32 := by omega
-      simp [hnot]
-    · have hlen32le : 32 ≤ bytes.length - 32 := by omega
-      rw [if_pos hlen32le]
-      have hnot : ¬ 32 ≤ bytes.length - 64 := by omega
-      simp [readWord?, readBytes?, hnot]
-
-theorem decodeCalldata_legacyBytes32_bytes32_address_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-        [abiBytes32, abiBytes32, abiAddress] cd =
-      some ((((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 36).take 32))).insert z
-        (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 96)]
-  simp [decodeCalldata.insertValues]
-  rw [hword68]
-
-theorem decodeCalldata_legacyBytes32_bytes32_address_none_short {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-        [abiBytes32, abiBytes32, abiAddress] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 96
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_bytes32_address_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 /-! ### Dispatch / decode / locals -/
 
@@ -357,13 +259,13 @@ theorem RD.catFileIlkFlipToWhatCheck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by jump_dest) hlt
   obtain ⟨_, _, hroutine⟩ := RD.catFileIlkFlipDecodeToRoutine
     (ret := ⟨302⟩) (sel := sel) (R := []) hdecoded (by jump_dest) (by simp)
-  obtain ⟨_, _, hafterAuth⟩ := RD.catAuthCheckOk
+  obtain ⟨_, _, hafterAuth⟩ := RD.solcAuthCheckOk
     (code := catBytecode) (pc := ⟨3366⟩) (okPc := ⟨3455⟩)
     (key := fileIlkFlipFlipKey I) (ret := fileIlkFlipWhatWord I)
     (R := [fileIlkFlipIlkWord I, ⟨302⟩, sel])
     (by simpa [fileIlkFlipFlipKey, fileIlkFlipWhatWord, fileIlkFlipIlkWord] using hroutine)
     (by
-      unfold catAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first | apply And.intro | native_decide)
     hauth (by jump_dest) (by simp)
   exact ⟨_, _, hafterAuth⟩
@@ -393,10 +295,10 @@ theorem RD.catFileIlkFlipAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [fileIlkFlipIlkWord I, ⟨302⟩, sel])
     (by simpa [fileIlkFlipFlipKey, fileIlkFlipWhatWord, fileIlkFlipIlkWord] using hroutine)
     (by
-      unfold catAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first | apply And.intro | native_decide)
     (by
-      unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
+      unfold solcErrorStringRevertTailWf solcAuthTailPc catNotAuthorizedRawWord
       repeat' first | apply And.intro | native_decide)
     hauth (by simp)
 
@@ -502,17 +404,15 @@ theorem fifNopeSelMem_gapeq (I : ExecutionEnv) :
     (by rw [fifKeccakMem_size]; omega) (by rw [fifKeccakMem_size]; exact lt_usize 32 (by norm_num))]
   rw [fifKeccakMem_size]
 
-theorem fifZeroes32_size : (ByteArray.zeroes 32).size = 32 := by
-  rw [ByteArray_zeroes_size]
 
 theorem fifNopeSelMem_size (I : ExecutionEnv) : (fifNopeSelMem I).size = 160 := by
   rw [fifNopeSelMem_gapeq, ByteArray.size_append, ByteArray.size_append, fifKeccakMem_size,
-    fifZeroes32_size, toByteArray_size]
+    zeroes32_size, toByteArray_size]
 
 theorem fifNopeSelMem_read64 (I : ExecutionEnv) :
     (fifNopeSelMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   have h2 : (64 : ℕ) + 32 ≤ (fifKeccakMem I ++ ByteArray.zeroes 32).size := by
-    rw [ByteArray.size_append, fifKeccakMem_size, fifZeroes32_size]; omega
+    rw [ByteArray.size_append, fifKeccakMem_size, zeroes32_size]; omega
   have h3 : (64 : ℕ) + 32 ≤ (fifKeccakMem I).size := by rw [fifKeccakMem_size]
   rw [readWithPadding_eq_extract _ 64 (by rw [fifNopeSelMem_size]; omega),
     fifNopeSelMem_gapeq, extract_append_left _ _ 64 (64 + 32) h2,

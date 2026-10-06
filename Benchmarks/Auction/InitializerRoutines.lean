@@ -9,14 +9,14 @@ namespace Auction
 
 def initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨51⟩
-    (UInt256.land (storedWord σ I ⟨51⟩) (UInt256.lnot ⟨255⟩))
+    (UInt256.land (solcSlotWord σ I ⟨51⟩) (UInt256.lnot ⟨255⟩))
 
 def initializerStatusMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨1⟩
 
 def initializerOwnerMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨151⟩
-    (setAddressOffset0Word (storedWord σ I ⟨151⟩) (solcSourceWord I))
+    (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) (solcSourceWord I))
 
 theorem pausableInitializerLeaf {I g s0 ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨4993⟩ (ret :: R) mem aw rdata σ k C)
@@ -30,7 +30,7 @@ theorem pausableInitializerLeaf {I g s0 ret R mem aw rdata σ k C}
   have rd5086 := evm_run rd5081 with [push1 ⟨255⟩, not, and, swap1]
   obtain ⟨_, _, rd5087⟩ := rd5086.sstore hperm (by native_decide) (by evm_ov)
   change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨51⟩
-    (UInt256.land (UInt256.lnot ⟨255⟩) (storedWord σ I ⟨51⟩))) _ _ at rd5087
+    (UInt256.land (UInt256.lnot ⟨255⟩) (solcSlotWord σ I ⟨51⟩))) _ _ at rd5087
   rw [u256_land_comm (UInt256.lnot ⟨255⟩)] at rd5087
   exact initializerTail 2 rd5087
     (initializerNestedFlag_sstore (initializerNestedFlag_of_ready hr) _ _) hperm hret (by omega)

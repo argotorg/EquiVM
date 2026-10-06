@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Cat.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -33,31 +35,6 @@ The EVMLean static-storage/code projections exposed through `Reasoning.ExternalC
 translate that account-address relation to the Uniswap code-size word helper used by the solc reach
 rules. -/
 
-/-- `extCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
-    function of `(σ.getD a default).code` — the projection `accountCodeStateEq` preserves. -/
-theorem extCodeSizeWord_eq_ofNat_getD (σ : AccountMap) (target : UInt256) :
-    Reasoning.Theory.extCodeSizeWord σ target
-      = UInt256.ofNat (σ.getD (AccountAddress.ofUInt256 target) default).code.size := by
-  unfold Reasoning.Theory.extCodeSizeWord
-  cases h : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      have hdefault : (default : Account).code.size = 0 := by
-        native_decide
-      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
-        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, hdefault, h]
-      rfl
-  | some acc =>
-      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
-        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, h]
-
-/-- Code preservation transfers to `extCodeSizeWord`: static calls leave every account's
-    `EXTCODESIZE` word unchanged. -/
-theorem extCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target : UInt256)
-    (h : accountCodeStateEq σ σ') :
-    Reasoning.Theory.extCodeSizeWord σ' target
-      = Reasoning.Theory.extCodeSizeWord σ target := by
-  rw [extCodeSizeWord_eq_ofNat_getD, extCodeSizeWord_eq_ofNat_getD,
-    (h (AccountAddress.ofUInt256 target)).symm]
 
 /-! ## Selector helpers -/
 
@@ -134,66 +111,9 @@ def catHighHighSelBytes : ℕ → ByteArray
 
 /-! ## Storage word helpers -/
 
-def catSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
-
-abbrev catAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (catSlotWord slot σ I) solcAddrMask
-
-theorem catStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem catStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 /-! ## ABI decode helpers -/
 
-theorem decodeCalldata_legacyUInt256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-theorem decodeCalldata_legacyUInt256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 /-! ## Simple storage getter cores
 
@@ -214,7 +134,7 @@ theorem catUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (catStorageLocLoad_uint256 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -231,7 +151,7 @@ theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (catStorageLocLoad_address_offset0 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem catUint256GetterBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -253,21 +173,21 @@ theorem catUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+  have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hval :
-      some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] =
-        some [Value.int (Int.ofNat (catSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (catSlotWord slot σ I))
-        (some [(.int (Int.ofNat (catSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (catSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := catBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨419⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -277,8 +197,8 @@ theorem catUint256GetterBodyCore
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (catSlotWord slot σ I)) := by
-    simpa [catSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem catAddressGetterBodyCore
@@ -302,23 +222,23 @@ theorem catAddressGetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (catAddressReturnWord slot σ I).toNat))]))) :
+            (solcAddressSlotWord slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  have hword : catSlotWord slot σ I = catSlotWord slot σ I :=
+  have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I :=
     rfl
   have hval :
-      some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat)] := by
-    have hslot : catSlotWord slot σ I = catSlotWord slot σ I := hword.symm
-    simp [catAddressReturnWord, hslot]
+      some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] =
+        some [Value.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat)] := by
+    have hslot : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I := hword.symm
+    simp [solcAddressSlotWord, hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (catAddressReturnWord slot σ I))
-        (some [(.address (AccountAddress.ofNat (catAddressReturnWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
-    simpa [catAddressReturnWord] using
+    simpa [solcAddressSlotWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (catSlotWord slot σ I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWordAt slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := catBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨347⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -328,8 +248,8 @@ theorem catAddressGetterBodyCore
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (catAddressReturnWord slot σ I)) := by
-    simpa [catAddressReturnWord, catSlotWord] using hret
+        (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
+    simpa [solcAddressSlotWord, solcSlotWordAt] using hret
   exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 /-! ## Selector-word extraction and split/arm well-formedness -/

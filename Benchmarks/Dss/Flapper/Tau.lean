@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flapper
 /-! ## `tau()` getter -/
 
 def tauWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flapperUint48Offset6Word ⟨5⟩ σ I
+  uint48Offset6Word ⟨5⟩ σ I
 
 theorem flapperDecode_tau {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (tauTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flapperTauBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (tauWord σ I).toNat))])) := by
-    simpa [tauTransition, tauWord, flapperUint48Offset6Word, initState,
+    simpa [tauTransition, tauWord, uint48Offset6Word, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flapperUint48GetterBodyReturns_offset6
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -87,12 +87,12 @@ theorem flapperTauBodyCore {σ σ₀ A I} {g : UInt256}
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
     (by
-      unfold flapperUint48Offset6SlotGetterWf
+      unfold solcUint48Offset6SlotGetterWf
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
     (by jump_dest)
     (by
-      unfold flapperReturnUint48FromMemWf
+      unfold solcReturnUint48FromMemWf
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [tauWord] using hbody)
 

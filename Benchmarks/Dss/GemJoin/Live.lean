@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.GemJoin
 /-! ## `live()` getter -/
 
 def gemJoinLiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  gemJoinSlotWord ⟨5⟩ σ I
+  solcSlotWordAt ⟨5⟩ σ I
 
 theorem gemJoinDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
@@ -57,7 +57,7 @@ theorem gemJoinLiveBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (gemJoinLiveWord σ I).toNat))])) := by
-    simpa [liveTransition, gemJoinLiveWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, gemJoinLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

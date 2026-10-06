@@ -440,7 +440,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -481,14 +481,14 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact takeAddressOfWord_eq_masked (clipperTakeWhoWord I)
   have hnoCodeSolm :
       (UInt256.ofNat
         ((evmVatSolm.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero haddr
+      extCodeSizeWord_zero_lookup_code_zero haddr
         (by simpa only [← hAccountsVat] using hcallbackNoCode)
   have hcallback :=
     clipperTakeCallbackNoCodeStmt v
@@ -591,7 +591,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -620,7 +620,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsVat] using hvatMoveNoCodeEvm)
@@ -724,7 +724,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -765,14 +765,14 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact takeAddressOfWord_eq_masked (clipperTakeWhoWord I)
   have hcodeSolm :
       0 < (UInt256.ofNat
         ((evmVatSolm.lookupAccount
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         haddr
         (by simpa only [← hAccountsVat] using hcallbackCode)
   let evmVatEvm : EVM.State :=
@@ -809,7 +809,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofNat (UInt256.land who solcAddrMask).toNat =
           AccountAddress.ofNat (clipperTakeWhoWord I).toNat := by
       rw [hwhoClean, hwho]
-      exact (clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)).symm
+      exact (takeAddressOfWord_eq_masked (clipperTakeWhoWord I)).symm
     rw [htargetAddr] at hcallCbSolmRaw
     simpa only [evmCbSolm, hevmVatEnv, htab] using hcallCbSolmRaw
   have hcallback :=
@@ -922,7 +922,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hvatCodeEvm)
@@ -951,7 +951,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsVat] using hvatMoveCodeEvm)

@@ -187,7 +187,7 @@ theorem flipperDentX_lotGuardPrefix {σ I} {g : Sat256} {s0 : State}
         (⟨1⟩ : UInt256) + bidBaseOfWord (dentId I) = bidSlotOfWord (dentId I) ⟨1⟩ := by
       simpa [bidSlotOfWord] using
         (u256_add_comm (⟨1⟩ : UInt256) (bidBaseOfWord (dentId I)))
-    simpa [bidLotWord, flipperSlotWord, hslotAdd] using rd4526raw
+    simpa [bidLotWord, solcSlotWordAt, hslotAdd] using rd4526raw
   exact ⟨_, _, evm_run rd4527 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov)]⟩

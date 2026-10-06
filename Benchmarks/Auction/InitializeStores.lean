@@ -11,19 +11,19 @@ namespace Auction
 def InitializeArgs.storeMap (args : InitializeArgs) (σ : AccountMap) (I : ExecutionEnv) :
     AccountMap :=
   let σ1 := sstoreAccountMap I.codeOwner σ ⟨201⟩
-    (setAddressOffset0Word (storedWord σ I ⟨201⟩) args.nouns)
+    (setAddressOffset0Word (solcSlotWord σ I ⟨201⟩) args.nouns)
   let σ2 := sstoreAccountMap I.codeOwner σ1 ⟨202⟩
-    (setAddressOffset0Word (storedWord σ1 I ⟨202⟩) args.weth)
+    (setAddressOffset0Word (solcSlotWord σ1 I ⟨202⟩) args.weth)
   let σ3 := sstoreAccountMap I.codeOwner σ2 ⟨203⟩ args.timeBuffer
   let σ4 := sstoreAccountMap I.codeOwner σ3 ⟨204⟩ args.reservePrice
   let σ5 := sstoreAccountMap I.codeOwner σ4 ⟨205⟩
-    (UInt256.lor (UInt256.land (storedWord σ4 I ⟨205⟩) (UInt256.lnot ⟨255⟩))
+    (UInt256.lor (UInt256.land (solcSlotWord σ4 I ⟨205⟩) (UInt256.lnot ⟨255⟩))
       args.minBidIncrement)
   sstoreAccountMap I.codeOwner σ5 ⟨206⟩ args.duration
 
 def initializerExited (σ : AccountMap) (I : ExecutionEnv) (top : UInt256) : AccountMap :=
   if top = ⟨0⟩ then σ else
-    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerEndWord (storedWord σ I ⟨0⟩))
+    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerEndWord (solcSlotWord σ I ⟨0⟩))
 
 theorem initializeStoreArgs {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2245⟩ (top :: args.words.reverse ++ ret :: R)
@@ -84,7 +84,7 @@ theorem initializeExit {I g s0 top ret R mem aw rdata σ k C} (args : Initialize
     have rd2341 := evm_run rd2335 with [push2 ⟨65280⟩, not, and, swap1]
     obtain ⟨_, _, rd2342⟩ := rd2341.sstore hperm (by native_decide) (by evm_ov)
     change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
-      (UInt256.land (UInt256.lnot ⟨65280⟩) (storedWord σ I ⟨0⟩))) _ _ at rd2342
+      (UInt256.land (UInt256.lnot ⟨65280⟩) (solcSlotWord σ I ⟨0⟩))) _ _ at rd2342
     rw [u256_land_comm (UInt256.lnot ⟨65280⟩)] at rd2342
     exact ⟨_, _, evm_run rd2342 with [jumpdest, pop, pop, pop, pop, pop, pop, pop, jump hret]⟩
 

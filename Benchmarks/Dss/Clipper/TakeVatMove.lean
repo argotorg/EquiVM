@@ -23,7 +23,7 @@ theorem clipperTakeJumpDest4825 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -37,7 +37,7 @@ theorem clipperTakeJumpDest4845 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -235,7 +235,7 @@ theorem clipperTakeVatMoveEncode_eq (v : ClipperImmutables) (σ : AccountMap)
   have hvowWord :
       EVM.word (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat).val =
         clipperTakeVowTarget σ I := by
-    simpa [hvowClean] using clipperTakeWhoAddressWord (clipperTakeVowTarget σ I)
+    simpa [hvowClean] using takeWhoAddressWord (clipperTakeVowTarget σ I)
   have howeWord : EVM.word owe.toNat = owe := u256_ofNat_toNat owe
   have howeLt : owe.toNat < EVM.twoPow 256 := by
     change owe.val.val < UInt256.size
@@ -284,7 +284,8 @@ theorem clipperTakeVatPatchPayload4751 (v : ClipperImmutables) {code : ByteArray
         (8747, ilkBytes)])
     (off := 4751) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk, hlen,
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -567,7 +568,7 @@ theorem RD.clipperTakeVatMovePostCall {σ₀ σStart σ I}
         decide))
       ?_ ?_ ?_
     · rw [clipperTakeVatTargetAddress v]
-      exact clipperTakeEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨100⟩ : UInt256).toNat = 100 from by decide] using
         clipperTakeVatMoveEncode_eq v σ I owe hbaseMem

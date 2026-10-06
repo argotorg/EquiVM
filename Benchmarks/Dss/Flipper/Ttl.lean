@@ -63,7 +63,7 @@ theorem flipperTtlBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (ttlWord σ I).toNat))])) := by
-    simpa [ttlTransition, ttlWord, flipperUint48Offset0Word, flipperSlotWord, initState,
+    simpa [ttlTransition, ttlWord, flipperUint48Offset0Word, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flipperUint48Offset0GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

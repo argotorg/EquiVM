@@ -193,7 +193,7 @@ theorem gemJoinDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1370 : RD gemJoinBytecode I g s0 ⟨1370⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1370 C1370 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
   have rd1373pre := evm_run rd1370 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -241,7 +241,7 @@ theorem gemJoinDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1370 : RD gemJoinBytecode I g s0 ⟨1370⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1370 C1370 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1370raw
   have rd1373pre := evm_run rd1370 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -404,7 +404,7 @@ theorem gemJoinDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -439,7 +439,7 @@ theorem gemJoinDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

@@ -1,3 +1,6 @@
+import Reasoning.StateFacts
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -27,15 +30,6 @@ set_option maxRecDepth 2000000
 def flipperCtorArgsTail (vat cat : Ethereum.AccountAddress) (ilk : List UInt8) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val) ++ EVM.Word.toBytesBE (EVM.word cat.val) ++ ilk).toByteArray
 
-private theorem byteArray_append_toList (a b : ByteArray) :
-    (a ++ b).toList = a.toList ++ b.toList := by
-  rw [Reasoning.Theory.byteArray_toList_eq, Reasoning.Theory.byteArray_toList_eq,
-    Reasoning.Theory.byteArray_toList_eq]
-  simp [ByteArray.data_append]
-
-private theorem list_toByteArray_toList (xs : List UInt8) : xs.toByteArray.toList = xs := by
-  rw [Reasoning.Theory.byteArray_toList_eq]
-  simp
 
 theorem flipperCtorArgsTail_encode (vat cat : Ethereum.AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
@@ -45,7 +39,7 @@ theorem flipperCtorArgsTail_encode (vat cat : Ethereum.AccountAddress) (ilk : Li
   simp [flipperCtorArgsTail, addr, bytes32, bytes32Width, hilk, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
     ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
-    ABI.zeroBytes, list_toByteArray_toList, byteArray_append_toList, List.append_assoc]
+    ABI.zeroBytes, list_toByteArray_toList, byteArray_toList_append, List.append_assoc]
 
 theorem flipperCtorDeployment_eq (vat cat : Ethereum.AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
@@ -166,83 +160,6 @@ theorem flipperCtorCode_runtime_window (vat cat : Ethereum.AccountAddress) (ilk 
 abbrev flipperIlkWord (ilk : List UInt8) : UInt256 :=
   UInt256.ofNat (fromBytesBigEndian ilk)
 
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (_hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by
-    rw [Nat.min_eq_left]
-    omega
-  have hcopyData : min len (src.data.size - srcAddr) = len := by
-    rw [show src.data.size = src.size from rfl]
-    exact hcopy
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
-    omega
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append]
-    have hz :
-        (ByteArray.zeroes (destAddr - base.size)).data.size =
-          destAddr - base.size := by
-      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-        ByteArray_zeroes_size]
-    rw [hz]
-    change base.size + (destAddr - base.size) = destAddr
-    omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  change (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
-          destAddr ++
-        (src.data ++
-            (ByteArray.zeroes
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr)))).data).extract
-          srcAddr
-          (srcAddr +
-            (min len (src.size - srcAddr) +
-              (min base.size (destAddr + len) -
-                (destAddr + min len (src.size - srcAddr))))) ++
-        (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr +
-            min
-              (min len (src.size - srcAddr) +
-                (min base.size (destAddr + len) -
-                  (destAddr + min len (src.size - srcAddr))))
-              ((src.data ++
-                    (ByteArray.zeroes
-                      (min base.size (destAddr + len) -
-                        (destAddr + min len (src.size - srcAddr)))).data).size -
-                srcAddr)) =
-      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
-        (src.extract srcAddr (srcAddr + len)).data
-  rw [hcopy, htail]
-  rw [show (ByteArray.zeroes 0).data =
-      (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show src.data.extract srcAddr (srcAddr + len) =
-      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
-  rw [hcopyData]
-  rw [show
-      (base.data ++
-          (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp only [Array.append_empty]
 
 def flipperCtorCopiedMem (vat cat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk).write 6596 solcFreePtrMem 128 96
@@ -541,20 +458,6 @@ private theorem evalExpr_flipperCtorLocalIlk {evm : EVM.State}
   simp only [evalExpr?, EvalResult.ofOption]
   rw [flipperCtorLocals, store_get_self]
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
-
-private theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  unfold EVM.word EVM.uintN UInt256.toNat EVM.twoPow
-  change (a.val % UInt256.size) < EVM.addressModulus
-  have hlt : a.val < EVM.addressModulus := by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using a.isLt
-  rw [Nat.mod_eq_of_lt (lt_trans hlt (by norm_num [EVM.addressModulus, EVM.twoPow,
-    UInt256.size]))]
-  exact hlt
 
 theorem assign_flipperCtorBegStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "beg" = none) :
@@ -1702,23 +1605,6 @@ theorem flipperCtorReturnRuntime
     (flipperCtorRuntimeMem_read vat cat ilk hilk (flipperCtorWardsHashMem I vat cat ilk))
     (by evm_ov)
 
-theorem RDret.xiResultAcc {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : AccountMap}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
-  rcases h with hoog | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hoog
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hσ : s.accountMap = acc := hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hσ] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorSuccessRDret
@@ -1816,7 +1702,7 @@ theorem flipperConstructorCorrect :
           σWards flipperBytecode := by
       simpa [σBeg, slot5Old, slot5New, σPacked, σKicks, vatStored, σVat, catStored,
         σCat, σIlk, σWards] using hrd0
-    rcases RDret.xiResultAcc hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
+    rcases RDretXiResultAccountMap hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · let evm0s :=
         initState σ σ₀

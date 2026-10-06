@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flapper.ConstructorBase
 import Benchmarks.Dss.Flapper.File
 import Reasoning.ExternalCall
@@ -20,12 +21,12 @@ abbrev flapperCtorAfterBegState (evm : EVM.State) : EVM.State :=
 
 abbrev flapperCtorAfterTtlState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
-    (fileSetUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
+    (setUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
       flapperCtorTtlWord)
 
 abbrev flapperCtorAfterTauState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
-    (fileSetUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
+    (setUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
       flapperCtorTauWord)
 
 abbrev flapperCtorAfterKicksState (evm : EVM.State) : EVM.State :=
@@ -48,10 +49,6 @@ abbrev flapperCtorAfterGemState (evm : EVM.State) (gem : AccountAddress) : EVM.S
 abbrev flapperCtorAfterLiveState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨7⟩ ⟨1⟩
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_flapperCtorLocalVat {evm : EVM.State} (vat gem : AccountAddress) :
     evalExpr? config { contract := contract, locals := flapperCtorLocals vat gem } evm

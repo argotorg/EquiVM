@@ -1,3 +1,4 @@
+import Reasoning.SolmArithmetic
 import Benchmarks.Dss.StairstepExponentialDecrease.RpowArithmeticExpr
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -6,18 +7,6 @@ set_option maxRecDepth 2000000
 
 namespace Benchmarks.Dss.StairstepExponentialDecrease
 
-abbrev uintBinaryLocals (x y : UInt256) : Store :=
-  (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
-    (.int (Int.ofNat x.toNat)))
-
-abbrev uintBinaryLocalsZ (x y z : UInt256) : Store :=
-  (uintBinaryLocals x y).insert "z" (.int (Int.ofNat z.toNat))
-
-abbrev uintBinaryLocalsZAssigned (x y old new : UInt256) : Store :=
-  (uintBinaryLocalsZ x y old).insert "z" (.int (Int.ofNat new.toNat))
-
-abbrev uintBinaryLocalsIntZ (x y : UInt256) (z : Int) : Store :=
-  (uintBinaryLocals x y).insert "z" (.int z)
 
 abbrev uintTernaryLocals (x n b : UInt256) : Store :=
   ((((∅ : Store).insert "b" (.int (Int.ofNat b.toNat))).insert "n"
@@ -32,42 +21,6 @@ abbrev rpowLocalsZH (x n b z half : UInt256) : Store :=
 abbrev rpowLocalsZHN (x n b z half n' : UInt256) : Store :=
   (rpowLocalsZH x n b z half).insert "n" (.int (Int.ofNat n'.toNat))
 
-theorem uintBinaryLocals_get_x (x y : UInt256) :
-    (uintBinaryLocals x y).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocals, store_get_self]
-
-theorem uintBinaryLocals_get_y (x y : UInt256) :
-    (uintBinaryLocals x y).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [uintBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
-
-theorem uintBinaryLocalsZ_get_x (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_x]
-
-theorem uintBinaryLocalsZ_get_y (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_y]
-
-theorem uintBinaryLocalsZ_get_z (x y z : UInt256) :
-    (uintBinaryLocalsZ x y z).get? "z" = some (.int (Int.ofNat z.toNat)) := by
-  rw [uintBinaryLocalsZ, store_get_self]
-
-theorem uintBinaryLocalsZAssigned_get_z (x y old new : UInt256) :
-    (uintBinaryLocalsZAssigned x y old new).get? "z" =
-      some (.int (Int.ofNat new.toNat)) := by
-  rw [uintBinaryLocalsZAssigned, store_get_self]
-
-theorem uintBinaryLocalsIntZ_get_x (x y : UInt256) (z : Int) :
-    (uintBinaryLocalsIntZ x y z).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [uintBinaryLocalsIntZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_x]
-
-theorem uintBinaryLocalsIntZ_get_y (x y : UInt256) (z : Int) :
-    (uintBinaryLocalsIntZ x y z).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [uintBinaryLocalsIntZ, store_get_ne _ _ (by decide), uintBinaryLocals_get_y]
-
-theorem uintBinaryLocalsIntZ_get_z (x y : UInt256) (z : Int) :
-    (uintBinaryLocalsIntZ x y z).get? "z" = some (.int z) := by
-  rw [uintBinaryLocalsIntZ, store_get_self]
 
 theorem uintTernaryLocals_get_x (x n b : UInt256) :
     (uintTernaryLocals x n b).get? "x" = some (.int (Int.ofNat x.toNat)) := by

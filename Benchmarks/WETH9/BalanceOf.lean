@@ -113,7 +113,7 @@ theorem weth9BalanceOfReachGetter {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
-  obtain ⟨_, _, h586⟩ := weth9GuardPeelOk (gt := ⟨584⟩) h572 hwv
+  obtain ⟨_, _, h586⟩ := solcFunctionGuardPeelOk (gt := ⟨584⟩) h572 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
@@ -191,7 +191,7 @@ theorem weth9BalanceOfBodyCoreOk {σ σ₀ A I} {g : UInt256}
   · have hsz : I.calldata.size < 36 := by omega
     obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    obtain ⟨_, _, h586⟩ := weth9GuardPeelOk (gt := ⟨584⟩) h572 hwv
+    obtain ⟨_, _, h586⟩ := solcFunctionGuardPeelOk (gt := ⟨584⟩) h572 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
@@ -228,7 +228,7 @@ theorem weth9BalanceOfBodyCore {σ σ₀ A I} {g : UInt256}
       calldata_size_ge_of_selIs I (weth9SelBytes 6) (by native_decide) hsel
     obtain ⟨_, _, h572⟩ := weth9ReachBalanceOf (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨584⟩) h572 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨584⟩) h572 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchBalanceOf hsel)

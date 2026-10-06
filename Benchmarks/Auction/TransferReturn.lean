@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.ReturnReserve
 import Benchmarks.Auction.BoolDecoder
 import Benchmarks.Auction.DepositPrefix
@@ -27,12 +28,6 @@ theorem transferReturnPrefix {I g s0 amount recipient ret R mem aw ptr out acc k
   exact ⟨_, _, evm_run rd3555 with [pop, dup2, add, swap1, push2 ⟨3568⟩, swap2,
     swap1, push2 ⟨6062⟩, jump (by jump_dest)]⟩
 
-theorem returnReserve_load {mem aw ptr word} (hm : MemoryCursor mem aw ptr) (size : Nat)
-    (hin : ptr.toNat + 32 ≤ mem.size)
-    (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray) :
-    loadedWord (returnReserveMem mem ptr size) ptr = word := by
-  apply loadedWord_of_read (by rw [returnReserveMem_size hm size]; exact hin)
-  rw [returnReserve_read_word hm size hin, hread]
 
 theorem transferReturnOk {I g s0 amount recipient ret R mem aw ptr out acc k C} {word : UInt256}
     (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)

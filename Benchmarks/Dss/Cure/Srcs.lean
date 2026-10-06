@@ -1,3 +1,4 @@
+import Reasoning.StateFacts
 import Benchmarks.Dss.Cure.Common
 import Ethereum.Theory.OpcodeLemmas
 
@@ -103,10 +104,10 @@ theorem cureReachSrcsBody {σ σ₀ A I} {g : Sat256}
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
 abbrev srcsLenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 abbrev srcsRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord (srcsSlotFor I) σ I
+  solcSlotWordAt (srcsSlotFor I) σ I
 
 abbrev srcsAddressValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (UInt256.land (srcsRawWord σ I) solcAddrMask).toNat)
@@ -122,14 +123,14 @@ theorem evalExpr_srcsStorage_inBounds {σ σ₀ A I} {g : Sat256}
     (er := srcsEvaledRef I) (t := .address) (loc := addrLoc (srcsSlotFor I))]
   · rw [show addrLoc (srcsSlotFor I) = addressOffset0Loc (srcsSlotFor I) by rfl]
     rw [storageLocLoad_address_offset0]
-    simp [srcsAddressValue, srcsRawWord, cureSlotWord, solcSlotWord, initState,
+    simp [srcsAddressValue, srcsRawWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   · simp [locals, srcElemRef]
   · have hlenLoad :
         storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
           .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-      rw [cureStorageLocLoad_uint256]
-      simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+      erw [storageLocLoad_uint256]
+      simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
     simp only [wordLoc] at hlenLoad
     simp [srcsEvaledRef, srcElemRef, evalStorageRef, evalStorageRefSteps,
@@ -180,8 +181,8 @@ theorem evalExpr_srcsStorage_oob {σ σ₀ A I} {g : Sat256}
   have hlenLoad :
       storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
         .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-    rw [cureStorageLocLoad_uint256]
-    simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+    erw [storageLocLoad_uint256]
+    simp [srcsLenWord, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   simp only [wordLoc] at hlenLoad
   have her :
@@ -494,7 +495,7 @@ theorem RD.cureSrcsOutOfBoundsInvalid {σ I} {g : Sat256} {s0 : State}
       RD cureBytecode I g s0 ⟨3615⟩
         [srcsLenWord σ I, srcsIndex I, ⟨2⟩, srcsIndex I, ⟨845⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k6 C6 := by
-    simpa [srcsLenWord, cureSlotWord, solcSlotWord, srcsIndex, calldataWord,
+    simpa [srcsLenWord, solcSlotWordAt, solcSlotWord, srcsIndex, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd6'
   have rd7 := rd6.dup2 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -510,13 +511,6 @@ theorem RD.cureSrcsOutOfBoundsInvalid {σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact rdInvalidHalt rd3621 (by native_decide)
 
-private theorem Xi_error_of_X_sat_local {σ σ₀ A I}
-    {g : Sat256} {e : ExecutionException}
-    (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState σ σ₀ g A I) = .error e) :
-    Ξ σ σ₀ g.toUInt256 A I = .error e :=
-  Xi_error_of_X (g := g.toUInt256) (by
-    simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
 
 theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl} {σ σ₀ A I} {g : Sat256}
@@ -532,10 +526,10 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀ g.toUInt256 A I := by
   rcases h with hoog | hinv
-  · exact reEquiv_outOfGas (Xi_error_of_X_sat_local (by rw [← hcode] at hoog; exact hoog))
+  · exact reEquiv_outOfGas (xi_error_of_X_sat_local (by rw [← hcode] at hoog; exact hoog))
   · exact reEquiv_execution hd hdec hbody
       (by
-        rw [Xi_error_of_X_sat_local (by rw [← hcode] at hinv; exact hinv)]
+        rw [xi_error_of_X_sat_local (by rw [← hcode] at hinv; exact hinv)]
         exact execResultsEquiv.invalidHalt rfl rfl)
       hfallback hreceive
 

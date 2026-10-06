@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.StatusPriceCall
 import Benchmarks.Dss.Clipper.TakeStatus
 import Reasoning.ExternalCall
@@ -13,7 +14,7 @@ theorem clipperTakeJumpDest3527 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -27,7 +28,7 @@ theorem clipperTakeJumpDest3604 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -41,7 +42,7 @@ theorem clipperTakeJumpDest3694 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -55,7 +56,7 @@ theorem clipperTakeJumpDest3821 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -69,7 +70,7 @@ theorem clipperTakeJumpDest3852 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -83,7 +84,7 @@ theorem clipperTakeJumpDest3929 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -97,7 +98,7 @@ theorem clipperTakeJumpDest4007 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -111,7 +112,7 @@ theorem clipperTakeJumpDest4045 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -125,7 +126,7 @@ theorem clipperTakeJumpDest4057 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -139,7 +140,7 @@ theorem clipperTakeJumpDest4079 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -153,7 +154,7 @@ theorem clipperTakeJumpDest4087 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -167,7 +168,7 @@ theorem clipperTakeJumpDest4101 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -181,7 +182,7 @@ theorem clipperTakeJumpDest4223 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -195,7 +196,7 @@ theorem clipperTakeJumpDest4392 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -209,7 +210,7 @@ theorem clipperTakeJumpDest4412 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -223,7 +224,7 @@ theorem clipperTakeJumpDest4494 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -237,7 +238,7 @@ theorem clipperTakeJumpDest4524 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -251,7 +252,7 @@ theorem clipperTakeJumpDest4701 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -594,17 +595,6 @@ theorem clipperTakeVatFluxCalldataMem_read128_132 (v : ClipperImmutables)
     clipperTakeVatFluxCalldataMem_read228_32 v I who slice hmem]
   simp [ByteArray.append_assoc]
 
-theorem clipperTakeWhoAddressWord (who : UInt256) :
-    EVM.word (AccountAddress.ofNat who.toNat).val =
-      UInt256.land who solcAddrMask := by
-  apply u256_inj
-  rw [u256_land_toNat]
-  unfold EVM.word EVM.uintN AccountAddress.ofNat
-  simp only [UInt256.toNat, Fin.ofNat]
-  rw [show (↑solcAddrMask.val : Nat) = 2 ^ 160 - 1 from by decide]
-  rw [nat_land_mask_eq_mod]
-  rw [show AccountAddress.size = 2 ^ 160 from by native_decide,
-    show EVM.twoPow 256 = UInt256.size from by native_decide]
 
 theorem clipperTakeVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (who slice : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
@@ -641,7 +631,7 @@ theorem clipperTakeVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     rfl
   have hwho : EVM.word (AccountAddress.ofNat who.toNat).val =
       UInt256.land who solcAddrMask :=
-    clipperTakeWhoAddressWord who
+    takeWhoAddressWord who
   have hsliceWord : EVM.word slice.toNat = slice := u256_ofNat_toNat slice
   have hsliceLt : slice.toNat < EVM.twoPow 256 := by
     change slice.val.val < UInt256.size
@@ -673,11 +663,6 @@ theorem clipperTakeVatTargetAddress (v : ClipperImmutables) :
   rw [clipperTakeVatTarget, hclean]
   simpa [EVM.Word.ofNat] using accountAddress_roundtrip v.vat
 
-theorem clipperTakeEVMAddressAccountAddress (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])
 
 theorem clipperTakeIlkPatchPayload4239 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -711,7 +696,8 @@ theorem clipperTakeIlkPatchPayload4239 (v : ClipperImmutables) {code : ByteArray
       [(4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)])
     (off := 4239) (value := ilkBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk, hlen,
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -766,7 +752,8 @@ theorem clipperTakeVatPatchPayload4318 (v : ClipperImmutables) {code : ByteArray
         (8747, ilkBytes)])
     (off := 4318) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk, hlen,
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -1306,7 +1293,7 @@ theorem RD.clipperTakeOweGtTabToJoin {code : ByteArray}
     intro hprice
     subst price
     have hzero : UInt256.mul ⟨0⟩ slice = ⟨0⟩ :=
-      Reasoning.Theory.clipperMul_zero_left slice
+      Reasoning.Theory.mul_zero_left slice
     simp [hzero] at hgt
   have rd4067pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -1717,7 +1704,7 @@ theorem RD.clipperTakeVatFluxPostCall {σ₀ σStart σ I}
         decide))
       ?_ ?_ ?_
     · rw [clipperTakeVatTargetAddress v]
-      exact clipperTakeEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨132⟩ : UInt256).toNat = 132 from by decide] using
         clipperTakeVatFluxEncode_eq v I who slice hbaseMem

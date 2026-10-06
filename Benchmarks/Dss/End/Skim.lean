@@ -1,3 +1,8 @@
+import Reasoning.SolcRoutines
+import Reasoning.Storage
+import Reasoning.SolcMemory
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.End.Flow
 import Benchmarks.Dss.End.Free
 
@@ -42,7 +47,7 @@ abbrev endSkimTagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endSkimTagSlot (I : ExecutionEnv) : UInt256 := tagSlot (endSkimIlkKey I)
 
 abbrev endSkimTagWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord (endSkimTagSlot I) σ I
+  solcSlotWordAt (endSkimTagSlot I) σ I
 
 abbrev endSkimEntryPc : UInt256 := ⟨851⟩
 abbrev endSkimReturnPc : UInt256 := ⟨562⟩
@@ -161,7 +166,7 @@ abbrev endSkimGapEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endSkimGapSlot (I : ExecutionEnv) : UInt256 := gapSlot (endSkimIlkKey I)
 
 abbrev endSkimGapWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord (endSkimGapSlot I) σ I
+  solcSlotWordAt (endSkimGapSlot I) σ I
 
 abbrev endSkimGapNewWord (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : UInt256 :=
@@ -180,11 +185,6 @@ def endSkimPostGapAccountMap (σ : AccountMap) (I : ExecutionEnv) (gapNew : UInt
     AccountMap :=
   sstoreAccountMap I.codeOwner σ (endSkimGapSlot I) gapNew
 
-theorem endSkim_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 abbrev endSkimStoreGrab (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : Store :=
@@ -817,7 +817,7 @@ theorem endDecode_skim_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
   simpa [config, skimTransition, bytes32, bytes32Width, addr, endSkimStore,
     endSkimIlkBytes, endSkimUrnAddr, endSkimUrnWord, abiBytes32, abiBytes32Width,
     abiAddress] using
-    (endDecode_legacyBytes32_address_ok (cd := I.calldata) (x := "ilk")
+    (decode_legacyBytes32_address_ok (cd := I.calldata) (x := "ilk")
       (y := "urn") hsz68)
 
 theorem endDecode_skim_none_short {I : ExecutionEnv}
@@ -828,7 +828,7 @@ theorem endDecode_skim_none_short {I : ExecutionEnv}
     I.calldata = none
   simpa [config, skimTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress] using
-    (endDecode_legacyBytes32_address_none_short (cd := I.calldata) (x := "ilk")
+    (decode_legacyBytes32_address_none_short (cd := I.calldata) (x := "ilk")
       (y := "urn") hsz4 hshort)
 
 theorem endReachSkimBody {σ σ₀ A I} {g : Sat256}
@@ -965,7 +965,7 @@ theorem endSkimX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
-    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSkimTagWord, endSlotWord] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSkimTagWord, solcSlotWordAt] using htag
   have htagRaw' :
       (σ.get? I.codeOwner |>.option ⟨0⟩
         (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
@@ -1049,7 +1049,7 @@ theorem endSkimX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = endSkimTagWord σ I := by
     rw [← hslot]
-    simp [endSkimTagWord, endSlotWord]
+    simp [endSkimTagWord, solcSlotWordAt]
   have htagRaw' :
       (σ.get? I.codeOwner |>.option ⟨0⟩
         (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
@@ -1101,15 +1101,15 @@ theorem endSkimX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
         endFlowVatIlksSelectorShifted := by
     native_decide
   have hvatMask :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σ I) = endPackVatWord σ I := by
     simpa [endPackVatWord, solcAddrMask] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σ I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have hvatMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
-          (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
+          (solcSlotWordAt ⟨1⟩ σ I) = endPackVatWord σ I := by
     rw [haddrMask]
     exact hvatMask
   have hinSize :
@@ -1123,11 +1123,11 @@ theorem endSkimX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd6799raw⟩ := rd6798.sload (by native_decide) (by evm_ov)
   have rd6799 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨6799⟩
-        (endSlotWord ⟨1⟩ σ I :: endSkimUrnKey I :: endSkimIlkWord I ::
+        (solcSlotWordAt ⟨1⟩ σ I :: endSkimUrnKey I :: endSkimIlkWord I ::
           endSkimReturnPc :: sel :: [])
         (endSkimVatIlksBaseMem I) (UInt256.ofNat 3)
         ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd6799raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd6799raw⟩
   obtain ⟨_, _, rd6799⟩ := rd6799
   have rd6859 := evm_run rd6799 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1451,15 +1451,15 @@ theorem endSkimX_urnsExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
         endFreeUrnsSelectorShifted := by
     native_decide
   have hvatMask :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σ' I) = endPackVatWord σ' I := by
     simpa [endPackVatWord, solcAddrMask] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ' I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σ' I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have hvatMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
-          (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
+          (solcSlotWordAt ⟨1⟩ σ' I) = endPackVatWord σ' I := by
     rw [haddrMask]
     exact hvatMask
   have hurnCanon : (endSkimUrnKey I).toNat < EVM.addressModulus := by
@@ -1481,11 +1481,11 @@ theorem endSkimX_urnsExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd6923raw⟩ := rd6922.sload (by native_decide) (by evm_ov)
   have rd6923 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨6923⟩
-        (endSlotWord ⟨1⟩ σ' I :: endFlowVatIlkRateWord vatOut :: ⟨0⟩ ::
+        (solcSlotWordAt ⟨1⟩ σ' I :: endFlowVatIlkRateWord vatOut :: ⟨0⟩ ::
           endSkimUrnKey I :: endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimVatIlksPostCallMem I vatOut) (UInt256.ofNat 9) vatOut
         σ' k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd6923raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd6923raw⟩
   obtain ⟨_, _, rd6923⟩ := rd6923
   have rd6996 := evm_run rd6923 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1856,7 +1856,7 @@ theorem endSkimX_oweRmulEntry {σ σ' σ₀ A I} {g : Sat256}
       UInt256.ofNat (fromByteArrayBigEndian (KEC (mem12.readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ key := by
     simpa [mem12, endSkimTagHashMem, key] using
-      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨12⟩ key
+      twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨12⟩ key
         (by rw [hpostSize]; omega)
   have rd7084 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -1891,7 +1891,7 @@ theorem endSkimX_oweRmulEntry {σ σ' σ₀ A I} {g : Sat256}
           endSkimReturnPc :: sel :: [])
         mem12 (UInt256.ofNat 9) rdata σ' k' C' := by
     exact ⟨_, _, by
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimTagWord, endSlotWord, solcSlotWord, key, hslot] using rd7095raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimTagWord, solcSlotWordAt, solcSlotWord, key, hslot] using rd7095raw⟩
   have rd7099 := evm_run rd7095 with [
     raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -2008,13 +2008,13 @@ theorem endSkimX_gapSubEntry {σ σ' σ₀ A I} {g : Sat256}
   have hpostSize : mem0.size = 288 := by
     simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
   have hmem12Size : mem12.size = mem0.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian (KEC (mem13.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [mem13, endSkimGapHashMem, key] using
-      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
+      twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
         (by rw [hmem12Size, hpostSize]; omega)
   have rd7118 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2049,7 +2049,7 @@ theorem endSkimX_gapSubEntry {σ σ' σ₀ A I} {g : Sat256}
           endSkimUrnKey I :: endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) rdata σ' k' C' := by
     exact ⟨_, _, by
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimGapWord, endSlotWord, solcSlotWord, key, hslot] using rd7129raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimGapWord, solcSlotWordAt, solcSlotWord, key, hslot] using rd7129raw⟩
   have rd7144 := evm_run rd7129 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
@@ -2260,13 +2260,13 @@ theorem endSkimGapStoreHashMem_size (I : ExecutionEnv) (vatOut urnOut : ByteArra
   have hpostSize : mem0.size = 288 := by
     simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
   have hmem12Size : mem12.size = mem0.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hmem13Size : mem13.size = mem12.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hmemStoreSize : (twoWordHashMem key ⟨13⟩ mem13).size = mem13.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem13Size, hmem12Size, hpostSize]; omega)
   simpa [endSkimGapStoreHashMem, key, mem13, hmemStoreSize, hmem13Size, hmem12Size,
     hpostSize]
@@ -2285,23 +2285,23 @@ theorem endSkimGapStoreHashMem_read64 (I : ExecutionEnv) (vatOut urnOut : ByteAr
       mem0.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [mem0] using endSkimUrnsPostCallMem_read64 I vatOut urnOut hloVat
   have hmem12Size : mem12.size = mem0.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hmem12Read64 :
       mem12.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [mem12, endSkimTagHashMem, key] using
-      endFlow_twoWordHashMem_read64_of_ge96 key ⟨12⟩
+      twoWordHashMem_read64_of_ge_96 key ⟨12⟩
         (by rw [hpostSize]; omega) hpostRead64
   have hmem13Size : mem13.size = mem12.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hmem13Read64 :
       mem13.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [mem13, endSkimGapHashMem, key] using
-      endFlow_twoWordHashMem_read64_of_ge96 key ⟨13⟩
+      twoWordHashMem_read64_of_ge_96 key ⟨13⟩
         (by rw [hmem12Size, hpostSize]; omega) hmem12Read64
   simpa [endSkimGapStoreHashMem, key, mem13] using
-    endFlow_twoWordHashMem_read64_of_ge96 key ⟨13⟩
+    twoWordHashMem_read64_of_ge_96 key ⟨13⟩
       (by rw [hmem13Size, hmem12Size, hpostSize]; omega) hmem13Read64
 
 theorem endSkimGrabMem7_eq (σ : AccountMap) (I : ExecutionEnv)
@@ -3062,7 +3062,7 @@ theorem endSkimGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv)
     endSkimThisWordOfAddr I
   have hvowCanon : (endPackVowWord σ I).toNat < EVM.addressModulus := by
     simpa [endPackVowWord] using
-      solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σ I)
   have hvowVal :
       (endPackVowAddr σ I).val = (endPackVowWord σ I).toNat := by
     unfold endPackVowAddr AccountAddress.ofNat
@@ -3076,7 +3076,7 @@ theorem endSkimGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv)
   have hdinkWord :
       EVM.wordOfInt (-(Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)) =
         endSkimGrabDinkWord σ I vatOut urnOut :=
-    endFreeWordOfInt_neg_ofNat_toNat (endSkimWadWord σ I vatOut urnOut) hwad
+    freeWordOfInt_neg_ofNat_toNat (endSkimWadWord σ I vatOut urnOut) hwad
   have hdinkWordCast :
       EVM.wordOfInt (-((endSkimWadWord σ I vatOut urnOut).toNat : Int)) =
         endSkimGrabDinkWord σ I vatOut urnOut := by
@@ -3084,7 +3084,7 @@ theorem endSkimGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv)
   have hdartWord :
       EVM.wordOfInt (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat)) =
         endSkimGrabDartWord urnOut :=
-    endFreeWordOfInt_neg_ofNat_toNat (endFreeUrnArtWord urnOut) hart
+    freeWordOfInt_neg_ofNat_toNat (endFreeUrnArtWord urnOut) hart
   have hdartWordCast :
       EVM.wordOfInt (-((endFreeUrnArtWord urnOut).toNat : Int)) =
         endSkimGrabDartWord urnOut := by
@@ -3181,7 +3181,7 @@ theorem endSkimGrabEncodeFor_eq (σCall σLoc : AccountMap) (I : ExecutionEnv)
     endSkimThisWordOfAddr I
   have hvowCanon : (endPackVowWord σCall I).toNat < EVM.addressModulus := by
     simpa [endPackVowWord] using
-      solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σCall I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σCall I)
   have hvowVal :
       (endPackVowAddr σCall I).val = (endPackVowWord σCall I).toNat := by
     unfold endPackVowAddr AccountAddress.ofNat
@@ -3195,7 +3195,7 @@ theorem endSkimGrabEncodeFor_eq (σCall σLoc : AccountMap) (I : ExecutionEnv)
   have hdinkWord :
       EVM.wordOfInt (-(Int.ofNat (endSkimWadWord σLoc I vatOut urnOut).toNat)) =
         endSkimGrabDinkWord σLoc I vatOut urnOut :=
-    endFreeWordOfInt_neg_ofNat_toNat (endSkimWadWord σLoc I vatOut urnOut) hwad
+    freeWordOfInt_neg_ofNat_toNat (endSkimWadWord σLoc I vatOut urnOut) hwad
   have hdinkWordCast :
       EVM.wordOfInt (-((endSkimWadWord σLoc I vatOut urnOut).toNat : Int)) =
         endSkimGrabDinkWord σLoc I vatOut urnOut := by
@@ -3203,7 +3203,7 @@ theorem endSkimGrabEncodeFor_eq (σCall σLoc : AccountMap) (I : ExecutionEnv)
   have hdartWord :
       EVM.wordOfInt (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat)) =
         endSkimGrabDartWord urnOut :=
-    endFreeWordOfInt_neg_ofNat_toNat (endFreeUrnArtWord urnOut) hart
+    freeWordOfInt_neg_ofNat_toNat (endFreeUrnArtWord urnOut) hart
   have hdartWordCast :
       EVM.wordOfInt (-((endFreeUrnArtWord urnOut).toNat : Int)) =
         endSkimGrabDartWord urnOut := by
@@ -3262,151 +3262,6 @@ theorem endSkimGrabEncodeFor_eq (σCall σLoc : AccountMap) (I : ExecutionEnv)
   simp [hdinkWordCast, hdartWordCast, word_toBytesBE_toByteArray_eq_toByteArray, zeroBytes,
     ByteArray.append_assoc]
 
-theorem endSkim_solcErrorStringMem0_size_of_size288 {mem : ByteArray}
-    (hmem : mem.size = 288) :
-    (solcErrorStringMem0 mem).size = 288 := by
-  unfold solcErrorStringMem0
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract, hmem]
-
-theorem endSkim_solcErrorStringMem1_size_of_size288 {mem : ByteArray}
-    (hmem : mem.size = 288) :
-    (solcErrorStringMem1 mem).size = 288 := by
-  unfold solcErrorStringMem1
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endSkim_solcErrorStringMem0_size_of_size288 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endSkim_solcErrorStringMem0_size_of_size288 hmem]
-
-theorem endSkim_solcErrorStringMem2_size_of_size288 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 288) :
-    (solcErrorStringMem2 len mem).size = 288 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endSkim_solcErrorStringMem1_size_of_size288 hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endSkim_solcErrorStringMem1_size_of_size288 hmem]
-
-theorem endSkim_solcErrorStringMem3_size_of_size288 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 288) :
-    (solcErrorStringMem3 len word mem).size = 288 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by rw [endSkim_solcErrorStringMem2_size_of_size288 len hmem]; omega)]
-  simp [ByteArray.size_append, ByteArray.size_extract,
-    endSkim_solcErrorStringMem2_size_of_size288 len hmem]
-
-theorem endSkim_solcErrorStringMem3_read64_of_size288 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 288)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [endSkim_solcErrorStringMem2_size_of_size288 len hmem]; omega) (by omega)
-      (by
-        rw [endSkim_solcErrorStringMem2_size_of_size288 len hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [endSkim_solcErrorStringMem1_size_of_size288 hmem]; omega) (by omega)
-      (by
-        rw [endSkim_solcErrorStringMem1_size_of_size288 hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [endSkim_solcErrorStringMem0_size_of_size288 hmem]; omega) (by omega)
-      (by
-        rw [endSkim_solcErrorStringMem0_size_of_size288 hmem]
-        exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem endSkim_solcErrorStringMem3_mload64_of_size288 (len word : UInt256)
-    {mem : ByteArray} (hmem : mem.size = 288)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32)))
-      = ⟨128⟩ :=
-  mloadFreePtrValue
-    (by rw [endSkim_solcErrorStringMem3_size_of_size288 len word hmem]; decide) (endSkim_solcErrorStringMem3_read64_of_size288 len word hmem hread64)
-
-set_option maxHeartbeats 1000000 in
-theorem endSkim_solcErrorStringRevertTail_aw9 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
-    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 9) rdata acc k C)
-    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 288)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
-      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
-      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) hd3
-      mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4
-    (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 9)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 9)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem2 len mem)
-      (UInt256.ofNat 9) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  have rdWord := evm_run rdRaw with [
-    raw push1 shift hdRawOut (by evm_ov),
-    raw shl hdShl (by evm_ov)]
-  rw [hword] at rdWord
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 0 (solcErrorStringMem3 len word mem)
-      (UInt256.ofNat 9) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) hdMload
-      mem_cost
-      (endSkim_solcErrorStringMem3_mload64_of_size288 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
 
 theorem endSkimX_gapStoreAtHash {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {vatOut urnOut rdata : ByteArray} {k C : ℕ}
@@ -3437,16 +3292,16 @@ theorem endSkimX_gapStoreAtHash {σ σ' σ₀ A I} {g : Sat256}
   have hpostSize : mem0.size = 288 := by
     simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
   have hmem12Size : mem12.size = mem0.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hmem13Size : mem13.size = mem12.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [memStore, endSkimGapStoreHashMem, key, mem13] using
-      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
+      twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
         (by rw [hmem13Size, hmem12Size, hpostSize]; omega)
   have rd7154 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3507,16 +3362,16 @@ theorem endSkimX_gapStoreIntGuardOk {σ σ' σ₀ A I} {g : Sat256}
   have hpostSize : mem0.size = 288 := by
     simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
   have hmem12Size : mem12.size = mem0.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hmem13Size : mem13.size = mem12.size := by
-    exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
+    exact twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [memStore, endSkimGapStoreHashMem, key, mem13] using
-      endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
+      twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
         (by rw [hmem13Size, hmem12Size, hpostSize]; omega)
   have rd7154 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3631,7 +3486,7 @@ theorem endSkimX_gapStoreIntGuardWadOverflow {σ σ' σ₀ A I}
     raw push2 ⟨7253⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
-  exact endSkim_solcErrorStringRevertTail_aw9
+  exact RD.solcErrorStringRevertTailAw9Size288
     (pc := ⟨7194⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x456e642f6f766572666c6f77⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨0x456e642f6f766572666c6f77⟩ ⟨160⟩)
@@ -3697,7 +3552,7 @@ theorem endSkimX_gapStoreIntGuardArtOverflow {σ σ' σ₀ A I}
     raw push2 ⟨7253⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
-  exact endSkim_solcErrorStringRevertTail_aw9
+  exact RD.solcErrorStringRevertTailAw9Size288
     (pc := ⟨7194⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x456e642f6f766572666c6f77⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨0x456e642f6f766572666c6f77⟩ ⟨160⟩)
@@ -3715,44 +3570,11 @@ end Benchmarks.Dss.End
 
 namespace Reasoning.Theory
 
-theorem dup12_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP12, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-    (hov : t.length + 13 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_dup12 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
-          12 + 13 > 1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.dup12_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -3817,19 +3639,19 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
       exact solcAddrMask_result_canonical (endSkimUrnWord I)
     exact solcAddrMask_clean_left hcanon
   have hvowMask :
-      UInt256.land (endSlotWord ⟨4⟩ σCall I) solcAddrMask = endPackVowWord σCall I := by
+      UInt256.land (solcSlotWordAt ⟨4⟩ σCall I) solcAddrMask = endPackVowWord σCall I := by
     rfl
   have hvowMaskLeft :
-      UInt256.land solcAddrMask (endSlotWord ⟨4⟩ σCall I) = endPackVowWord σCall I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨4⟩ σCall I) = endPackVowWord σCall I := by
     simpa [endPackVowWord] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨4⟩ σCall I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨4⟩ σCall I)
   have hvatMask :
-      UInt256.land (endSlotWord ⟨1⟩ σCall I) solcAddrMask = endPackVatWord σCall I := by
+      UInt256.land (solcSlotWordAt ⟨1⟩ σCall I) solcAddrMask = endPackVatWord σCall I := by
     rfl
   have hvatMaskLeft :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σCall I) = endPackVatWord σCall I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σCall I) = endPackVatWord σCall I := by
     simpa [endPackVatWord] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σCall I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σCall I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -3847,13 +3669,13 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
   obtain ⟨_, _, rd7257raw⟩ := rd7257.sload (by native_decide) (by evm_ov)
   have rd7257 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨7257⟩
-        (endSlotWord ⟨1⟩ σCall I :: endSkimWadWord σLoc I vatOut urnOut ::
+        (solcSlotWordAt ⟨1⟩ σCall I :: endSkimWadWord σLoc I vatOut urnOut ::
           endSkimOweWord σLoc I vatOut urnOut :: endFreeUrnArtWord urnOut ::
           endFreeUrnInkWord urnOut :: endFlowVatIlkRateWord vatOut :: endSkimUrnKey I ::
           endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimGapStoreHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata
         σCall k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd7257raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd7257raw⟩
   obtain ⟨_, _, rd7257⟩ := rd7257
   have rd7261 := evm_run rd7257 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -3861,14 +3683,14 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
   obtain ⟨_, _, rd7261raw⟩ := rd7261.sload (by native_decide) (by evm_ov)
   have rd7261 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨7261⟩
-        (endSlotWord ⟨4⟩ σCall I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σCall I ::
+        (solcSlotWordAt ⟨4⟩ σCall I :: ⟨4⟩ :: solcSlotWordAt ⟨1⟩ σCall I ::
           endSkimWadWord σLoc I vatOut urnOut ::
           endSkimOweWord σLoc I vatOut urnOut :: endFreeUrnArtWord urnOut ::
           endFreeUrnInkWord urnOut :: endFlowVatIlkRateWord vatOut :: endSkimUrnKey I ::
           endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimGapStoreHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata
         σCall k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd7261raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd7261raw⟩
   obtain ⟨_, _, rd7261⟩ := rd7261
   have rd7357raw := evm_run rd7261 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3996,7 +3818,7 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
     exact ⟨_, _, by
       simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
         endFreeGrabEndPtr, endFreeGrabSelectorWord, endPackVatWord, endPackVowWord,
-        endSlotWord, solcSlotWord, solcAddrMask, hvatMask, hvatMaskLeft, hvowMask,
+        solcSlotWordAt, solcSlotWord, solcAddrMask, hvatMask, hvatMaskLeft, hvowMask,
         hvowMaskLeft, hurnMask, hurnMaskLeft, haddrMask, hthisWord] using rd7357raw⟩
   obtain ⟨k', C', rd7357⟩ := rd7357
   exact ⟨k', C', by simpa [endSkimGrabMem7For_eq] using rd7357⟩
@@ -4390,7 +4212,7 @@ theorem evalExpr_endSkim_tag (evm : EVM.State) (I : ExecutionEnv)
     (her := evalStorageRef_endSkim_tag evm I hsz68)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm (endSkimTagSlot I))
+    (hload := storageLocLoad_uint256 evm (endSkimTagSlot I))
 
 theorem evalExpr_endSkim_tag_ne_false (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -4443,7 +4265,7 @@ theorem endSkimCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     have hbase : (endSkimStore I).get? "vat" = none := by
       simp [endSkimStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endSkimStore I) evm0 hbase
   have hcodeZero :
       (UInt256.ofNat
@@ -4484,7 +4306,7 @@ theorem endSkimCheckedVatIlksFailure {σ σ₀ A I} {g : UInt256}
     have hbase : (endSkimStore I).get? "vat" = none := by
       simp [endSkimStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endSkimStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -4539,7 +4361,7 @@ theorem endSkimCheckedVatIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
     have hbase : (endSkimStore I).get? "vat" = none := by
       simp [endSkimStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endSkimStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -4596,7 +4418,7 @@ theorem endSkimCheckedVatIlksSuccess {σ σ₀ A I} {g : UInt256}
     have hbase : (endSkimStore I).get? "vat" = none := by
       simp [endSkimStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endSkimStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -4705,7 +4527,7 @@ theorem endSkimVatReceiver_afterRate {σ I vatOut evm}
   have hbase : (endSkimStoreRate I vatOut).get? "vat" = none := by
     simp [endSkimStoreRate, endSkimStoreVatIlk, endSkimStore]
   simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
-    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+    endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
     evalExpr_endPack_vat (locals := endSkimStoreRate I vatOut) evm hbase
 
 theorem endSkimVatCode_zero_afterRate {σ I} {vatOut : ByteArray} {evm : EVM.State}
@@ -4715,7 +4537,7 @@ theorem endSkimVatCode_zero_afterRate {σ I} {vatOut : ByteArray} {evm : EVM.Sta
       ((evm.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat =
         0 := by
   simpa [State.lookupAccount, hmap] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endPackVatWord σ I) (addr := endPackVatAddr σ I)
       (endPackVatAddr_eq_ofUInt256 σ I) hzero
 
@@ -4725,7 +4547,7 @@ theorem endSkimVatCode_pos_afterRate {σ I} {vatOut : ByteArray} {evm : EVM.Stat
     0 < (UInt256.ofNat
       ((evm.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount, hmap] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endPackVatWord σ I) (addr := endPackVatAddr σ I)
       (endPackVatAddr_eq_ofUInt256 σ I) hne
 
@@ -5553,7 +5375,7 @@ theorem endSkimAssignGap {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       (her := by simpa [endSkimGapSlot, endFlowGapSlot] using href)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa only [endSkimPostGapState] using endStorageLocStore_uint256 evm (endSkimGapSlot I)
+  simpa only [endSkimPostGapState] using storageLocStore_uint256 evm (endSkimGapSlot I)
     gapNew
 
 theorem endSkimStmtGapAssign (evm : EVM.State) (I : ExecutionEnv)
@@ -5740,7 +5562,7 @@ theorem endSkimVatReceiver_afterGapNew {σ I vatOut urnOut evm}
       endSkimStoreOwe0, endSkimStoreArt, endSkimStoreInk, endSkimStoreVatUrn,
       endSkimStoreRate, endSkimStoreVatIlk, endSkimStore]
   simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
-    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+    endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
     evalExpr_endPack_vat (locals := endSkimStoreGapNew σ I vatOut urnOut) evm hbase
 
 theorem evalExpr_endSkim_negWad_afterGapNew (evm : EVM.State) (I : ExecutionEnv)
@@ -5863,7 +5685,7 @@ theorem evalExprs_endSkim_grabArgs (evm : EVM.State) (I : ExecutionEnv)
         endSkimStoreOwe0, endSkimStoreArt, endSkimStoreInk, endSkimStoreVatUrn,
         endSkimStoreRate, endSkimStoreVatIlk, endSkimStore]
     simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+      endPackVowAddr, endPackVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vow (locals := endSkimStoreGapNew σ I vatOut urnOut) evm hbase
   have hnegWad := evalExpr_endSkim_negWad_afterGapNew evm I σ vatOut urnOut hwadBound
   have hnegArt := evalExpr_endSkim_negArt_afterGapNew evm I σ vatOut urnOut hartBound
@@ -6054,7 +5876,7 @@ theorem endSkimVatReceiver_afterGapNewFor {σCall σLoc I vatOut urnOut evm}
       endSkimStoreOwe0, endSkimStoreArt, endSkimStoreInk, endSkimStoreVatUrn,
       endSkimStoreRate, endSkimStoreVatIlk, endSkimStore]
   simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
-    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+    endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
     evalExpr_endPack_vat (locals := endSkimStoreGapNew σLoc I vatOut urnOut) evm hbase
 
 theorem endSkimGrabTailReverts_noCodeFor {σCall σLoc I} {vatOut urnOut : ByteArray}
@@ -6665,7 +6487,7 @@ theorem endSkimBodyReverts_vatIlksBlock {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply htag
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSkimTagWord, endSlotWord, solcSlotWord] using hbad
+      endSkimTagWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := endSkimStore I } evm0
         (.binary .ne (.storage (tagRef (.var "ilk"))) (.intLit 0)) = .ok (.bool true) :=
@@ -6823,7 +6645,7 @@ theorem endSkimPrefixRateSuccess {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply htag
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSkimTagWord, endSlotWord, solcSlotWord] using hbad
+      endSkimTagWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := endSkimStore I } evm0
         (.binary .ne (.storage (tagRef (.var "ilk"))) (.intLit 0)) = .ok (.bool true) :=
@@ -6910,7 +6732,7 @@ theorem endSkimBodyReverts_tagZero {σ σ₀ A I} {g : UInt256}
   have htagLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (endSkimTagSlot I) = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endSkimTagWord, endSlotWord, solcSlotWord] using htag
+      endSkimTagWord, solcSlotWordAt, solcSlotWord] using htag
   have hguard :
       evalExpr? config { contract := contract, locals := endSkimStore I } evm0
         (.binary .ne (.storage (tagRef (.var "ilk"))) (.intLit 0)) = .ok (.bool false) :=
@@ -7398,13 +7220,13 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                         Solm.EVM.storageLoad evmUrnsSolm evmUrnsSolm.executionEnv.codeOwner
                           (endSkimTagSlot I) = endSkimTagWord σ_urns_solm I := by
                       simp [evmUrnsSolm, Solm.EVM.storageLoad, State.lookupAccount,
-                        evmVatSolm, evmSolm, initState, endSkimTagWord, endSlotWord,
+                        evmVatSolm, evmSolm, initState, endSkimTagWord, solcSlotWordAt,
                         solcSlotWord, Account.lookupStorage]
                     have hGapLoadSolm :
                         Solm.EVM.storageLoad evmUrnsSolm evmUrnsSolm.executionEnv.codeOwner
                           (endSkimGapSlot I) = endSkimGapWord σ_urns_solm I := by
                       simp [evmUrnsSolm, Solm.EVM.storageLoad, State.lookupAccount,
-                        evmVatSolm, evmSolm, initState, endSkimGapWord, endSlotWord,
+                        evmVatSolm, evmSolm, initState, endSkimGapWord, solcSlotWordAt,
                         solcSlotWord, Account.lookupStorage]
                     obtain ⟨_, _, rdOwe0Entry⟩ :=
                       endSkimX_owe0RmulEntry (g := Sat256.ofUInt256 g) rd7065
@@ -7761,7 +7583,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                                         (by simpa [evmPostSolm, evmPostEvm, σ_post,
                                           endSkimPostGapState, endSkimPostGapAccountMap,
                                           storageStore_accountMap, storageStore_executionEnv,
-                                          endSkim_storageStore_σ₀,
+                                          storageStore_σ₀,
                                           evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
                                           evmSolm, initState, hperm] using hΘGrabEq))
                                   cases zGrab

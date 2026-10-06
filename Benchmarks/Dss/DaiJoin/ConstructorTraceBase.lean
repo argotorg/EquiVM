@@ -1,3 +1,5 @@
+import Reasoning.MemoryShapes
+import Reasoning.Memory
 import Benchmarks.Dss.DaiJoin.ConstructorSource
 
 /-!
@@ -77,44 +79,6 @@ theorem daiJoinCreationBytecode_runtime_window :
     daiJoinCreationBytecode.extract 143 (143 + 1733) = daiJoinBytecode := by
   native_decide
 
-private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) (_hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ srcAddr ≥ src.size from by omega)]
-  have hcopy : min len (src.size - srcAddr) = len := by omega
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
-  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract]
-  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
-      destAddr - base.size := by
-    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-      ByteArray_zeroes_size]
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
-    omega
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [show min len (src.data.size - srcAddr) = len by
-    have : src.data.size = src.size := rfl
-    omega]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
-        (destAddr + len) = #[] from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp [Array.append_assoc]
 
 def daiJoinCtorArgMem (vat dai : AccountAddress) : ByteArray :=
   (daiJoinCtorCode vat dai).write 1876 solcFreePtrMem 128 64
@@ -248,17 +212,6 @@ def daiJoinCtorWardsHashMem (I : ExecutionEnv) (vat dai : AccountAddress) :
     ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (daiJoinCtorArgFreeMem vat dai)
 
-private theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt0Mem word mem).size = 192 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt32Mem word mem).size = 192 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
 
 theorem daiJoinCtorWardsHashMem_size (I : ExecutionEnv) (vat dai : AccountAddress) :
     (daiJoinCtorWardsHashMem I vat dai).size = 192 := by
@@ -266,56 +219,6 @@ theorem daiJoinCtorWardsHashMem_size (I : ExecutionEnv) (vat dai : AccountAddres
   exact wordAt32Mem_size_192 ⟨0⟩
     (wordAt0Mem_size_192 (solcSourceWord I) (daiJoinCtorArgFreeMem_size vat dai))
 
-private theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-private theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
-  exact toByteArray_extract_all slot
-
-private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read0_192 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read32_192 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem daiJoinCtorWardsHashSlot (I : ExecutionEnv) (vat dai : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian

@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.Common
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -17,11 +19,11 @@ def uint48Divisor26 : UInt256 :=
 
 abbrev flipperUint48Offset20Word (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
-  UInt256.land (UInt256.div (flipperSlotWord slot σ I) uint48Divisor20) uint48Mask
+  UInt256.land (UInt256.div (solcSlotWordAt slot σ I) uint48Divisor20) uint48Mask
 
 abbrev flipperUint48Offset26Word (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
-  UInt256.land (UInt256.div (flipperSlotWord slot σ I) uint48Divisor26) uint48Mask
+  UInt256.land (UInt256.div (solcSlotWordAt slot σ I) uint48Divisor26) uint48Mask
 
 abbrev bidBaseOfWord (id : UInt256) : UInt256 :=
   solcMappingSlot ⟨1⟩ id
@@ -34,9 +36,6 @@ theorem bidsBase_intOfNatWord (id : UInt256) :
   unfold bidsBase mapSlot bidBaseOfWord solcMappingSlot
   rw [keyValueToWord_uint256]
 
-theorem keyValueToWord_uint256_natCast (w : UInt256) :
-    keyValueToWord (.int ((w.toNat : Nat) : Int)) = w := by
-  simpa using keyValueToWord_uint256 w
 
 theorem flipperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨20, by decide⟩ (by decide)) =
@@ -72,63 +71,6 @@ theorem flipperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
     native_decide
   simpa [uint48Loc, uint48Int, hmask, hdiv] using h
 
-theorem natLandClearMiddle160_208 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n ((2 : Nat) ^ 256 - 2 ^ 208 + 2 ^ 160 - 1) =
-      n % 2 ^ 160 + (n / 2 ^ 208) * 2 ^ 208 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 : Nat) ^ 256 - 2 ^ 208 + 2 ^ 160 - 1)).testBit i =
-    (n % 2 ^ 160 + n / 2 ^ 208 * 2 ^ 208).testBit i
-  have hmask :
-      (2 : Nat) ^ 256 - 2 ^ 208 + 2 ^ 160 - 1 =
-        Nat.lor (2 ^ 160 - 1) ((2 ^ 48 - 1) <<< 208) := by
-    rw [Nat.shiftLeft_eq]
-    rw [nat_lor_shift_add (2 ^ 160 - 1) (2 ^ 48 - 1) 208]
-    · norm_num [Nat.pow_add]
-    · norm_num
-  have hrhs :
-      n % 2 ^ 160 + n / 2 ^ 208 * 2 ^ 208 =
-        Nat.lor (n % 2 ^ 160) ((n / 2 ^ 208) * 2 ^ 208) := by
-    rw [nat_lor_shift_add (n % 2 ^ 160) (n / 2 ^ 208) 208]
-    · exact (Nat.mod_lt _ (by positivity : 0 < 2 ^ 160)).trans_le (by norm_num)
-  rw [hmask, hrhs]
-  rw [Nat.testBit_and]
-  change (n.testBit i && (((2 ^ 160 - 1) ||| ((2 ^ 48 - 1) <<< 208)).testBit i)) =
-    (((n % 2 ^ 160) ||| (n / 2 ^ 208 * 2 ^ 208)).testBit i)
-  rw [Nat.testBit_or, Nat.testBit_or]
-  rw [Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  rw [show (n / 2 ^ 208) * 2 ^ 208 = (n / 2 ^ 208) <<< 208 by rw [Nat.shiftLeft_eq]]
-  rw [testBit_shiftLeft, testBit_shiftLeft]
-  by_cases hi160 : i < 160
-  · have hi208 : i < 208 := by omega
-    simp [hi160, hi208]
-  · have hnot160 : ¬ i < 160 := hi160
-    by_cases hi208 : i < 208
-    · simp [hnot160, hi208]
-    · have h208le : 208 ≤ i := Nat.le_of_not_gt hi208
-      by_cases hi256 : i < 256
-      · have hlt48 : i - 208 < 48 := by omega
-        have hmaskBit :
-            Nat.testBit 281474976710655 (i - 208) = true := by
-          change Nat.testBit (2 ^ 48 - 1) (i - 208) = true
-          rw [Nat.testBit_two_pow_sub_one]
-          simp [hlt48]
-        simp [hnot160, hi208, hmaskBit]
-        exact (divPow_testBit n 208 i h208le).symm
-      · have hnot48 : ¬ i - 208 < 48 := by omega
-        have hmaskBit :
-            Nat.testBit 281474976710655 (i - 208) = false := by
-          change Nat.testBit (2 ^ 48 - 1) (i - 208) = false
-          rw [Nat.testBit_two_pow_sub_one]
-          simp [hnot48]
-        simp [hnot160, hi208, hmaskBit]
-        have hq : n / 2 ^ 208 < 2 ^ 48 := by
-          apply Nat.div_lt_of_lt_mul
-          rw [show 2 ^ 208 * 2 ^ 48 = (2 : Nat) ^ 256 by
-            rw [← Nat.pow_add]]
-          exact hn
-        exact Nat.testBit_lt_two_pow
-          (lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega)))
 
 abbrev setUint48Offset20Word (old val : UInt256) : UInt256 :=
   UInt256.lor

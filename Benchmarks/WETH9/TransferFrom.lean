@@ -1,3 +1,4 @@
+import Reasoning.MemoryShapes
 import Benchmarks.WETH9.TransferFromSolm
 
 /-! # WETH9 `transferFrom(address,address,uint256)` refinement -/
@@ -23,7 +24,7 @@ theorem weth9TFReachBody {σ σ₀ A I} {g : Sat256}
   have hsz4 : 4 ≤ I.calldata.size := by omega
   obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h434⟩ := weth9GuardPeelOk (gt := ⟨432⟩) h420 hwv
+  obtain ⟨_, _, h434⟩ := solcFunctionGuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
@@ -51,12 +52,6 @@ theorem weth9TFReachBody {σ σ₀ A I} {g : Sat256}
 
 /-! ## Shared body tail + boolean return (pc 1282 → `RDret`) -/
 
-/-- Overwriting `mem[0..32]` leaves the free-pointer word at `mem[64..96]` intact. -/
-theorem wtf_wordAt0Mem_read64 (word : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :
-    (wordAt0Mem word mem).readWithPadding 64 32 = mem.readWithPadding 64 32 := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega) (by omega)
-    (by rw [hmem])]
 
 /-- The bool-encoder scratch memory (`isZero(isZero 1) = 1` written at the free pointer 0x80). -/
 abbrev wtfBoolReturnMem (src dst wad : UInt256) (mem : ByteArray) : ByteArray :=
@@ -80,7 +75,7 @@ theorem weth9TFReturnTrue {ee g s0 rdata σ k C} {src dst wad : UInt256} {S : Li
     wordAt0Mem_size_96 dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)
   have hM1read64 : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 64 32
       = UInt256.toByteArray ⟨128⟩ := by
-    rw [wtf_wordAt0Mem_read64 dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)]
+    rw [wordAt0Mem_read64_preserved_word dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)]
     exact twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64
   have hretWf : solcReturnBoolFromMemWf weth9Bytecode ⟨361⟩ := by
     unfold solcReturnBoolFromMemWf
@@ -179,7 +174,7 @@ theorem weth9TFGuardRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  exact weth9GuardPeelRev (gt := ⟨432⟩) h420 hwv
+  exact solcFunctionGuardPeelRev (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
@@ -191,7 +186,7 @@ theorem weth9TFDecodeFailRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h434⟩ := weth9GuardPeelOk (gt := ⟨432⟩) h420 hwv
+  obtain ⟨_, _, h434⟩ := solcFunctionGuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
@@ -266,11 +261,11 @@ theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                 hnotMax hallow (by simp only [List.length_cons, List.length_nil]; omega)
               have hspendbase : (solcNestedMappingCallerHashMem ⟨4⟩ (tfSrcMasked I) I
                   (wtfAllowHashMem I (tfSrcMasked I))).size = 96 :=
-                wtf_nestedHashMem_size ⟨4⟩ (tfSrcMasked I) I _ (wtfAllowHashMem_size I (tfSrcMasked I))
+                nestedHashMem_size ⟨4⟩ (tfSrcMasked I) I _ (wtfAllowHashMem_size I (tfSrcMasked I))
               have hX := weth9TFReturnTrue h1282 hperm (tfSrcMasked_canonical I) (tfDstMasked_canonical I)
-                (wtf_nestedHashMem_size ⟨4⟩ (tfSrcMasked I) I _ hspendbase)
-                (wtf_nestedHashMem_read64 ⟨4⟩ (tfSrcMasked I) I _ hspendbase
-                  (wtf_nestedHashMem_read64 ⟨4⟩ (tfSrcMasked I) I _
+                (nestedHashMem_size ⟨4⟩ (tfSrcMasked I) I _ hspendbase)
+                (nestedHashMem_read64 ⟨4⟩ (tfSrcMasked I) I _ hspendbase
+                  (nestedHashMem_read64 ⟨4⟩ (tfSrcMasked I) I _
                     (wtfAllowHashMem_size I (tfSrcMasked I)) (wtfAllowHashMem_read64 I (tfSrcMasked I))))
                 (by simp only [List.length_cons, List.length_nil]; omega)
               obtain ⟨evmPost, cs, hbody, hmap⟩ :=

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Cat.BiteTrace
 import Benchmarks.Dss.Cat.BiteCallGrab
 
@@ -198,28 +199,6 @@ theorem catBiteGrabCalldataMemP_read_window
 
 /-! ## STEP 2 — the ABI-encoding coupling for `vat.grab(...)` -/
 
-/-- The signed `int256` negative encoding: `-int256(x)` two's-complements to `0 - x`. -/
-theorem grab_neg_int_word (x : UInt256) :
-    EVM.wordOfInt (-(Int.ofNat x.toNat)) = UInt256.sub ⟨0⟩ x := by
-  have hlt : x.toNat < UInt256.size := x.val.isLt
-  rcases Nat.eq_zero_or_pos x.toNat with h0 | hpos
-  · have hx : x = ⟨0⟩ := u256_inj (by rw [h0]; rfl)
-    subst hx
-    decide
-  · apply u256_inj
-    rw [usub_toNat_underflow (a := (⟨0⟩ : UInt256)) (b := x)
-        (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; exact hpos),
-      show (⟨0⟩ : UInt256).toNat = 0 from rfl]
-    have hneg : -(Int.ofNat x.toNat) < 0 := by
-      show -(x.toNat : ℤ) < 0; omega
-    have hAbs : (-(Int.ofNat x.toNat)).natAbs = x.toNat := by
-      show (-(x.toNat : ℤ)).natAbs = x.toNat; simp
-    unfold EVM.wordOfInt
-    rw [if_pos hneg, hAbs, show EVM.wordModulus = UInt256.size from rfl, Nat.mod_eq_of_lt hlt,
-      if_neg (by omega : ¬ x.toNat = 0),
-      show EVM.word (UInt256.size - x.toNat) = UInt256.ofNat (UInt256.size - x.toNat) from rfl,
-      ulit_toNat' (UInt256.size - x.toNat) (by omega)]
-    omega
 
 theorem catBiteGrabEncode_eq (p ilk urn thisW vowRaw dink dart : UInt256) {mem : ByteArray}
     (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat ≤ mem.size) (hpsz : p.toNat + 196 < UInt256.size)

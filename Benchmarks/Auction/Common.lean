@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.Auction.Selectors
 import Reasoning.Dispatch
 import Reasoning.Solc
@@ -263,17 +264,5 @@ end Auction
 
 namespace Reasoning.Reach
 
-/-- LIBRARY CANDIDATE: the Shanghai `PUSH0; DUP1; REVERT` terminal. -/
-theorem RD.auctionRevert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ} (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hd0 : decode code pc = some (.PUSH0, .none))
-    (hd1 : decode code (pc + ⟨1⟩) = some (.DUP1, .none))
-    (hd2 : decode code (pc + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none))
-    (hov : stk.length + 2 ≤ 1024) : RDrev code g s0 :=
-  h.push0 hd0 (by omega)
-    |>.dup1 hd1 (by omega)
-    |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 end Reasoning.Reach

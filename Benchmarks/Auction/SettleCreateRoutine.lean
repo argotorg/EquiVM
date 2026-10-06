@@ -20,14 +20,14 @@ theorem settleCreateRoutine {I g s0 ret R mem aw rdata σ k C evm}
     (ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm
       settleCreateStmts .reverted ∧ RDrev auctionBytecode g s0) := by
   have hstatus := statusGuardSource (locals := ∅) hs (by simp)
-  by_cases hentered : storedWord σ I ⟨101⟩ = ⟨2⟩
+  by_cases hentered : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
   · rw [decide_eq_false (not_not_intro hentered)] at hstatus
     exact Or.inr ⟨ExecBlock.consRevert (ExecStmt.requireFalse hstatus),
       reentrancyDenied 2 h hentered (by evm_ov)⟩
   · rw [decide_eq_true hentered] at hstatus
     obtain ⟨_, _, rd2607⟩ := reentrancyAllowed 2 h hentered (by evm_ov)
     obtain ⟨_, _, rd2623⟩ := settleCreateEnter rd2607 hperm (by evm_ov)
-    have hs2 := hs.status ⟨2⟩
+    have hs2 := (SourceState.status hs) ⟨2⟩
     have hstore := statusStoreSource (evm := evm) (locals := ∅) (word := ⟨2⟩)
       (e := entered) (by simp) (by simp only [entered, evalExpr?, pure]; rfl)
     have hprefix : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm
@@ -69,7 +69,7 @@ theorem settleCreateRoutine {I g s0 ret R mem aw rdata σ k C evm}
           refine Or.inl ⟨statusState evmC ⟨1⟩, _,
             ((∅ : Store).insert "_s" (.int (Int.ofNat ptrS.toNat))).insert "_c" .unit,
             memC, awC, outC, _, _, ?_,
-            hsC.status ⟨1⟩, rdret⟩
+            (SourceState.status hsC) ⟨1⟩, rdret⟩
           exact execBlock_append hprefix (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
             (ExecBlock.consNormal hsettle (ExecBlock.consNormal hcreate
               (ExecBlock.consNormal hexit ExecBlock.nil))))

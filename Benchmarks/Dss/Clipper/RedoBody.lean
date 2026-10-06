@@ -22,7 +22,7 @@ theorem clipperRedoBodyJumpDest7575 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -36,7 +36,7 @@ theorem clipperRedoBodyJumpDest7651 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -50,7 +50,7 @@ theorem clipperRedoBodyJumpDest8728 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -748,7 +748,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       (fun acc => acc.code.size))).toNat := by
                 simpa [σLock, evmLockSolm, evmSolm, clipperRedoLockedState,
                   State.lookupAccount, initState, storageStore_accountMap] using
-                  clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
+                  extCodeSizeWord_ne_zero_lookup_code_pos
                     (σ := σLock) (target := calcAddr)
                     (addr := clipperStatusCalcAddress evmLockSolm)
                     hcalcAddrSolm hcalcCodeSolmNE
@@ -1110,13 +1110,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                         obtain ⟨σIlksSolm, AIlksSolm, hcallIlksSolmRaw, _hIlksAccounts⟩ :=
                           Reasoning.Theory.typedCallViaEVM_sameInputs
                             (cfg := config v) hcallIlks hPostTicAccounts
-                            (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
+                            (by simp [clipperRedoPostTicState, storageStore_σ₀,
                               evmPriceSolm, hlockStateSolm, initState])
 
 
 
                             (by simp [clipperRedoPostTicState,
-                              clipperStorageStore_executionEnv, evmPriceSolm, hlockStateSolm,
+                              storageStore_executionEnv, evmPriceSolm, hlockStateSolm,
                               initState])
                         have hcallIlksSolm :
                             typedCallViaEVM (config v) (clipperRedoPostTicState evmPriceSolm I)
@@ -1229,13 +1229,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                               _hIlksAccounts⟩ :=
                             Reasoning.Theory.typedCallViaEVM_sameInputs
                               (cfg := config v) hcallIlks hPostTicAccounts
-                              (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
+                              (by simp [clipperRedoPostTicState, storageStore_σ₀,
                                 evmPriceSolm, hlockStateSolm, initState])
 
 
 
                               (by simp [clipperRedoPostTicState,
-                                clipperStorageStore_executionEnv, evmPriceSolm, hlockStateSolm,
+                                storageStore_executionEnv, evmPriceSolm, hlockStateSolm,
                                 initState])
                           have hcallIlksSolm :
                               typedCallViaEVM (config v)
@@ -1354,13 +1354,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 hIlksAccountsRaw⟩ :=
                               Reasoning.Theory.typedCallViaEVM_sameInputs
                                 (cfg := config v) hcallIlks hPostTicAccounts
-                                (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
+                                (by simp [clipperRedoPostTicState, storageStore_σ₀,
                                   evmPriceSolm, hlockStateSolm, initState])
 
 
 
                                 (by simp [clipperRedoPostTicState,
-                                  clipperStorageStore_executionEnv, evmPriceSolm,
+                                  storageStore_executionEnv, evmPriceSolm,
                                   hlockStateSolm, initState])
                             have hIlksAccounts : Eq σIlks σIlksSolm := by
                               simpa [initState] using hIlksAccountsRaw
@@ -1400,7 +1400,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   ((σIlksSolm.get? (clipperSpotterIlksPipAddress outIlks))
                                     |>.option 0 (fun acc => acc.code.size))).toNat = 0 := by
                               exact
-                                clipperExtCodeSizeWord_zero_lookup_code_zero
+                                extCodeSizeWord_zero_lookup_code_zero
                                   (σ := σIlksSolm)
                                   (target := clipperSpotterIlksPipTarget outIlks)
                                   (addr := clipperSpotterIlksPipAddress outIlks)
@@ -1518,13 +1518,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 hIlksAccountsRaw⟩ :=
                               Reasoning.Theory.typedCallViaEVM_sameInputs
                                 (cfg := config v) hcallIlks hPostTicAccounts
-                                (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
+                                (by simp [clipperRedoPostTicState, storageStore_σ₀,
                                   evmPriceSolm, hlockStateSolm, initState])
 
 
 
                                 (by simp [clipperRedoPostTicState,
-                                  clipperStorageStore_executionEnv, evmPriceSolm,
+                                  storageStore_executionEnv, evmPriceSolm,
                                   hlockStateSolm, initState])
                             have hIlksAccounts : Eq σIlks σIlksSolm := by
                               simpa [initState] using hIlksAccountsRaw
@@ -1567,7 +1567,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     (clipperSpotterIlksPipAddress outIlks)).option 0
                                       (fun acc => acc.code.size))).toNat := by
                               simpa [evmIlksSolm, State.lookupAccount] using
-                                clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                extCodeSizeWord_ne_zero_lookup_code_pos
                                   (σ := σIlksSolm)
                                   (target := clipperSpotterIlksPipTarget outIlks)
                                   (addr := clipperSpotterIlksPipAddress outIlks)
@@ -1585,13 +1585,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (cfg := config v) (evm_solm := evmIlksSolm)
                                   hcallPeek hIlksAccounts
                                   (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                    clipperStorageStore_σ₀, evmPriceSolm, hlockStateSolm,
+                                    storageStore_σ₀, evmPriceSolm, hlockStateSolm,
                                     initState])
 
 
 
                                   (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                    clipperStorageStore_executionEnv, evmPriceSolm,
+                                    storageStore_executionEnv, evmPriceSolm,
                                     hlockStateSolm, initState])
                               have hcallPeekSolm :
                                   typedCallViaEVM (config v) evmIlksSolm
@@ -1643,13 +1643,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     (cfg := config v) (evm_solm := evmIlksSolm)
                                     hcallPeek hIlksAccounts
                                     (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                      clipperStorageStore_σ₀, evmPriceSolm, hlockStateSolm,
+                                      storageStore_σ₀, evmPriceSolm, hlockStateSolm,
                                       initState])
 
 
 
                                     (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                      clipperStorageStore_executionEnv, evmPriceSolm,
+                                      storageStore_executionEnv, evmPriceSolm,
                                       hlockStateSolm, initState])
                                 have hcallPeekSolm :
                                     typedCallViaEVM (config v) evmIlksSolm
@@ -1705,13 +1705,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (cfg := config v) (evm_solm := evmIlksSolm)
                                       hcallPeek hIlksAccounts
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                        clipperStorageStore_σ₀, evmPriceSolm, hlockStateSolm,
+                                        storageStore_σ₀, evmPriceSolm, hlockStateSolm,
                                         initState])
 
 
 
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                        clipperStorageStore_executionEnv, evmPriceSolm,
+                                        storageStore_executionEnv, evmPriceSolm,
                                         hlockStateSolm, initState])
                                   have hcallPeekSolm :
                                       typedCallViaEVM (config v) evmIlksSolm
@@ -1754,13 +1754,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (cfg := config v) (evm_solm := evmIlksSolm)
                                       hcallPeek hIlksAccounts
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                        clipperStorageStore_σ₀, evmPriceSolm, hlockStateSolm,
+                                        storageStore_σ₀, evmPriceSolm, hlockStateSolm,
                                         initState])
 
 
 
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
-                                        clipperStorageStore_executionEnv, evmPriceSolm,
+                                        storageStore_executionEnv, evmPriceSolm,
                                         hlockStateSolm, initState])
                                   have hPeekAccounts : Eq σPeek σPeekSolm := by
                                     simpa [initState] using hPeekAccountsRaw
@@ -1904,7 +1904,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (clipperSpotterTarget σPeek I) := by
                                       have hPeekEnv : evmPeekSolm.executionEnv = I := by
                                         unfold evmPeekSolm evmIlksSolm
-                                        rw [clipperStorageStore_executionEnv]
+                                        rw [storageStore_executionEnv]
                                         simp [evmPriceSolm, hlockStateSolm, initState]
                                       have hPeekMap : evmPeekSolm.accountMap = σPeekSolm := rfl
                                       simp [clipperGetFeedPriceSpotterAddress,
@@ -1921,7 +1921,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (clipperGetFeedPriceSpotterAddress evmPeekSolm))
                                               |>.option 0 (fun acc => acc.code.size))).toNat = 0 := by
                                         simpa [State.lookupAccount, evmPeekSolm] using
-                                          (clipperExtCodeSizeWord_zero_lookup_code_zero
+                                          (extCodeSizeWord_zero_lookup_code_zero
                                             (σ := σPeekSolm)
                                             (target := clipperSpotterTarget σPeek I)
                                             (addr := clipperGetFeedPriceSpotterAddress
@@ -1948,14 +1948,14 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                           (cfg := config v) (evm_solm := evmPeekSolm)
                                           hcallPar hPeekAccounts
                                           (by simp [evmPeekSolm, evmIlksSolm,
-                                            clipperRedoPostTicState, clipperStorageStore_σ₀,
+                                            clipperRedoPostTicState, storageStore_σ₀,
                                             evmPriceSolm, hlockStateSolm, initState])
 
 
 
                                           (by simp [evmPeekSolm, evmIlksSolm,
                                             clipperRedoPostTicState,
-                                            clipperStorageStore_executionEnv, evmPriceSolm,
+                                            storageStore_executionEnv, evmPriceSolm,
                                             hlockStateSolm, initState])
                                       have hParAccounts : Eq σPar σParSolm := by
                                         simpa [initState] using hParAccountsRaw
@@ -1976,7 +1976,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (clipperGetFeedPriceSpotterAddress evmPeekSolm))
                                               |>.option 0 (fun acc => acc.code.size))).toNat := by
                                         simpa [State.lookupAccount, evmPeekSolm] using
-                                          (clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                          (extCodeSizeWord_ne_zero_lookup_code_pos
                                             (σ := σPeekSolm)
                                             (target := clipperSpotterTarget σPeek I)
                                             (addr := clipperGetFeedPriceSpotterAddress
@@ -2206,7 +2206,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                     List.length_nil]; omega)
                                               have hParEnv : evmParSolm.executionEnv = I := by
                                                 unfold evmParSolm evmPeekSolm evmIlksSolm
-                                                rw [clipperStorageStore_executionEnv]
+                                                rw [storageStore_executionEnv]
                                                 simp [evmPriceSolm, hlockStateSolm, initState]
                                               have hbufEq :
                                                   solcSlotWord σPar I ⟨5⟩ =
@@ -2350,7 +2350,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                   have hTopEnv :
                                                       evmTop.executionEnv = I := by
                                                     unfold evmTop clipperRedoTopState
-                                                    rw [clipperStorageStore_executionEnv,
+                                                    rw [storageStore_executionEnv,
                                                       hParEnv]
                                                   have hTopAccounts :
                                                       Eq σTop
@@ -2994,7 +2994,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                             acc.code.size))).toNat =
                                                                       0 := by
                                                                   simpa [State.lookupAccount] using
-                                                                    (clipperExtCodeSizeWord_zero_lookup_code_zero
+                                                                    (extCodeSizeWord_zero_lookup_code_zero
                                                                       (σ := evmTop.accountMap)
                                                                       (target :=
                                                                         clipperRedoVatTarget v)
@@ -3062,7 +3062,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                         evmParSolm, evmPeekSolm,
                                                                         evmIlksSolm,
                                                                         clipperRedoPostTicState,
-                                                                        clipperStorageStore_σ₀,
+                                                                        storageStore_σ₀,
                                                                         evmPriceSolm,
                                                                         hlockStateSolm, initState])
 
@@ -3074,7 +3074,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                         evmParSolm, evmPeekSolm,
                                                                         evmIlksSolm,
                                                                         clipperRedoPostTicState,
-                                                                        clipperStorageStore_executionEnv,
+                                                                        storageStore_executionEnv,
                                                                         evmPriceSolm,
                                                                         hlockStateSolm, initState])
                                                                 have hSuckAccounts :
@@ -3135,7 +3135,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                           (fun acc ↦
                                                                             acc.code.size))).toNat := by
                                                                   simpa [State.lookupAccount] using
-                                                                    (clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                                                    (extCodeSizeWord_ne_zero_lookup_code_pos
                                                                       (σ := evmTop.accountMap)
                                                                       (target :=
                                                                         clipperRedoVatTarget v)

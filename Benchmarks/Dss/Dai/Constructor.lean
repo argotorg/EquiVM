@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.MemoryArithmetic
+import Reasoning.MemoryShapes
 import Benchmarks.Dss.Dai.Bytecode
 import Benchmarks.Dss.Dai.Storage
 import Benchmarks.Dss.Dai.Selectors
@@ -375,77 +378,6 @@ abbrev daiCtorWardsHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   twoWordHashMem (daiCtorSourceWord I) ⟨0⟩ (daiCtorArgFreeMem chainIdWord)
 
-theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt0Mem word mem).size = 160 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
-    (by rw [hmem]; omega) (by omega)
-
-theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
-    (wordAt32Mem word mem).size = 160 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
-    (by rw [hmem]; omega) (by omega)
-
-theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).size = 160 := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
-
-theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  exact toByteArray_extract_all slot
-
-theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨160⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨160⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread64
-
-theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 160) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_160 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read0_160 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_160 key slot hmem]; omega),
-      twoWordHashMem_read32_160 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem daiCtorWardsHashMem_size (I : ExecutionEnv) (chainIdWord : UInt256) :
     (daiCtorWardsHashMem I chainIdWord).size = 160 := by
@@ -455,7 +387,7 @@ theorem daiCtorWardsHashMem_size (I : ExecutionEnv) (chainIdWord : UInt256) :
 theorem daiCtorWardsHashMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
     (daiCtorWardsHashMem I chainIdWord).readWithPadding 64 32 =
       UInt256.toByteArray ⟨160⟩ := by
-  exact twoWordHashMem_read64_160 (daiCtorSourceWord I) ⟨0⟩
+  exact twoWordHashMem_read64_160_ptr160 (daiCtorSourceWord I) ⟨0⟩
     (daiCtorArgFreeMem_size chainIdWord) (daiCtorArgFreeMem_read64 chainIdWord)
 
 theorem daiCtorWardsHashMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -872,41 +804,6 @@ theorem evalStorageRef_daiCtor_domain (evm : EVM.State) (chainId : Int) :
       .ok { base := "DOMAIN_SEPARATOR", steps := [] } := by
   simp [evalStorageRef, domainSeparatorRef, daiCtorFrame, EvalResult.bind, bind, pure]
 
-theorem byteArray_mk_toArray_eq_toByteArray (xs : List UInt8) :
-    ByteArray.mk xs.toArray = xs.toByteArray := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  change xs.toArray.toList = xs.toByteArray.data.toList
-  rw [show xs.toArray.toList = xs by simp]
-  rw [List.toList_data_toByteArray]
-
-theorem keccak_toList_length (bytes : ByteArray) : (KEC bytes).toList.length = 32 := by
-  rw [byteArray_toList_eq, Array.length_toList]
-  exact keccak_size bytes
-
-theorem encodePacked_bytes32_of_length {bytes : List UInt8}
-    (hlen : bytes.length = fixedBytesSize bytes32Width) :
-    encodePackedValue? bytes32 (.fixedBytes bytes32Width bytes) = some bytes := by
-  simp [encodePackedValue?, bytes32, fixedBytesSize, hlen]
-
-theorem encodePacked_uint256_word (value : UInt256) :
-    encodePackedValue? uint256 (.int (Int.ofNat value.toNat)) =
-      some (EVM.Word.toBytesBE value) := by
-  have hword : EVM.word value.toNat = value := u256_ofNat_toNat value
-  have hlt : value.toNat < EVM.twoPow 256 := by
-    change value.val.val < EVM.twoPow 256
-    exact value.val.isLt
-  simp [encodePackedValue?, uint256, uint256Int, encodeABIWord?, hword, hlt]
-
-theorem evalPackedArgs_cons_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {ty : ABIType} {e : Expr} {v : Value} {head tailBytes : List UInt8}
-    {rest : List (ABIType × Expr)}
-    (heval : evalExpr? cfg solm evm e = .ok v)
-    (henc : encodePackedValue? ty v = some head)
-    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes) :
-    evalPackedArgs? cfg solm evm ((ty, e) :: rest) = .ok (head ++ tailBytes) := by
-  rw [evalPackedArgs?]
-  simp only [heval, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 theorem evalExpr_daiCtor_chainId (evm : EVM.State) (chainId : Int) :
     evalExpr? config (daiCtorFrame chainId) evm (.var "chainId_") = .ok (.int chainId) := by
@@ -953,7 +850,7 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
           (uint256, addressAsUint256 (.env .this)) ] =
         .ok (typeHash ++ (nameHash ++ (versionHash ++
           (EVM.Word.toBytesBE chainWord ++ EVM.Word.toBytesBE thisWord)))) := by
-    refine evalPackedArgs_cons_ok
+    refine evalPackedArgs_cons
       (v := .fixedBytes bytes32Width typeHash) (head := typeHash)
       (tailBytes := nameHash ++ (versionHash ++
         (EVM.Word.toBytesBE chainWord ++ EVM.Word.toBytesBE thisWord)))
@@ -962,8 +859,8 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
       rw [evalExpr?]
       simp [evalExpr?, EvalResult.bind, bind, pure, bytes32Width]
     · exact encodePacked_bytes32_of_length (by unfold typeHash; simp [fixedBytesSize,
-        bytes32Width, keccak_toList_length])
-    · refine evalPackedArgs_cons_ok
+        bytes32Width, abiBytes32Width, keccak_toList_length])
+    · refine evalPackedArgs_cons
         (v := .fixedBytes bytes32Width nameHash) (head := nameHash)
         (tailBytes := versionHash ++
           (EVM.Word.toBytesBE chainWord ++ EVM.Word.toBytesBE thisWord))
@@ -972,8 +869,8 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
         rw [evalExpr?]
         simp [evalExpr?, EvalResult.bind, bind, pure, bytes32Width]
       · exact encodePacked_bytes32_of_length (by unfold nameHash; simp [fixedBytesSize,
-          bytes32Width, keccak_toList_length])
-      · refine evalPackedArgs_cons_ok
+          bytes32Width, abiBytes32Width, keccak_toList_length])
+      · refine evalPackedArgs_cons
           (v := .fixedBytes bytes32Width versionHash) (head := versionHash)
           (tailBytes := EVM.Word.toBytesBE chainWord ++ EVM.Word.toBytesBE thisWord)
           ?_ ?_ ?_
@@ -981,8 +878,8 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
           rw [evalExpr?]
           simp [evalExpr?, EvalResult.bind, bind, pure, bytes32Width]
         · exact encodePacked_bytes32_of_length (by unfold versionHash; simp [fixedBytesSize,
-            bytes32Width, keccak_toList_length])
-        · refine evalPackedArgs_cons_ok
+            bytes32Width, abiBytes32Width, keccak_toList_length])
+        · refine evalPackedArgs_cons
             (v := .int (Int.ofNat chainWord.toNat)) (head := EVM.Word.toBytesBE chainWord)
             (tailBytes := EVM.Word.toBytesBE thisWord)
             ?_ ?_ ?_
@@ -993,15 +890,15 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
               rw [hword]
               exact Int.toNat_of_nonneg h0]
             exact evalExpr_daiCtor_chainId evm chainId
-          · exact encodePacked_uint256_word chainWord
+          · exact encodePacked_uint256' chainWord
           · simpa using
-              evalPackedArgs_cons_ok
+              evalPackedArgs_cons
                 (cfg := config) (solm := daiCtorFrame chainId) (evm := evm)
                 (ty := uint256) (e := addressAsUint256 (.env .this))
                 (v := .int (Int.ofNat thisWord.toNat))
                 (head := EVM.Word.toBytesBE thisWord) (tailBytes := []) (rest := [])
                 (by simpa [thisWord] using evalExpr_daiCtor_this_uint256 evm chainId)
-                (encodePacked_uint256_word thisWord)
+                (encodePacked_uint256' thisWord)
                 (by rw [evalPackedArgs?]; rfl)
   unfold domainSeparatorExpr daiCtorDomainBytes daiCtorDomainPackedByteArray
   rw [evalExpr?]

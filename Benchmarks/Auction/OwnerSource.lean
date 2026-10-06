@@ -1,21 +1,10 @@
+import Reasoning.Storage
 import Benchmarks.Auction.OwnerGuard
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
--- LIBRARY CANDIDATE: equality between a canonical address word and CALLER.
-theorem sourceAddress_eq_iff (I : ExecutionEnv) (w : UInt256)
-    (hc : w.toNat < EVM.addressModulus) :
-    I.source = AccountAddress.ofNat w.toNat ↔ solcSourceWord I = w := by
-  constructor
-  · intro h
-    have hw := congrArg (fun a => valueToWord (.address a)) h
-    dsimp only at hw
-    rw [valueToWord_address_ofNat_canonical w hc] at hw
-    exact Option.some.inj hw
-  · intro h
-    rw [← h, solcSource_ofNat]
 
 theorem ownerWord_canonical (σ : AccountMap) (I : ExecutionEnv) :
     (ownerWord σ I).toNat < EVM.addressModulus := by

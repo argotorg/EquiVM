@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Auction.Storage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -8,19 +9,6 @@ theorem evalZeroAddr (cfg : Config) (solm : Frame) (evm : EVM.State) :
     evalExpr? cfg solm evm zeroAddr = .ok (.address (AccountAddress.ofNat 0)) := by
   simp [zeroAddr, addrSt, evalExpr?, EvalResult.bind, EvalResult.ofOption, castValue?, bind, pure]
 
--- LIBRARY CANDIDATE: testing a canonical address word against zero.
-theorem canonicalAddress_eq_zero_iff (value : UInt256)
-    (hc : value.toNat < EVM.addressModulus) :
-    AccountAddress.ofNat value.toNat = AccountAddress.ofNat 0 ↔ value = ⟨0⟩ := by
-  constructor
-  · intro h
-    have hv := congrArg (fun a => valueToWord (.address a)) h
-    dsimp only at hv
-    rw [valueToWord_address_ofNat_canonical value hc] at hv
-    exact Option.some.inj hv
-  · intro h
-    rw [h]
-    rfl
 
 theorem evalAddressNeZero_true {cfg : Config} {solm : Frame} {evm : EVM.State}
     {expr : Expr} {value : AccountAddress}

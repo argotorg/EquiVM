@@ -26,7 +26,7 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
         kissDaiTargetWord acc I :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       (vatDaiCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   let target := kissDaiTargetWord acc I
-  let rawTarget := vowSlotWord ⟨1⟩ acc I
+  let rawTarget := solcSlotWordAt ⟨1⟩ acc I
   have rd994 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd996 := rd994.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k997, C997, rd997Raw⟩ := rd996.sload (by native_decide) (by evm_ov)
@@ -34,7 +34,7 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨997⟩
       (rawTarget :: surplusNeed :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k997 C997 := by
-    simpa [rawTarget, vowSlotWord, solcSlotWord] using rd997Raw
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd997Raw
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -103,7 +103,7 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
     dup1]
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, kissDaiSelectorShifted,
-      vatDaiSelectorMem, vatDaiCalldataMem, vowSlotWord, solcSlotWord, solcAddrMask]
+      vatDaiSelectorMem, vatDaiCalldataMem, solcSlotWordAt, solcSlotWord, solcAddrMask]
       using rd1056⟩
 
 theorem RD.vowFlapDai0NoCode

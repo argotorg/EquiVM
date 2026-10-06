@@ -1,9 +1,12 @@
+import Reasoning.SolmRpow
 import Benchmarks.Dss.Jug.ArithmeticAddDiff
 import Benchmarks.Dss.Jug.ArithmeticRpowLoop
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+open Reasoning.Theory.RpowB
 
 namespace Benchmarks.Dss.Jug
 
@@ -198,7 +201,7 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
   have htwoLit :
       evalExpr? config { contract := contract, locals := locals } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hxZero :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .eq (.var "x") (.intLit 0)) = .ok (.bool false) := by
@@ -209,8 +212,8 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .mod (.var "n") (.intLit 2)) = .ok (.int 0) := by
     exact evalExpr_mod_int_ok hn htwoLit
-      (by simp [jugUInt256Two_toNat])
-      (by simp [jugUInt256Two_toNat])
+      (by simp [uInt256Two_toNat])
+      (by simp [uInt256Two_toNat])
   have hModEq :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0)) =
@@ -229,7 +232,7 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
   have htwoLitZ :
       evalExpr? config { contract := contract, locals := localsZ } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
@@ -243,15 +246,15 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
   have htwoLitZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hDivN :
       evalExpr? config { contract := contract, locals := localsZH } evm
         (.binary .div (.var "n") (.intLit 2)) =
         .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     have h := evalExpr_div_uint256_ok (evm := evm) (locals := localsZH)
       (x := .var "n") (y := .intLit 2) (a := (⟨0⟩ : UInt256)) (b := (⟨2⟩ : UInt256))
-      (q := (⟨0⟩ : UInt256)) hnZH htwoLitZH jugUInt256Two_ne_zero
-      (by simp [jugUInt256DivZeroTwo])
+      (q := (⟨0⟩ : UInt256)) hnZH htwoLitZH uInt256Two_ne_zero
+      (by simp [uInt256DivZeroTwo])
     simpa using h
   have hAssignN :
       assignStorageRef? config { contract := contract, locals := localsZH } evm .localVar
@@ -340,7 +343,7 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
   have htwoLit :
       evalExpr? config { contract := contract, locals := locals } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hxZero :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .eq (.var "x") (.intLit 0)) = .ok (.bool false) := by
@@ -351,8 +354,8 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .mod (.var "n") (.intLit 2)) = .ok (.int 1) := by
     exact evalExpr_mod_int_ok hn htwoLit
-      (by simp [jugUInt256Two_toNat])
-      (by simp [jugUInt256One_toNat, jugUInt256Two_toNat])
+      (by simp [uInt256Two_toNat])
+      (by simp [uInt256One_toNat, uInt256Two_toNat])
   have hModEq :
       evalExpr? config { contract := contract, locals := locals } evm
         (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0)) =
@@ -372,7 +375,7 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
   have htwoLitZ :
       evalExpr? config { contract := contract, locals := localsZ } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
@@ -386,15 +389,15 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
   have htwoLitZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.intLit 2) =
         .ok (.int (Int.ofNat (⟨2⟩ : UInt256).toNat)) := by
-    simp [evalExpr?, pure, jugUInt256Two_toNat]
+    simp [evalExpr?, pure, uInt256Two_toNat]
   have hDivN :
       evalExpr? config { contract := contract, locals := localsZH } evm
         (.binary .div (.var "n") (.intLit 2)) =
         .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
     have h := evalExpr_div_uint256_ok (evm := evm) (locals := localsZH)
       (x := .var "n") (y := .intLit 2) (a := (⟨1⟩ : UInt256)) (b := (⟨2⟩ : UInt256))
-      (q := (⟨0⟩ : UInt256)) hnZH htwoLitZH jugUInt256Two_ne_zero
-      (by simp [jugUInt256DivOneTwo])
+      (q := (⟨0⟩ : UInt256)) hnZH htwoLitZH uInt256Two_ne_zero
+      (by simp [uInt256DivOneTwo])
     simpa using h
   have hAssignN :
       assignStorageRef? config { contract := contract, locals := localsZH } evm .localVar

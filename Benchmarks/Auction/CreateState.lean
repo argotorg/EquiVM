@@ -26,7 +26,7 @@ def createdAuctionState (evm : EVM.State) (noun start finish : UInt256) : EVM.St
 def createdAuctionAccounts (σ : AccountMap) (I : ExecutionEnv)
     (noun start finish : UInt256) : AccountMap :=
   let σ' := createdScalarAccounts σ I noun start finish
-  sstoreAccountMap I.codeOwner σ' ⟨211⟩ (clearAuctionPackedWord (storedWord σ' I ⟨211⟩))
+  sstoreAccountMap I.codeOwner σ' ⟨211⟩ (clearAuctionPackedWord (solcSlotWord σ' I ⟨211⟩))
 
 theorem SourceState.createdScalars {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (noun start finish : UInt256) :
@@ -42,7 +42,7 @@ theorem SourceState.createdAuction {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (noun start finish : UInt256) :
     SourceState s0 I (createdAuctionAccounts σ I noun start finish)
       (createdAuctionState evm noun start finish) :=
-  (hs.createdScalars noun start finish).clearAuctionPacked
+  SourceState.clearAuctionPacked (SourceState.createdScalars hs noun start finish)
 
 theorem createStorePrefix {I g s0 noun start finish ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3240⟩

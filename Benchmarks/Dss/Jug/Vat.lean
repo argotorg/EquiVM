@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Jug
 /-! ## `vat()` getter -/
 
 def vatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  jugAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 theorem jugDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -58,7 +58,7 @@ theorem jugVatBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vatWord σ I).toNat))])) := by
-    simpa [vatTransition, vatWord, jugAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [vatTransition, vatWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

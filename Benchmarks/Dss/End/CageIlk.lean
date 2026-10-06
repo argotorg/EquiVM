@@ -1,3 +1,9 @@
+import Reasoning.Reach
+import Reasoning.StateFacts
+import Reasoning.ABIViews
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.Memory
 import Benchmarks.Dss.End.Dispatch
 import Benchmarks.Dss.End.Cage
 import Benchmarks.Dss.End.Flow
@@ -28,10 +34,10 @@ abbrev endCageIlkTagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endCageIlkTagSlot (I : ExecutionEnv) : UInt256 := tagSlot (endCageIlkIlkKey I)
 
 abbrev endCageIlkTagWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord (endCageIlkTagSlot I) σ I
+  solcSlotWordAt (endCageIlkTagSlot I) σ I
 
 abbrev endCageIlkLiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 abbrev endCageIlkLiveEvaledRef : EvaledStorageRef :=
   { base := "live", steps := [] }
@@ -123,7 +129,7 @@ abbrev endCageIlkPostArtAccountMap (σ : AccountMap) (I : ExecutionEnv)
   sstoreAccountMap I.codeOwner σ (endCageIlkArtSlot I) (endFlowVatIlkArtWord vatOut)
 
 abbrev endCageIlkSpotWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨6⟩ σ I
+  solcAddressSlotWord ⟨6⟩ σ I
 
 abbrev endCageIlkPostTagState (evm : EVM.State) (I : ExecutionEnv)
     (tagV : UInt256) : EVM.State :=
@@ -408,7 +414,7 @@ theorem endCageIlkArtHashMem_size_long (I : ExecutionEnv) (vatOut : ByteArray)
     (hlo : 160 ≤ vatOut.size) :
     (endCageIlkArtHashMem I vatOut).size = 288 := by
   unfold endCageIlkArtHashMem
-  rw [endFlow_twoWordHashMem_size_of_ge64 (endCageIlkIlkWord I) ⟨14⟩
+  rw [twoWordHashMem_size_of_ge64 (endCageIlkIlkWord I) ⟨14⟩
     (by rw [endCageIlkVatIlksPostCallMem_size_long I vatOut hlo]; omega)]
   exact endCageIlkVatIlksPostCallMem_size_long I vatOut hlo
 
@@ -423,7 +429,7 @@ theorem endCageIlkArtHashMem_read64_long (I : ExecutionEnv) (vatOut : ByteArray)
   have hword0 :
       (wordAt0Mem (endCageIlkIlkWord I) (endCageIlkVatIlksPostCallMem I vatOut)).size =
         (endCageIlkVatIlksPostCallMem I vatOut).size :=
-    endFlow_wordAt0Mem_size_of_ge64 (endCageIlkIlkWord I) hmem64
+    wordAt0Mem_size_of_ge64 (endCageIlkIlkWord I) hmem64
   unfold twoWordHashMem wordAt32Mem
   rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
       (by rw [hword0, endCageIlkVatIlksPostCallMem_size_long I vatOut hlo]; omega)
@@ -529,15 +535,6 @@ theorem endCageIlkSpotIlksCalldataMem_mload64_long (I : ExecutionEnv) (vatOut : 
     (by rw [endCageIlkSpotIlksCalldataMem_size_long I vatOut hlo]; decide)
     (endCageIlkSpotIlksCalldataMem_read64_long I vatOut hlo)
 
-theorem endCageIlkSpotIlksWriteLen_eq {out : ByteArray}
-    (hout : out.size < UInt256.size) :
-    (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 64 out.size := by
-  by_cases hle : 64 ≤ out.size
-  · rw [Nat.min_eq_left hle]
-    exact umin_ofNat_right_toNat_of_ge (c := 64) (n := out.size) (by decide) hle hout
-  · have hlt : out.size < 64 := by omega
-    rw [Nat.min_eq_right (by omega : out.size ≤ 64)]
-    exact umin_ofNat_right_toNat_of_lt (c := 64) (n := out.size) (by decide) hlt hout
 
 theorem endCageIlkSpotIlksPostCallMem_size (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) (hvat : 160 ≤ vatOut.size)
@@ -726,15 +723,6 @@ theorem endCageIlkNoArgCalldataMem_mload64 {selectorShifted mem : ByteArray}
     (by rw [endCageIlkNoArgCalldataMem_size hselector hmem]; decide)
     (endCageIlkNoArgCalldataMem_read64 hselector hmem hread64)
 
-theorem endCageIlkNoArgWriteLen_eq {out : ByteArray}
-    (hout : out.size < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 32 out.size := by
-  by_cases hle : 32 ≤ out.size
-  · rw [Nat.min_eq_left hle]
-    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hle hout
-  · have hlt : out.size < 32 := by omega
-    rw [Nat.min_eq_right (by omega : out.size ≤ 32)]
-    exact umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hlt hout
 
 theorem endCageIlkNoArgPostCallMem_size {selectorShifted mem out : ByteArray}
     (hselector : selectorShifted.size = 32) (hmem : mem.size = 288)
@@ -851,21 +839,6 @@ theorem endCageIlkNoArgPostCallMem_mload64 {selectorShifted mem out : ByteArray}
     (by rw [endCageIlkNoArgPostCallMem_size hselector hmem hout]; decide)
     (endCageIlkNoArgPostCallMem_read64 hselector hmem hread64 hout)
 
-theorem endCageIlk_twoWordHashMem_read64_of_ge96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  have hmem64 : 64 ≤ mem.size := by omega
-  have hword0 : (wordAt0Mem key mem).size = mem.size :=
-    endFlow_wordAt0Mem_size_of_ge64 key hmem64
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [hword0]; omega) (by omega) (by rw [hword0]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega) (by omega)
-    (by omega)]
-  exact hread64
 
 theorem endCageIlkNoArgPostCallMem_mload128 {selectorShifted mem out : ByteArray}
     (hselector : selectorShifted.size = 32) (hmem : mem.size = 288)
@@ -894,15 +867,6 @@ theorem endCageIlkArtSlot_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   unfold endCageIlkArtSlot endCageIlkIlkKey ArtSlot mapSlot solcMappingSlot
   rw [endKeyValueToWord_bytes32ArgKey (by omega)]
 
-theorem endCageIlk_bytesToWord_drop_take32_eq_extract (out : ByteArray) (start : ℕ) :
-    ABI.bytesToWord ((out.toList.drop start).take 32) =
-      UInt256.ofNat (fromByteArrayBigEndian (out.extract start (start + 32))) := by
-  unfold ABI.bytesToWord fromByteArrayBigEndian
-  congr 1
-  rw [byteArray_toList_eq (out.extract start (start + 32)), ByteArray.data_extract,
-    Array.toList_extract, List.extract_eq_take_drop, byteArray_toList_eq]
-  rw [byteArray_toList_eq]
-  simp
 
 theorem endCageIlkSpotIlksDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
     config.externalABI.decode? "spotIlks" out =
@@ -1052,7 +1016,7 @@ theorem endDecode_cageIlk_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   show decodeCalldataWithMode config.abiDecodeMode ["ilk"] [bytes32] I.calldata = _
   simpa [config, endCageIlkStore, endCageIlkIlkValue, endCageIlkIlkWord,
     cageIlkTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
-    endDecode_legacyBytes32_ok (cd := I.calldata) (x := "ilk") hsz36
+    decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "ilk") hsz36
 
 theorem endDecode_cageIlk_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -1060,7 +1024,7 @@ theorem endDecode_cageIlk_none_short {I : ExecutionEnv}
       (transitionSignature cageIlkTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["ilk"] [bytes32] I.calldata = none
   simpa [config, cageIlkTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
-    endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk") hsz4 hshort
+    decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk") hsz4 hshort
 
 theorem endReachCageIlkBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1132,7 +1096,7 @@ theorem endCageIlkX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (endCageIlkLiveWord σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using rd8836raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using rd8836raw⟩
   obtain ⟨_, _, rd8836⟩ := rd8836
   have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endCageIlkLiveWord σ I) = ⟨0⟩ :=
@@ -1174,7 +1138,7 @@ theorem endCageIlkX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have rd8836zero := rd8836raw
   rw [hliveRaw] at rd8836zero
   obtain ⟨_, _, rd8836⟩ : ∃ k' C',
@@ -1225,7 +1189,7 @@ theorem endCageIlkX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     have htagRaw :
         solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = endCageIlkTagWord σ I := by
       rw [← hslot]
-      simp [endCageIlkTagWord, endSlotWord]
+      simp [endCageIlkTagWord, solcSlotWordAt]
     exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, htagRaw] using rd8918raw⟩
   obtain ⟨_, _, rd8918⟩ := rd8918
   have rd8919raw := rd8918.iszero (by native_decide) (by evm_ov)
@@ -1302,9 +1266,9 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
         endFlowVatIlksSelectorShifted := by
     native_decide
   have hvatMask :
-      UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨1⟩ σ I) = endPackVatWord σ I := by
     simpa [endPackVatWord, solcAddrMask] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ I)
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨1⟩ σ I)
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
     native_decide
@@ -1317,7 +1281,7 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have rd8836zero := rd8836raw
   rw [hliveRaw] at rd8836zero
   obtain ⟨_, _, rd8836⟩ : ∃ k' C',
@@ -1366,7 +1330,7 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     have hslotWord :
         solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
       rw [← htagSlot]
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkTagWord, endSlotWord, key] using htag
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkTagWord, solcSlotWordAt, key] using htag
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using hslotWord
   have rd8918zero := rd8918raw
   rw [htagRaw] at rd8918zero
@@ -1388,9 +1352,9 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd9003raw⟩ := rd9002.sload (by native_decide) (by evm_ov)
   have rd9003 : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨9003⟩
-        (endSlotWord ⟨1⟩ σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkTagHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9003raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd9003raw⟩
   obtain ⟨_, _, rd9003⟩ := rd9003
   have rd9065 := evm_run rd9003 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1455,7 +1419,7 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
       endFlowVatIlksCalldataMem, endCageIlkVatIlksCalldataMem, endCageIlkTagHashMem,
       endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
       endFlowVatIlksEndPtr, endFlowVatIlksSelectorShifted, endFlowVatIlksSelectorWord,
-      endPackVatWord, endSlotWord, solcSlotWord, solcAddrMask, hselectorShift, hvatMask,
+      endPackVatWord, solcSlotWordAt, solcSlotWord, solcAddrMask, hselectorShift, hvatMask,
       hinSize, hendPtr, u256_land_comm, key]
       using rd9065⟩
 
@@ -1722,10 +1686,10 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
         endFlowVatIlksSelectorShifted := by
     native_decide
   have hspotMask :
-      UInt256.land solcAddrMask (endSlotWord ⟨6⟩ σArt I) =
+      UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩ σArt I) =
         endCageIlkSpotWord σArt I := by
-    simpa [σArt, endCageIlkSpotWord, endAddressReturnWord, solcAddrMask] using
-      u256_land_comm solcAddrMask (endSlotWord ⟨6⟩ σArt I)
+    simpa [σArt, endCageIlkSpotWord, solcAddressSlotWord, solcAddrMask] using
+      u256_land_comm solcAddrMask (solcSlotWordAt ⟨6⟩ σArt I)
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
     native_decide
@@ -1736,7 +1700,7 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
         (KEC ((endCageIlkArtHashMem I vatOut).readWithPadding 0 64))) =
           solcMappingSlot ⟨14⟩ key := by
     unfold endCageIlkArtHashMem
-    exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
+    exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
       (by rw [endCageIlkVatIlksPostCallMem_size_long I vatOut hlo]; omega)
   have rd9125pre := evm_run h with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1787,11 +1751,11 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
   obtain ⟨_, _, rd9144raw⟩ := rd9143.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd9144⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨9144⟩
-        (endSlotWord ⟨6⟩ (endCageIlkPostArtAccountMap σ' I vatOut) I ::
+        (solcSlotWordAt ⟨6⟩ (endCageIlkPostArtAccountMap σ' I vatOut) I ::
           ⟨0⟩ :: ⟨64⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkArtHashMem I vatOut) (UInt256.ofNat 9) vatOut
         (endCageIlkPostArtAccountMap σ' I vatOut) k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9144raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd9144raw⟩
   have rd9201 := evm_run rd9144 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
@@ -1848,11 +1812,11 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
     raw dup7 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   exact ⟨_, _, by
-    simpa [σArt, endCageIlkSpotWord, endAddressReturnWord,
+    simpa [σArt, endCageIlkSpotWord, solcAddressSlotWord,
       endFlowVatIlksSelectorMem, endFlowVatIlksArg0Mem, endFlowVatIlksCalldataMem,
       endCageIlkSpotIlksCalldataMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksEndPtr, endFlowVatIlksSelectorShifted, endFlowVatIlksSelectorWord,
-      endSlotWord, solcSlotWord, solcAddrMask, hselectorShift, hspotMask, hinSize,
+      solcSlotWordAt, solcSlotWord, solcAddrMask, hselectorShift, hspotMask, hinSize,
       hendPtr, u256_land_comm, key] using rd9201⟩
 
 theorem endCageIlkX_spotIlksNoCode {σ σ' σ₀ A I}
@@ -2156,7 +2120,7 @@ theorem endCageIlkX_parExtcodesizeGuard {σ σ' σ₀ A I}
     unfold endCageIlkParCalldataMem
     exact endCageIlkNoArgCalldataMem_mload64 hselectorSize hbaseSize hbaseRead64
   have hspotMask :
-      UInt256.land (endSlotWord ⟨6⟩ σ' I)
+      UInt256.land (solcSlotWordAt ⟨6⟩ σ' I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         endCageIlkSpotWord σ' I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -2172,11 +2136,11 @@ theorem endCageIlkX_parExtcodesizeGuard {σ σ' σ₀ A I}
   obtain ⟨_, _, rd9261raw⟩ := rd9259.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd9261⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨9261⟩
-        (endSlotWord ⟨6⟩ σ' I :: endCageIlkSpotIlkPipWord spotOut ::
+        (solcSlotWordAt ⟨6⟩ σ' I :: endCageIlkSpotIlkPipWord spotOut ::
           ⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkSpotIlksPostCallMem I vatOut spotOut) (UInt256.ofNat 9)
         spotOut σ' k' C' := by
-    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9261raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWordAt, solcSlotWord] using rd9261raw⟩
   have rd9321pre := evm_run rd9261 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -2905,28 +2869,6 @@ theorem endCageIlkX_wdivEntry {σ σ' σ₀ A I}
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [endWadWord] using rd10170⟩
 
-theorem endCageIlkInvalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.INVALID, .none)) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
-  rcases RD.conclude h with hoog | ⟨k', C', s', hX, hcode, hpc, _hstk, _hgas, hk, hC,
-    _hmem, _haw, _hrdata, _hacc⟩
-  · exact Or.inl hoog
-  · have hdec' : decode s'.executionEnv.code s'.machineState.pc = some (.INVALID, .none) := by
-      rw [hcode, hpc]
-      exact hdec
-    have hstep : Xstep (D_J code 0) s' = .error .InvalidInstruction := by
-      have hstep' := Ethereum.EVM.step_invalid s' hdec'
-      simpa [hcode] using hstep'
-    have hfuel : g.toNat + 1 - k' = (g.toNat + 1 - (k' + 1)) + 1 := by
-      omega
-    exact Or.inr (by
-      rw [hX, hfuel]
-      exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
 theorem endCageIlkX_wdivMulOverflow {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut spotOut parOut readOut : ByteArray}
@@ -2976,7 +2918,7 @@ theorem endCageIlkX_wdivDivZeroInvalid {σ σ' σ₀ A I}
     raw dup2 (by native_decide) (by evm_ov),
     raw push2 ⟨10146⟩ (by native_decide) (by evm_ov)]
   have rd10145 := rd10144.jumpiNT (by native_decide) (by simpa using hden) (by evm_ov)
-  exact endCageIlkInvalidError rd10145 (by native_decide)
+  exact RD.invalidError rd10145 (by native_decide)
 
 theorem endCageIlkX_wdivReturns {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut spotOut parOut readOut : ByteArray}
@@ -3073,14 +3015,14 @@ theorem endCageIlkX_finish {σ σ' σ₀ A I}
       hreadSize
   have hmemHashSize : memHash.size = 288 := by
     unfold memHash
-    rw [endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩]
+    rw [twoWordHashMem_size_of_ge64 key ⟨12⟩]
     · exact hmemBaseSize
     · rw [hmemBaseSize]
       omega
   have hmemHashRead64 :
       memHash.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     unfold memHash
-    exact endCageIlk_twoWordHashMem_read64_of_ge96 key ⟨12⟩ (by rw [hmemBaseSize]; omega)
+    exact twoWordHashMem_read64_of_ge_96 key ⟨12⟩ (by rw [hmemBaseSize]; omega)
       hmemBaseRead64
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
@@ -3117,7 +3059,7 @@ theorem endCageIlkX_finish {σ σ' σ₀ A I}
         (KEC (memHash.readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key := by
     unfold memHash
-    exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨12⟩ key
+    exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨12⟩ key
       (by rw [hmemBaseSize]; omega)
   have rd9506 := rd9505pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
     (UInt256.ofNat 9) (by native_decide) mem_cost
@@ -3191,7 +3133,7 @@ theorem evalExpr_endCageIlk_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endCageIlk_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨8⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨8⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ≠
@@ -3258,7 +3200,7 @@ theorem evalExpr_endCageIlk_tag (evm : EVM.State) (I : ExecutionEnv)
     (her := evalStorageRef_endCageIlk_tag evm I hsz36)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm (endCageIlkTagSlot I))
+    (hload := storageLocLoad_uint256 evm (endCageIlkTagSlot I))
 
 theorem evalExpr_endCageIlk_tag_eq_false (evm : EVM.State) (I : ExecutionEnv)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -3301,7 +3243,7 @@ theorem evalExpr_endCageIlk_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endCageIlk_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hlive] using endStorageLocLoad_uint256 evm ⟨8⟩)]
+      (hload := by simpa [hlive] using storageLocLoad_uint256 evm ⟨8⟩)]
   have hzero :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm
         (.intLit 0) = .ok (.int 0) := by
@@ -3330,7 +3272,7 @@ theorem evalExpr_endCageIlk_tag_eq_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [htag] using endStorageLocLoad_uint256 evm (endCageIlkTagSlot I))]
+        simpa [htag] using storageLocLoad_uint256 evm (endCageIlkTagSlot I))]
   have hzero :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm
         (.intLit 0) = .ok (.int 0) := by
@@ -3405,61 +3347,10 @@ theorem endCageIlkVatIlksDecode_ok {out : ByteArray} (hlo : 160 ≤ out.size) :
   have h := endCageIlkVatIlksDecode_ok_aux (out := out) hlo
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
-theorem endCageIlkVatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size < 160) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
-        [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256] out = none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq
-    (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256])
-    (bytes := out.toList) (cursor := 0)
-    (total := 32 * [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  by_cases htake0 : ((out.toList.drop 0).take 32).length = 32
-  · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) htake0]
-    simp only [Option.bind_eq_bind, Option.bind_some]
-    by_cases htake32 : ((out.toList.drop 32).take 32).length = 32
-    · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-        (bytes := out.toList) (start := 32) htake32]
-      simp only [Option.bind_some]
-      by_cases htake64 : ((out.toList.drop 64).take 32).length = 32
-      · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-          (bytes := out.toList) (start := 64) htake64]
-        simp only [Option.bind_some]
-        by_cases htake96 : ((out.toList.drop 96).take 32).length = 32
-        · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-            (bytes := out.toList) (start := 96) htake96]
-          simp only [Option.bind_some]
-          have htake128 :
-              ¬ ((out.toList.drop 128).take 32).length = 32 := by
-            rw [List.length_take, List.length_drop, hlen]
-            omega
-          rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-            (bytes := out.toList) (start := 128) htake128]
-          simp
-        · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-            (bytes := out.toList) (start := 96) htake96]
-          simp
-      · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-          (bytes := out.toList) (start := 64) htake64]
-        simp
-    · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-        (bytes := out.toList) (start := 32) htake32]
-      simp
-  · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) htake0]
-    simp
 
 theorem endCageIlkVatIlksDecode_none_short {out : ByteArray} (hshort : out.size < 160) :
     config.externalABI.decode? "vatIlks" out = none := by
-  have h := endCageIlkVatIlksDecode_none_short_aux (out := out) hshort
+  have h := vatIlksDecode_none_short_aux (out := out) hshort
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
 theorem endCageIlkSpotIlksDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
@@ -3565,31 +3456,10 @@ theorem endCageIlk_evalExpr_spot {locals : Store} (evm : EVM.State)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
     (hload := by
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkSpotWord, endAddressReturnWord, endSlotWord, solcSlotWord,
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkSpotWord, solcAddressSlotWord, solcSlotWordAt, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount] using
-        endStorageLocLoad_address_offset0 evm ⟨6⟩)
+        storageLocLoad_address_offset0 evm ⟨6⟩)
 
-theorem endCageIlkAddressWordCode_zero_of_state {evm : EVM.State} (target : UInt256)
-    (hzero : Reasoning.Theory.extCodeSizeWord evm.accountMap target = ⟨0⟩) :
-    (UInt256.ofNat
-      ((evm.lookupAccount (AccountAddress.ofNat target.toNat)).option 0
-        (fun acc => acc.code.size))).toNat = 0 := by
-  simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
-      (σ := evm.accountMap) (target := target)
-      (addr := AccountAddress.ofNat target.toNat)
-      (accountAddress_ofUInt256_eq_ofNat_toNat target).symm hzero
-
-theorem endCageIlkAddressWordCode_pos_of_state {evm : EVM.State} (target : UInt256)
-    (hne : Reasoning.Theory.extCodeSizeWord evm.accountMap target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat
-      ((evm.lookupAccount (AccountAddress.ofNat target.toNat)).option 0
-        (fun acc => acc.code.size))).toNat := by
-  simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
-      (σ := evm.accountMap) (target := target)
-      (addr := AccountAddress.ofNat target.toNat)
-      (accountAddress_ofUInt256_eq_ofNat_toNat target).symm hne
 
 theorem endCageIlkPipAddr_eq_ofUInt256 (out : ByteArray) :
     endCageIlkSpotIlkPipAddr out =
@@ -3609,12 +3479,6 @@ theorem endCageIlkPipAddr_eq_ofUInt256 (out : ByteArray) :
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
   simpa [endCageIlkPipCallWord, u256_land_comm] using haddr
 
-theorem endCageIlkAddress_ofUInt256 (w : UInt256) :
-    EVM.address (AccountAddress.ofUInt256 w) = AccountAddress.ofUInt256 w := by
-  apply Fin.ext
-  show ↑(AccountAddress.ofUInt256 w) % EVM.twoPow 160 = ↑(AccountAddress.ofUInt256 w)
-  rw [Nat.mod_eq_of_lt]
-  exact (AccountAddress.ofUInt256 w).isLt
 
 theorem endCageIlkCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
@@ -3630,7 +3494,7 @@ theorem endCageIlkCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     have hbase : (endCageIlkStore I).get? "vat" = none := by
       simp [endCageIlkStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endCageIlkStore I) evm0 hbase
   have hcodeZero :
       (UInt256.ofNat
@@ -3671,7 +3535,7 @@ theorem endCageIlkCheckedVatIlksFailure {σ σ₀ A I} {g : UInt256}
     have hbase : (endCageIlkStore I).get? "vat" = none := by
       simp [endCageIlkStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endCageIlkStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3726,7 +3590,7 @@ theorem endCageIlkCheckedVatIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
     have hbase : (endCageIlkStore I).get? "vat" = none := by
       simp [endCageIlkStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endCageIlkStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3783,7 +3647,7 @@ theorem endCageIlkCheckedVatIlksSuccess {σ σ₀ A I} {g : UInt256}
     have hbase : (endCageIlkStore I).get? "vat" = none := by
       simp [endCageIlkStore]
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+      endPackVatAddr, endPackVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endPack_vat (locals := endCageIlkStore I) evm0 hbase
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3845,7 +3709,7 @@ theorem endCageIlkCheckedSpotIlksNoCode (evm : EVM.State) (I : ExecutionEnv)
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 :=
-    endCageIlkAddressWordCode_zero_of_state
+    addressWordCode_zero_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
@@ -3884,7 +3748,7 @@ theorem endCageIlkCheckedSpotIlksFailure {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
@@ -3941,7 +3805,7 @@ theorem endCageIlkCheckedSpotIlksDecodeRevert {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
@@ -4001,7 +3865,7 @@ theorem endCageIlkCheckedSpotIlksSuccess {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStoreVatIlk I vatOut } evm
@@ -4069,7 +3933,7 @@ theorem endCageIlkCheckedParNoCode (evm : EVM.State) (I : ExecutionEnv)
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 :=
-    endCageIlkAddressWordCode_zero_of_state
+    addressWordCode_zero_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evm
@@ -4109,7 +3973,7 @@ theorem endCageIlkCheckedParFailure {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evm
@@ -4156,7 +4020,7 @@ theorem endCageIlkCheckedParDecodeRevert {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evm
@@ -4206,7 +4070,7 @@ theorem endCageIlkCheckedParSuccess {evm evm' : EVM.State}
           (AccountAddress.ofNat
             (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)).option 0
           (fun acc => acc.code.size))).toNat :=
-    endCageIlkAddressWordCode_pos_of_state
+    addressWordCode_pos_of_state
       (endCageIlkSpotWord evm.accountMap evm.executionEnv) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evm
@@ -4245,7 +4109,7 @@ theorem endCageIlkCheckedReadNoCode (evm : EVM.State) (I : ExecutionEnv)
         ((evm.lookupAccount (endCageIlkSpotIlkPipAddr spotOut)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     rw [endCageIlkPipAddr_eq_ofUInt256 spotOut, accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact endCageIlkAddressWordCode_zero_of_state
+    exact addressWordCode_zero_of_state
       (evm := evm) (endCageIlkPipCallWord spotOut) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePar I vatOut spotOut parOut }
@@ -4279,7 +4143,7 @@ theorem endCageIlkCheckedReadFailure {evm evm' : EVM.State}
         ((evm.lookupAccount (endCageIlkSpotIlkPipAddr spotOut)).option 0
           (fun acc => acc.code.size))).toNat := by
     rw [endCageIlkPipAddr_eq_ofUInt256 spotOut, accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact endCageIlkAddressWordCode_pos_of_state
+    exact addressWordCode_pos_of_state
       (evm := evm) (endCageIlkPipCallWord spotOut) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePar I vatOut spotOut parOut }
@@ -4320,7 +4184,7 @@ theorem endCageIlkCheckedReadDecodeRevert {evm evm' : EVM.State}
         ((evm.lookupAccount (endCageIlkSpotIlkPipAddr spotOut)).option 0
           (fun acc => acc.code.size))).toNat := by
     rw [endCageIlkPipAddr_eq_ofUInt256 spotOut, accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact endCageIlkAddressWordCode_pos_of_state
+    exact addressWordCode_pos_of_state
       (evm := evm) (endCageIlkPipCallWord spotOut) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePar I vatOut spotOut parOut }
@@ -4364,7 +4228,7 @@ theorem endCageIlkCheckedReadSuccess {evm evm' : EVM.State}
         ((evm.lookupAccount (endCageIlkSpotIlkPipAddr spotOut)).option 0
           (fun acc => acc.code.size))).toNat := by
     rw [endCageIlkPipAddr_eq_ofUInt256 spotOut, accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact endCageIlkAddressWordCode_pos_of_state
+    exact addressWordCode_pos_of_state
       (evm := evm) (endCageIlkPipCallWord spotOut) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStorePar I vatOut spotOut parOut }
@@ -4449,7 +4313,7 @@ theorem endCageIlkAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endCageIlkPostArtState] using
-    endStorageLocStore_uint256 evm (endCageIlkArtSlot I) (endFlowVatIlkArtWord vatOut)
+    storageLocStore_uint256 evm (endCageIlkArtSlot I) (endFlowVatIlkArtWord vatOut)
 
 theorem endCageIlkStmtArt (evm : EVM.State) (I : ExecutionEnv) (vatOut : ByteArray)
     (hsz36 : 36 ≤ I.calldata.size) :
@@ -4706,7 +4570,7 @@ theorem endCageIlkAssignTag {locals : Store} (evm : EVM.State) (I : ExecutionEnv
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endCageIlkPostTagState] using
-    endStorageLocStore_uint256 evm (endCageIlkTagSlot I) tagV
+    storageLocStore_uint256 evm (endCageIlkTagSlot I) tagV
 
 theorem endCageIlkStmtTag (evm : EVM.State) (I : ExecutionEnv)
     (vatOut spotOut parOut readOut : ByteArray) (hsz36 : 36 ≤ I.calldata.size) :
@@ -4808,11 +4672,11 @@ theorem endCageIlkBodyReverts_vatIlksTerminated {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+      endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have htagLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (endCageIlkTagSlot I) = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkTagWord, endSlotWord, solcSlotWord] using htag
+      endCageIlkTagWord, solcSlotWordAt, solcSlotWord] using htag
   have hguardLive :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -5417,11 +5281,11 @@ theorem endCageIlkPrefixVatIlksSuccess {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+      endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have htagLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (endCageIlkTagSlot I) = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkTagWord, endSlotWord, solcSlotWord] using htag
+      endCageIlkTagWord, solcSlotWordAt, solcSlotWord] using htag
   have hguardLive :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) :=
@@ -5582,7 +5446,7 @@ theorem endCageIlkBodyReverts_liveNonzero {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hlive
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkLiveWord, endSlotWord, solcSlotWord] using hbad
+      endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool false) :=
@@ -5622,13 +5486,13 @@ theorem endCageIlkBodyReverts_tagNonzero {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+      endCageIlkLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have htagLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (endCageIlkTagSlot I) ≠ ⟨0⟩ := by
     intro hbad
     apply htag
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endCageIlkTagWord, endSlotWord, solcSlotWord] using hbad
+      endCageIlkTagWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguardLive :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -5647,7 +5511,7 @@ theorem endCageIlkBodyReverts_tagNonzero {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endCageIlk_live evm0 I)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -5774,10 +5638,10 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                     = EVM.address (AccountAddress.ofUInt256 (endPackVatWord σ I)) := by
                       rw [endPackVatAddr_eq_ofUInt256]
                 _ = AccountAddress.ofUInt256 (endPackVatWord σ I) :=
-                      endCageIlkAddress_ofUInt256 (endPackVatWord σ I)
+                      cageIlkAddress_ofUInt256 (endPackVatWord σ I)
             obtain ⟨σ_vat_solm, A_vat_solm, hcallSolmRaw, hAccountsVat,
                 hSubstateVat⟩ :=
-              endCallMade_accountMapEq_with_substate
+              callMade_accountMapEq_with_substate
                 (cfg := config)
                 (evm_evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (evm_solm := evmSolm)
@@ -5965,11 +5829,11 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                             AccountAddress.ofUInt256
                               (endCageIlkSpotWord evmArtEvm.accountMap
                                 evmArtEvm.executionEnv) :=
-                          endCageIlkAddress_ofUInt256
+                          cageIlkAddress_ofUInt256
                             (endCageIlkSpotWord evmArtEvm.accountMap evmArtEvm.executionEnv)
                     obtain ⟨σ_spot_solm, A_spot_solm, hcallSpotSolmRaw,
                         hAccountsSpot, hSubstateSpot⟩ :=
-                      endCallMade_accountMapEq_with_substate
+                      callMade_accountMapEq_with_substate
                         (cfg := config) (evm_evm := evmArtEvm) (evm_solm := evmArtSolm)
                         (tgt := spotTargetEvm)
                         (targetWord :=
@@ -6093,7 +5957,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                               (evmVat := evmVatSolm) (evmSpot := evmSpotSolm)
                               (I := I) (vatOut := vatOut) (spotOut := spotOut)
                               hsz36 hspotCodeSolmNE
-                              (by simpa [evmSpotSolm] using hcallSpotSolm)
+                              (by simpa [evmSpotSolm, evmArtSolm] using hcallSpotSolm)
                               hshortSpot
                         have hbody :
                             ExecTransitionBody config contract evmSolm (endCageIlkStore I)
@@ -6228,12 +6092,12 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                     AccountAddress.ofUInt256
                                       (endCageIlkSpotWord evmSpotEvm.accountMap
                                         evmSpotEvm.executionEnv) :=
-                                  endCageIlkAddress_ofUInt256
+                                  cageIlkAddress_ofUInt256
                                     (endCageIlkSpotWord evmSpotEvm.accountMap
                                       evmSpotEvm.executionEnv)
                             obtain ⟨σ_par_solm, A_par_solm, hcallParSolmRaw,
                                 hAccountsPar, hSubstatePar⟩ :=
-                              endCallMade_accountMapEq_with_substate
+                              callMade_accountMapEq_with_substate
                                 (cfg := config) (evm_evm := evmSpotEvm)
                                 (evm_solm := evmSpotSolm) (tgt := parTargetEvm)
                                 (targetWord :=
@@ -6626,11 +6490,11 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                         _ =
                                             AccountAddress.ofUInt256
                                               (endCageIlkPipCallWord spotOut) :=
-                                          endCageIlkAddress_ofUInt256
+                                          cageIlkAddress_ofUInt256
                                             (endCageIlkPipCallWord spotOut)
                                     obtain ⟨σ_read_solm, A_read_solm, hcallReadSolmRaw,
                                         hAccountsRead, hSubstateRead⟩ :=
-                                      endCallMade_accountMapEq_with_substate
+                                      callMade_accountMapEq_with_substate
                                         (cfg := config) (evm_evm := evmParEvm)
                                         (evm_solm := evmParSolm) (tgt := readTargetEvm)
                                         (targetWord := endCageIlkPipCallWord spotOut)

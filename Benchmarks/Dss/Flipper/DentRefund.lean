@@ -193,8 +193,8 @@ theorem dentVatRefundCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Exe
       encodeABIValue? addr
           (.address (AccountAddress.ofNat (bidGuyWord (dentId I) σ I).toNat)) =
         some (UInt256.toByteArray (bidGuyWord (dentId I) σ I)).toList := by
-    simpa [bidGuyWord, flipperAddressReturnWord] using
-      yankEncodeABIValue_address_word (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)
+    simpa [bidGuyWord, solcAddressSlotWord] using
+      encodeABIValue_address_word (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)
   have hpayload :
       encodeABIValues? [addr, addr, uint256]
         [.address I.source,
@@ -206,7 +206,7 @@ theorem dentVatRefundCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Exe
     unfold encodeABIValues?
     rw [show abiTupleHeadSize? [addr, addr, uint256] = some 96 by native_decide]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
-    rw [yankEncodeABIValue_source_address, hguy, yankEncodeABIValue_uint256_word]
+    erw [encodeABIValue_source_address, hguy, encodeABIValue_uint256_word]
     simp [show isDynamicABIType addr = false by native_decide,
       show isDynamicABIType uint256 = false by native_decide,
       ByteArray.append_assoc, byteArray_toList_eq]
@@ -334,10 +334,10 @@ theorem evalExpr_dentCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     have hclean :
         UInt256.land solcAddrMask (bidGuyWord (dentId I) σ I) =
           bidGuyWord (dentId I) σ I := by
-      simpa [bidGuyWord, flipperAddressReturnWord, u256_land_comm] using
+      simpa [bidGuyWord, solcAddressSlotWord, u256_land_comm] using
         (solcAddrMask_clean
           (solcAddrMask_result_canonical
-            (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)))
+            (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)))
     exact hcaller (by simpa [hclean] using hmask)
   simp [evalExpr?, EvalResult.bind, bind, hsender, hguy, evalBinaryOp?, haddr]
 

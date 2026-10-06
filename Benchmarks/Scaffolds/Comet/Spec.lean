@@ -77,7 +77,7 @@ def u8 (e : Expr) : Expr := .inRange uint8Int e
 def u40 (e : Expr) : Expr := .inRange uint40Int e
 def u64 (e : Expr) : Expr := .inRange uint64Int e
 def u104 (e : Expr) : Expr := .inRange uint104Int e
-def u128 (e : Expr) : Expr := .inRange uint128Int e
+def Reasoning.Theory.u256_128_toNat (e : Expr) : Expr := .inRange uint128Int e
 def i104 (e : Expr) : Expr := .inRange int104Int e
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 

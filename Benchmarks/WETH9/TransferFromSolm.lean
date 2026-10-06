@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.TransferFromDefs
 
 /-!
@@ -26,32 +28,6 @@ abbrev tfBalSrcWord (I : ExecutionEnv) (σ : AccountMap) : UInt256 :=
 
 /-! ## Infrastructure: store lookups, wrapping arithmetic, reads, assigns, post-state maps -/
 
-/-- Wrapping `sub` on store, valid even on underflow (solc 0.5 `unchecked`). -/
-theorem tf_wordOfInt_sub (a b : UInt256) :
-    EVM.wordOfInt (Int.ofNat a.toNat - Int.ofNat b.toNat) = UInt256.sub a b := by
-  by_cases h : b.toNat ≤ a.toNat
-  · exact wordOfInt_sub_words h
-  · have h' : a.toNat < b.toNat := Nat.lt_of_not_le h
-    have hsub : Int.ofNat (b.toNat - a.toNat) = Int.ofNat b.toNat - Int.ofNat a.toNat :=
-      Int.ofNat_sub (le_of_lt h')
-    have hcast : (Int.ofNat a.toNat - Int.ofNat b.toNat) = -(Int.ofNat (b.toNat - a.toNat)) := by
-      rw [hsub]; ring
-    have hd : b.toNat - a.toNat ≠ 0 := Nat.sub_ne_zero_of_lt h'
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    have hwm : EVM.wordModulus = UInt256.size := rfl
-    have hlt' : b.toNat - a.toNat < EVM.wordModulus := by rw [hwm]; omega
-    have hneg : Int.ofNat a.toNat - Int.ofNat b.toNat < 0 := by
-      have hlt : Int.ofNat a.toNat < Int.ofNat b.toNat := Int.ofNat_lt.mpr h'
-      linarith
-    apply u256_inj
-    rw [usub_toNat_underflow h', EVM.wordOfInt, if_pos hneg, hcast]
-    simp only [Int.natAbs_neg, Int.natAbs_ofNat', Nat.mod_eq_of_lt hlt', if_neg hd]
-    show (EVM.uintN 256 (EVM.wordModulus - (b.toNat - a.toNat))).val
-      = UInt256.size + a.toNat - b.toNat
-    show (EVM.wordModulus - (b.toNat - a.toNat)) % EVM.twoPow 256
-      = UInt256.size + a.toNat - b.toNat
-    rw [hwm, show EVM.twoPow 256 = UInt256.size from rfl, Nat.mod_eq_of_lt (by omega)]
-    omega
 
 /-! ### Store lookups -/
 
@@ -83,18 +59,6 @@ theorem tfStore_index_dst (I : ExecutionEnv) : (tfStore I)["dst"] = tfDstVal I :
 
 /-! ### `storageLoad`/`storageStore` bridges and post-state intermediate maps -/
 
-/-- `storageLoad` at `evm`'s own code owner reads `solcSlotWord` over `evm.accountMap`. -/
-theorem tf_load_slot (evm : EVM.State) (I : ExecutionEnv) (slot : UInt256)
-    (hco : evm.executionEnv.codeOwner = I.codeOwner) :
-    Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot =
-      solcSlotWord evm.accountMap I slot := by
-  rw [hco]
-  simp [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage]
-
-/-- `storageStore` leaves `executionEnv` untouched. -/
-theorem tf_execEnv (evm : EVM.State) (a : AccountAddress) (s v : UInt256) :
-    (Solm.EVM.storageStore evm a s v).executionEnv = evm.executionEnv := by
-  exact Reasoning.Theory.storageStore_executionEnv evm a s v
 
 /-- Intermediate map after `allowance[src][caller] -= wad`. -/
 def tfAllowSt (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
@@ -116,11 +80,11 @@ def tfDstSt (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
 
 theorem tfAllowSt_co (evm : EVM.State) (I : ExecutionEnv) :
     (tfAllowSt evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
-  unfold tfAllowSt; rw [tf_execEnv]
+  unfold tfAllowSt; rw [storageStore_executionEnv_eq]
 
 theorem tfSrcSt_co (evm : EVM.State) (I : ExecutionEnv) :
     (tfSrcSt evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
-  unfold tfSrcSt; rw [tf_execEnv]
+  unfold tfSrcSt; rw [storageStore_executionEnv_eq]
 
 theorem tfAllowSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
     (hco : evm.executionEnv.codeOwner = I.codeOwner) :
@@ -129,13 +93,13 @@ theorem tfAllowSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
       (UInt256.sub (solcSlotWord evm.accountMap I (wtfAllowSlot I (tfSrcMasked I)))
         (tfWadWord I)) := by
   unfold tfAllowSt
-  rw [storageStore_accountMap, tf_load_slot evm I _ hco, hco]
+  rw [storageStore_accountMap, storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ hco, hco]
 
 theorem tfSrcSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
     (hco : evm.executionEnv.codeOwner = I.codeOwner) :
     (tfSrcSt evm I).accountMap = wtfSrcDebitedMap I evm.accountMap (tfSrcMasked I) (tfWadWord I) := by
   unfold tfSrcSt wtfSrcDebitedMap
-  rw [storageStore_accountMap, tf_load_slot evm I _ hco, hco]
+  rw [storageStore_accountMap, storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ hco, hco]
 
 theorem tfDstSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
     (hco : evm.executionEnv.codeOwner = I.codeOwner) :
@@ -143,7 +107,7 @@ theorem tfDstSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
       (wtfBalSlot (tfDstMasked I))
       (UInt256.add (tfWadWord I) (solcSlotWord evm.accountMap I (wtfBalSlot (tfDstMasked I)))) := by
   unfold tfDstSt
-  rw [storageStore_accountMap, tf_load_slot evm I _ hco, hco]
+  rw [storageStore_accountMap, storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ hco, hco]
   exact congrArg (sstoreAccountMap I.codeOwner evm.accountMap (wtfBalSlot (tfDstMasked I)))
     (u256_add_comm _ _)
 
@@ -490,7 +454,7 @@ theorem weth9TFSolmSkipSender {σ σ₀ A I} {g : Sat256}
   have hsrcSource : (initState σ σ₀ g A I).executionEnv.source = I.source := by rw [hsrc]
   have hloadSrc : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
-      = tfBalSrcWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := tfStore I }
@@ -532,10 +496,10 @@ theorem weth9TFSolmSkipMax {σ σ₀ A I} {g : Sat256}
   have hsrcSource : (initState σ σ₀ g A I).executionEnv.source = I.source := by rw [hsrc]
   have hloadSrc : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
-      = tfBalSrcWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hloadAllow : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfAllowSlot I (tfSrcMasked I))
-      = tfAllowWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfAllowWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := tfStore I }
@@ -579,10 +543,10 @@ theorem weth9TFSolmSpend {σ σ₀ A I} {g : Sat256}
   have hsrcSource : (initState σ σ₀ g A I).executionEnv.source = I.source := by rw [hsrc]
   have hloadSrc : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
-      = tfBalSrcWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hloadAllow : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfAllowSlot I (tfSrcMasked I))
-      = tfAllowWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfAllowWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hbody : ExecTransitionBody config contract (initState σ σ₀ g A I) (tfStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := tfStore I }
@@ -627,7 +591,7 @@ theorem weth9TFSolmRevBal {σ σ₀ A I} {g : Sat256}
   have hwv' : (initState σ σ₀ g A I).executionEnv.weiValue = ⟨0⟩ := by rw [hsrc]; exact hwv
   have hloadSrc : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
-      = tfBalSrcWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   refine ExecFuncBody.execBlockRevert ?_
   simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv')) ?_
@@ -650,10 +614,10 @@ theorem weth9TFSolmRevAllow {σ σ₀ A I} {g : Sat256}
   have hsrcSource : (initState σ σ₀ g A I).executionEnv.source = I.source := by rw [hsrc]
   have hloadSrc : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfBalSlot (tfSrcMasked I))
-      = tfBalSrcWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfBalSrcWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   have hloadAllow : Solm.EVM.storageLoad (initState σ σ₀ g A I)
       (initState σ σ₀ g A I).executionEnv.codeOwner (wtfAllowSlot I (tfSrcMasked I))
-      = tfAllowWord I σ := by rw [tf_load_slot _ I _ hco]; rfl
+      = tfAllowWord I σ := by rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq _ I _ hco]; rfl
   refine ExecFuncBody.execBlockRevert ?_
   simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv')) ?_

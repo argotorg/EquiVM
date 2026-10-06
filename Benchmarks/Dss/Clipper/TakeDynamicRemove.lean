@@ -22,7 +22,7 @@ theorem clipperTakeRemoveJoinMemoryWF (id : UInt256)
   have haw32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw :=
     clipperTakeMemoryWF_mstore_aw mem aw ⟨32⟩ hmem (by decide)
   have haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := by
-    simpa using clipperTakeM_same_of_cover aw (⟨0⟩ : UInt256) 64 (by
+    simpa using UInt256_M_same_of_cover_len aw (⟨0⟩ : UInt256) 64 (by
       change 64 ≤ aw.toNat * 32
       have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
       omega)
@@ -53,7 +53,7 @@ theorem clipperTakeRemoveIdNeMoveMemoryWF (id move : UInt256)
   have haw32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw :=
     clipperTakeMemoryWF_mstore_aw mem aw ⟨32⟩ hmem (by decide)
   have haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := by
-    simpa using clipperTakeM_same_of_cover aw (⟨0⟩ : UInt256) 64 (by
+    simpa using UInt256_M_same_of_cover_len aw (⟨0⟩ : UInt256) 64 (by
       change 64 ≤ aw.toNat * 32
       have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
       omega)
@@ -125,13 +125,13 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
     unfold patches patchesFrom offsets immValues
     simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-    cases hIlk : wordBytes? v.ilk with
+    cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
     | none => simp [hIlk]; native_decide
     | some bs => simp [hIlk]; native_decide
   have haw0 := clipperTakeMemoryWF_mstore_aw mem aw (⟨0⟩ : UInt256) hmem (by decide)
   have haw32 := clipperTakeMemoryWF_mstore_aw mem aw (⟨32⟩ : UInt256) hmem (by decide)
   have haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := by
-    simpa using clipperTakeM_same_of_cover aw (⟨0⟩ : UInt256) 64 (by
+    simpa using UInt256_M_same_of_cover_len aw (⟨0⟩ : UInt256) 64 (by
       change 64 ≤ aw.toNat * 32
       have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
       omega)
@@ -146,19 +146,19 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
     raw dup14 (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov)]
   have rd5227 := rd5227pre.mstore 0 (wordAt0Mem id mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw0) (by rfl) haw0 (by evm_ov)
+    (by clipper_runtime_decode) (mloadCostZero haw0) (by rfl) haw0 (by evm_ov)
   have rd5232pre := evm_run rd5227 with [
     raw push1 ⟨12⟩ (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨32⟩ (by clipper_runtime_decode) (by evm_ov)]
   have rd5232 := rd5232pre.mstore 0 (twoWordHashMem id ⟨12⟩ mem) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw32) (by rfl) haw32
+    (by clipper_runtime_decode) (mloadCostZero haw32) (by rfl) haw32
     (by evm_ov)
   have hsalesBase :
       UInt256.ofNat
           (fromByteArrayBigEndian
             (KEC ((twoWordHashMem id ⟨12⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ id := by
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge id ⟨12⟩
+    rw [twoWordHashMem_read0_64_of_ge id ⟨12⟩
       (le_trans (by decide : 64 ≤ 260) hmem.1)]
     unfold solcMappingSlot
     exact mappingSlot_single id ⟨12⟩

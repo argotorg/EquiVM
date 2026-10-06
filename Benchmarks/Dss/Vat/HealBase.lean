@@ -1,3 +1,4 @@
+import Reasoning.SolcMemory
 import Benchmarks.Dss.Vat.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -241,46 +242,6 @@ theorem healDaiSlot_eq_mapSlot (I : ExecutionEnv) :
   unfold healDaiSlot healSourceKey healSourceWord daiSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address]
 
-set_option maxHeartbeats 800000 in
-theorem wordAt32Mem_solcMappingSlot_of_read0 {mem : ByteArray} (key baseSlot : UInt256)
-    (hmem : mem.size = 96)
-    (hread0 : mem.readWithPadding 0 32 = UInt256.toByteArray key) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((wordAt32Mem baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  have hmem32 : (wordAt32Mem baseSlot mem).size = 96 :=
-    wordAt32Mem_size_96 baseSlot hmem
-  have hread :
-      (wordAt32Mem baseSlot mem).readWithPadding 0 64 =
-        UInt256.toByteArray key ++ UInt256.toByteArray baseSlot := by
-    rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [hmem32]; omega)]
-    have hleft :
-        (wordAt32Mem baseSlot mem).extract 0 32 = UInt256.toByteArray key := by
-      rw [← readWithPadding_eq_extract _ 0 (by rw [hmem32]; omega)]
-      unfold wordAt32Mem
-      rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-        (by rw [hmem]; omega) (by omega)]
-      rw [hread0]
-    have hright :
-        (wordAt32Mem baseSlot mem).extract 32 64 = UInt256.toByteArray baseSlot := by
-      rw [← readWithPadding_eq_extract _ 32 (by rw [hmem32]; omega)]
-      unfold wordAt32Mem
-      rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-      apply ByteArray.ext
-      rw [ByteArray.data_extract]
-      exact Array.extract_eq_self_of_le (by
-        change (UInt256.toByteArray baseSlot).size ≤ 32
-        rw [toByteArray_size])
-    rw [show (wordAt32Mem baseSlot mem).extract 0 64 =
-        (wordAt32Mem baseSlot mem).extract 0 32 ++
-          (wordAt32Mem baseSlot mem).extract 32 64 by
-        rw [ByteArray.extract_append_extract]
-        norm_num]
-    rw [hleft, hright]
-  rw [hread]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
 
 theorem evalStorageRef_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
     (hsrc : evm.executionEnv.source = I.source) :
@@ -320,7 +281,7 @@ theorem vatEvalExpr_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv) (locals
     (her := evalStorageRef_heal_sin_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (healSinSlot I))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (healSinSlot I))
 
 theorem vatEvalExpr_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
     (hsrc : evm.executionEnv.source = I.source)
@@ -332,7 +293,7 @@ theorem vatEvalExpr_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv) (locals
     (her := evalStorageRef_heal_dai_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm (healDaiSlot I))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (healDaiSlot I))
 
 theorem vatEvalExpr_heal_vice (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "vice" = none) :
@@ -343,7 +304,7 @@ theorem vatEvalExpr_heal_vice (evm : EVM.State) (locals : Store)
     (her := evalStorageRef_heal_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm healViceSlot)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm healViceSlot)
 
 theorem vatEvalExpr_heal_debt (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "debt" = none) :
@@ -354,7 +315,7 @@ theorem vatEvalExpr_heal_debt (evm : EVM.State) (locals : Store)
     (her := evalStorageRef_heal_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (vatStorageLocLoad_uint256 evm healDebtSlot)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm healDebtSlot)
 
 theorem assign_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (sinNew : UInt256)
@@ -371,7 +332,7 @@ theorem assign_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv)
     (her := evalStorageRef_heal_sin_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm (healSinSlot I) sinNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (healSinSlot I) sinNew)
 
 theorem assign_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv)
     (locals : Store) (daiNew : UInt256)
@@ -388,7 +349,7 @@ theorem assign_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv)
     (her := evalStorageRef_heal_dai_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm (healDaiSlot I) daiNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm (healDaiSlot I) daiNew)
 
 theorem assign_heal_vice (evm : EVM.State) (locals : Store) (viceNew : UInt256)
     (hbase : locals.get? "vice" = none) :
@@ -403,7 +364,7 @@ theorem assign_heal_vice (evm : EVM.State) (locals : Store) (viceNew : UInt256)
     (her := evalStorageRef_heal_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm healViceSlot viceNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm healViceSlot viceNew)
 
 theorem assign_heal_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
     (hbase : locals.get? "debt" = none) :
@@ -418,7 +379,7 @@ theorem assign_heal_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
     (her := evalStorageRef_heal_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hstore := by simpa [evm'] using vatStorageLocStore_uint256 evm healDebtSlot debtNew)
+    (hstore := by simpa [evm'] using storageLocStore_uint256 evm healDebtSlot debtNew)
 
 theorem vatHealSinSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
     {sinVal sinNew : UInt256}

@@ -57,7 +57,7 @@ theorem weth9TotalSupplyX_ok {σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (totalSupplyWord σ I)) := by
   obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h395⟩ := weth9GuardPeelOk (gt := ⟨393⟩) h381 hwv
+  obtain ⟨_, _, h395⟩ := solcFunctionGuardPeelOk (gt := ⟨393⟩) h381 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have h1083 := h395.push2 ⟨402⟩ (by native_decide) (by simp)
@@ -99,7 +99,7 @@ theorem weth9TotalSupplyBodyCore {σ σ₀ A I} {g : UInt256}
       calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
     obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨393⟩) h381 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨393⟩) h381 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchTotalSupply hsel)

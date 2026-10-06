@@ -1,3 +1,4 @@
+import Reasoning.MemoryShapes
 import Benchmarks.WETH9.TransferFrom
 
 /-!
@@ -255,13 +256,14 @@ theorem xferCall_assignDst (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem xferSrcSt_co (evm : EVM.State) (I : ExecutionEnv) :
     (xferSrcSt evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
-  unfold xferSrcSt; rw [tf_execEnv]
+  unfold xferSrcSt; rw [storageStore_executionEnv_eq]
 theorem xferSrcSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
     (hco : evm.executionEnv.codeOwner = I.codeOwner) :
     (xferSrcSt evm I).accountMap =
       wtfSrcDebitedMap I evm.accountMap (solcSourceWord I) (xferWadWord I) := by
   unfold xferSrcSt wtfSrcDebitedMap
-  rw [storageStore_accountMap, tf_load_slot evm I _ hco, hco, xfer_callerBalSlot_eq]
+  rw [storageStore_accountMap, storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ hco, hco,
+    xfer_callerBalSlot_eq]
 theorem xferDstSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
     (hco : evm.executionEnv.codeOwner = I.codeOwner) :
     (xferDstSt evm I).accountMap = sstoreAccountMap I.codeOwner evm.accountMap
@@ -269,7 +271,8 @@ theorem xferDstSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
       (UInt256.add (xferWadWord I)
         (solcSlotWord evm.accountMap I (wtfBalSlot (xferDstMasked I)))) := by
   unfold xferDstSt
-  rw [storageStore_accountMap, tf_load_slot evm I _ hco, hco, xfer_dstSlot_eq]
+  rw [storageStore_accountMap, storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ hco, hco,
+    xfer_dstSlot_eq]
   exact congrArg (sstoreAccountMap I.codeOwner evm.accountMap (wtfBalSlot (xferDstMasked I)))
     (u256_add_comm _ _)
 
@@ -296,7 +299,8 @@ theorem weth9XferCallReturns_skipSender {σ σ₀ A I} {g : Sat256}
   have hsrc : evm.executionEnv = I := rfl
   have hcv : evm.executionEnv.weiValue = ⟨0⟩ := by rw [hsrc]; exact hwv
   have hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)
-      = solcSlotWord σ I (callerBalSlot I) := by rw [tf_load_slot evm I _ rfl]; rfl
+      = solcSlotWord σ I (callerBalSlot I) := by
+        rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ rfl]; rfl
   refine ExecFuncBody.execBlockRet ?_
   simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hcv)) ?_
@@ -321,7 +325,8 @@ theorem weth9XferCallReverts_bal {σ σ₀ A I} {g : Sat256}
   have hsrc : evm.executionEnv = I := rfl
   have hcv : evm.executionEnv.weiValue = ⟨0⟩ := by rw [hsrc]; exact hwv
   have hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)
-      = solcSlotWord σ I (callerBalSlot I) := by rw [tf_load_slot evm I _ rfl]; rfl
+      = solcSlotWord σ I (callerBalSlot I) := by
+        rw [storageLoad_eq_solcSlotWord_of_codeOwner_eq evm I _ rfl]; rfl
   refine ExecFuncBody.execBlockRevert ?_
   simp only [transferFromTransition, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hcv)) ?_
@@ -403,7 +408,7 @@ theorem weth9TransferReachBody {σ σ₀ A I} {g : Sat256}
   have hsz4 : 4 ≤ I.calldata.size := by omega
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
+  obtain ⟨_, _, h658⟩ := solcFunctionGuardPeelOk (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -434,13 +439,6 @@ theorem weth9TransferReachBody {σ σ₀ A I} {g : Sat256}
     |>.jump (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, h1087⟩
 
-/-- `wordAt0Mem` leaves the free-pointer slot (bytes 64–95) untouched (local copy of the private
-    `TransferFrom.wtf_wordAt0Mem_read64`). -/
-private theorem xfer_wordAt0Mem_read64 (word : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :
-    (wordAt0Mem word mem).readWithPadding 64 32 = mem.readWithPadding 64 32 := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega) (by omega)
-    (by rw [hmem])]
 
 /-- From the shared tail at pc 1282 (with the internal-return address `1674` as `ret`), run the two
     balance stores, jump back through the internal-return tail (`1674 → 361`), and encode the boolean
@@ -470,7 +468,7 @@ theorem weth9TransferReturnTrue {ee g s0 rdata σ k C} {src dst wad sel : UInt25
     wordAt0Mem_size_96 dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)
   have hM1read64 : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 64 32
       = UInt256.toByteArray ⟨128⟩ := by
-    rw [xfer_wordAt0Mem_read64 dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)]
+    rw [wordAt0Mem_read64_preserved_word dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)]
     exact twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64
   have hretWf : solcReturnBoolFromMemWf weth9Bytecode ⟨361⟩ := by
     unfold solcReturnBoolFromMemWf
@@ -512,7 +510,7 @@ theorem weth9TransferGuardRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  exact weth9GuardPeelRev (gt := ⟨656⟩) h644 hwv
+  exact solcFunctionGuardPeelRev (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
@@ -524,7 +522,7 @@ theorem weth9TransferDecodeFailRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
+  obtain ⟨_, _, h658⟩ := solcFunctionGuardPeelOk (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by

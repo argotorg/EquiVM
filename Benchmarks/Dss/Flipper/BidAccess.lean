@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.BidStorage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -9,28 +10,6 @@ namespace Benchmarks.Dss.Flipper
 
 /-! ## Generic accessors for `bids[id]` fields -/
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  have hword : (EVM.word a.val).toNat = a.val := by
-    unfold EVM.word EVM.uintN UInt256.toNat
-    change a.val % UInt256.size = a.val
-    exact Nat.mod_eq_of_lt (lt_trans a.isLt (by
-      norm_num [AccountAddress.size, UInt256.size]))
-  rw [hword]
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  rw [Fin.val_ofNat]
-  exact Nat.mod_eq_of_lt a.isLt
-
-private theorem word_val_addr_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  unfold EVM.word EVM.uintN UInt256.toNat EVM.twoPow
-  change (a.val % UInt256.size) < EVM.addressModulus
-  have hlt : a.val < EVM.addressModulus := by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using a.isLt
-  rw [Nat.mod_eq_of_lt (lt_trans hlt (by norm_num [EVM.addressModulus, EVM.twoPow,
-    UInt256.size]))]
-  exact hlt
 
 abbrev bidEvaledRefOfWord (id : UInt256) (field : Ident) : EvaledStorageRef :=
   { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field field] }
@@ -39,16 +18,16 @@ abbrev bidSlotOfWord (id : UInt256) (offset : UInt256) : UInt256 :=
   bidBaseOfWord id + offset
 
 abbrev bidBidWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidBaseOfWord id) σ I
+  solcSlotWordAt (bidBaseOfWord id) σ I
 
 abbrev bidLotWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidSlotOfWord id ⟨1⟩) σ I
+  solcSlotWordAt (bidSlotOfWord id ⟨1⟩) σ I
 
 abbrev bidPackedWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidPackedSlotOfWord id) σ I
+  solcSlotWordAt (bidPackedSlotOfWord id) σ I
 
 abbrev bidGuyWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperAddressReturnWord (bidPackedSlotOfWord id) σ I
+  solcAddressSlotWord (bidPackedSlotOfWord id) σ I
 
 abbrev bidTicWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   flipperUint48Offset20Word (bidPackedSlotOfWord id) σ I
@@ -57,13 +36,13 @@ abbrev bidEndWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 
   flipperUint48Offset26Word (bidPackedSlotOfWord id) σ I
 
 abbrev bidUsrWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperAddressReturnWord (bidSlotOfWord id ⟨3⟩) σ I
+  solcAddressSlotWord (bidSlotOfWord id ⟨3⟩) σ I
 
 abbrev bidGalWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperAddressReturnWord (bidSlotOfWord id ⟨4⟩) σ I
+  solcAddressSlotWord (bidSlotOfWord id ⟨4⟩) σ I
 
 abbrev bidTabWord (id : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidSlotOfWord id ⟨5⟩) σ I
+  solcSlotWordAt (bidSlotOfWord id ⟨5⟩) σ I
 
 theorem bidBase_eq_bidsBase (id : UInt256) :
     bidsBase (.int (Int.ofNat id.toNat)) = bidBaseOfWord id := by
@@ -104,7 +83,7 @@ theorem evalExpr_bidBid_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
+    (storageLocLoad_uint256 (initState σ σ₀ g A I)
       (bidBaseOfWord id))
 
 theorem evalExpr_bidLot_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
@@ -131,7 +110,7 @@ theorem evalExpr_bidLot_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
+    (storageLocLoad_uint256 (initState σ σ₀ g A I)
       (bidSlotOfWord id ⟨1⟩))
 
 theorem evalExpr_bidLot_of_get_id_evm {evm : EVM.State} {locals : Store}
@@ -157,7 +136,7 @@ theorem evalExpr_bidLot_of_get_id_evm {evm : EVM.State} {locals : Store}
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  exact congrArg EvalResult.ok (flipperStorageLocLoad_uint256 evm (bidSlotOfWord id ⟨1⟩))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (bidSlotOfWord id ⟨1⟩))
 
 theorem evalExpr_bidGuy_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     {id : UInt256}
@@ -183,7 +162,7 @@ theorem evalExpr_bidGuy_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+    (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
       (bidPackedSlotOfWord id))
 
 theorem evalExpr_bidGuy_of_get_id_evm {evm : EVM.State} {locals : Store}
@@ -212,7 +191,7 @@ theorem evalExpr_bidGuy_of_get_id_evm {evm : EVM.State} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 evm (bidPackedSlotOfWord id))
+    (storageLocLoad_address_offset0 evm (bidPackedSlotOfWord id))
 
 theorem evalExpr_bidTic_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     {id : UInt256}
@@ -292,7 +271,7 @@ theorem evalExpr_bidUsr_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+    (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
       (bidSlotOfWord id ⟨3⟩))
 
 theorem evalExpr_bidGal_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
@@ -319,7 +298,7 @@ theorem evalExpr_bidGal_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+    (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
       (bidSlotOfWord id ⟨4⟩))
 
 theorem evalExpr_bidGal_of_get_id_evm {evm : EVM.State} {locals : Store}
@@ -348,7 +327,7 @@ theorem evalExpr_bidGal_of_get_id_evm {evm : EVM.State} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 evm (bidSlotOfWord id ⟨4⟩))
+    (storageLocLoad_address_offset0 evm (bidSlotOfWord id ⟨4⟩))
 
 theorem evalExpr_bidTab_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     {id : UInt256}
@@ -374,7 +353,7 @@ theorem evalExpr_bidTab_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
+    (storageLocLoad_uint256 (initState σ σ₀ g A I)
       (bidSlotOfWord id ⟨5⟩))
 
 theorem evalExpr_bidTab_of_get_id_evm {evm : EVM.State} {locals : Store}
@@ -400,7 +379,7 @@ theorem evalExpr_bidTab_of_get_id_evm {evm : EVM.State} {locals : Store}
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  exact congrArg EvalResult.ok (flipperStorageLocLoad_uint256 evm (bidSlotOfWord id ⟨5⟩))
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (bidSlotOfWord id ⟨5⟩))
 
 theorem assign_bidBidStorage (evm : EVM.State) (id value : UInt256) {locals : Store}
     (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))
@@ -424,7 +403,7 @@ theorem assign_bidBidStorage (evm : EVM.State) (id value : UInt256) {locals : St
         funext evm
         simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
-  simpa [evm'] using flipperStorageLocStore_uint256 evm (bidBaseOfWord id) value
+  simpa [evm'] using storageLocStore_uint256 evm (bidBaseOfWord id) value
 
 theorem assign_bidLotStorage (evm : EVM.State) (id value : UInt256) {locals : Store}
     (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))
@@ -448,7 +427,7 @@ theorem assign_bidLotStorage (evm : EVM.State) (id value : UInt256) {locals : St
         funext evm
         simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
-  simpa [evm'] using flipperStorageLocStore_uint256 evm (bidSlotOfWord id ⟨1⟩) value
+  simpa [evm'] using storageLocStore_uint256 evm (bidSlotOfWord id ⟨1⟩) value
 
 theorem assign_bidGuyStorage (evm : EVM.State) (id : UInt256) {locals : Store}
     (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))

@@ -121,7 +121,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    clipperYankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -228,7 +228,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge
+    rw [twoWordHashMem_read0_64_of_ge
       (clipperYankArgWord ee) (⟨12⟩ : UInt256) (by
         simpa [activeMem] using hactiveMemSize)]
     rw [clipperYankSalesBaseSlot_eq ee]
@@ -369,7 +369,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
             (KEC
               ((twoWordHashMem move (⟨12⟩ : UInt256) activeIndexMem).readWithPadding 0 64))) =
         clipperYankSalesMovePosSlot move
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge move (⟨12⟩ : UInt256)
+    rw [twoWordHashMem_read0_64_of_ge move (⟨12⟩ : UInt256)
       hactiveIndexMemSize]
     rw [mappingSlot_single move ⟨12⟩]
     unfold clipperYankSalesMovePosSlot clipperYankSalesBaseSlotOfWord salesBase mapSlot
@@ -496,7 +496,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    clipperYankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -592,7 +592,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge
+    rw [twoWordHashMem_read0_64_of_ge
       (clipperYankArgWord ee) (⟨12⟩ : UInt256) (by
         simpa [activeMem] using hactiveMemSize)]
     rw [clipperYankSalesBaseSlot_eq ee]

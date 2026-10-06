@@ -872,7 +872,7 @@ theorem clipperEvalRedoLotFeedRequire
           evm (.binary .eq (.var "feedPrice") (.intLit 0)) = .ok (.bool true) := by
       simp [evalExpr?, hfeed, EvalResult.bind, bind, evalBinaryOp?, hyNat]
     simp [evalExpr?, hleft, EvalResult.bind, bind, pure]
-  · have hcancel := Reasoning.Theory.clipperMulDiv_cancel
+  · have hcancel := Reasoning.Theory.mulDiv_cancel
       (x := feedPrice) (y := lot) (by simpa [eq_comm] using hy)
       (by simpa [lot, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel

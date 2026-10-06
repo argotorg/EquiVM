@@ -1,3 +1,7 @@
+import Reasoning.ExternalCall
+import Reasoning.MemoryArithmetic
+import Reasoning.MemoryShapes
+import Reasoning.Memory
 import Benchmarks.Dss.Flopper.AuctionCommon
 import Benchmarks.Dss.Flopper.Tick
 import Benchmarks.Dss.Flopper.Yank
@@ -63,39 +67,39 @@ abbrev dentEndEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "bids", steps := [.mindex (auctionIdKey (dentIdWord I)), .field "end"] }
 
 abbrev dentLiveWord (evm : EVM.State) : UInt256 :=
-  flopperSlotWord ⟨8⟩ evm.accountMap evm.executionEnv
+  solcSlotWordAt ⟨8⟩ evm.accountMap evm.executionEnv
 
 abbrev dentVatWord (evm : EVM.State) : UInt256 :=
-  flopperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv
+  solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv
 
 abbrev dentBegWord (evm : EVM.State) : UInt256 :=
-  flopperSlotWord ⟨4⟩ evm.accountMap evm.executionEnv
+  solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv
 
 abbrev dentTtlWord (evm : EVM.State) : UInt256 :=
-  flopperUint48Offset0Word ⟨6⟩ evm.accountMap evm.executionEnv
+  uint48Offset0Word ⟨6⟩ evm.accountMap evm.executionEnv
 
 abbrev dentBidStoredWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord (auctionBidSlot (dentIdWord I)) evm.accountMap evm.executionEnv
+  solcSlotWordAt (auctionBidSlot (dentIdWord I)) evm.accountMap evm.executionEnv
 
 abbrev dentLotStoredWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  flopperSlotWord (auctionLotSlot (dentIdWord I)) evm.accountMap evm.executionEnv
+  solcSlotWordAt (auctionLotSlot (dentIdWord I)) evm.accountMap evm.executionEnv
 
 abbrev dentGuyWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) evm.accountMap evm.executionEnv
+  solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) evm.accountMap evm.executionEnv
 
 abbrev dentTicWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) evm.accountMap
+  uint48Offset20Word (auctionPackedSlot (dentIdWord I)) evm.accountMap
     evm.executionEnv
 
 abbrev dentEndWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) evm.accountMap
+  uint48Offset26Word (auctionPackedSlot (dentIdWord I)) evm.accountMap
     evm.executionEnv
 
 abbrev dentTimestampWord (evm : EVM.State) : UInt256 :=
   UInt256.ofNat evm.executionEnv.header.timestamp
 
 abbrev dentNow48Word (evm : EVM.State) : UInt256 :=
-  UInt256.land (dentTimestampWord evm) flopperUint48Mask
+  UInt256.land (dentTimestampWord evm) uint48Mask
 
 abbrev dentOneWord : UInt256 :=
   ⟨1000000000000000000⟩
@@ -203,7 +207,7 @@ abbrev dentRuntimeAfterGuyMap (owner : AccountAddress) (σ : AccountMap) (I : Ex
 
 abbrev dentRuntimeTtlWord (owner : AccountAddress) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
-  flopperUint48Offset0Word ⟨6⟩ (dentRuntimeAfterLotMap owner σ I) I
+  uint48Offset0Word ⟨6⟩ (dentRuntimeAfterLotMap owner σ I) I
 
 abbrev dentRuntimeTicAddWord (owner : AccountAddress) (σ : AccountMap) (I : ExecutionEnv) :
     UInt256 :=
@@ -351,47 +355,6 @@ theorem dentMoveCalldataMem_read64 (src guy bid : UInt256) {mem : ByteArray}
     (by rw [dentMoveGuyMem_size src guy hmem]) (by omega),
     dentMoveGuyMem_read64 src guy hmem hread64]
 
-theorem wordAt0Mem_size_of_ge_32 {mem : ByteArray} (word : UInt256)
-    (hmem : 32 ≤ mem.size) :
-    (wordAt0Mem word mem).size = mem.size := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 mem.size mem.size rfl
-    (by omega) (by simp [Nat.max_eq_left hmem])
-
-theorem wordAt32Mem_size_of_ge_64 {mem : ByteArray} (word : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (wordAt32Mem word mem).size = mem.size := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 mem.size mem.size rfl
-    (by omega) (by simp [Nat.max_eq_left hmem])
-
-theorem twoWordHashMem_size_of_ge_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem
-  rw [wordAt32Mem_size_of_ge_64 slot]
-  · exact wordAt0Mem_size_of_ge_32 key (by omega)
-  · rw [wordAt0Mem_size_of_ge_32 key (by omega)]
-    exact hmem
-
-theorem twoWordHashMem_read64_of_ge_96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by
-        rw [wordAt0Mem_size_of_ge_32 key (by omega)]
-        omega)
-      (by omega)
-      (by
-        rw [wordAt0Mem_size_of_ge_32 key (by omega)]
-        omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega)
-      (by omega) (by omega)]
-  exact hread64
 
 theorem dentAshSelectorMem_read64 {mem : ByteArray}
     (hmem : 96 ≤ mem.size)
@@ -623,8 +586,8 @@ theorem dentMoveEncode_eq (src guy bid : UInt256) {mem : ByteArray}
   have hbidWord : EVM.word bid.toNat = bid := by
     show UInt256.ofNat bid.toNat = bid
     exact u256_ofNat_toNat _
-  have hsrcWord := flopperAddressWord_eq_ofNat_address hsrcCanon
-  have hguyWord := flopperAddressWord_eq_ofNat_address hguyCanon
+  have hsrcWord := addressWord_eq_ofNat_address hsrcCanon
+  have hguyWord := addressWord_eq_ofNat_address hguyCanon
   simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
     ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?, ABI.isDynamicABIType,
@@ -633,64 +596,11 @@ theorem dentMoveEncode_eq (src guy bid : UInt256) {mem : ByteArray}
   apply ByteArray.ext
   simp [ByteArray.data_append, Array.append_assoc]
 
-theorem dentTypedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.State}
-    {tgt : EVM.Address} {name : Ident} {args : List Value}
-    {z : Bool} {out : ByteArray} {perm : Bool}
-    (hcall : typedCallViaEVM cfg evm tgt name 0 args (z, evm', out) perm)
-    (hdepth : evm.executionEnv.depth ≠ 1024) (A0 : Substate) :
-    ∃ A',
-      typedCallViaEVM cfg { evm with substate := A0 } tgt name 0 args
-        (z,
-          { { evm with substate := A0 } with
-            accountMap := evm'.accountMap
-            substate := A'},
-          out) perm := by
-  obtain ⟨calldata, henc, hraw⟩ := hcall
-  cases hraw with
-  | callMade hvalue hTheta hevm' hvalueLe _hdepth =>
-      rename_i valueWord σ' g' A'
-      subst evm'
-      rcases hTheta with ⟨callGas, A_in, hTheta⟩
-      refine ⟨A', ⟨calldata, henc, ?_⟩⟩
-      refine callViaEVM.callMade (valueWord := valueWord) (σ' := σ')
-        (g' := g') (A' := A') (perm := perm) hvalue ⟨callGas, A_in, ?_⟩ ?_ ?_ ?_
-      · simpa using hTheta
-      · rfl
-      · simpa using hvalueLe
-      · simpa using hdepth
-  | callNotMade _hsubstate _hevm' hfail =>
-      exfalso
-      exact hfail ⟨(by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _), hdepth⟩
-
-theorem byteArray_write_size_ge_base
-    (src base : ByteArray) (srcOff destOff len : Nat) :
-    base.size ≤ (src.write srcOff base destOff len).size := by
-  unfold ByteArray.write
-  split
-  · simp
-  · split
-    · change base.data.size ≤
-        (ByteArray.copySlice (ByteArray.zeroes (min len (base.size - destOff))) 0 base
-          (min destOff base.size) (min len (base.size - destOff)) true).data.size
-      rw [ByteArray.data_copySlice]
-      simp [Array.size_append, Array.size_extract]
-      omega
-    · change base.data.size ≤
-        (ByteArray.copySlice
-          (src ++ ByteArray.zeroes
-            (min base.size (destOff + len) - (destOff + min len (src.size - srcOff))))
-          srcOff (base ++ ByteArray.zeroes (destOff - base.size)) destOff
-          (min len (src.size - srcOff) +
-            (min base.size (destOff + len) - (destOff + min len (src.size - srcOff))))
-          true).data.size
-      rw [ByteArray.data_copySlice]
-      simp [Array.size_append, Array.size_extract]
-      omega
 
 theorem dentRuntimeTtlWord_lt (owner : AccountAddress) (σ : AccountMap) (I : ExecutionEnv) :
     (dentRuntimeTtlWord owner σ I).toNat < 2 ^ 48 := by
-  simpa [dentRuntimeTtlWord, flopperUint48Offset0Word, EVM.twoPow] using
-    flopperUint48Masked_lt (flopperSlotWord ⟨6⟩ (dentRuntimeAfterLotMap owner σ I) I)
+  simpa [dentRuntimeTtlWord, uint48Offset0Word, EVM.twoPow] using
+    uint48Masked_lt (solcSlotWordAt ⟨6⟩ (dentRuntimeAfterLotMap owner σ I) I)
 
 theorem dentLocals_get_id (I : ExecutionEnv) :
     (dentLocals I).get? "id" = some (dentIdValue I) := by
@@ -1028,7 +938,7 @@ theorem evalExpr_dent_live_storage (evm : EVM.State) (I : ExecutionEnv) :
       liveRef, EvalResult.bind, bind, pure])
     (by simp [frame, storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [dentLiveWord, flopperSlotWord] using flopperStorageLocLoad_uint256 evm ⟨8⟩)
+    (by simpa [dentLiveWord, solcSlotWordAt] using storageLocLoad_uint256 evm ⟨8⟩)
 
 theorem evalExpr_dent_vat_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage vatRef) =
@@ -1045,8 +955,8 @@ theorem evalExpr_dent_vat_storage (evm : EVM.State) (I : ExecutionEnv) :
     (by simp [frame, storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [dentVatWord, flopperAddressReturnWord, flopperSlotWord] using
-        flopperStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [dentVatWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_dent_beg_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage begRef) =
@@ -1062,7 +972,7 @@ theorem evalExpr_dent_beg_storage (evm : EVM.State) (I : ExecutionEnv) :
       begRef, EvalResult.bind, bind, pure])
     (by simp [frame, storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [dentBegWord, flopperSlotWord] using flopperStorageLocLoad_uint256 evm ⟨4⟩)
+    (by simpa [dentBegWord, solcSlotWordAt] using storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_dent_ttl_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage ttlRef) =
@@ -1071,8 +981,8 @@ theorem evalExpr_dent_ttl_storage (evm : EVM.State) (I : ExecutionEnv) :
   have hload :
       storageLocLoad evm (uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentTtlWord evm).toNat) := by
-    simpa [dentTtlWord, flopperUint48Offset0Word, flopperSlotWord] using
-      flopperStorageLocLoad_uint48_offset0 evm ⟨6⟩
+    simpa [dentTtlWord, uint48Offset0Word, solcSlotWordAt] using
+      storageLocLoad_uint48_offset0 evm ⟨6⟩
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := frame) (evm := evm)
     (slot := ttlRef) (er := dentTtlEvaledRef)
@@ -1103,8 +1013,8 @@ theorem evalExpr_dent_bid_storage (evm : EVM.State) (I : ExecutionEnv) :
     (by simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       BidStructTy, uint256St])
     (by rfl)
-    (by simpa [dentBidStoredWord, flopperSlotWord] using
-      flopperStorageLocLoad_uint256 evm (auctionBidSlot (dentIdWord I)))
+    (by simpa [dentBidStoredWord, solcSlotWordAt] using
+      storageLocLoad_uint256 evm (auctionBidSlot (dentIdWord I)))
 
 theorem evalExpr_dent_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm
@@ -1124,8 +1034,8 @@ theorem evalExpr_dent_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
     (by simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       BidStructTy, uint256St])
     (by rfl)
-    (by simpa [dentLotStoredWord, flopperSlotWord] using
-      flopperStorageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
+    (by simpa [dentLotStoredWord, solcSlotWordAt] using
+      storageLocLoad_uint256 evm (auctionLotSlot (dentIdWord I)))
 
 theorem evalExpr_dent_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm
@@ -1146,8 +1056,8 @@ theorem evalExpr_dent_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
       BidStructTy, addrSt])
     (by rfl)
     (by
-      simpa [dentGuyWord, flopperAddressReturnWord, flopperSlotWord] using
-        flopperStorageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
+      simpa [dentGuyWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
 
 theorem evalExpr_dent_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm
@@ -1158,13 +1068,13 @@ theorem evalExpr_dent_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
       storageLocLoad evm
           (uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentTicWord evm I).toNat) := by
-    rw [flopperStorageLocLoad_uint48_offset20]
+    erw [storageLocLoad_uint48_offset20]
     rw [u256_land_comm
       (UInt256.div
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (auctionPackedSlot (dentIdWord I)))
         (UInt256.ofNat (256 ^ 20)))
-      flopperUint48Mask]
+      uint48Mask]
     rfl
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := frame) (evm := evm)
@@ -1191,13 +1101,13 @@ theorem evalExpr_dent_end_storage (evm : EVM.State) (I : ExecutionEnv) :
       storageLocLoad evm
           (uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨26, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentEndWord evm I).toNat) := by
-    rw [flopperStorageLocLoad_uint48_offset26]
+    erw [storageLocLoad_uint48_offset26]
     rw [u256_land_comm
       (UInt256.div
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (auctionPackedSlot (dentIdWord I)))
         (UInt256.ofNat (256 ^ 26)))
-      flopperUint48Mask]
+      uint48Mask]
     rfl
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := frame) (evm := evm)
@@ -1232,8 +1142,8 @@ theorem evalExpr_dent_vat_storage_of_locals
     (by simp [frame, storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [dentVatWord, flopperAddressReturnWord, flopperSlotWord] using
-        flopperStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [dentVatWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_dent_guy_storage_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
@@ -1256,8 +1166,8 @@ theorem evalExpr_dent_guy_storage_of_locals
       BidStructTy, addrSt])
     (by rfl)
     (by
-      simpa [dentGuyWord, flopperAddressReturnWord, flopperSlotWord] using
-        flopperStorageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
+      simpa [dentGuyWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm (auctionPackedSlot (dentIdWord I)))
 
 theorem evalExpr_dent_tic_storage_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
@@ -1271,13 +1181,13 @@ theorem evalExpr_dent_tic_storage_of_locals
       storageLocLoad evm
           (uint48Loc (auctionPackedSlot (dentIdWord I)) ⟨20, by decide⟩ (by decide)) =
         .int (Int.ofNat (dentTicWord evm I).toNat) := by
-    rw [flopperStorageLocLoad_uint48_offset20]
+    erw [storageLocLoad_uint48_offset20]
     rw [u256_land_comm
       (UInt256.div
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (auctionPackedSlot (dentIdWord I)))
         (UInt256.ofNat (256 ^ 20)))
-      flopperUint48Mask]
+      uint48Mask]
     rfl
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := frame) (evm := evm)
@@ -1501,7 +1411,7 @@ theorem flopperDentBodyAfterAshSuccessKissNoCode
         ((evmAsh.lookupAccount (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := evmAsh.accountMap)
         (target := dentGuyWord evmAsh I)
         (addr := AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)
@@ -1559,7 +1469,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
         ((evmAsh.lookupAccount (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmAsh.accountMap)
         (target := dentGuyWord evmAsh I)
         (addr := AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)
@@ -1618,7 +1528,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
         ((evmAsh.lookupAccount (AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmAsh.accountMap)
         (target := dentGuyWord evmAsh I)
         (addr := AccountAddress.ofNat (dentGuyWord evmAsh I).toNat)
@@ -1709,11 +1619,11 @@ theorem evalExpr_dent_guy_ne_zero_true (evm : EVM.State) (I : ExecutionEnv)
     norm_num
     rfl
   have haddrNe : AccountAddress.ofNat guyWord.toNat ≠ AccountAddress.ofNat 0 := by
-    exact flopperAddressOfNat_ne_zero_of_word_ne_zero
+    exact addressOfNat_ne_zero_of_word_ne_zero
       (by
-        simpa [guyWord, dentGuyWord, flopperAddressReturnWord] using
+        simpa [guyWord, dentGuyWord, solcAddressSlotWord] using
           solcAddrMask_result_canonical
-            (flopperSlotWord (auctionPackedSlot (dentIdWord I)) evm.accountMap
+            (solcSlotWordAt (auctionPackedSlot (dentIdWord I)) evm.accountMap
               evm.executionEnv))
       (by simpa [guyWord] using hguy)
   have hne :

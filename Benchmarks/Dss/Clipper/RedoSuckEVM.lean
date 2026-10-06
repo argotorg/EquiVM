@@ -1,3 +1,6 @@
+import Reasoning.WordArithmetic
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.RedoSuccessEVM
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -5,49 +8,11 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Reasoning.Theory
 
-private theorem clipperDup16Xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP16, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-    (hov : t.length + 17 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll ::
-            mm :: nn :: oo :: pp :: t), .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP16, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup16 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-          nn :: oo :: pp :: t).length - 16 + 17 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-theorem RD.clipperDup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP16, .none)) (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-        nn :: oo :: pp :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.clipperDup16Xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -260,16 +225,6 @@ theorem clipperRedoSuckCalldataMem_read128_100 (σ : AccountMap) (ee : Execution
     simp]
   rw [hselectorExt, hvowExt, hkprExt, hcoinExt]
 
-theorem clipperRedoAddressWord (w : UInt256) :
-    EVM.word (AccountAddress.ofNat w.toNat).val = UInt256.land w solcAddrMask := by
-  apply u256_inj
-  rw [u256_land_toNat]
-  unfold EVM.word EVM.uintN AccountAddress.ofNat
-  simp only [UInt256.toNat, Fin.ofNat]
-  rw [show (↑solcAddrMask.val : Nat) = 2 ^ 160 - 1 from by decide]
-  rw [nat_land_mask_eq_mod]
-  rw [show AccountAddress.size = 2 ^ 160 from by native_decide,
-    show EVM.twoPow 256 = UInt256.size from by native_decide]
 
 theorem clipperRedoSuckEncode_eq (v : ClipperImmutables) (σ : AccountMap)
     (ee : ExecutionEnv) (kpr coin : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
@@ -288,10 +243,10 @@ theorem clipperRedoSuckEncode_eq (v : ClipperImmutables) (σ : AccountMap)
   have hvowWord :
       EVM.word (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat).val =
         clipperRedoVowTarget σ ee := by
-    simpa [hvowClean] using clipperRedoAddressWord (clipperRedoVowTarget σ ee)
+    simpa [hvowClean] using redoAddressWord (clipperRedoVowTarget σ ee)
   have hkprWord : EVM.word (AccountAddress.ofNat kpr.toNat).val =
       clipperRedoKprTarget kpr := by
-    simpa [clipperRedoKprTarget, u256_land_comm] using clipperRedoAddressWord kpr
+    simpa [clipperRedoKprTarget, u256_land_comm] using redoAddressWord kpr
   have hcoinWord : EVM.word coin.toNat = coin := u256_ofNat_toNat coin
   have hcoinLt : coin.toNat < EVM.twoPow 256 := by
     change coin.val.val < UInt256.size
@@ -338,7 +293,7 @@ theorem clipperRedoVatPatchPayload7936 (v : ClipperImmutables) {code : ByteArray
        (8747, ilkBytes)])
     (off := 7936) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
         hilk, hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -456,7 +411,7 @@ theorem RD.clipperRedoPayoutToSuckGuard {code : ByteArray}
       simpa [hpc8004, clipperRedoVowTarget,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by native_decide] using rd8004Raw⟩
-  have rd8005 := RD.clipperDup16 rd8004 (by clipper_runtime_decode)
+  have rd8005 := RD.dup16 rd8004 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdMemPre := evm_run rd8005 with [
     raw dup6 (by clipper_runtime_decode) (by evm_ov),
@@ -577,11 +532,6 @@ theorem clipperRedoVatTargetAddress (v : ClipperImmutables) :
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat (EVM.Word.ofNat (↑v.vat : Nat))]
   simpa [EVM.Word.ofNat] using AccountAddress.ofUInt256_ofNat v.vat
 
-theorem clipperRedoEVMAddressAccountAddress (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])
 
 theorem RD.clipperRedoSuckNoCode {code : ByteArray}
     (v : ClipperImmutables)
@@ -697,7 +647,7 @@ theorem RD.clipperRedoSuckPostCall
         decide))
       ?_ ?_ ?_
     · rw [clipperRedoVatTargetAddress v]
-      exact clipperRedoEVMAddressAccountAddress v.vat
+      exact eVM_address_id v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         show (⟨100⟩ : UInt256).toNat = 100 from by decide] using
         clipperRedoSuckEncode_eq v σ ee kpr coin hmem

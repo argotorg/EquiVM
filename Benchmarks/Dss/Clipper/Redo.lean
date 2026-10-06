@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Clipper.Arithmetic
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
 import Benchmarks.Dss.Clipper.GetStatusReverts
@@ -174,103 +176,6 @@ theorem clipperDispatch_redo (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, redoSelectorBytes v]
     simpa [clipperSelBytes] using hsel
 
--- LIBRARY CANDIDATE: legacy-solc05 two-word scalar decoding for `(uint256,address)`.
-theorem decodeCalldata_legacyUint256_address_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [uint256, addr] cd =
-      some (((∅ : Solm.Store).insert x
-        (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 4).drop 32 |>.take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32) =
-      calldataWord cd 36 := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
-      decode_word_at_eq cd 36 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y])
-    (types := [uint256, addr]) (cd := cd) (by native_decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have hdecode0 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
-        some (.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-          0 + 32) := by
-    simpa [uint256, uint256Int] using
-      decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-        (bytes := cd.toList.drop 4) (start := 0) htake4
-  have hdecode32 :
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 32 =
-        some (.address (AccountAddress.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [addr] using
-      decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 32) htake36
-  rw [hdecode0, hdecode32]
-  simp only [Option.bind, bind]
-  change decodeCalldata.insertValues [x, y]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat)] ∅ =
-    some (((∅ : Solm.Store).insert x
-      (.int (Int.ofNat (calldataWord cd 4).toNat))).insert y
-      (.address (AccountAddress.ofNat (calldataWord cd 36).toNat)))
-  rw [hword4, hword36]
-  simp [decodeCalldata.insertValues]
-
--- LIBRARY CANDIDATE: legacy-solc05 short calldata failure for `(uint256,address)`.
-theorem decodeCalldata_legacyUint256_address_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [uint256, addr] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x, y])
-    (types := [uint256, addr]) (cd := cd) (by native_decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
-  · have htake0 : ((cd.toList.drop 4).take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp only [decodeScalarWordsWithMode?]
-    have hdecode0 :
-        decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
-          some (.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
-            0 + 32) := by
-      simpa [uint256, uint256Int] using
-        decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-          (bytes := cd.toList.drop 4) (start := 0) htake0
-    rw [hdecode0]
-    have htake32n : ¬ (((cd.toList.drop 4).drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, List.length_drop, htlen]
-      omega
-    have hdecode32 :
-        decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 32 =
-          none := by
-      simpa [addr] using
-        decodeScalarWord_legacyAddress_none_short (bytes := cd.toList.drop 4) (start := 32)
-          htake32n
-    rw [hdecode32]
-    simp only [Option.bind, bind]
-  · have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp only [decodeScalarWordsWithMode?]
-    have hdecode0 :
-        decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
-          none := by
-      simpa [uint256, uint256Int] using
-        decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-          (bytes := cd.toList.drop 4) (start := 0) htake0n
-    rw [hdecode0]
-    simp only [Option.bind, bind]
 
 theorem clipperDecode_redo_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :
@@ -304,7 +209,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperRedoSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -324,7 +229,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -344,7 +249,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h65 := clipperSplitNotTaken (pc := (⟨54⟩ : UInt256))
+  have h65 := RD.selectorSplitNotTakenPush2 (pc := (⟨54⟩ : UInt256))
     (next := (⟨65⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -364,7 +269,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h76 := clipperArmNotTaken (pc := (⟨65⟩ : UInt256))
+  have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256))
     (next := (⟨76⟩ : UInt256)) (sel := clipperSelNat 12)
     (tgt := (⟨1349⟩ : UInt256)) h65
     (by change decode code (⟨65⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -384,7 +289,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h87 := clipperArmNotTaken (pc := (⟨76⟩ : UInt256))
+  have h87 := RD.selectorArmNotTakenPush2 (pc := (⟨76⟩ : UInt256))
     (next := (⟨87⟩ : UInt256)) (sel := clipperSelNat 14)
     (tgt := (⟨1357⟩ : UInt256)) h76
     (by change decode code (⟨76⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -404,7 +309,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h98 := clipperArmNotTaken (pc := (⟨87⟩ : UInt256))
+  have h98 := RD.selectorArmNotTakenPush2 (pc := (⟨87⟩ : UInt256))
     (next := (⟨98⟩ : UInt256)) (sel := clipperSelNat 10)
     (tgt := (⟨1365⟩ : UInt256)) h87
     (by change decode code (⟨87⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -424,7 +329,7 @@ theorem clipperReachRedoBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1409 := clipperArmTaken (pc := (⟨98⟩ : UInt256)) (sel := clipperSelNat 16)
+  have h1409 := RD.selectorArmTakenPush2 (pc := (⟨98⟩ : UInt256)) (sel := clipperSelNat 16)
     (tgt := (⟨1409⟩ : UInt256)) h98
     (by change decode code (⟨98⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -456,7 +361,7 @@ theorem clipperJumpDest7261 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -470,7 +375,7 @@ theorem clipperJumpDest7338 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -484,7 +389,7 @@ theorem clipperJumpDest7428 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -498,7 +403,7 @@ theorem clipperJumpDest7563 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 8000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -512,7 +417,7 @@ theorem clipperRedoPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
   have _ : 1431 ≤ lo := hlo
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -735,7 +640,7 @@ theorem evalExpr_clipperRedoStopped_lt_two_false (v : ClipperImmutables)
       (her := evalStorageRef_clipperRedoStopped v evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (Value.int (Int.ofNat
@@ -765,7 +670,7 @@ theorem evalExpr_clipperRedoStopped_lt_two_true (v : ClipperImmutables)
       (her := evalStorageRef_clipperRedoStopped v evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+      (hload := by simpa using storageLocLoad_uint256 evm ⟨14⟩)
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   change evalBinaryOp? BinaryOp.lt
       (Value.int (Int.ofNat
@@ -805,7 +710,7 @@ theorem clipperEvalRedoSalesUsr (v : ClipperImmutables) (evm : EVM.State)
     (by rfl)
     (by simpa [clipperRedoSalesUsrEVMWord, clipperRedoSalesPackedSlot,
       clipperRedoSalesBaseSlot] using
-      clipperStorageLocLoad_address evm (clipperRedoSalesPackedSlot I))
+      storageLocLoad_address_offset0 evm (clipperRedoSalesPackedSlot I))
 
 theorem clipperEvalRedoVarIdAfterUsr (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) :
@@ -878,7 +783,7 @@ theorem clipperEvalRedoSalesTopAfterTic (v : ClipperImmutables)
     (by rfl)
     (by simpa [clipperRedoSalesTopEVMWord, clipperRedoSalesTopSlot,
       clipperRedoSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperRedoSalesTopSlot I))
+      storageLocLoad_uint256 evm (clipperRedoSalesTopSlot I))
 
 theorem clipperEvalRedoZeroAddr (v : ClipperImmutables)
     (evm : EVM.State) (locals : Store) :
@@ -910,25 +815,6 @@ theorem clipperEvalRedoUsrNeZeroAfterTop_false (v : ClipperImmutables)
   rw [husr]
   native_decide
 
-theorem clipperRedoMaskedAddress_ne_zero {w : UInt256}
-    (h : UInt256.land w solcAddrMask ≠ ⟨0⟩) :
-    AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat ≠ AccountAddress.ofNat 0 := by
-  intro haddr
-  have hval : (UInt256.land w solcAddrMask).toNat = 0 := by
-    have hlt : (UInt256.land w solcAddrMask).toNat < AccountAddress.size := by
-      rw [u256_land_toNat]
-      have hland : Nat.land w.toNat solcAddrMask.toNat ≤ solcAddrMask.toNat :=
-        Nat.and_le_right
-      have hmask : solcAddrMask.toNat < AccountAddress.size := by
-        native_decide
-      have hlandlt : Nat.land w.toNat solcAddrMask.toNat < UInt256.size := by
-        have hsize : AccountAddress.size < UInt256.size := by decide
-        omega
-      rw [Nat.mod_eq_of_lt hlandlt]
-      omega
-    apply congrArg Fin.val at haddr
-    simpa [AccountAddress.ofNat, Fin.ofNat, Nat.mod_eq_of_lt hlt] using haddr
-  exact h (u256_inj (by simpa using hval))
 
 theorem clipperEvalRedoUsrNeZeroAfterTop_true (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -941,7 +827,7 @@ theorem clipperEvalRedoUsrNeZeroAfterTop_true (v : ClipperImmutables)
   have haddr : AccountAddress.ofNat (clipperRedoSalesUsrEVMWord evm I).toNat ≠
       AccountAddress.ofNat 0 := by
     simpa [clipperRedoSalesUsrEVMWord] using
-      clipperRedoMaskedAddress_ne_zero
+      redoMaskedAddress_ne_zero
         (w := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperRedoSalesPackedSlot I))
         (by simpa [clipperRedoSalesUsrEVMWord] using husr)

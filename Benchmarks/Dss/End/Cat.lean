@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `cat()` getter -/
 
 def catWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 theorem endDecode_cat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (catTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endCatBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (catWord σ I).toNat))])) := by
-    simpa [catTransition, catWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [catTransition, catWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

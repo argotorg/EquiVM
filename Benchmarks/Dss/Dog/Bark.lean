@@ -1,3 +1,15 @@
+import Reasoning.SolcRoutines
+import Reasoning.MemoryArithmetic
+import Reasoning.Storage
+import Reasoning.StateFacts
+import Reasoning.ABIViews
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
+import Reasoning.SolcMemory
+import Reasoning.MemoryShapes
+import Reasoning.ABIComposite
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.MemCascade
 import Reasoning.ExternalCall
@@ -10,129 +22,11 @@ set_option maxHeartbeats 0
 
 namespace Reasoning.Theory
 
-private theorem dogStorageStore_sigma0
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
-
-theorem dup12_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP12, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-    (hov : t.length + 13 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok
-          (stSwap s
-            (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t),
-            .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_dup12 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
-          12 + 13 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem dup16_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP16, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-    (hov : t.length + 17 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok
-          (stSwap s
-            (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll ::
-              mm :: nn :: oo :: pp :: t),
-            .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP16, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_dup16 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-          nn :: oo :: pp :: t).length - 16 + 17 > 1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem swap13_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP13, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
-    (hov : t.length + 14 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok
-          (stSwap s
-            (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-              a :: t),
-            .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP13, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap13 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-          nn :: t).length - 14 + 14 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.dup12_xstep hc hp hdec hs hov)
-
-theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP16, .none)) (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-        nn :: oo :: pp :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.dup16_xstep hc hp hdec hs hov)
-
-theorem RD.swap13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP13, .none)) (hov : t.length + 14 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (nn :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: a :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => Reasoning.Theory.swap13_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -264,24 +158,24 @@ abbrev barkLocalsMilkClip (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     Store :=
   (barkLocalsArt I out).insert "milkClip"
     (.address (AccountAddress.ofNat
-      (dogAddressReturnWord (barkIlksClipSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcAddressSlotWord (barkIlksClipSlotFor I) evm.accountMap evm.executionEnv).toNat))
 
 abbrev barkLocalsMilkChop (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     Store :=
   (barkLocalsMilkClip evm I out).insert "milkChop"
-    (.int (Int.ofNat (dogSlotWord (barkIlksChopSlotFor I) evm.accountMap
+    (.int (Int.ofNat (solcSlotWordAt (barkIlksChopSlotFor I) evm.accountMap
       evm.executionEnv).toNat))
 
 abbrev barkLocalsMilkHole (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     Store :=
   (barkLocalsMilkChop evm I out).insert "milkHole"
-    (.int (Int.ofNat (dogSlotWord (barkIlksHoleSlotFor I) evm.accountMap
+    (.int (Int.ofNat (solcSlotWordAt (barkIlksHoleSlotFor I) evm.accountMap
       evm.executionEnv).toNat))
 
 abbrev barkLocalsMilkDirt (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     Store :=
   (barkLocalsMilkHole evm I out).insert "milkDirt"
-    (.int (Int.ofNat (dogSlotWord (barkIlksDirtSlotFor I) evm.accountMap
+    (.int (Int.ofNat (solcSlotWordAt (barkIlksDirtSlotFor I) evm.accountMap
       evm.executionEnv).toNat))
 
 abbrev barkIlksSlot (I : ExecutionEnv) : UInt256 :=
@@ -400,7 +294,7 @@ abbrev barkLocalsArtRateUnsafe
     (.int (Int.ofNat (barkArtRateUnsafeWord out outIlks).toNat))
 
 abbrev barkGlobalRoomWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.sub (dogSlotWord ⟨4⟩ σ I) (dogSlotWord ⟨5⟩ σ I)
+  UInt256.sub (solcSlotWordAt ⟨4⟩ σ I) (solcSlotWordAt ⟨5⟩ σ I)
 
 abbrev barkIlkRoomWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.sub (barkIlksHoleWord σ I) (barkIlksDirtWord σ I)
@@ -412,13 +306,13 @@ abbrev barkRoomWord (σ σMem : AccountMap) (I : ExecutionEnv) : UInt256 :=
     barkIlkRoomWord σMem I
 
 abbrev barkSourceGlobalRoomWord (evmIlks : EVM.State) : UInt256 :=
-  UInt256.sub (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv)
-    (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv)
+  UInt256.sub (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv)
+    (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv)
 
 abbrev barkSourceIlkRoomWord (evmUrns : EVM.State) (I : ExecutionEnv) : UInt256 :=
   UInt256.sub
-    (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv)
-    (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv)
+    (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv)
+    (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv)
 
 abbrev barkSourceRoomWord (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) : UInt256 :=
   if (barkSourceGlobalRoomWord evmIlks).toNat ≤ (barkSourceIlkRoomWord evmUrns I).toNat then
@@ -439,7 +333,7 @@ abbrev barkSourceDartByRateWord
   UInt256.div (barkSourceRoomWadWord evmUrns evmIlks I) (barkVatIlksRateWord outIlks)
 
 abbrev barkSourceMilkChopWord (evmUrns : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+  solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
 
 abbrev barkSourceDartCandidateWord
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (outIlks : ByteArray) :
@@ -582,7 +476,7 @@ abbrev dogInt256LimitWord : UInt256 :=
   UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩
 
 abbrev barkVowWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land solcAddrMask (dogSlotWord ⟨2⟩ σ I)
+  UInt256.land solcAddrMask (solcSlotWordAt ⟨2⟩ σ I)
 
 abbrev barkVatGrabSelectorWord : UInt256 :=
   ⟨0x7bab3f40⟩
@@ -767,11 +661,6 @@ theorem barkLeftoverDue_fit_of_art_fit {art dart rate : UInt256}
     (Nat.mul_le_mul_right rate.toNat (barkLeftoverArtWord_toNat_le_art hdartLe))
     hfitArt
 
-theorem barkPartialDue_fit_of_dart_le_art {art dart rate : UInt256}
-    (hdartLe : dart.toNat ≤ art.toNat)
-    (hfitArt : art.toNat * rate.toNat < UInt256.size) :
-    dart.toNat * rate.toNat < UInt256.size := by
-  exact lt_of_le_of_lt (Nat.mul_le_mul_right rate.toNat hdartLe) hfitArt
 
 abbrev dogNotLiveRawWord : UInt256 :=
   ⟨21179658712531102354511591013⟩
@@ -862,7 +751,7 @@ theorem barkLocalsMilkClip_get_milkClip
     (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     (barkLocalsMilkClip evm I out).get? "milkClip" =
       some (.address (AccountAddress.ofNat
-        (dogAddressReturnWord (barkIlksClipSlotFor I) evm.accountMap
+        (solcAddressSlotWord (barkIlksClipSlotFor I) evm.accountMap
           evm.executionEnv).toNat)) := by
   rw [barkLocalsMilkClip, store_get_self]
 
@@ -1047,7 +936,7 @@ theorem barkLocalsArtRateUnsafe_get_milkHole
     (evm : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsArtRateUnsafe evm I out outIlks).get? "milkHole" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+        (solcSlotWordAt (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   rw [barkLocalsArtRateUnsafe, store_get_ne _ _ (by decide), barkLocalsInkSpot,
     store_get_ne _ _ (by decide), barkLocalsDust, store_get_ne _ _ (by decide),
     barkLocalsSpot, store_get_ne _ _ (by decide), barkLocalsRate,
@@ -1058,7 +947,7 @@ theorem barkLocalsArtRateUnsafe_get_milkDirt
     (evm : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsArtRateUnsafe evm I out outIlks).get? "milkDirt" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   rw [barkLocalsArtRateUnsafe, store_get_ne _ _ (by decide), barkLocalsInkSpot,
     store_get_ne _ _ (by decide), barkLocalsDust, store_get_ne _ _ (by decide),
     barkLocalsSpot, store_get_ne _ _ (by decide), barkLocalsRate,
@@ -1113,7 +1002,7 @@ theorem barkLocalsGlobalRoom_get_milkHole
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsGlobalRoom evmUrns evmIlks I out outIlks).get? "milkHole" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
     barkLocalsArtRateUnsafe_get_milkHole]
@@ -1122,7 +1011,7 @@ theorem barkLocalsGlobalRoom_get_milkDirt
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsGlobalRoom evmUrns evmIlks I out outIlks).get? "milkDirt" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
     barkLocalsArtRateUnsafe_get_milkDirt]
@@ -1160,7 +1049,7 @@ theorem barkLocalsRoom_get_milkChop
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsRoom evmUrns evmIlks I out outIlks).get? "milkChop" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsRoom, store_get_ne _ _ (by decide), barkLocalsIlkRoom,
     store_get_ne _ _ (by decide), barkLocalsGlobalRoom, store_get_ne _ _ (by decide),
@@ -1195,7 +1084,7 @@ theorem barkLocalsDartByRate_get_milkChop
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsDartByRate evmUrns evmIlks I out outIlks).get? "milkChop" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsDartByRate, store_get_ne _ _ (by decide), barkLocalsRoomWad,
     store_get_ne _ _ (by decide), barkLocalsRoom_get_milkChop]
@@ -1281,7 +1170,7 @@ theorem barkLocalsDart_get_milkClip
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkClip" =
       some (.address (AccountAddress.ofNat
-        (dogAddressReturnWord (barkIlksClipSlotFor I) evmUrns.accountMap
+        (solcAddressSlotWord (barkIlksClipSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
     store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
@@ -1300,7 +1189,7 @@ theorem barkLocalsDart_get_milkChop
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkChop" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
     store_get_ne _ _ (by decide), barkLocalsDartByRate_get_milkChop]
@@ -1361,7 +1250,7 @@ theorem barkLocalsDart_get_milkDirt
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray) :
     (barkLocalsDart evmUrns evmIlks I out outIlks).get? "milkDirt" =
       some (.int (Int.ofNat
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat)) := by
   rw [barkLocalsDart, store_get_ne _ _ (by decide), barkLocalsDartCandidate,
     store_get_ne _ _ (by decide), barkLocalsDartByRate, store_get_ne _ _ (by decide),
@@ -1655,25 +1544,6 @@ theorem barkVatUrnsCallMem_read64 {I : ExecutionEnv} {mem : ByteArray}
       (Or.inl ⟨by decide, by rw [hmem]⟩)]
   exact hread64
 
-theorem barkVatUrnsPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
-    (hbase : base.size = 196) (hLo : L ≤ out.size) :
-    64 < (out.write 0 base 128 L).size := by
-  rcases Nat.eq_zero_or_pos L with hzero | hpos
-  · subst L
-    rw [byteArray_write_len_zero, hbase]
-    norm_num
-  · by_cases hin : 128 + L ≤ base.size
-    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-        ByteArray.size_extract, hbase]
-      omega
-    · have hdest : 128 ≤ base.size := by
-        rw [hbase]
-        omega
-      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
-      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
-      omega
 
 theorem barkVatUrnsPostCallMem_size_gt64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hshort : out.size < 64) (hout : out.size < UInt256.size) :
@@ -1683,7 +1553,7 @@ theorem barkVatUrnsPostCallMem_size_gt64 {I : ExecutionEnv} {mem out : ByteArray
       (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size :=
     umin_ofNat_right_toNat_of_lt (c := 64) (n := out.size) (by decide) hshort hout
   rw [hlen]
-  exact barkVatUrnsPostCallWrite_size_gt64 out (barkVatUrnsCallMem I mem) out.size
+  exact returnWrite_size_gt64_of_size196 out (barkVatUrnsCallMem I mem) out.size
     (barkVatUrnsCallMem_size hmem) le_rfl
 
 theorem barkVatUrnsPostCallMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
@@ -2003,24 +1873,24 @@ theorem barkIlksDirtSlotFor_eq {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.s
 
 theorem barkIlksClipWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
-    barkIlksClipWord σ I = dogAddressReturnWord (barkIlksClipSlotFor I) σ I := by
-  simp [barkIlksClipWord, dogAddressReturnWord, dogSlotWord, barkIlksSlot,
+    barkIlksClipWord σ I = solcAddressSlotWord (barkIlksClipSlotFor I) σ I := by
+  simp [barkIlksClipWord, solcAddressSlotWord, solcSlotWordAt, barkIlksSlot,
     barkIlksClipSlotFor_eq hsz100, u256_land_comm]
 
 theorem barkIlksChopWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
-    barkIlksChopWord σ I = dogSlotWord (barkIlksChopSlotFor I) σ I := by
-  simp [barkIlksChopWord, dogSlotWord, barkIlksSlot, barkIlksChopSlotFor_eq hsz100]
+    barkIlksChopWord σ I = solcSlotWordAt (barkIlksChopSlotFor I) σ I := by
+  simp [barkIlksChopWord, solcSlotWordAt, barkIlksSlot, barkIlksChopSlotFor_eq hsz100]
 
 theorem barkIlksHoleWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
-    barkIlksHoleWord σ I = dogSlotWord (barkIlksHoleSlotFor I) σ I := by
-  simp [barkIlksHoleWord, dogSlotWord, barkIlksSlot, barkIlksHoleSlotFor_eq hsz100]
+    barkIlksHoleWord σ I = solcSlotWordAt (barkIlksHoleSlotFor I) σ I := by
+  simp [barkIlksHoleWord, solcSlotWordAt, barkIlksSlot, barkIlksHoleSlotFor_eq hsz100]
 
 theorem barkIlksDirtWord_eq_slotFor {σ : AccountMap} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
-    barkIlksDirtWord σ I = dogSlotWord (barkIlksDirtSlotFor I) σ I := by
-  simp [barkIlksDirtWord, dogSlotWord, barkIlksSlot, barkIlksDirtSlotFor_eq hsz100,
+    barkIlksDirtWord σ I = solcSlotWordAt (barkIlksDirtSlotFor I) σ I := by
+  simp [barkIlksDirtWord, solcSlotWordAt, barkIlksSlot, barkIlksDirtSlotFor_eq hsz100,
     u256_add_comm]
 
 theorem barkUrn_value_masked (I : ExecutionEnv) :
@@ -2149,44 +2019,6 @@ theorem barkVatUrnsEncode_eq {v : DogImmutables} {I : ExecutionEnv} {mem : ByteA
   rw [barkVatUrnsCallMem_read128_68 hmem]
   exact barkVatUrnsEncodeWords (v := v) (I := I) hsz100
 
-theorem barkWordOfIntSubToUInt256 (x y : UInt256) :
-    EVM.wordOfInt ((x.toNat : Int) - (y.toNat : Int)) = UInt256.sub x y := by
-  by_cases hle : y.toNat ≤ x.toNat
-  · have hnonneg : 0 ≤ (x.toNat : Int) - (y.toNat : Int) := by omega
-    rw [wordOfInt_nonneg _ hnonneg]
-    apply u256_inj
-    have htoNat : ((x.toNat : Int) - (y.toNat : Int)).toNat = x.toNat - y.toNat := by
-      omega
-    rw [usub_toNat (a := x) (b := y) hle]
-    simp [EVM.word, EVM.uintN, htoNat]
-    exact Nat.mod_eq_of_lt (by exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) x.val.isLt)
-  · have hlt : x.toNat < y.toNat := Nat.lt_of_not_ge hle
-    rw [EVM.wordOfInt]
-    have hwordMod : EVM.wordModulus = UInt256.size := by native_decide
-    have hneg : (x.toNat : Int) - (y.toNat : Int) < 0 := by omega
-    rw [if_pos hneg]
-    have hnatAbs :
-        Int.natAbs ((x.toNat : Int) - (y.toNat : Int)) = y.toNat - x.toNat := by
-      omega
-    have hdiffMod :
-        (y.toNat - x.toNat) % EVM.wordModulus = y.toNat - x.toNat := by
-      apply Nat.mod_eq_of_lt
-      rw [hwordMod]
-      have hy : y.toNat < UInt256.size := y.val.isLt
-      omega
-    have hdiffNe : y.toNat - x.toNat ≠ 0 := by omega
-    rw [hnatAbs, hdiffMod, if_neg hdiffNe]
-    apply u256_inj
-    rw [usub_toNat_underflow (a := x) (b := y) hlt]
-    have hword :
-        EVM.wordModulus - (y.toNat - x.toNat) =
-          UInt256.size + x.toNat - y.toNat := by
-      rw [hwordMod]
-      omega
-    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by native_decide]
-    exact Nat.mod_eq_of_lt (by
-      have hy : y.toNat < UInt256.size := y.val.isLt
-      omega)
 
 theorem barkInt256NegArgEncoding (w : UInt256)
     (hw : w.toNat ≤ dogInt256LimitWord.toNat) :
@@ -2194,7 +2026,7 @@ theorem barkInt256NegArgEncoding (w : UInt256)
       some (EVM.Word.toBytesBE (UInt256.sub ⟨0⟩ w)) := by
   have hword :
       EVM.wordOfInt (-(Int.ofNat w.toNat)) = UInt256.sub ⟨0⟩ w := by
-    simpa using barkWordOfIntSubToUInt256 (⟨0⟩ : UInt256) w
+    simpa using wordOfInt_sub_toUInt256 (⟨0⟩ : UInt256) w
   have hlimit : dogInt256LimitWord.toNat = EVM.twoPow 255 := by
     native_decide
   have hlePow : w.toNat ≤ EVM.twoPow 255 := by
@@ -2214,244 +2046,6 @@ theorem barkInt256NegArgEncoding (w : UInt256)
     EVM.Word.toBytesBE (UInt256.sub ⟨0⟩ w)
   rw [hword]
 
-theorem barkAddressWord_ofUInt256_masked (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    EVM.word ↑(AccountAddress.ofUInt256 w) = w := by
-  have hcanonVal : ↑w.val < EVM.addressModulus := by
-    simpa [UInt256.toNat] using hcanon
-  apply u256_inj
-  simp only [EVM.word, EVM.uintN, UInt256.toNat, AccountAddress.ofUInt256, Fin.ofNat]
-  rw [show AccountAddress.size = EVM.addressModulus from by decide]
-  rw [Nat.mod_eq_of_lt hcanonVal]
-  rw [Nat.mod_eq_of_lt hcanonVal]
-  rw [Nat.mod_eq_of_lt (by exact w.val.isLt)]
-
-theorem barkAddressArgEncodingMasked (w : UInt256)
-    (hcanon : w.toNat < EVM.addressModulus) :
-    ABI.encodeABIValue? (.elem .address) (.address (AccountAddress.ofUInt256 w)) =
-      some (EVM.Word.toBytesBE w) := by
-  simp [ABI.encodeABIValue?, ABI.encodeABIWord?, barkAddressWord_ofUInt256_masked w hcanon]
-
-theorem wordAt0Mem_size_256 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 256) :
-    (wordAt0Mem word mem).size = 256 := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem wordAt32Mem_size_256 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 256) :
-    (wordAt32Mem word mem).size = 256 := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem twoWordHashMem_size_256 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 256) :
-    (twoWordHashMem key slot mem).size = 256 := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_size_256 slot (wordAt0Mem_size_256 key hmem)
-
-theorem twoWordHashMem_read0_256 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 256) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_256 key hmem]; omega) (by omega)]
-  unfold wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read32_256 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 256) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_256 key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read64_256 {mem : ByteArray} (key slot ptr : UInt256)
-    (hmem : mem.size = 256)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ptr) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ptr := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_256 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_256 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread64
-
-theorem twoWordHashMem_read0_64_256 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 256) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_256 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_256 key slot hmem]; omega),
-      twoWordHashMem_read0_256 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_256 key slot hmem]; omega),
-      twoWordHashMem_read32_256 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      simp]
-  rw [hleft, hright]
-
-theorem twoWordHashMem_solcMappingSlot_256 (baseSlot key : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 256) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [twoWordHashMem_read0_64_256 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem wordAt0Mem_size_580 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 580) :
-    (wordAt0Mem word mem).size = 580 := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem wordAt32Mem_size_580 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 580) :
-    (wordAt32Mem word mem).size = 580 := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem twoWordHashMem_size_580 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 580) :
-    (twoWordHashMem key slot mem).size = 580 := by
-  unfold twoWordHashMem
-  exact wordAt32Mem_size_580 slot (wordAt0Mem_size_580 key hmem)
-
-theorem twoWordHashMem_read0_580 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 580) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)]
-  unfold wordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray key).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read32_580 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 580) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem twoWordHashMem_read0_64_580 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 580) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [twoWordHashMem_size_580 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [twoWordHashMem_size_580 key slot hmem]; omega),
-      twoWordHashMem_read0_580 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [twoWordHashMem_size_580 key slot hmem]; omega),
-      twoWordHashMem_read32_580 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      simp]
-  rw [hleft, hright]
-
-theorem twoWordHashMem_solcMappingSlot_580 (baseSlot key : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 580) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [twoWordHashMem_read0_64_580 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem twoWordHashMem_read64_580 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 580)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨384⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread64
-
-theorem twoWordHashMem_read256_580 {mem : ByteArray} (key slot word : UInt256)
-    (hmem : mem.size = 580)
-    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
-    (twoWordHashMem key slot mem).readWithPadding 256 32 =
-      UInt256.toByteArray word := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 256 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_580 key hmem]; omega) (by omega)
-      (by rw [wordAt0Mem_size_580 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 256 (by rw [toByteArray_size]) (by rw [hmem]; omega)
-      (by omega) (by rw [hmem]; omega)]
-  exact hread256
-
-theorem twoWordHashMem_mload256_580 {mem : ByteArray} (key slot word : UInt256)
-    (hmem : mem.size = 580)
-    (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (twoWordHashMem key slot mem).size then ⟨0⟩
-     else UInt256.ofNat
-      (fromByteArrayBigEndian
-        ((twoWordHashMem key slot mem).readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
-      word := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨256⟩ : UInt256)) (v := word)
-    (by rw [twoWordHashMem_size_580 key slot hmem]; decide)
-    (by
-      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
-        twoWordHashMem_read256_580 key slot word hmem hread256)
 
 theorem barkIlksHashMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -3860,7 +3454,7 @@ theorem barkVatGrabEncodeWords {v : DogImmutables} {σ σMem : AccountMap}
       barkAddressArgEncodingMasked (barkIlksClipWord σMem I) hclipCanon
   have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
     simpa [barkVowWord, u256_land_comm] using
-      solcAddrMask_result_canonical (dogSlotWord ⟨2⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨2⟩ σ I)
   have hvow : ABI.encodeABIValue? (.elem .address)
       (.address (AccountAddress.ofNat (barkVowWord σ I).toNat)) =
         some (EVM.Word.toBytesBE (barkVowWord σ I)) := by
@@ -4811,129 +4405,21 @@ theorem barkReturnIdMem_read384 {mem : ByteArray} {id : UInt256}
   rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
   rw [toByteArray_extract_all]
 
-abbrev barkPostIlksErrorStringMem0 (mem : ByteArray) : ByteArray :=
-  Reasoning.Theory.writeWord mem 384 solcErrorStringSelector
-
-abbrev barkPostIlksErrorStringMem1 (mem : ByteArray) : ByteArray :=
-  Reasoning.Theory.writeWord (barkPostIlksErrorStringMem0 mem) 388 ⟨32⟩
-
-abbrev barkPostIlksErrorStringMem2 (len : UInt256) (mem : ByteArray) :
-    ByteArray :=
-  Reasoning.Theory.writeWord (barkPostIlksErrorStringMem1 mem) 420 len
-
-abbrev barkPostIlksErrorStringMem3
-    (len word : UInt256) (mem : ByteArray) : ByteArray :=
-  Reasoning.Theory.writeWord (barkPostIlksErrorStringMem2 len mem) 452 word
-
-theorem barkPostIlksErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 544) :
-    (barkPostIlksErrorStringMem0 mem).size = 544 := by
-  unfold barkPostIlksErrorStringMem0
-  rw [Reasoning.Theory.writeWord_size mem 384 solcErrorStringSelector
-    (by rw [hmem]; native_decide)]
-  rw [hmem]
-  norm_num
-
-theorem barkPostIlksErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 544) :
-    (barkPostIlksErrorStringMem1 mem).size = 544 := by
-  unfold barkPostIlksErrorStringMem1
-  rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem0 mem) 388 ⟨32⟩
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)]
-  rw [barkPostIlksErrorStringMem0_size hmem]
-  norm_num
-
-theorem barkPostIlksErrorStringMem2_size (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 544) :
-    (barkPostIlksErrorStringMem2 len mem).size = 544 := by
-  unfold barkPostIlksErrorStringMem2
-  rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem1 mem) 420 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)]
-  rw [barkPostIlksErrorStringMem1_size hmem]
-  norm_num
-
-theorem barkPostIlksErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 544)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (barkPostIlksErrorStringMem2 len mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨384⟩ := by
-  unfold barkPostIlksErrorStringMem2
-  rw [Reasoning.Theory.writeWord_read_preserved
-    (barkPostIlksErrorStringMem1 mem) 420 64 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)
-    (by left; rw [barkPostIlksErrorStringMem1_size hmem]; omega)]
-  unfold barkPostIlksErrorStringMem1
-  rw [Reasoning.Theory.writeWord_read_preserved
-    (barkPostIlksErrorStringMem0 mem) 388 64 (⟨32⟩ : UInt256)
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)
-    (by left; rw [barkPostIlksErrorStringMem0_size hmem]; omega)]
-  unfold barkPostIlksErrorStringMem0
-  rw [Reasoning.Theory.writeWord_read_preserved mem 384 64 solcErrorStringSelector
-    (by rw [hmem]; native_decide) (by left; rw [hmem]; omega)]
-  exact hread64
-
-theorem barkPostIlksErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 544) :
-    (barkPostIlksErrorStringMem3 len word mem).size = 544 := by
-  unfold barkPostIlksErrorStringMem3
-  rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem2 len mem) 452 word
-    (by rw [barkPostIlksErrorStringMem2_size len hmem]; native_decide)]
-  rw [barkPostIlksErrorStringMem2_size len hmem]
-  norm_num
-
-theorem barkPostIlksErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 544)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (barkPostIlksErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨384⟩ := by
-  unfold barkPostIlksErrorStringMem3
-  rw [Reasoning.Theory.writeWord_read_preserved
-    (barkPostIlksErrorStringMem2 len mem) 452 64 word
-    (by rw [barkPostIlksErrorStringMem2_size len hmem]; native_decide)
-    (by left; rw [barkPostIlksErrorStringMem2_size len hmem]; omega)]
-  unfold barkPostIlksErrorStringMem2
-  rw [Reasoning.Theory.writeWord_read_preserved
-    (barkPostIlksErrorStringMem1 mem) 420 64 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)
-    (by left; rw [barkPostIlksErrorStringMem1_size hmem]; omega)]
-  unfold barkPostIlksErrorStringMem1
-  rw [Reasoning.Theory.writeWord_read_preserved
-    (barkPostIlksErrorStringMem0 mem) 388 64 (⟨32⟩ : UInt256)
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)
-    (by left; rw [barkPostIlksErrorStringMem0_size hmem]; omega)]
-  unfold barkPostIlksErrorStringMem0
-  rw [Reasoning.Theory.writeWord_read_preserved mem 384 64 solcErrorStringSelector
-    (by rw [hmem]; native_decide) (by left; rw [hmem]; omega)]
-  exact hread64
-
-theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 544)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat
-       (fromByteArrayBigEndian
-        ((barkPostIlksErrorStringMem3 len word mem).readWithPadding
-          (⟨64⟩ : UInt256).toNat 32))) =
-      ⟨384⟩ := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
-    (by rw [barkPostIlksErrorStringMem3_size len word hmem]; decide)
-    (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
-        barkPostIlksErrorStringMem3_read64 len word hmem hread64)
 
 abbrev barkPostIlksCodecopyErrorMem
     (code : ByteArray) (mem : ByteArray) : ByteArray :=
-  code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42
+  code.write 4691 (solcErrorString384Mem2 (⟨42⟩ : UInt256) mem) 452 42
 
 theorem barkPostIlksCodecopyErrorMem_size {code mem : ByteArray}
     (hmem : mem.size = 544) (hsrc : 4691 + 42 ≤ code.size) :
     (barkPostIlksCodecopyErrorMem code mem).size = 544 := by
   unfold barkPostIlksCodecopyErrorMem
-  rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+  rw [write_eq_gen_from code (solcErrorString384Mem2 (⟨42⟩ : UInt256) mem)
     4691 452 42 (by decide) hsrc
-    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+    (by rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
   rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
     ByteArray.size_extract, ByteArray.size_extract]
-  rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+  rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]
   omega
 
 theorem barkPostIlksCodecopyErrorMem_read64 {code mem : ByteArray}
@@ -4943,26 +4429,26 @@ theorem barkPostIlksCodecopyErrorMem_read64 {code mem : ByteArray}
     (barkPostIlksCodecopyErrorMem code mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨384⟩ := by
   unfold barkPostIlksCodecopyErrorMem
-  rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+  rw [write_eq_gen_from code (solcErrorString384Mem2 (⟨42⟩ : UInt256) mem)
     4691 452 42 (by decide) hsrc
-    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+    (by rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
   rw [readWithPadding_eq_extract _ 64 (by
     rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract]
-    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]
     omega)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
-    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]
     omega)]
   rw [extract_append_left _ _ _ _ (by
     rw [ByteArray.size_extract]
-    rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
+    rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]
     omega)]
   rw [extract_prefix _ 452 64 96 (by omega)]
   rw [← readWithPadding_eq_extract _ 64
-    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; omega)]
-  exact barkPostIlksErrorStringMem2_read64 (⟨42⟩ : UInt256) hmem hread64
+    (by rw [solcErrorString384Mem2_size (⟨42⟩ : UInt256) hmem]; omega)]
+  exact solcErrorString384Mem2_read64 (⟨42⟩ : UInt256) hmem hread64
 
 theorem barkPostIlksCodecopyErrorMem_mload64 {code mem : ByteArray}
     (hmem : mem.size = 544)
@@ -5060,7 +4546,7 @@ theorem barkVatIlksEncode_eq {v : DogImmutables} {σ : AccountMap} {I : Executio
 theorem dogLiveGuardEval_false {v : DogImmutables}
     {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨3⟩ σ I ≠ ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
@@ -5072,7 +4558,7 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
   let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hlive (by simpa [w, dogSlotWord] using hw)
+    exact hlive (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -5083,7 +4569,7 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-  rw [dogStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -5095,7 +4581,7 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
 theorem dogLiveGuardEval_true {v : DogImmutables}
     {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
@@ -5106,7 +4592,7 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩
   have hload : w = ⟨1⟩ := by
-    simpa [w, dogSlotWord] using hlive
+    simpa [w, solcSlotWordAt] using hlive
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -5117,7 +4603,7 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-  rw [dogStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   have hload' :
       Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩ = ⟨1⟩ := by
     simpa [w] using hload
@@ -5129,9 +4615,9 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
 theorem dogAddrLitEval_locals {v : DogImmutables}
     {σ σ₀ A I} {g : Sat256} {locals : Store} (a : EVM.Address) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState σ σ₀ g A I) (addrLit a) =
+      (initState σ σ₀ g A I) (Reasoning.Theory.addressLiteral a) =
       .ok (Value.address (AccountAddress.ofNat a.toNat)) := by
-  dsimp [addrLit]
+  dsimp [Reasoning.Theory.addressLiteral]
   have hint :
       evalExpr? (config v) { contract := contract v, locals := locals }
         (initState σ σ₀ g A I) (.intLit (↑↑a)) =
@@ -5672,34 +5158,11 @@ theorem execBarkMinFunctionReturn {v : DogImmutables} (evm : EVM.State)
       simpa [minFunction] using ExecBlock.consReturn (ExecStmt.iteFalse hcond helse)
     simpa [ExecFuncBody, locals, hle] using ExecFuncBody.execBlockRet hblock
 
-theorem dog_u256_mul_div_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (y * x) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_op_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 :=
-    Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 theorem evalExpr_barkVat_state {v : DogImmutables} {evm : EVM.State} {locals : Store} :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
       .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
-  dsimp [vatExpr, addrLit]
+  dsimp [vatExpr, Reasoning.Theory.addressLiteral]
   have hint :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.intLit (↑↑v.vat)) = .ok (.int (↑↑v.vat)) := by
@@ -5721,14 +5184,14 @@ theorem evalExpr_barkStorageMilkClip {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage (ilksF (.var "ilk") "clip")) =
         .ok (.address (AccountAddress.ofNat
-          (dogAddressReturnWord (barkIlksClipSlotFor I) evm.accountMap
+          (solcAddressSlotWord (barkIlksClipSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "clip") (er := barkIlksClipEvaledRef I)
     (t := .address) (loc := addrLoc (barkIlksClipSlotFor I))
     (value := .address (AccountAddress.ofNat
-      (dogAddressReturnWord (barkIlksClipSlotFor I) evm.accountMap
+      (solcAddressSlotWord (barkIlksClipSlotFor I) evm.accountMap
         evm.executionEnv).toNat))
     hilks
     (by
@@ -5741,8 +5204,8 @@ theorem evalExpr_barkStorageMilkClip {v : DogImmutables} {evm : EVM.State}
     (by simp [barkIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, addrSt])
     (by rfl)
-    (by simpa [dogAddressReturnWord, dogSlotWord] using
-      dogStorageLocLoad_address_offset0 evm (barkIlksClipSlotFor I))
+    (by simpa [solcAddressSlotWord, solcSlotWordAt] using
+      storageLocLoad_address_offset0 evm (barkIlksClipSlotFor I))
 
 theorem evalExpr_barkStorageMilkChop {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {I : ExecutionEnv}
@@ -5752,13 +5215,13 @@ theorem evalExpr_barkStorageMilkChop {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage (ilksF (.var "ilk") "chop")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (barkIlksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (barkIlksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "chop") (er := barkIlksChopEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksChopSlotFor I))
     (value := .int (Int.ofNat
-      (dogSlotWord (barkIlksChopSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (barkIlksChopSlotFor I) evm.accountMap evm.executionEnv).toNat))
     hilks
     (by
       have hkeyLen : (barkIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -5770,7 +5233,7 @@ theorem evalExpr_barkStorageMilkChop {v : DogImmutables} {evm : EVM.State}
     (by simp [barkIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (barkIlksChopSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (barkIlksChopSlotFor I))
 
 theorem evalExpr_barkStorageMilkHole {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {I : ExecutionEnv}
@@ -5780,13 +5243,13 @@ theorem evalExpr_barkStorageMilkHole {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage (ilksF (.var "ilk") "hole")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "hole") (er := barkIlksHoleEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksHoleSlotFor I))
     (value := .int (Int.ofNat
-      (dogSlotWord (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat))
     hilks
     (by
       have hkeyLen : (barkIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -5798,7 +5261,7 @@ theorem evalExpr_barkStorageMilkHole {v : DogImmutables} {evm : EVM.State}
     (by simp [barkIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (barkIlksHoleSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (barkIlksHoleSlotFor I))
 
 theorem evalExpr_barkStorageMilkDirt {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {I : ExecutionEnv}
@@ -5808,13 +5271,13 @@ theorem evalExpr_barkStorageMilkDirt {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage (ilksF (.var "ilk") "dirt")) =
         .ok (.int (Int.ofNat
-          (dogSlotWord (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "dirt") (er := barkIlksDirtEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksDirtSlotFor I))
     (value := .int (Int.ofNat
-      (dogSlotWord (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat))
     hilks
     (by
       have hkeyLen : (barkIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -5826,41 +5289,41 @@ theorem evalExpr_barkStorageMilkDirt {v : DogImmutables} {evm : EVM.State}
     (by simp [barkIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
       IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm (barkIlksDirtSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (barkIlksDirtSlotFor I))
 
 theorem evalExpr_barkStorageHole {v : DogImmutables} {evm : EVM.State}
     {locals : Store}
     (hHole : locals.get? "Hole" = none) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage HoleRef) =
-        .ok (.int (Int.ofNat (dogSlotWord ⟨4⟩ evm.accountMap evm.executionEnv).toNat)) := by
+        .ok (.int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := HoleRef) (er := ({ base := "Hole", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
-    (value := .int (Int.ofNat (dogSlotWord ⟨4⟩ evm.accountMap evm.executionEnv).toNat))
+    (value := .int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat))
     hHole
     (by simp [evalStorageRef, evalStorageRefSteps, HoleRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm ⟨4⟩)
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_barkStorageDirt {v : DogImmutables} {evm : EVM.State}
     {locals : Store}
     (hDirt : locals.get? "Dirt" = none) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage DirtRef) =
-        .ok (.int (Int.ofNat (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
+        .ok (.int (Int.ofNat (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
-    (value := .int (Int.ofNat (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat))
+    (value := .int (Int.ofNat (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat))
     hDirt
     (by simp [evalStorageRef, evalStorageRefSteps, DirtRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [dogSlotWord] using dogStorageLocLoad_uint256 evm ⟨5⟩)
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm ⟨5⟩)
 
 theorem evalExpr_barkStorageVow {v : DogImmutables} {evm : EVM.State}
     {locals : Store}
@@ -5877,8 +5340,8 @@ theorem evalExpr_barkStorageVow {v : DogImmutables} {evm : EVM.State}
     (by simp [evalStorageRef, evalStorageRefSteps, vowRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
-    (by simpa [barkVowWord, dogAddressReturnWord, u256_land_comm] using
-      dogStorageLocLoad_address_offset0 evm ⟨2⟩)
+    (by simpa [barkVowWord, solcAddressSlotWord, u256_land_comm] using
+      storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExprs_barkVatGrabArgs {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {I : ExecutionEnv} {milkClip dink dart : UInt256}
@@ -6442,52 +5905,11 @@ theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.Stat
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
-theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt256}
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord = ⟨0⟩) :
-    (UInt256.ofNat
-      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
-        (fun acc => acc.code.size))).toNat = 0 := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
-  unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
-  | none =>
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
-  | some acc =>
-      have hword := congrArg UInt256.toNat hzero
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using hword
-
-theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256}
-    (hne :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat
-      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
-        (fun acc => acc.code.size))).toNat := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
-  unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
-  | none =>
-      exfalso
-      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
-  | some acc =>
-      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
-        intro hzero
-        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
-      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
-        intro hzeroNat
-        apply hwordNe
-        cases hword : UInt256.ofNat acc.code.size with
-        | mk val =>
-            cases val using Fin.cases
-            · rfl
-            · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodeZero :
       (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -6549,7 +5971,7 @@ theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
 theorem dogBarkVatUrnsCallFailureSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -6637,7 +6059,7 @@ theorem dogBarkVatUrnsCallFailureSourceBody {v : DogImmutables}
 theorem dogBarkVatUrnsDecodeRevertSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -6727,7 +6149,7 @@ theorem dogBarkVatUrnsDecodeRevertSourceBody {v : DogImmutables}
 theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -6819,7 +6241,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := barkLocalsArt I out }
         evmCall (.storage (ilksF (.var "ilk") "clip")) =
           .ok (.address (AccountAddress.ofNat
-            (dogAddressReturnWord (barkIlksClipSlotFor I) evmCall.accountMap
+            (solcAddressSlotWord (barkIlksClipSlotFor I) evmCall.accountMap
               evmCall.executionEnv).toNat)) :=
     evalExpr_barkStorageMilkClip (v := v) (evm := evmCall)
       (locals := barkLocalsArt I out) (I := I) hsz100
@@ -6835,7 +6257,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         { contract := contract v, locals := barkLocalsMilkClip evmCall I out } evmCall
         (.storage (ilksF (.var "ilk") "chop")) =
           .ok (.int (Int.ofNat
-            (dogSlotWord (barkIlksChopSlotFor I) evmCall.accountMap
+            (solcSlotWordAt (barkIlksChopSlotFor I) evmCall.accountMap
               evmCall.executionEnv).toNat)) :=
     evalExpr_barkStorageMilkChop (v := v) (evm := evmCall)
       (locals := barkLocalsMilkClip evmCall I out) (I := I) hsz100
@@ -6853,7 +6275,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         { contract := contract v, locals := barkLocalsMilkChop evmCall I out } evmCall
         (.storage (ilksF (.var "ilk") "hole")) =
           .ok (.int (Int.ofNat
-            (dogSlotWord (barkIlksHoleSlotFor I) evmCall.accountMap
+            (solcSlotWordAt (barkIlksHoleSlotFor I) evmCall.accountMap
               evmCall.executionEnv).toNat)) :=
     evalExpr_barkStorageMilkHole (v := v) (evm := evmCall)
       (locals := barkLocalsMilkChop evmCall I out) (I := I) hsz100
@@ -6871,7 +6293,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         { contract := contract v, locals := barkLocalsMilkHole evmCall I out } evmCall
         (.storage (ilksF (.var "ilk") "dirt")) =
           .ok (.int (Int.ofNat
-            (dogSlotWord (barkIlksDirtSlotFor I) evmCall.accountMap
+            (solcSlotWordAt (barkIlksDirtSlotFor I) evmCall.accountMap
               evmCall.executionEnv).toNat)) :=
     evalExpr_barkStorageMilkDirt (v := v) (evm := evmCall)
       (locals := barkLocalsMilkHole evmCall I out) (I := I) hsz100
@@ -6917,7 +6339,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
 theorem dogBarkVatIlksNoCodeSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256} {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -6990,7 +6412,7 @@ theorem dogBarkVatIlksCallFailureSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -7090,7 +6512,7 @@ theorem dogBarkVatIlksDecodeRevertSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -7191,7 +6613,7 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -7335,7 +6757,7 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -7842,7 +7264,7 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -7981,7 +7403,7 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -8197,7 +7619,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -8231,11 +7653,11 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimitFalse :
-      ¬ ((dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      ¬ ((solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat))
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
@@ -8282,12 +7704,12 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
   let spot := barkVatIlksSpotWord outIlks
   let inkSpot := barkInkSpotWord out outIlks
   let artRate := barkArtRateUnsafeWord out outIlks
-  let hole := dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
-  let dirt := dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
+  let hole := solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
   let milkHole :=
-    dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   let milkDirt :=
-    dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   have hspot :
       evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
         (.var "spot") = .ok (.int (Int.ofNat spot.toNat)) := by
@@ -8346,7 +7768,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
     simpa [locals2, milkHole] using
       evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
         (name := "milkHole")
-        (value := dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+        (value := solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv)
         (barkLocalsArtRateUnsafe_get_milkHole evmUrns I out outIlks)
   have hmilkDirtExpr :
@@ -8355,7 +7777,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
     simpa [locals2, milkDirt] using
       evalExpr_bark_varUInt256 (v := v) (evm := evmIlks) (locals := locals2)
         (name := "milkDirt")
-        (value := dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+        (value := solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv)
         (barkLocalsArtRateUnsafe_get_milkDirt evmUrns I out outIlks)
   have hlimitReq :
@@ -8484,8 +7906,8 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
 theorem dogBarkGlobalRoomCheckedSubOk {v : DogImmutables}
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
     (hglobal :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-        (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat) :
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+        (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat) :
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsArtRateUnsafe evmUrns I out outIlks }
       evmIlks (checkedSubUintInto "globalRoom" (.storage HoleRef) (.storage DirtRef))
@@ -8493,8 +7915,8 @@ theorem dogBarkGlobalRoomCheckedSubOk {v : DogImmutables}
         evmIlks) := by
   let locals0 := barkLocalsArtRateUnsafe evmUrns I out outIlks
   let locals1 := barkLocalsGlobalRoom evmUrns evmIlks I out outIlks
-  let hole := dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
-  let dirt := dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
+  let hole := solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
   let globalRoom := barkSourceGlobalRoomWord evmIlks
   have hdirtLe : dirt.toNat ≤ hole.toNat := by
     simpa [hole, dirt] using le_of_lt hglobal
@@ -8556,9 +7978,9 @@ theorem dogBarkGlobalRoomCheckedSubOk {v : DogImmutables}
 theorem dogBarkIlkRoomCheckedSubOk {v : DogImmutables}
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
     (hmilk :
-      (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat <
-        (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+        (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
           evmUrns.executionEnv).toNat) :
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsGlobalRoom evmUrns evmIlks I out outIlks }
@@ -8568,9 +7990,9 @@ theorem dogBarkIlkRoomCheckedSubOk {v : DogImmutables}
   let locals0 := barkLocalsGlobalRoom evmUrns evmIlks I out outIlks
   let locals1 := barkLocalsIlkRoom evmUrns evmIlks I out outIlks
   let milkHole :=
-    dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   let milkDirt :=
-    dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   let ilkRoom := barkSourceIlkRoomWord evmUrns I
   have hmilkLe : milkDirt.toNat ≤ milkHole.toNat := by
     simpa [milkDirt, milkHole] using le_of_lt hmilk
@@ -8702,11 +8124,11 @@ theorem dogBarkVatIlksDustToRoomOk {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat) :
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
@@ -8754,12 +8176,12 @@ theorem dogBarkVatIlksDustToRoomOk {v : DogImmutables}
   let spot := barkVatIlksSpotWord outIlks
   let inkSpot := barkInkSpotWord out outIlks
   let artRate := barkArtRateUnsafeWord out outIlks
-  let hole := dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
-  let dirt := dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
+  let hole := solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
   let milkHole :=
-    dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   let milkDirt :=
-    dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   have hspot :
       evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
         (.var "spot") = .ok (.int (Int.ofNat spot.toNat)) := by
@@ -9239,11 +8661,11 @@ theorem dogBarkVatIlksDustToDartOk {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat)
     (hfitRoom :
       (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
@@ -9887,7 +9309,7 @@ theorem dogBarkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
     (hDirt : locals.get? "Dirt" = none)
     (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
     (hfit :
-      (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat <
+      (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat <
         UInt256.size) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab"))
@@ -9895,9 +9317,9 @@ theorem dogBarkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
         { contract := contract v,
           locals :=
             barkLocalsDirtNew locals
-              (barkDirtNewWord (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv) tab) }
+              (barkDirtNewWord (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv) tab) }
         evm) := by
-  let dirt := dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv
   have hdirt0 :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
@@ -9932,10 +9354,10 @@ theorem dogBarkDirtAddOverflowSource {v : DogImmutables} (evm : EVM.State)
     (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
     (hover :
       UInt256.size ≤
-        (dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat) :
+        (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat + tab.toNat) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab")) .reverted := by
-  let dirt := dogSlotWord ⟨5⟩ evm.accountMap evm.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv
   have hdirt0 :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.storage DirtRef) = .ok (.int (Int.ofNat dirt.toNat)) := by
@@ -11138,7 +10560,7 @@ theorem dogBarkInt256GuardDinkOverflowSource {v : DogImmutables} (evm : EVM.Stat
 theorem dogBarkDartCandidateDivZero {v : DogImmutables}
     (evmUrns evmIlks : EVM.State) (I : ExecutionEnv) (out outIlks : ByteArray)
     (hchopZero :
-      dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩) :
+      solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩) :
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
       evmIlks
@@ -11147,7 +10569,7 @@ theorem dogBarkDartCandidateDivZero {v : DogImmutables}
       .reverted := by
   let locals0 := barkLocalsDartByRate evmUrns evmIlks I out outIlks
   let dartByRate := barkSourceDartByRateWord evmUrns evmIlks I outIlks
-  let chop := dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+  let chop := solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   have hdartByRate :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
         (.var "dartByRate") = .ok (.int (Int.ofNat dartByRate.toNat)) := by
@@ -11172,7 +10594,7 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -11206,11 +10628,11 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat)
     (hoverRoom :
       UInt256.size ≤ (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat)
@@ -11259,12 +10681,12 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
   let spot := barkVatIlksSpotWord outIlks
   let inkSpot := barkInkSpotWord out outIlks
   let artRate := barkArtRateUnsafeWord out outIlks
-  let hole := dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
-  let dirt := dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
+  let hole := solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv
+  let dirt := solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv
   let milkHole :=
-    dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   let milkDirt :=
-    dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
+    solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap evmUrns.executionEnv
   have hspot :
       evalExpr? (config v) { contract := contract v, locals := locals2 } evmIlks
         (.var "spot") = .ok (.int (Int.ofNat spot.toNat)) := by
@@ -11511,7 +10933,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -11545,17 +10967,17 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat)
     (hfitRoom :
       (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
     (hrateNe : barkVatIlksRateWord outIlks ≠ ⟨0⟩)
     (hchopZero :
-      dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩)
+      solcSlotWordAt (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -11741,7 +11163,7 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     {result : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -11775,11 +11197,11 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
       (barkInkSpotWord out outIlks).toNat <
         (barkArtRateUnsafeWord out outIlks).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
-          (dogSlotWord ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
-        (dogSlotWord (barkIlksDirtSlotFor I) evmUrns.accountMap
+      (solcSlotWordAt ⟨5⟩ evmIlks.accountMap evmIlks.executionEnv).toNat <
+          (solcSlotWordAt ⟨4⟩ evmIlks.accountMap evmIlks.executionEnv).toNat ∧
+        (solcSlotWordAt (barkIlksDirtSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat <
-          (dogSlotWord (barkIlksHoleSlotFor I) evmUrns.accountMap
+          (solcSlotWordAt (barkIlksHoleSlotFor I) evmUrns.accountMap
             evmUrns.executionEnv).toNat)
     (hfitRoom :
       (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat < UInt256.size)
@@ -12480,7 +11902,7 @@ theorem dogNonpayableLivePrefixRevert {v : DogImmutables}
     {locals : Store} {rest : List Stmt}
     (hbase : locals.get? "live" = none)
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨3⟩ σ I ≠ ⟨1⟩) :
     ExecTransitionBody (config v) (contract v)
       (initState σ σ₀ g A I) locals
       (nonpayable ++ [.require (.binary .eq (.storage liveRef) (.intLit 1))] ++ rest)
@@ -12507,117 +11929,6 @@ theorem dogNonpayableLivePrefixRevert {v : DogImmutables}
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem dogDecodeABIValues_bytes32_address_address_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiAddress, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)], 96) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, UInt256.toNat, hlen32, hlen64]
-
-theorem dogDecodeABIValues_bytes32_address_address_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeABIValues? [abiBytes32, abiAddress, abiAddress] bytes 0 0 96 96
-        DecodeMode.legacySolc05 = none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    by_cases h64 : bytes.length < 64
-    · have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hnot : ¬ 32 ≤ bytes.length - 32 := by
-        rw [List.length_take, List.length_drop] at htake32n
-        omega
-      simp [readWord?, readBytes?, hnot]
-    · have htake32 : ((bytes.drop 32).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      simp [readWord?, readBytes?, decodeABIWord?, UInt256.toNat, htake32]
-      have htake64n : ¬ ((bytes.drop 64).take 32).length = 32 := by
-        rw [List.length_take, List.length_drop]
-        omega
-      have hnot : ¬ 32 ≤ bytes.length - 64 := by
-        rw [List.length_take, List.length_drop] at htake64n
-        omega
-      simp [readWord?, readBytes?, hnot]
-
-theorem dogDecodeCalldataWithMode_legacyBytes32_address_address_ok {cd : ByteArray}
-    {x y z : Solm.Ident} (hsz100 : 100 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-      [abiBytes32, abiAddress, abiAddress] cd =
-        some ((((∅ : Solm.Store).insert x
-          (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-          (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))).insert z
-          (.address (AccountAddress.ofNat (calldataWord cd 68).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake68 : ((cd.toList.drop 68).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord ((cd.toList.drop 68).take 32) = calldataWord cd 68 :=
-    decode_word_at_eq cd 68 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  rw [dogDecodeABIValues_bytes32_address_address_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake68)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 96)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36, hword68]
-
-theorem dogDecodeCalldataWithMode_legacyBytes32_address_address_none_short
-    {cd : ByteArray} {x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size)
-    (hshort : cd.size < 100) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y, z]
-      [abiBytes32, abiAddress, abiAddress] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 96
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [dogDecodeABIValues_bytes32_address_address_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem dogDecode_bark_ok {v : DogImmutables} {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
@@ -12626,7 +11937,7 @@ theorem dogDecode_bark_ok {v : DogImmutables} {I : ExecutionEnv}
         some (barkLocals I) := by
   simpa [config, barkTransition, barkLocals, barkIlkBytes, barkUrn, barkKpr, barkUrnWord,
     barkKprWord, bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width, abiAddress] using
-    dogDecodeCalldataWithMode_legacyBytes32_address_address_ok (cd := I.calldata)
+    decodeCalldataWithMode_legacyBytes32_address_address_ok (cd := I.calldata)
       (x := "ilk") (y := "urn") (z := "kpr") hsz100
 
 theorem dogDecode_bark_none_short {v : DogImmutables} {I : ExecutionEnv}
@@ -12635,7 +11946,7 @@ theorem dogDecode_bark_none_short {v : DogImmutables} {I : ExecutionEnv}
       (transitionSignature (barkTransition v)).paramTypes I.calldata = none := by
   simpa [config, barkTransition, bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width,
     abiAddress] using
-    dogDecodeCalldataWithMode_legacyBytes32_address_address_none_short
+    decodeCalldataWithMode_legacyBytes32_address_address_none_short
       (cd := I.calldata) (x := "ilk") (y := "urn") (z := "kpr") hsz4 hshort
 
 theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
@@ -12914,29 +12225,6 @@ theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
     (by simp only [List.length_singleton]; omega)
   exact ⟨k, C, by simpa using hbody⟩
 
--- LIBRARY CANDIDATE: move to `Reasoning.Reach` beside terminal `RDret`/`RDrev` helpers.
-theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    (h : RD code ee g s0 pc stk mem aw rdata acc k C)
-    (hdec : decode code pc = some (.INVALID, .none)) :
-    X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
-      X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
-  rcases RD.conclude h with hoog | ⟨k', C', s', hX, hcode, hpc, _hstk, _hgas, hk, hC,
-    _hmem, _haw, _hrdata, _hacc⟩
-  · exact Or.inl hoog
-  · have hdec' : decode s'.executionEnv.code s'.machineState.pc = some (.INVALID, .none) := by
-      rw [hcode, hpc]
-      exact hdec
-    have hstep : Xstep (D_J code 0) s' = .error .InvalidInstruction := by
-      have hstep' := Ethereum.EVM.step_invalid s' hdec'
-      simpa [hcode] using hstep'
-    have hfuel : g.toNat + 1 - k' = (g.toNat + 1 - (k' + 1)) + 1 := by
-      omega
-    exact Or.inr (by
-      rw [hX, hfuel]
-      exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
 theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
@@ -13364,7 +12652,7 @@ theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
     omega
   have hdivNe : UInt256.div (x * y) y ≠ x := by
     intro hbad
-    have h := dog_u256_mul_div_overflow_ne x y hover
+    have h := u256_mul_div_overflow_ne x y hover
     exact h (by
       have hcomm : y * x = x * y := by
         simpa using u256_mul_comm y x
@@ -13732,7 +13020,8 @@ theorem dogBarkVatPatchWord2890 {v : DogImmutables} {code : ByteArray}
   let post : List (Nat × ByteArray) := [(3170, value), (3965, value)]
   have hpatch' : patchRuntime dogBytecode (pre ++ (2890, value) :: post) = some code := by
     dsimp [pre, post, value]
-    simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, List.lookup,
+    simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+      List.lookup,
       toByteArray_eq_toBytesBE] using hpatch
   have hpost : ∀ p ∈ post, 2890 + 32 ≤ p.1 ∨ p.1 + 32 ≤ 2890 := by
     intro p hp
@@ -13805,7 +13094,8 @@ theorem dogBarkVatPatchWord3170 {v : DogImmutables} {code : ByteArray}
   let post : List (Nat × ByteArray) := [(3965, value)]
   have hpatch' : patchRuntime dogBytecode (pre ++ (3170, value) :: post) = some code := by
     dsimp [pre, post, value]
-    simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, List.lookup,
+    simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+      List.lookup,
       toByteArray_eq_toBytesBE] using hpatch
   have hpost : ∀ p ∈ post, 3170 + 32 ≤ p.1 ∨ p.1 + 32 ≤ 3170 := by
     intro p hp
@@ -13879,7 +13169,8 @@ theorem dogBarkVatPatchWord3965 {v : DogImmutables} {code : ByteArray}
   let post : List (Nat × ByteArray) := []
   have hpatch' : patchRuntime dogBytecode (pre ++ (3965, value) :: post) = some code := by
     dsimp [pre, post, value]
-    simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, List.lookup,
+    simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+      List.lookup,
       toByteArray_eq_toBytesBE] using hpatch
   have hpost : ∀ p ∈ post, 3965 + 32 ≤ p.1 ∨ p.1 + 32 ≤ 3965 := by
     intro p hp
@@ -16469,84 +15760,6 @@ theorem RD.dogBarkVatIlksReturnDecodeOkToSpotGuard {v : DogImmutables} {code : B
       (by evm_ov)]
   exact ⟨_, _, by simpa using rd3308⟩
 
-theorem RD.dogBarkPostIlksErrorStringRevertTail {code : ByteArray} {g : Sat256}
-    {s0 : EVM.State} {I : ExecutionEnv} {k C : ℕ}
-    {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
-    {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code I g s0 pc stk mem (UInt256.ofNat 17) rdata acc k C)
-    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 544)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
-      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
-      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
-  have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
-       else UInt256.ofNat
-         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
-        ⟨384⟩ :=
-    mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256))
-      (v := (⟨384⟩ : UInt256))
-      (by rw [hmem]; decide)
-      (by
-        simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨384⟩ (UInt256.ofNat 17) hd3 mem_cost hmload64
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem0 mem) (UInt256.ofNat 17)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem1 mem) (UInt256.ofNat 17)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem2 len mem)
-      (UInt256.ofNat 17) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  have rdWord := evm_run rdRaw with [
-    raw push1 shift hdRawOut (by evm_ov),
-    raw shl hdShl (by evm_ov)]
-  rw [hword] at rdWord
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem3 len word mem)
-      (UInt256.ofNat 17) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨384⟩ (UInt256.ofNat 17) hdMload
-      mem_cost (barkPostIlksErrorStringMem3_mload64 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
 
 @[reducible] def dogPostIlksErrorStringFullWordTailWf
     (code : ByteArray) (pc len word : UInt256) : Prop :=
@@ -16653,19 +15866,19 @@ theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
     raw push1 ⟨229⟩ hd8 (by evm_ov),
     raw shl hd10 (by evm_ov),
     raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem0 mem) (UInt256.ofNat 17)
+    raw mstore 0 (solcErrorString384Mem0 mem) (UInt256.ofNat 17)
       hd12 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw push1 ⟨4⟩ hd15 (by evm_ov),
     raw dup3 hd17 (by evm_ov),
     raw add hd18 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem1 mem) (UInt256.ofNat 17)
+    raw mstore 0 (solcErrorString384Mem1 mem) (UInt256.ofNat 17)
       hd19 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 len hd20 (by evm_ov),
     raw push1 ⟨36⟩ hd22 (by evm_ov),
     raw dup3 hd24 (by evm_ov),
     raw add hd25 (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem2 len mem)
+    raw mstore 0 (solcErrorString384Mem2 len mem)
       (UInt256.ofNat 17) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdWord := rdPrefix.pushConst word (width := 32) (op := .PUSH32)
     (by decide) hd27 (by simp only [List.length_cons]; omega)
@@ -16673,11 +15886,11 @@ theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
     raw push1 ⟨68⟩ hd68 (by evm_ov),
     raw dup3 hdDup3 (by evm_ov),
     raw add hdAdd (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem3 len word mem)
+    raw mstore 0 (solcErrorString384Mem3 len word mem)
       (UInt256.ofNat 17) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap1 hdSwap (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 17) hdMload
-      mem_cost (barkPostIlksErrorStringMem3_mload64 len word hmem hread64)
+      mem_cost (solcErrorString384Mem3_mload64 len word hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 hdSwap2 (by evm_ov),
     raw dup2 hdDup2 (by evm_ov),
@@ -16772,7 +15985,7 @@ theorem RD.dogBarkSpotZeroReverts {v : DogImmutables} {code : ByteArray}
     native_decide
   have rd3344pc := rd3344
   rw [hpc3344] at rd3344pc
-  exact RD.dogBarkPostIlksErrorStringRevertTail
+  exact RD.solcErrorStringRevertTail384
     (pc := ⟨3344⟩) (len := ⟨14⟩) (rawWord := dogNotUnsafeRawWord)
     (shift := ⟨144⟩) (word := UInt256.shiftLeft dogNotUnsafeRawWord ⟨144⟩)
     (op := .PUSH14) (width := 14) rd3344pc htail (by decide) (by rfl) hmem hread64
@@ -17167,7 +16380,7 @@ theorem RD.dogBarkNotUnsafeReverts {v : DogImmutables} {code : ByteArray}
     native_decide
   have rd3344pc := rd3344
   rw [hpc3344] at rd3344pc
-  exact RD.dogBarkPostIlksErrorStringRevertTail
+  exact RD.solcErrorStringRevertTail384
     (pc := ⟨3344⟩) (len := ⟨14⟩) (rawWord := dogNotUnsafeRawWord)
     (shift := ⟨144⟩) (word := UInt256.shiftLeft dogNotUnsafeRawWord ⟨144⟩)
     (op := .PUSH14) (width := 14) rd3344pc htail (by decide) (by rfl) hmem hread64
@@ -17352,7 +16565,7 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
     (hfitInk : ink.toNat * spot.toNat < UInt256.size)
     (hsafe : (ink * spot).toNat < (art * rate).toNat)
     (hlimit :
-      (dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat ∧
+      (solcSlotWordAt ⟨5⟩ σ I).toNat < (solcSlotWordAt ⟨4⟩ σ I).toNat ∧
         (barkIlksDirtWord σMem I).toNat < (barkIlksHoleWord σMem I).toNat)
     (hmload320 :
       (if (⟨320⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -17393,10 +16606,10 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by evm_ov)
   have rd3409 : RD code I g s0 ⟨3409⟩
-      (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
+      (solcSlotWordAt ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3409 C3409 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3409raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3409raw
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
       (by
@@ -17409,12 +16622,12 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by evm_ov)
   have rd3412 : RD code I g s0 ⟨3412⟩
-      (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
+      (solcSlotWordAt ⟨4⟩ σ I :: solcSlotWordAt ⟨5⟩ σ I :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3412 C3412 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3412raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3412raw
   have hgtGlobal :
-      UInt256.gt (dogSlotWord ⟨4⟩ σ I) (dogSlotWord ⟨5⟩ σ I) = ⟨1⟩ :=
+      UInt256.gt (solcSlotWordAt ⟨4⟩ σ I) (solcSlotWordAt ⟨5⟩ σ I) = ⟨1⟩ :=
     Reasoning.Theory.ugt_one hlimit.1
   have rd3413raw := evm_run rd3412 with [
     raw gt
@@ -17585,10 +16798,10 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by evm_ov)
   have rd3521 : RD code I g s0 ⟨3521⟩
-      (dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ :: spot :: dust :: rate ::
+      (solcSlotWordAt ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3521 C3521 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3521raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3521raw
   have rd3523prep := evm_run rd3521 with [
     raw push1 ⟨4⟩
       (by
@@ -17601,11 +16814,11 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by evm_ov)
   have rd3524 : RD code I g s0 ⟨3524⟩
-      (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ ::
+      (solcSlotWordAt ⟨4⟩ σ I :: solcSlotWordAt ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ ::
         spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3524 C3524 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3524raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3524raw
   have rd3525 := evm_run rd3524 with [
     raw sub
       (by
@@ -18864,7 +18077,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
       (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem0 mem) (UInt256.ofNat 17)
+    raw mstore 0 (solcErrorString384Mem0 mem) (UInt256.ofNat 17)
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -18919,7 +18132,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
       (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem1 mem) (UInt256.ofNat 17)
+    raw mstore 0 (solcErrorString384Mem1 mem) (UInt256.ofNat 17)
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -18934,7 +18147,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
       (by evm_ov),
-    raw mstore 0 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
+    raw mstore 0 (solcErrorString384Mem2 (⟨42⟩ : UInt256) mem)
       (UInt256.ofNat 17)
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -18956,7 +18169,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
         native_decide)
       (by evm_ov)]
   have hcopy :
-      code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42 =
+      code.write 4691 (solcErrorString384Mem2 (⟨42⟩ : UInt256) mem) 452 42 =
         barkPostIlksCodecopyErrorMem code mem := by
     rfl
   have hsrcCopy : 4691 + 42 ≤ code.size := by
@@ -19346,7 +18559,7 @@ theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
       | apply And.intro
       | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
           native_decide)
-  exact RD.dogBarkPostIlksErrorStringRevertTail
+  exact RD.solcErrorStringRevertTail384
     (pc := ⟨3734⟩) (len := ⟨16⟩) (rawWord := dogNullAuctionRawWord)
     (shift := ⟨129⟩) (word := UInt256.shiftLeft dogNullAuctionRawWord ⟨129⟩)
     (op := .PUSH16) (width := 16) rd3734 htail (by decide) rfl hmem hread64
@@ -19599,7 +18812,7 @@ theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : Byt
       | apply And.intro
       | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
           native_decide)
-  exact RD.dogBarkPostIlksErrorStringRevertTail
+  exact RD.solcErrorStringRevertTail384
     (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
     (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
     (op := .PUSH12) (width := 12) rd3826 htail (by decide) rfl hmem hread64
@@ -19751,7 +18964,7 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
       | apply And.intro
       | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
           native_decide)
-  exact RD.dogBarkPostIlksErrorStringRevertTail
+  exact RD.solcErrorStringRevertTail384
     (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
     (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
     (op := .PUSH12) (width := 12) rd3826 htail (by decide) rfl hmem hread64
@@ -19816,7 +19029,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     solcAddrMask_clean_left hurnCanon
   have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
     simpa [barkVowWord, u256_land_comm] using
-      solcAddrMask_result_canonical (dogSlotWord ⟨2⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨2⟩ σ I)
   have hvowMask :
       UInt256.land solcAddrMask (barkVowWord σ I) = barkVowWord σ I :=
     solcAddrMask_clean_left hvowCanon
@@ -19833,7 +19046,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     simpa [solcAddrMask] using hclipMask
   have hvowWordLit :
       UInt256.land ({ val := 1461501637330902918203684832716283019655932542975 } :
-        UInt256) (dogSlotWord ⟨2⟩ σ I) = barkVowWord σ I := by
+        UInt256) (solcSlotWordAt ⟨2⟩ σ I) = barkVowWord σ I := by
     simp [barkVowWord, solcAddrMask]
   have rd3890pre := evm_run rd3885 with [
     raw jumpdest
@@ -19867,11 +19080,11 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have rd3891 : RD code I g s0 ⟨3891⟩
-      (dogSlotWord ⟨2⟩ σ I :: barkIlksClipWord σMem I :: dink :: dust :: rate ::
+      (solcSlotWordAt ⟨2⟩ σ I :: barkIlksClipWord σMem I :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I ::
         barkIlkWord I :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3891 C3891 := by
-    simpa [dogSlotWord] using rd3891raw
+    simpa [solcSlotWordAt] using rd3891raw
   have rd3964 := evm_run rd3891 with [
     raw push1 ⟨64⟩
       (by
@@ -20906,7 +20119,7 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     barkVowFessDueMem_mload64 (mem := mem) (due := due) hmem hread64
   have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
     simpa [barkVowWord, u256_land_comm] using
-      solcAddrMask_result_canonical (dogSlotWord ⟨2⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨2⟩ σ I)
   have hvowMask :
       UInt256.land solcAddrMask (barkVowWord σ I) = barkVowWord σ I :=
     solcAddrMask_clean_left hvowCanon
@@ -20915,11 +20128,11 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     decide
   have hvowWordLit :
       UInt256.land ({ val := 1461501637330902918203684832716283019655932542975 } :
-        UInt256) (dogSlotWord ⟨2⟩ σ I) = barkVowWord σ I := by
+        UInt256) (solcSlotWordAt ⟨2⟩ σ I) = barkVowWord σ I := by
     simp [barkVowWord, solcAddrMask]
   have hvowWordRight :
-      UInt256.land (dogSlotWord ⟨2⟩ σ I) solcAddrMask = barkVowWord σ I := by
-    rw [u256_land_comm (dogSlotWord ⟨2⟩ σ I) solcAddrMask]
+      UInt256.land (solcSlotWordAt ⟨2⟩ σ I) solcAddrMask = barkVowWord σ I := by
+    rw [u256_land_comm (solcSlotWordAt ⟨2⟩ σ I) solcAddrMask]
   have rd4074 := evm_run rd4071 with [
     raw jumpdest
       (by
@@ -20940,10 +20153,10 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have rd4075 : RD code I g s0 ⟨4075⟩
-      (dogSlotWord ⟨2⟩ σ I :: due :: ⟨0⟩ :: dink :: dust :: rate ::
+      (solcSlotWordAt ⟨2⟩ σ I :: due :: ⟨0⟩ :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k4075 C4075 := by
-    simpa [dogSlotWord] using rd4075raw
+    simpa [solcSlotWordAt] using rd4075raw
   have rd4139 := evm_run rd4075 with [
     raw push1 ⟨64⟩
       (by
@@ -21842,14 +21055,14 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hfit :
-      (dogSlotWord ⟨5⟩ σ I).toNat + tab.toNat < UInt256.size)
+      (solcSlotWordAt ⟨5⟩ σ I).toNat + tab.toNat < UInt256.size)
     (rd4211 : RD code I g s0 ⟨4211⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 31 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4222⟩
-      (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
+      (barkDirtNewWord (solcSlotWordAt ⟨5⟩ σ I) tab :: tab :: due :: dink ::
         dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
         ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k' C' := by
@@ -21873,10 +21086,10 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have rd4217 : RD code I g s0 ⟨4217⟩
-      (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
+      (solcSlotWordAt ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k4217 C4217 := by
-    simpa [dogSlotWord, solcSlotWord] using rd4217raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd4217raw
   have rd4221 := evm_run rd4217 with [
     raw dup3
       (by
@@ -21898,7 +21111,7 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
     (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
   obtain ⟨k', C', rd4222⟩ :=
     RD.dogCheckedAddReturns (v := v) hpatch
-      (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
+      (x := solcSlotWordAt ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
       (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega) hfit rd4625
@@ -21912,7 +21125,7 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hover :
-      UInt256.size ≤ (dogSlotWord ⟨5⟩ σ I).toNat + tab.toNat)
+      UInt256.size ≤ (solcSlotWordAt ⟨5⟩ σ I).toNat + tab.toNat)
     (rd4211 : RD code I g s0 ⟨4211⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
@@ -21939,10 +21152,10 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have rd4217 : RD code I g s0 ⟨4217⟩
-      (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
+      (solcSlotWordAt ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k4217 C4217 := by
-    simpa [dogSlotWord, solcSlotWord] using rd4217raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd4217raw
   have rd4221 := evm_run rd4217 with [
     raw dup3
       (by
@@ -21963,7 +21176,7 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
       native_decide)
     (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
   exact RD.dogCheckedAddOverflowReverts (v := v) hpatch
-    (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
+    (x := solcSlotWordAt ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
     (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
       ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
     (by simp only [List.length_cons]; omega) hover rd4625
@@ -21976,7 +21189,7 @@ theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (rd4222 : RD code I g s0 ⟨4222⟩
-      (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
+      (barkDirtNewWord (solcSlotWordAt ⟨5⟩ σ I) tab :: tab :: due :: dink ::
         dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
         ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata σ k C)
@@ -21986,7 +21199,7 @@ theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata
       (sstoreAccountMap I.codeOwner σ ⟨5⟩
-        (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab)) k' C' := by
+        (barkDirtNewWord (solcSlotWordAt ⟨5⟩ σ I) tab)) k' C' := by
   have rd4225 := evm_run rd4222 with [
     raw jumpdest
       (by
@@ -24099,7 +23312,7 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     (hfitInk : ink.toNat * spot.toNat < UInt256.size)
     (hsafe : (ink * spot).toNat < (art * rate).toNat)
     (hlimitFalse :
-      ¬ ((dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat ∧
+      ¬ ((solcSlotWordAt ⟨5⟩ σ I).toNat < (solcSlotWordAt ⟨4⟩ σ I).toNat ∧
         (barkIlksDirtWord σMem I).toNat < (barkIlksHoleWord σMem I).toNat))
     (hmload320 :
       (if (⟨320⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -24145,10 +23358,10 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
       native_decide)
     (by evm_ov)
   have rd3409 : RD code I g s0 ⟨3409⟩
-      (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
+      (solcSlotWordAt ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3409 C3409 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3409raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3409raw
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
       (by
@@ -24161,14 +23374,14 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
       native_decide)
     (by evm_ov)
   have rd3412 : RD code I g s0 ⟨3412⟩
-      (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
+      (solcSlotWordAt ⟨4⟩ σ I :: solcSlotWordAt ⟨5⟩ σ I :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 17) rdata σ k3412 C3412 := by
-    simpa [dogSlotWord, solcSlotWord] using rd3412raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd3412raw
   by_cases hglobal :
-      (dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat
+      (solcSlotWordAt ⟨5⟩ σ I).toNat < (solcSlotWordAt ⟨4⟩ σ I).toNat
   · have hgtGlobal :
-        UInt256.gt (dogSlotWord ⟨4⟩ σ I) (dogSlotWord ⟨5⟩ σ I) = ⟨1⟩ :=
+        UInt256.gt (solcSlotWordAt ⟨4⟩ σ I) (solcSlotWordAt ⟨5⟩ σ I) = ⟨1⟩ :=
       Reasoning.Theory.ugt_one hglobal
     have rd3413raw := evm_run rd3412 with [
       raw gt
@@ -24302,7 +23515,7 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
       rd3436 htail hmem hread64
       (by simp only [List.length_cons]; omega)
   · have hgtGlobal :
-        UInt256.gt (dogSlotWord ⟨4⟩ σ I) (dogSlotWord ⟨5⟩ σ I) = ⟨0⟩ :=
+        UInt256.gt (solcSlotWordAt ⟨4⟩ σ I) (solcSlotWordAt ⟨5⟩ σ I) = ⟨0⟩ :=
       Reasoning.Theory.ugt_zero (by omega)
     have rd3413raw := evm_run rd3412 with [
       raw gt
@@ -24601,15 +23814,15 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
             some (barkLocals I) :=
       dogDecode_bark_ok (v := v) hsz100
     have hbodyReach := RD.dogBarkDecodeToBody hpatch hsize hsz100 hreach
-    by_cases hliveEvm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩
+    by_cases hliveEvm : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩
     · have hslotWord :
-          dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
+          solcSlotWordAt ⟨3⟩ σ I = solcSlotWordAt ⟨3⟩ σ I :=
         rfl
-      have hliveSolm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩ := by
+      have hliveSolm : solcSlotWordAt ⟨3⟩ σ I = ⟨1⟩ := by
         rw [← hslotWord]
         exact hliveEvm
       have hliveSolc : solcSlotWord σ I ⟨3⟩ = ⟨1⟩ := by
-        simpa [dogSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, h2885⟩ := RD.dogBarkLiveOk hpatch hbodyReach hliveSolc
         (by simp only [List.length_cons, List.length_nil]; omega)
       by_cases hvatCodeSize :
@@ -24961,8 +24174,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                               (barkInkSpotWord out outIlks).toNat <
                                 (barkArtRateUnsafeWord out outIlks).toNat
                           · by_cases hlimit :
-                              (dogSlotWord ⟨5⟩ σ'' I).toNat <
-                                  (dogSlotWord ⟨4⟩ σ'' I).toNat ∧
+                              (solcSlotWordAt ⟨5⟩ σ'' I).toNat <
+                                  (solcSlotWordAt ⟨4⟩ σ'' I).toNat ∧
                                 (barkIlksDirtWord σ' I).toNat <
                                   (barkIlksHoleWord σ' I).toNat
                             · have hspotPos :
@@ -25245,72 +24458,72 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     UInt256.size
                               · by_cases hchopNe : barkIlksChopWord σ' I ≠ ⟨0⟩
                                 · have hslot5 :
-                                      dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                      solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv =
-                                        dogSlotWord ⟨5⟩ σ'' I := by
+                                        solcSlotWordAt ⟨5⟩ σ'' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
+                                      congrArg (fun m => solcSlotWordAt ⟨5⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hslot4 :
-                                      dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                      solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv =
-                                        dogSlotWord ⟨4⟩ σ'' I := by
+                                        solcSlotWordAt ⟨4⟩ σ'' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
+                                      congrArg (fun m => solcSlotWordAt ⟨4⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
                                       Eq σ' evmPostSolm.accountMap := by
                                     simpa [evmPostEvm] using hStateCall.accountMap
                                   have hmilkDirt :
-                                      dogSlotWord (barkIlksDirtSlotFor I)
+                                      solcSlotWordAt (barkIlksDirtSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksDirtWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hmilkHole :
-                                      dogSlotWord (barkIlksHoleSlotFor I)
+                                      solcSlotWordAt (barkIlksHoleSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksHoleWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hmilkChop :
-                                      dogSlotWord (barkIlksChopSlotFor I)
+                                      solcSlotWordAt (barkIlksChopSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksChopWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksChopSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksChopSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hmilkClip :
-                                      dogAddressReturnWord (barkIlksClipSlotFor I)
+                                      solcAddressSlotWord (barkIlksClipSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksClipWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksClipSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksClipSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksClipWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
-                                    simpa [dogAddressReturnWord, evmPostSolm, evmSolm,
+                                    simpa [solcAddressSlotWord, evmPostSolm, evmSolm,
                                       initState] using
                                       congrArg (fun word => UInt256.land word solcAddrMask)
                                         h.symm
                                   have hlimitSource :
-                                      (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                      (solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat <
-                                        (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                        (solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat ∧
-                                      (dogSlotWord (barkIlksDirtSlotFor I)
+                                      (solcSlotWordAt (barkIlksDirtSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat <
-                                        (dogSlotWord (barkIlksHoleSlotFor I)
+                                        (solcSlotWordAt (barkIlksHoleSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat := by
                                     exact
@@ -25941,7 +25154,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                       evmIlksPostSolm.executionEnv =
                                                     barkVowWord σ'' I := by
                                                 have hslot :=
-                                                  congrArg (fun m => dogSlotWord ⟨2⟩ m I) hAccountsIlks
+                                                  congrArg (fun m => solcSlotWordAt ⟨2⟩ m I) hAccountsIlks
                                                 simpa [barkVowWord, evmIlksPostSolm,
                                                   evmPostSolm, evmSolm, initState] using
                                                   congrArg
@@ -26157,7 +25370,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         evmGrabSolm.executionEnv =
                                                       barkVowWord σGrab I := by
                                                   have hslot :=
-                                                    congrArg (fun m => dogSlotWord ⟨2⟩ m I) hAccountsGrab
+                                                    congrArg (fun m => solcSlotWordAt ⟨2⟩ m I) hAccountsGrab
                                                   simpa [barkVowWord, evmGrabSolm,
                                                     evmIlksPostSolm, evmPostSolm, evmSolm,
                                                     initState] using
@@ -26236,7 +25449,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               evmGrabSolm.executionEnv).toNat)).option
                                                             0 (fun acc => acc.code.size))).toNat =
                                                         0 :=
-                                                    dogCode_zero_of_state_codeSize_zero
+                                                    code_zero_of_state_codeSize_zero
                                                       hvowCodeZeroSolm
                                                   have hvowReceiver :=
                                                     evalExpr_barkStorageVow (v := v)
@@ -26367,7 +25580,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               evmGrabSolm.accountMap
                                                               evmGrabSolm.executionEnv).toNat)).option
                                                             0 (fun acc => acc.code.size))).toNat :=
-                                                    dogCode_pos_of_state_codeSize_ne
+                                                    code_pos_of_state_codeSize_ne
                                                       hvowCodeNonzeroSolm
                                                   have hvowReceiver :=
                                                     evalExpr_barkStorageVow (v := v)
@@ -26767,12 +25980,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                           (hpresTabBaseNone (by decide)
                                                             hilksFess)
                                                       have hDirtSlotFess :
-                                                          dogSlotWord ⟨5⟩
+                                                          solcSlotWordAt ⟨5⟩
                                                               evmFessSolm.accountMap
                                                               evmFessSolm.executionEnv =
-                                                            dogSlotWord ⟨5⟩ σFess I := by
+                                                            solcSlotWordAt ⟨5⟩ σFess I := by
                                                         have hslot :=
-                                                          congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsFess
+                                                          congrArg (fun m => solcSlotWordAt ⟨5⟩ m I) hAccountsFess
                                                         simpa [evmFessSolm, evmGrabSolm,
                                                           evmIlksPostSolm, evmPostSolm,
                                                           evmSolm, initState] using hslot.symm
@@ -26809,14 +26022,14 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                           "id" ++
                                                         [ .return [.var "id"] ]
                                                       by_cases hfitDirt :
-                                                          (dogSlotWord ⟨5⟩ σFess I).toNat +
+                                                          (solcSlotWordAt ⟨5⟩ σFess I).toNat +
                                                               tab.toNat <
                                                             UInt256.size
                                                       · obtain ⟨_, _, rd4222⟩ :=
                                                           RD.dogBarkDirtAddOk hpatch hfitDirt
                                                             rd4211 (by simp)
                                                         have hfitDirtSolm :
-                                                            (dogSlotWord ⟨5⟩
+                                                            (solcSlotWordAt ⟨5⟩
                                                                   evmFessSolm.accountMap
                                                                   evmFessSolm.executionEnv).toNat +
                                                                 tab.toNat <
@@ -26834,12 +26047,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             hdirtAddOk
                                                         let dirtNew :=
                                                           barkDirtNewWord
-                                                            (dogSlotWord ⟨5⟩
+                                                            (solcSlotWordAt ⟨5⟩
                                                               evmFessSolm.accountMap
                                                               evmFessSolm.executionEnv) tab
                                                         let dirtNewEvm :=
                                                           barkDirtNewWord
-                                                            (dogSlotWord ⟨5⟩ σFess I) tab
+                                                            (solcSlotWordAt ⟨5⟩ σFess I) tab
                                                         have hdirtNew_eq :
                                                             dirtNew = dirtNewEvm := by
                                                           simp [dirtNew, dirtNewEvm,
@@ -26854,7 +26067,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             barkLocalsDirtNew_get_DirtNew
                                                               localsTab
                                                               (barkDirtNewWord
-                                                                (dogSlotWord ⟨5⟩
+                                                                (solcSlotWordAt ⟨5⟩
                                                                   evmFessSolm.accountMap
                                                                   evmFessSolm.executionEnv)
                                                                 tab)
@@ -27397,7 +26610,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                       (barkIlksClipWord σ' I).toNat)).option
                                                                       0 (fun acc => acc.code.size))).toNat =
                                                                   0 :=
-                                                              dogCode_zero_of_state_codeSize_zero
+                                                              code_zero_of_state_codeSize_zero
                                                                 hclipZeroSolm
                                                             have hkickGuardFalse :
                                                                 evalExpr? (config v)
@@ -27460,7 +26673,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     (AccountAddress.ofNat
                                                                       (barkIlksClipWord σ' I).toNat)).option
                                                                       0 (fun acc => acc.code.size))).toNat :=
-                                                              dogCode_pos_of_state_codeSize_ne
+                                                              code_pos_of_state_codeSize_ne
                                                                 hclipNonzeroSolm
                                                             have hkickGuardTrue :
                                                                 evalExpr? (config v)
@@ -27506,13 +26719,13 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               calc
                                                                 evmIlkDirtSolm.σ₀ = evmDirtSolm.σ₀ := by
                                                                   simpa [evmIlkDirtSolm] using
-                                                                    dogStorageStore_sigma0 evmDirtSolm
+                                                                    storageStore_σ₀ evmDirtSolm
                                                                       evmDirtSolm.executionEnv.codeOwner
                                                                       (barkIlksDirtSlotFor I)
                                                                       ilkDirtNew
                                                                 _ = evmFessSolm.σ₀ := by
                                                                   simpa [evmDirtSolm] using
-                                                                    dogStorageStore_sigma0 evmFessSolm
+                                                                    storageStore_σ₀ evmFessSolm
                                                                       evmFessSolm.executionEnv.codeOwner
                                                                       ⟨5⟩ dirtNew
                                                                 _ = evmEvm.σ₀ := by
@@ -28052,12 +27265,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             hcode hdispatch hdecode htailBody
                                                       · have hoverDirt :
                                                             UInt256.size ≤
-                                                              (dogSlotWord ⟨5⟩ σFess I).toNat +
+                                                              (solcSlotWordAt ⟨5⟩ σFess I).toNat +
                                                                 tab.toNat :=
                                                           Nat.le_of_not_gt hfitDirt
                                                         have hoverDirtSolm :
                                                             UInt256.size ≤
-                                                              (dogSlotWord ⟨5⟩
+                                                              (solcSlotWordAt ⟨5⟩
                                                                     evmFessSolm.accountMap
                                                                     evmFessSolm.executionEnv).toNat +
                                                                   tab.toNat := by
@@ -28769,60 +27982,60 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         exact hrev.reEquivExecutionRevert hcode hdispatch
                                           hdecode htailBody
                                 · have hslot5 :
-                                      dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                      solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv =
-                                        dogSlotWord ⟨5⟩ σ'' I := by
+                                        solcSlotWordAt ⟨5⟩ σ'' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
+                                      congrArg (fun m => solcSlotWordAt ⟨5⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hslot4 :
-                                      dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                      solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv =
-                                        dogSlotWord ⟨4⟩ σ'' I := by
+                                        solcSlotWordAt ⟨4⟩ σ'' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
+                                      congrArg (fun m => solcSlotWordAt ⟨4⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
                                       Eq σ' evmPostSolm.accountMap := by
                                     simpa [evmPostEvm] using hStateCall.accountMap
                                   have hmilkDirt :
-                                      dogSlotWord (barkIlksDirtSlotFor I)
+                                      solcSlotWordAt (barkIlksDirtSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksDirtWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hmilkHole :
-                                      dogSlotWord (barkIlksHoleSlotFor I)
+                                      solcSlotWordAt (barkIlksHoleSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksHoleWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hmilkChop :
-                                      dogSlotWord (barkIlksChopSlotFor I)
+                                      solcSlotWordAt (barkIlksChopSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksChopWord σ' I := by
                                     have h :=
-                                      congrArg (fun m => dogSlotWord (barkIlksChopSlotFor I) m I) hAccountsUrns
+                                      congrArg (fun m => solcSlotWordAt (barkIlksChopSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
                                   have hlimitSource :
-                                      (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                      (solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat <
-                                        (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                        (solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat ∧
-                                      (dogSlotWord (barkIlksDirtSlotFor I)
+                                      (solcSlotWordAt (barkIlksDirtSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat <
-                                        (dogSlotWord (barkIlksHoleSlotFor I)
+                                        (solcSlotWordAt (barkIlksHoleSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat := by
                                     exact
@@ -28851,7 +28064,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     by_contra hne
                                     exact hchopNe hne
                                   have hchopZeroSource :
-                                      dogSlotWord (barkIlksChopSlotFor I)
+                                      solcSlotWordAt (barkIlksChopSlotFor I)
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         ⟨0⟩ := by
                                     rw [hmilkChop, hchopZeroRuntime]
@@ -28888,51 +28101,51 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     exact reEquiv_execution hdispatch hdecode hbody
                                       (execResultsEquiv.invalidHalt hxi rfl)
                               · have hslot5 :
-                                    dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                    solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                         evmIlksPostSolm.executionEnv =
-                                      dogSlotWord ⟨5⟩ σ'' I := by
+                                      solcSlotWordAt ⟨5⟩ σ'' I := by
                                   have h :=
-                                    congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
+                                    congrArg (fun m => solcSlotWordAt ⟨5⟩ m I) hAccountsIlks
                                   simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                     using h.symm
                                 have hslot4 :
-                                    dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                    solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                         evmIlksPostSolm.executionEnv =
-                                      dogSlotWord ⟨4⟩ σ'' I := by
+                                      solcSlotWordAt ⟨4⟩ σ'' I := by
                                   have h :=
-                                    congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
+                                    congrArg (fun m => solcSlotWordAt ⟨4⟩ m I) hAccountsIlks
                                   simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                     using h.symm
                                 have hAccountsUrns :
                                     Eq σ' evmPostSolm.accountMap := by
                                   simpa [evmPostEvm] using hStateCall.accountMap
                                 have hmilkDirt :
-                                    dogSlotWord (barkIlksDirtSlotFor I)
+                                    solcSlotWordAt (barkIlksDirtSlotFor I)
                                         evmPostSolm.accountMap evmPostSolm.executionEnv =
                                       barkIlksDirtWord σ' I := by
                                   have h :=
-                                    congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
+                                    congrArg (fun m => solcSlotWordAt (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                   rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                     hsz100]
                                   simpa [evmPostSolm, evmSolm, initState] using h.symm
                                 have hmilkHole :
-                                    dogSlotWord (barkIlksHoleSlotFor I)
+                                    solcSlotWordAt (barkIlksHoleSlotFor I)
                                         evmPostSolm.accountMap evmPostSolm.executionEnv =
                                       barkIlksHoleWord σ' I := by
                                   have h :=
-                                    congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
+                                    congrArg (fun m => solcSlotWordAt (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                   rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                     hsz100]
                                   simpa [evmPostSolm, evmSolm, initState] using h.symm
                                 have hlimitSource :
-                                    (dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                    (solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                         evmIlksPostSolm.executionEnv).toNat <
-                                      (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                      (solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                         evmIlksPostSolm.executionEnv).toNat ∧
-                                    (dogSlotWord (barkIlksDirtSlotFor I)
+                                    (solcSlotWordAt (barkIlksDirtSlotFor I)
                                         evmPostSolm.accountMap
                                         evmPostSolm.executionEnv).toNat <
-                                      (dogSlotWord (barkIlksHoleSlotFor I)
+                                      (solcSlotWordAt (barkIlksHoleSlotFor I)
                                         evmPostSolm.accountMap
                                         evmPostSolm.executionEnv).toNat := by
                                   exact
@@ -28986,51 +28199,51 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                   exact hspotZero (uint256_toNat_eq_zero hnat)
                                 exact Nat.pos_of_ne_zero hnatNe
                               have hslot5 :
-                                  dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                  solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                       evmIlksPostSolm.executionEnv =
-                                    dogSlotWord ⟨5⟩ σ'' I := by
+                                    solcSlotWordAt ⟨5⟩ σ'' I := by
                                 have h :=
-                                  congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
+                                  congrArg (fun m => solcSlotWordAt ⟨5⟩ m I) hAccountsIlks
                                 simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                   using h.symm
                               have hslot4 :
-                                  dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                  solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                       evmIlksPostSolm.executionEnv =
-                                    dogSlotWord ⟨4⟩ σ'' I := by
+                                    solcSlotWordAt ⟨4⟩ σ'' I := by
                                 have h :=
-                                  congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
+                                  congrArg (fun m => solcSlotWordAt ⟨4⟩ m I) hAccountsIlks
                                 simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                   using h.symm
                               have hAccountsUrns :
                                   Eq σ' evmPostSolm.accountMap := by
                                 simpa [evmPostEvm] using hStateCall.accountMap
                               have hmilkDirt :
-                                  dogSlotWord (barkIlksDirtSlotFor I)
+                                  solcSlotWordAt (barkIlksDirtSlotFor I)
                                       evmPostSolm.accountMap evmPostSolm.executionEnv =
                                     barkIlksDirtWord σ' I := by
                                 have h :=
-                                  congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
+                                  congrArg (fun m => solcSlotWordAt (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                 rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                   hsz100]
                                 simpa [evmPostSolm, evmSolm, initState] using h.symm
                               have hmilkHole :
-                                  dogSlotWord (barkIlksHoleSlotFor I)
+                                  solcSlotWordAt (barkIlksHoleSlotFor I)
                                       evmPostSolm.accountMap evmPostSolm.executionEnv =
                                     barkIlksHoleWord σ' I := by
                                 have h :=
-                                  congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
+                                  congrArg (fun m => solcSlotWordAt (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                 rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                   hsz100]
                                 simpa [evmPostSolm, evmSolm, initState] using h.symm
                               have hlimitSource :
-                                  ¬ ((dogSlotWord ⟨5⟩ evmIlksPostSolm.accountMap
+                                  ¬ ((solcSlotWordAt ⟨5⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat <
-                                        (dogSlotWord ⟨4⟩ evmIlksPostSolm.accountMap
+                                        (solcSlotWordAt ⟨4⟩ evmIlksPostSolm.accountMap
                                           evmIlksPostSolm.executionEnv).toNat ∧
-                                      (dogSlotWord (barkIlksDirtSlotFor I)
+                                      (solcSlotWordAt (barkIlksDirtSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat <
-                                        (dogSlotWord (barkIlksHoleSlotFor I)
+                                        (solcSlotWordAt (barkIlksHoleSlotFor I)
                                           evmPostSolm.accountMap
                                           evmPostSolm.executionEnv).toNat) := by
                                 intro hsrc
@@ -29171,9 +28384,9 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                 hwv hliveSolm hvatCode hcallDepth)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hslotWord :
-          dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
+          solcSlotWordAt ⟨3⟩ σ I = solcSlotWordAt ⟨3⟩ σ I :=
         rfl
-      have hliveSolm : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩ := by
+      have hliveSolm : solcSlotWordAt ⟨3⟩ σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hliveEvm (by rw [hslotWord, hsolm])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -29187,7 +28400,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
             (rest := (barkBodyRest v).drop 1)
             (barkLocals_get_live I) hwv hliveSolm
       have hrev := RD.dogBarkLiveRevert hpatch hbodyReach
-        (by simpa [dogSlotWord] using hliveEvm)
+        (by simpa [solcSlotWordAt] using hliveEvm)
         (by simp only [List.length_cons, List.length_nil]; omega)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact dogBarkBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)

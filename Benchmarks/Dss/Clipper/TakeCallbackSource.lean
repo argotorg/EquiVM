@@ -1,3 +1,5 @@
+import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.TakeCallbackCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -5,44 +7,12 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
-private theorem clipperEvalBinaryOpGtInt (x y : Int) :
-    evalBinaryOp? .gt (.int x) (.int y) = .ok (.bool (x > y)) := by
-  rfl
-
-private theorem clipperEvalBinaryOpNeAddress (a b : AccountAddress) :
-    evalBinaryOp? .ne (.address a) (.address b) =
-      .ok (.bool (!(Value.address a == Value.address b))) := by
-  rfl
 
 abbrev clipperTakeLocalsCallbackRet (evmLoc evmRead evmVat : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) : Store :=
   (clipperTakeLocalsDogLoaded evmLoc evmRead evmVat I price slice owe0 owe slice'
     tabNew lotNew).insert "_clipperCallRet" .unit
 
-theorem clipperMaskedAddress_injective {a b : UInt256}
-    (haddr : AccountAddress.ofNat (UInt256.land a solcAddrMask).toNat =
-      AccountAddress.ofNat (UInt256.land b solcAddrMask).toNat) :
-    UInt256.land a solcAddrMask = UInt256.land b solcAddrMask := by
-  apply u256_inj
-  have ha := solcAddrMask_result_canonical a
-  have hb := solcAddrMask_result_canonical b
-  have hval := congrArg Fin.val haddr
-  have ha' : (UInt256.land a solcAddrMask).toNat < AccountAddress.size := by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using ha
-  have hb' : (UInt256.land b solcAddrMask).toNat < AccountAddress.size := by
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hb
-  simp only [AccountAddress.ofNat, Fin.val_ofNat] at hval
-  rw [Nat.mod_eq_of_lt ha', Nat.mod_eq_of_lt hb'] at hval
-  exact hval
-
-theorem clipperTakeAddressOfWord_eq_masked (w : UInt256) :
-    AccountAddress.ofNat w.toNat =
-      AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat := by
-  have h := solcAddressValue_masked w
-  have haddr : AccountAddress.ofNat w.toNat =
-      AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat :=
-    Solm.Value.address.inj h
-  simpa [u256_land_comm] using haddr
 
 set_option maxHeartbeats 1000000 in
 theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
@@ -77,7 +47,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
     apply hwhoVat
     have hmasked : AccountAddress.ofNat
         (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat = v.vat := by
-      rw [← clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I)]
+      rw [← takeAddressOfWord_eq_masked (clipperTakeWhoWord I)]
       exact hEq
     rw [← clipperTakeVatTargetAddress v] at hmasked
     rw [accountAddress_ofUInt256_eq_ofNat_toNat] at hmasked
@@ -86,7 +56,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
       solcAddrMask_clean (by
         simpa [clipperTakeVatTarget, u256_land_comm] using
           solcAddrMask_result_canonical (EVM.Word.ofNat (↑v.vat : Nat)))
-    have hmaskedWords := clipperMaskedAddress_injective
+    have hmaskedWords := maskedAddress_injective
       (a := clipperTakeWhoWord I) (b := clipperTakeVatTarget v)
       (by simpa [htargetClean] using hmasked)
     simpa [htargetClean] using hmaskedWords
@@ -94,9 +64,9 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
       AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat := by
     intro hEq
     apply hwhoDog
-    apply clipperMaskedAddress_injective
-    rw [← clipperTakeAddressOfWord_eq_masked (clipperTakeWhoWord I),
-      ← clipperTakeAddressOfWord_eq_masked (clipperTakeDogEVMWord evmVat)]
+    apply maskedAddress_injective
+    rw [← takeAddressOfWord_eq_masked (clipperTakeWhoWord I),
+      ← takeAddressOfWord_eq_masked (clipperTakeDogEVMWord evmVat)]
     exact hEq
   have hlen := clipperEvalTakeDataLength v evmLoc evmRead evmVat I price slice owe0 owe
     slice' tabNew lotNew
@@ -113,7 +83,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
     simp only [EvalResult.bind, bind]
     rw [hlen]
     simp only [evalExpr?, pure]
-    rw [clipperEvalBinaryOpGtInt]
+    rw [evalBinaryOpGtInt]
     exact congrArg (fun b => EvalResult.ok (Value.bool b))
       (decide_eq_true (Int.ofNat_lt_ofNat_of_lt hbytesPos))
     all_goals decide
@@ -128,7 +98,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
     change evalBinaryOp? .ne
       (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat))
       (.address v.vat) = .ok (.bool true)
-    rw [clipperEvalBinaryOpNeAddress]
+    rw [evalBinaryOpNeAddress]
     simp [hwhoVatAddr]
     all_goals decide
   have hneDog : evalExpr? (config v)
@@ -143,7 +113,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
       (.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat))
       (.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)) =
         .ok (.bool true)
-    rw [clipperEvalBinaryOpNeAddress]
+    rw [evalBinaryOpNeAddress]
     simp [hwhoDogAddr]
     all_goals decide
   rw [evalExpr?]

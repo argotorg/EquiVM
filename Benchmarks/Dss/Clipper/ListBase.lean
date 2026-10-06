@@ -137,7 +137,7 @@ theorem clipperEncodeActiveArrayElemsFrom (evm : EVM.State) :
   | k, n + 1 => by
       simp only [clipperActiveArrayValuesFrom, clipperActiveArrayWordBytesFrom,
         encodeABIStaticArrayElems?, bind, Option.bind]
-      rw [clipperEncodeABIValue_uint256,
+      erw [encodeABIValue_uint256,
         clipperEncodeActiveArrayElemsFrom evm (k + 1) n]
 
 theorem clipperActiveArrayReturnEncoding (evm : EVM.State) :
@@ -170,8 +170,9 @@ theorem clipperReadActiveElemAt (v : ClipperImmutables) (evm : EVM.State) (k : N
       uint256St =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (activeSlot (.int (Int.ofNat k)))).toNat)) := by
-  simp [readStorage?, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-    clipperStorageLocLoad_uint256, uint256St]
+  simp [show wordLoc = uint256Loc from rfl, readStorage?, config, storageLayout,
+    solidityStorageLayout, storageLayoutRaw,
+    storageLocLoad_uint256, uint256St]
 
 theorem clipperReadActiveArrayElemsFrom (v : ClipperImmutables) (evm : EVM.State) :
     ∀ k n,
@@ -215,7 +216,7 @@ theorem clipperReadActiveArray (v : ClipperImmutables) (evm : EVM.State) :
   rw [show (config v).storage.layout
       ({ base := "active", steps := [.length] } : EvaledStorageRef) evm =
         some (wordLoc ⟨11⟩) from rfl]
-  simp only [clipperStorageLocLoad_uint256, bind, EvalResult.bind]
+  simp only [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, bind, EvalResult.bind]
   change (do
       let vs ← readArrayElems? (config v) evm
         ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0
@@ -254,7 +255,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
       [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperListSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -277,7 +278,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := clipperSplitTaken (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -305,7 +306,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨369⟩ : UInt256) (by native_decide))
     (by simp)
-  have h429 := clipperSplitTaken (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
+  have h429 := RD.selectorSplitTakenPush2 (pc := (⟨370⟩ : UInt256)) (pivot := clipperSelNat 21)
     (tgt := (⟨429⟩ : UInt256))
     (h369.jumpdest
       (by
@@ -333,7 +334,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨429⟩ : UInt256) (by native_decide))
     (by simp)
-  have h441 := clipperArmNotTaken (pc := (⟨430⟩ : UInt256))
+  have h441 := RD.selectorArmNotTakenPush2 (pc := (⟨430⟩ : UInt256))
     (next := (⟨441⟩ : UInt256)) (sel := clipperSelNat 5)
     (tgt := (⟨468⟩ : UInt256))
     (h429.jumpdest
@@ -362,7 +363,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h452 := clipperArmNotTaken (pc := (⟨441⟩ : UInt256))
+  have h452 := RD.selectorArmNotTakenPush2 (pc := (⟨441⟩ : UInt256))
     (next := (⟨452⟩ : UInt256)) (sel := clipperSelNat 24)
     (tgt := (⟨494⟩ : UInt256)) h441
     (by
@@ -386,7 +387,7 @@ theorem clipperReachListBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h504 := clipperArmTaken (pc := (⟨452⟩ : UInt256)) (sel := clipperSelNat 15)
+  have h504 := RD.selectorArmTakenPush2 (pc := (⟨452⟩ : UInt256)) (sel := clipperSelNat 15)
     (tgt := (⟨504⟩ : UInt256)) h452
     (by
         change decode code (⟨452⟩ : UInt256) = some (.DUP1, .none)
@@ -427,7 +428,7 @@ theorem clipperJumpDest1812 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -456,7 +457,7 @@ theorem clipperJumpDest1870 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -470,7 +471,7 @@ theorem clipperJumpDest1890 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -828,7 +829,7 @@ theorem clipperListPatchesWindowDisjoint32 (v : ClipperImmutables) {lo hi : Nat}
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
   | some bs =>

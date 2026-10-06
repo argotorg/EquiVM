@@ -203,8 +203,9 @@ theorem dogDirtBodyCore {v : DogImmutables} {code : ByteArray}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ DirtTransition.body
         (.returned { contract := contract v, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (dogSlotWord ⟨5⟩ σ I).toNat))])) := by
-    simpa [DirtTransition, dogSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨5⟩ σ I).toNat))])) := by
+    simpa [DirtTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
       dogUint256GetterBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
@@ -236,6 +237,6 @@ theorem dogDirtBodyCore {v : DogImmutables} {code : ByteArray}
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
           native_decide)
-    (by rfl) (by simpa [dogSlotWord] using hbody)
+    (by rfl) (by simpa [solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Dog

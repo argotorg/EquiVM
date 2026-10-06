@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Benchmarks.WETH9.Bytecode
 import Benchmarks.WETH9.StringLayout
 import Benchmarks.WETH9.ConstructorStore
@@ -291,8 +293,6 @@ theorem weth9CtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
 
 /-! ## Reconciling the EVM store-then-clear with the Solm clear-then-store, per write -/
 
-theorem ulor_comm (a b : UInt256) : UInt256.lor a b = UInt256.lor b a := by
-  apply u256_inj; rw [u256_lor_toNat, u256_lor_toNat, nat_lor_comm]
 
 /-- A single compact-string write reconciles equal starting maps. -/
 theorem weth9WriteReconcile (cO : AccountAddress) (τ_evm τ_solm : AccountMap)
@@ -355,10 +355,6 @@ theorem weth9SolmSymbolState_executionEnv (evm : EVM.State) :
   rw [weth9SolmSymbolState, storageStore_executionEnv, clearSolidityBytesDataWordsFrom_executionEnv,
     weth9SolmNameState_executionEnv]
 
-theorem weth9DecimalsWordComm (X : UInt256) :
-    UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩) X) =
-      UInt256.lor (UInt256.land X (UInt256.lnot ⟨255⟩)) ⟨18⟩ := by
-  rw [uland_comm (UInt256.lnot ⟨255⟩) X, ulor_comm ⟨18⟩ (UInt256.land X (UInt256.lnot ⟨255⟩))]
 
 /-- The full three-write storage reconciliation between EVM and Solm final states. -/
 theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : AccountMap)
@@ -386,7 +382,7 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : Accou
     show Solm.EVM.storageLoad (weth9SolmSymbolState evm0) cO ⟨2⟩ =
       ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
         (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) from rfl,
-    ← hload2, weth9DecimalsWordComm]
+    ← hload2, decimalsWordComm]
   rw [← hSym]
 
 /-! ## Final assembly -/

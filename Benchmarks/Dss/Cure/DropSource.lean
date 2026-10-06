@@ -1,3 +1,9 @@
+import Reasoning.StateFacts
+import Reasoning.PackedStorage
+import Reasoning.Storage
+import Reasoning.WordArithmetic
+import Reasoning.SolcMemory
+import Reasoning.MemoryShapes
 import Benchmarks.Dss.Cure.Rely
 import Benchmarks.Dss.Cure.Selectors
 
@@ -167,53 +173,6 @@ theorem dropAmtSlotFor_eq (I : ExecutionEnv) :
   unfold dropAmtSlotFor dropSrc dropKey amtSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address_ofNat_mask]
 
-theorem dropWordOfInt_pred (w : UInt256) (hpos : 0 < w.toNat) :
-    EVM.wordOfInt (Int.ofNat w.toNat - 1) = UInt256.ofNat (w.toNat - 1) := by
-  have hleNat : 1 ≤ w.toNat := Nat.succ_le_of_lt hpos
-  have hle : (1 : Int) ≤ Int.ofNat w.toNat := by
-    simpa using (show (1 : Int) ≤ (w.toNat : Int) by exact_mod_cast hleNat)
-  have hnonneg : 0 ≤ Int.ofNat w.toNat - 1 := sub_nonneg.mpr hle
-  rw [wordOfInt_nonneg (Int.ofNat w.toNat - 1) hnonneg]
-  have hto : (Int.ofNat w.toNat - 1).toNat = w.toNat - 1 := by
-    have hcast :
-        (((Int.ofNat w.toNat - 1).toNat : Nat) : Int) =
-          ((w.toNat - 1 : Nat) : Int) := by
-      rw [Int.toNat_sub_of_le hle]
-      rw [Nat.cast_sub hleNat]
-      simp
-    exact Int.ofNat.inj hcast
-  rw [hto]
-  rfl
-
-theorem dropLenAddLnotZero_eq_pred (len : UInt256) (hpos : 0 < len.toNat) :
-    len + UInt256.lnot ⟨0⟩ = UInt256.ofNat (len.toNat - 1) := by
-  apply u256_inj
-  rw [uadd_toNat]
-  have hlnot : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
-    native_decide
-  have hmod :
-      (len.toNat + (UInt256.size - 1)) % UInt256.size = len.toNat - 1 := by
-    have hsizePos : 0 < UInt256.size := by native_decide
-    have hsum : len.toNat + (UInt256.size - 1) =
-        UInt256.size + (len.toNat - 1) := by
-      omega
-    rw [hsum, Nat.add_mod_left]
-    exact Nat.mod_eq_of_lt (by
-      have hlt : len.toNat < UInt256.size := len.val.isLt
-      omega)
-  rw [hlnot, hmod]
-  exact (ulit_toNat' (len.toNat - 1) (by
-    have hlt : len.toNat < UInt256.size := len.val.isLt
-    omega)).symm
-
-theorem dropSubOne_eq_pred (w : UInt256) (hpos : 0 < w.toNat) :
-    UInt256.sub w ⟨1⟩ = UInt256.ofNat (w.toNat - 1) := by
-  apply u256_inj
-  rw [usub_toNat (by simpa using Nat.succ_le_of_lt hpos)]
-  rw [ulit_toNat' (w.toNat - 1) (by
-    have hlt : w.toNat < UInt256.size := w.val.isLt
-    omega)]
-  rfl
 
 theorem dropSrcsLastSlot_eq (len : UInt256) (hpos : 0 < len.toNat) :
     dropSrcsLastSlot len = srcsDataSlot + UInt256.ofNat (len.toNat - 1) := by
@@ -231,134 +190,6 @@ theorem dropSrcsSlotForLastIndex_eq (len : UInt256) (hpos : 0 < len.toNat) :
     dropSrcsSlotForIndex (dropLastIndex len) = dropSrcsLastSlot len := by
   rw [dropSrcsSlotForIndex_eq_add, dropSrcsLastSlot_eq len hpos]
 
-theorem dropWordAt32TwoWordHashMem_read0_64 {mem : ByteArray}
-    (key oldSlot newSlot : UInt256) (hmem : mem.size = 96) :
-    (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray newSlot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by
-        rw [wordAt32Mem_size_96 newSlot (twoWordHashMem_size_96 key oldSlot hmem)]
-        omega)]
-  have hleft :
-      (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).extract 0 32 =
-        UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by
-          rw [wordAt32Mem_size_96 newSlot (twoWordHashMem_size_96 key oldSlot hmem)]
-          omega)]
-    unfold wordAt32Mem
-    rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [twoWordHashMem_size_96 key oldSlot hmem]; omega) (by omega)]
-    exact twoWordHashMem_read0 key oldSlot hmem
-  have hright :
-      (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).extract 32 64 =
-        UInt256.toByteArray newSlot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by
-          rw [wordAt32Mem_size_96 newSlot (twoWordHashMem_size_96 key oldSlot hmem)]
-          omega)]
-    unfold wordAt32Mem
-    rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [twoWordHashMem_size_96 key oldSlot hmem]; omega)]
-    apply ByteArray.ext
-    rw [ByteArray.data_extract]
-    exact Array.extract_eq_self_of_le (by
-      change (UInt256.toByteArray newSlot).size ≤ 32
-      rw [toByteArray_size])
-  rw [show (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).extract 0 64 =
-      (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).extract 0 32 ++
-        (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem dropWordAt32TwoWordHashMem_solcMappingSlot {mem : ByteArray}
-    (baseSlot key oldSlot : UInt256) (hmem : mem.size = 96) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((wordAt32Mem baseSlot (twoWordHashMem key oldSlot mem)).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [dropWordAt32TwoWordHashMem_read0_64 key oldSlot baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
-
-theorem dropWordAt32TwoWordHashMem_read64 {mem : ByteArray}
-    (key oldSlot newSlot : UInt256) (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (wordAt32Mem newSlot (twoWordHashMem key oldSlot mem)).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-    (by rw [twoWordHashMem_size_96 key oldSlot hmem]; omega) (by omega)
-    (by rw [twoWordHashMem_size_96 key oldSlot hmem])]
-  exact twoWordHashMem_read64 key oldSlot hmem hread64
-
-theorem dropWordAt0Mem_read64_of_size96 {mem : ByteArray}
-    (word : UInt256) (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (wordAt0Mem word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-    (by rw [hmem]; omega) (by omega) (by rw [hmem])]
-  exact hread64
-
-theorem dropStorageLocStore_uint256_pred (evm : EVM.State) (slot len : UInt256)
-    (hpos : 0 < len.toNat) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat len.toNat - 1)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (UInt256.ofNat (len.toNat - 1))) := by
-  unfold storageLocStore storageLocWriteWord wordLoc
-  simp only [valueToWord, dropWordOfInt_pred len hpos, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat (len.toNat - 1))).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) =
-        (UInt256.ofNat (len.toNat - 1)).toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
-
-theorem dropStorageLocStore_address_offset0_zero (evm : EVM.State) (slot : UInt256) :
-    storageLocStore evm (addressOffset0Loc slot) (.int 0) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (setAddressOffset0Word
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩)) := by
-  unfold storageLocStore storageLocWriteWord addressOffset0Loc
-  have hzeroWord : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by native_decide
-  simp only [valueToWord, hzeroWord, bind, Option.bind]
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (20 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (20 : Fin 33).val) _) =
-        (setAddressOffset0Word
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩).toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (20 : Fin 33).val = 20 from rfl,
-    List.take_zero, List.nil_append]
-  rw [fromBytes'_append, fromBytes'_take20_wordLE_solcAddrMask, fromBytes'_drop_wordLE]
-  have hclean : (UInt256.land (⟨0⟩ : UInt256) solcAddrMask).toNat = 0 := by native_decide
-  rw [hclean]
-  have hlen20 : ((EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).1.take 20).length = 20 := by
-    rw [List.length_take, hvlen]
-    norm_num
-  rw [hlen20]
-  rw [show 2 ^ (8 * 20) = 2 ^ 160 by norm_num]
-  rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [setAddressOffset0Word_toNat _ _ (by native_decide)]
-  rw [show ({ val := 0 } : UInt256).toNat = 0 from rfl]
-  ring_nf
-
-theorem dropStorageLocLoad_addrLoc (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
 
 theorem dropEvalExpr_sub256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
@@ -396,7 +227,7 @@ theorem evalExpr_dropPosStorage (evm : EVM.State) (I : ExecutionEnv) :
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (dropPosSlotFor I)).toNat)) := by
   rw [evalExpr_storage_scalar
     (er := dropPosEvaledRef I) (t := .int uint256Int) (loc := wordLoc (dropPosSlotFor I))]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (dropPosSlotFor I))
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (dropPosSlotFor I))
   · simp [dropLocals, posRef]
   · simp [dropPosEvaledRef, dropSrc, posRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
@@ -496,7 +327,7 @@ theorem evalExpr_dropSrcsLength (evm : EVM.State) (I : ExecutionEnv) :
     | Value.int n => EvalResult.ok (Value.int n)
     | _ => EvalResult.error EvalError.storageError) =
       EvalResult.ok (Value.int ↑(Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
-  rw [cureStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   rfl
 
 theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
@@ -529,7 +360,7 @@ theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
       simp only [EvalResult.bind, bind, pure, valueToKey?, EvalResult.ofOption]
       simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, config, storageLayout, solidityStorageLayout, storageLayoutRaw]
-      rw [cureStorageLocLoad_uint256, hlen]
+      erw [storageLocLoad_uint256, hlen]
       simp only [EvalResult.bind, bind, pure]
       rw [if_pos (by exact Int.ofNat_lt.mpr hidxLt)]
     unfold evalStorageRef srcElemRef
@@ -542,7 +373,7 @@ theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
   · funext evm'
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
       dropSrcsSlotForIndex]
-  · exact dropStorageLocLoad_addrLoc evm (dropSrcsSlotForIndex idx)
+  · exact storageLocLoad_address_offset0 evm (dropSrcsSlotForIndex idx)
 
 theorem evalExpr_dropPosLtLast_true {evm : EVM.State} {locals : Store}
     {pos last : UInt256}
@@ -587,18 +418,14 @@ theorem dropPopArray_ok (evm : EVM.State) (locals : Store) (len : UInt256)
           type := .int uint256Int } =
         .int (Int.ofNat len.toNat) := by
     change storageLocLoad evm (wordLoc ⟨2⟩) = .int (Int.ofNat len.toNat)
-    rw [cureStorageLocLoad_uint256, hlen]
+    erw [storageLocLoad_uint256, hlen]
   rw [hlenLoad]
   simp [Nat.ne_of_gt hpos]
   rw [show ∀ slot, addrLoc slot = addressOffset0Loc slot by intro slot; rfl]
-  rw [dropStorageLocStore_address_offset0_zero]
-  change
-      (match storageLocStore (dropAfterPopClearState evm len) (wordLoc ⟨2⟩)
-          (.int (Int.ofNat len.toNat - 1)) with
-        | some a => EvalResult.ok a
-        | none => EvalResult.error EvalError.storageError) =
-        EvalResult.ok (dropAfterPopState evm len)
-  rw [dropStorageLocStore_uint256_pred _ _ _ hpos]
+  rw [storageLocStore_addr_zero]
+  simp only [EvalResult.bind]
+  erw [storageLocStore_uint256_pred _ _ _ hpos]
+  simp only [storageStore_executionEnv]
 
 theorem dropPopArray_revert_zero (evm : EVM.State) (locals : Store)
     (hbase : locals["srcs"]? = none)
@@ -614,7 +441,7 @@ theorem dropPopArray_revert_zero (evm : EVM.State) (locals : Store)
           type := .int uint256Int } =
         .int 0 := by
     change storageLocLoad evm (wordLoc ⟨2⟩) = .int 0
-    rw [cureStorageLocLoad_uint256, hlen]
+    erw [storageLocLoad_uint256, hlen]
     rfl
   rw [hlenLoad]
   simp
@@ -652,7 +479,7 @@ theorem dropAssignMoveElem_ok (evm : EVM.State) {locals : Store} (pos len : UInt
       simp only [EvalResult.bind, bind, pure, valueToKey?, EvalResult.ofOption]
       simp [arrayIndexInBounds?, storageTypeAt?, contract, storageDecls, config,
         storageLayout, solidityStorageLayout, storageLayoutRaw]
-      rw [cureStorageLocLoad_uint256, hlen]
+      erw [storageLocLoad_uint256, hlen]
       simp only [EvalResult.bind, bind, pure]
       rw [if_pos (by exact Int.ofNat_lt.mpr hdstLt)]
     unfold evalStorageRef srcElemRef
@@ -788,9 +615,9 @@ theorem dropDeleteAmt_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
 
 theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hpos : cureSlotWord (dropPosSlotFor I) σ I = ⟨0⟩) :
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hpos : solcSlotWordAt (dropPosSlotFor I) σ I = ⟨0⟩) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
       dropTransition.body .reverted := by
@@ -803,7 +630,7 @@ theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hposExpr := evalExpr_dropPosStorage evm0 I
   let localsPos : Store := (dropLocals I).insert "pos_"
     (.int (Int.ofNat
@@ -843,16 +670,16 @@ theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
 
 theorem cureDropSourceBodyOkNoSwap {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hnoSwap :
-      (cureSlotWord ⟨2⟩ σ I).toNat ≤
-        (cureSlotWord (dropPosSlotFor I) σ I).toNat) :
+      (solcSlotWordAt ⟨2⟩ σ I).toNat ≤
+        (solcSlotWordAt (dropPosSlotFor I) σ I).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := cureSlotWord (dropPosSlotFor I) σ I
-    let lenWord := cureSlotWord ⟨2⟩ σ I
+    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
     let localsLast : Store := localsPos.insert "last" (.int (Int.ofNat lenWord.toNat))
     let evmPop := dropAfterPopState evm0 lenWord
@@ -870,11 +697,11 @@ theorem cureDropSourceBodyOkNoSwap {σ σ₀ A I} {g : UInt256}
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) =
         posWord := by
-    simp [evm0, posWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, posWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hlenLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨2⟩ = lenWord := by
-    simp [evm0, lenWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, lenWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hposLoadNe :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by
@@ -974,16 +801,16 @@ theorem cureDropSourceBodyOkNoSwap {σ σ₀ A I} {g : UInt256}
 
 theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenZero : cureSlotWord ⟨2⟩ σ I = ⟨0⟩)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlenZero : solcSlotWordAt ⟨2⟩ σ I = ⟨0⟩)
     (hnoSwap :
-      (cureSlotWord ⟨2⟩ σ I).toNat ≤
-        (cureSlotWord (dropPosSlotFor I) σ I).toNat) :
+      (solcSlotWordAt ⟨2⟩ σ I).toNat ≤
+        (solcSlotWordAt (dropPosSlotFor I) σ I).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := cureSlotWord (dropPosSlotFor I) σ I
-    let lenWord := cureSlotWord ⟨2⟩ σ I
+    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
     let localsLast : Store := localsPos.insert "last" (.int (Int.ofNat lenWord.toNat))
     ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body .reverted := by
@@ -997,11 +824,11 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) =
         posWord := by
-    simp [evm0, posWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, posWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hlenLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨2⟩ = lenWord := by
-    simp [evm0, lenWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, lenWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hposLoadNe :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by
@@ -1074,22 +901,22 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
 
 theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hswap :
-      (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-        (cureSlotWord ⟨2⟩ σ I).toNat)
+      (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+        (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hpopLenPos :
       0 <
         (dropSwapPopLenState
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (cureSlotWord (dropPosSlotFor I) σ I)
-          (cureSlotWord ⟨2⟩ σ I)).toNat) :
+          (solcSlotWordAt (dropPosSlotFor I) σ I)
+          (solcSlotWordAt ⟨2⟩ σ I)).toNat) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := cureSlotWord (dropPosSlotFor I) σ I
-    let lenWord := cureSlotWord ⟨2⟩ σ I
+    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let lastIndex := dropLastIndex lenWord
     let dstIndex := dropDstIndex posWord
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
@@ -1130,11 +957,11 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) =
         posWord := by
-    simp [evm0, posWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, posWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hlenLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨2⟩ = lenWord := by
-    simp [evm0, lenWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, lenWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hposLoadNe :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by
@@ -1358,21 +1185,21 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
 
 theorem cureDropSourceBodySwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : cureSlotWord (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenPos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat)
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
+    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hswap :
-      (cureSlotWord (dropPosSlotFor I) σ I).toNat <
-        (cureSlotWord ⟨2⟩ σ I).toNat)
+      (solcSlotWordAt (dropPosSlotFor I) σ I).toNat <
+        (solcSlotWordAt ⟨2⟩ σ I).toNat)
     (hpopLenZero :
       dropSwapPopLenState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (cureSlotWord (dropPosSlotFor I) σ I)
-        (cureSlotWord ⟨2⟩ σ I) = ⟨0⟩) :
+        (solcSlotWordAt (dropPosSlotFor I) σ I)
+        (solcSlotWordAt ⟨2⟩ σ I) = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := cureSlotWord (dropPosSlotFor I) σ I
-    let lenWord := cureSlotWord ⟨2⟩ σ I
+    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
+    let lenWord := solcSlotWordAt ⟨2⟩ σ I
     let lastIndex := dropLastIndex lenWord
     let dstIndex := dropDstIndex posWord
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
@@ -1408,11 +1235,11 @@ theorem cureDropSourceBodySwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) =
         posWord := by
-    simp [evm0, posWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, posWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hlenLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨2⟩ = lenWord := by
-    simp [evm0, lenWord, cureSlotWord, solcSlotWord, initState,
+    simp [evm0, lenWord, solcSlotWordAt, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hposLoadNe :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by

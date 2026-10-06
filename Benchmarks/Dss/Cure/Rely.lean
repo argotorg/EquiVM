@@ -1,3 +1,5 @@
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Cure.Common
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -46,7 +48,7 @@ theorem cureCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem cureAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩) :
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
@@ -54,7 +56,7 @@ theorem cureAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
   have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (cureCallerWardsSlot I) = ⟨1⟩ := by
-    simpa [cureSlotWord] using hauth
+    simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -67,7 +69,7 @@ theorem cureAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         cureCallerWardsEvaledRef, cureCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
-  rw [cureStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -75,7 +77,7 @@ theorem cureAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem cureAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
-    (hauth : cureSlotWord (cureCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
@@ -85,7 +87,7 @@ theorem cureAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       (cureCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hauth (by simpa [w, cureSlotWord] using hw)
+    exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
   rw [evalExpr_storage_scalar
@@ -98,7 +100,7 @@ theorem cureAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
         cureCallerWardsEvaledRef, cureCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
-  rw [cureStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -109,13 +111,13 @@ theorem cureAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem cureLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
   have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       ⟨1⟩ = ⟨1⟩ := by
-    simpa [cureSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok cureLiveEvaledRef := by
@@ -131,7 +133,7 @@ theorem cureLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cureLiveEvaledRef])]
-  rw [cureStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -139,14 +141,14 @@ theorem cureLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem cureLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : cureSlotWord ⟨1⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
   let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨1⟩
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hlive (by simpa [w, cureSlotWord] using hw)
+    exact hlive (by simpa [w, solcSlotWordAt] using hw)
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok cureLiveEvaledRef := by
@@ -162,7 +164,7 @@ theorem cureLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cureLiveEvaledRef])]
-  rw [cureStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -468,77 +470,6 @@ theorem RD.cureLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
 
 /-! ### Event-emitting store helper -/
 
-def cureStLog2 (s : State) (a b c d : UInt256) (t : List UInt256) : State :=
-  {s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG2)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-            + 2 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
-theorem cureLog2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG2, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat
-            < memoryExpansionCost s .LOG2
-              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic)
-         then .error .OutOfGass else .ok (cureStLog2 s a b c d t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG2, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_log2 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: t).length - 4 + 0 > 1024) := by
-    simp only [List.length_cons]; omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, cureStLog2]
-
-theorem RD.cureLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: t →
-        memoryExpansionCost s .LOG2 = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 2 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
-    have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
-    have st := cureLog2_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨cureStLog2 s a b c d t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [cureStLog2]; exact hcode
-      · simp only [cureStLog2]; rw [hpc]
-      · simp only [cureStLog2]
-      · simp only [cureStLog2, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [cureStLog2]; exact hmem
-      · simp only [cureStLog2]; rw [haw, hawout]
-      · simp only [cureStLog2]; exact hrdata
-      · simp only [cureStLog2]; exact hacc
-      · exact hee
-      · simp only [cureStLog2]
-        exact hworld
 
 abbrev cureRelyEventTopic : UInt256 :=
   ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩
@@ -629,7 +560,7 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
   have rdLogPrefix := evm_run rdTopic with [
     raw swap2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rdLogged := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
+  have rdLogged := RD.log2 0 (UInt256.ofNat 3) rdLogPrefix
     (by native_decide) hperm mem_cost (by native_decide) (by evm_ov)
   have rdPop := rdLogged.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rdPop.jump (by native_decide) hret (by evm_ov)⟩
@@ -661,8 +592,8 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
       cureDecode_rely_ok hsz36
     have hslot : relySlotFor I = slot := by
       simp [slot, key, relySlotFor_eq]
-    have hcallerWord : cureSlotWord callerSlot σ I = cureSlotWord callerSlot σ I := rfl
-    have hliveWord : cureSlotWord ⟨1⟩ σ I = cureSlotWord ⟨1⟩ σ I := rfl
+    have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I := rfl
+    have hliveWord : solcSlotWordAt ⟨1⟩ σ I = solcSlotWordAt ⟨1⟩ σ I := rfl
     obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
       (code := cureBytecode) (sel := sel) (entry := ⟨594⟩) (ret := ⟨484⟩)
       (decoded := ⟨616⟩) hreach
@@ -676,12 +607,12 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-    by_cases hauthEvm : cureSlotWord callerSlot σ I = ⟨1⟩
-    · have hauthSolm : cureSlotWord callerSlot σ I = ⟨1⟩ := by
+    by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+    · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
         rw [← hcallerWord]
         exact hauthEvm
       have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-        simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+        simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
       obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
         (code := cureBytecode) (pc := ⟨2345⟩) (okPc := ⟨2435⟩) (key := key)
         (ret := ⟨484⟩) (R := [sel])
@@ -690,8 +621,8 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           unfold cureAuthCheckWf
           repeat' first | apply And.intro | native_decide)
         hauthSolc (by jump_dest) (by simp)
-      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩ := by
+      by_cases hliveEvm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩
+      · have hliveSolm : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩ := by
           rw [← hliveWord]
           exact hliveEvm
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -746,7 +677,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
             ExecFuncBody.execBlockOK hblock
         have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
-          simpa [cureSlotWord] using hliveEvm
+          simpa [solcSlotWordAt] using hliveEvm
         obtain ⟨_, _, hstorePc⟩ := RD.cureLiveGuardOk
           (code := cureBytecode) (pc := ⟨2435⟩) (okPc := ⟨2506⟩) (key := key)
           (ret := ⟨484⟩) (R := [sel]) hafterAuth
@@ -784,7 +715,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
         exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ I ≠ ⟨1⟩ := by
+      · have hliveSolm : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨1⟩ := by
           intro hsolm
           exact hliveEvm (by rw [hliveWord, hsolm])
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -811,7 +742,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
             ExecFuncBody.execBlockRevert hblock
         have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨1⟩ := by
-          simpa [cureSlotWord] using hliveEvm
+          simpa [solcSlotWordAt] using hliveEvm
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
           twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -831,7 +762,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
             repeat' first | apply And.intro | native_decide)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : cureSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+    · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm (by rw [hcallerWord, hsolm])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -852,7 +783,7 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
           ExecFuncBody.execBlockRevert hblock
       have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-        simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
+        simpa [callerSlot, cureCallerWardsSlot, solcSlotWordAt] using hauthEvm
       have hrev := RD.cureAuthCheckRevert
         (code := cureBytecode) (pc := ⟨2345⟩) (okPc := ⟨2435⟩) (key := key)
         (ret := ⟨484⟩) (R := [sel])

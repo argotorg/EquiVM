@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Fallback
 import Reasoning.EVMWord
 
@@ -17,7 +18,7 @@ theorem clipperRuntimePatchesWindowDisjoint32Bool (v : ClipperImmutables)
   apply patchesWindowDisjoint32_of_offsets_bool
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk, patchOffsetsWindowDisjoint32Bool]
   | some bs =>
@@ -58,7 +59,7 @@ theorem clipperJumpDest8259 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -72,7 +73,7 @@ theorem clipperJumpDest8266 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -86,7 +87,7 @@ theorem clipperJumpDest8686 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -100,7 +101,7 @@ theorem clipperJumpDest8661 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -114,7 +115,7 @@ theorem clipperJumpDest8677 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -128,7 +129,7 @@ theorem clipperJumpDest8679 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -142,7 +143,7 @@ theorem clipperJumpDest8710 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -156,7 +157,7 @@ theorem clipperJumpDest8713 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -170,7 +171,7 @@ theorem clipperJumpDest8722 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -184,7 +185,7 @@ theorem clipperJumpDest1806 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -207,51 +208,6 @@ theorem clipperCheckedSubWf (v : ClipperImmutables) {code : ByteArray}
 
 namespace Reasoning.Theory
 
-theorem clipperMul_zero_left (x : UInt256) : UInt256.mul ⟨0⟩ x = ⟨0⟩ := by
-  apply u256_inj
-  rw [u256_mul_toNat]
-  simp
-
-theorem clipperMulDiv_cancel {x y : UInt256}
-    (hx : x ≠ ⟨0⟩) (hmul : x.toNat * y.toNat < UInt256.size) :
-    UInt256.div (UInt256.mul x y) x = y := by
-  apply u256_inj
-  rw [udiv_toNat, u256_mul_toNat]
-  rw [Nat.mod_eq_of_lt hmul]
-  have hxNat : 0 < x.toNat := by
-    by_contra hzero
-    have hxzero : x.toNat = 0 := by omega
-    exact hx (uint256_toNat_eq_zero hxzero)
-  exact Nat.mul_div_right y.toNat hxNat
-
-theorem clipperMulDiv_cancel_comm {x y : UInt256}
-    (hx : x ≠ ⟨0⟩) (hmul : x.toNat * y.toNat < UInt256.size) :
-    UInt256.div (UInt256.mul y x) x = y := by
-  rw [u256_mul_comm y x]
-  exact clipperMulDiv_cancel hx hmul
-
-theorem clipperMulDiv_overflow_ne (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (UInt256.mul y x) x ≠ y := by
-  intro hEq
-  have hxNatNe : x.toNat ≠ 0 := by
-    intro hx0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hx0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_toNat] at hnat
-  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
-    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
-      simpa [Nat.mul_comm] using hover
-    omega
-  have hle0 := Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) x.toNat
-  rw [hnat] at hle0
-  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
 
 end Reasoning.Theory
 
@@ -541,7 +497,7 @@ theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.Sta
       clipperEvalVarY_Z v evm x ⟨0⟩ (UInt256.mul x ⟨0⟩)]
   · have hdiv :
         Int.ofNat (UInt256.mul x y).toNat / Int.ofNat y.toNat = Int.ofNat x.toNat := by
-      have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
+      have hcancel := Reasoning.Theory.mulDiv_cancel (x := y) (y := x)
         (by simpa [eq_comm] using hy) (by simpa [Nat.mul_comm] using hmul)
       have hnat := congrArg UInt256.toNat hcancel
       rw [udiv_toNat, u256_mul_comm y x] at hnat
@@ -961,21 +917,6 @@ theorem clipperMinWord_comm (x y : UInt256) :
   · have hyx : y.toNat ≤ x.toNat := by omega
     simp [hxy, hyx]
 
-theorem clipperTakeTabDivPrice_le_lot_of_owe_gt {tab price slice lot : UInt256}
-    (hmul : slice.toNat * price.toNat < UInt256.size)
-    (hgt : tab.toNat < (UInt256.mul slice price).toNat)
-    (hsliceLot : slice.toNat ≤ lot.toNat) :
-    (UInt256.div tab price).toNat ≤ lot.toNat := by
-  have hmulNat : (UInt256.mul slice price).toNat = slice.toNat * price.toNat := by
-    rw [u256_mul_toNat]
-    exact Nat.mod_eq_of_lt hmul
-  have hgtNat : tab.toNat < slice.toNat * price.toNat := by
-    simpa [hmulNat] using hgt
-  have hdivLt : tab.toNat / price.toNat < slice.toNat := by
-    apply Nat.div_lt_of_lt_mul
-    simpa [Nat.mul_comm] using hgtNat
-  rw [udiv_toNat]
-  omega
 
 theorem clipperLookupMinFunction (v : ClipperImmutables) :
     lookupCallable? (contract v) "min" = some minFunction.toCallable := by
@@ -1107,29 +1048,6 @@ theorem clipperIntModWord_sub_toNat (a b : UInt256) :
     rw [usub_toNat_underflow (a := a) (b := b) hlt]
     exact hwrapMod
 
-theorem clipperSubOne_eq_addNotZero (a : UInt256) :
-    UInt256.sub a ⟨1⟩ = a + UInt256.lnot ⟨0⟩ := by
-  apply u256_inj
-  rw [uadd_toNat,
-    show (UInt256.lnot ⟨0⟩).toNat = UInt256.size - 1 by native_decide]
-  by_cases hz : a.toNat = 0
-  · rw [usub_toNat_underflow (by
-      rw [hz, show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
-      omega)]
-    rw [hz, show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
-    norm_num [UInt256.size]
-  · have hone : (⟨1⟩ : UInt256).toNat ≤ a.toNat := by
-      rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
-      omega
-    rw [usub_toNat hone]
-    rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
-    have hadd : a.toNat + (UInt256.size - 1) = UInt256.size + (a.toNat - 1) := by
-      have hsize : 1 ≤ UInt256.size := by norm_num [UInt256.size]
-      omega
-    rw [hadd, Nat.add_mod, Nat.mod_self, zero_add]
-    have hlt : a.toNat - 1 < UInt256.size :=
-      Nat.lt_of_le_of_lt (Nat.sub_le _ _) a.val.isLt
-    simp [Nat.mod_eq_of_lt hlt]
 
 namespace Reasoning.Reach
 
@@ -1216,7 +1134,7 @@ theorem RD.clipperCheckedMul {code : ByteArray} (v : ClipperImmutables)
   by_cases hx : x = ⟨0⟩
   · subst x
     have hprod : UInt256.mul ⟨0⟩ y = ⟨0⟩ :=
-      Reasoning.Theory.clipperMul_zero_left y
+      Reasoning.Theory.mul_zero_left y
     exact ⟨_, _, by
       simpa [hprod] using (evm_run h with [
       raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -1239,7 +1157,7 @@ theorem RD.clipperCheckedMul {code : ByteArray} (v : ClipperImmutables)
       raw jump (by clipper_runtime_decode) hret (by evm_ov) ])⟩
   · have hdiv :
         UInt256.div (UInt256.mul y x) x = y :=
-      Reasoning.Theory.clipperMulDiv_cancel_comm hx hmul
+      Reasoning.Theory.mulDiv_cancel_comm hx hmul
     have hcond :
         UInt256.eq (UInt256.div (UInt256.mul y x) x) y ≠ ⟨0⟩ := by
       rw [hdiv, uInt256_eq_self]
@@ -1294,7 +1212,7 @@ theorem RD.clipperCheckedMulRevert {code : ByteArray} (v : ClipperImmutables)
     norm_num [UInt256.size] at hover
   have hdivNe :
       UInt256.div (UInt256.mul y x) x ≠ y :=
-    Reasoning.Theory.clipperMulDiv_overflow_ne x y hover
+    Reasoning.Theory.mulDiv_overflow_ne x y hover
   have hcond :
       UInt256.eq (UInt256.div (UInt256.mul y x) x) y = ⟨0⟩ := by
     apply Reasoning.Theory.uInt256_eq_zero_of_ne

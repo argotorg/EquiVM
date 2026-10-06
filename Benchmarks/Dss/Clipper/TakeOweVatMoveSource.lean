@@ -1128,7 +1128,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
         Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
       simpa only [← hAccountsPost] using hvatCodeEvm
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σPostSolm) (target := clipperTakeVatTarget v)
         (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
   let evmPostEvm : EVM.State :=
@@ -1163,7 +1163,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
         Reasoning.Theory.extCodeSizeWord σVatSolm (clipperTakeVatTarget v) = ⟨0⟩ := by
       simpa only [← hAccountsVat] using hvatMoveNoCodeEvm
     simpa [evmVatSolm, State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σVatSolm) (target := clipperTakeVatTarget v)
         (addr := v.vat) (clipperTakeVatTargetAddress v).symm hnoCode
   exact
@@ -1286,7 +1286,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
           Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
         simpa only [← hAccountsPost] using hvatCodeEvm
       simpa [State.lookupAccount, hevmPriceAccounts] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (σ := σPostSolm) (target := clipperTakeVatTarget v)
           (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
     let evmPostEvm : EVM.State :=
@@ -1321,7 +1321,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
           Reasoning.Theory.extCodeSizeWord σVatSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
         simpa only [← hAccountsVat] using hvatMoveCodeEvm
       simpa [evmVatSolm, State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (σ := σVatSolm) (target := clipperTakeVatTarget v)
           (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
     have hvow :

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Auction.PaymentArithmetic
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -7,14 +8,6 @@ namespace Auction
 def paymentAddress (recipient : UInt256) : AccountAddress :=
   AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask)
 
-theorem addressOfWord_eq (word : UInt256) :
-    AccountAddress.ofUInt256 word = AccountAddress.ofNat word.toNat := by
-  exact accountAddress_ofUInt256_eq_ofNat_toNat word
-
-theorem addressOfAddress (target : AccountAddress) : EVM.address target.val = target := by
-  apply Fin.ext
-  change target.val % AccountAddress.size = target.val
-  exact Nat.mod_eq_of_lt target.isLt
 
 structure PaymentValues (locals : Store) (recipient amount ptr : UInt256) : Prop where
   recipient : locals.get? "to" = some (.address (paymentAddress recipient))

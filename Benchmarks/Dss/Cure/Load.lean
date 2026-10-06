@@ -72,17 +72,17 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-    by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨0⟩
+    by_cases hliveEvm : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩
     ·
       have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨0⟩ := by
-        simpa [cureSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hafterLive⟩ := RD.cureLoadLiveZeroOk
         (g := Sat256.ofUInt256 g)
         (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
         (by simpa [key, loadKey] using hroutine)
         hliveSolc (by simp)
-      by_cases hposEvm : cureSlotWord (loadPosSlotFor I) σ I = ⟨0⟩
+      by_cases hposEvm : solcSlotWordAt (loadPosSlotFor I) σ I = ⟨0⟩
       ·
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody : ExecTransitionBody config contract evm0 locals loadTransition.body .reverted := by
@@ -92,7 +92,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
               hwv hliveEvm hposEvm)
         have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) = ⟨0⟩ := by
           rw [← hposSlotEq]
-          simpa [cureSlotWord] using hposEvm
+          simpa [solcSlotWordAt] using hposEvm
         have hcanonKey : key.toNat < EVM.addressModulus := by
           dsimp [key, loadKey]
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
@@ -106,7 +106,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
       ·
         have hposSolc : solcSlotWord σ I (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩ := by
           rw [← hposSlotEq]
-          simpa [cureSlotWord] using hposEvm
+          simpa [solcSlotWordAt] using hposEvm
         have hcanonKey : key.toNat < EVM.addressModulus := by
           dsimp [key, loadKey]
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
@@ -189,7 +189,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
             · by_cases hshort : out.size < 32
               · have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat =
                     out.size :=
-                  loadCureMin32_toNat_of_lt hshort
+                  ctorMin32_toNat_of_lt hshort
                 have rd1602' := rd1602
                 rw [hmin] at rd1602'
                 obtain ⟨_, _, rd1623⟩ :=
@@ -282,7 +282,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · have ho32 : 32 ≤ out.size := Nat.le_of_not_lt hshort
                 have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 :=
-                  loadCureMin32_toNat_of_ge ho32 houtsz
+                  ctorMin32_toNat_of_ge ho32 houtsz
                 have rd1602' := rd1602
                 rw [hmin] at rd1602'
                 obtain ⟨_, _, rd1623⟩ :=
@@ -969,7 +969,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             hwv hliveEvm)
       have hliveSolc : solcSlotWord σ I ⟨1⟩ ≠ ⟨0⟩ := by
-        simpa [cureSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hrev := RD.cureLoadStillLiveRevert
         (g := Sat256.ofUInt256 g)
         (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)

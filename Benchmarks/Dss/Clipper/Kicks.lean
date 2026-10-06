@@ -88,7 +88,7 @@ theorem clipperEvalKicks (v : ClipperImmutables) (evm : EVM.State) (locals : Sto
     funext evm'
     rfl
   exact evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_uint256 evm ⟨10⟩)
+    (storageLocLoad_uint256 evm ⟨10⟩)
 
 theorem clipperKicksBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "kicks" = none) :
@@ -111,7 +111,7 @@ theorem clipperReachKicksBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperKicksSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -135,7 +135,7 @@ theorem clipperReachKicksBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
@@ -159,7 +159,7 @@ theorem clipperReachKicksBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h65 := clipperSplitNotTaken (pc := (⟨54⟩ : UInt256))
+  have h65 := RD.selectorSplitNotTakenPush2 (pc := (⟨54⟩ : UInt256))
     (next := (⟨65⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by
@@ -183,7 +183,7 @@ theorem clipperReachKicksBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h76 := clipperArmNotTaken (pc := (⟨65⟩ : UInt256))
+  have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256))
     (next := (⟨76⟩ : UInt256)) (sel := clipperSelNat 12)
     (tgt := (⟨1349⟩ : UInt256)) h65
     (by
@@ -207,7 +207,7 @@ theorem clipperReachKicksBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1357 := clipperArmTaken (pc := (⟨76⟩ : UInt256)) (sel := clipperSelNat 14)
+  have h1357 := RD.selectorArmTakenPush2 (pc := (⟨76⟩ : UInt256)) (sel := clipperSelNat 14)
     (tgt := (⟨1357⟩ : UInt256)) h76
     (by
         change decode code (⟨76⟩ : UInt256) = some (.DUP1, .none)
@@ -247,7 +247,7 @@ theorem clipperKicksPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hlo hhi ⊢
   · simp [hIlk] at hlo hhi ⊢
     omega
@@ -273,7 +273,7 @@ theorem clipperJumpDest6834 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

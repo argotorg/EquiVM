@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.ABIComposite
 import Benchmarks.WETH9.Deposit
 import Reasoning.ExternalCall
 
@@ -19,15 +21,6 @@ namespace Benchmarks.WETH9
 
 /-! ## The wrapping subtraction store word -/
 
-/-- `wordOfInt (a - b) = a ⊖ b` when `b ≤ a` (the unchecked `-=` on store; `require(bal≥wad)` rules
-    out underflow). -/
-theorem wordOfInt_sub_words (a b : UInt256) (hle : b.toNat ≤ a.toNat) :
-    EVM.wordOfInt (Int.ofNat a.toNat - Int.ofNat b.toNat) = UInt256.sub a b := by
-  rw [show (Int.ofNat a.toNat - Int.ofNat b.toNat) = Int.ofNat (a.toNat - b.toNat) from
-      (Nat.cast_sub hle).symm, wordOfInt_ofNat_toNat_gen]
-  apply u256_inj
-  rw [usub_toNat hle]
-  exact ulit_toNat' _ (Nat.lt_of_le_of_lt (Nat.sub_le _ _) a.val.isLt)
 
 /-! ## Argument / store definitions -/
 
@@ -49,58 +42,20 @@ theorem weth9SelectorDispatchWithdraw {I : ExecutionEnv} (hsel : selIs I (weth9S
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes]
   native_decide
 
-/-- Legacy (solc 0.5) single-`uint256` calldata decode succeeds for any `size ≥ 36` — including huge
-    calldata (`≥ 2^255`), matching the runtime's **unsigned** `LT` length guard. -/
-theorem decodeCalldata_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-theorem decodeCalldata_legacyUint256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05) (start := 0)
-    (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem weth9Decode_withdraw_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (withdrawTransition.params.map Param.name)
       (transitionSignature withdrawTransition).paramTypes I.calldata = some (withdrawStore I) := by
   show decodeCalldataWithMode config.abiDecodeMode ["wad"] [uint256] I.calldata = _
   simpa [withdrawStore, withdrawWadWord] using
-    decodeCalldata_legacyUint256_ok (cd := I.calldata) (x := "wad") hsz36
+    decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "wad") hsz36
 
 theorem weth9Decode_withdraw_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (withdrawTransition.params.map Param.name)
       (transitionSignature withdrawTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["wad"] [uint256] I.calldata = none
-  simpa using decodeCalldata_legacyUint256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
+  simpa using decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
 
 /-! ## Solm body execution
 
@@ -207,7 +162,7 @@ theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executio
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
   · unfold withdrawStoreState
     rw [show wordLoc (callerBalSlot I) = uint256Loc (callerBalSlot I) from rfl,
-      storageLocStore_uint256_int, wordOfInt_sub_words _ _ hle]
+      storageLocStore_uint256_int, wordOfInt_sub_words_of_le _ _ hle]
 
 /-- Body execution, `bal < wad` branch: `require(balanceOf[caller] ≥ wad)` reverts. -/
 theorem weth9WithdrawBodyReverts_geFalse (evm : EVM.State) (I : ExecutionEnv)
@@ -276,7 +231,7 @@ theorem weth9WithdrawGuardRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  exact weth9GuardPeelRev (gt := ⟨499⟩) h487 hwv
+  exact solcFunctionGuardPeelRev (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
@@ -288,7 +243,7 @@ theorem weth9WithdrawDecodeRev {σ σ₀ A I} {g : Sat256}
     RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
+  obtain ⟨_, _, h501⟩ := solcFunctionGuardPeelOk (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
@@ -320,7 +275,7 @@ theorem weth9WithdrawReachBody {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
-  obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
+  obtain ⟨_, _, h501⟩ := solcFunctionGuardPeelOk (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=

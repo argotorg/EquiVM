@@ -1,3 +1,4 @@
+import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Clipper.KickFeedPriceEntry
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -485,64 +486,6 @@ theorem RD.clipperKickGetFeedPricePipPeekHasTrueToValBln
   exact ⟨_, _, rdHasCheck.jumpiT (by clipper_runtime_decode) hhas
     (clipperGetFeedPriceJumpDest9079 v hpatch) (by evm_ov)⟩
 
-theorem clipperKickErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 192) :
-    (solcErrorStringMem0 mem).size = 192 := by
-  unfold solcErrorStringMem0
-  exact toByteArray_write32_size_of_le mem solcErrorStringSelector 128
-    192 192 hmem (by rw [hmem]; omega) (by native_decide)
-
-theorem clipperKickErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 192) :
-    (solcErrorStringMem1 mem).size = 192 := by
-  unfold solcErrorStringMem1
-  exact toByteArray_write32_size_of_le (solcErrorStringMem0 mem) ⟨32⟩ 132
-    192 192 (clipperKickErrorStringMem0_size hmem)
-      (by rw [clipperKickErrorStringMem0_size hmem]; omega) (by native_decide)
-
-theorem clipperKickErrorStringMem2_size (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 192) : (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  exact toByteArray_write32_size_of_le (solcErrorStringMem1 mem) len 164
-    192 196 (clipperKickErrorStringMem1_size hmem)
-      (by rw [clipperKickErrorStringMem1_size hmem]; omega) (by native_decide)
-
-theorem clipperKickErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 192) : (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  exact toByteArray_write32_size_of_le (solcErrorStringMem2 len mem) word 196
-    196 228 (clipperKickErrorStringMem2_size len hmem)
-      (by rw [clipperKickErrorStringMem2_size len hmem]) (by native_decide)
-
-theorem clipperKickErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 192)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [clipperKickErrorStringMem2_size len hmem]; native_decide)
-      (by native_decide)
-      (by rw [clipperKickErrorStringMem2_size len hmem]; exact lt_usize _ (by omega))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [clipperKickErrorStringMem1_size hmem]; omega) (by native_decide)
-      (by rw [clipperKickErrorStringMem1_size hmem]; exact lt_usize _ (by omega))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [clipperKickErrorStringMem0_size hmem]; omega) (by native_decide)
-      (by rw [clipperKickErrorStringMem0_size hmem]; exact lt_usize _ (by omega))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by rw [hmem]; omega) (by native_decide)
-      (by rw [hmem]; exact lt_usize _ (by omega))]
-  exact hread64
-
-theorem clipperKickErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 192)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
-     else UInt256.ofNat (fromByteArrayBigEndian
-        ((solcErrorStringMem3 len word mem).readWithPadding 64 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [clipperKickErrorStringMem3_size len word hmem]; decide) (clipperKickErrorStringMem3_read64 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperKickGetFeedPricePipPeekHasFalseReverts
@@ -671,7 +614,7 @@ theorem RD.clipperKickGetFeedPricePipPeekHasFalseReverts
       (by native_decide) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by clipper_runtime_decode)
-      mem_cost (clipperKickErrorStringMem3_mload64 ⟨21⟩ invalidPriceWord hmem hread64)
+      mem_cost (errorStringMem3_mload64 ⟨21⟩ invalidPriceWord hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov),

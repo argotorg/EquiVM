@@ -19,7 +19,7 @@ private theorem clipperRedoSuccessJumpDest
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch <;>
     unfold patches patchesFrom offsets immValues <;>
     simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons] <;>
-    cases hIlk : wordBytes? v.ilk <;> simp [hIlk] <;> native_decide
+    cases hIlk : Reasoning.Theory.wordBytes? v.ilk <;> simp [hIlk] <;> native_decide
 
 theorem clipperRedoJumpDest6235 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -122,7 +122,7 @@ theorem RD.clipperRedoFeedPriceToRmul {code : ByteArray}
         apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch
         unfold patches patchesFrom offsets immValues
         simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-        cases hIlk : wordBytes? v.ilk <;> simp [hIlk] <;> native_decide)
+        cases hIlk : Reasoning.Theory.wordBytes? v.ilk <;> simp [hIlk] <;> native_decide)
       (by evm_ov)]
   exact ⟨_, _, by simpa [solcSlotWord] using rd9233⟩
 

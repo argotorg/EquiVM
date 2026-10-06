@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Jug.ConstructorBase
 
 /-!
@@ -22,10 +23,6 @@ abbrev jugCtorAfterVatState (evm : EVM.State) (vat : AccountAddress) : EVM.State
     (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
       (EVM.word vat.val))
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_jugCtorLocalVat {evm : EVM.State} (vat : AccountAddress) :
     evalExpr? config { contract := contract, locals := jugCtorLocals vat } evm (.var "vat_") =

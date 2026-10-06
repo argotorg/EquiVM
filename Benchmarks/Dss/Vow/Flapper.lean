@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `flapper()` getter -/
 
 def flapperWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 theorem vowDispatch_flapper {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩) :
@@ -87,7 +87,7 @@ theorem vowFlapperBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (flapperWord σ I).toNat))])) := by
-    simpa [flapperTransition, flapperWord, vowAddressReturnWord, initState,
+    simpa [flapperTransition, flapperWord, solcAddressSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       vowAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

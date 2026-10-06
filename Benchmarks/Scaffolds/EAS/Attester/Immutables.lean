@@ -1,3 +1,5 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
 
 /-!
@@ -19,13 +21,10 @@ namespace Benchmarks.EAS.Attester.Immutables
 structure AttesterImmutables where
   eas : EVM.Address
 
-/-- An address value as an `Expr` literal. -/
-def addrLit (a : EVM.Address) : Expr :=
-  .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
 
 variable (v : AttesterImmutables)
 
-def easExpr : Expr := addrLit v.eas
+def easExpr : Expr := Reasoning.Theory.addressLiteral v.eas
 
 /-- solc `immutableReferences` offsets, keyed by `imm_eas` (AST id 516 = `_eas`). -/
 def offsets : List (Ident × List Nat) :=
@@ -35,13 +34,11 @@ def offsets : List (Ident × List Nat) :=
 def immValues (v : AttesterImmutables) : List (Ident × Value) :=
   [("imm_eas", .address v.eas)]
 
-def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let x ← get p.1
-    let bytes ← wordBytes? x
+    let bytes ← Reasoning.Theory.wordBytes? x
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 def patches (v : AttesterImmutables) : List (Nat × ByteArray) :=

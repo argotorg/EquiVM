@@ -113,7 +113,7 @@ theorem clipperTakeFromFluxDataEmptyEquiv
           ⟨0⟩ := by
       simpa only [← hAccountsPost] using hne
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (clipperTakeVatTargetAddress v).symm hneEvm
   have syncFlux {σVat : AccountMap} {AVat : Substate} {zVat : Bool} {outVat : ByteArray}
       (hcall : typedCallViaEVM (config v) evmPriceEvm
@@ -124,7 +124,7 @@ theorem clipperTakeFromFluxDataEmptyEquiv
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σVat, substate := AVat },
           outVat) true) :=
-    clipperTypedCallSyncFromState hAccountsPost
+    typedCallViaEVM_syncFromState hAccountsPost
       (by simp [evmPriceEvm, initState, hevmPriceSigma0])
 
 
@@ -149,7 +149,7 @@ theorem clipperTakeFromFluxDataEmptyEquiv
             (clipperTakeVatTarget v) = ⟨0⟩ := by
         simpa only [← hAccountsPost] using hnoCode
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (clipperTakeVatTargetAddress v).symm hnoCodeEvm
     exact closeRevert hrev (hsourceVatNoCode hnoCodeSolm)
   · intro σVat outVat AVat hcall hvatCode hrev

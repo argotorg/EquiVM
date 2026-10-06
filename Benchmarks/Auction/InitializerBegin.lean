@@ -17,7 +17,7 @@ def initializerBodyPc (i : InitializerBodySite) : UInt256 :=
 
 def initializerEntered (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   if initializingWord σ I = ⟨0⟩ then
-    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerBeginWord (storedWord σ I ⟨0⟩))
+    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerBeginWord (solcSlotWord σ I ⟨0⟩))
   else σ
 
 def initializerBeginWf (i : InitializerBodySite) : Prop :=
@@ -91,7 +91,7 @@ theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite
     raw push2 ⟨256⟩ h3 (by evm_ov), raw swap1 h4 (by evm_ov), raw div h5 (by evm_ov),
     raw push1 ⟨255⟩ h6 (by evm_ov), raw and h7 (by evm_ov), raw iszero h8 (by evm_ov) ]
   change RD _ _ _ _ _
-    (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (storedWord σ I ⟨0⟩) ⟨256⟩)) :: R)
+    (UInt256.isZero (UInt256.land ⟨255⟩ (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩)) :: R)
     _ _ _ _ _ _ at rdTest
   rw [u256_land_comm ⟨255⟩] at rdTest
   by_cases hi : initializingWord σ I = ⟨0⟩
@@ -110,7 +110,7 @@ theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite
     obtain ⟨_, _, rdBody⟩ := rdStore.sstore hperm h22 (by evm_ov)
     rw [hp] at rdBody
     change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
-      (UInt256.lor ⟨257⟩ (UInt256.land (UInt256.lnot ⟨65535⟩) (storedWord σ I ⟨0⟩))))
+      (UInt256.lor ⟨257⟩ (UInt256.land (UInt256.lnot ⟨65535⟩) (solcSlotWord σ I ⟨0⟩))))
       _ _ at rdBody
     rw [u256_land_comm (UInt256.lnot ⟨65535⟩), u256_lor_comm ⟨257⟩] at rdBody
     exact ⟨_, _, rdBody⟩

@@ -14,45 +14,45 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     {g : UInt256} {sel : UInt256} {memKiss outMove outAsh outKiss : ByteArray}
     {k C : ℕ}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
-    (hbegFit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
+    (hbegFit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlotOneFit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat *
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat *
         dentOneWord.toNat < UInt256.size)
     (hsuff :
       (dentBegLotWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≤
         (dentLotOneWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
     (hticMove :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
       Reasoning.Theory.extCodeSizeWord σ'
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hkissCodeSize :
       Reasoning.Theory.extCodeSizeWord σAsh
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨0⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
         dentAshWord outAsh :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
@@ -60,11 +60,11 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
+            (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -75,7 +75,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
         "Ash" 0 []
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -87,7 +87,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (false,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -112,11 +112,11 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address evmSolm.executionEnv.source,
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord packedSlot σ I).toNat),
+            (solcAddressSlotWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
     simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
@@ -136,15 +136,15 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
   have hdepthNeBase : evmCallSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmCallSolmBase, evmCallSolm, evmSolm, initState, hcallEnv] using hdepthNeI
   obtain ⟨AAshSolm, hcallAshSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
+    typedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
       evmCallSolm.substate
   let evmAshSolm : EVM.State :=
     { evmCallSolm with
         accountMap := σAshSolm, substate := AAshSolm }
   have hguyMoveEq :
-      flopperAddressReturnWord packedSlot σ' I =
-        flopperAddressReturnWord packedSlot σ'_solm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
+      solcAddressSlotWord packedSlot σ' I =
+        solcAddressSlotWord packedSlot σ'_solm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
@@ -159,15 +159,15 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
   obtain ⟨AKissSolm, hkissCallSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
+    typedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
       evmAshSolm.substate
   let evmKissSolm : EVM.State :=
     { evmAshSolm with
         accountMap := σKissSolm, substate := AKissSolm }
   have hguyAshEq :
-      flopperAddressReturnWord packedSlot σAsh I =
-        flopperAddressReturnWord packedSlot σAshSolm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
+      solcAddressSlotWord packedSlot σAsh I =
+        solcAddressSlotWord packedSlot σAshSolm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -218,10 +218,10 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
+    have hword := congrArg (fun accounts => uint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
@@ -254,50 +254,50 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
     {k C : ℕ}
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
-    (hbegFit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
+    (hbegFit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlotOneFit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat *
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat *
         dentOneWord.toNat < UInt256.size)
     (hsuff :
       (dentBegLotWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≤
         (dentLotOneWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
     (hticMove :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
       Reasoning.Theory.extCodeSizeWord σ'
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hkissCodeSize :
       Reasoning.Theory.extCodeSizeWord σAsh
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
     (haddOverflow :
       2 ^ 48 ≤
-        (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+        (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
           (dentRuntimeTtlWord I.codeOwner
             (dentRuntimeAfterGuyMap I.codeOwner σKiss I) I).toNat)
     (hdepth : I.depth.val < 1024)
     (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨1⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
         dentAshWord outAsh :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
@@ -305,11 +305,11 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
+            (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -320,7 +320,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
         "Ash" 0 []
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -332,7 +332,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -356,11 +356,11 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address evmSolm.executionEnv.source,
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord packedSlot σ I).toNat),
+            (solcAddressSlotWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
     simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
@@ -380,15 +380,15 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
   have hdepthNeBase : evmCallSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmCallSolmBase, evmCallSolm, evmSolm, initState, hcallEnv] using hdepthNeI
   obtain ⟨AAshSolm, hcallAshSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
+    typedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
       evmCallSolm.substate
   let evmAshSolm : EVM.State :=
     { evmCallSolm with
         accountMap := σAshSolm, substate := AAshSolm }
   have hguyMoveEq :
-      flopperAddressReturnWord packedSlot σ' I =
-        flopperAddressReturnWord packedSlot σ'_solm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
+      solcAddressSlotWord packedSlot σ' I =
+        solcAddressSlotWord packedSlot σ'_solm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
@@ -404,15 +404,15 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
   obtain ⟨AKissSolm, hkissCallSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
+    typedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
       evmAshSolm.substate
   let evmKissSolm : EVM.State :=
     { evmAshSolm with
         accountMap := σKissSolm, substate := AKissSolm }
   have hguyAshEq :
-      flopperAddressReturnWord packedSlot σAsh I =
-        flopperAddressReturnWord packedSlot σAshSolm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
+      solcAddressSlotWord packedSlot σAsh I =
+        solcAddressSlotWord packedSlot σAshSolm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -472,10 +472,10 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
+    have hword := congrArg (fun accounts => uint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
@@ -518,42 +518,42 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     {k C : ℕ}
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
-    (hbegFit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
+    (hbegFit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlotOneFit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat *
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat *
         dentOneWord.toNat < UInt256.size)
     (hsuff :
       (dentBegLotWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≤
         (dentLotOneWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
     (hticMove :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
       Reasoning.Theory.extCodeSizeWord σ'
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hkissCodeSize :
       Reasoning.Theory.extCodeSizeWord σAsh
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠ ⟨0⟩)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
           (dentRuntimeTtlWord I.codeOwner
             (dentRuntimeAfterGuyMap I.codeOwner σKiss I) I).toNat <
         2 ^ 48)
@@ -561,7 +561,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     (rd2833 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩
       (⟨1⟩ :: dentKissEndPtr :: dentKissSelectorWord ::
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I ::
         dentAshWord outAsh :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: sel :: [])
       memKiss (UInt256.ofNat 8) outKiss σKiss k C)
@@ -569,11 +569,11 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
+            (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -584,7 +584,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ', substate := A' }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ' I).toNat))
         "Ash" 0 []
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -596,7 +596,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σAsh, substate := Ain }
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σAsh I).toNat))
         "kiss" 0 [.int (Int.ofNat (dentKissAmtWord I outAsh).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -620,11 +620,11 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address evmSolm.executionEnv.source,
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord packedSlot σ I).toNat),
+            (solcAddressSlotWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
     simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
@@ -644,15 +644,15 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hdepthNeBase : evmCallSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmCallSolmBase, evmCallSolm, evmSolm, initState, hcallEnv] using hdepthNeI
   obtain ⟨AAshSolm, hcallAshSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
+    typedCallViaEVM_zero_setSubstate hcallAshSolmBase hdepthNeBase
       evmCallSolm.substate
   let evmAshSolm : EVM.State :=
     { evmCallSolm with
         accountMap := σAshSolm, substate := AAshSolm }
   have hguyMoveEq :
-      flopperAddressReturnWord packedSlot σ' I =
-        flopperAddressReturnWord packedSlot σ'_solm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
+      solcAddressSlotWord packedSlot σ' I =
+        solcAddressSlotWord packedSlot σ'_solm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
@@ -668,15 +668,15 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
   obtain ⟨AKissSolm, hkissCallSolmRaw⟩ :=
-    dentTypedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
+    typedCallViaEVM_zero_setSubstate hkissCallSolmBase hdepthNeKissBase
       evmAshSolm.substate
   let evmKissSolm : EVM.State :=
     { evmAshSolm with
         accountMap := σKissSolm, substate := AKissSolm }
   have hguyAshEq :
-      flopperAddressReturnWord packedSlot σAsh I =
-        flopperAddressReturnWord packedSlot σAshSolm I :=
-    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
+      solcAddressSlotWord packedSlot σAsh I =
+        solcAddressSlotWord packedSlot σAshSolm I :=
+    congrArg (fun accounts => solcAddressSlotWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -736,10 +736,10 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
+    have hword := congrArg (fun accounts => uint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
@@ -794,52 +794,52 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
     {mem out : ByteArray} {k C : ℕ}
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
-    (hbegFit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
+    (hbegFit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlotOneFit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat *
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat *
         dentOneWord.toNat < UInt256.size)
     (hsuff :
       (dentBegLotWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≤
         (dentLotOneWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
     (hticMove :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
     (haddOverflow :
-      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      2 ^ 48 ≤ (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (dentRuntimeTtlWord I.codeOwner (dentRuntimeAfterGuyMap I.codeOwner σ' I) I).toNat)
     (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-        flopperAddressReturnWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
+        solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
+            (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -863,11 +863,11 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address evmSolm.executionEnv.source,
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord packedSlot σ I).toNat),
+            (solcAddressSlotWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, out) true := by
     simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
@@ -921,7 +921,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I ≠ ⟨0⟩ := by
     intro hzero
@@ -959,53 +959,53 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
     {mem out : ByteArray} {k C : ℕ}
     (hcode : I.code = flopperBytecode) (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
-    (hbegFit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
+    (hbegFit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlotOneFit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat *
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat *
         dentOneWord.toNat < UInt256.size)
     (hsuff :
       (dentBegLotWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat ≤
         (dentLotOneWord (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat)
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩)
     (hticMove :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
           (dentRuntimeTtlWord I.codeOwner (dentRuntimeAfterGuyMap I.codeOwner σ' I) I).toNat <
         2 ^ 48)
     (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-        flopperAddressReturnWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
+        solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C)
     (hcall :
       typedCallViaEVM config
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address (AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat),
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
+            (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1029,11 +1029,11 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
-          (flopperAddressReturnWord ⟨2⟩ σ I).toNat))
+          (solcAddressSlotWord ⟨2⟩ σ I).toNat))
         "move" 0
         [.address evmSolm.executionEnv.source,
           .address (AccountAddress.ofNat
-            (flopperAddressReturnWord packedSlot σ I).toNat),
+            (solcAddressSlotWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, out) true := by
     simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
@@ -1087,7 +1087,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
-        (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
+        (solcAddressSlotWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
     hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I ≠ ⟨0⟩ := by
     intro hzero
@@ -1148,7 +1148,7 @@ theorem flopperDentBodyCoreNotLive
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
@@ -1177,8 +1177,8 @@ theorem flopperDentBodyCoreGuyNotSet
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
@@ -1208,11 +1208,11 @@ theorem flopperDentBodyCoreTicFinished
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
-    (hticNe : flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hticNe : uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticLe :
-      (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
+      (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
@@ -1254,14 +1254,14 @@ theorem flopperDentBodyCoreEndFinished
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendLe :
-      (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
+      (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
@@ -1373,16 +1373,16 @@ theorem flopperDentBodyCoreBidMismatch
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticOk :
       (UInt256.ofNat I.header.timestamp).toNat <
-          (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+          (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ∨
+        uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
-    (hbid : dentBidWord I ≠ flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+    (hbid : dentBidWord I ≠ solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)

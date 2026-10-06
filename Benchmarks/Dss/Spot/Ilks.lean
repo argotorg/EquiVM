@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Benchmarks.Dss.Spot.Dispatch
 import Benchmarks.Dss.Jug.Ilks
 
@@ -38,7 +39,7 @@ theorem spotDecode_ilks_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
       (transitionSignature ilksTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "arg0" (ilksArgValue I)) := by
   simpa [config, ilksTransition, ilksArgValue, ilksArgBytes, bytes32, bytes32Width] using
-    (Benchmarks.Dss.Jug.decodeCalldataWithMode_legacyBytes32_ok
+    (Reasoning.Theory.decodeCalldataWithMode_legacyBytes32_ok
       (cd := I.calldata) (x := "arg0") hsz36)
 
 theorem spotDecode_ilks_none_short {I : ExecutionEnv}
@@ -46,7 +47,7 @@ theorem spotDecode_ilks_none_short {I : ExecutionEnv}
     decodeCalldataWithMode config.abiDecodeMode (ilksTransition.params.map Param.name)
       (transitionSignature ilksTransition).paramTypes I.calldata = none := by
   simpa [config, ilksTransition, bytes32, bytes32Width] using
-    (Benchmarks.Dss.Jug.decodeCalldataWithMode_legacyBytes32_none_short
+    (Reasoning.Theory.decodeCalldataWithMode_legacyBytes32_none_short
       (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
 theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -60,14 +61,6 @@ theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   simp [bytes32Width]
   omega
 
-theorem ilksArgBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
-    min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [htlen]
-  simp [bytes32Width]
-  omega
 
 theorem ilksArgBytes_len32 {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     (ilksArgBytes I).length = 32 := by
@@ -96,58 +89,6 @@ theorem ilksMatSlotFor_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ilksMatSlotFor I = solcMappingSlot ⟨1⟩ (ilksArgWord I) + ⟨1⟩ := by
   simp [ilksMatSlotFor, ilksPipSlotFor_eq hsz36]
 
-theorem addressUint256PairReturnEncoding (first second : UInt256) :
-    encodeReturnValues? [addr, uint256]
-      [.address (AccountAddress.ofNat (UInt256.land first solcAddrMask).toNat),
-        .int (Int.ofNat second.toNat)] =
-        some (UInt256.toByteArray (UInt256.land first solcAddrMask) ++
-          UInt256.toByteArray second) := by
-  have hencFirst :
-      encodeABIValue? addr
-          (.address (AccountAddress.ofNat (UInt256.land first solcAddrMask).toNat)) =
-        some (EVM.Word.toBytesBE (UInt256.land first solcAddrMask)) := by
-    have hcanon := solcAddrMask_result_canonical first
-    have haddrMod : (UInt256.land first solcAddrMask).toNat % AccountAddress.size =
-        (UInt256.land first solcAddrMask).toNat := by
-      apply Nat.mod_eq_of_lt
-      simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-    have hword :
-        EVM.word (UInt256.land first solcAddrMask).toNat =
-          UInt256.land first solcAddrMask :=
-      u256_ofNat_toNat _
-    simp [addr, encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword]
-  have hencSecond :
-      encodeABIValue? uint256 (.int (Int.ofNat second.toNat)) =
-        some (EVM.Word.toBytesBE second) := by
-    have hword : EVM.word second.toNat = second := by
-      show UInt256.ofNat second.toNat = second
-      exact u256_ofNat_toNat second
-    have hlt : second.toNat < EVM.twoPow 256 := by
-      change second.val.val < EVM.twoPow 256
-      exact second.val.isLt
-    simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  rw [show UInt256.toByteArray (UInt256.land first solcAddrMask) =
-      (EVM.Word.toBytesBE (UInt256.land first solcAddrMask)).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray
-      (UInt256.land first solcAddrMask)).symm]
-  rw [show UInt256.toByteArray second = (EVM.Word.toBytesBE second).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray second).symm]
-  unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [addr, uint256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  unfold encodeABIValuesFrom?
-  rw [hencFirst]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType addr = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [hencSecond]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  simp [ByteArray.data_append]
 
 @[reducible] def spotIlksStructGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
   let p1 := pc + ⟨1⟩
@@ -412,24 +353,25 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     ExecTransitionBody config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
-          (spotAddressReturnWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (spotSlotWord (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
+          (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract, locals := (∅ : Store).insert "arg0" (ilksArgValue I) }
   have hpip :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "pip")) =
         .ok (.address (AccountAddress.ofNat
-          (spotAddressReturnWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "pip") (er := ilksPipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksPipSlotFor I))
       (value := .address (AccountAddress.ofNat
-        (spotAddressReturnWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksPipEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
           EvalResult.ofOption, EvalResult.bind, pure, bind, hkeyLen])
@@ -438,21 +380,22 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
           storageDecls, IlkStructTy, addrSt])
       (by rfl)
       (by
-        simpa [spotAddressReturnWord, spotSlotWord] using
-          spotStorageLocLoad_address_offset0 evm (ilksPipSlotFor I))
+        simpa [solcAddressSlotWord, solcSlotWordAt] using
+          storageLocLoad_address_offset0 evm (ilksPipSlotFor I))
   have hmat :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "mat")) =
         .ok (.int (Int.ofNat
-          (spotSlotWord (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "mat") (er := ilksMatEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksMatSlotFor I))
       (value := .int (Int.ofNat
-        (spotSlotWord (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat))
+        (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksMatEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
           EvalResult.ofOption, EvalResult.bind, pure, bind, hkeyLen])
@@ -460,16 +403,16 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         simp [frame, ilksArgKey, storageTypeAt?, storageTypeStep?, contract,
           storageDecls, IlkStructTy, uint256St])
       (by rfl)
-      (by simpa [spotSlotWord] using spotStorageLocLoad_uint256 evm (ilksMatSlotFor I))
+      (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksMatSlotFor I))
   have hreturns :
       evalExprs? config frame evm
         [.storage (ilksF (.var "arg0") "pip"), .storage (ilksF (.var "arg0") "mat")] =
           .ok
             [ .address (AccountAddress.ofNat
-                (spotAddressReturnWord (ilksPipSlotFor I) evm.accountMap
+                (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap
                   evm.executionEnv).toNat),
               .int (Int.ofNat
-                (spotSlotWord (ilksMatSlotFor I) evm.accountMap
+                (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap
                   evm.executionEnv).toNat) ] := by
     simp [evalExprs?, hpip, hmat, EvalResult.bind, bind, pure]
   simpa [ilksTransition, nonpayable, frame] using
@@ -518,8 +461,8 @@ theorem spotIlksBodyCoreOk
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let pipSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let matSlot := pipSlot + ⟨1⟩
-  let pipWord := spotSlotWord pipSlot σ I
-  let matWord := spotSlotWord matSlot σ I
+  let pipWord := solcSlotWordAt pipSlot σ I
+  let matWord := solcSlotWordAt matSlot σ I
   let locals : Store := (∅ : Store).insert "arg0" (ilksArgValue I)
   have hpipSlot : ilksPipSlotFor I = pipSlot := by
     simp [pipSlot, ilksPipSlotFor_eq hsz36]
@@ -531,8 +474,8 @@ theorem spotIlksBodyCoreOk
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (spotAddressReturnWord (ilksPipSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (spotSlotWord (ilksMatSlotFor I) σ I).toNat))])) := by
+            (solcAddressSlotWord (ilksPipSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksMatSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       spotIlksBodyReturns hsz36
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -575,7 +518,7 @@ theorem spotIlksBodyCoreOk
       (first := UInt256.land solcAddrMask pipWord) (second := matWord) (ret := ⟨513⟩)
       (R := [sel]) (mem := solcMappingHashMem ⟨1⟩ (ilksArgWord I))
       (by
-        simpa [pipWord, matWord, pipSlot, matSlot, spotSlotWord] using hretPc)
+        simpa [pipWord, matWord, pipSlot, matSlot, solcSlotWordAt] using hretPc)
       (by
         unfold solcAddressUintReturnFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -599,8 +542,8 @@ theorem spotIlksBodyCoreOk
     exact returnEquiv.returned rfl (addressUint256PairReturnEncoding pipWord matWord)
   have hval :
       some [Value.address (AccountAddress.ofNat
-          (spotAddressReturnWord (ilksPipSlotFor I) σ I).toNat),
-        Value.int (Int.ofNat (spotSlotWord (ilksMatSlotFor I) σ I).toNat)] =
+          (solcAddressSlotWord (ilksPipSlotFor I) σ I).toNat),
+        Value.int (Int.ofNat (solcSlotWordAt (ilksMatSlotFor I) σ I).toNat)] =
     some [Value.address (AccountAddress.ofNat (UInt256.land pipWord solcAddrMask).toNat),
         Value.int (Int.ofNat matWord.toNat)] := by
     rw [hpipSlot, hmatSlot]

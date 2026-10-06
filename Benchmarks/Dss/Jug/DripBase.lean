@@ -1,3 +1,10 @@
+import Reasoning.ABIViews
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
+import Reasoning.SolcMemory
+import Reasoning.MemoryShapes
+import Reasoning.Memory
 import Benchmarks.Dss.Jug.Rpow
 import Benchmarks.Dss.Jug.FileDuty
 import Reasoning.ExternalCall
@@ -53,10 +60,10 @@ theorem dripLocals_get_vat (I : ExecutionEnv) :
   simp
 
 abbrev dripVatTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  jugAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 abbrev dripVowTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  jugAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 abbrev dripVatAddress (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
   AccountAddress.ofNat (dripVatTargetWord σ I).toNat
@@ -155,25 +162,6 @@ theorem dripVatIlksCalldataMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (by rw [dripVatIlksSelectorMem_size hmem]; omega) (by omega),
     dripVatIlksSelectorMem_read64 hmem hread64]
 
-theorem dripVatIlksPostCallWrite_size_gt64 {base : ByteArray} (out : ByteArray) (L : ℕ)
-    (hbase : base.size = 164) (hLo : L ≤ out.size) :
-    64 < (out.write 0 base 128 L).size := by
-  rcases Nat.eq_zero_or_pos L with hzero | hpos
-  · subst L
-    rw [byteArray_write_len_zero, hbase]
-    norm_num
-  · by_cases hin : 128 + L ≤ base.size
-    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-        ByteArray.size_extract, hbase]
-      omega
-    · have hdest : 128 ≤ base.size := by
-        rw [hbase]
-        omega
-      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
-      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
-        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
-      omega
 
 theorem dripVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
@@ -183,7 +171,7 @@ theorem dripVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
       (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size :=
     umin_ofNat_right_toNat_of_lt (c := 64) (n := out.size) (by decide) hshort hout
   rw [hlen]
-  exact dripVatIlksPostCallWrite_size_gt64 out out.size
+  exact vatIlksPostCallWrite_size_gt64 out out.size
     (dripVatIlksCalldataMem_size I (dripIlkHashMem_size I)) le_rfl
 
 theorem dripVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
@@ -428,99 +416,6 @@ theorem dripVatFoldReturnMem_read128 {mem : ByteArray} (rate : UInt256)
   unfold dripVatFoldReturnMem
   exact toByteArray_write_read_back_of_gap rate mem 128 (by rw [hmem]; native_decide)
 
-theorem drip_wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
-    (hmem : 32 ≤ mem.size) :
-    (wordAt0Mem word mem).size = mem.size := by
-  unfold wordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
-
-theorem drip_wordAt32Mem_size_of_ge64 {mem : ByteArray} (word : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (wordAt32Mem word mem).size = mem.size := by
-  unfold wordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
-  omega
-
-theorem drip_twoWordHashMem_size_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem
-  rw [drip_wordAt32Mem_size_of_ge64 slot (by
-    rw [drip_wordAt0Mem_size_of_ge32 key (by omega)]
-    exact hmem)]
-  exact drip_wordAt0Mem_size_of_ge32 key (by omega)
-
-theorem drip_twoWordHashMem_read0_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-    (by rw [drip_wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-theorem drip_twoWordHashMem_read32_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-    (by rw [drip_wordAt0Mem_size_of_ge32 key (by omega)]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem drip_twoWordHashMem_read64_of_ge96 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [drip_wordAt0Mem_size_of_ge32 key (by omega)]; omega) (by omega)
-      (by
-        rw [drip_wordAt0Mem_size_of_ge32 key (by omega)]
-        exact hmem)]
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega) (by omega)
-      (by omega)]
-  exact hread64
-
-theorem drip_twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [drip_twoWordHashMem_size_of_ge64 key slot hmem]; omega)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [drip_twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      drip_twoWordHashMem_read0_of_ge64 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [drip_twoWordHashMem_size_of_ge64 key slot hmem]; omega),
-      drip_twoWordHashMem_read32_of_ge64 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
-
-theorem drip_twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
-    {mem : ByteArray} (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [drip_twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
 
 theorem dripVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96) :
     (dripVatIlksSelectorMem mem).extract 128 132 = vatIlksSelector := by
@@ -699,7 +594,7 @@ theorem dripVatFoldCalldataMem_read128_100
 
 theorem dripVatFoldEncode_eq (σ : AccountMap) (I : ExecutionEnv) (delta : UInt256)
     {mem : ByteArray} (hmem : mem.size = 192) (hsz36 : 36 ≤ I.calldata.size)
-    (hdeltaMax : (delta.toNat : Int) ≤ maxInt256) :
+    (hdeltaMax : (delta.toNat : Int) ≤ Reasoning.Theory.maxInt256) :
     config.externalABI.encode? "fold"
         [.fixedBytes bytes32Width (fileDutyIlkBytes I),
           .address (AccountAddress.ofUInt256 (dripVowTargetWord σ I)),
@@ -718,7 +613,7 @@ theorem dripVatFoldEncode_eq (σ : AccountMap) (I : ExecutionEnv) (delta : UInt2
   have hdeltaLt : delta.toNat < EVM.twoPow 255 := by
     have hdeltaLtInt : (delta.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (delta.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-        simpa [maxInt256] using hdeltaMax
+        simpa [Reasoning.Theory.maxInt256] using hdeltaMax
       omega
     have hdeltaLtNat : delta.toNat < 2 ^ 255 := by
       exact_mod_cast hdeltaLtInt
@@ -727,8 +622,8 @@ theorem dripVatFoldEncode_eq (σ : AccountMap) (I : ExecutionEnv) (delta : UInt2
       EVM.word ↑(AccountAddress.ofUInt256 (dripVowTargetWord σ I)) =
         dripVowTargetWord σ I := by
     have hvowCanon : (dripVowTargetWord σ I).toNat < EVM.addressModulus := by
-      simpa [dripVowTargetWord, jugAddressReturnWord] using
-        solcAddrMask_result_canonical (jugSlotWord ⟨3⟩ σ I)
+      simpa [dripVowTargetWord, solcAddressSlotWord] using
+        solcAddrMask_result_canonical (solcSlotWordAt ⟨3⟩ σ I)
     have hvowCanonVal : ↑(dripVowTargetWord σ I).val < EVM.addressModulus := by
       simpa [UInt256.toNat] using hvowCanon
     apply u256_inj
@@ -747,50 +642,12 @@ theorem dripVatFoldEncode_eq (σ : AccountMap) (I : ExecutionEnv) (delta : UInt2
   rw [hdeltaWord]
   simp [ABI.zeroBytes, ByteArray.append_assoc]
 
-theorem wordOfInt_sub_toUInt256 (x y : UInt256) :
-    EVM.wordOfInt ((x.toNat : Int) - (y.toNat : Int)) = UInt256.sub x y := by
-  by_cases hle : y.toNat ≤ x.toNat
-  · have hnonneg : 0 ≤ (x.toNat : Int) - (y.toNat : Int) := by omega
-    rw [wordOfInt_nonneg _ hnonneg]
-    apply u256_inj
-    have htoNat : ((x.toNat : Int) - (y.toNat : Int)).toNat = x.toNat - y.toNat := by
-      omega
-    rw [usub_toNat (a := x) (b := y) hle]
-    simp [EVM.word, EVM.uintN, htoNat]
-    exact Nat.mod_eq_of_lt (by exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) x.val.isLt)
-  · have hlt : x.toNat < y.toNat := Nat.lt_of_not_ge hle
-    rw [EVM.wordOfInt]
-    have hwordMod : EVM.wordModulus = UInt256.size := by native_decide
-    have hneg : (x.toNat : Int) - (y.toNat : Int) < 0 := by omega
-    rw [if_pos hneg]
-    have hnatAbs :
-        Int.natAbs ((x.toNat : Int) - (y.toNat : Int)) = y.toNat - x.toNat := by
-      omega
-    have hdiffMod :
-        (y.toNat - x.toNat) % EVM.wordModulus = y.toNat - x.toNat := by
-      apply Nat.mod_eq_of_lt
-      rw [hwordMod]
-      have hy : y.toNat < UInt256.size := y.val.isLt
-      omega
-    have hdiffNe : y.toNat - x.toNat ≠ 0 := by omega
-    rw [hnatAbs, hdiffMod, if_neg hdiffNe]
-    apply u256_inj
-    rw [usub_toNat_underflow (a := x) (b := y) hlt]
-    have hword :
-        EVM.wordModulus - (y.toNat - x.toNat) =
-          UInt256.size + x.toNat - y.toNat := by
-      rw [hwordMod]
-      omega
-    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by native_decide]
-    exact Nat.mod_eq_of_lt (by
-      have hy : y.toNat < UInt256.size := y.val.isLt
-      omega)
 
 theorem dripVatFoldEncode_signed_eq (σ : AccountMap) (I : ExecutionEnv)
     (rate prev delta : UInt256) {mem : ByteArray} (hmem : mem.size = 192)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hrateMax : (rate.toNat : Int) ≤ maxInt256)
-    (hprevMax : (prev.toNat : Int) ≤ maxInt256)
+    (hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
+    (hprevMax : (prev.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (hdelta : delta = UInt256.sub rate prev) :
     config.externalABI.encode? "fold"
         [.fixedBytes bytes32Width (fileDutyIlkBytes I),
@@ -810,13 +667,13 @@ theorem dripVatFoldEncode_signed_eq (σ : AccountMap) (I : ExecutionEnv)
   have hdeltaLo :
       -Int.ofNat (EVM.twoPow 255) ≤ (rate.toNat : Int) - (prev.toNat : Int) := by
     have hprevLe : (prev.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-      simpa [maxInt256] using hprevMax
+      simpa [Reasoning.Theory.maxInt256] using hprevMax
     norm_num [EVM.twoPow]
     omega
   have hdeltaHi :
       (rate.toNat : Int) - (prev.toNat : Int) < Int.ofNat (EVM.twoPow 255) := by
     have hrateLe : (rate.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-      simpa [maxInt256] using hrateMax
+      simpa [Reasoning.Theory.maxInt256] using hrateMax
     norm_num [EVM.twoPow]
     omega
   have hdeltaRange :
@@ -833,8 +690,8 @@ theorem dripVatFoldEncode_signed_eq (σ : AccountMap) (I : ExecutionEnv)
       EVM.word ↑(AccountAddress.ofUInt256 (dripVowTargetWord σ I)) =
         dripVowTargetWord σ I := by
     have hvowCanon : (dripVowTargetWord σ I).toNat < EVM.addressModulus := by
-      simpa [dripVowTargetWord, jugAddressReturnWord] using
-        solcAddrMask_result_canonical (jugSlotWord ⟨3⟩ σ I)
+      simpa [dripVowTargetWord, solcAddressSlotWord] using
+        solcAddrMask_result_canonical (solcSlotWordAt ⟨3⟩ σ I)
     have hvowCanonVal : ↑(dripVowTargetWord σ I).val < EVM.addressModulus := by
       simpa [UInt256.toNat] using hvowCanon
     apply u256_inj
@@ -854,37 +711,10 @@ theorem dripVatFoldEncode_signed_eq (σ : AccountMap) (I : ExecutionEnv)
     hdeltaWord, word_toBytesBE_toByteArray_eq_toByteArray]
   simp [ABI.zeroBytes, ByteArray.append_assoc, word_toBytesBE_toByteArray_eq_toByteArray]
 
-theorem dripVatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256] out =
-      none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256, abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiUInt256, abiUInt256]) (bytes := out.toList) (cursor := 0)
-    (total := 32 * [abiUInt256, abiUInt256].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  by_cases hfirst : ((out.toList.drop 0).take 32).length = 32
-  · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp only [Option.bind_eq_bind, Option.bind_some]
-    have htake32n : ¬ ((out.toList.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, hlen]
-      omega
-    rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 32) htake32n]
-    simp
-  · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp
 
 theorem dripVatIlksDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
     config.externalABI.decode? "ilks" out = none := by
-  have h := dripVatIlksDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyUInt256UInt256_none_short (out := out) hshort
   simpa [config, jugExternalABI, uint256, uint256Int, abiUInt256] using h
 
 theorem dripVatIlks_bytesToWord_drop32_eq_extract32_64 (out : ByteArray) :
@@ -941,28 +771,6 @@ theorem dripVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     dripVatAddress σ I = AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
 
-theorem evmAddress_accountAddress (a : AccountAddress) :
-    EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
-
-theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
-  | some acc =>
-      have hword := congrArg UInt256.toNat hzero
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem dripVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
@@ -971,7 +779,7 @@ theorem dripVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    drip_extCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := dripVatTargetWord σ I) (addr := dripVatAddress σ I)
       (dripVatAddress_eq_target σ I) hzero
 
@@ -1019,8 +827,8 @@ theorem evalExpr_dripStorageVat (evm : EVM.State) (I : ExecutionEnv) :
     (by simp [vatRef, storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [dripVatAddress, dripVatTargetWord, jugAddressReturnWord, jugSlotWord] using
-        jugStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [dripVatAddress, dripVatTargetWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_dripStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :
@@ -1036,8 +844,8 @@ theorem evalExpr_dripStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (by simp [vatRef, storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [dripVatAddress, dripVatTargetWord, jugAddressReturnWord, jugSlotWord] using
-        jugStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [dripVatAddress, dripVatTargetWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_dripStorageVowOfLocals {evm : EVM.State} {locals : Store}
     (hvow : locals.get? "vow" = none) :
@@ -1056,8 +864,8 @@ theorem evalExpr_dripStorageVowOfLocals {evm : EVM.State} {locals : Store}
     (by rfl)
     (by
       rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-      simpa [dripVowTargetWord, jugAddressReturnWord, jugSlotWord] using
-        jugStorageLocLoad_address_offset0 evm ⟨3⟩)
+      simpa [dripVowTargetWord, solcAddressSlotWord, solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨3⟩)
 
 theorem evalExpr_dripVatCodeGuard_false {evm : EVM.State} {I : ExecutionEnv}
     (hvat :
@@ -1318,17 +1126,17 @@ theorem evalExpr_dripVatIlksPrev (evm : EVM.State) (I : ExecutionEnv) (out : Byt
 theorem evalExpr_dripStorageBase {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "base" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage baseRef) =
-      .ok (.int (Int.ofNat (jugSlotWord ⟨4⟩ evm.accountMap evm.executionEnv).toNat)) := by
+      .ok (.int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := baseRef) (er := ({ base := "base", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
-    (value := .int (Int.ofNat (jugSlotWord ⟨4⟩ evm.accountMap evm.executionEnv).toNat))
+    (value := .int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat))
     hbase
     (by simp [baseRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm ⟨4⟩)
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm ⟨4⟩)
 
 theorem evalExpr_dripStorageDuty {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -1337,13 +1145,13 @@ theorem evalExpr_dripStorageDuty {evm : EVM.State} {locals : Store} {I : Executi
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "duty")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "duty") (er := fileDutyDutyEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyDutySlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
     hilks
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -1356,16 +1164,16 @@ theorem evalExpr_dripStorageDuty {evm : EVM.State} {locals : Store} {I : Executi
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyDutySlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyDutySlotFor I))
 
 theorem evalExprs_dripAddArgs (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hsz36 : 36 ≤ I.calldata.size) :
     evalExprs? config { contract := contract, locals := dripVatIlksPrevLocals I out } evm
       [.storage baseRef, .storage (ilksF (.var "ilk") "duty")] =
         .ok
-          [.int (Int.ofNat (jugSlotWord ⟨4⟩ evm.accountMap evm.executionEnv).toNat),
+          [.int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat),
            .int (Int.ofNat
-            (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)] := by
+            (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)] := by
   have hbase := evalExpr_dripStorageBase
     (evm := evm) (locals := dripVatIlksPrevLocals I out)
     (dripVatIlksPrevLocals_get_base I out)
@@ -1379,13 +1187,13 @@ theorem evalExpr_dripStorageRho (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := dripLocals I } evm
       (.storage (ilksF (.var "ilk") "rho")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := dripLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "rho") (er := fileDutyRhoEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyRhoSlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
     (dripLocals_get_ilks I)
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -1397,7 +1205,7 @@ theorem evalExpr_dripStorageRho (evm : EVM.State) (I : ExecutionEnv)
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
 
 theorem evalExpr_dripStorageRhoOfLocals {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -1406,13 +1214,13 @@ theorem evalExpr_dripStorageRhoOfLocals {evm : EVM.State} {locals : Store} {I : 
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "rho")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "rho") (er := fileDutyRhoEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyRhoSlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
     hilks
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -1424,7 +1232,7 @@ theorem evalExpr_dripStorageRhoOfLocals {evm : EVM.State} {locals : Store} {I : 
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyRhoSlotFor I))
 
 theorem assign_dripRhoStorageOfLocals {evm : EVM.State} {I : ExecutionEnv}
     {locals : Store} (hsz36 : 36 ≤ I.calldata.size)
@@ -1454,20 +1262,20 @@ theorem assign_dripRhoStorageOfLocals {evm : EVM.State} {I : ExecutionEnv}
           IlkStructTy, uint256St])
       (hloc := by rfl)
   simpa [evm', timestamp] using
-    jugStorageLocStore_uint256 evm (fileDutyRhoSlotFor I) timestamp
+    storageLocStore_uint256 evm (fileDutyRhoSlotFor I) timestamp
 
 theorem evalExprs_dripRpowNZeroArgs (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (fee : UInt256)
     (hsz36 : 36 ≤ I.calldata.size)
     (hage :
       UInt256.sub (UInt256.ofNat evm.executionEnv.header.timestamp)
-        (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv) = ⟨0⟩) :
+        (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv) = ⟨0⟩) :
     evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evm
       [ .var "fee",
         sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
         .intLit one ] =
         .ok [.int (Int.ofNat fee.toNat), .int 0, .int (Int.ofNat jugRay.toNat)] := by
-  let rho := jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv
+  let rho := solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv
   let nowWord := UInt256.ofNat evm.executionEnv.header.timestamp
   have hnowEqRho : nowWord = rho := by
     rw [← u256_sub_eq_zero_iff_eq]
@@ -1500,21 +1308,21 @@ theorem evalExprs_dripRpowNZeroArgs (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := dripFeeLocals I out fee } evm
         (.intLit one) = .ok (.int (Int.ofNat jugRay.toNat)) := by
     simp [evalExpr?, pure, one_eq_jugRay_toNat]
-  simp [evalExprs?, hfee, hsub, hone, EvalResult.bind, bind, pure, jugUInt256Zero_toNat]
+  simp [evalExprs?, hfee, hsub, hone, EvalResult.bind, bind, pure, u256_zero_toNat]
 
 theorem evalExprs_dripRpowArgs (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (fee age : UInt256)
     (hsz36 : 36 ≤ I.calldata.size)
     (hage :
       age = UInt256.sub (UInt256.ofNat evm.executionEnv.header.timestamp)
-        (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv)) :
+        (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv)) :
     evalExprs? config { contract := contract, locals := dripFeeLocals I out fee } evm
       [ .var "fee",
         sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho")),
         .intLit one ] =
         .ok [.int (Int.ofNat fee.toNat), .int (Int.ofNat age.toNat),
           .int (Int.ofNat jugRay.toNat)] := by
-  let rho := jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv
+  let rho := solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv
   let nowWord := UInt256.ofNat evm.executionEnv.header.timestamp
   have hfee :
       evalExpr? config { contract := contract, locals := dripFeeLocals I out fee } evm
@@ -1665,7 +1473,7 @@ theorem evalExprs_dripVatFoldArgsInt (evm : EVM.State) (I : ExecutionEnv)
 theorem evalExpr_dripNowGeRho_true {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat ≤
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat) :
     evalExpr? config { contract := contract, locals := dripLocals I } evm
       (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
@@ -1680,7 +1488,7 @@ theorem evalExpr_dripNowGeRho_false {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
-        (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat) :
+        (solcSlotWordAt (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat) :
     evalExpr? config { contract := contract, locals := dripLocals I } evm
       (.binary .ge (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
         .ok (.bool false) := by

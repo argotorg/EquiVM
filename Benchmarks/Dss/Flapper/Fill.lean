@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flapper
 /-! ## `fill()` getter -/
 
 def fillWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flapperSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem flapperDecode_fill {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fillTransition.params.map Param.name)
@@ -68,7 +68,7 @@ theorem flapperFillBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (fillWord σ I).toNat))])) := by
-    simpa [fillTransition, fillWord, flapperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [fillTransition, fillWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -1,3 +1,7 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.MemoryShapes
+import Reasoning.Memory
 import Benchmarks.Dss.Clipper.Rely
 import Reasoning.MemCascade
 
@@ -27,20 +31,6 @@ def clipperCtorCode (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   clipperCreationBytecode ++ clipperCtorArgsTail vat spotter dog ilk
 
-private theorem byteArray_append_toList (a b : ByteArray) :
-    (a ++ b).toList = a.toList ++ b.toList := by
-  rw [byteArray_toList_eq, byteArray_toList_eq, byteArray_toList_eq]
-  simp [ByteArray.data_append]
-
-private theorem list_toByteArray_toList (xs : List UInt8) : xs.toByteArray.toList = xs := by
-  rw [byteArray_toList_eq]
-  simp
-
-private theorem byteArray_toList_toByteArray (b : ByteArray) :
-    b.toList.toByteArray = b := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp [byteArray_toList_eq]
 
 private theorem clipperCtorArgs_shape {args : List Value} {encoded : List UInt8}
     (henc : ABI.encodeABIValues? [addr, addr, addr, bytes32] args = some encoded) :
@@ -89,7 +79,7 @@ private theorem clipperCtorArgs_shape {args : List Value} {encoded : List UInt8}
                         cases hn
                         refine ⟨vat, spotter, dog, ilk, hilk, rfl, ?_⟩
                         simpa [clipperCtorArgsTail, ABI.zeroBytes, List.append_assoc,
-                          byteArray_append_toList, list_toByteArray_toList]
+                          byteArray_toList_append, list_toByteArray_toList]
                           using henc.symm
                       · simp [hcond, bytes32Width, ABI.encodeABIValues?,
                           ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
@@ -209,41 +199,6 @@ def clipperCtorArgFreeMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorArgMem vat spotter dog ilk) 64 (⟨320⟩ : UInt256)
 
-private theorem byteArray_write_from_ge_eq (src base : ByteArray)
-    (srcAddr destAddr len : ℕ) (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ destAddr) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
-  have hcopy : min len (src.size - srcAddr) = len := by omega
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg hsrcNonempty]
-  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract]
-  have hz : (ByteArray.zeroes (destAddr - base.size)).data.size =
-      destAddr - base.size := by
-    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-      (ByteArray.zeroes (destAddr - base.size)).size from rfl, ByteArray_zeroes_size]
-  have hDsz :
-      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size = destAddr := by
-    rw [Array.size_append, hz, show base.data.size = base.size from rfl]
-    omega
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]; rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [show min len (src.data.size - srcAddr) = len by
-    have : src.data.size = src.size := rfl
-    omega]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
-      (destAddr + len) = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp [Array.append_assoc]
 
 theorem clipperCtorFreePtrMem_size : clipperCtorFreePtrMem.size = 96 := by
   unfold clipperCtorFreePtrMem
@@ -269,7 +224,7 @@ theorem clipperCtorArgMem_eq (vat spotter dog : AccountAddress) (ilk : List UInt
     clipperCtorArgMem vat spotter dog ilk =
       clipperCtorFreePtrMem ++ ByteArray.zeroes 96 ++
         clipperCtorArgsTail vat spotter dog ilk := by
-  rw [clipperCtorArgMem, byteArray_write_from_ge_eq]
+  rw [clipperCtorArgMem, byteArray_write_from_ge_eq_no_gap_bound]
   · unfold clipperCtorCode
     rw [extract_append_right' clipperCreationBytecode
       (clipperCtorArgsTail vat spotter dog ilk) 9707 (9707 + 128)]
@@ -454,70 +409,6 @@ theorem clipperCtorArgFreeMem_mload288 (vat spotter dog : AccountAddress)
     exact clipperCtorArgMem_readWord vat spotter dog ilk hilk 96 _
       (clipperCtorTail_extract96 vat spotter dog ilk hilk) (by omega)
 
-theorem clipperCtorAddressWord_canonical (a : AccountAddress) :
-    (EVM.word a.val).toNat < EVM.addressModulus := by
-  change (UInt256.ofNat a.val).toNat < EVM.addressModulus
-  rw [UInt256.toNat_ofNat_of_lt]
-  · exact a.isLt
-  · exact lt_trans a.isLt (by decide)
-
-private theorem clipperCtor_shiftLeft96_toNat_of_lt_160 (w : UInt256)
-    (hw : w.toNat < 2 ^ (160 : Nat)) :
-    (UInt256.shiftLeft w ⟨96⟩).toNat = w.toNat * 2 ^ (96 : Nat) := by
-  have hprod : w.toNat * 2 ^ (96 : Nat) < UInt256.size := by
-    change w.toNat * 2 ^ (96 : Nat) < 2 ^ (256 : Nat)
-    nlinarith [hw,
-      show (2 : Nat) ^ (256 : Nat) = 2 ^ (160 : Nat) * 2 ^ (96 : Nat) by
-        norm_num [← Nat.pow_add]]
-  unfold UInt256.shiftLeft
-  rw [if_neg (by decide : ¬ (⟨96⟩ : UInt256).val ≥ 256)]
-  unfold UInt256.toNat
-  rw [Fin.shiftLeft_val]
-  rw [show (⟨96⟩ : UInt256).val.val = 96 by decide]
-  rw [Nat.shiftLeft_eq]
-  exact Nat.mod_eq_of_lt hprod
-
-theorem clipperCtorAddressHighShift (a : AccountAddress) :
-    UInt256.land (UInt256.shiftLeft (EVM.word a.val) ⟨96⟩)
-        (UInt256.lnot (UInt256.sub
-          (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)) =
-      UInt256.shiftLeft (EVM.word a.val) ⟨96⟩ := by
-  rw [show UInt256.lnot (UInt256.sub
-      (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩) =
-      UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 96) by native_decide]
-  apply u256_land_high_mask_eq_self (hk := by norm_num)
-  have hlt : (EVM.word a.val).toNat < 2 ^ (160 : Nat) := by
-    have hword : (EVM.word a.val).toNat = a.val := by
-      change (UInt256.ofNat a.val).toNat = a.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_trans a.isLt (by decide)
-    rw [hword]
-    exact a.isLt
-  rw [clipperCtor_shiftLeft96_toNat_of_lt_160 _ hlt]
-  exact Nat.mod_eq_zero_of_dvd
-    (Nat.dvd_mul_left (2 ^ 96) (EVM.word a.val).toNat)
-
-set_option maxHeartbeats 1000000 in
-theorem clipperCtorAddressHighShiftDecode (a : AccountAddress) :
-    UInt256.shiftRight (UInt256.shiftLeft (EVM.word a.val) ⟨96⟩) ⟨96⟩ =
-      EVM.word a.val := by
-  apply u256_inj
-  have hword : (EVM.word a.val).toNat = a.val := by
-    change (UInt256.ofNat a.val).toNat = a.val
-    rw [UInt256.toNat_ofNat_of_lt]
-    exact lt_trans a.isLt (by decide)
-  have hlt : (EVM.word a.val).toNat < 2 ^ (160 : Nat) := by
-    rw [hword]
-    exact a.isLt
-  have hshift := clipperCtor_shiftLeft96_toNat_of_lt_160 (EVM.word a.val) hlt
-  unfold UInt256.shiftRight
-  rw [if_neg (by decide : ¬ (⟨96⟩ : UInt256).val ≥ 256)]
-  unfold UInt256.toNat
-  rw [Fin.shiftRight_val]
-  change (UInt256.shiftLeft (EVM.word a.val) ⟨96⟩).toNat >>> 96 =
-    (EVM.word a.val).toNat
-  rw [Nat.shiftRight_eq_div_pow, hshift, Nat.mul_comm]
-  exact Nat.mul_div_right (EVM.word a.val).toNat (by norm_num : 0 < 2 ^ 96)
 
 def clipperCtorVatMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
@@ -555,7 +446,7 @@ theorem clipperCtorVatMem_mstore160 (vat spotter dog : AccountAddress)
           (UInt256.lnot (UInt256.sub
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩))) =
       clipperCtorVatMem vat spotter dog ilk := by
-  rw [clipperCtorAddressHighShift]
+  rw [ctorAddressHighShift]
   rfl
 
 theorem clipperCtorIlkMem_read64 (vat spotter dog : AccountAddress)
@@ -652,7 +543,7 @@ theorem clipperCtorIlkMem_mload160_shr96 (vat spotter dog : AccountAddress)
        ((clipperCtorIlkMem vat spotter dog ilk).readWithPadding
          (⟨160⟩ : UInt256).toNat 32))) ⟨96⟩ = EVM.word vat.val
   rw [hload]
-  exact clipperCtorAddressHighShiftDecode vat
+  exact ctorAddressHighShiftDecode vat
 
 abbrev clipperCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
@@ -661,17 +552,6 @@ def clipperCtorWardsHashMem (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (clipperCtorIlkMem vat spotter dog ilk)
 
-private theorem wordAt0Mem_size_320 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 320) : (wordAt0Mem word mem).size = 320 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 320 320 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_320 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 320) : (wordAt32Mem word mem).size = 320 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 320 320 hmem
-    (by rw [hmem]; omega) (by omega)
 
 theorem clipperCtorWardsHashMem_size (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
@@ -680,43 +560,6 @@ theorem clipperCtorWardsHashMem_size (I : ExecutionEnv)
   exact wordAt32Mem_size_320 ⟨0⟩
     (wordAt0Mem_size_320 (solcSourceWord I) (clipperCtorIlkMem_size _ _ _ _ hilk))
 
-private theorem twoWordHashMem_read0_64_320 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 320) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by
-    unfold twoWordHashMem
-    rw [wordAt32Mem_size_320]
-    · omega
-    · exact wordAt0Mem_size_320 key hmem)]
-  have hleft : (twoWordHashMem key slot mem).extract 0 32 =
-      UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by
-      unfold twoWordHashMem
-      rw [wordAt32Mem_size_320]
-      · omega
-      · exact wordAt0Mem_size_320 key hmem)]
-    unfold twoWordHashMem wordAt32Mem
-    rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_320 key hmem]; omega) (by omega)]
-    exact wordAt0Mem_read0 key mem
-  have hright : (twoWordHashMem key slot mem).extract 32 64 =
-      UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by
-      unfold twoWordHashMem
-      rw [wordAt32Mem_size_320]
-      · omega
-      · exact wordAt0Mem_size_320 key hmem)]
-    unfold twoWordHashMem wordAt32Mem
-    rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_320 key hmem]; omega)]
-    exact toByteArray_extract_all slot
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-      (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem clipperCtorWardsHashSlot (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
@@ -728,18 +571,6 @@ theorem clipperCtorWardsHashSlot (I : ExecutionEnv)
   · exact mappingSlot_single (solcSourceWord I) ⟨0⟩
   · exact clipperCtorIlkMem_size _ _ _ _ hilk
 
-private theorem twoWordHashMem_read_preserved_320 {mem : ByteArray}
-    (key slot : UInt256) (read : Nat) (hmem : mem.size = 320) (hread : 64 ≤ read)
-    (hwindow : read + 32 ≤ 320) :
-    (twoWordHashMem key slot mem).readWithPadding read 32 =
-      mem.readWithPadding read 32 := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_above (UInt256.toByteArray slot) (wordAt0Mem key mem) 32 read
-    (by rw [toByteArray_size]) (by rw [wordAt0Mem_size_320 key hmem]; omega)
-    (by omega) (by rw [wordAt0Mem_size_320 key hmem]; omega)]
-  unfold wordAt0Mem
-  rw [write32_read_above (UInt256.toByteArray key) mem 0 read
-    (by rw [toByteArray_size]) (by rw [hmem]; omega) (by omega) (by rw [hmem]; omega)]
 
 theorem clipperCtorWardsHashMem_read64 (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
@@ -809,19 +640,8 @@ theorem clipperCtorWardsHashMem_mload160_shr96 (I : ExecutionEnv)
        ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding
          (⟨160⟩ : UInt256).toNat 32))) ⟨96⟩ = EVM.word vat.val
   rw [hload]
-  exact clipperCtorAddressHighShiftDecode vat
+  exact ctorAddressHighShiftDecode vat
 
-private theorem write0_eq_extract_from_of_base_le (src base : ByteArray)
-    (srcAddr len : Nat) (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hbase : base.size ≤ len) :
-    src.write srcAddr base 0 len = src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  rw [write0_data_from src base srcAddr len hlen hsrc]
-  rw [show base.data.extract len base.data.size = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [show base.data.size = base.size from rfl]
-    simpa using hbase]
-  simp
 
 theorem clipperCtorRuntime_codecopy_mem (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
@@ -858,45 +678,6 @@ def clipperCtorImmutables (vat : AccountAddress) (ilk : List UInt8)
     vat := vat
     ilk_wf := ⟨ilk, rfl, hilk⟩ }
 
-private theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat)
-    (w : UInt256) (h : off + 32 ≤ mem.size) :
-    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
-  unfold spliceBytes? Reasoning.Theory.writeWord
-  rw [toByteArray_size, if_pos h]
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  rw [toByteArray_extract_all]
-
-private theorem patchRuntime_wordWrites_eq_writeCascade
-    (mem : ByteArray) (writes : List (Nat × UInt256))
-    (hfit : ∀ p ∈ writes, p.1 + 32 ≤ mem.size) :
-    patchRuntime mem (writes.map fun p => (p.1, UInt256.toByteArray p.2)) =
-      some (writeCascade mem writes) := by
-  induction writes generalizing mem with
-  | nil => rfl
-  | cons p rest ih =>
-      rcases p with ⟨off, word⟩
-      have hoff : off + 32 ≤ mem.size := hfit (off, word) (by simp)
-      have hgap : off - mem.size < USize.size := by
-        rw [Nat.sub_eq_zero_of_le (by omega)]
-        exact lt_usize 0 (by norm_num)
-      have hsize : (writeWord mem off word).size = mem.size := by
-        rw [writeWord_size mem off word hgap]
-        omega
-      have hrest : ∀ p ∈ rest, p.1 + 32 ≤ (writeWord mem off word).size := by
-        intro p hp
-        rw [hsize]
-        exact hfit p (by simp [hp])
-      simp only [List.map_cons, patchRuntime, List.foldlM_cons,
-        Option.bind_eq_bind, toByteArray_size, ↓reduceIte]
-      rw [spliceBytes_toByteArray_eq_writeWord mem off word hoff]
-      simpa [writeCascade] using ih (writeWord mem off word) hrest
-
-private theorem word_toBytesBE_array_eq_toByteArray (w : UInt256) :
-    (ByteArray.mk (EVM.Word.toBytesBE w).toArray) = UInt256.toByteArray w := by
-  rw [← word_toBytesBE_toByteArray_eq_toByteArray]
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [List.toList_data_toByteArray]
 
 theorem clipperPatchRuntime_eq_ctorPatchedRuntime (vat : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
@@ -907,7 +688,7 @@ theorem clipperPatchRuntime_eq_ctorPatchedRuntime (vat : AccountAddress)
         (clipperCtorRuntimeWrites vat ilk).map
           (fun p => (p.1, UInt256.toByteArray p.2)) := by
     simp [patches, patchesFrom, offsets, immValues, clipperCtorImmutables,
-      clipperCtorRuntimeWrites, wordBytes?, valueToWord, hilk, bytes32Width,
+      clipperCtorRuntimeWrites, Reasoning.Theory.wordBytes?, valueToWord, hilk, bytes32Width,
       List.lookup_cons]
     constructor
     · exact word_toBytesBE_array_eq_toByteArray (EVM.word vat.val)

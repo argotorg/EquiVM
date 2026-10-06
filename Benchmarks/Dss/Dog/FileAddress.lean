@@ -84,7 +84,7 @@ theorem dogDecode_fileAddress_ok {v : DogImmutables} {I : ExecutionEnv}
         some (fileAddressLocals I) := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr, fileAddressWhat,
     fileAddressData, fileAddressLocals, abiBytes32, abiBytes32Width, abiAddress] using
-    (dogDecodeCalldataWithMode_legacyBytes32_address_ok (cd := I.calldata) (x := "what")
+    (decodeCalldata_legacyBytes32_address_ok (cd := I.calldata) (x := "what")
       (y := "data") hsz68)
 
 theorem dogDecode_fileAddress_none_short {v : DogImmutables} {I : ExecutionEnv}
@@ -93,7 +93,7 @@ theorem dogDecode_fileAddress_none_short {v : DogImmutables} {I : ExecutionEnv}
       (transitionSignature fileAddressTransition).paramTypes I.calldata = none := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress] using
-    (dogDecodeCalldataWithMode_legacyBytes32_address_none_short (cd := I.calldata) (x := "what")
+    (decodeCalldata_legacyBytes32_address_none_short (cd := I.calldata) (x := "what")
       (y := "data") hsz4 hshort)
 
 theorem fileAddressLocals_get_what (I : ExecutionEnv) :
@@ -200,7 +200,7 @@ theorem assign_fileAddressVowStorage (v : DogImmutables) (evm : EVM.State)
 theorem fileAddressVowSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressVowBytes) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -250,7 +250,7 @@ theorem fileAddressVowSourceBody {v : DogImmutables} {σ σ₀ A I}
 theorem fileAddressUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotVow : fileAddressWhat I ≠ fileAddressVowBytes) :
     let locals := fileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -552,12 +552,12 @@ theorem RD.dogFileAddressToSwitch {v : DogImmutables} {code : ByteArray}
     (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
     hpatch hdecoded (dogPatchedJumpDest hpatch (by native_decide))
     (by simp)
-  obtain ⟨_, _, hafterAuth⟩ := RD.dogAuthCheckOk
+  obtain ⟨_, _, hafterAuth⟩ := RD.solcAuthCheckOk
     (code := code) (pc := ⟨2146⟩) (okPc := ⟨2235⟩)
     (key := fileAddressDataKey I) (ret := calldataWord I.calldata 4) (R := [⟨313⟩, sel])
     (by simpa [fileAddressDataKey, fileAddressDataWord] using hroutine)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -600,13 +600,13 @@ theorem RD.dogFileAddressAuthRevert {v : DogImmutables} {code : ByteArray}
     (key := fileAddressDataKey I) (ret := calldataWord I.calldata 4) (R := [⟨313⟩, sel])
     (by simpa [fileAddressDataKey, fileAddressDataWord] using hroutine)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
           native_decide)
     (by
-      unfold solcErrorStringRevertTailWf dogAuthTailPc dogNotAuthorizedRawWord
+      unfold solcErrorStringRevertTailWf solcAuthTailPc dogNotAuthorizedRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -915,11 +915,11 @@ theorem RD.dogFileAddressUnrecognizedRevert {v : DogImmutables} {code : ByteArra
   have rd1100 := rd1099.jumpdest
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (by evm_ov)
-  exact RD.dogErrorStringRevertTailDirect
+  exact RD.solcErrorStringRevertTailDirect
     (pc := ⟨1100⟩) (len := ⟨27⟩) (word := dogFileUnrecognizedRawWord)
     (op := .PUSH32) (width := 32) rd1100
     (by
-      unfold dogErrorStringRevertTailDirectWf dogFileUnrecognizedRawWord
+      unfold solcErrorStringRevertTailDirectWf dogFileUnrecognizedRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
@@ -1019,21 +1019,21 @@ theorem dogFileAddressBodyCoreOk
   have henc : returnEquiv ByteArray.empty none fileAddressTransition.returnType := by
     rw [show fileAddressTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+  · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
     by_cases hwhat : fileAddressWhat I = fileAddressVowBytes
-    · let stored := setAddressOffset0Word (dogSlotWord ⟨2⟩ σ I) dataKey
+    · let stored := setAddressOffset0Word (solcSlotWordAt ⟨2⟩ σ I) dataKey
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨2⟩ stored
       have hstoredSolm :
-          stored = setAddressOffset0Word (dogSlotWord ⟨2⟩ σ I) dataKey := rfl
+          stored = setAddressOffset0Word (solcSlotWordAt ⟨2⟩ σ I) dataKey := rfl
       have hbody :
           ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
             (.returned { contract := contract v, locals := locals } evm1 none) := by
-        simpa [evm0, evm1, locals, dataKey, stored, hstoredSolm, dogSlotWord, solcSlotWord,
+        simpa [evm0, evm1, locals, dataKey, stored, hstoredSolm, solcSlotWordAt, solcSlotWord,
           initState, Solm.EVM.storageLoad] using
           (fileAddressVowSourceBody (v := v)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1043,12 +1043,12 @@ theorem dogFileAddressBodyCoreOk
           Eq (sstoreAccountMap I.codeOwner σ ⟨2⟩ stored)
             evm1.accountMap := by
         simpa [evm1, evm0, initState, storageStore_accountMap, stored, hstoredSolm,
-          dogSlotWord, solcSlotWord, Solm.EVM.storageLoad]
+          solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad]
       have hret' :
           RDret code (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ ⟨2⟩ stored) ByteArray.empty := by
-        simpa [stored, dataKey, dogSlotWord] using hret
+        simpa [stored, dataKey, solcSlotWordAt] using hret
       exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1062,7 +1062,7 @@ theorem dogFileAddressBodyCoreOk
       have hrev := RD.dogFileAddressUnrecognizedParamRevert
         hpatch hreach hsz68 hsize hauthSolc hwhat
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+  · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm hsolm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1088,7 +1088,7 @@ theorem dogFileAddressBodyCoreOk
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.dogFileAddressAuthRevert hpatch hreach hsz68 hsize hauthSolc
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

@@ -1,3 +1,6 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.MemoryShapes
 import Benchmarks.Dss.Cat.FileIlkFlipCalls
 import Benchmarks.Dss.Cat.FileAddress
 
@@ -30,13 +33,13 @@ theorem fifSelMemG_gapeq (base : ByteArray) (h : base.size = 96) :
 
 theorem fifSelMemG_size (base : ByteArray) (h : base.size = 96) : (fifSelMemG base).size = 160 := by
   rw [fifSelMemG_gapeq base h, ByteArray.size_append, ByteArray.size_append, h,
-    fifZeroes32_size, toByteArray_size]
+    zeroes32_size, toByteArray_size]
 
 theorem fifSelMemG_selector (base : ByteArray) (h : base.size = 96) :
     (fifSelMemG base).extract 128 132 = vatNopeSelector := by
   rw [fifSelMemG_gapeq base h]
   have hABsz : (base ++ ByteArray.zeroes 32).size = 128 := by
-    rw [ByteArray.size_append, h, fifZeroes32_size]
+    rw [ByteArray.size_append, h, zeroes32_size]
   rw [extract_append_right_window _ _ 128 132 (by rw [hABsz]), hABsz,
     show (128 : ℕ) - 128 = 0 from rfl, show (132 : ℕ) - 128 = 4 from rfl, toByteArray_eq_toBytesBE]
   native_decide
@@ -211,53 +214,6 @@ theorem RD.catFileIlkFlipNopeCallSuccessToStore {σ σ₀ A I} {g : Sat256}
 
 /-! ### RMW `ilks[ilk].flip := flip` store (⟨3582⟩ → ⟨3626⟩) — `keccak(ilk,1)+0`, offset-0 address -/
 
-/-- `twoWordHashMem` read of `[0,64)` = `key ++ slot`, for any base of size ≥ 64 (the size-96
-    library lemma is too specific for the 164-byte post-call buffer). -/
-theorem fifTwoWordRead0_64 (key slot : UInt256) {base : ByteArray} (hb : 64 ≤ base.size) :
-    (twoWordHashMem key slot base).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  have hinner : ((UInt256.toByteArray key).write 0 base 0 32).size = base.size := by
-    rw [write32_eq (UInt256.toByteArray key) base 0 (by rw [toByteArray_size]) (by omega),
-      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-      ByteArray.size_extract, toByteArray_size]
-    omega
-  unfold twoWordHashMem wordAt32Mem wordAt0Mem
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [write32_eq _ _ 32 (by rw [toByteArray_size]) (by rw [hinner]; omega),
-        ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-        ByteArray.size_extract, ByteArray.size_extract, hinner, toByteArray_size]; omega)]
-  have hleft :
-      ((UInt256.toByteArray slot).write 0 ((UInt256.toByteArray key).write 0 base 0 32) 32 32).extract
-        0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [write32_eq _ _ 32 (by rw [toByteArray_size]) (by rw [hinner]; omega),
-          ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-          ByteArray.size_extract, ByteArray.size_extract, hinner, toByteArray_size]; omega),
-      write32_read_below_len _ _ 32 0 32 (by rw [toByteArray_size]) (by rw [hinner]; omega)
-        (by omega) (by rw [hinner]; omega) (by norm_num) (by norm_num),
-      write32_read_prefix_len _ _ 0 32 (by rw [toByteArray_size]) (by omega) (by norm_num)
-        (by norm_num) (by norm_num)]
-    have h := @ByteArray.extract_zero_size (UInt256.toByteArray key)
-    rwa [toByteArray_size] at h
-  have hright :
-      ((UInt256.toByteArray slot).write 0 ((UInt256.toByteArray key).write 0 base 0 32) 32 32).extract
-        32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract' _ 32 32 (by norm_num) (by norm_num)
-        (by rw [write32_eq _ _ 32 (by rw [toByteArray_size]) (by rw [hinner]; omega),
-          ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-          ByteArray.size_extract, ByteArray.size_extract, hinner, toByteArray_size]; omega),
-      write32_read_prefix_len _ _ 32 32 (by rw [toByteArray_size]) (by rw [hinner]; omega)
-        (by norm_num) (by norm_num) (by norm_num)]
-    have h := @ByteArray.extract_zero_size (UInt256.toByteArray slot)
-    rwa [toByteArray_size] at h
-  rw [show ((UInt256.toByteArray slot).write 0 ((UInt256.toByteArray key).write 0 base 0 32) 32 32).extract
-      0 64 =
-      ((UInt256.toByteArray slot).write 0 ((UInt256.toByteArray key).write 0 base 0 32) 32 32).extract
-        0 32 ++
-      ((UInt256.toByteArray slot).write 0 ((UInt256.toByteArray key).write 0 base 0 32) 32 32).extract
-        32 64 by rw [ByteArray.extract_append_extract]; norm_num,
-    hleft, hright]
-
 
 theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {vatM flip ret sel : UInt256} {mem rdata : ByteArray}
@@ -291,7 +247,7 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
       UInt256.ofNat (fromByteArrayBigEndian
         (KEC ((twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee) := by
-    rw [fifTwoWordRead0_64 (fileIlkFlipIlkWord ee) ⟨1⟩ (by rw [hmem]; omega)]
+    rw [twoWordHashMem_read0_64_of_ge64' (fileIlkFlipIlkWord ee) ⟨1⟩ (by rw [hmem]; omega)]
     unfold solcMappingSlot
     exact mappingSlot_single (fileIlkFlipIlkWord ee) ⟨1⟩
   have rd3597 := rd3596.keccak256 0 (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee)) (UInt256.ofNat 6)
@@ -418,21 +374,6 @@ theorem fifHopeEncode_eq {base : ByteArray} (h : base.size = 164) (arg : UInt256
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, addr, vatHopeSelector,
     selectorBytes, hcanon, hword, haddr, word_toBytesBE_toByteArray_eq_toByteArray]
 
-/-- The store's output buffer keeps the free pointer at `[64,96)` (writes at `[0,64)` and `[128,164)`
-    don't touch it). -/
-theorem twoWordHashMem_read64_preserve (key slot : UInt256) {mem : ByteArray} (h : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem wordAt0Mem
-  have hinner : ((UInt256.toByteArray key).write 0 mem 0 32).size = mem.size := by
-    rw [write32_eq (UInt256.toByteArray key) mem 0 (by rw [toByteArray_size]) (by omega),
-      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
-      ByteArray.size_extract, toByteArray_size]
-    omega
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by rw [hinner]; omega) (by omega)
-      (by rw [hinner]; omega),
-    write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega) (by omega) (by omega), hread64]
-
 
 /-! ### hope encoder (⟨3626⟩ → EXTCODESIZE guard ⟨3679⟩) -/
 
@@ -520,9 +461,6 @@ theorem RD.catFileIlkFlipHopeEncode {g : Sat256} {s0 : State} {ee : ExecutionEnv
 
 /-! ### hope guard + void CALL (⟨3679⟩ → ⟨3695⟩) + epilogue → `RDret` -/
 
-theorem fifHopeArg_canonical (flip : UInt256) :
-    (UInt256.land flip solcAddrMask).toNat < EVM.addressModulus :=
-  solcAddrMask_result_canonical flip
 
 theorem RD.catFileIlkFlipHopePostCall {σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
     {mem : ByteArray} {σ' : AccountMap} {k C : ℕ}

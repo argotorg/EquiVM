@@ -169,7 +169,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperFileAddressSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -189,7 +189,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -209,7 +209,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h65 := clipperSplitNotTaken (pc := (⟨54⟩ : UInt256))
+  have h65 := RD.selectorSplitNotTakenPush2 (pc := (⟨54⟩ : UInt256))
     (next := (⟨65⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -229,7 +229,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h76 := clipperArmNotTaken (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
+  have h76 := RD.selectorArmNotTakenPush2 (pc := (⟨65⟩ : UInt256)) (next := (⟨76⟩ : UInt256))
     (sel := clipperSelNat 12) (tgt := (⟨1349⟩ : UInt256)) h65
     (by change decode code (⟨65⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -248,7 +248,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h87 := clipperArmNotTaken (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
+  have h87 := RD.selectorArmNotTakenPush2 (pc := (⟨76⟩ : UInt256)) (next := (⟨87⟩ : UInt256))
     (sel := clipperSelNat 14) (tgt := (⟨1357⟩ : UInt256)) h76
     (by change decode code (⟨76⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -267,7 +267,7 @@ theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1365 := clipperArmTaken (pc := (⟨87⟩ : UInt256)) (sel := clipperSelNat 10)
+  have h1365 := RD.selectorArmTakenPush2 (pc := (⟨87⟩ : UInt256)) (sel := clipperSelNat 10)
     (tgt := (⟨1365⟩ : UInt256)) h87
     (by change decode code (⟨87⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -390,7 +390,7 @@ theorem evalExpr_clipperFileAddress_auth_true (v : ClipperImmutables) (evm : EVM
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using clipperStorageLocLoad_uint256 evm
+        simpa [hload] using storageLocLoad_uint256 evm
           (clipperRelyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
@@ -421,7 +421,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact clipperStorageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -429,7 +429,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact clipperUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -471,7 +471,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using clipperStorageLocLoad_uint256 evm ⟨13⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨13⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -497,7 +497,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact clipperStorageLocLoad_uint256 evm ⟨13⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨13⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat) ≠

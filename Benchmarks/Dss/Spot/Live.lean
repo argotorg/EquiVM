@@ -55,7 +55,7 @@ theorem spotLiveBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (spotLiveWord σ I).toNat))])) := by
-    simpa [liveTransition, spotLiveWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, spotLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

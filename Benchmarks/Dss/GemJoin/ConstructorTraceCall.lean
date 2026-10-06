@@ -1,3 +1,5 @@
+import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorTraceStores
 
 /-!
@@ -197,73 +199,6 @@ theorem gemJoinCtorDecimalsNoCodeReverts
 abbrev gemJoinCtorDecimalsReturnWord (out : ByteArray) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
 
-theorem byteArray_toList_toByteArray_gemJoin (b : ByteArray) :
-    b.toList.toByteArray = b := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [byteArray_toList_eq]
-  simp
-
-theorem toByteArray_uInt256OfByteArray_of_size_gemJoin {arr : ByteArray}
-    (hsize : arr.size = 32) :
-    UInt256.toByteArray (uInt256OfByteArray arr) = arr := by
-  rw [← word_toBytesBE_toByteArray_eq_toByteArray (uInt256OfByteArray arr),
-    toBytesBE_uInt256OfByteArray_of_size hsize, byteArray_toList_toByteArray_gemJoin]
-
-theorem gemJoinCtorMin32_toNat_of_ge {n : ℕ}
-    (h32 : 32 ≤ n) (hsize : n < UInt256.size) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat n)).toNat = 32 := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat n then (⟨32⟩ : UInt256)
-    else UInt256.ofNat n).toNat = 32
-  rw [if_pos]
-  · rfl
-  · show (32 : ℕ) ≤ (UInt256.ofNat n).val.val
-    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl,
-      ulit_toNat' n hsize]
-    exact h32
-
-theorem gemJoinCtorMin32_toNat_of_lt {n : ℕ} (h : n < 32) :
-    (min (⟨32⟩ : UInt256) (UInt256.ofNat n)).toNat = n := by
-  show (if (⟨32⟩ : UInt256) ≤ UInt256.ofNat n then (⟨32⟩ : UInt256)
-    else UInt256.ofNat n).toNat = n
-  have hnsize : n < UInt256.size := by
-    have h32 : 32 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  rw [if_neg, ulit_toNat' n hnsize]
-  · show ¬ (32 : ℕ) ≤ (UInt256.ofNat n).val.val
-    rw [show (UInt256.ofNat n).val.val = (UInt256.ofNat n).toNat from rfl,
-      ulit_toNat' n hnsize]
-    omega
-
-theorem gemJoinCtorDecimalsReturnWrite_read64 {base out : ByteArray} (L : ℕ)
-    (hbase : base.size = 256)
-    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨224⟩)
-    (hL : L ≤ 32) (hLo : L ≤ out.size) :
-    (out.write 0 base 224 L).readWithPadding 64 32 = UInt256.toByteArray ⟨224⟩ := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h
-    rw [byteArray_write_len_zero]
-    exact hread64
-  · rw [write_read_below_gen out base 224 L 64 (by omega) hLo
-      (by rw [hbase]; omega) (by omega), hread64]
-
-theorem gemJoinCtorDecimalsReturnWrite_size {base out : ByteArray} (L : ℕ)
-    (hbase : base.size = 256) (hL : L ≤ 32) (hLo : L ≤ out.size) :
-    (out.write 0 base 224 L).size = 256 := by
-  rcases Nat.eq_zero_or_pos L with h | h
-  · subst h
-    rw [byteArray_write_len_zero]
-    exact hbase
-  · rw [write_eq_gen out base 224 L (by omega) hLo (by rw [hbase]; omega),
-      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract, ByteArray.size_extract, hbase]
-    omega
-
-theorem gemJoinCtorDecimalsReturnWrite_read224_32 {base out : ByteArray}
-    (hbase : base.size = 256) (ho32 : 32 ≤ out.size) :
-    (out.write 0 base 224 32).readWithPadding 224 32 =
-      out.extract 0 32 :=
-  write32_read_back out base 224 ho32 (by rw [hbase]; omega)
 
 theorem gemJoinCtorDecimalsStatusOkReach
     {s0 : State} {I : ExecutionEnv} {g0 : Sat256}

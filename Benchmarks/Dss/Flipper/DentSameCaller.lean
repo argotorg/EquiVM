@@ -107,9 +107,9 @@ theorem flipperDentBodyFrom4733SameCaller
       have hfluxEncode :
           config.externalABI.encode? "flux" (dentFluxArgValsOf evm0Solm I) =
             some ((dentVatFluxCallMem memFlux σ I).readWithPadding 128 132) := by
-        simpa [evm0Solm, dentFluxArgValsOf, initState, flipperSlotWord,
+        simpa [evm0Solm, dentFluxArgValsOf, initState, solcSlotWordAt,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, flipperAddressReturnWord]
+          bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, solcAddressSlotWord]
           using dentVatFluxCallMem_encode (mem := memFlux) (σ := σ) (I := I)
             hmemFluxSize
       have hcallFluxSolm :
@@ -253,7 +253,7 @@ theorem flipperDentBodyFrom4733SameCaller
               64 ≤
                 (twoWordHashMem (dentId I) ⟨1⟩
                   (dentVatFluxCallMem memFlux σ I)).size := by
-            rw [tendTwoWordHashMem_size_of_size_ge]
+            rw [twoWordHashMem_size_of_size_ge]
             · exact hfluxMemGe
             · exact hfluxMemGe
           have hret := flipperDentX_storeTicReturn hperm hticMemGe rd3859
@@ -322,7 +322,7 @@ theorem flipperDentBodyFrom4733SameCaller
             have hownerLot : evmLotEvm.executionEnv.codeOwner = I.codeOwner := by
               simp [evmLotEvm, evmFluxEvm, evm0Evm, storageStore_executionEnv, initState]
             simpa [evmTicEvm, hmapLotEvm, hownerLot, tendStoreTicMap, tendStoredTicWord,
-              flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+              solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
               Account.lookupStorage, storageStore_accountMap, dentId, tendId] using rfl
           have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
             rw [show dentTransition.returnType = [] by rfl]
