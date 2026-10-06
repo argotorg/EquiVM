@@ -72,6 +72,44 @@ theorem decode_append_left (A B : ByteArray) (pc : UInt256)
             · exact hwin64 b instr hget hinstr
             · exact hwin b instr hget hinstr
 
+/-- Lift a concrete prefix decode using its actual instruction width. -/
+theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
+    (instr : Operation) (arg : Option (UInt256 × Nat))
+    (hdecode : decode A pc = some (instr, arg))
+    (hwin : pc.toNat + 1 + argOnNBytesOfInstr instr ≤ A.size)
+    (hwin64 : pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64) :
+    decode (A ++ B) pc = some (instr, arg) := by
+  rw [decode_append_left A B pc]
+  · exact hdecode
+  · omega
+  · intro b instr' hget hparse
+    have hdecode' :
+        decode A pc = some
+          (instr', if argOnNBytesOfInstr instr' == 0 then none else
+            some (uInt256OfByteArray
+              (A.extract' pc.toNat.succ
+                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              argOnNBytesOfInstr instr')) := by
+      simp [decode, hget, hparse]
+    rw [hdecode] at hdecode'
+    have hi : instr = instr' := congrArg Prod.fst (Option.some.inj hdecode')
+    subst instr'
+    exact hwin
+  · intro b instr' hget hparse
+    have hdecode' :
+        decode A pc = some
+          (instr', if argOnNBytesOfInstr instr' == 0 then none else
+            some (uInt256OfByteArray
+              (A.extract' pc.toNat.succ
+                (pc.toNat.succ + argOnNBytesOfInstr instr')),
+              argOnNBytesOfInstr instr')) := by
+      simp [decode, hget, hparse]
+    rw [hdecode] at hdecode'
+    have hi : instr = instr' := congrArg Prod.fst (Option.some.inj hdecode')
+    subst instr'
+    exact hwin64
+
+
 /-- Every EVM instruction carries at most 32 immediate argument bytes (`PUSH32`). -/
 theorem argOnNBytesOfInstr_le_32 (i : Operation) : argOnNBytesOfInstr i ≤ 32 := by
   cases i <;> first | decide | (rename_i p; cases p <;> decide)
