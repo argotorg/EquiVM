@@ -1,9 +1,6 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

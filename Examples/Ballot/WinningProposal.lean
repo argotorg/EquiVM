@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.Ballot.Common
 import Reasoning.SolmBody
 

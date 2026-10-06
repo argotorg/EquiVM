@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.Storage
 import Reasoning.WordArithmetic
 import Examples.Ballot.Common

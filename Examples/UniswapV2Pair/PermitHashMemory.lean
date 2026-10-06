@@ -1,12 +1,8 @@
-import Reasoning.MemoryArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Examples.UniswapV2Pair.StackRoutines
 import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.Routines
 import Reasoning.MemCascade
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

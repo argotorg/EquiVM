@@ -1,6 +1,4 @@
-import Reasoning.StateFacts
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Examples.Ballot.Bytecode

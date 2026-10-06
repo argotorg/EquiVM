@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.BlindAuction.Storage
 import Examples.SimpleAuction.Withdraw
 import Reasoning.ExternalCall

@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.BlindAuction.Bid
 import Examples.BlindAuction.Reveal
@@ -13,6 +11,7 @@ import Examples.BlindAuction.RevealEnd
 import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.HighestBid
 import Reasoning.Initcode
+import Reasoning.SolmArithmetic
 
 /-!
 # BlindAuction — top-level correctness proof

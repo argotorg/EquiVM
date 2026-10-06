@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.UniswapV2Pair.MintFeeCallRuntimeCases
 import Examples.UniswapV2Pair.BurnInternalCases
 

@@ -1,8 +1,6 @@
-import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.SkimSafeTransferReturn
 import Examples.UniswapV2Pair.SafeTransferDynamicCallRuntime
 import Examples.UniswapV2Pair.SafeTransferDynamicCalldata
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

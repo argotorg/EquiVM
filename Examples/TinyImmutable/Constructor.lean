@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Examples.TinyImmutable.Common
 import Reasoning.SolmBody
 import Solm.Equiv

@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.EVMWord
 import Examples.UniswapV2Pair.Sync
 import Reasoning.ExternalCall

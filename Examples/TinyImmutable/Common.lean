@@ -1,5 +1,4 @@
 import Reasoning.SolmBody
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.TinyImmutable.Selectors
 import Reasoning.Dispatch

@@ -1,6 +1,6 @@
-import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.BalanceDynamicMemory
 import Examples.UniswapV2Pair.ByteArrayWriteMemory
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000

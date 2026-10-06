@@ -1,7 +1,5 @@
-import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.SkimSecondSafeTransferRuntime
 import Examples.UniswapV2Pair.SkimSafeTransferReturn
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

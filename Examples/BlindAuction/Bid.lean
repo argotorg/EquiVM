@@ -531,6 +531,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
   rw [blindAuctionStorageLocStore_uint256_natCast]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
   rw [writeFields?.eq_def]
+  simp only [storageStore_executionEnv]
   rfl
 
 theorem evalExpr_bid_biddingEnd (evm : EVM.State) :

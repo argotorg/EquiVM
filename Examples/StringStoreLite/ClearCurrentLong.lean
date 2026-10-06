@@ -1,7 +1,5 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.StringStoreLite.Getters
-
 
 /-!
 # StringStoreLite — `currentLength()` long-string branch work

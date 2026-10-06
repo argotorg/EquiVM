@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.MemorySteps
 import Examples.UniswapV2Pair.SkimDynamicSecondRuntime
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicRuntime

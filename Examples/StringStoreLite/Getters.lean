@@ -1,7 +1,6 @@
 import Reasoning.StorageLoops
 import Reasoning.ABIViews
 import Reasoning.Stepping
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.StringStoreLite.Bytecode
 import Reasoning.ABI

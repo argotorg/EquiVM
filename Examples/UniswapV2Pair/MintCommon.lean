@@ -14,6 +14,7 @@ import Examples.UniswapV2Pair.Sync
 import Examples.UniswapV2Pair.SyncRuntime
 import Examples.UniswapV2Pair.UpdateRoutines
 import Reasoning.ExternalCall
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

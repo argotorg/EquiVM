@@ -1,5 +1,4 @@
 import Reasoning.PackedStorage
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Examples.BlindAuction.Reveal.Common
 

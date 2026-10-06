@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.SimpleAuction.Bid
 import Examples.SimpleAuction.Withdraw
@@ -11,6 +9,7 @@ import Examples.SimpleAuction.HighestBid
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
+import Reasoning.SolmArithmetic
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

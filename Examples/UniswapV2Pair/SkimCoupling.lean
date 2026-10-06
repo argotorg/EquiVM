@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.RawCallSource
 import Examples.UniswapV2Pair.SkimCommon

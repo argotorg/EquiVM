@@ -1,8 +1,9 @@
 import Reasoning.SolmBody
-import Reasoning.StateFacts
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.PermitABI
+import Reasoning.SolmArithmetic
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000

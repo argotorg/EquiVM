@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.UniswapV2Pair.SyncRuntime
 import Reasoning.SolmBody
 

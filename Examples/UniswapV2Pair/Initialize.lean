@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.TransferRoutines

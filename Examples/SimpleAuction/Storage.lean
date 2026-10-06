@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.SimpleAuction.Common
 import Reasoning.Storage
 

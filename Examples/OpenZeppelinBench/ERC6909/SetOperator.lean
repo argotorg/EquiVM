@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.ERC6909.Approve

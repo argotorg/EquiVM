@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom.Decode
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

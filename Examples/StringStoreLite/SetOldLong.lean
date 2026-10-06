@@ -1,7 +1,5 @@
 import Reasoning.StorageLoops
-import Reasoning.StateFacts
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Reasoning.Stepping

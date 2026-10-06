@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody

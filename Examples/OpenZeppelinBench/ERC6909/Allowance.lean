@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Reasoning.SolmBody
 

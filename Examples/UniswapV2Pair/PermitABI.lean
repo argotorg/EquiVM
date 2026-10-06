@@ -1,6 +1,4 @@
-import Reasoning.StateFacts
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.ABIComposite
 import Examples.UniswapV2Pair.PackedWordSource
 import Examples.UniswapV2Pair.MutatorDispatch

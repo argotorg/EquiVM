@@ -1,6 +1,5 @@
 import Reasoning.SolmBody
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.Memory
 import Reasoning.WordArithmetic
 import Examples.BlindAuction.Reveal.Loop

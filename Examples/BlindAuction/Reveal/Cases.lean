@@ -1,6 +1,3 @@
-import Reasoning.MemoryShapes
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Examples.BlindAuction.Reveal.Nonempty
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
