@@ -160,7 +160,7 @@ theorem vowCageBodyToMinHeal
         Eq σ_sin evmSin.accountMap →
         runtimeEquivalenceFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -177,7 +177,7 @@ theorem vowCageBodyToMinHeal
           {flapperDai} {vatDai} rd3115 hmemDai2 hread64Dai2 hvatCode hcallDai
           hdecDai hauthSolm hliveSolm hflapperCode hcallFlap hflopperCode hcallFlop
           hvatCode2 hcallDai2 hdecDai2 hdepthLt hσ0Dai2 henvDai2 hAccountsDai2 => ?_)
-      hcode hsize hperm hwv hsel
+      hcode hsize hwv hsel
   by_cases hcodeSizeVatSin :
       Reasoning.Theory.extCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) =
         ⟨0⟩
@@ -377,7 +377,7 @@ theorem vowCageBodyToMinHeal
 set_option maxHeartbeats 0 in
 theorem vowCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -395,7 +395,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           hread64Sin hvatCode hcallDai hdecDai hauthSolm hliveSolm hflapperCode
           hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2
           hvatCodeSin hcallSin hdecSin hdepthLt hσ0Sin henvSin hAccountsSin => ?_)
-      hcode hsize hperm hwv hsel
+      hcode hsize hwv hsel
   have hownerSin : evmSin.executionEnv.codeOwner = I.codeOwner := by
     simp [henvSin]
   by_cases hle : vatDai.toNat ≤ vatSin.toNat
@@ -440,7 +440,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
       RD.vowCageHealPostCall
         (σCall := σ_sin)
         (healRad := vatDai) (R := [⟨412⟩, vowSelWord I])
-        rd3238 hmemSin hread64Sin hcodeSizeHealNE hdepthLt hperm (by simp)
+        rd3238 hmemSin hread64Sin hcodeSizeHealNE hdepthLt (by simp)
     let evmHealEvmIn :=
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σ_sin
@@ -553,7 +553,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
       RD.vowCageHealPostCall
         (σCall := σ_sin)
         (healRad := vatSin) (R := [⟨412⟩, vowSelWord I])
-        rd3238 hmemSin hread64Sin hcodeSizeHealNE hdepthLt hperm (by simp)
+        rd3238 hmemSin hread64Sin hcodeSizeHealNE hdepthLt (by simp)
     let evmHealEvmIn :=
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σ_sin

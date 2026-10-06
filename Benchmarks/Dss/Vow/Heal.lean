@@ -230,7 +230,7 @@ theorem vowReachHealBody {σ σ₀ A I} {g : Sat256}
 
 theorem vowHealShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -10,13 +10,13 @@ namespace Benchmarks.Dss.Vow
 set_option maxHeartbeats 0 in
 theorem vowHealBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 36
-  · exact vowHealShort hcode hsize hperm hwv hsz4 hshort hsel
+  · exact vowHealShort hcode hsize hwv hsz4 hshort hsel
   have hsz36 : 36 ≤ I.calldata.size := by omega
   have hdispatch : dispatchMsg contract I.calldata = some healTransition :=
     vowDispatch_heal hsel
@@ -446,7 +446,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
                 (addr := kissVatAddress σ I) haddrHeal hcodeSizeHealSolmNE
           obtain ⟨σ_heal, zHeal, outHeal, A_heal, k1919, C1919,
               rd1919, hcallHealRaw, houtHealSize⟩ :=
-            RD.vowHealHealPostCall rd4997 hmemSin hread64Sin hcodeSizeHealNE hdepthLt hperm
+            RD.vowHealHealPostCall rd4997 hmemSin hread64Sin hcodeSizeHealNE hdepthLt
           let evmHealEvmIn :=
             { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                 accountMap := σ_sin

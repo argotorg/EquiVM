@@ -266,7 +266,7 @@ theorem assign_fileVowStorage (evm : EVM.State) (I : ExecutionEnv) :
     storageLocStore_address_offset0 evm ⟨3⟩ (fileVowDataMaskedWord I)
       (fileVowDataMaskedWord_canonical I)
 
-theorem jugFileVowSourceBody {σ σ₀ A I} {g : UInt256}
+theorem jugFileVowSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hwhat : fileVowWhat I = fileVowBytes) :
@@ -276,7 +276,9 @@ theorem jugFileVowSourceBody {σ σ₀ A I} {g : UInt256}
       (setAddressOffset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨3⟩)
         (fileVowDataMaskedWord I))
     ExecTransitionBody config contract evm0 locals fileVowTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileVowTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -303,19 +305,45 @@ theorem jugFileVowSourceBody {σ σ₀ A I} {g : UInt256}
         .storage vowRef (.address (fileVowData I)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1, evm0, initState] using assign_fileVowStorage evm0 I
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage vowRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage vowRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileVowTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileVowTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (execBlock_singleton h))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, locals, evm0, evm1] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
+
+theorem jugFileVowSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hwhat : fileVowWhat I = fileVowBytes) :
+    let locals := fileVowLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩
+      (setAddressOffset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨3⟩)
+        (fileVowDataMaskedWord I))
+    ExecTransitionBody config contract evm0 locals fileVowTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (jugFileVowSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).1
+
+theorem jugFileVowSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hwhat : fileVowWhat I = fileVowBytes)
+    (hperm : I.perm = false) :
+    let locals := fileVowLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileVowTransition.body
+      .staticViolation :=
+  (jugFileVowSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).2 hperm
 
 theorem jugFileVowSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -586,16 +614,18 @@ theorem jugFileVowX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem jugFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem jugFileVowX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileVowBytes)
     (h : RD jugBytecode I g s0 ⟨2060⟩
       [fileVowDataMaskedWord I, calldataWord I.calldata 4, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret jugBytecode g s0
       (sstoreAccountMap I.codeOwner σ ⟨3⟩
         (setAddressOffset0Word (solcSlotWord σ I ⟨3⟩) (fileVowDataMaskedWord I)))
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic jugBytecode g s0) := by
   have rd2061 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2062 := rd2061.dup2 (by native_decide) (by evm_ov)
   have rd2066 := rd2062.pushConst (⟨0x766f77⟩ : UInt256)
@@ -633,6 +663,11 @@ theorem jugFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd2099 := rd2098.and (by native_decide) (by evm_ov)
   have rd2100 := rd2099.or (by native_decide) (by evm_ov)
   have rd2101 := rd2100.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2101.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2102⟩ := rd2101.sstore hperm (by native_decide) (by evm_ov)
   have rd2105 := rd2102.push2 ⟨1013⟩ (by native_decide) (by evm_ov)
   have rd1013 := rd2105.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -660,6 +695,18 @@ theorem jugFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd227 (by native_decide) (by evm_ov)
+
+theorem jugFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileVowBytes)
+    (h : RD jugBytecode I g s0 ⟨2060⟩
+      [fileVowDataMaskedWord I, calldataWord I.calldata 4, ⟨226⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret jugBytecode g s0
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩
+        (setAddressOffset0Word (solcSlotWord σ I ⟨3⟩) (fileVowDataMaskedWord I)))
+      ByteArray.empty :=
+  permSplit_true hperm (jugFileVowX_storeAuthorizedSplit hmatch h)
 
 theorem jugFileVowX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -763,6 +810,31 @@ theorem jugFileVowBodyCoreOk
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           (dvs := []) rfl (by native_decide) (by native_decide)))
 
+theorem jugFileVowBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hwhat : fileVowWhat I = fileVowBytes)
+    (hdispatch : dispatchMsg contract I.calldata = some fileVowTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (fileVowTransition.params.map Param.name)
+        (transitionSignature fileVowTransition).paramTypes I.calldata = some (fileVowLocals I))
+    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨505⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  obtain ⟨_, _, hdecoded⟩ := jugFileVowX_decoded (g := Sat256.ofUInt256 g)
+    hsz68 hsize hreach
+  obtain ⟨_, _, hswitch⟩ := jugFileVowX_authorized (I := I) hauth hdecoded
+  have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileVowBytes :=
+    fileVowWhatWord_eq_of_bytes_eq (by omega) hwhat
+  exact (permSplit_false hperm (jugFileVowX_storeAuthorizedSplit hmatch hswitch))
+    |>.reEquivStaticHalt hcode hdispatch hdecode
+      (jugFileVowSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        hwv hauth hwhat hperm)
+
 theorem jugFileVowBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -851,6 +923,36 @@ theorem jugFileVowBody {σ σ₀ A I} {g : UInt256}
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases hwhat : fileVowWhat I = fileVowBytes
       · exact jugFileVowBodyCoreOk hcode hsize hperm hwv hsz68 hauth hwhat hdispatch
+          (jugDecode_fileVow_ok hsz68) hreach
+      · exact jugFileVowBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hwhat hdispatch
+          (jugDecode_fileVow_ok hsz68) hreach
+    · exact jugFileVowBodyCoreUnauthorized hcode hsize hwv hsz68 hauth hdispatch
+        (jugDecode_fileVow_ok hsz68) hreach
+  · exact jugFileVowBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+/-- `file(bytes32,address)` (`vow`) with any call permission; a static call halts at the `vow`
+    `SSTORE`. -/
+theorem jugFileVowBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = jugBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (jugSelBytes 5)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact jugFileVowBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (jugSelBytes 5) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some fileVowTransition :=
+    jugDispatchFileVow hsel
+  have hreach := jugReachFileVowBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · by_cases hwhat : fileVowWhat I = fileVowBytes
+      · exact jugFileVowBodyCoreStatic hcode hsize hperm hwv hsz68 hauth hwhat hdispatch
           (jugDecode_fileVow_ok hsz68) hreach
       · exact jugFileVowBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hwhat hdispatch
           (jugDecode_fileVow_ok hsz68) hreach

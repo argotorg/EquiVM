@@ -115,7 +115,7 @@ theorem fileAddressNopeCall_initState_EVMStateEquiv
 theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (_hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
@@ -639,7 +639,7 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
 theorem vowFileAddressFlapperAuthorizedBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
@@ -672,7 +672,7 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
   by_cases hcodeSizeNopeZero :
       Reasoning.Theory.extCodeSizeWord σ
         (fileAddressVatTargetWord σ I) = ⟨0⟩
-  · exact vowFileAddressFlapperNopeNoCodeBodyCore (sel := sel) hcode hwv hperm hsz68
+  · exact vowFileAddressFlapperNopeNoCodeBodyCore (sel := sel) hcode hwv hsz68
       hsize hdispatch hdecode hreach hauthEvm hwhat hcodeSizeNopeZero
   have hcodeSizeNope :
       Reasoning.Theory.extCodeSizeWord σ
@@ -700,7 +700,7 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
   · obtain ⟨σNope, zNope, outNope, ANope, k4300, C4300,
         rd4300, hcallNopeEvm, houtNopeSize⟩ :=
       RD.vowFileAddressNopePostCall hswitch hmatch hmemAuth hread64 hcodeSizeNope
-        hdepthLt hperm
+        hdepthLt
     cases zNope
     · have rd4300False : RD vowBytecode I (Sat256.ofUInt256 g)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4300⟩
@@ -765,6 +765,14 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)).readWithPadding 64 32 =
             UInt256.toByteArray ⟨128⟩ :=
         fileAddressNopeCalldataMem_read64 _ hmemAuth hread64
+      rcases RD.vowFileAddressNopeSuccessStoreFlapperWithTargetSplit rd4300True with
+        ⟨hperm, -⟩ | ⟨hpf, hstatic⟩
+      swap
+      · obtain ⟨_, _, hcallNopeSolm, -⟩ :=
+          fileAddressNopeCall_initState_EVMStateEquiv hcallNopeTrue
+        exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+          ((fileAddressFlapperSourceStoreSplit (g := g) hwv hauthEvm hwhat hvatCodeNope
+            hcallNopeSolm).2 hpf)
       by_cases hcodeSizeHopeZero :
           Reasoning.Theory.extCodeSizeWord
             (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
@@ -843,14 +851,14 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
       apply Fin.ext
       have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
       omega
-    exact vowFileAddressFlapperNopeCallDepthLimitBodyCore (sel := sel) hcode hwv hperm
+    exact vowFileAddressFlapperNopeCallDepthLimitBodyCore (sel := sel) hcode hwv
       hsz68 hsize hdispatch hdecode hreach hauthEvm hwhat hcodeSizeNope
       hdepthEq
 
 theorem vowFileAddressFlapperBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
@@ -864,7 +872,7 @@ theorem vowFileAddressFlapperBodyCore
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let callerSlot := vowCallerWardsSlot I
   by_cases hauthEvm : vowSlotWord callerSlot σ I = ⟨1⟩
-  · exact vowFileAddressFlapperAuthorizedBodyCore (sel := sel) hcode hwv hperm hsz68
+  · exact vowFileAddressFlapperAuthorizedBodyCore (sel := sel) hcode hwv hsz68
       hsize hdispatch hdecode hreach (by simpa [callerSlot] using hauthEvm)
       hwhat
   · exact vowFileAddressAuthRevertBodyCore (sel := sel) hcode hwv hsz68 hsize hdispatch
@@ -872,13 +880,13 @@ theorem vowFileAddressFlapperBodyCore
 
 theorem vowFileAddressFlapperBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩)
     (hwhat : fileAddressWhat I = fileAddressFlapperBytes) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  exact vowFileAddressFlapperBodyCore (sel := vowSelWord I) hcode hwv hperm hsz68 hsize
+  exact vowFileAddressFlapperBodyCore (sel := vowSelWord I) hcode hwv hsz68 hsize
     (vowDispatch_fileAddress hsel)
     (by simpa [fileAddressLocals] using vowDecode_fileAddress_ok (I := I) hsz68)
     (vowReachFileAddressBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
@@ -886,16 +894,16 @@ theorem vowFileAddressFlapperBody {σ σ₀ A I} {g : UInt256}
 
 theorem vowFileAddressBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 68
-  · exact vowFileAddressShort hcode hsize hperm hwv hsz4 hshort hsel
+  · exact vowFileAddressShort hcode hsize hwv hsz4 hshort hsel
   have hsz68 : 68 ≤ I.calldata.size := by omega
   by_cases hwhat : fileAddressWhat I = fileAddressFlapperBytes
-  · exact vowFileAddressFlapperBody hcode hsize hperm hwv hsz68 hsel hwhat
-  · exact vowFileAddressNonFlapperBody hcode hsize hperm hwv hsz68 hsel hwhat
+  · exact vowFileAddressFlapperBody hcode hsize hwv hsz68 hsel hwhat
+  · exact vowFileAddressNonFlapperBody hcode hsize hwv hsz68 hsel hwhat
 
 end Benchmarks.Dss.Vow

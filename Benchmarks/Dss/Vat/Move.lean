@@ -513,7 +513,7 @@ theorem assignStorageRef_move_dst_dai {evm evm' : EVM.State} {I : ExecutionEnv}
     (hstore := hstore)
 
 set_option maxHeartbeats 1000000 in
-theorem vatMoveSourceOk
+theorem vatMoveSourceStoreSrcSplit
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -521,24 +521,24 @@ theorem vatMoveSourceOk
     let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
     let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
       (moveSrcDaiSlot I) srcDaiNew
-    let dstOld := Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I)
-    let dstDaiNew := dstOld + moveRadWord I
     evalExpr? config { contract := contract, locals := moveStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     (moveRadWord I).toNat ≤ srcOld.toNat →
-    dstOld.toNat + (moveRadWord I).toNat < UInt256.size →
-    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
-      (.returned { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
-        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-          (moveDstDaiSlot I) dstDaiNew) none) := by
-  intro evm0 srcOld srcDaiNew evm1 dstOld dstDaiNew hwish hsrcEnough hdstFit
+    (∀ r, ExecBlock config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew } evm1
+        [ .letDecl "dstDaiNew" (some uint256)
+            (add256 (.storage (daiRef (.var "dst"))) (.var "rad")),
+          .require (.binary .ge (.var "dstDaiNew")
+            (.storage (daiRef (.var "dst")))),
+          .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ] r →
+      ExecBlock config { contract := contract, locals := moveStore I } evm0 moveTransition.body r) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+        .staticViolation) := by
+  intro evm0 srcOld srcDaiNew evm1 hwish hsrcEnough
   have hsrcLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
     simp [evm0, srcOld, vatSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
-  have hdstLoad :
-      Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I) = dstOld := by
-    simp [dstOld]
   have hrad :
       evalExpr? config { contract := contract, locals := moveStore I } evm0 (.var "rad") =
         .ok (.int (Int.ofNat (moveRadWord I).toNat)) :=
@@ -583,6 +583,62 @@ theorem vatMoveSourceOk
         .ok ({ contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew }, evm1) :=
     assignStorageRef_move_src_dai (evm := evm0) (evm' := evm1) (I := I)
       (srcDaiNew := srcDaiNew) (by simp [evm1])
+  have hpre : ∀ r, ExecBlock config
+      { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew } evm0
+      (.assign .storage (daiRef (.var "src")) (.var "srcDaiNew") ::
+        [ .letDecl "dstDaiNew" (some uint256)
+            (add256 (.storage (daiRef (.var "dst"))) (.var "rad")),
+          .require (.binary .ge (.var "dstDaiNew")
+            (.storage (daiRef (.var "dst")))),
+          .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ]) r →
+      ExecBlock config { contract := contract, locals := moveStore I } evm0
+        moveTransition.body r := by
+    intro r hrest
+    change ExecBlock config { contract := contract, locals := moveStore I } evm0
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require (wishExpr (.var "src") sender),
+        .letDecl "srcDaiNew" (some uint256)
+          (sub256 (.storage (daiRef (.var "src"))) (.var "rad")),
+        .require (.binary .le (.var "srcDaiNew")
+          (.storage (daiRef (.var "src")))),
+        .assign .storage (daiRef (.var "src")) (.var "srcDaiNew"),
+        .letDecl "dstDaiNew" (some uint256)
+          (add256 (.storage (daiRef (.var "dst"))) (.var "rad")),
+        .require (.binary .ge (.var "dstDaiNew")
+          (.storage (daiRef (.var "dst")))),
+        .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ] r
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
+    exact hrest
+  refine ⟨fun r h => hpre r (ExecBlock.consNormal (ExecStmt.assign hsrcDaiNewEval hassignSrc) h),
+    fun hpf => ExecFuncBody.execBlockStatic (hpre _ (ExecBlock.consStatic
+      (ExecStmt.assignStatic hsrcDaiNewEval hassignSrc (by simp [evm0, initState]; exact hpf))))⟩
+
+theorem vatMoveSourceOk
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
+    let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
+    let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
+      (moveSrcDaiSlot I) srcDaiNew
+    let dstOld := Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I)
+    let dstDaiNew := dstOld + moveRadWord I
+    evalExpr? config { contract := contract, locals := moveStore I } evm0
+        (wishExpr (.var "src") sender) = .ok (.bool true) →
+    (moveRadWord I).toNat ≤ srcOld.toNat →
+    dstOld.toNat + (moveRadWord I).toNat < UInt256.size →
+    ExecTransitionBody config contract evm0 (moveStore I) moveTransition.body
+      (.returned { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
+        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
+          (moveDstDaiSlot I) dstDaiNew) none) := by
+  intro evm0 srcOld srcDaiNew evm1 dstOld dstDaiNew hwish hsrcEnough hdstFit
+  have hdstLoad :
+      Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I) = dstOld := by
+    simp [dstOld]
   have hradAfterSrc :
       evalExpr? config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew }
           evm1 (.var "rad") =
@@ -636,47 +692,11 @@ theorem vatMoveSourceOk
       (evm' := Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
         (moveDstDaiSlot I) dstDaiNew)
       (I := I) (srcDaiNew := srcDaiNew) (dstDaiNew := dstDaiNew) rfl
-  have hblock :
-      ExecBlock config { contract := contract, locals := moveStore I } evm0
-        (nonpayable ++
-          [ .require (wishExpr (.var "src") sender) ] ++
-          checkedSubUintInto "srcDaiNew" (.storage (daiRef (.var "src")))
-            (.var "rad") ++
-          [ .assign .storage (daiRef (.var "src")) (.var "srcDaiNew") ] ++
-          checkedAddUintInto "dstDaiNew" (.storage (daiRef (.var "dst")))
-            (.var "rad") ++
-          [ .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ])
-        (.ok { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
-          (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-            (moveDstDaiSlot I) dstDaiNew)) := by
-    change ExecBlock config { contract := contract, locals := moveStore I } evm0
-      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .require (wishExpr (.var "src") sender),
-        .letDecl "srcDaiNew" (some uint256)
-          (sub256 (.storage (daiRef (.var "src"))) (.var "rad")),
-        .require (.binary .le (.var "srcDaiNew")
-          (.storage (daiRef (.var "src")))),
-        .assign .storage (daiRef (.var "src")) (.var "srcDaiNew"),
-        .letDecl "dstDaiNew" (some uint256)
-          (add256 (.storage (daiRef (.var "dst"))) (.var "rad")),
-        .require (.binary .ge (.var "dstDaiNew")
-          (.storage (daiRef (.var "dst")))),
-        .assign .storage (daiRef (.var "dst")) (.var "dstDaiNew") ]
-      (.ok { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
-        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-          (moveDstDaiSlot I) dstDaiNew))
-    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign hsrcDaiNewEval hassignSrc) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hdstDaiNewEval hassignDst) ExecBlock.nil
-  simpa [ExecTransitionBody, moveTransition, evm0, evm1, nonpayable,
-    checkedSubUintInto, checkedAddUintInto, List.append_assoc] using
-    ExecFuncBody.execBlockOK hblock
+  simpa [ExecTransitionBody, evm0, evm1] using ExecFuncBody.execBlockOK
+    ((vatMoveSourceStoreSrcSplit (g := g) hwv hwish hsrcEnough).1 _
+      (ExecBlock.consNormal (ExecStmt.letDecl hadd)
+        (ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd)
+          (ExecBlock.consNormal (ExecStmt.assign hdstDaiNewEval hassignDst) ExecBlock.nil))))
 
 theorem vatMoveSourceRevertWish
     {σ σ₀ A I} {g : UInt256}
@@ -1394,7 +1414,7 @@ theorem RD.vatMoveSourceSubRevert
     (by simpa [old, slot] using hlt) (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.vatMoveSourceStoreValue
+theorem RD.vatMoveSourceStoreValueSplit
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {srcDaiNew rad dst src ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -1402,23 +1422,24 @@ theorem RD.vatMoveSourceStoreValue
       (srcDaiNew :: rad :: dst :: src :: ret :: R)
       (twoWordHashMem src ⟨5⟩ mem) (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hsrcCanon : src.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vatBytecode ee g s0 ⟨6017⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: rad :: dst :: src :: ret :: R)
       (twoWordHashMem src ⟨5⟩ (twoWordHashMem src ⟨5⟩ mem))
       (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨5⟩ src) srcDaiNew) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨5⟩ src) srcDaiNew) k' C') ∨
+      (ee.perm = false ∧ RDstatic vatBytecode g s0) := by
   simpa [solcSingleMappingStoreDebitOutPc] using
-    RD.solcSingleMappingStoreDebitMem
+    RD.solcSingleMappingStoreDebitMemSplit
       (code := vatBytecode) (pc := ⟨5986⟩) (baseSlot := ⟨5⟩)
       (newValue := srcDaiNew) (value := rad) (aux := dst) (key := src)
       (ret := ret) (R := R) h
       (by
         unfold solcSingleMappingStoreDebitMemWf
         repeat' first | apply And.intro | native_decide)
-      hmem hperm hsrcCanon hov
+      hmem hsrcCanon hov
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveDestAddSuccess
@@ -1604,7 +1625,6 @@ set_option maxHeartbeats 1000000 in
 theorem vatMoveAuthorizedPath
     {σ σ₀ A I} {g : UInt256} {k C : ℕ} {memWish : ByteArray}
     (hcode : I.code = vatBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some moveTransition)
     (hdecode :
@@ -1656,8 +1676,13 @@ theorem vatMoveAuthorizedPath
       dsimp [memSrcSub]
       apply twoWordHashMem_size_96
       exact hmemWish
-    obtain ⟨_, _, h6017⟩ := RD.vatMoveSourceStoreValue
-      (h := h5986) hmemWish hperm (moveSrcMaskedWord_canonical I) (by simp)
+    rcases RD.vatMoveSourceStoreValueSplit
+        (h := h5986) hmemWish (moveSrcMaskedWord_canonical I) (by simp) with
+      ⟨hperm, _, _, h6017⟩ | ⟨hpf, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+        ((vatMoveSourceStoreSrcSplit (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+          (by simpa [evm0] using hwishSolm) (by simpa [srcOld] using hsrcEnough)).2 hpf)
     let σSrc := sstoreAccountMap I.codeOwner σ (moveSrcDaiSlot I) srcDaiNew
     have hsrcSlotEq :
         solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I) = moveSrcDaiSlot I := by
@@ -1864,8 +1889,8 @@ theorem vatMoveBodyCoreDecodeFailed_short
     |>.reEquivDecodingFailed hcode (vatDispatchMove hsel)
       (vatDecode_move_none_short hsz4 hshort)
 
-theorem vatMoveBodyCore : VatBodyTheorem 19 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatMoveBodyCore : VatBodyTheoremAnyPerm 19 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 19) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some moveTransition :=
@@ -1910,7 +1935,7 @@ theorem vatMoveBodyCore : VatBodyTheorem 19 := by
       obtain ⟨_, _, h5951⟩ := RD.vatMoveWishBranchOk hloaded hwishEvm
       exact vatMoveAuthorizedPath
         (σ := σ)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm hwv
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv
         hdispatch hdecode hmemWish
         (by simpa [evm0] using hwishSolm) h5951
     · by_cases hcanEvm : vatSlotWord (moveWishSlot I) σ I = ⟨1⟩
@@ -1928,7 +1953,7 @@ theorem vatMoveBodyCore : VatBodyTheorem 19 := by
         obtain ⟨_, _, h5951⟩ := RD.vatMoveWishBranchOk hloaded hwishEvm
         exact vatMoveAuthorizedPath
           (σ := σ)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm hwv
+          (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv
           hdispatch hdecode hmemWish
           (by simpa [evm0] using hwishSolm) h5951
       · have hcanSolm :

@@ -75,7 +75,6 @@ theorem potLiveBodyCore
 theorem potLiveBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 10)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

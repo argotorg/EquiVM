@@ -1009,7 +1009,7 @@ theorem RD.vatFluxSourceSubRevert
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.vatFluxSourceStoreValue
+theorem RD.vatFluxSourceStoreValueSplit
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {srcGemNew wad dst src ilk ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -1018,15 +1018,16 @@ theorem RD.vatFluxSourceStoreValue
       mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hsrcClean : UInt256.land solcAddrMask src = src)
-    (hperm : ee.perm = true)
     (hov : R.length + 13 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vatBytecode ee g s0 ⟨2630⟩
       (solcAddrMask :: ⟨0⟩ :: ⟨64⟩ :: wad :: dst :: src :: ilk :: ret :: R)
       (twoWordHashMem src (solcMappingSlot ⟨4⟩ ilk)
         (twoWordHashMem ilk ⟨4⟩ mem))
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
-        (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) src) srcGemNew) k' C' := by
+        (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) src) srcGemNew) k' C') ∨
+      (ee.perm = false ∧ RDstatic vatBytecode g s0) := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner src
   have rd2591 := h.jumpdest (by native_decide) (by evm_ov)
@@ -1101,6 +1102,12 @@ theorem RD.vatFluxSourceStoreValue
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2629pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp [List.length_cons] at hov ⊢; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2630raw⟩ := rd2629pre.sstore hperm (by native_decide)
     (by simp [List.length_cons] at hov ⊢; omega)
   exact ⟨_, _, by simpa [slot, inner] using rd2630raw⟩
@@ -1468,7 +1475,7 @@ theorem fluxEvalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
   exact_mod_cast hge
 
 set_option maxHeartbeats 1000000 in
-theorem vatFluxSourceOk
+theorem vatFluxSourceStoreSrcSplit
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz132 : 132 ≤ I.calldata.size) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1476,24 +1483,24 @@ theorem vatFluxSourceOk
     let srcGemNew := UInt256.sub srcOld (fluxWadWord I)
     let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
       (fluxSrcGemSlot I) srcGemNew
-    let dstOld := Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (fluxDstGemSlot I)
-    let dstGemNew := dstOld + fluxWadWord I
     evalExpr? config { contract := contract, locals := fluxStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     (fluxWadWord I).toNat ≤ srcOld.toNat →
-    dstOld.toNat + (fluxWadWord I).toNat < UInt256.size →
-    ExecTransitionBody config contract evm0 (fluxStore I) fluxTransition.body
-      (.returned { contract := contract, locals := fluxStoreDstGemNew I srcGemNew dstGemNew }
-        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-          (fluxDstGemSlot I) dstGemNew) none) := by
-  intro evm0 srcOld srcGemNew evm1 dstOld dstGemNew hwish hsrcEnough hdstFit
+    (∀ r, ExecBlock config { contract := contract, locals := fluxStoreSrcGemNew I srcGemNew } evm1
+        [ .letDecl "dstGemNew" (some uint256)
+            (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")),
+          .require (.binary .ge (.var "dstGemNew")
+            (.storage (gemRef (.var "ilk") (.var "dst")))),
+          .assign .storage (gemRef (.var "ilk") (.var "dst")) (.var "dstGemNew") ] r →
+      ExecBlock config { contract := contract, locals := fluxStore I } evm0 fluxTransition.body r) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 (fluxStore I) fluxTransition.body
+        .staticViolation) := by
+  intro evm0 srcOld srcGemNew evm1 hwish hsrcEnough
   have hsrcLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (fluxSrcGemSlot I) = srcOld := by
     simp [evm0, srcOld, vatSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
-  have hdstLoad :
-      Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (fluxDstGemSlot I) = dstOld := by
-    simp [dstOld]
   have hwad :
       evalExpr? config { contract := contract, locals := fluxStore I } evm0 (.var "wad") =
         .ok (.int (Int.ofNat (fluxWadWord I).toNat)) :=
@@ -1538,6 +1545,62 @@ theorem vatFluxSourceOk
         .ok ({ contract := contract, locals := fluxStoreSrcGemNew I srcGemNew }, evm1) :=
     assignStorageRef_flux_src_gem (evm := evm0) (evm' := evm1) (I := I)
       (srcGemNew := srcGemNew) hsz132 (by simp [evm1])
+  have hpre : ∀ r, ExecBlock config
+      { contract := contract, locals := fluxStoreSrcGemNew I srcGemNew } evm0
+      (.assign .storage (gemRef (.var "ilk") (.var "src")) (.var "srcGemNew") ::
+        [ .letDecl "dstGemNew" (some uint256)
+            (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")),
+          .require (.binary .ge (.var "dstGemNew")
+            (.storage (gemRef (.var "ilk") (.var "dst")))),
+          .assign .storage (gemRef (.var "ilk") (.var "dst")) (.var "dstGemNew") ]) r →
+      ExecBlock config { contract := contract, locals := fluxStore I } evm0
+        fluxTransition.body r := by
+    intro r hrest
+    change ExecBlock config { contract := contract, locals := fluxStore I } evm0
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require (wishExpr (.var "src") sender),
+        .letDecl "srcGemNew" (some uint256)
+          (sub256 (.storage (gemRef (.var "ilk") (.var "src"))) (.var "wad")),
+        .require (.binary .le (.var "srcGemNew")
+          (.storage (gemRef (.var "ilk") (.var "src")))),
+        .assign .storage (gemRef (.var "ilk") (.var "src")) (.var "srcGemNew"),
+        .letDecl "dstGemNew" (some uint256)
+          (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")),
+        .require (.binary .ge (.var "dstGemNew")
+          (.storage (gemRef (.var "ilk") (.var "dst")))),
+        .assign .storage (gemRef (.var "ilk") (.var "dst")) (.var "dstGemNew") ] r
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
+    exact hrest
+  refine ⟨fun r h => hpre r (ExecBlock.consNormal (ExecStmt.assign hsrcGemNewEval hassignSrc) h),
+    fun hpf => ExecFuncBody.execBlockStatic (hpre _ (ExecBlock.consStatic
+      (ExecStmt.assignStatic hsrcGemNewEval hassignSrc (by simp [evm0, initState]; exact hpf))))⟩
+
+theorem vatFluxSourceOk
+    {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩) (hsz132 : 132 ≤ I.calldata.size) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let srcOld := vatSlotWord (fluxSrcGemSlot I) σ I
+    let srcGemNew := UInt256.sub srcOld (fluxWadWord I)
+    let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
+      (fluxSrcGemSlot I) srcGemNew
+    let dstOld := Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (fluxDstGemSlot I)
+    let dstGemNew := dstOld + fluxWadWord I
+    evalExpr? config { contract := contract, locals := fluxStore I } evm0
+        (wishExpr (.var "src") sender) = .ok (.bool true) →
+    (fluxWadWord I).toNat ≤ srcOld.toNat →
+    dstOld.toNat + (fluxWadWord I).toNat < UInt256.size →
+    ExecTransitionBody config contract evm0 (fluxStore I) fluxTransition.body
+      (.returned { contract := contract, locals := fluxStoreDstGemNew I srcGemNew dstGemNew }
+        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
+          (fluxDstGemSlot I) dstGemNew) none) := by
+  intro evm0 srcOld srcGemNew evm1 dstOld dstGemNew hwish hsrcEnough hdstFit
+  have hdstLoad :
+      Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (fluxDstGemSlot I) = dstOld := by
+    simp [dstOld]
   have hwadAfterSrc :
       evalExpr? config { contract := contract, locals := fluxStoreSrcGemNew I srcGemNew }
           evm1 (.var "wad") =
@@ -1591,47 +1654,11 @@ theorem vatFluxSourceOk
       (evm' := Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
         (fluxDstGemSlot I) dstGemNew)
       (I := I) (srcGemNew := srcGemNew) (dstGemNew := dstGemNew) hsz132 rfl
-  have hblock :
-      ExecBlock config { contract := contract, locals := fluxStore I } evm0
-        (nonpayable ++
-          [ .require (wishExpr (.var "src") sender) ] ++
-          checkedSubUintInto "srcGemNew" (.storage (gemRef (.var "ilk") (.var "src")))
-            (.var "wad") ++
-          [ .assign .storage (gemRef (.var "ilk") (.var "src")) (.var "srcGemNew") ] ++
-          checkedAddUintInto "dstGemNew" (.storage (gemRef (.var "ilk") (.var "dst")))
-            (.var "wad") ++
-          [ .assign .storage (gemRef (.var "ilk") (.var "dst")) (.var "dstGemNew") ])
-        (.ok { contract := contract, locals := fluxStoreDstGemNew I srcGemNew dstGemNew }
-          (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-            (fluxDstGemSlot I) dstGemNew)) := by
-    change ExecBlock config { contract := contract, locals := fluxStore I } evm0
-      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-        .require (wishExpr (.var "src") sender),
-        .letDecl "srcGemNew" (some uint256)
-          (sub256 (.storage (gemRef (.var "ilk") (.var "src"))) (.var "wad")),
-        .require (.binary .le (.var "srcGemNew")
-          (.storage (gemRef (.var "ilk") (.var "src")))),
-        .assign .storage (gemRef (.var "ilk") (.var "src")) (.var "srcGemNew"),
-        .letDecl "dstGemNew" (some uint256)
-          (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")),
-        .require (.binary .ge (.var "dstGemNew")
-          (.storage (gemRef (.var "ilk") (.var "dst")))),
-        .assign .storage (gemRef (.var "ilk") (.var "dst")) (.var "dstGemNew") ]
-      (.ok { contract := contract, locals := fluxStoreDstGemNew I srcGemNew dstGemNew }
-        (Solm.EVM.storageStore evm1 evm1.executionEnv.codeOwner
-          (fluxDstGemSlot I) dstGemNew))
-    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
-    refine ExecBlock.consNormal (ExecStmt.assign hsrcGemNewEval hassignSrc) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
-    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd) ?_
-    exact ExecBlock.consNormal (ExecStmt.assign hdstGemNewEval hassignDst) ExecBlock.nil
-  simpa [ExecTransitionBody, fluxTransition, evm0, evm1, nonpayable,
-    checkedSubUintInto, checkedAddUintInto, List.append_assoc] using
-    ExecFuncBody.execBlockOK hblock
+  simpa [ExecTransitionBody, evm0, evm1] using ExecFuncBody.execBlockOK
+    ((vatFluxSourceStoreSrcSplit (g := g) hwv hsz132 hwish hsrcEnough).1 _
+      (ExecBlock.consNormal (ExecStmt.letDecl hadd)
+        (ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd)
+          (ExecBlock.consNormal (ExecStmt.assign hdstGemNewEval hassignDst) ExecBlock.nil))))
 
 theorem vatFluxSourceRevertWish
     {σ σ₀ A I} {g : UInt256}
@@ -2113,7 +2140,6 @@ set_option maxHeartbeats 1000000 in
 theorem vatFluxAuthorizedPath
     {σ σ₀ A I} {g : UInt256} {k C : ℕ} {memWish : ByteArray}
     (hcode : I.code = vatBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz132 : 132 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some fluxTransition)
@@ -2175,8 +2201,13 @@ theorem vatFluxAuthorizedPath
       exact hmemWish
     have hsrcClean : UInt256.land solcAddrMask (fluxSrcMaskedWord I) = fluxSrcMaskedWord I :=
       solcAddrMask_clean_left (fluxSrcMaskedWord_canonical I)
-    obtain ⟨_, _, h2630⟩ := RD.vatFluxSourceStoreValue
-      (h := h2590) hmemSrcSub hsrcClean hperm (by simp)
+    rcases RD.vatFluxSourceStoreValueSplit
+        (h := h2590) hmemSrcSub hsrcClean (by simp) with
+      ⟨hperm, _, _, h2630⟩ | ⟨hpf, hstatic⟩
+    swap
+    · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+        ((vatFluxSourceStoreSrcSplit (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hsz132
+          (by simpa [evm0] using hwishSolm) (by simpa [srcOld] using hsrcEnough)).2 hpf)
     let σSrc := sstoreAccountMap I.codeOwner σ (fluxSrcGemSlot I) srcGemNew
     have hsrcSlotEq :
         solcMappingSlot (solcMappingSlot ⟨4⟩ (fluxIlkWord I)) (fluxSrcMaskedWord I) =
@@ -2381,8 +2412,8 @@ theorem vatFluxAuthorizedPath
         haccountsFinal henc
 
 set_option maxHeartbeats 1000000 in
-theorem vatFluxBodyCore : VatBodyTheorem 8 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatFluxBodyCore : VatBodyTheoremAnyPerm 8 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 8) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fluxTransition :=
@@ -2427,7 +2458,7 @@ theorem vatFluxBodyCore : VatBodyTheorem 8 := by
       obtain ⟨_, _, h2545⟩ := RD.vatFluxWishBranchOk hloaded hwishEvm
       exact vatFluxAuthorizedPath
         (σ := σ)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm hwv hsz132
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz132
         hdispatch hdecode hmemWish
         (by simpa [evm0] using hwishSolm) h2545
     · by_cases hcanEvm : vatSlotWord (fluxWishSlot I) σ I = ⟨1⟩
@@ -2445,7 +2476,7 @@ theorem vatFluxBodyCore : VatBodyTheorem 8 := by
         obtain ⟨_, _, h2545⟩ := RD.vatFluxWishBranchOk hloaded hwishEvm
         exact vatFluxAuthorizedPath
           (σ := σ)
-          (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm hwv hsz132
+          (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz132
           hdispatch hdecode hmemWish
           (by simpa [evm0] using hwishSolm) h2545
       · have hcanSolm :

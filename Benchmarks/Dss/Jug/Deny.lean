@@ -61,6 +61,31 @@ theorem jugDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (by simp [evalExpr?, pure])
       (denyAssign evm I)
 
+theorem jugDenyBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (relyStore I) denyTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [denyTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := relyStore I })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 0)
+      (ref := wardsRef (.var "usr"))
+      (value := .int 0)
+      (rest := [])
+      hwv
+      (evalExpr_rely_auth_true evm I hsrc hauth)
+      (by simp [evalExpr?, pure])
+      (denyAssign evm I)
+      hperm
+
 theorem jugDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -265,14 +290,16 @@ theorem jugDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem jugDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem jugDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD jugBytecode I g s0 ⟨1927⟩
       [relyUsrMaskedWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret jugBytecode g s0
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic jugBytecode g s0) := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
@@ -319,12 +346,33 @@ theorem jugDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1951 := rd1950pre.keccak256 0 (mapSlot (relyUsrMaskedWord I) ⟨0⟩)
     (UInt256.ofNat 3) (by native_decide) mem_cost hstoreSlot (by native_decide)
     (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1951.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1952raw⟩ := rd1951.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd226 := rd1952raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd227 (by native_decide) (by evm_ov)
+
+theorem jugX_deny_split {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD jugBytecode I g
+      (initState σ σ₀ g A I) ⟨429⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+    RDret jugBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic jugBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd1838⟩ := jugDenyX_decoded (g := g) hsz36 hsize hreach
+  obtain ⟨_, _, rd1927⟩ := jugDenyX_authorized (I := I) hauth rd1838
+  exact jugDenyX_storeAuthorizedSplit rd1927
 
 theorem jugX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -334,10 +382,17 @@ theorem jugX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret jugBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd1838⟩ := jugDenyX_decoded (g := g) hsz36 hsize hreach
-  obtain ⟨_, _, rd1927⟩ := jugDenyX_authorized (I := I) hauth rd1838
-  exact jugDenyX_storeAuthorized hperm rd1927
+      ByteArray.empty :=
+  permSplit_true hperm (jugX_deny_split hsz36 hsize hauth hreach)
+
+theorem jugX_deny_static {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD jugBytecode I g
+      (initState σ σ₀ g A I) ⟨429⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic jugBytecode g (initState σ σ₀ g A I) :=
+  permSplit_false hperm (jugX_deny_split hsz36 hsize hauth hreach)
 
 theorem jugX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -385,6 +440,36 @@ theorem jugDenyBodyCoreOk
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem jugDenyBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsz36 : 36 ≤ I.calldata.size)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
+        (transitionSignature denyTransition).paramTypes I.calldata = some (relyStore I))
+    (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨429⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
+  have hbody :
+      ExecTransitionBody config contract evmSolm (relyStore I)
+        denyTransition.body
+        .staticViolation := by
+    simpa [evmSolm, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      jugDenyBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauthWord
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (jugX_deny_static (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
 
 theorem jugDenyBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -443,6 +528,32 @@ theorem jugDenyBody {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact jugDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
+        (jugDecode_deny_ok hsz36) hreach
+    · exact jugDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
+        (jugDecode_deny_ok hsz36) hreach
+  · exact jugDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
+      hdispatch hreach
+
+/-- `deny` with any call permission; a static call halts at the `wards` `SSTORE`. -/
+theorem jugDenyBodyAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = jugBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (jugSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact jugDenyBody hcode hsize hperm hwv hsel
+  replace hperm : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (jugSelBytes 1) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
+    jugDispatchDeny hsel
+  have hreach := jugReachDenyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hsz36 : 36 ≤ I.calldata.size
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
+    · exact jugDenyBodyCoreStatic hcode hsize hperm hwv hsz36 hauth hdispatch
         (jugDecode_deny_ok hsz36) hreach
     · exact jugDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
         (jugDecode_deny_ok hsz36) hreach

@@ -65,8 +65,9 @@ by_cases hRmulOverflowNZero :
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (evm.executionEnv.depth + 1) evm.executionEnv.header
-          evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-    simpa [evm, initState, hperm] using hΘ'
+          evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
+          (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ'
   let σ'_solm := σ'
   let A'_solm := A'
   have hcallSolm :
@@ -171,8 +172,8 @@ by_cases hRmulOverflowNZero :
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
               dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-            (evm.executionEnv.depth + 1) (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-      simpa [evm, initState, hperm] using hΘ'
+            (evm.executionEnv.depth + 1) (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+      simpa [evm, initState] using hΘ'
     let σ'_solm := σ'
     let A'_solm := A'
     have hcallSolm :
@@ -287,8 +288,8 @@ by_cases hRmulOverflowNZero :
               callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
               ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
                 dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-              (evm.executionEnv.depth + 1) (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-        simpa [evm, initState, hperm] using hΘ'
+              (evm.executionEnv.depth + 1) (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       let σ'_solm := σ'
       let A'_solm := A'
       have hcallSolm :
@@ -427,8 +428,8 @@ by_cases hRmulOverflowNZero :
                   ((dripVatIlksCalldataMem I
                     (dripIlkHashMem I)).readWithPadding
                       dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-                  (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-            simpa [evm, initState, hperm] using hΘ'
+                  (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+            simpa [evm, initState] using hΘ'
           let σ'_solm := σ'
           let A'_solm := A'
           have hcallSolm :
@@ -486,8 +487,8 @@ by_cases hRmulOverflowNZero :
                   ((dripVatFoldCalldataMem σ' I ⟨0⟩ foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
                   (evmVatE.executionEnv.depth + 1)
-                  (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) true := by
-            simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                  (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) (true && evmVatE.executionEnv.perm) := by
+            simpa [evmVatE, evm, initState, foldBaseMem] using
               hΘFold'
           let σ''_solm := σ''
           let A''_solm := AFold'
@@ -620,8 +621,8 @@ by_cases hRmulOverflowNZero :
                   ((dripVatIlksCalldataMem I
                     (dripIlkHashMem I)).readWithPadding
                       dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-                  (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-            simpa [evm, initState, hperm] using hΘ'
+                  (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+            simpa [evm, initState] using hΘ'
           let σ'_solm := σ'
           let A'_solm := A'
           have hcallSolm :
@@ -679,8 +680,8 @@ by_cases hRmulOverflowNZero :
                   ((dripVatFoldCalldataMem σ' I ⟨0⟩ foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
                   (evmVatE.executionEnv.depth + 1)
-                  (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) true := by
-            simpa [evmVatE, evm, initState, hperm, foldBaseMem] using
+                  (evmVatE.executionEnv.header) (evmVatE.executionEnv.blobVersionedHashes) (evmVatE.executionEnv.blocks) (true && evmVatE.executionEnv.perm) := by
+            simpa [evmVatE, evm, initState, foldBaseMem] using
               hΘFold'
           let σ''_solm := σ''
           let A''_solm := AFold'
@@ -739,13 +740,8 @@ by_cases hRmulOverflowNZero :
             Solm.EVM.storageStore evmFoldS evmFoldS.executionEnv.codeOwner
               (fileDutyRhoSlotFor I)
               (UInt256.ofNat evmFoldS.executionEnv.header.timestamp)
-          have hbody :
-              ExecTransitionBody config contract evm locals dripTransition.body
-                (.returned { contract := contract, locals := finalLocals } evmRhoS
-                  (some [.int (Int.ofNat (dripVatIlksPrevWord out).toNat)])) := by
-            simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS, locals,
-              initState, jugSlotWord] using
-              (jugDripSourceBodyVatFoldCallSucceededReturns
+          have hboth :=
+              (jugDripSourceBodyVatFoldCallSucceededReturnsSplit
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                 (g := g) (evmVat := evmVatS) (evmFold := evmFoldS)
                 (out := out) (foldOut := foldOut)
@@ -757,22 +753,31 @@ by_cases hRmulOverflowNZero :
                   hage0Solm)
                 hfitRmul hprevMax hfoldCodeSolm
                 (by simpa [evmVatS] using hfoldCallSolm))
+          have hbody :
+              ExecTransitionBody config contract evm locals dripTransition.body
+                (.returned { contract := contract, locals := finalLocals } evmRhoS
+                  (some [.int (Int.ofNat (dripVatIlksPrevWord out).toNat)])) := by
+            simpa [evm, evmVatS, evmFoldS, finalLocals, evmRhoS, locals,
+              initState, jugSlotWord] using hboth.1
           obtain ⟨_, _, rd1669⟩ :=
             RD.jugDripVatFoldCallSucceeded
               (targetWord := dripVatTargetWord σ' I) rd1651
-          have hret := RD.jugDripVatFoldStoreRhoReturns
-            (targetWord := dripVatTargetWord σ' I)
-            hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-          exact hret.reEquivExecutionGen hcode hdispatch
-            (jugDecode_drip_ok hsz36) hbody
-            (by
-              simp [evmRhoS, evmFoldS, evmVatS, evmVatE, σ''_solm,
-                A''_solm, σ'_solm, evm, initState, storageStore_accountMap])
-            (by
-              rw [show dripTransition.returnType = [uint256] by rfl]
-              exact returnEquiv_of_encode
-                (by simpa [uint256] using
-                  uint256ReturnEncoding (dripVatIlksPrevWord out)))
+          rcases RD.jugDripVatFoldStoreRhoReturnsSplit
+              (targetWord := dripVatTargetWord σ' I)
+              hsz36 hfoldCallMemSize hfoldCallMemRead64 rd1669 with
+            ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+          · exact hret.reEquivExecutionGen hcode hdispatch
+              (jugDecode_drip_ok hsz36) hbody
+              (by
+                simp [evmRhoS, evmFoldS, evmVatS, evmVatE, σ''_solm,
+                  A''_solm, σ'_solm, evm, initState, storageStore_accountMap])
+              (by
+                rw [show dripTransition.returnType = [uint256] by rfl]
+                exact returnEquiv_of_encode
+                  (by simpa [uint256] using
+                    uint256ReturnEncoding (dripVatIlksPrevWord out)))
+          · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
+              (hboth.2 hpf)
       · have hageNZ : age ≠ ⟨0⟩ := by
           intro hage0
           by_cases hfit :

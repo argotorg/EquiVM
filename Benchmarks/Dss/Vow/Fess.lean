@@ -341,7 +341,7 @@ theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
   ∧ decode code p25 = some (.Push .PUSH2, some (routinePc, 2))
   ∧ decode code p28 = some (.JUMP, .none)
 
-theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.vowFessStoreSinAndToSecondAddSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc afterAddPc routinePc sinNew tab ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
@@ -349,9 +349,9 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
       σ k C)
     (hwf : vowFessStoreSinAndToSecondAddWf code pc afterAddPc routinePc)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hroutine : (D_J code 0).contains routinePc = true)
     (hov : R.length + 9 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 routinePc
       (tab ::
         solcSlotWord
@@ -362,7 +362,8 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
       (twoWordHashMem (UInt256.ofNat ee.header.timestamp) ⟨4⟩ mem)
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
-        (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) sinNew) k' C' := by
+        (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) sinNew) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd20, hd23, hd24, hd25, hd28⟩
@@ -386,6 +387,11 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
   have hslot := twoWordHashMem_solcMappingSlot ⟨4⟩ ts hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨4⟩ ts)
     (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdSlot.sstoreStatic (by simpa using hperm) hd16 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdStored⟩ := rdSlot.sstore hperm hd16 (by evm_ov)
   have rdBeforeLoad := evm_run rdStored with [raw push1 ⟨5⟩ hd17 (by evm_ov)]
   obtain ⟨_, _, rdLoaded⟩ := rdBeforeLoad.sload hd19 (by evm_ov)
@@ -523,12 +529,11 @@ theorem RD.vowFessDecodeToRoutine
     simpa [tab, fessTab, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
       using rd599.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem RD.vowFessSuccess
+theorem RD.vowFessSuccessSplit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
@@ -539,6 +544,7 @@ theorem RD.vowFessSuccess
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat < UInt256.size) :
+    (I.perm = true ∧
     RDret vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner
@@ -549,7 +555,9 @@ theorem RD.vowFessSuccess
               (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
                 (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
               I ⟨5⟩ + fessTab I))
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let tab := fessTab I
   let era := fessEraKey I
   let eraSlot := solcMappingSlot ⟨4⟩ era
@@ -588,7 +596,7 @@ theorem RD.vowFessSuccess
       (twoWordHashMem era ⟨4⟩
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)).size = 96 :=
     twoWordHashMem_size_96 era ⟨4⟩ hmemAuth
-  obtain ⟨_, _, hsecondAdd⟩ := RD.vowFessStoreSinAndToSecondAdd
+  refine permSplit_bind (RD.vowFessStoreSinAndToSecondAddSplit
     (code := vowBytecode) (pc := ⟨3433⟩) (afterAddPc := ⟨3462⟩)
     (routinePc := ⟨5074⟩) (sinNew := sinNew) (tab := tab) (ret := ⟨412⟩)
     (R := [sel])
@@ -596,7 +604,8 @@ theorem RD.vowFessSuccess
     (by
       unfold vowFessStoreSinAndToSecondAddWf
       repeat' first | apply And.intro | native_decide)
-    hmemFirst hperm (by jump_dest) (by simp)
+    hmemFirst (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hsecondAdd⟩ := hseg
   obtain ⟨_, _, hafterSecondAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
     (a := solcSlotWord σ1 I ⟨5⟩) (b := tab) (ret := ⟨3462⟩)
@@ -688,12 +697,11 @@ theorem RD.vowFessFirstAddOverflow
     (by simpa [era, eraSlot, tab] using hover)
     (by simp)
 
-theorem RD.vowFessSecondAddOverflow
+theorem RD.vowFessSecondAddOverflowSplit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
@@ -704,8 +712,11 @@ theorem RD.vowFessSecondAddOverflow
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat) :
+    (I.perm = true ∧
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
+      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let tab := fessTab I
   let era := fessEraKey I
   let eraSlot := solcMappingSlot ⟨4⟩ era
@@ -744,7 +755,7 @@ theorem RD.vowFessSecondAddOverflow
       (twoWordHashMem era ⟨4⟩
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)).size = 96 :=
     twoWordHashMem_size_96 era ⟨4⟩ hmemAuth
-  obtain ⟨_, _, hsecondAdd⟩ := RD.vowFessStoreSinAndToSecondAdd
+  refine permSplit_bind (RD.vowFessStoreSinAndToSecondAddSplit
     (code := vowBytecode) (pc := ⟨3433⟩) (afterAddPc := ⟨3462⟩)
     (routinePc := ⟨5074⟩) (sinNew := sinNew) (tab := tab) (ret := ⟨412⟩)
     (R := [sel])
@@ -752,7 +763,8 @@ theorem RD.vowFessSecondAddOverflow
     (by
       unfold vowFessStoreSinAndToSecondAddWf
       repeat' first | apply And.intro | native_decide)
-    hmemFirst hperm (by jump_dest) (by simp)
+    hmemFirst (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hsecondAdd⟩ := hseg
   exact RD.solcCheckedAddEmptyRevert
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
     (a := solcSlotWord σ1 I ⟨5⟩) (b := tab) (ret := ⟨3462⟩)
@@ -769,7 +781,7 @@ theorem RD.vowFessSecondAddOverflow
 theorem vowFessBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
+    (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fessTransition)
     (hdecode :
@@ -860,6 +872,35 @@ theorem vowFessBodyCore
           (assign_fessSinStorage (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals1) sinNew
             (by simp [locals1, fessLocalsSinNew, fessLocals]))
+      have hbodyStatic : I.perm = false →
+          ExecTransitionBody config contract evm0 locals fessTransition.body .staticViolation := by
+        intro hpf
+        have hguard := vowAuthGuardEval_true
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+          (g := Sat256.ofUInt256 g) (locals := locals)
+          (by simp [locals, fessLocals]) hauthSolm
+        have hblock :
+            ExecBlock config { contract := contract, locals := locals } evm0
+              [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+                .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
+                .letDecl "sinNew" (some uint256)
+                  (add256 (.storage (sinRef (.env .timestamp))) (.var "tab")),
+                .require (.binary .ge (.var "sinNew")
+                  (.storage (sinRef (.env .timestamp)))),
+                .assign .storage (sinRef (.env .timestamp)) (.var "sinNew"),
+                .letDecl "SinNew" (some uint256) (add256 (.storage SinRef) (.var "tab")),
+                .require (.binary .ge (.var "SinNew") (.storage SinRef)),
+                .assign .storage SinRef (.var "SinNew") ]
+              .staticViolation := by
+          refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+          · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+          refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+          refine ExecBlock.consNormal (ExecStmt.letDecl hfirstAdd) ?_
+          refine ExecBlock.consNormal (ExecStmt.requireTrue hfirstRequire) ?_
+          exact ExecBlock.consStatic (ExecStmt.assignStatic hsinNewVar hassignSin
+            (by simp [evm0, initState]; exact hpf))
+        simpa [ExecTransitionBody, fessTransition, nonpayable, auth, checkedAddUintInto,
+          evm0, locals] using ExecFuncBody.execBlockStatic hblock
       by_cases hfitSinEvm : (vowSlotWord ⟨5⟩ σ1_evm I).toNat + tab.toNat < UInt256.size
       · let SinNew := vowSlotWord ⟨5⟩ σ1_evm I + tab
         let locals2 := fessLocalsSinNewSinCapitalNew I sinNew SinNew
@@ -968,8 +1009,10 @@ theorem vowFessBodyCore
                   (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
                 I ⟨5⟩).toNat + (fessTab I).toNat < UInt256.size := by
           simpa [σ1_evm, sinNew, vowSlotWord, tab, slot, eraSlot, hslot] using hfitSinEvm
-        have hret := RD.vowFessSuccess hreach hperm hsz36 hsize hauthSolc
-          hfitEraRD hfitSinRD
+        rcases RD.vowFessSuccessSplit hreach hsz36 hsize hauthSolc
+            hfitEraRD hfitSinRD with ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodyStatic hpf)
         have haccounts :
             sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew = evm2.accountMap := by
           simp [evm2, evm1, evm0, initState, storageStore_accountMap,
@@ -1056,8 +1099,11 @@ theorem vowFessBodyCore
                     (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
                   I ⟨5⟩).toNat + (fessTab I).toNat := by
           simpa [σ1_evm, sinNew, vowSlotWord, tab, slot, eraSlot, hslot] using hoverSinEvm
-        have hrev := RD.vowFessSecondAddOverflow hreach hperm hsz36 hsize hauthSolc
-          hfitEraRD hoverSinRD
+        rcases RD.vowFessSecondAddOverflowSplit hreach hsz36 hsize hauthSolc
+          hfitEraRD hoverSinRD with
+          ⟨_, hrev⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodyStatic hpf)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hoverEraEvm :
           UInt256.size ≤ (vowSlotWord slot σ I).toNat + tab.toNat := by
@@ -1146,18 +1192,18 @@ theorem vowFessBodyCore
 
 theorem vowFessBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
-  exact vowFessBodyCore hcode hwv hperm hsz36 hsize (vowDispatch_fess hsel)
+  exact vowFessBodyCore hcode hwv hsz36 hsize (vowDispatch_fess hsel)
     (by simpa [fessLocals] using vowDecode_fess_ok (I := I) hsz36)
     (vowReachFessBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 theorem vowFessShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

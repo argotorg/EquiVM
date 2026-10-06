@@ -256,7 +256,7 @@ theorem vowWardsBodyCore
 
 theorem vowWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -267,7 +267,7 @@ theorem vowWardsBody {σ σ₀ A I} {g : UInt256}
 
 theorem vowWardsShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

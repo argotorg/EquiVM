@@ -227,8 +227,8 @@ theorem vatCanBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatCanBodyCore : VatBodyTheorem 2 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatCanBodyCore : VatBodyTheoremAnyPerm 2 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some canTransition :=

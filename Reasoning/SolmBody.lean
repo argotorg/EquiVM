@@ -70,6 +70,33 @@ theorem nonpayableRequireAssignStorageBlock {cfg : Config} {solm : Frame}
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil
 
+/-- Static-call twin of `nonpayableRequireAssignStorageBlock`: both guards pass and the storage
+    assignment halts; later statements never run. -/
+theorem nonpayableRequireAssignStorageBlockStatic {cfg : Config} {solm solm' : Frame}
+    {evm evm' : EVM.State} {guard rhs : Expr} {ref : StorageRef} {value : Value}
+    {rest : List Stmt}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hguard : evalExpr? cfg solm evm guard = .ok (.bool true))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok value)
+    (hassign : assignStorageRef? cfg solm evm .storage ref value = .ok (solm', evm'))
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock cfg solm evm
+      (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
+        .require guard :: .assign .storage ref rhs :: rest)
+      .staticViolation := by
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
+  exact ExecBlock.consStatic (ExecStmt.assignStatic hrhs hassign hperm)
+
+/-- A storage assignment that succeeds halts instead when run in a static call. -/
+theorem execStmt_assign_static {cfg : Config} {solm solm' : Frame} {evm evm' : EVM.State}
+    {slot : StorageRef} {rhs : Expr}
+    (h : ExecStmt cfg solm evm (.assign .storage slot rhs) (.ok solm' evm'))
+    (hperm : evm.executionEnv.perm = false) :
+    ExecStmt cfg solm evm (.assign .storage slot rhs) .staticViolation := by
+  cases h with
+  | assign heval hassign => exact ExecStmt.assignStatic heval hassign hperm
+
 /-- The non-payable guard passes but the second `require(guard)` fails: the block reverts. -/
 theorem nonpayableSecondRequireReverts {cfg : Config} {solm : Frame}
     {evm : EVM.State} {guard : Expr} {rest : List Stmt}
@@ -661,6 +688,17 @@ theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
       | consBreak hstmt => exact ExecBlock.consBreak hstmt
       | consContinue hstmt => exact ExecBlock.consContinue hstmt
       | consStatic hstmt => exact ExecBlock.consStatic hstmt
+
+/-- A one-statement block ends as its statement does. -/
+theorem execBlock_singleton {cfg : Config} {solm : Frame} {evm : EVM.State} {stmt : Stmt}
+    {r : ExecResult} (h : ExecStmt cfg solm evm stmt r) : ExecBlock cfg solm evm [stmt] r := by
+  cases r with
+  | ok => exact ExecBlock.consNormal h ExecBlock.nil
+  | returned => exact ExecBlock.consReturn h
+  | «break» => exact ExecBlock.consBreak h
+  | «continue» => exact ExecBlock.consContinue h
+  | reverted => exact ExecBlock.consRevert h
+  | staticViolation => exact ExecBlock.consStatic h
 
 /-! ## Forward block builder
 

@@ -409,8 +409,8 @@ theorem vatGemBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatGemBodyCore : VatBodyTheorem 12 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatGemBodyCore : VatBodyTheoremAnyPerm 12 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 12) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some gemTransition :=

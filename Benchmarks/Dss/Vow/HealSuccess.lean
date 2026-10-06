@@ -659,8 +659,7 @@ theorem RD.vowHealHealPostCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) ≠ ⟨0⟩)
-    (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
@@ -708,7 +707,7 @@ theorem RD.vowHealHealPostCall
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       (kissVatAddress_eq_daiTarget acc I) ?_ ?_
     · simpa [healRad, kissRad] using kissHealEncode_eq I hmem
-    · simpa [initState, hperm, healRad, kissRad] using hΘ
+    · simpa [initState, healRad, kissRad] using hΘ
 
 theorem vowHealSourceSinDecodeRevert
     {σ σ₀ A I} {g : UInt256} {evmDai evmSin : EVM.State}

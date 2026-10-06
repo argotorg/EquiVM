@@ -4719,7 +4719,7 @@ theorem RD.vatFrobTabMulRevert
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [rateOld] using hfail) (by simp)
 
-theorem RD.vatFrobDebtAddStoreSuccess
+theorem RD.vatFrobDebtAddStoreSplit
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel tab dtabWord urnInkNew urnArtNew ilkArtNew : UInt256}
     (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨3351⟩
@@ -4728,7 +4728,6 @@ theorem RD.vatFrobDebtAddStoreSuccess
         ⟨524⟩, sel]
       (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew) (UInt256.ofNat 18)
       ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hneg :
       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (dtabWord + solcSlotWord σ I foldDebtSlot)
@@ -4737,6 +4736,7 @@ theorem RD.vatFrobDebtAddStoreSuccess
       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt (dtabWord + solcSlotWord σ I foldDebtSlot)
           (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD vatBytecode I g (initState σ σ₀ g A I) ⟨3369⟩
         [tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -4745,7 +4745,8 @@ theorem RD.vatFrobDebtAddStoreSuccess
         (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew) (UInt256.ofNat 18)
         ByteArray.empty
         (sstoreAccountMap I.codeOwner σ foldDebtSlot
-          (dtabWord + solcSlotWord σ I foldDebtSlot)) k' C' := by
+          (dtabWord + solcSlotWord σ I foldDebtSlot)) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
   let debtOld := solcSlotWord σ I foldDebtSlot
   let debtNew := dtabWord + debtOld
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
@@ -4774,9 +4775,43 @@ theorem RD.vatFrobDebtAddStoreSuccess
   have rd3365 := rd3363.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   have rd3366 := rd3365.dup2 (by native_decide) (by evm_ov)
   have rd3367pre := rd3366.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3367pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd3368⟩ := rd3367pre.sstore hperm (by native_decide) (by evm_ov)
   have rd3369 := rd3368.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa [debtOld, debtNew, mem, foldDebtSlot] using rd3369⟩
+
+theorem RD.vatFrobDebtAddStoreSuccess
+    {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    {sel tab dtabWord urnInkNew urnArtNew ilkArtNew : UInt256}
+    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨3351⟩
+      [tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
+        frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I, frobIWord I,
+        ⟨524⟩, sel]
+      (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew) (UInt256.ofNat 18)
+      ByteArray.empty σ k C)
+    (hperm : I.perm = true)
+    (hneg :
+      UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
+        UInt256.gt (dtabWord + solcSlotWord σ I foldDebtSlot)
+          (solcSlotWord σ I foldDebtSlot) = ⟨0⟩)
+    (hpos :
+      UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
+        UInt256.lt (dtabWord + solcSlotWord σ I foldDebtSlot)
+          (solcSlotWord σ I foldDebtSlot) = ⟨0⟩) :
+    ∃ k' C',
+      RD vatBytecode I g (initState σ σ₀ g A I) ⟨3369⟩
+        [tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
+          frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I, frobIWord I,
+          ⟨524⟩, sel]
+        (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew) (UInt256.ofNat 18)
+        ByteArray.empty
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (dtabWord + solcSlotWord σ I foldDebtSlot)) k' C' :=
+  permSplit_true hperm (RD.vatFrobDebtAddStoreSplit h hneg hpos)
 
 theorem RD.vatFrobDebtAddStoreRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -13901,7 +13936,7 @@ theorem execFrobFinalStoreTailOk {evm : EVM.State} {I : ExecutionEnv}
   simpa [localsGem, localsDai, evmGem, evmDai, evmInk, evmArt, evmIlk, evmRate,
     evmSpot, evmLine, evmDust, List.append_assoc] using h02
 
-theorem execFrobDebtAddStoreOk {evm : EVM.State} {locals : Store}
+theorem execFrobDebtAddStoreSplit {evm : EVM.State} {locals : Store}
     (debtOld debtNew dtabWord : UInt256) (dtab : Int)
     (hbase : locals.get? "debt" = none)
     (hdtab : locals.get? "dtab" = some (.int dtab))
@@ -13917,7 +13952,12 @@ theorem execFrobDebtAddStoreOk {evm : EVM.State} {locals : Store}
       (.ok
         { contract := contract,
           locals := locals.insert "debtNew" (.int (Int.ofNat debtNew.toNat)) }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot debtNew)) := by
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot debtNew)) ∧
+    (evm.executionEnv.perm = false →
+      ExecBlock config { contract := contract, locals := locals } evm
+        (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+          [ .assign .storage debtRef (.var "debtNew") ])
+        .staticViolation) := by
   let localsDebt := locals.insert "debtNew" (.int (Int.ofNat debtNew.toNat))
   let evmDebt := Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot debtNew
   have hdebt :
@@ -13996,7 +14036,29 @@ theorem execFrobDebtAddStoreOk {evm : EVM.State} {locals : Store}
         (.ok { contract := contract, locals := localsDebt } evmDebt) := by
     exact ExecBlock.consNormal (ExecStmt.assign hdebtNewEval hdebtAssign) ExecBlock.nil
   have h := execBlock_append hAdd hAssign
-  simpa [localsDebt, evmDebt, List.append_assoc] using h
+  exact ⟨by simpa [localsDebt, evmDebt, List.append_assoc] using h,
+    fun hpf => execBlock_append hAdd
+      (ExecBlock.consStatic (ExecStmt.assignStatic hdebtNewEval hdebtAssign hpf))⟩
+
+theorem execFrobDebtAddStoreOk {evm : EVM.State} {locals : Store}
+    (debtOld debtNew dtabWord : UInt256) (dtab : Int)
+    (hbase : locals.get? "debt" = none)
+    (hdtab : locals.get? "dtab" = some (.int dtab))
+    (hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner foldDebtSlot = debtOld)
+    (hdtabMod : dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat)
+    (hnew : debtNew = dtabWord + debtOld)
+    (hguardNeg : 0 ≤ dtab ∨ debtNew.toNat ≤ debtOld.toNat)
+    (hguardPos : dtab ≤ 0 ∨ debtOld.toNat ≤ debtNew.toNat) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+        [ .assign .storage debtRef (.var "debtNew") ])
+      (.ok
+        { contract := contract,
+          locals := locals.insert "debtNew" (.int (Int.ofNat debtNew.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot debtNew)) :=
+  (execFrobDebtAddStoreSplit debtOld debtNew dtabWord dtab hbase hdtab hload hdtabMod hnew
+    hguardNeg hguardPos).1
 
 theorem execFrobDebtAddCheckedRevertGuardNeg {evm : EVM.State} {locals : Store}
     (debtOld debtNew dtabWord : UInt256) (dtab : Int)

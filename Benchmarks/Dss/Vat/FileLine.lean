@@ -159,7 +159,7 @@ theorem assign_fileLineStorage (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := by rfl)
   simpa [evm'] using vatStorageLocStore_uint256 evm ⟨9⟩ (fileLineData I)
 
-theorem vatFileLineSourceBody {σ σ₀ A I} {g : UInt256}
+theorem vatFileLineSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
@@ -168,7 +168,9 @@ theorem vatFileLineSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨9⟩ (fileLineData I)
     ExecTransitionBody config contract evm0 locals fileLineTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileLineTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguardAuth := vatAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -192,21 +194,23 @@ theorem vatFileLineSourceBody {σ σ₀ A I} {g : UInt256}
         .storage LineRef (.int (Int.ofNat (fileLineData I).toNat)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_fileLineStorage evm0 I
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage LineRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage LineRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileLineTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileLineTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, fileLineTransition, nonpayable, auth, requireLive, locals,
-    evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (execBlock_singleton h))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, fileLineTransition, nonpayable, auth, requireLive, locals, evm0,
+      evm1] using ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, fileLineTransition, nonpayable, auth, requireLive, locals, evm0]
+      using ExecFuncBody.execBlockStatic
+        (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
 
 theorem vatFileLineSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -553,7 +557,7 @@ theorem vatFileLineX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   ∧ decode code p18 = some (.POP, .none)
   ∧ decode code p19 = some (.JUMP, .none)
 
-theorem RD.vatFileLineStoreOk {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.vatFileLineStoreOkSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc badPc data what ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (data :: what :: ret :: R) mem (UInt256.ofNat 3) rdata
@@ -561,10 +565,11 @@ theorem RD.vatFileLineStoreOk {code : ByteArray} {g : Sat256} {s0 : State}
     (hwf : vatFileLineStoreWf code pc badPc)
     (hwhat : what = fileLineWord)
     (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 6 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨9⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨9⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd6, hd8, hd9, hd10, hd11, hd14, hd15, hd17, hd18, hd19⟩
   have rd2 := h.jumpdest hd0 (by evm_ov) |>.dup2 hd1 (by evm_ov)
@@ -584,6 +589,11 @@ theorem RD.vatFileLineStoreOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd13 := rd11.push2 badPc hd11 (by evm_ov)
   have rd14 := rd13.jumpiNT hd14 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd16 := rd14.push1 ⟨9⟩ hd15 (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd16.sstoreStatic (by simpa using hperm) hd17 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd17⟩ := rd16.sstore hperm hd17 (by evm_ov)
   have rd18 := rd17.pop hd18 (by evm_ov)
   exact ⟨_, _, rd18.jump hd19 hret (by evm_ov)⟩
@@ -714,7 +724,7 @@ theorem vatFileLineX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem vatFileLineBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
@@ -731,12 +741,12 @@ theorem vatFileLineBodyCoreOk
   let locals := fileLineLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨9⟩ (fileLineData I)
+  have hboth := vatFileLineSourceBodySplit (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive hwhat
   have hbody :
       ExecTransitionBody config contract evm0 locals fileLineTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
-    simpa [evm0, evm1, locals] using
-      (vatFileLineSourceBody (σ := σ)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive hwhat)
+    simpa [evm0, evm1, locals] using hboth.1
   obtain ⟨_, _, hdecoded⟩ := vatFileLineX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   have hauthSolc :
@@ -765,14 +775,17 @@ theorem vatFileLineBodyCoreOk
   have hmemAuth :
       (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size
-  obtain ⟨_, _, hretPc⟩ := RD.vatFileLineStoreOk
+  rcases RD.vatFileLineStoreOkSplit
     (code := vatBytecode) (pc := ⟨2204⟩) (badPc := ⟨1905⟩)
     (data := fileLineData I) (what := fileLineWhatWord I) (ret := ⟨524⟩) (R := [sel])
     hstorePc
     (by
       unfold vatFileLineStoreWf
       repeat' first | apply And.intro | native_decide)
-    hwhatWord (by jump_dest) hperm (by simp)
+    hwhatWord (by jump_dest) (by simp) with
+    ⟨_, _, _, hretPc⟩ | ⟨hpf, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hboth.2 hpf)
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
@@ -966,8 +979,8 @@ theorem vatFileLineBodyCoreDecodeFailed_short
   exact (vatFileLineX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (vatDecode_fileLine_none_short hsz4 hshort)
 
-theorem vatFileLineBodyCore : VatBodyTheorem 7 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatFileLineBodyCore : VatBodyTheoremAnyPerm 7 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileLineTransition :=
@@ -979,7 +992,7 @@ theorem vatFileLineBodyCore : VatBodyTheorem 7 := by
   · by_cases hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩
     · by_cases hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
       · by_cases hwhat : fileLineWhat I = fileLineBytes
-        · exact vatFileLineBodyCoreOk hcode hsize hperm hwv hsz68 hauth hlive hwhat
+        · exact vatFileLineBodyCoreOk hcode hsize hwv hsz68 hauth hlive hwhat
             hdispatch (vatDecode_fileLine_ok hsz68) hreach
         · exact vatFileLineBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hlive hwhat
             hdispatch (vatDecode_fileLine_ok hsz68) hreach

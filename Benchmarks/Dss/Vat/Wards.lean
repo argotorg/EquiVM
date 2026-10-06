@@ -188,8 +188,8 @@ theorem vatWardsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_wards_none_short hsz4 hshort)
 
-theorem vatWardsBodyCore : VatBodyTheorem 27 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatWardsBodyCore : VatBodyTheoremAnyPerm 27 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 27) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=

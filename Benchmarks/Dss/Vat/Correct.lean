@@ -69,7 +69,7 @@ theorem vatNonPayable {σ σ₀ A I} {g : UInt256}
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
 theorem vatShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
   exact (vatX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
@@ -79,14 +79,13 @@ theorem vatShortRevert {σ σ₀ A I} {g : UInt256}
 theorem vatNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 28 → (vatSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (vatX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (vatDispatch_none_nomatch hnm)
-  · exact vatShortRevert hcode hsize ‹I.perm = true› hwv (by omega)
+  · exact vatShortRevert hcode hsize hwv (by omega)
 
 theorem vatNoSelectorMatches {I : ExecutionEnv}
     (hLine : ¬ selIs I (vatSelBytes 0))
@@ -150,67 +149,67 @@ theorem vatNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using hwards
 
 theorem vatCorrect :
-    runtimeEquivalence config vatBytecode contract := by
-  refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+    runtimeEquivalenceAnyPerm config vatBytecode contract := by
+  refine runtimeEquivalenceAnyPerm.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hLine : selIs I (vatSelBytes 0)
-    · exact vatLineBodyCore hcode hsize hperm hwv hLine
+    · exact vatLineBodyCore hcode hsize hwv hLine
     · by_cases hcage : selIs I (vatSelBytes 1)
-      · exact vatCageBodyCore hcode hsize hperm hwv hcage
+      · exact vatCageBodyCore hcode hsize hwv hcage
       · by_cases hcan : selIs I (vatSelBytes 2)
-        · exact vatCanBodyCore hcode hsize hperm hwv hcan
+        · exact vatCanBodyCore hcode hsize hwv hcan
         · by_cases hdai : selIs I (vatSelBytes 3)
-          · exact vatDaiBodyCore hcode hsize hperm hwv hdai
+          · exact vatDaiBodyCore hcode hsize hwv hdai
           · by_cases hdebt : selIs I (vatSelBytes 4)
-            · exact vatDebtBodyCore hcode hsize hperm hwv hdebt
+            · exact vatDebtBodyCore hcode hsize hwv hdebt
             · by_cases hdeny : selIs I (vatSelBytes 5)
-              · exact vatDenyBodyCore hcode hsize hperm hwv hdeny
+              · exact vatDenyBodyCore hcode hsize hwv hdeny
               · by_cases hfileIlk : selIs I (vatSelBytes 6)
-                · exact vatFileIlkBodyCore hcode hsize hperm hwv hfileIlk
+                · exact vatFileIlkBodyCore hcode hsize hwv hfileIlk
                 · by_cases hfileLine : selIs I (vatSelBytes 7)
-                  · exact vatFileLineBodyCore hcode hsize hperm hwv hfileLine
+                  · exact vatFileLineBodyCore hcode hsize hwv hfileLine
                   · by_cases hflux : selIs I (vatSelBytes 8)
-                    · exact vatFluxBodyCore hcode hsize hperm hwv hflux
+                    · exact vatFluxBodyCore hcode hsize hwv hflux
                     · by_cases hfold : selIs I (vatSelBytes 9)
-                      · exact vatFoldBodyCore hcode hsize hperm hwv hfold
+                      · exact vatFoldBodyCore hcode hsize hwv hfold
                       · by_cases hfork : selIs I (vatSelBytes 10)
-                        · exact vatForkBodyCore hcode hsize hperm hwv hfork
+                        · exact vatForkBodyCore hcode hsize hwv hfork
                         · by_cases hfrob : selIs I (vatSelBytes 11)
-                          · exact vatFrobBodyCore hcode hsize hperm hwv hfrob
+                          · exact vatFrobBodyCore hcode hsize hwv hfrob
                           · by_cases hgem : selIs I (vatSelBytes 12)
-                            · exact vatGemBodyCore hcode hsize hperm hwv hgem
+                            · exact vatGemBodyCore hcode hsize hwv hgem
                             · by_cases hgrab : selIs I (vatSelBytes 13)
-                              · exact vatGrabBodyCore hcode hsize hperm hwv hgrab
+                              · exact vatGrabBodyCore hcode hsize hwv hgrab
                               · by_cases hheal : selIs I (vatSelBytes 14)
-                                · exact vatHealBodyCore hcode hsize hperm hwv hheal
+                                · exact vatHealBodyCore hcode hsize hwv hheal
                                 · by_cases hhope : selIs I (vatSelBytes 15)
-                                  · exact vatHopeBodyCore hcode hsize hperm hwv hhope
+                                  · exact vatHopeBodyCoreAnyPerm hcode hsize hwv hhope
                                   · by_cases hilks : selIs I (vatSelBytes 16)
-                                    · exact vatIlksBodyCore hcode hsize hperm hwv hilks
+                                    · exact vatIlksBodyCore hcode hsize hwv hilks
                                     · by_cases hinit : selIs I (vatSelBytes 17)
-                                      · exact vatInitBodyCore hcode hsize hperm hwv hinit
+                                      · exact vatInitBodyCore hcode hsize hwv hinit
                                       · by_cases hlive : selIs I (vatSelBytes 18)
-                                        · exact vatLiveBodyCore hcode hsize hperm hwv hlive
+                                        · exact vatLiveBodyCore hcode hsize hwv hlive
                                         · by_cases hmove : selIs I (vatSelBytes 19)
-                                          · exact vatMoveBodyCore hcode hsize hperm hwv hmove
+                                          · exact vatMoveBodyCore hcode hsize hwv hmove
                                           · by_cases hnope : selIs I (vatSelBytes 20)
-                                            · exact vatNopeBodyCore hcode hsize hperm hwv hnope
+                                            · exact vatNopeBodyCoreAnyPerm hcode hsize hwv hnope
                                             · by_cases hrely : selIs I (vatSelBytes 21)
-                                              · exact vatRelyBodyCore hcode hsize hperm hwv hrely
+                                              · exact vatRelyBodyCore hcode hsize hwv hrely
                                               · by_cases hsin : selIs I (vatSelBytes 22)
-                                                · exact vatSinBodyCore hcode hsize hperm hwv hsin
+                                                · exact vatSinBodyCore hcode hsize hwv hsin
                                                 · by_cases hslip : selIs I (vatSelBytes 23)
-                                                  · exact vatSlipBodyCore hcode hsize hperm hwv hslip
+                                                  · exact vatSlipBodyCore hcode hsize hwv hslip
                                                   · by_cases hsuck : selIs I (vatSelBytes 24)
-                                                    · exact vatSuckBodyCore hcode hsize hperm hwv hsuck
+                                                    · exact vatSuckBodyCore hcode hsize hwv hsuck
                                                     · by_cases hurns : selIs I (vatSelBytes 25)
-                                                      · exact vatUrnsBodyCore hcode hsize hperm hwv hurns
+                                                      · exact vatUrnsBodyCore hcode hsize hwv hurns
                                                       · by_cases hvice : selIs I (vatSelBytes 26)
-                                                        · exact vatViceBodyCore hcode hsize hperm hwv hvice
+                                                        · exact vatViceBodyCore hcode hsize hwv hvice
                                                         · by_cases hwards : selIs I (vatSelBytes 27)
-                                                          · exact vatWardsBodyCore hcode hsize hperm hwv hwards
-                                                          · exact vatNoDispatch hcode hsize hperm hwv
+                                                          · exact vatWardsBodyCore hcode hsize hwv hwards
+                                                          · exact vatNoDispatch hcode hsize hwv
                                                               (vatNoSelectorMatches hLine hcage hcan
                                                                 hdai hdebt hdeny hfileIlk hfileLine
                                                                 hflux hfold hfork hfrob hgem hgrab
@@ -220,7 +219,7 @@ theorem vatCorrect :
   · exact vatNonPayable hcode hwv
 
 theorem vatContractCorrect :
-    contractEquivalence config vatCreationBytecode vatBytecode contract :=
-  contractEquivalence.intro vatConstructorCorrect vatCorrect
+    contractEquivalenceAnyPerm config vatCreationBytecode vatBytecode contract :=
+  contractEquivalenceAnyPerm.intro vatConstructorCorrect vatCorrect
 
 end Benchmarks.Dss.Vat

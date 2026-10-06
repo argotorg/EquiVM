@@ -7,8 +7,8 @@ namespace Benchmarks.Dss.Vat
 suppress_compilation
 
 set_option maxHeartbeats 0 in
-theorem vatFrobBodyCore : VatBodyTheorem 11 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatFrobBodyCore : VatBodyTheoremAnyPerm 11 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 11) rfl hsel
   have hreach := vatReachFrobBody (σ := σ)
@@ -21,7 +21,7 @@ theorem vatFrobBodyCore : VatBodyTheorem 11 := by
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hsz196 hsize hreach
     by_cases hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
-    · exact vatFrobBodyCoreLive hcode hsize hperm hwv hsel hsz196 hdecode
+    · exact vatFrobBodyCoreLive hcode hsize hwv hsel hsz196 hdecode
         ⟨_, _, hdecoded⟩ hlive
     · exact vatFrobBodyCoreNotLive hcode hsize hwv hsz196 hlive
         (vatDispatchFrob hsel) hdecode hreach

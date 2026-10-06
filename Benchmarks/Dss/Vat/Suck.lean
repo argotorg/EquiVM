@@ -1024,6 +1024,46 @@ theorem vatSuckSourceRevertDaiOverflow (evm : EVM.State) (I : ExecutionEnv)
   simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
     List.append_assoc] using ExecFuncBody.execBlockRevert hblock
 
+theorem vatSuckSourceStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hauth :
+      evalExpr? config { contract := contract, locals := suckStore I } evm
+        (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true))
+    (hsinFit :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat +
+        (suckRadWord I).toNat < UInt256.size)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (suckStore I) suckTransition.body
+      .staticViolation := by
+  let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)
+  let sinNew := sinVal + suckRadWord I
+  have hprefix :
+      ExecBlock config { contract := contract, locals := suckStore I } evm
+        [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+        (.ok { contract := contract, locals := suckStore I } evm) := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true hwv
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hauth) ExecBlock.nil
+  have hsinAdd :=
+    vatSuckSinAddBlockOk evm I (sinVal := sinVal) (sinNew := sinNew) rfl (by rfl) hsinFit
+  have hsinAssign :
+      ExecBlock config { contract := contract, locals := suckStoreSinNew I sinNew } evm
+        [ .assign .storage (sinRef (.var "u")) (.var "sinNew") ] .staticViolation := by
+    cases vatSuckAssignSinOk evm I (sinNew := sinNew) with
+    | consNormal hstmt _ => exact ExecBlock.consStatic (execStmt_assign_static hstmt hperm)
+  have hblock := execBlock_append_term
+    (s2 :=
+      checkedAddUintInto "daiNew" (.storage (daiRef (.var "v"))) (.var "rad") ++
+      [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
+      checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+      [ .assign .storage viceRef (.var "viceNew") ] ++
+      checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+      [ .assign .storage debtRef (.var "debtNew") ])
+    (execBlock_append (execBlock_append hprefix hsinAdd) hsinAssign) (by intro f' e' h; cases h)
+  simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
+    List.append_assoc] using ExecFuncBody.execBlockStatic hblock
+
 theorem vatSuckSourceRevertDaiOverflowVat
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1942,7 +1982,7 @@ theorem RD.vatSuckSinAddSuccess
     hfit (by jump_dest) (by jump_dest) (by simp)
   exact ⟨_, _, hafter⟩
 
-theorem RD.vatSuckSinStore
+theorem RD.vatSuckSinStoreSplit
     {σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel sinNew : UInt256}
     {mem : ByteArray}
     (h : RD vatBytecode I (Sat256.ofUInt256 g)
@@ -1950,15 +1990,17 @@ theorem RD.vatSuckSinStore
       (sinNew :: suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I ::
         ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hmem : mem.size = 96)
-    (hperm : I.perm = true) :
+    (hmem : mem.size = 96) :
+    (I.perm = true ∧
     ∃ k' C', RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6340⟩
       (⟨32⟩ :: ⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: suckRadWord I ::
         suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) k' C' := by
+      (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hmaskLiteral :
       UInt256.land (suckUMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -2012,6 +2054,11 @@ theorem RD.vatSuckSinStore
     raw swap5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap5 (by native_decide) (by evm_ov)]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd6339pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd6340raw⟩ := rd6339pre.sstore hperm (by native_decide) (by evm_ov)
   have hpc :
       ({ val := 6307 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
@@ -2718,8 +2765,8 @@ theorem vatSuckAfterDaiStore
         hcode hperm hdispatch hdecode hbody
         (by simpa only [debtNew, σViceEvm] using _hdebtOk)
 
-theorem vatSuckBodyCore : VatBodyTheorem 24 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatSuckBodyCore : VatBodyTheoremAnyPerm 24 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 24) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some suckTransition :=
@@ -2785,12 +2832,25 @@ theorem vatSuckBodyCore : VatBodyTheorem 24 := by
         have hmemSin : memSin.size = 96 := by
           dsimp [memSin]
           exact twoWordHashMem_size_96 (suckUMaskedWord I) ⟨6⟩ hmemAuth
-        obtain ⟨_, _, _hafterSinStore⟩ := RD.vatSuckSinStore
-          (σ := σ) (σ₀ := σ₀)
-          (A := A) (I := I) (g := g) (sel := vatSelWord I) (sinNew := sinNew)
-          (mem := memSin)
-          (by simpa [sinNew, sinSlot, memSin] using _hsinOk)
-          hmemSin hperm
+        rcases RD.vatSuckSinStoreSplit
+            (σ := σ) (σ₀ := σ₀)
+            (A := A) (I := I) (g := g) (sel := vatSelWord I) (sinNew := sinNew)
+            (mem := memSin)
+            (by simpa [sinNew, sinSlot, memSin] using _hsinOk)
+            hmemSin with
+          ⟨hperm, _, _, _hafterSinStore⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (vatSuckSourceStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+              (by simpa [initState] using hwv)
+              (vatAuthGuardEval_true (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+                (g := Sat256.ofUInt256 g) (locals := suckStore I) (suckStore_wards I)
+                (by simpa [callerSlot] using hauthSolm))
+              (by
+                simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
+                  vatSlotWord, solcSlotWord, State.lookupAccount, Account.lookupStorage,
+                  sinSlot] using hsinFit)
+              (by simpa [initState] using hpf))
         let σSinEvm := sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew
         let memAfterSin := twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memSin
         have hmemAfterSin : memAfterSin.size = 96 := by

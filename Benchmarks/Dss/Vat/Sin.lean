@@ -189,8 +189,8 @@ theorem vatSinBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_sin_none_short hsz4 hshort)
 
-theorem vatSinBodyCore : VatBodyTheorem 22 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatSinBodyCore : VatBodyTheoremAnyPerm 22 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 22) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some sinTransition :=

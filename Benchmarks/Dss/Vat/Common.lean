@@ -67,6 +67,15 @@ abbrev VatBodyTheorem (i : ℕ) : Prop :=
     selIs I (vatSelBytes i) →
     runtimeEquivalenceFor config contract σ σ₀ g A I
 
+/-- `VatBodyTheorem` for any call permission. -/
+abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
+  ∀ {σ σ₀ A I} {g : UInt256},
+    I.code = vatBytecode →
+    I.calldata.size < UInt256.size →
+    I.weiValue = ⟨0⟩ →
+    selIs I (vatSelBytes i) →
+    runtimeEquivalenceFor config contract σ σ₀ g A I
+
 def vatSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   solcSlotWord σ I slot
 

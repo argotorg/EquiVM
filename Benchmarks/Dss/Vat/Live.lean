@@ -48,8 +48,8 @@ theorem vatReachLiveBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms212Body 2 (by omega) ⟨1161⟩ hcode hwv hsz hsize
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatLiveBodyCore : VatBodyTheorem 18 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatLiveBodyCore : VatBodyTheoremAnyPerm 18 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 18) rfl hsel
   have hbody :
