@@ -49,6 +49,39 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("(hperm : ee.perm = true)", rendered)
         self.assertNotIn("Unsupported instruction boundary", rendered)
 
+    def test_immutable_mode_uses_deployed_code_and_symbolic_push(self) -> None:
+        code = bytes([0x7F, *([0] * 32), 0x56])
+        sites = rd.validate_immutable_sites(
+            [{"offset": 1, "length": 32, "key": "owner"}], code)
+        rendered = rd.generate(code, "imm", "template", ["Contract.Immutables"],
+                               immutable_sites=sites, layout_term="Contract.layout")
+        self.assertIn("RD (Contract.layout.runtime template immWords) ee g s0", rendered)
+        self.assertNotIn("def immutableLayout", rendered)
+        self.assertIn('immWords "owner"', rendered)
+        self.assertIn("Layout.decodeSite", rendered)
+        self.assertIn("immutable_decode(", rendered)
+        self.assertIn("theorem immutableDecode_0", rendered)
+        self.assertNotIn("theorem immutableDecode_33", rendered)
+        self.assertIn("(D_J (Contract.layout.runtime template immWords) 0)", rendered)
+        self.assertIn("immutableRuntime_size", rendered)
+
+    def test_immutable_mode_requires_imported_layout_term(self) -> None:
+        with self.assertRaisesRegex(ValueError, "imported Lean layout term"):
+            rd.generate(bytes.fromhex("5b00"), "imm", "template", [],
+                        immutable_sites={})
+
+    def test_immutable_layout_rejects_non_push_payload(self) -> None:
+        with self.assertRaisesRegex(ValueError, "not a PUSH32 payload"):
+            rd.validate_immutable_sites(
+                [{"offset": 2, "length": 32, "key": "owner"}],
+                bytes([0x7F, *([0] * 32)]))
+
+    def test_immutable_layout_rejects_value_dependent_width(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must have length 32"):
+            rd.validate_immutable_sites(
+                [{"offset": 1, "length": 20, "key": "owner"}],
+                bytes([0x7F, *([0] * 32)]))
+
     def test_full_copy_variants_discharge_guard(self) -> None:
         variants = (
             "3d5f5f3e", "3d5f803e", "3d5f60003e", "3d60005f3e",

@@ -49,6 +49,14 @@ def WindowDisjointFromWrites : Nat → Nat → Nat → List (Nat × UInt256) →
     (rest : List (Nat × UInt256)) :
     writeCascade mem ((off, word) :: rest) = writeCascade (writeWord mem off word) rest := rfl
 
+theorem writeCascade_append (mem : ByteArray) (before after : List (Nat × UInt256)) :
+    writeCascade mem (before ++ after) = writeCascade (writeCascade mem before) after := by
+  induction before generalizing mem with
+  | nil => rfl
+  | cons write rest ih =>
+      rcases write with ⟨off, word⟩
+      simpa [writeCascade_cons] using ih (writeWord mem off word)
+
 @[simp] theorem writeCascadeSize_nil (size : Nat) :
     writeCascadeSize size [] = size := rfl
 
