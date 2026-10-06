@@ -25,28 +25,28 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hdecoded⟩ := flipperYankX_decoded (g := Sat256.ofUInt256 g)
       hsz36 hsize hreach
     let callerSlot := flipperCallerWardsSlot I
-    have hcallerWord : flipperSlotWord callerSlot σ I =
-        flipperSlotWord callerSlot σ I :=
+    have hcallerWord : solcSlotWordAt callerSlot σ I =
+        solcSlotWordAt callerSlot σ I :=
       rfl
     have hpacked :
-        flipperSlotWord (bidPackedSlotOfWord (yankId I)) σ I =
-          flipperSlotWord (bidPackedSlotOfWord (yankId I)) σ I :=
+        solcSlotWordAt (bidPackedSlotOfWord (yankId I)) σ I =
+          solcSlotWordAt (bidPackedSlotOfWord (yankId I)) σ I :=
       rfl
     have hguyEq :
         bidGuyWord (yankId I) σ I = bidGuyWord (yankId I) σ I := by
-      simp [bidGuyWord, flipperAddressReturnWord, hpacked]
+      simp [bidGuyWord, solcAddressSlotWord, hpacked]
     have hbidEq :
         bidBidWord (yankId I) σ I = bidBidWord (yankId I) σ I :=
       rfl
     have htabEq :
         bidTabWord (yankId I) σ I = bidTabWord (yankId I) σ I :=
       rfl
-    by_cases hauthEvm : flipperSlotWord callerSlot σ I = ⟨1⟩
+    by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
     · obtain ⟨_, _, hafterAuth⟩ := flipperYankX_authOk (I := I) hauthEvm hdecoded
       by_cases hguyEvm : bidGuyWord (yankId I) σ I = ⟨0⟩
       · have hguySolm : bidGuyWord (yankId I) σ I = ⟨0⟩ := by
           simpa [← hguyEq] using hguyEvm
-        have hauthSolm : flipperSlotWord callerSlot σ I = ⟨1⟩ := by
+        have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
           rw [← hcallerWord]
           exact hauthEvm
         have hbody :
@@ -78,7 +78,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     (fun acc => acc.code.size))).toNat = 0 :=
               flipperCatCode_zero_of_codeSize_zero
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcatZeroSolm
-            have hauthSolm : flipperSlotWord callerSlot σ I = ⟨1⟩ := by
+            have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
               rw [← hcallerWord]
               exact hauthEvm
             have hguySolm : bidGuyWord (yankId I) σ I ≠ ⟨0⟩ := by
@@ -104,7 +104,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
               hcatZero
             have hcatCode := flipperCatCode_pos_of_codeSize_ne_zero
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcatNeSolm
-            have hauthSolm : flipperSlotWord callerSlot σ I = ⟨1⟩ := by
+            have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
               rw [← hcallerWord]
               exact hauthEvm
             have hguySolm : bidGuyWord (yankId I) σ I ≠ ⟨0⟩ := by
@@ -120,7 +120,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     (yankClawArgVals
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
                       some ((yankCatCallMem σ I).readWithPadding 128 36) := by
-                simpa [yankClawArgVals, yankClawArgValsOf, initState, flipperSlotWord,
+                simpa [yankClawArgVals, yankClawArgValsOf, initState, solcSlotWordAt,
                   solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
                   Account.lookupStorage, bidTabWord, bidSlotOfWord, bidBaseOfWord] using
                   yankCatCallMem_encode σ I
@@ -184,7 +184,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     yankClawArgVals evm0Solm := by
                 simp [yankClawArgVals, yankClawArgValsOf, evm0Solm, initState,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                  bidTabWord, flipperSlotWord, solcSlotWord]
+                  bidTabWord, solcSlotWordAt, solcSlotWord]
               have hcallCatSolm :
                   typedCallViaEVM config evm0Solm
                     (EVM.address (flipperCatAddress σ I)) "claw" 0
@@ -244,7 +244,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             evmCatSolm.executionEnv)).option
                           0 (fun acc => acc.code.size))).toNat = 0 := by
                     simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-                      flipper_extCodeSizeWord_zero_lookup_code_zero
+                      extCodeSizeWord_zero_lookup_code_zero
                         (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
                         (addr := flipperVatAddress σ_cat_solm I)
                         (flipperVatAddress_eq_target σ_cat_solm I) hvatZeroSolm
@@ -271,7 +271,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               evmCatSolm.executionEnv)).option
                             0 (fun acc => acc.code.size))).toNat := by
                     simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-                      flipper_extCodeSizeWord_pos_lookup_code_pos
+                      extCodeSizeWord_ne_zero_lookup_code_pos
                         (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
                         (addr := flipperVatAddress σ_cat_solm I)
                         (flipperVatAddress_eq_target σ_cat_solm I) hvatNeSolm
@@ -395,7 +395,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               0 (fun acc => acc.code.size))).toNat = 0 := by
                         simpa [evmVatSolm, evmCatSolm, evm0Solm, initState,
                           State.lookupAccount] using
-                          flipper_extCodeSizeWord_zero_lookup_code_zero
+                          extCodeSizeWord_zero_lookup_code_zero
                             (σ := σ_vat_solm)
                             (target := flipperVatTargetWord σ_vat_solm I)
                             (addr := flipperVatAddress σ_vat_solm I)
@@ -425,7 +425,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                                 0 (fun acc => acc.code.size))).toNat := by
                         simpa [evmVatSolm, evmCatSolm, evm0Solm, initState,
                           State.lookupAccount] using
-                          flipper_extCodeSizeWord_pos_lookup_code_pos
+                          extCodeSizeWord_ne_zero_lookup_code_pos
                             (σ := σ_vat_solm)
                             (target := flipperVatTargetWord σ_vat_solm I)
                             (addr := flipperVatAddress σ_vat_solm I)
@@ -604,7 +604,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
           have hguySolm : bidGuyWord (yankId I) σ I ≠ ⟨0⟩ := by
             intro hzero
             exact hguyEvm (by simpa [hguyEq] using hzero)
-          have hauthSolm : flipperSlotWord callerSlot σ I = ⟨1⟩ := by
+          have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
             rw [← hcallerWord]
             exact hauthEvm
           have hbody :
@@ -617,7 +617,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                 hwv hauthSolm hguySolm hgeSolm)
           exact (flipperYankX_bidNotLt (I := I) hgeEvm hafterGuy)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : flipperSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+    · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm (by rw [hcallerWord, hsolm])
       let locals : Store := yankLocals I
@@ -649,7 +649,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
           yankLocals] using ExecFuncBody.execBlockRevert hblock
       have hauthSolc :
           solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-        simpa [callerSlot, flipperCallerWardsSlot, flipperSlotWord] using hauthEvm
+        simpa [callerSlot, flipperCallerWardsSlot, solcSlotWordAt] using hauthEvm
       have hrev := RD.flipperAuthCheckRevert
         (pc := ⟨967⟩) (okPc := ⟨1049⟩) (key := yankId I) (ret := ⟨323⟩)
         (R := [flipperSelWord I])

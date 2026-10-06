@@ -171,8 +171,8 @@ theorem flapKickEncode_eq (bump : UInt256) {mem : ByteArray}
   simp [word_toBytesBE_toByteArray_eq_toByteArray, ByteArray.data_append, Array.append_assoc]
 
 theorem flapKickAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
-    EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σ I).toNat) =
-      AccountAddress.ofUInt256 (vowAddressReturnWord ⟨2⟩ σ I) := by
+    EVM.address (AccountAddress.ofNat (solcAddressSlotWord ⟨2⟩ σ I).toNat) =
+      AccountAddress.ofUInt256 (solcAddressSlotWord ⟨2⟩ σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
   apply Fin.ext
   simp [EVM.address, EVM.uintN]
@@ -191,8 +191,8 @@ theorem RD.vowFlapToKickExtcodesizeGuard
       mem (UInt256.ofNat 6) o acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    let target := vowAddressReturnWord ⟨2⟩ acc I
-    let bump := vowSlotWord ⟨10⟩ acc I
+    let target := solcAddressSlotWord ⟨2⟩ acc I
+    let bump := solcSlotWordAt ⟨10⟩ acc I
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1482⟩
       (target :: target :: ⟨0⟩ :: flapKickOutPtr :: flapKickInSize ::
@@ -226,16 +226,16 @@ theorem RD.vowFlapToKickExtcodesizeGuard
   obtain ⟨k1407, C1407, rd1407Raw⟩ := rd1406.sload (by native_decide) (by evm_ov)
   have rd1407 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1407⟩
-      (vowSlotWord ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+      (solcSlotWordAt ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1407 C1407 := by
-    simpa [vowSlotWord, solcSlotWord] using rd1407Raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd1407Raw
   have rd1409 := rd1407.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1410, C1410, rd1410Raw⟩ := rd1409.sload (by native_decide) (by evm_ov)
   have rd1410 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1410⟩
-      (bump :: vowSlotWord ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
+      (bump :: solcSlotWordAt ⟨2⟩ acc I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1410 C1410 := by
-    simpa [bump, vowSlotWord, solcSlotWord] using rd1410Raw
+    simpa [bump, solcSlotWordAt, solcSlotWord] using rd1410Raw
   have rd1482 := evm_run rd1410 with [
     push1 ⟨64⟩,
     dup1,
@@ -300,7 +300,7 @@ theorem RD.vowFlapToKickExtcodesizeGuard
     simpa [target, bump, flapKickSelectorShifted, flapKickSelectorWord,
       flapKickSelectorMem, flapKickBumpMem, flapKickCalldataMem,
       flapKickOutPtr, flapKickInSize, flapKickOutSize, flapKickEndPtr,
-      vowAddressReturnWord, vowSlotWord, solcSlotWord, solcAddrMask, u256_land_comm,
+      solcAddressSlotWord, solcSlotWordAt, solcSlotWord, solcAddrMask, u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd1482⟩
 
@@ -316,11 +316,11 @@ theorem RD.vowFlapKickNoCode
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
-        (vowAddressReturnWord ⟨2⟩ acc I) = ⟨0⟩) :
+        (solcAddressSlotWord ⟨2⟩ acc I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  let target := vowAddressReturnWord ⟨2⟩ acc I
-  let bump := vowSlotWord ⟨10⟩ acc I
+  let target := solcAddressSlotWord ⟨2⟩ acc I
+  let bump := solcSlotWordAt ⟨10⟩ acc I
   obtain ⟨_, _, rd1482⟩ := RD.vowFlapToKickExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
     (by simpa [target, bump] using rd1482)
@@ -341,9 +341,9 @@ theorem RD.vowFlapKickCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
-        (vowAddressReturnWord ⟨2⟩ acc I) ≠ ⟨0⟩) :
-    let target := vowAddressReturnWord ⟨2⟩ acc I
-    let bump := vowSlotWord ⟨10⟩ acc I
+        (solcAddressSlotWord ⟨2⟩ acc I) ≠ ⟨0⟩) :
+    let target := solcAddressSlotWord ⟨2⟩ acc I
+    let bump := solcSlotWordAt ⟨10⟩ acc I
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1497⟩
       (gasWord :: target :: ⟨0⟩ :: flapKickOutPtr :: flapKickInSize ::
@@ -374,11 +374,11 @@ theorem RD.vowFlapKickPostCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
-        (vowAddressReturnWord ⟨2⟩ acc I) ≠ ⟨0⟩)
+        (solcAddressSlotWord ⟨2⟩ acc I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
-    let target := vowAddressReturnWord ⟨2⟩ acc I
-    let bump := vowSlotWord ⟨10⟩ acc I
+    let target := solcAddressSlotWord ⟨2⟩ acc I
+    let bump := solcSlotWordAt ⟨10⟩ acc I
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
@@ -633,7 +633,7 @@ theorem RD.vowFlapKickSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc
       (UInt256.toByteArray id) := by
   have hmin : (min flapKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
-    simpa [flapKickOutSize] using kissDaiMin32_toNat_of_ge ho32 hosz
+    simpa [flapKickOutSize] using ctorMin32_toNat_of_ge ho32 hosz
   have rd1498 := rd
   rw [hmin, show flapKickOutPtr.toNat = 128 from by native_decide] at rd1498
   obtain ⟨_, _, rd1516⟩ :=

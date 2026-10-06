@@ -32,7 +32,7 @@ theorem nounTransferPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata σ 
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   have hsel : UInt256.shiftLeft ⟨0x23b872dd⟩ ⟨224⟩ = transferFromWord := by native_decide
   rw [hsel] at rd4560
-  change RD _ _ _ _ ⟨4560⟩ (ptr :: nounId :: bidder :: storedWord σ I ⟨201⟩ :: snap :: ret :: R)
+  change RD _ _ _ _ ⟨4560⟩ (ptr :: nounId :: bidder :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
     (selectorMem mem ptr transferFromWord) (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd4560
   have h4 : (ptr + ⟨4⟩).toNat = ptr.toNat + 4 :=
     addWord_toNat ptr ⟨4⟩ (by change ptr.toNat + 4 < 2 ^ 256; omega)
@@ -43,20 +43,20 @@ theorem nounTransferPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata σ 
   have rd4566 := evm_run rd4560 with [address, push1 ⟨4⟩, dup3, add,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   rw [h4] at rd4566
-  change RD _ _ _ _ ⟨4566⟩ (ptr :: nounId :: bidder :: storedWord σ I ⟨201⟩ :: snap :: ret :: R)
+  change RD _ _ _ _ ⟨4566⟩ (ptr :: nounId :: bidder :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
     (callMem1 mem ptr transferFromWord (contractAddressWord I)) (callWords1 aw ptr)
     rdata σ _ _ at rd4566
   have rd4582 := evm_run rd4566 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap3, dup4, and, push1 ⟨36⟩, dup3, add, raw mstoreSymbolic (by native_decide) (by evm_ov)]
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   simp only [hmask, u256_land_comm solcAddrMask, h36] at rd4582
-  change RD _ _ _ _ ⟨4582⟩ (ptr :: nounId :: solcAddrMask :: storedWord σ I ⟨201⟩ ::
+  change RD _ _ _ _ ⟨4582⟩ (ptr :: nounId :: solcAddrMask :: solcSlotWord σ I ⟨201⟩ ::
     snap :: ret :: R) (callMem2 mem ptr transferFromWord (contractAddressWord I)
       (UInt256.land bidder solcAddrMask)) (callWords2 aw ptr) rdata σ _ _ at rd4582
   have rd4590 := evm_run rd4582 with [push1 ⟨68⟩, dup2, add, swap2, swap1, swap2,
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   rw [h68] at rd4590
-  change RD _ _ _ _ ⟨4590⟩ (ptr :: solcAddrMask :: storedWord σ I ⟨201⟩ :: snap :: ret :: R)
+  change RD _ _ _ _ ⟨4590⟩ (ptr :: solcAddrMask :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
     (callMem3 mem ptr transferFromWord (contractAddressWord I) (UInt256.land bidder solcAddrMask)
       nounId) (callWords3 aw ptr) rdata σ _ _ at rd4590
   have rd4606 := evm_run rd4590 with [swap2, and, swap1, push4 ⟨0x23b872dd⟩, swap1,
@@ -96,7 +96,7 @@ theorem nounTransferNoCode {I g s0 snap nounId bidder ret R mem aw ptr rdata σ 
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd4620⟩ := nounTransferCodeGuard h hm hb hn ha hbid hab (by omega)
   exact evm_run rd4620 with [jumpiNT (by rw [hno]; decide),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem nounTransferCallPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)

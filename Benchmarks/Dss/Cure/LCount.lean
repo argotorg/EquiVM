@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `lCount()` -/
 
 def lCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 theorem cureDispatchLCount {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 5)) :
@@ -42,7 +42,7 @@ theorem cureLCountBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (lCountWord σ I).toNat))])) := by
-    simpa [lCountTransition, lCountWord, cureSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [lCountTransition, lCountWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

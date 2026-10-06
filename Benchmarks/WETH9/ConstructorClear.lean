@@ -1,3 +1,5 @@
+import Reasoning.StorageLoops
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.Bytecode
 import Benchmarks.WETH9.ConstructorTrusted
 import Reasoning.Reach
@@ -20,19 +22,6 @@ set_option maxHeartbeats 4000000
 
 /-! ## Cursor arithmetic (`keccak(slot) + i`) -/
 
-theorem u256_add_zero (K : UInt256) : K + ⟨0⟩ = K := by
-  apply u256_inj
-  rw [uadd_toNat, show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.add_zero]
-  exact Nat.mod_eq_of_lt K.val.isLt
-
-theorem weth9ClearCursor_toNat (K : UInt256) (oldWords i : Nat)
-    (hK : K.toNat + oldWords < UInt256.size) (hi : i ≤ oldWords) :
-    (K + UInt256.ofNat i).toNat = K.toNat + i := by
-  rw [uadd_toNat, ulit_toNat' i (by omega), Nat.mod_eq_of_lt (by omega)]
-
-theorem weth9ClearCursor_succ (K : UInt256) (a : Nat) :
-    (⟨1⟩ : UInt256) + (K + UInt256.ofNat a) = K + UInt256.ofNat (a + 1) := by
-  rw [← u256_one_add_ofNat, ← uadd_assoc, ← uadd_assoc, uadd_comm (⟨1⟩ : UInt256) K]
 
 /-! ## The clear loop + return dance -/
 
@@ -81,8 +70,8 @@ theorem weth9ClearLoopAndReturn
     have hcond :
         UInt256.isZero (UInt256.gt (K + UInt256.ofNat oldWords) (K + UInt256.ofNat a)) = ⟨0⟩ := by
       rw [ugt_one (by
-        rw [weth9ClearCursor_toNat K oldWords a hK (by omega),
-          weth9ClearCursor_toNat K oldWords oldWords hK (le_refl _)]
+        rw [clearCursor_toNat K oldWords a hK (by omega),
+          clearCursor_toNat K oldWords oldWords hK (le_refl _)]
         omega)]
       decide
     have hbefore := evm_run hrd with [
@@ -90,7 +79,7 @@ theorem weth9ClearLoopAndReturn
       push1 ⟨0⟩, dup2]
     obtain ⟨k', C', hafter⟩ := hbefore.sstore hperm (by native_decide) (by evm_ov)
     have hnext := evm_run hafter with [push1 ⟨1⟩, add, push2 ⟨254⟩, jump (by native_decide)]
-    rw [weth9ClearCursor_succ K a, ← clearDataWordsForwardFrom_append ee.codeOwner σ' K a] at hnext
+    rw [clearCursor_succ K a, ← clearDataWordsForwardFrom_append ee.codeOwner σ' K a] at hnext
     exact ⟨a + 1, _, _, by omega, hnext⟩
   -- Feed the initial cursor state and run the loop to exhaustion.
   have h0 : RD weth9CreationBytecode ee g s0 ⟨254⟩
@@ -116,20 +105,6 @@ theorem weth9ClearLoopAndReturn
 
 /-! ## Reconciling the EVM store-then-clear order with the Solm clear-then-store order -/
 
-/-- The EVM stores the short word at `slot` **then** clears the keccak-data words; the Solm write
-    clears **then** stores. Since the slots are disjoint, the resulting account maps are equal. -/
-theorem clear_sstore_comm_equiv (cO : AccountAddress) (K slot sw : UInt256) :
-    ∀ (n : Nat) (σ : AccountMap), (∀ i, i < n → slot ≠ K + UInt256.ofNat i) →
-      clearDataWordsForwardFrom cO (sstoreAccountMap cO σ slot sw) K ⟨0⟩ n =
-        sstoreAccountMap cO (clearDataWordsForwardFrom cO σ K ⟨0⟩ n) slot sw
-  | 0, σ, _ => rfl
-  | n + 1, σ, hdisj => by
-      rw [clearDataWordsForwardFrom_append cO (sstoreAccountMap cO σ slot sw) K n,
-        clearDataWordsForwardFrom_append cO σ K n]
-      rw [clear_sstore_comm_equiv cO K slot sw n σ
-        (fun i hi => hdisj i (by omega))]
-      exact sstoreAccountMap_comm (clearDataWordsForwardFrom cO σ K ⟨0⟩ n)
-        cO slot sw (K + UInt256.ofNat n) ⟨0⟩ (hdisj n (by omega))
 
 /-- For `name`/`symbol` slots, every cleared cursor `keccak(slot)+i` (`i < oldWords`) differs from
     the small `slot` itself. -/
@@ -137,7 +112,7 @@ theorem weth9ClearSlotDisjoint (slot : UInt256) (hslot : slot = ⟨0⟩ ∨ slot
     (hK : (Solm.solidityBytesDataBaseSlot slot).toNat + ow < UInt256.size) (hi : i < ow) :
     slot ≠ Solm.solidityBytesDataBaseSlot slot + UInt256.ofNat i := by
   intro heq
-  have hval := weth9ClearCursor_toNat (Solm.solidityBytesDataBaseSlot slot) ow i hK (by omega)
+  have hval := clearCursor_toNat (Solm.solidityBytesDataBaseSlot slot) ow i hK (by omega)
   have hslotval := congrArg UInt256.toNat heq
   rw [hval] at hslotval
   rcases hslot with h | h <;> subst h
@@ -161,7 +136,7 @@ theorem weth9ClearStoreCommEquiv (cO : AccountAddress) (σ : AccountMap) (slot s
         (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ ow =
       sstoreAccountMap cO
         (clearDataWordsForwardFrom cO σ (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩ ow) slot sw :=
-  clear_sstore_comm_equiv cO (Solm.solidityBytesDataBaseSlot slot) slot sw ow σ
+  clearDataWordsForwardFrom_sstore_comm cO (Solm.solidityBytesDataBaseSlot slot) slot sw ow σ
     (fun i hi => weth9ClearSlotDisjoint slot hslot ow i hK hi)
 
 end Benchmarks.WETH9

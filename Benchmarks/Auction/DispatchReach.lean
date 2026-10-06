@@ -101,7 +101,7 @@ theorem auctionXShort {σ σ₀ A I} {g : Sat256}
   exact evm_run rd5 with [
     push1 ⟨4⟩, calldatasize, lt, push2 ⟨283⟩,
     jumpiT (lt_four_ne_zero_of_lt hsz) (by jump_dest), jumpdest,
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 theorem auctionSkipGroup {ee g s0 word mem aw rdata acc k C} (group : Fin 4)
     (h : RD auctionBytecode ee g s0 (groupFirstPc group) [word] mem aw rdata acc k C)
@@ -131,11 +131,11 @@ theorem auctionGroupMissRevert {ee g s0 word mem aw rdata acc k C} (group : Fin 
   rw [groupEnd] at h
   rcases group with ⟨group, hg⟩
   interval_cases group <;> simp only [groupEndPc] at h
-  · exact (h.jumpdest (by native_decide) (by simp)).auctionRevert0
+  · exact (h.jumpdest (by native_decide) (by simp)).solcPush0Dup1Revert0
       (by native_decide) (by native_decide) (by native_decide) (by simp)
-  · exact h.auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
-  · exact h.auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
-  · exact h.auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  · exact h.solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  · exact h.solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  · exact h.solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem auctionXNoMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode) (hsz : 4 ≤ I.calldata.size)

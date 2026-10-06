@@ -62,12 +62,12 @@ def contractSyntax (v : RouterImmutables) : ContractDecl := solidity% contract U
   function pairFor(address factory_, address tokenA, address tokenB) internal returns (address) {
     var tokens = sortTokens(tokenA, tokenB);
     bytes32 salt = keccak256(abi.encodePacked(address(tokens.0), address(tokens.1)));
-    bytes32 raw = keccak256(abi.encodePacked(
+    bytes32 «raw» = keccak256(abi.encodePacked(
       bytes1(bytes1(0xff)),
       address(factory_),
       bytes32(salt),
       bytes32(${initCodeHashLit})));
-    return address(uint256(raw));
+    return address(uint256(«raw»));
   }
 
   function quoteBody(uint256 amountA, uint256 reserveA, uint256 reserveB) internal returns (uint256) {

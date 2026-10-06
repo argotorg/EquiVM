@@ -37,7 +37,7 @@ private def daiSymbolLiteralWord : UInt256 :=
   UInt256.shiftLeft daiSymbolRawWord ⟨232⟩
 
 private theorem daiSymbolReturnRead :
-    (daiStringAbiMem3 daiSymbolLen daiSymbolLiteralWord).readWithPadding 192 96 =
+    (solcStringAbiMem3 daiSymbolLen daiSymbolLiteralWord).readWithPadding 192 96 =
       daiSymbolReturnBytes := by
   native_decide
 
@@ -57,18 +57,18 @@ theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h3201 := evm_run h3200 with [
-    raw mstore 0 daiStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 solcStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h3205 := evm_run h3201 with [dup1, push1 daiSymbolLen, dup2]
   have h3206 := evm_run h3205 with [
-    raw mstore 6 (daiStringObjectMem1 daiSymbolLen) (UInt256.ofNat 5)
+    raw mstore 6 (solcStringObjectMem1 daiSymbolLen) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h3209 := evm_run h3206 with [push1 ⟨32⟩, add]
   have h3213 := h3209.pushConst daiSymbolRawWord
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
   have h3217 := evm_run h3213 with [push1 ⟨232⟩, shl, dup2]
   have h3218 := evm_run h3217 with [
-    raw mstore 3 (daiStringObjectMem daiSymbolLen daiSymbolLiteralWord)
+    raw mstore 3 (solcStringObjectMem daiSymbolLen daiSymbolLiteralWord)
       (UInt256.ofNat 6) (by native_decide) mem_cost
       (by native_decide) (by decide) (by evm_ov)]
   have h335 := evm_run h3218 with [pop, dup2, jump (by jump_dest)]
@@ -77,7 +77,7 @@ theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 (daiStringAbiMem0 daiSymbolLen daiSymbolLiteralWord)
+    raw mstore 3 (solcStringAbiMem0 daiSymbolLen daiSymbolLiteralWord)
       (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h350 := evm_run h344 with [
@@ -85,7 +85,7 @@ theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiSymbolLen (UInt256.ofNat 7) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 (daiStringAbiMem1 daiSymbolLen daiSymbolLiteralWord)
+    raw mstore 3 (solcStringAbiMem1 daiSymbolLen daiSymbolLiteralWord)
       (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov)]
   have h367 := evm_run h350 with [
@@ -101,7 +101,7 @@ theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiSymbolLiteralWord (UInt256.ofNat 8) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 (daiStringAbiMem2 daiSymbolLen daiSymbolLiteralWord)
+    raw mstore 3 (solcStringAbiMem2 daiSymbolLen daiSymbolLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨369⟩, jump (by jump_dest)]
@@ -115,7 +115,7 @@ theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mload 0 daiSymbolLiteralWord (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 (daiStringAbiMem3 daiSymbolLen daiSymbolLiteralWord)
+    raw mstore 0 (solcStringAbiMem3 daiSymbolLen daiSymbolLiteralWord)
       (UInt256.ofNat 9) (by native_decide)
       mem_cost (by native_decide) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]

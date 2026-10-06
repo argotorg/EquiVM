@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ListBase
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -55,60 +56,6 @@ theorem clipperListReturnCopyDst_toNat {σ : AccountMap} {I : ExecutionEnv} {n :
     have hend := clipperStorageWF_returnEnd_lt hwf
     omega)]
 
-theorem not_u256_ge_of_toNat_lt {a b : UInt256} (h : a.toNat < b.toNat) : ¬ a ≥ b := by
-  intro hge
-  have hnat : b.toNat ≤ a.toNat := hge
-  omega
-
-theorem u256_mul32_toNat_of_toNat {a : UInt256} {n : Nat}
-    (ha : a.toNat = n) (h : 32 * n < UInt256.size) :
-    (a * (⟨32⟩ : UInt256)).toNat = 32 * n := by
-  rw [umul_toNat a (⟨32⟩ : UInt256) (by
-    rw [ha, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-    omega), ha, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-  omega
-
-theorem clipperM_return_mload64 (n : Nat) :
-    MachineState.M (5 + n) 64 32 = 5 + n := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_storeOffset (n : Nat) :
-    MachineState.M (5 + n) (160 + 32 * n) 32 = 6 + n := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_mload128_from6 (n : Nat) :
-    MachineState.M (6 + n) 128 32 = 6 + n := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_storeLength (n : Nat) :
-    MachineState.M (6 + n) (192 + 32 * n) 32 = 7 + n := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_mload128_from7 (n : Nat) :
-    MachineState.M (7 + n) 128 32 = 7 + n := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_copy_mload (n k : Nat) :
-    MachineState.M (7 + n + k) (160 + 32 * k) 32 = 7 + n + k := by
-  unfold MachineState.M
-  simp only []
-  omega
-
-theorem clipperM_return_copy_mstore (n k : Nat) :
-    MachineState.M (7 + n + k) (224 + 32 * n + 32 * k) 32 = 8 + n + k := by
-  unfold MachineState.M
-  simp only []
-  omega
 
 abbrev clipperListReturnBaseMem (σ : AccountMap) (ee : ExecutionEnv) :
     ByteArray :=
@@ -461,27 +408,27 @@ theorem clipperListReturnBaseAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     rw [Nat.mod_eq_of_lt (by
       have h := clipperStorageWF_returnDst_lt hwf
       omega)]]
-  rw [clipperM_return_mload64]
+  rw [m_return_mload64]
   have h5 : (UInt256.ofNat (5 + (solcSlotWord σ I ⟨11⟩).toNat)).toNat =
       5 + (solcSlotWord σ I ⟨11⟩).toNat := ulit_toNat' _ (by
     unfold clipperStorageWF at hwf
     omega)
   rw [h5]
-  rw [clipperM_return_storeOffset]
+  rw [m_return_storeOffset]
   have h6 : (UInt256.ofNat (6 + (solcSlotWord σ I ⟨11⟩).toNat)).toNat =
       6 + (solcSlotWord σ I ⟨11⟩).toNat := ulit_toNat' _ (by
     unfold clipperStorageWF at hwf
     omega)
   rw [h6]
-  rw [clipperM_return_mload128_from6]
+  rw [m_return_mload128_from6]
   rw [h6]
-  rw [clipperM_return_storeLength]
+  rw [m_return_storeLength]
   have h7 : (UInt256.ofNat (7 + (solcSlotWord σ I ⟨11⟩).toNat)).toNat =
       7 + (solcSlotWord σ I ⟨11⟩).toNat := ulit_toNat' _ (by
     unfold clipperStorageWF at hwf
     omega)
   rw [h7]
-  rw [clipperM_return_mload128_from7]
+  rw [m_return_mload128_from7]
   exact h7
 
 theorem clipperListReturnBaseMem_mload64_of_wf {σ : AccountMap} {I : ExecutionEnv}
@@ -512,14 +459,14 @@ theorem clipperListReturnCopiedAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEn
       rw [clipperListReturnCopiedAw, clipperListReturnCopyStepAw]
       unfold clipperListReturnCopyMloadAw
       rw [hprev, clipperListReturnCopySrc_toNat hwf hn']
-      rw [clipperM_return_copy_mload]
+      rw [m_return_copy_mload]
       have h7n :
           (UInt256.ofNat (7 + (solcSlotWord σ I ⟨11⟩).toNat + n)).toNat =
             7 + (solcSlotWord σ I ⟨11⟩).toNat + n := ulit_toNat' _ (by
         unfold clipperStorageWF at hwf
         omega)
       rw [h7n, clipperListReturnCopyDst_toNat hwf hn']
-      rw [clipperM_return_copy_mstore]
+      rw [m_return_copy_mstore]
       rw [ulit_toNat' _ (by
         unfold clipperStorageWF at hwf
         omega)]

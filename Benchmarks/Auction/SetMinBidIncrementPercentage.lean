@@ -40,14 +40,14 @@ theorem setMinBidStore {I g s0 value ret R rdata σ k C}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
       rdata (sstoreAccountMap I.codeOwner σ ⟨205⟩
-        (minBidWord (storedWord σ I ⟨205⟩) value)) k' C' := by
+        (minBidWord (solcSlotWord σ I ⟨205⟩) value)) k' C' := by
   have rd1007 := evm_run h with [jumpdest, push1 ⟨205⟩, dup1]
   obtain ⟨_, _, rd1008⟩ := rd1007.sload (by native_decide) (by evm_ov)
   have rd1021 := evm_run rd1008 with [
     push1 ⟨255⟩, not, and, push1 ⟨255⟩, dup4, and, swap1, dup2, or, swap1, swap2 ]
   change RD _ _ _ _ _
     (⟨205⟩ :: UInt256.lor (UInt256.land value ⟨255⟩)
-      (UInt256.land (UInt256.lnot ⟨255⟩) (storedWord σ I ⟨205⟩)) ::
+      (UInt256.land (UInt256.lnot ⟨255⟩) (solcSlotWord σ I ⟨205⟩)) ::
       UInt256.land value ⟨255⟩ :: value :: ret :: R) _ _ _ _ _ _ at rd1021
   rw [lowByteClean hc, u256_land_comm (UInt256.lnot ⟨255⟩), u256_lor_comm value] at rd1021
   obtain ⟨_, _, rd1022⟩ := rd1021.sstore hperm (by native_decide) (by evm_ov)
@@ -99,7 +99,7 @@ theorem setMinBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (calldataWord I.calldata 4) hwv ho hc
             exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
-              hcode hd hdec hbody (by simp [storageStore_accountMap, initState, storedWord, Solm.EVM.storageLoad,
+              hcode hd hdec hbody (by simp [storageStore_accountMap, initState, solcSlotWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage])
               (.fallthrough rfl rfl (by native_decide))
           · have hbody : ExecTransitionBody auctionConfig auctionContract

@@ -25,14 +25,14 @@ theorem flipperTendBodyCore {σ σ₀ A I} {g : UInt256}
     let locals := tendLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hpacked :
-        flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I =
-          flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I := rfl
+        solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I =
+          solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I := rfl
     have hlotWordEq : bidLotWord (tendId I) σ I = bidLotWord (tendId I) σ I := rfl
     have htabWordEq : bidTabWord (tendId I) σ I = bidTabWord (tendId I) σ I := rfl
     have hbidWordEq : bidBidWord (tendId I) σ I = bidBidWord (tendId I) σ I := rfl
     have hbegWordEq : tendBegWord σ I = tendBegWord σ I := rfl
     have hguyEq : bidGuyWord (tendId I) σ I = bidGuyWord (tendId I) σ I := by
-      simp [bidGuyWord, flipperAddressReturnWord, hpacked]
+      simp [bidGuyWord, solcAddressSlotWord, hpacked]
     have hticEq : bidTicWord (tendId I) σ I = bidTicWord (tendId I) σ I := by
       simp [bidTicWord, flipperUint48Offset20Word, hpacked]
     have hendEq : bidEndWord (tendId I) σ I = bidEndWord (tendId I) σ I := by

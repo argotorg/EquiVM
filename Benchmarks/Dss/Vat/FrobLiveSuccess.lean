@@ -974,13 +974,13 @@ theorem vatFrobSourceBodySuccessFromDustBlock
     {σ σ₀ A I} {g : UInt256}
     (hsz196 : 196 ≤ I.calldata.size)
     (hsourceDust :
-      let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-      let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-      let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-      let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-      let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-      let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+      let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+      let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+      let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+      let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+      let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+      let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let localsLoaded :=
         frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
@@ -994,7 +994,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
       let localsDtab := localsIlk.insert "dtab" (.int dtab)
       let tab := UInt256.mul ilkRate urnArtNew
-      let debtOld := vatSlotWord foldDebtSlot σ I
+      let debtOld := solcSlotWordAt foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let localsDebt :=
@@ -1059,7 +1059,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         (.ok { contract := contract, locals := localsSafe } evmDebt))
     (hdtabRange :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I;
       -((2 : Int) ^ 255) ≤ dtab ∧ dtab < (2 : Int) ^ 255)
     (hGemPosS :
@@ -1071,24 +1071,24 @@ theorem vatFrobSourceBodySuccessFromDustBlock
         UInt256.lt (frobGemNew σ I)
           (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩)
     (hDaiNegS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩)
     (hDaiPosS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩) :
-    let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-    let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+    let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+    let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+    let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+    let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+    let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+    let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+    let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let localsLoaded :=
       frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
@@ -1102,7 +1102,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
     let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
     let localsDtab := localsIlk.insert "dtab" (.int dtab)
     let tab := UInt256.mul ilkRate urnArtNew
-    let debtOld := vatSlotWord foldDebtSlot σ I
+    let debtOld := solcSlotWordAt foldDebtSlot σ I
     let dtabWord := UInt256.mul (frobDartWord I) ilkRate
     let debtNew := dtabWord + debtOld
     let localsDebt :=
@@ -1187,7 +1187,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
     simp [evmDebt, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
       frobAfterDebt, frobDebtNew, gemOld, debtNew, dtabWord, debtOld,
-      frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196]
+      frobDtabWord, ilkRate, solcSlotWordAt, frobGemVSourceSlot_eq I hsz196]
     simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have hloadDai :
       Solm.EVM.storageLoad evmGem evmGem.executionEnv.codeOwner
@@ -1196,7 +1196,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap,
       storageStore_executionEnv, frobAfterGem, frobAfterDebt, frobDebtNew,
       frobGemNew, gemNew, gemOld, daiOld, debtNew, dtabWord, debtOld,
-      frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196,
+      frobDtabWord, ilkRate, solcSlotWordAt, frobGemVSourceSlot_eq I hsz196,
       frobDaiWSourceSlot_eq I]
     simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have htail :
@@ -1328,7 +1328,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
     frobTransition.body
     (.returned { contract := contract, locals := finalLocals } evmDust none)
   exact ExecFuncBody.execBlockOK (by
-    simpa [frobTransition, evmDai, evmInk, evmArt, evmIlk, evmRate, evmSpot,
+    simpa [frobTransition, evmGem, evmDai, evmInk, evmArt, evmIlk, evmRate, evmSpot,
       evmLine, evmDust, finalLocals, List.append_assoc] using hfull)
 
 set_option maxHeartbeats 0 in
@@ -1344,13 +1344,13 @@ theorem vatFrobLiveSuccessFinish
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hsourceDust :
-      let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-      let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-      let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-      let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-      let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-      let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+      let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+      let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+      let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+      let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+      let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+      let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let localsLoaded :=
         frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
@@ -1364,7 +1364,7 @@ theorem vatFrobLiveSuccessFinish
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
       let localsDtab := localsIlk.insert "dtab" (.int dtab)
       let tab := UInt256.mul ilkRate urnArtNew
-      let debtOld := vatSlotWord foldDebtSlot σ I
+      let debtOld := solcSlotWordAt foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let localsDebt :=
@@ -1429,7 +1429,7 @@ theorem vatFrobLiveSuccessFinish
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         (.ok { contract := contract, locals := localsSafe } evmDebt))
     (hdtabRange :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I;
       -((2 : Int) ^ 255) ≤ dtab ∧ dtab < (2 : Int) ^ 255)
     (hGemPosS :
@@ -1441,25 +1441,25 @@ theorem vatFrobLiveSuccessFinish
         UInt256.lt (frobGemNew σ I)
           (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩)
     (hDaiNegS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩)
     (hDaiPosS :
-      let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I;
+      let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I;
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate;
       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt (frobDaiNew σ I)
           (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+  let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+  let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+  let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+  let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+  let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+  let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let localsLoaded :=
     frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
@@ -1473,7 +1473,7 @@ theorem vatFrobLiveSuccessFinish
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
   let localsDtab := localsIlk.insert "dtab" (.int dtab)
   let tab := UInt256.mul ilkRate urnArtNew
-  let debtOld := vatSlotWord foldDebtSlot σ I
+  let debtOld := solcSlotWordAt foldDebtSlot σ I
   let dtabWord := UInt256.mul (frobDartWord I) ilkRate
   let debtNew := dtabWord + debtOld
   let localsDebt :=
@@ -1583,23 +1583,23 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hSuccess : frobLiveSuccessGuards σ I)
-    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
   by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
-  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-    let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  · let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+    let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+    let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+    let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+    let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+    let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+    let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hrateWord : vatSlotWord (frobIlkRateSlot I) σ I = ⟨0⟩ := by
-      simpa [vatSlotWord] using hrateZeroEvm
+    have hrateWord : solcSlotWordAt (frobIlkRateSlot I) σ I = ⟨0⟩ := by
+      simpa [solcSlotWordAt] using hrateZeroEvm
     have hbodyRaw :
         let locals := frobStore I
         let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1634,7 +1634,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (frobSourceLoad_ilkDust
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
           (by
-            rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ I from rfl,
+            rw [show ilkRate = solcSlotWordAt (frobIlkRateSlot I) σ I from rfl,
               hrateWord]
             native_decide)
     have hbody :
@@ -1644,19 +1644,19 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     obtain ⟨_, _, hafterUrn⟩ := RD.vatFrobUrnLoads hafterLive
     have hrev := RD.vatFrobIlkLoadsRateZero hafterUrn hrateZeroEvm
     exact hrev.reEquivExecutionRevert hcode (vatDispatchFrob hsel) hdecode hbody
-  · let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
-    let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
-    let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
-    let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
-    let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
-    let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
-    let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  · let urnInk := solcSlotWordAt (frobUrnInkSlot I) σ I
+    let urnArt := solcSlotWordAt (frobUrnArtSlot I) σ I
+    let ilkArt := solcSlotWordAt (frobIlkArtSlot I) σ I
+    let ilkRate := solcSlotWordAt (frobIlkRateSlot I) σ I
+    let ilkSpot := solcSlotWordAt (frobIlkSpotSlot I) σ I
+    let ilkLine := solcSlotWordAt (frobIlkLineSlot I) σ I
+    let ilkDust := solcSlotWordAt (frobIlkDustSlot I) σ I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hrateWordNe :
-        vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
+        solcSlotWordAt (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
       intro hzeroSolm
       apply hrateZeroEvm
-      simpa [vatSlotWord] using hzeroSolm
+      simpa [solcSlotWordAt] using hzeroSolm
     have hratePos : 0 < ilkRate.toNat := by
       have hnat : ilkRate.toNat ≠ 0 := by
         intro hzeroNat
@@ -1962,17 +1962,17 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
           hsourcePrefix
           (frobDinkAddGuardNegCond (by
-            simpa [urnInk, vatSlotWord] using hInkNeg))
+            simpa [urnInk, solcSlotWordAt] using hInkNeg))
           (frobDinkAddGuardPosCond (by
-            simpa [urnInk, vatSlotWord] using hInkPos))
+            simpa [urnInk, solcSlotWordAt] using hInkPos))
           (frobDartAddGuardNegCond (by
-            simpa [urnArt, vatSlotWord] using hArtNeg))
+            simpa [urnArt, solcSlotWordAt] using hArtNeg))
           (frobDartAddGuardPosCond (by
-            simpa [urnArt, vatSlotWord] using hArtPos))
+            simpa [urnArt, solcSlotWordAt] using hArtPos))
           (frobDartAddGuardNegCond (by
-            simpa [ilkArt, vatSlotWord] using hIlkNeg))
+            simpa [ilkArt, solcSlotWordAt] using hIlkNeg))
           (frobDartAddGuardPosCond (by
-            simpa [ilkArt, vatSlotWord] using hIlkPos))
+            simpa [ilkArt, solcSlotWordAt] using hIlkPos))
     have hthroughDtabSource :
         (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt
@@ -2009,7 +2009,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                 "urnArtNew" (.int (Int.ofNat (frobDartWord I + urnArt).toNat))).insert
                 "ilkArtNew" (.int (Int.ofNat (frobDartWord I + ilkArt).toNat))).insert
                 "dtab" (.int dtab) } evm0
-          (.binary .le (.var "ilkRate") (.intLit maxInt256)) =
+          (.binary .le (.var "ilkRate") (.intLit Reasoning.Theory.maxInt256)) =
           .ok (.bool true) →
         evalExpr? config
           { contract := contract,
@@ -2124,7 +2124,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         evalExpr? config
           { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
-          evm0 (.binary .le (.var "ilkRate") (.intLit maxInt256)) =
+          evm0 (.binary .le (.var "ilkRate") (.intLit Reasoning.Theory.maxInt256)) =
           .ok (.bool true) ∧
         evalExpr? config
           { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
@@ -2170,7 +2170,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           frobStoreIlkDust_get_dart I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
             ilkDust
       have hRateMaxS : UInt256.slt ilkRate ⟨0⟩ = ⟨0⟩ := by
-        simpa [ilkRate, vatSlotWord] using hRateMax
+        simpa [ilkRate, solcSlotWordAt] using hRateMax
       have hrateEval :
           evalExpr? config
             { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
@@ -2185,12 +2185,12 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       have hMaxLit :
           evalExpr? config
             { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
-            evm0 (.intLit maxInt256) = .ok (.int maxInt256) := by
+            evm0 (.intLit Reasoning.Theory.maxInt256) = .ok (.int Reasoning.Theory.maxInt256) := by
         simp [evalExpr?, pure]
       have hguardMax :
           evalExpr? config
             { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
-            evm0 (.binary .le (.var "ilkRate") (.intLit maxInt256)) =
+            evm0 (.binary .le (.var "ilkRate") (.intLit Reasoning.Theory.maxInt256)) =
           .ok (.bool true) :=
         vatEvalExpr_le_int_true hrateEval hMaxLit
           (uintWordLeMaxInt256_of_slt_zero hRateMaxS)
@@ -2231,7 +2231,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         -((2 : Int) ^ 255) ≤ dtab ∧ dtab < (2 : Int) ^ 255 := by
       intro hRateMax hDtabMul
       have hRateMaxS : UInt256.slt ilkRate ⟨0⟩ = ⟨0⟩ := by
-        simpa [ilkRate, vatSlotWord] using hRateMax
+        simpa [ilkRate, solcSlotWordAt] using hRateMax
       have hRateLowS : ilkRate.toNat < EVM.twoPow 255 :=
         u256_toNat_lt_sign_of_slt_zero hRateMaxS
       have hMulGuardEqS :
@@ -2242,7 +2242,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         | inl hzero => exact Or.inl hzero
         | inr hne =>
             exact Or.inr (u256_eq_ne_zero_to_eq (by
-              simpa [ilkRate, vatSlotWord] using hne))
+              simpa [ilkRate, solcSlotWordAt] using hne))
       change
         -((2 : Int) ^ 255) ≤ Int.ofNat ilkRate.toNat * frobDartInt I ∧
           Int.ofNat ilkRate.toNat * frobDartInt I < (2 : Int) ^ 255
@@ -2341,7 +2341,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           urnArtNew = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul ilkRate urnArtNew) urnArtNew)
               ilkRate ≠ ⟨0⟩ := by
-        simpa [urnArtNew, urnArt, ilkRate, vatSlotWord]
+        simpa [urnArtNew, urnArt, ilkRate, solcSlotWordAt]
           using hTabMul
       have htabFitGuard :=
         uintCheckedMulGuard_to_fit_and_source_guard hTabMulS
@@ -2539,7 +2539,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ I
+        let debtOld := solcSlotWordAt foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -2582,7 +2582,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       let localsDtab := localsIlk.insert "dtab" (.int dtab)
       let tab := UInt256.mul ilkRate urnArtNew
       let localsTab := localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))
-      let debtOld := vatSlotWord foldDebtSlot σ I
+      let debtOld := solcSlotWordAt foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       have hsourceTab :=
@@ -2591,11 +2591,11 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       have hDebtNegS :
           UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.gt debtNew debtOld = ⟨0⟩ := by
-        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord] using hDebtNeg
+        simpa [dtabWord, debtNew, debtOld, ilkRate, solcSlotWordAt] using hDebtNeg
       have hDebtPosS :
           UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.lt debtNew debtOld = ⟨0⟩ := by
-        simpa [dtabWord, debtNew, debtOld, ilkRate, vatSlotWord] using hDebtPos
+        simpa [dtabWord, debtNew, debtOld, ilkRate, solcSlotWordAt] using hDebtPos
       have hdtabRange := hDtabRangeOfGuards hRateMax hDtabMul
       have hdtabMod :
           dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
@@ -2607,7 +2607,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
       have hdebtLoad :
           Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner foldDebtSlot =
             debtOld := by
-        simpa [evm0, debtOld, vatSlotWord, solcSlotWord,
+        simpa [evm0, debtOld, solcSlotWordAt, solcSlotWord,
           codeOwnerStorageWord] using
           (codeOwnerStorageWord_initState
             (σ := σ)
@@ -2773,7 +2773,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ I
+        let debtOld := solcSlotWordAt foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         let localsDebt :=
@@ -2842,8 +2842,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         ((localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).insert "debtNew"
           (.int (Int.ofNat
             (UInt256.mul (frobDartWord I) ilkRate +
-              vatSlotWord foldDebtSlot σ I).toNat)))
-      let debtOld := vatSlotWord foldDebtSlot σ I
+              solcSlotWordAt foldDebtSlot σ I).toNat)))
+      let debtOld := solcSlotWordAt foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let evmDebt :=
@@ -2857,7 +2857,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           ilkRate = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul ilkArtNew ilkRate) ilkRate)
               ilkArtNew ≠ ⟨0⟩ := by
-        simpa [ilkArtNew, ilkArt, ilkRate, vatSlotWord]
+        simpa [ilkArtNew, ilkArt, ilkRate, solcSlotWordAt]
           using hCeilingMul
       have hceilingFitGuard :=
         uintCheckedMulGuard_to_fit_and_source_guard hCeilingMulS
@@ -2865,18 +2865,18 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           ilkSpot = ⟨0⟩ ∨
             UInt256.eq (UInt256.div (UInt256.mul urnInkNew ilkSpot) ilkSpot)
               urnInkNew ≠ ⟨0⟩ := by
-        simpa [urnInkNew, urnInk, ilkSpot, vatSlotWord]
+        simpa [urnInkNew, urnInk, ilkSpot, solcSlotWordAt]
           using hInkMul
       have hinkFitGuard := uintCheckedMulGuard_to_fit_and_source_guard hInkMulS
       have hCeilingOkS :
           UInt256.lor
             (UInt256.land
               (UInt256.isZero
-                (UInt256.gt debtNew (vatSlotWord ⟨9⟩ σ I)))
+                (UInt256.gt debtNew (solcSlotWordAt ⟨9⟩ σ I)))
               (UInt256.isZero (UInt256.gt ceilingDebt ilkLine)))
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ := by
         simpa [ceilingDebt, debtNew, dtabWord, debtOld, ilkArtNew, ilkArt,
-          ilkRate, ilkLine, vatSlotWord] using hCeilingOk
+          ilkRate, ilkLine, solcSlotWordAt] using hCeilingOk
       have hSafetyOkS :
           UInt256.lor
             (UInt256.isZero (UInt256.gt tab inkSpot))
@@ -2884,17 +2884,17 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
               (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ := by
         simpa [tab, inkSpot, urnInkNew, urnInk, urnArtNew, urnArt, ilkRate,
-          ilkSpot, vatSlotWord]
+          ilkSpot, solcSlotWordAt]
           using hSafetyOk
       have hlineLoad :
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner ⟨9⟩ =
-            vatSlotWord ⟨9⟩ σ I := by
+            solcSlotWordAt ⟨9⟩ σ I := by
         have hne : (⟨9⟩ : UInt256) ≠ foldDebtSlot := by
           simp [foldDebtSlot]
         have hload0 :
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨9⟩ =
-              vatSlotWord ⟨9⟩ σ I := by
-          simpa [evm0, initState, vatSlotWord, solcSlotWord,
+              solcSlotWordAt ⟨9⟩ σ I := by
+          simpa [evm0, initState, solcSlotWordAt, solcSlotWord,
             codeOwnerStorageWord] using
             (codeOwnerStorageWord_initState
               (σ := σ)
@@ -3105,7 +3105,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (evalExpr_frob_ceiling_req_true
             (evm := evmDebt) (I := I)
             (ceilingDebt := ceilingDebt) (ilkLine := ilkLine)
-            (debtNew := debtNew) (Line := vatSlotWord ⟨9⟩ σ I)
+            (debtNew := debtNew) (Line := solcSlotWordAt ⟨9⟩ σ I)
             (by
               rw [store_get_ne _ _ (by decide)]
               rw [store_get_ne _ _ (by decide)]
@@ -3260,7 +3260,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobUWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobUWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3271,7 +3271,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobVWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobVWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3280,7 +3280,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobWWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobWWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3306,7 +3306,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (.int (Int.ofNat ilkArtNew.toNat)))
         let localsDtab := localsIlk.insert "dtab" (.int dtab)
         let tab := UInt256.mul ilkRate urnArtNew
-        let debtOld := vatSlotWord foldDebtSlot σ I
+        let debtOld := solcSlotWordAt foldDebtSlot σ I
         let dtabWord := UInt256.mul (frobDartWord I) ilkRate
         let debtNew := dtabWord + debtOld
         let localsDebt :=
@@ -3388,8 +3388,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         ((localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).insert "debtNew"
           (.int (Int.ofNat
             (UInt256.mul (frobDartWord I) ilkRate +
-              vatSlotWord foldDebtSlot σ I).toNat)))
-      let debtOld := vatSlotWord foldDebtSlot σ I
+              solcSlotWordAt foldDebtSlot σ I).toNat)))
+      let debtOld := solcSlotWordAt foldDebtSlot σ I
       let dtabWord := UInt256.mul (frobDartWord I) ilkRate
       let debtNew := dtabWord + debtOld
       let evmDebt :=
@@ -3400,32 +3400,32 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (localsDebt.insert "ceilingDebt"
           (.int (Int.ofNat ceilingDebt.toNat))).insert "inkSpot"
           (.int (Int.ofNat inkSpot.toNat))
-      let uWish := vatSlotWord (frobUWishSlot I)
+      let uWish := solcSlotWordAt (frobUWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
-      let vWish := vatSlotWord (frobVWishSlot I)
+      let vWish := solcSlotWordAt (frobVWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
-      let wWish := vatSlotWord (frobWWishSlot I)
+      let wWish := solcSlotWordAt (frobWWishSlot I)
         (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
       have hsourceSafe :=
         hthroughSafetySource hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
           hRateMax hDtabMul hTabMul hDebtNeg hDebtPos hCeilingMul hCeilingOk
           hDebtLoadStore hInkMul hSafetyOk
       have hUWishEq :
-          vatSlotWord (frobUWishSlot I)
+          solcSlotWordAt (frobUWishSlot I)
             (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
                 (solcSlotWord σ I (frobIlkRateSlot I)) +
                 solcSlotWord σ I foldDebtSlot)) I = uWish := by
         rfl
       have hVWishEq :
-          vatSlotWord (frobVWishSlot I)
+          solcSlotWordAt (frobVWishSlot I)
             (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
                 (solcSlotWord σ I (frobIlkRateSlot I)) +
                 solcSlotWord σ I foldDebtSlot)) I = vWish := by
         rfl
       have hWWishEq :
-          vatSlotWord (frobWWishSlot I)
+          solcSlotWordAt (frobWWishSlot I)
             (sstoreAccountMap I.codeOwner σ foldDebtSlot
               (UInt256.mul (frobDartWord I)
                 (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3441,7 +3441,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           UInt256.lor
             (UInt256.isZero (UInt256.lt tab ilkDust))
             (UInt256.eq ⟨0⟩ urnArtNew) ≠ ⟨0⟩ := by
-        simpa [tab, urnArtNew, urnArt, ilkRate, ilkDust, vatSlotWord] using hDust
+        simpa [tab, urnArtNew, urnArt, ilkRate, ilkDust, solcSlotWordAt] using hDust
       have hloadU :
           Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
             (frobUWishSlot I) = uWish := by
@@ -3971,7 +3971,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobUWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobUWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3982,7 +3982,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobVWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobVWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -3991,7 +3991,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩ →
         UInt256.lor
           (UInt256.lor
-            (UInt256.eq (vatSlotWord (frobWWishSlot I)
+            (UInt256.eq (solcSlotWordAt (frobWWishSlot I)
               (sstoreAccountMap I.codeOwner σ foldDebtSlot
                 (UInt256.mul (frobDartWord I)
                   (solcSlotWord σ I (frobIlkRateSlot I)) +
@@ -4850,7 +4850,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (.int (Int.ofNat ilkArtNew.toNat)))
     let localsDtab := localsIlk.insert "dtab" (.int dtab)
     let tab := UInt256.mul ilkRate urnArtNew
-    let debtOld := vatSlotWord foldDebtSlot σ I
+    let debtOld := solcSlotWordAt foldDebtSlot σ I
     let dtabWord := UInt256.mul (frobDartWord I) ilkRate
     let debtNew := dtabWord + debtOld
     let localsDebt :=
@@ -4905,7 +4905,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
     have hDaiOldEq :
         solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) = daiOld := rfl
     have hDtabEq : frobDtabWord σ I = dtabWord := by
-      simp [frobDtabWord, dtabWord, ilkRate, vatSlotWord]
+      simp [frobDtabWord, dtabWord, ilkRate, solcSlotWordAt]
     have hDaiNewEq : frobDaiNew σ I = daiNew := by
       calc
         frobDaiNew σ I =
@@ -4916,7 +4916,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           rw [hDtabEq, hDaiOldEq]
         _ = daiNew := by
           simp [daiNew, frobDaiNew, daiOld, dtabWord, frobDtabWord, ilkRate,
-            vatSlotWord, frobAfterGem]
+            solcSlotWordAt, frobAfterGem]
     have hDaiNegS :
         UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt daiNew daiOld = ⟨0⟩ := by

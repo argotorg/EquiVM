@@ -97,7 +97,7 @@ theorem flopperDentBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -241,7 +241,7 @@ theorem flopperDentBodyReverts_moveCallFailure
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -390,7 +390,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -428,7 +428,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
         ((evmMove.lookupAccount (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)).option
           0 (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := evmMove.accountMap)
         (target := dentGuyWord evmMove I)
         (addr := AccountAddress.ofNat (dentGuyWord evmMove I).toNat)
@@ -614,7 +614,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -652,7 +652,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
         ((evmMove.lookupAccount (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmMove.accountMap)
         (target := dentGuyWord evmMove I)
         (addr := AccountAddress.ofNat (dentGuyWord evmMove I).toNat)
@@ -840,7 +840,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -878,7 +878,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
         ((evmMove.lookupAccount (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmMove.accountMap)
         (target := dentGuyWord evmMove I)
         (addr := AccountAddress.ofNat (dentGuyWord evmMove I).toNat)
@@ -1073,7 +1073,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -1111,7 +1111,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
         ((evmMove.lookupAccount (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmMove.accountMap)
         (target := dentGuyWord evmMove I)
         (addr := AccountAddress.ofNat (dentGuyWord evmMove I).toNat)
@@ -1376,7 +1376,7 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -1532,7 +1532,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         ((evm.lookupAccount (AccountAddress.ofNat (dentVatWord evm).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evm.accountMap)
         (target := dentVatWord evm)
         (addr := AccountAddress.ofNat (dentVatWord evm).toNat)
@@ -1570,7 +1570,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         ((evmMove.lookupAccount (AccountAddress.ofNat (dentGuyWord evmMove I).toNat)).option
           0 (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      flopperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmMove.accountMap)
         (target := dentGuyWord evmMove I)
         (addr := AccountAddress.ofNat (dentGuyWord evmMove I).toNat)

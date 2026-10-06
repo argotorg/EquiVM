@@ -51,11 +51,11 @@ theorem daiJoinExitBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
   have hbindMul :
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), exitWadValue I] =
-        some (daiJoinUintBinaryLocals daiJoinONEWord (exitWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, exitWadValue]
+        some (uintBinaryLocals daiJoinONEWord (exitWadWord I)) := by
+    simp [mulFunction, uint256, bindParams?, uintBinaryLocals, exitWadValue]
   have hover :
       UInt256.size ≤ daiJoinONEWord.toNat * (exitWadWord I).toNat :=
-    daiJoinMulOverflow_of_guard_fail (x := daiJoinONEWord) (y := exitWadWord I) hwad hguard
+    mulOverflow_of_guard_fail (x := daiJoinONEWord) (y := exitWadWord I) hwad hguard
   have hmulStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.internalCall "mul" [.intLit ONE, .var "wad"] "rad") .reverted :=
@@ -66,7 +66,7 @@ theorem daiJoinExitBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), exitWadValue I])
       (callee := mulFunction)
-      (locals := daiJoinUintBinaryLocals daiJoinONEWord (exitWadWord I))
+      (locals := uintBinaryLocals daiJoinONEWord (exitWadWord I))
       (evalExprs_daiJoinExitMulArgs evm I) hlookupMul hbindMul
       (execDaiJoinMulFunctionRevert evm (x := daiJoinONEWord) (y := exitWadWord I) hover)
   have hblock :
@@ -1076,7 +1076,7 @@ theorem daiJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
             Or.inr hguard
           obtain ⟨_, _, rd1377⟩ := daiJoinExitMulSuccess hmulOk rd1336
           have hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size :=
-            daiJoinMulFit_of_guard hguard
+            mulFit_of_guard hguard
           exact finishMul hfit (by simpa using rd1377)
         · have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=

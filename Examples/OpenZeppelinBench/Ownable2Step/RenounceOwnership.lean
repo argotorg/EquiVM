@@ -1,3 +1,4 @@
+import Reasoning.EVMWord
 import Examples.OpenZeppelinBench.Ownable2Step.Storage
 import Reasoning.SolmBody
 
@@ -54,21 +55,9 @@ theorem renounceOwnershipSetAddressZero_eq (old : UInt256) :
   unfold renounceOwnershipClearAddressWord
   apply u256_inj
   rw [ownable2StepSetAddressWord_toNat old ⟨0⟩ (by decide),
-    ownable2StepHigh160Mask_toNat]
+    addressOffset0High160Mask_toNat]
   simp
 
-theorem renounceOwnershipU256_lor_zero (a : UInt256) :
-    UInt256.lor a ⟨0⟩ = a := by
-  apply u256_inj
-  change Nat.lor a.toNat 0 % UInt256.size = a.toNat
-  have hlor : Nat.lor a.toNat 0 = a.toNat := by
-    refine Nat.eq_of_testBit_eq fun i => ?_
-    change Nat.testBit (a.toNat ||| 0) i = Nat.testBit a.toNat i
-    rw [Nat.testBit_lor]
-    simp
-  have hlt : a.toNat < UInt256.size := by
-    exact a.val.isLt
-  rw [hlor, Nat.mod_eq_of_lt hlt]
 
 theorem renounceOwnershipAfterPendingState_accountMap (evm : EVM.State) :
     (renounceOwnershipAfterPendingState evm).accountMap =
@@ -106,8 +95,8 @@ theorem evalExpr_renounceOwnership_owner (evm : EVM.State) :
   have hty : storageTypeAt? contract.storage
       ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
-    (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
+  erw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+    (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0]
 
 theorem evalExpr_renounceOwnership_sender (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := ∅ } evm sender =
@@ -170,7 +159,7 @@ theorem renounceOwnershipAssignPending (evm : EVM.State) :
       storageLocStore evm (addrLoc ⟨1⟩) (.address (AccountAddress.ofNat 0)) =
         some (renounceOwnershipAfterPendingState evm) := by
     simpa [renounceOwnershipAfterPendingState, renounceOwnershipClearAddressWord] using
-      ownable2StepStorageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
+      storageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
   exact assignStorageRef_storage_scalar_value (cfg := config)
     (solm := { contract := contract, locals := ∅ }) (evm := evm)
     (evm' := renounceOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
@@ -195,7 +184,7 @@ theorem renounceOwnershipAssignOwner (evm : EVM.State) :
           (.address (AccountAddress.ofNat 0)) =
         some (renounceOwnershipAfterOwnerState evm) := by
     simpa [renounceOwnershipAfterOwnerState, renounceOwnershipClearAddressWord] using
-      ownable2StepStorageLocStore_address_offset0 (renounceOwnershipAfterPendingState evm) ⟨0⟩
+      storageLocStore_address_offset0 (renounceOwnershipAfterPendingState evm) ⟨0⟩
         ⟨0⟩ (by decide)
   exact assignStorageRef_storage_scalar_value (cfg := config)
     (solm := { contract := contract, locals := ∅ })
@@ -341,7 +330,7 @@ theorem ownable2StepX_renounceOwnership_success {σ σ₀ A I} {g : Sat256}
     unfold renounceOwnershipSetOwnerWord
     rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by decide]
     rw [u256_lor_comm]
-    rw [renounceOwnershipU256_lor_zero]
+    rw [u256_lor_zero]
     exact (renounceOwnershipSetAddressZero_eq (renounceOwnershipOwnerWordAfterPending σ I)).symm
   have rd480 := rd480₀
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =

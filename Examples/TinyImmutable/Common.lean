@@ -1,3 +1,5 @@
+import Reasoning.SolmBody
+import Reasoning.WordArithmetic
 import Examples.TinyImmutable.Selectors
 import Examples.TinyImmutable.ImmutableCode
 import Reasoning.Dispatch
@@ -13,15 +15,6 @@ namespace TinyImmutable
 
 set_option maxRecDepth 10000
 
-@[simp] theorem wordBytesBEArray_size (w : UInt256) :
-    ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray).size = 32 := by
-  simpa using word_toBytesBE_toByteArray_size w
-
-@[simp] theorem wordBytesBEArray_eq_toByteArray (w : UInt256) :
-    ({ data := (EVM.Word.toBytesBE w).toArray } : ByteArray) = UInt256.toByteArray w := by
-  apply ByteArray.ext
-  have h := congrArg ByteArray.data (word_toBytesBE_toByteArray_eq_toByteArray w)
-  simpa using h
 
 @[simp] theorem tinyImmutableBytecode_size : tinyImmutableBytecode.size = 432 := by
   native_decide +revert
@@ -42,38 +35,15 @@ theorem ownerSelBytes_size : ownerSelBytes.size = 4 := rfl
 theorem quoteSelBytes_size : quoteSelBytes.size = 4 := rfl
 theorem scaleSelBytes_size : scaleSelBytes.size = 4 := rfl
 
-theorem accountAddress_ofNat_toNat (a : AccountAddress) :
-    AccountAddress.ofNat a.toNat = a := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  rw [Fin.val_ofNat]
-  exact Nat.mod_eq_of_lt a.isLt
-
-theorem accountAddress_ofNat_val (a : AccountAddress) :
-    AccountAddress.ofNat (↑a : Nat) = a :=
-  accountAddress_ofNat_toNat a
-
-theorem evalAddrLit (cfg : Config) (frame : Frame) (evm : EVM.State) (a : AccountAddress) :
-    evalExpr? cfg frame evm (addrLit a) = .ok (.address a) := by
-  simp only [addrLit, evalExpr?, EvalResult.bind, bind, pure, castValue?]
-  rw [if_neg]
-  · simp [EvalResult.ofOption, accountAddress_ofNat_val]
-  · exact not_lt.mpr (Int.natCast_nonneg (↑a : Nat))
-
-theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat) (w : UInt256)
-    (h : off + 32 ≤ mem.size) :
-    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
-  unfold spliceBytes? Reasoning.Theory.writeWord
-  rw [toByteArray_size, if_pos h]
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  rw [toByteArray_extract_all]
 
 theorem patchRuntime_eq_patchedRuntime (v : TinyImmutables) :
     patchRuntime tinyImmutableBytecode (patches v) = some (patchedRuntime v) := by
   simp [patchedRuntime, patchRuntime, patches, patchesFrom, offsets, immutableReferences,
     immutableLayout, Reasoning.Immutables.Layout.runtime, Reasoning.Immutables.Layout.writes,
-    immutableWords, immValues, wordBytes?, valueToWord, List.lookup_cons]
-  rw [spliceBytes_toByteArray_eq_writeWord tinyImmutableBytecode 186]
+    immutableWords, immValues, Reasoning.Theory.wordBytes?, valueToWord, List.lookup_cons,
+    writeCascade]
+  simp only [← toByteArray_eq_toBytesBE]
+  erw [spliceBytes_toByteArray_eq_writeWord tinyImmutableBytecode 186]
   · simp
     have hgap186 : 186 - tinyImmutableBytecode.size < USize.size := by
       rw [tinyImmutableBytecode_size]
@@ -188,17 +158,6 @@ theorem patchedRuntime_size (v : TinyImmutables) : (patchedRuntime v).size = 432
     (by simp [runtimeWrites, Layout.writes, immutableLayout, immutableReferences,
       writeCascadeSize])
 
-theorem writeCascade_extract_preserved_len
-    (mem : ByteArray) (writes : List (Nat × UInt256)) (read len : Nat)
-    (hwin : WindowDisjointFromWrites mem.size read len writes)
-    (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
-    (hout : read + len ≤ (writeCascade mem writes).size)
-    (hin : read + len ≤ mem.size) :
-    (writeCascade mem writes).extract read (read + len) =
-      mem.extract read (read + len) := by
-  rw [← readWithPadding_eq_extract' (writeCascade mem writes) read len hpos hlen64 hout]
-  rw [← readWithPadding_eq_extract' mem read len hpos hlen64 hin]
-  exact writeCascade_read_preserved_len mem writes read len hwin hpos hlen64
 
 theorem patchedRuntime_extract_preserved_len (v : TinyImmutables) (read len : Nat)
     (hwin : WindowDisjointFromWrites 432 read len (runtimeWrites v))
@@ -227,29 +186,11 @@ theorem patchedRuntime_extract'_preserved_len (v : TinyImmutables) (read len : N
     subst hlen0
     simp [ByteArray.extract']
 
-theorem get?_eq_of_extract_one (a b : ByteArray) (i : Nat) (ha : i < a.size) (hb : i < b.size)
-    (h : a.extract i (i + 1) = b.extract i (i + 1)) :
-    a.get? i = b.get? i := by
-  unfold ByteArray.get?
-  simp only [dif_pos ha, dif_pos hb]
-  have h0 : (a.extract i (i + 1)).get? 0 = (b.extract i (i + 1)).get? 0 := by rw [h]
-  unfold ByteArray.get? at h0
-  have hsa : 0 < (a.extract i (i + 1)).size := by rw [ByteArray.size_extract]; omega
-  have hsb : 0 < (b.extract i (i + 1)).size := by rw [ByteArray.size_extract]; omega
-  simp only [dif_pos hsa, dif_pos hsb] at h0
-  have hla : (a.extract i (i + 1)).get 0 hsa = a.get i ha := by
-    change (a.extract i (i + 1))[0] = a[i]
-    simpa using ByteArray.get_extract (a := a) (start := i) (stop := i + 1) (i := 0) hsa
-  have hlb : (b.extract i (i + 1)).get 0 hsb = b.get i hb := by
-    change (b.extract i (i + 1))[0] = b[i]
-    simpa using ByteArray.get_extract (a := b) (start := i) (stop := i + 1) (i := 0) hsb
-  rw [hla, hlb] at h0
-  exact h0
 
 theorem patchedRuntime_get?_preserved (v : TinyImmutables) (i : Nat)
     (hwin : WindowDisjointFromWrites 432 i 1 (runtimeWrites v)) (hi : i + 1 ≤ 432) :
     (patchedRuntime v).get? i = tinyImmutableBytecode.get? i := by
-  exact get?_eq_of_extract_one (patchedRuntime v) tinyImmutableBytecode i
+  exact get?_eq_of_extract_one' (patchedRuntime v) tinyImmutableBytecode i
     (by rw [patchedRuntime_size v]; omega)
     (by rw [tinyImmutableBytecode_size]; omega)
     (patchedRuntime_extract_preserved_len v i 1 hwin (by norm_num) (by norm_num) hi)

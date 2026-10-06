@@ -52,13 +52,13 @@ theorem uniswapMintAfterUpdateRuntimeReturns
           (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩) hAccounts
   | true =>
     have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
-        uniswapSlotWord ⟨8⟩ σUpd I := by
+        solcSlotWordAt ⟨8⟩ σUpd I := by
       simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-        uniswapSlotWord, henv, ← hAccounts]
+        solcSlotWordAt, solcSlotWord, henv, ← hAccounts]
     have hkLastValue :
         mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm) =
-          UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
-            (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+          UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask)
+            (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
               reserve112Mask) := by
       rw [mintFeeReserveProductWord_eq_mul _ _ (mintFeeReserveProductNat_source_lt evm)]
       simp only [uniswapReserve0Word, uniswapReserve1Word, hslot8]
@@ -68,8 +68,8 @@ theorem uniswapMintAfterUpdateRuntimeReturns
       hAccounts
     have hAfterKLast : Eq
         (sstoreAccountMap I.codeOwner σUpd ⟨11⟩
-          (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
-            (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+          (UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask)
+            (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
               reserve112Mask))) (mintKLastUpdatedState evm).accountMap := by
       simpa only [mintKLastUpdatedState, storageStore_accountMap, henv, hkLastValue]
         using hKLastAccounts

@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.DaiJoin
 /-! ## `live()` getter -/
 
 def daiJoinLiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  daiJoinSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 theorem daiJoinDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
@@ -56,7 +56,7 @@ theorem daiJoinLiveBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (daiJoinLiveWord σ I).toNat))])) := by
-    simpa [liveTransition, daiJoinLiveWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, daiJoinLiveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiJoinUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

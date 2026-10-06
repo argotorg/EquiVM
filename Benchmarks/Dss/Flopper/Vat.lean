@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `vat()` getter -/
 
 def vatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperAddressReturnWord ⟨2⟩ σ I
+  solcAddressSlotWord ⟨2⟩ σ I
 
 theorem flopperDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flopperVatBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vatWord σ I).toNat))])) := by
-    simpa [vatTransition, vatWord, flopperAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [vatTransition, vatWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

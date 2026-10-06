@@ -201,8 +201,8 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
         (.returned { contract := contract v, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord ⟨2⟩ σ I).toNat))])) := by
-    simpa [vowTransition, dogAddressReturnWord, dogSlotWord, initState,
+            (solcAddressSlotWord ⟨2⟩ σ I).toNat))])) := by
+    simpa [vowTransition, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       dogAddressGetterBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -235,6 +235,6 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
         | apply And.intro
         | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
           native_decide)
-    (by rfl) (by simpa [dogAddressReturnWord] using hbody)
+    (by rfl) (by simpa [solcAddressSlotWord] using hbody)
 
 end Benchmarks.Dss.Dog

@@ -1,4 +1,6 @@
+import Reasoning.PackedStorage
 import Benchmarks.Dss.Flopper.Cage
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -30,94 +32,6 @@ abbrev fileLocals (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "what" (.fixedBytes bytes32Width (fileWhat I))).insert
     "data" (.int (Int.ofNat (fileData I).toNat))
 
--- LIBRARY CANDIDATE: legacy solc05 decoding for `(bytes32,uint256)`.
-theorem decodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 32).take 32))
-
--- LIBRARY CANDIDATE: legacy solc05 short-calldata rejection for `(bytes32,uint256)`.
-theorem decodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
--- GENERALIZES Benchmarks.Dss.Jug.decodeCalldata_legacyBytes32_uint256_ok.
-theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      some (((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36]
-
--- GENERALIZES Benchmarks.Dss.Jug.decodeCalldata_legacyBytes32_uint256_none_short.
-theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_uint256_legacy_none_short (bytes := cd.toList.drop 4) (by
-      rw [List.length_drop, htlen]
-      omega)]
 
 theorem flopperDecode_file_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileTransition.params.map Param.name)
@@ -263,271 +177,6 @@ theorem evalExpr_fileWhatEq_false {evm : EVM.State} {I : ExecutionEnv} {locals :
   simp [evalExpr?, evalBinaryOp?, hwhat]
   all_goals decide
 
-theorem wordOfInt_emod_uint48 (w : UInt256) :
-    EVM.wordOfInt (Int.ofNat w.toNat % uint48Modulus) =
-      UInt256.land w flopperUint48Mask := by
-  have hnonneg : 0 ≤ Int.ofNat w.toNat % uint48Modulus := by
-    exact Int.emod_nonneg _ (by norm_num [uint48Modulus])
-  have hcast : ((w.toNat % 2 ^ 48 : Nat) : Int) =
-      Int.ofNat w.toNat % uint48Modulus := by
-    norm_num [uint48Modulus, Int.natCast_mod]
-  have htoNat : (Int.ofNat w.toNat % uint48Modulus).toNat = w.toNat % 2 ^ 48 := by
-    have h := congrArg Int.toNat hcast
-    simpa using h.symm
-  rw [wordOfInt_nonneg _ hnonneg]
-  apply u256_inj
-  change (Int.ofNat w.toNat % uint48Modulus).toNat % EVM.twoPow 256 =
-    (UInt256.land w flopperUint48Mask).toNat
-  rw [htoNat]
-  rw [u256_land_toNat]
-  change w.toNat % 2 ^ 48 % EVM.twoPow 256 =
-    Nat.land w.toNat (2 ^ 48 - 1) % UInt256.size
-  rw [nat_land_mask_eq_mod]
-  simp [EVM.twoPow, UInt256.size]
-
-def fileSetUint48Offset0Word (old data : UInt256) : UInt256 :=
-  UInt256.lor (UInt256.land old (UInt256.lnot flopperUint48Mask))
-    (UInt256.land data flopperUint48Mask)
-
-theorem fileSetUint48Offset0Word_toNat (old data : UInt256) :
-    (fileSetUint48Offset0Word old data).toNat =
-      (UInt256.land data flopperUint48Mask).toNat + (old.toNat / 2 ^ 48) * 2 ^ 48 := by
-  unfold fileSetUint48Offset0Word
-  rw [u256_lor_toNat]
-  have hhighMask :
-      UInt256.lnot flopperUint48Mask = UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 48) := by
-    native_decide
-  rw [hhighMask]
-  rw [u256_land_comm old (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 48))]
-  rw [u256_land_high_mask_toNat old 48 (by norm_num)]
-  rw [nat_lor_comm]
-  have hlow : (UInt256.land data flopperUint48Mask).toNat < 2 ^ 48 := by
-    simpa [flopperUint48Mask, EVM.twoPow] using flopperUint48Masked_lt data
-  rw [nat_lor_shift_add _ _ 48 hlow]
-  have hsumLt :
-      (UInt256.land data flopperUint48Mask).toNat + old.toNat / 2 ^ 48 * 2 ^ 48 <
-        UInt256.size := by
-    have hq : old.toNat / 2 ^ 48 < 2 ^ 208 := by
-      apply Nat.div_lt_of_lt_mul
-      rw [show 2 ^ 48 * 2 ^ 208 = (2 : Nat) ^ 256 by norm_num]
-      change old.val.val < 2 ^ 256
-      exact old.val.isLt
-    have hlowle : (UInt256.land data flopperUint48Mask).toNat ≤ 2 ^ 48 - 1 :=
-      Nat.le_pred_of_lt hlow
-    have hqle : old.toNat / 2 ^ 48 ≤ 2 ^ 208 - 1 := Nat.le_pred_of_lt hq
-    have hqterm : old.toNat / 2 ^ 48 * 2 ^ 48 ≤ (2 ^ 208 - 1) * 2 ^ 48 :=
-      Nat.mul_le_mul_right _ hqle
-    have hmax : (2 ^ 48 - 1) + (2 ^ 208 - 1) * 2 ^ 48 < UInt256.size := by
-      norm_num [UInt256.size, Nat.pow_add]
-    omega
-  rw [Nat.mod_eq_of_lt hsumLt]
-
--- LIBRARY CANDIDATE: packed unsigned integer store at byte offset 0.
-theorem storageLocStore_uint48_offset0_word (evm : EVM.State) (slot data : UInt256) :
-    storageLocStore evm (uint48Loc slot ⟨0, by decide⟩ (by decide))
-        (.int (Int.ofNat data.toNat % uint48Modulus)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (fileSetUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          data)) := by
-  unfold storageLocStore storageLocWriteWord uint48Loc
-  simp only [valueToWord, wordOfInt_emod_uint48, bind, Option.bind]
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (6 : Fin 33).val _ ++
-        List.drop ((0 : Fin 32).val + (6 : Fin 33).val) _) =
-      (fileSetUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-        data).toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (6 : Fin 33).val = 6 from rfl,
-    List.take_zero, List.nil_append]
-  rw [fromBytes'_append]
-  rw [fromBytes'_take_wordLE_land_mask _ 6 (by norm_num)]
-  rw [fromBytes'_drop_wordLE]
-  have hlen6 :
-      ((EVM.Word.toBytesLEWithSizeProof (UInt256.land data flopperUint48Mask)).1.take 6).length =
-        6 := by
-    rw [List.length_take,
-      (EVM.Word.toBytesLEWithSizeProof (UInt256.land data flopperUint48Mask)).2]
-    norm_num
-  rw [hlen6]
-  rw [show 2 ^ (8 * 6) = (2 : Nat) ^ 48 by norm_num]
-  rw [show 256 ^ 6 = (2 : Nat) ^ 48 by norm_num]
-  rw [fileSetUint48Offset0Word_toNat]
-  have hclean : UInt256.land (UInt256.land data flopperUint48Mask)
-      (UInt256.ofNat (2 ^ 48 - 1)) = UInt256.land data flopperUint48Mask := by
-    simpa [flopperUint48Mask] using flopperUint48Mask_clean data
-  rw [hclean]
-  ring
-
-abbrev fileUint48Offset6Mask : UInt256 :=
-  UInt256.ofNat ((2 : Nat) ^ 96 - 2 ^ 48)
-
-def fileSetUint48Offset6Word (old data : UInt256) : UInt256 :=
-  UInt256.lor (UInt256.land old (UInt256.lnot fileUint48Offset6Mask))
-    (UInt256.mul (UInt256.land data flopperUint48Mask) (UInt256.ofNat (2 ^ 48)))
-
--- LIBRARY CANDIDATE: clearing bits `[48, 96)` in a 256-bit word keeps low and high fields.
-theorem natLandKeepLow48High96 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) =
-      Nat.lor (n % 2 ^ 48) ((n / 2 ^ 96) * 2 ^ 96) := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 ^ 48 - 1) ||| (((2 : Nat) ^ (256 - 96) - 1) <<< 96))).testBit i =
-    ((n % 2 ^ 48) ||| ((n / 2 ^ 96) * 2 ^ 96)).testBit i
-  rw [Nat.testBit_and, Nat.testBit_or, Nat.testBit_or]
-  rw [Nat.testBit_mod_two_pow]
-  rw [show (n / 2 ^ 96) * 2 ^ 96 = (n / 2 ^ 96) <<< 96 by rw [Nat.shiftLeft_eq]]
-  rw [testBit_shiftLeft, testBit_shiftLeft]
-  rw [Nat.testBit_two_pow_sub_one, Nat.testBit_two_pow_sub_one]
-  by_cases hi48 : i < 48
-  · have hnot96 : ¬ 96 ≤ i := by omega
-    simp [hi48, hnot96]
-  · by_cases hi96 : i < 96
-    · simp [hi48, hi96]
-    · have h96le : 96 ≤ i := Nat.le_of_not_gt hi96
-      by_cases hi256 : i < 256
-      · have hlt : i - 96 < 256 - 96 := by omega
-        simp [hi48, hi96, hlt]
-        exact (divPow_testBit n 96 i h96le).symm
-      · have hnlt : ¬ i - 96 < 256 - 96 := by omega
-        simp [hi48, hi96, hnlt]
-        have hq : n / 2 ^ 96 < 2 ^ (256 - 96) := by
-          apply Nat.div_lt_of_lt_mul
-          norm_num
-          exact hn
-        have hpow : n / 2 ^ 96 < 2 ^ (i - 96) := by
-          exact lt_of_lt_of_le hq (Nat.pow_le_pow_right (by norm_num) (by omega))
-        exact Nat.testBit_lt_two_pow hpow
-
-theorem fileSetUint48Offset6Word_toNat (old data : UInt256) :
-    (fileSetUint48Offset6Word old data).toNat =
-      old.toNat % 2 ^ 48 +
-        (UInt256.land data flopperUint48Mask).toNat * 2 ^ 48 +
-        (old.toNat / 2 ^ 96) * 2 ^ 96 := by
-  unfold fileSetUint48Offset6Word
-  rw [u256_lor_toNat]
-  have hnot : UInt256.lnot fileUint48Offset6Mask =
-      UInt256.ofNat (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) := by
-    native_decide
-  have hcleared : (UInt256.land old (UInt256.lnot fileUint48Offset6Mask)).toNat =
-      Nat.lor (old.toNat % 2 ^ 48) ((old.toNat / 2 ^ 96) * 2 ^ 96) := by
-    rw [hnot, u256_land_toNat]
-    change Nat.land old.toNat
-        (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) %
-        UInt256.size = _
-    have hmaskLt :
-        Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96) <
-          UInt256.size := by
-      native_decide
-    have hlandLt : Nat.land old.toNat
-        (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) <
-          UInt256.size :=
-      lt_of_le_of_lt (nat_land_le_right _ _) hmaskLt
-    rw [natLandKeepLow48High96 old.toNat (by
-      change old.val.val < UInt256.size
-      exact old.val.isLt)] at hlandLt ⊢
-    exact Nat.mod_eq_of_lt hlandLt
-  rw [hcleared]
-  have hdataMul : (UInt256.mul (UInt256.land data flopperUint48Mask)
-      (UInt256.ofNat (2 ^ 48))).toNat =
-      (UInt256.land data flopperUint48Mask).toNat * 2 ^ 48 := by
-    rw [u256_mul_toNat]
-    rw [show (UInt256.ofNat (2 ^ 48)).toNat = 2 ^ 48 by native_decide]
-    apply Nat.mod_eq_of_lt
-    have hlow : (UInt256.land data flopperUint48Mask).toNat < 2 ^ 48 := by
-      simpa [flopperUint48Mask, EVM.twoPow] using flopperUint48Masked_lt data
-    exact lt_trans (Nat.mul_lt_mul_of_pos_right hlow (by norm_num))
-      (by norm_num [UInt256.size])
-  rw [hdataMul]
-  let low := old.toNat % 2 ^ 48
-  let mid := (UInt256.land data flopperUint48Mask).toNat
-  let high := old.toNat / 2 ^ 96
-  change Nat.lor (Nat.lor low (high * 2 ^ 96)) (mid * 2 ^ 48) % UInt256.size =
-    low + mid * 2 ^ 48 + high * 2 ^ 96
-  have hlowLt : low < 2 ^ 48 :=
-    Nat.mod_lt _ (by norm_num)
-  have hmidLt : mid < 2 ^ 48 := by
-    simpa [mid, flopperUint48Mask, EVM.twoPow] using flopperUint48Masked_lt data
-  have hlowMidLt : low + mid * 2 ^ 48 < 2 ^ 96 := by
-    have hlowLe : low ≤ 2 ^ 48 - 1 := Nat.le_pred_of_lt hlowLt
-    have hmidLe : mid ≤ 2 ^ 48 - 1 := Nat.le_pred_of_lt hmidLt
-    have hmidTerm : mid * 2 ^ 48 ≤ (2 ^ 48 - 1) * 2 ^ 48 :=
-      Nat.mul_le_mul_right _ hmidLe
-    have hmax : (2 ^ 48 - 1) + (2 ^ 48 - 1) * 2 ^ 48 < 2 ^ 96 := by
-      norm_num [Nat.pow_add]
-    omega
-  have hhighLt : high < 2 ^ 160 := by
-    apply Nat.div_lt_of_lt_mul
-    norm_num [high]
-    change old.val.val < UInt256.size
-    exact old.val.isLt
-  have hsumLt : low + mid * 2 ^ 48 + high * 2 ^ 96 < UInt256.size := by
-    have hlowMidLe : low + mid * 2 ^ 48 ≤ 2 ^ 96 - 1 := Nat.le_pred_of_lt hlowMidLt
-    have hhighLe : high ≤ 2 ^ 160 - 1 := Nat.le_pred_of_lt hhighLt
-    have hhighTerm : high * 2 ^ 96 ≤ (2 ^ 160 - 1) * 2 ^ 96 :=
-      Nat.mul_le_mul_right _ hhighLe
-    have hmax : (2 ^ 96 - 1) + (2 ^ 160 - 1) * 2 ^ 96 < UInt256.size := by
-      norm_num [UInt256.size, Nat.pow_add]
-    omega
-  have hlorReorder : Nat.lor (Nat.lor low (high * 2 ^ 96)) (mid * 2 ^ 48) =
-      Nat.lor low (Nat.lor (mid * 2 ^ 48) (high * 2 ^ 96)) := by
-    calc
-      Nat.lor (Nat.lor low (high * 2 ^ 96)) (mid * 2 ^ 48) =
-          Nat.lor low (Nat.lor (high * 2 ^ 96) (mid * 2 ^ 48)) := by
-            exact Nat.lor_assoc low (high * 2 ^ 96) (mid * 2 ^ 48)
-      _ = Nat.lor low (Nat.lor (mid * 2 ^ 48) (high * 2 ^ 96)) := by
-            exact congrArg (Nat.lor low) (Nat.lor_comm (high * 2 ^ 96) (mid * 2 ^ 48))
-  rw [hlorReorder]
-  rw [show Nat.lor low (Nat.lor (mid * 2 ^ 48) (high * 2 ^ 96)) =
-      Nat.lor (Nat.lor low (mid * 2 ^ 48)) (high * 2 ^ 96) by
-        exact (Nat.lor_assoc low (mid * 2 ^ 48) (high * 2 ^ 96)).symm]
-  rw [nat_lor_shift_add low mid 48 hlowLt]
-  rw [nat_lor_shift_add (low + mid * 2 ^ 48) high 96 hlowMidLt]
-  exact Nat.mod_eq_of_lt hsumLt
-
--- LIBRARY CANDIDATE: packed unsigned integer store at byte offset 6.
-theorem storageLocStore_uint48_offset6_word (evm : EVM.State) (slot data : UInt256) :
-    storageLocStore evm (uint48Loc slot ⟨6, by decide⟩ (by decide))
-        (.int (Int.ofNat data.toNat % uint48Modulus)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (fileSetUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          data)) := by
-  unfold storageLocStore storageLocWriteWord uint48Loc
-  simp only [valueToWord, wordOfInt_emod_uint48, bind, Option.bind]
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (6 : Fin 32).val _ ++ List.take (6 : Fin 33).val _ ++
-        List.drop ((6 : Fin 32).val + (6 : Fin 33).val) _) =
-      (fileSetUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-        data).toNat
-  rw [show (6 : Fin 32).val = 6 from rfl, show (6 : Fin 33).val = 6 from rfl]
-  rw [fromBytes'_append, fromBytes'_append]
-  rw [fromBytes'_take_wordLE, fromBytes'_take_wordLE_land_mask _ 6 (by norm_num),
-    fromBytes'_drop_wordLE]
-  have hlenOld6 :
-      ((EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take 6).length = 6 := by
-    rw [List.length_take,
-      (EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-    norm_num
-  have hlenVal6 :
-      ((EVM.Word.toBytesLEWithSizeProof (UInt256.land data flopperUint48Mask)).1.take 6).length =
-        6 := by
-    rw [List.length_take,
-      (EVM.Word.toBytesLEWithSizeProof (UInt256.land data flopperUint48Mask)).2]
-    norm_num
-  rw [List.length_append, hlenOld6, hlenVal6]
-  rw [show 2 ^ (8 * 6) = (2 : Nat) ^ 48 by norm_num]
-  rw [show 256 ^ 6 = (2 : Nat) ^ 48 by norm_num]
-  rw [show 256 ^ 12 = (2 : Nat) ^ 96 by norm_num]
-  rw [fileSetUint48Offset6Word_toNat]
-  have hclean : UInt256.land (UInt256.land data flopperUint48Mask)
-      (UInt256.ofNat (2 ^ 48 - 1)) = UInt256.land data flopperUint48Mask := by
-    simpa [flopperUint48Mask] using flopperUint48Mask_clean data
-  rw [hclean]
-  ring
 
 def fileBegPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ (fileData I)
@@ -536,27 +185,27 @@ def filePadPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ (fileData I)
 
 def fileTtlStoredWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  fileSetUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
+  setUint48Offset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
     (fileData I)
 
 def fileTtlPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨6⟩ (fileTtlStoredWord evm I)
 
 def fileTtlStoredWordMap (I : ExecutionEnv) (σ : AccountMap) : UInt256 :=
-  fileSetUint48Offset0Word (solcSlotWord σ I ⟨6⟩) (fileData I)
+  setUint48Offset0Word (solcSlotWord σ I ⟨6⟩) (fileData I)
 
 def fileTtlPostAccountMap (I : ExecutionEnv) (σ : AccountMap) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨6⟩ (fileTtlStoredWordMap I σ)
 
 def fileTauStoredWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  fileSetUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
+  setUint48Offset6Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
     (fileData I)
 
 def fileTauPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨6⟩ (fileTauStoredWord evm I)
 
 def fileTauStoredWordMap (I : ExecutionEnv) (σ : AccountMap) : UInt256 :=
-  fileSetUint48Offset6Word (solcSlotWord σ I ⟨6⟩) (fileData I)
+  setUint48Offset6Word (solcSlotWord σ I ⟨6⟩) (fileData I)
 
 def fileTauPostAccountMap (I : ExecutionEnv) (σ : AccountMap) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨6⟩ (fileTauStoredWordMap I σ)
@@ -638,7 +287,7 @@ theorem flopperFileBegSourceBody {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -688,7 +337,7 @@ theorem flopperFilePadSourceBody {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hbegCond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -759,7 +408,7 @@ theorem flopperFileTtlSourceBody {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hbegCond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -849,7 +498,7 @@ theorem flopperFileTauSourceBody {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hbegCond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -946,7 +595,7 @@ theorem flopperFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [fileTransition, nonpayable, auth] using
@@ -989,7 +638,7 @@ theorem flopperFileSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
       (by simp [locals])
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, flopperSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hbegCond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1192,7 +841,7 @@ theorem flopperFileX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1232 : RD flopperBytecode I g s0 ⟨1232⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1232 C1232 := by
-    simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd1232raw
   have rd1235pre := evm_run rd1232 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1241,7 +890,7 @@ theorem flopperFileX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1232 : RD flopperBytecode I g s0 ⟨1232⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1232 C1232 := by
-    simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd1232raw
   have rd1235pre := evm_run rd1232 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1473,12 +1122,12 @@ theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
         ⟨6⟩ :: fileData I :: what :: ⟨334⟩ :: [sel])
       mem aw rdata σ k1375 C1375 := by
     exact rd1375raw
-  have rd1382 := rd1375.pushConst flopperUint48Mask
+  have rd1382 := rd1375.pushConst uint48Mask
     (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
   have rd1384pre := evm_run rd1382 with [
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov)]
-  have rd1391 := rd1384pre.pushConst flopperUint48Mask
+  have rd1391 := rd1384pre.pushConst uint48Mask
     (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
   have rd1393pre := evm_run rd1391 with [
     raw dup4 (by native_decide) (by evm_ov),
@@ -1487,14 +1136,14 @@ theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
   have rd1395 := rd1394.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1396raw⟩ := rd1395.sstore hperm (by native_decide) (by evm_ov)
   have hword :
-      UInt256.lor (UInt256.land (fileData I) flopperUint48Mask)
+      UInt256.lor (UInt256.land (fileData I) uint48Mask)
           (UInt256.land
-            (UInt256.lnot flopperUint48Mask)
+            (UInt256.lnot uint48Mask)
             (σ.get? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩))) =
         fileTtlStoredWordMap I σ := by
-    rw [u256_land_comm (UInt256.lnot flopperUint48Mask)]
-    simp [fileTtlStoredWordMap, fileSetUint48Offset0Word, solcSlotWord, u256_lor_comm]
+    rw [u256_land_comm (UInt256.lnot uint48Mask)]
+    simp [fileTtlStoredWordMap, setUint48Offset0Word, solcSlotWord, u256_lor_comm]
   have rd1399 := rd1396raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
   have rd1533 := rd1399.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)
@@ -1522,7 +1171,7 @@ theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
       mem aw rdata σ k1419 C1419 := by
     exact rd1419raw
   have rd1433pre := evm_run
-    (rd1419.pushConst fileUint48Offset6Mask
+    (rd1419.pushConst uint48Offset6Mask
       (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)) with [
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov)]
@@ -1534,7 +1183,7 @@ theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
     native_decide
   rw [hfactor] at rd1439
   have rd1446pre := evm_run
-    (rd1439.pushConst flopperUint48Mask
+    (rd1439.pushConst uint48Mask
       (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)) with [
     raw dup5 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
@@ -1544,15 +1193,15 @@ theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd1451raw⟩ := rd1450.sstore hperm (by native_decide) (by evm_ov)
   have hword :
       UInt256.lor
-          (UInt256.mul (UInt256.land (fileData I) flopperUint48Mask)
+          (UInt256.mul (UInt256.land (fileData I) uint48Mask)
             (UInt256.ofNat (2 ^ 48)))
           (UInt256.land
-            (UInt256.lnot fileUint48Offset6Mask)
+            (UInt256.lnot uint48Offset6Mask)
             (σ.get? I.codeOwner |>.option ⟨0⟩
               (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩))) =
         fileTauStoredWordMap I σ := by
-    rw [u256_land_comm (UInt256.lnot fileUint48Offset6Mask)]
-    simp [fileTauStoredWordMap, fileSetUint48Offset6Word, solcSlotWord, u256_lor_comm]
+    rw [u256_land_comm (UInt256.lnot uint48Offset6Mask)]
+    simp [fileTauStoredWordMap, setUint48Offset6Word, solcSlotWord, u256_lor_comm]
   have rd1455 := rd1451raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
   have rd1533 := rd1455.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)

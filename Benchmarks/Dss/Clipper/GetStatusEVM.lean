@@ -1,3 +1,6 @@
+import Reasoning.ABIViews
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.GetStatusBody
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
@@ -223,10 +226,6 @@ abbrev clipperGetStatusReturnBytes (needs price lot tab : UInt256) : ByteArray :
   UInt256.toByteArray (UInt256.isZero (UInt256.isZero needs)) ++ UInt256.toByteArray price ++
     UInt256.toByteArray lot ++ UInt256.toByteArray tab
 
-theorem clipperEncodeABIValue_bool (b : Bool) :
-    encodeABIValue? (.elem .bool) (.bool b) =
-      some (EVM.Word.toBytesBE b.toUInt256) := by
-  cases b <;> native_decide
 
 theorem clipperGetStatusReturnEncoding
     (needsWord : UInt256) (needs : Bool) (price lot tab : UInt256)
@@ -235,10 +234,13 @@ theorem clipperGetStatusReturnEncoding
       [.bool needs, .int (Int.ofNat price.toNat), .int (Int.ofNat lot.toNat),
         .int (Int.ofNat tab.toNat)] =
       some (clipperGetStatusReturnBytes needsWord price lot tab) := by
-  have hencNeeds := clipperEncodeABIValue_bool needs
-  have hencPrice := clipperEncodeABIValue_uint256 price
-  have hencLot := clipperEncodeABIValue_uint256 lot
-  have hencTab := clipperEncodeABIValue_uint256 tab
+  have hencNeeds := encodeABIValue_bool needs
+  have hencPrice := encodeABIValue_uint256 price
+  change encodeABIValue? uint256 _ = _ at hencPrice
+  have hencLot := encodeABIValue_uint256 lot
+  change encodeABIValue? uint256 _ = _ at hencLot
+  have hencTab := encodeABIValue_uint256 tab
+  change encodeABIValue? uint256 _ = _ at hencTab
   have hhead : abiTupleHeadSize? [.elem .bool, uint256, uint256, uint256] = some 128 := by
     native_decide
   have hdb : isDynamicABIType (.elem .bool) = false := by rfl
@@ -300,87 +302,6 @@ theorem clipperGetStatusNeedsRedoWord_bool
     rw [clipperGetStatusNeedsRedoWord, if_pos hisZero, hdone, hbeq]
     cases done <;> rfl
 
-theorem twoWordHashMem_size_ge_64_of_ge {mem : ByteArray} (key slot : UInt256)
-    (_hmem : 64 ≤ mem.size) :
-    64 ≤ (twoWordHashMem key slot mem).size := by
-  have hword0 : 32 ≤ (wordAt0Mem key mem).size := by
-    simpa [wordAt0Mem] using
-      toByteArray_write_size_ge_off_add32 key mem 0 (by simp)
-  simpa [twoWordHashMem, wordAt32Mem] using
-    toByteArray_write_size_ge_off_add32 slot (wordAt0Mem key mem) 32
-      (lt_usize (32 - (wordAt0Mem key mem).size) (by omega))
-
-theorem twoWordHashMem_size_of_ge_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).size = mem.size := by
-  unfold twoWordHashMem wordAt32Mem wordAt0Mem
-  change (writeCascade mem [(0, key), (32, slot)]).size = mem.size
-  exact writeCascade_size_of_base mem [(0, key), (32, slot)] rfl
-    (by simp [WriteGapsOk])
-    (by
-      simp [writeCascadeSize]
-      omega)
-
-theorem twoWordHashMem_read0_of_ge {mem : ByteArray} (key slot : UInt256)
-    (_hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by
-        have hword0 : 32 ≤ (wordAt0Mem key mem).size := by
-          simpa [wordAt0Mem] using
-            toByteArray_write_size_ge_off_add32 key mem 0 (by simp)
-        omega)
-      (by omega)]
-  unfold wordAt0Mem
-  rw [write32_read_back _ _ 0 (by rw [toByteArray_size]) (by omega)]
-  rw [toByteArray_extract_all]
-
-theorem twoWordHashMem_read32_of_ge {mem : ByteArray} (key slot : UInt256)
-    (_hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ 32 (by rw [toByteArray_size])
-      (by
-        have hword0 : 32 ≤ (wordAt0Mem key mem).size := by
-          simpa [wordAt0Mem] using
-            toByteArray_write_size_ge_off_add32 key mem 0 (by simp)
-        omega)]
-  rw [toByteArray_extract_all]
-
-set_option maxHeartbeats 800000 in
-theorem twoWordHashMem_read0_64_of_ge {mem : ByteArray} (key slot : UInt256)
-    (hmem : 64 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [byteArray_readWithPadding_split _ 0 32 32 (by norm_num) (by norm_num)
-      (by norm_num) (by norm_num) (by norm_num)
-      (twoWordHashMem_size_ge_64_of_ge key slot hmem)]
-  rw [twoWordHashMem_read0_of_ge key slot hmem, twoWordHashMem_read32_of_ge key slot hmem]
-
-theorem twoWordHashMem_read64_of_ge {mem : ByteArray} (key slot : UInt256)
-    (hmem : 96 ≤ mem.size)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (twoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold twoWordHashMem wordAt32Mem wordAt0Mem
-  change (writeCascade mem [(0, key), (32, slot)]).readWithPadding 64 32 =
-    UInt256.toByteArray ⟨128⟩
-  rw [writeCascade_read_preserved_of_base mem [(0, key), (32, slot)] rfl]
-  · exact hread64
-  · simp [WindowDisjointFromWrites]
-    omega
-
-theorem twoWordHashMem_solcMappingSlot_of_ge (baseSlot key : UInt256) {mem : ByteArray}
-    (hmem : 64 ≤ mem.size) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
-      solcMappingSlot baseSlot key := by
-  rw [twoWordHashMem_read0_64_of_ge key baseSlot hmem]
-  unfold solcMappingSlot
-  exact mappingSlot_single key baseSlot
 
 theorem clipperGetStatusReturnMem_size {scratch : ByteArray}
     (needs price lot tab : UInt256) (hscratch : scratch.size = 196) :
@@ -637,7 +558,7 @@ theorem clipperJumpDest8460 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -651,7 +572,7 @@ theorem clipperJumpDest8502 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -665,7 +586,7 @@ theorem clipperJumpDest8561 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -679,7 +600,7 @@ theorem clipperJumpDest8581 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -693,7 +614,7 @@ theorem clipperJumpDest8603 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -707,7 +628,7 @@ theorem clipperJumpDest3258 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -721,7 +642,7 @@ theorem clipperJumpDest3283 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -735,7 +656,7 @@ theorem clipperJumpDest8630 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -749,7 +670,7 @@ theorem clipperJumpDest8652 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -763,7 +684,7 @@ theorem clipperJumpDest8650 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -777,7 +698,7 @@ theorem clipperJumpDest9274 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9300) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -791,7 +712,7 @@ theorem clipperJumpDest9290 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -803,40 +724,6 @@ end Benchmarks.Dss.Clipper
 
 namespace Reasoning.Reach
 
--- LIBRARY CANDIDATE: `Reasoning.Reach` — missing `SWAP9` one-step and `RD` wrapper,
--- matching the existing `swap8`/`swap10` primitives.
-theorem swap9_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.SWAP9, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-    (hov : t.length + 10 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok (stSwap s (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t),
-        .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP9, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap9 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t).length - 10
-        + 10 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem RD.swap9
-    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => swap9_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 

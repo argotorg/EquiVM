@@ -65,7 +65,7 @@ def moveWishSlot (I : ExecutionEnv) : UInt256 :=
 
 abbrev moveWishWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
-    (UInt256.eq (vatSlotWord (moveWishSlot I) σ I) ⟨1⟩)
+    (UInt256.eq (solcSlotWordAt (moveWishSlot I) σ I) ⟨1⟩)
     (UInt256.eq (moveSrcMaskedWord I) (hopeSourceWord I))
 
 abbrev moveStoreSrcDaiNew (I : ExecutionEnv) (srcDaiNew : UInt256) : Store :=
@@ -273,7 +273,7 @@ theorem evalExpr_move_src_dai_old {evm : EVM.State} {I : ExecutionEnv} :
     (her := evalStorageRef_move_src_dai evm I)
     (hty := moveStorageType_src_dai I)
     (hloc := moveStorageLayout_src_dai I)
-    (hload := vatStorageLocLoad_uint256 evm (moveSrcDaiSlot I))
+    (hload := storageLocLoad_uint256 evm (moveSrcDaiSlot I))
 
 theorem evalExpr_move_dst_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
     (srcDaiNew : UInt256) :
@@ -286,7 +286,7 @@ theorem evalExpr_move_dst_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_move_dst_dai_after_src evm I srcDaiNew)
     (hty := moveStorageType_dst_dai I)
     (hloc := moveStorageLayout_dst_dai I)
-    (hload := vatStorageLocLoad_uint256 evm (moveDstDaiSlot I))
+    (hload := storageLocLoad_uint256 evm (moveDstDaiSlot I))
 
 theorem evalExpr_move_src_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
     (srcDaiNew : UInt256) :
@@ -299,7 +299,7 @@ theorem evalExpr_move_src_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_move_src_dai_after_src evm I srcDaiNew)
     (hty := moveStorageType_src_dai I)
     (hloc := moveStorageLayout_src_dai I)
-    (hload := vatStorageLocLoad_uint256 evm (moveSrcDaiSlot I))
+    (hload := storageLocLoad_uint256 evm (moveSrcDaiSlot I))
 
 theorem evalExpr_move_dst_dai_after_dst {evm : EVM.State} {I : ExecutionEnv}
     (srcDaiNew dstDaiNew : UInt256) :
@@ -313,7 +313,7 @@ theorem evalExpr_move_dst_dai_after_dst {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_move_dst_dai_after_dst evm I srcDaiNew dstDaiNew)
     (hty := moveStorageType_dst_dai I)
     (hloc := moveStorageLayout_dst_dai I)
-    (hload := vatStorageLocLoad_uint256 evm (moveDstDaiSlot I))
+    (hload := storageLocLoad_uint256 evm (moveDstDaiSlot I))
 
 theorem evalExpr_move_can {evm : EVM.State} {I : ExecutionEnv}
     (hsrc : evm.executionEnv.source = I.source) :
@@ -326,7 +326,7 @@ theorem evalExpr_move_can {evm : EVM.State} {I : ExecutionEnv}
     (her := evalStorageRef_move_can evm I hsrc)
     (hty := moveStorageType_can I)
     (hloc := moveStorageLayout_can I)
-    (hload := vatStorageLocLoad_uint256 evm (moveWishSlot I))
+    (hload := storageLocLoad_uint256 evm (moveWishSlot I))
 
 theorem evalExpr_move_src_sender_eq_true {evm : EVM.State} {I : ExecutionEnv}
     (hsrc : evm.executionEnv.source = I.source)
@@ -440,7 +440,7 @@ theorem evalExpr_move_wish_false {evm : EVM.State} {I : ExecutionEnv}
 theorem moveWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     (heq : moveSrcMaskedWord I = hopeSourceWord I) :
     moveWishWord σ I ≠ ⟨0⟩ := by
-  by_cases hcan : vatSlotWord (moveWishSlot I) σ I = ⟨1⟩
+  by_cases hcan : solcSlotWordAt (moveWishSlot I) σ I = ⟨1⟩
   · unfold moveWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
     native_decide
@@ -450,7 +450,7 @@ theorem moveWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     exact one_ne_zero_uint
 
 theorem moveWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
-    (hcan : vatSlotWord (moveWishSlot I) σ I = ⟨1⟩) :
+    (hcan : solcSlotWordAt (moveWishSlot I) σ I = ⟨1⟩) :
     moveWishWord σ I ≠ ⟨0⟩ := by
   by_cases hsrc : moveSrcMaskedWord I = hopeSourceWord I
   · unfold moveWishWord
@@ -463,7 +463,7 @@ theorem moveWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
 
 theorem moveWishWord_false {σ : AccountMap} {I : ExecutionEnv}
     (hne : moveSrcMaskedWord I ≠ hopeSourceWord I)
-    (hcan : vatSlotWord (moveWishSlot I) σ I ≠ ⟨1⟩) :
+    (hcan : solcSlotWordAt (moveWishSlot I) σ I ≠ ⟨1⟩) :
     moveWishWord σ I = ⟨0⟩ := by
   unfold moveWishWord
   rw [u256_eq_of_ne hcan, u256_eq_of_ne hne]
@@ -482,7 +482,7 @@ theorem assignStorageRef_move_src_dai {evm evm' : EVM.State} {I : ExecutionEnv}
       storageLocStore evm (wordLoc (moveSrcDaiSlot I)) (.int (Int.ofNat srcDaiNew.toNat)) =
         some evm' := by
     rw [hevm']
-    exact vatStorageLocStore_uint256 evm (moveSrcDaiSlot I) srcDaiNew
+    exact storageLocStore_uint256 evm (moveSrcDaiSlot I) srcDaiNew
   exact assignStorageRef_storage_scalar
     (hbase := moveStoreSrcDaiNew_dai I srcDaiNew)
     (her := evalStorageRef_move_src_dai_after_src evm I srcDaiNew)
@@ -504,7 +504,7 @@ theorem assignStorageRef_move_dst_dai {evm evm' : EVM.State} {I : ExecutionEnv}
       storageLocStore evm (wordLoc (moveDstDaiSlot I)) (.int (Int.ofNat dstDaiNew.toNat)) =
         some evm' := by
     rw [hevm']
-    exact vatStorageLocStore_uint256 evm (moveDstDaiSlot I) dstDaiNew
+    exact storageLocStore_uint256 evm (moveDstDaiSlot I) dstDaiNew
   exact assignStorageRef_storage_scalar
     (hbase := moveStoreDstDaiNew_dai I srcDaiNew dstDaiNew)
     (her := evalStorageRef_move_dst_dai_after_dst evm I srcDaiNew dstDaiNew)
@@ -517,7 +517,7 @@ theorem vatMoveSourceOk
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
+    let srcOld := solcSlotWordAt (moveSrcDaiSlot I) σ I
     let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
     let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
       (moveSrcDaiSlot I) srcDaiNew
@@ -534,7 +534,7 @@ theorem vatMoveSourceOk
   intro evm0 srcOld srcDaiNew evm1 dstOld dstDaiNew hwish hsrcEnough hdstFit
   have hsrcLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
-    simp [evm0, srcOld, vatSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+    simp [evm0, srcOld, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   have hdstLoad :
       Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I) = dstOld := by
@@ -722,7 +722,7 @@ theorem vatMoveSourceRevertSrcUnderflow
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
+    let srcOld := solcSlotWordAt (moveSrcDaiSlot I) σ I
     evalExpr? config { contract := contract, locals := moveStore I } evm0
         (wishExpr (.var "src") sender) = .ok (.bool true) →
     srcOld.toNat < (moveRadWord I).toNat →
@@ -730,7 +730,7 @@ theorem vatMoveSourceRevertSrcUnderflow
   intro evm0 srcOld hwish hunder
   have hsrcLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
-    simp [evm0, srcOld, vatSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+    simp [evm0, srcOld, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   have hrad :
       evalExpr? config { contract := contract, locals := moveStore I } evm0 (.var "rad") =
@@ -783,7 +783,7 @@ theorem vatMoveSourceRevertDstOverflow
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
+    let srcOld := solcSlotWordAt (moveSrcDaiSlot I) σ I
     let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
     let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
       (moveSrcDaiSlot I) srcDaiNew
@@ -796,7 +796,7 @@ theorem vatMoveSourceRevertDstOverflow
   intro evm0 srcOld srcDaiNew evm1 dstOld hwish hsrcEnough hover
   have hsrcLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveSrcDaiSlot I) = srcOld := by
-    simp [evm0, srcOld, vatSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+    simp [evm0, srcOld, solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
   have hdstLoad :
       Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner (moveDstDaiSlot I) = dstOld := by
@@ -1030,7 +1030,7 @@ theorem RD.vatMoveWishLoaded
       [moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
-      [vatSlotWord (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
+      [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (moveSrcMaskedWord I))
@@ -1137,13 +1137,13 @@ theorem RD.vatMoveWishLoaded
   have rd6597 := rd6597pre.keccak256 0 (moveWishSlot I) (UInt256.ofNat 3)
     (by native_decide) mem_cost houter (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by native_decide) (by evm_ov)
-  exact ⟨_, _, by simpa [vatSlotWord, solcSlotWord] using rd6599raw⟩
+  exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd6599raw⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveWishBranchOk
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
     (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
-      [vatSlotWord (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
+      [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -1187,7 +1187,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.vatMoveWishBranchRevert
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256} {mem : ByteArray}
     (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨6599⟩
-      [vatSlotWord (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
+      [solcSlotWordAt (moveWishSlot I) σ I, ⟨1⟩, ⟨0⟩, moveSrcMaskedWord I,
         hopeSourceWord I, UInt256.ofNat I.source.val, moveSrcMaskedWord I, ⟨5884⟩,
         moveRadWord I, moveDstMaskedWord I, moveSrcMaskedWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -1623,7 +1623,7 @@ theorem vatMoveAuthorizedPath
       memWish (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let srcOld := vatSlotWord (moveSrcDaiSlot I) σ I
+  let srcOld := solcSlotWordAt (moveSrcDaiSlot I) σ I
   let srcDaiNew := UInt256.sub srcOld (moveRadWord I)
   by_cases hsrcUnder : srcOld.toNat < (moveRadWord I).toNat
   · have hbody :
@@ -1636,7 +1636,7 @@ theorem vatMoveAuthorizedPath
     have hsrcUnderSolc :
         (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I))).toNat <
           (moveRadWord I).toNat := by
-      simpa [srcOld, vatSlotWord, moveSrcDaiSlot_eq I] using hsrcUnder
+      simpa [srcOld, solcSlotWordAt, moveSrcDaiSlot_eq I] using hsrcUnder
     have hrev := RD.vatMoveSourceSubRevert
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := vatSelWord I)
@@ -1646,7 +1646,7 @@ theorem vatMoveAuthorizedPath
     have hsrcEnoughSolc :
         (moveRadWord I).toNat ≤
           (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I))).toNat := by
-      simpa [srcOld, vatSlotWord, moveSrcDaiSlot_eq I] using hsrcEnough
+      simpa [srcOld, solcSlotWordAt, moveSrcDaiSlot_eq I] using hsrcEnough
     obtain ⟨_, _, h5986⟩ := RD.vatMoveSourceSubSuccess
       (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := vatSelWord I)
@@ -1667,33 +1667,33 @@ theorem vatMoveAuthorizedPath
     have hsrcValEqMove :
         UInt256.sub (solcSlotWord σ I (moveSrcDaiSlot I)) (moveRadWord I) =
           srcDaiNew := by
-      simp [srcDaiNew, srcOld, vatSlotWord]
+      simp [srcDaiNew, srcOld, solcSlotWordAt]
     rw [hsrcValEqMove] at h6017Move
-    let dstOld := vatSlotWord (moveDstDaiSlot I) σSrc I
+    let dstOld := solcSlotWordAt (moveDstDaiSlot I) σSrc I
     let dstDaiNew := dstOld + moveRadWord I
     have hdstSlotEq :
         solcMappingSlot ⟨5⟩ (moveDstMaskedWord I) = moveDstDaiSlot I := by
       exact (moveDstDaiSlot_eq I).symm
     have hsrcDaiNewSolm :
-        UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I) (moveRadWord I) =
+        UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I) (moveRadWord I) =
           srcDaiNew := by
       simp [srcDaiNew, srcOld]
     have hloadDstSolm :
         Solm.EVM.storageLoad
             (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
               (moveSrcDaiSlot I)
-              (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+              (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                 (moveRadWord I)))
             (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
               (moveSrcDaiSlot I)
-              (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+              (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                 (moveRadWord I))).executionEnv.codeOwner
             (moveDstDaiSlot I) =
-          vatSlotWord (moveDstDaiSlot I) σSrc I := by
+          solcSlotWordAt (moveDstDaiSlot I) σSrc I := by
       rw [hsrcDaiNewSolm]
       simp [evm0, σSrc, initState, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage, storageStore_executionEnv,
-        storageStore_accountMap, vatSlotWord, solcSlotWord]
+        storageStore_accountMap, solcSlotWordAt, solcSlotWord]
     let memDestIn :=
       twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩
         (twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ memWish)
@@ -1711,16 +1711,16 @@ theorem vatMoveAuthorizedPath
             (Solm.EVM.storageLoad
                 (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                   (moveSrcDaiSlot I)
-                  (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                  (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                     (moveRadWord I)))
                 (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                   (moveSrcDaiSlot I)
-                  (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                  (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                     (moveRadWord I))).executionEnv.codeOwner
                 (moveDstDaiSlot I)).toNat + (moveRadWord I).toNat := by
         rw [hloadDstSolm]
         have htmp :
-            UInt256.size ≤ (vatSlotWord (moveDstDaiSlot I) σSrc I).toNat +
+            UInt256.size ≤ (solcSlotWordAt (moveDstDaiSlot I) σSrc I).toNat +
                 (moveRadWord I).toNat := by
           simpa [dstOld] using hdstOverflow
         exact htmp
@@ -1738,7 +1738,7 @@ theorem vatMoveAuthorizedPath
             (solcSlotWord σSrc I
               (solcMappingSlot ⟨5⟩ (moveDstMaskedWord I))).toNat +
               (moveRadWord I).toNat := by
-        simpa [dstOld, vatSlotWord, σSrc, moveDstDaiSlot_eq I] using hdstOverflow
+        simpa [dstOld, solcSlotWordAt, σSrc, moveDstDaiSlot_eq I] using hdstOverflow
       have hrev := RD.vatMoveDestAddRevert
         (h := h6017Move)
         hdstHashSlot (moveDstMaskedWord_canonical I) hdstOverflowSolc (by simp)
@@ -1749,7 +1749,7 @@ theorem vatMoveAuthorizedPath
           (solcSlotWord σSrc I
                 (solcMappingSlot ⟨5⟩ (moveDstMaskedWord I))).toNat +
               (moveRadWord I).toNat < UInt256.size := by
-        simpa [dstOld, vatSlotWord, σSrc, moveDstDaiSlot_eq I] using hdstFit
+        simpa [dstOld, solcSlotWordAt, σSrc, moveDstDaiSlot_eq I] using hdstFit
       obtain ⟨_, _, h6033⟩ := RD.vatMoveDestAddSuccess
         (h := h6017Move)
         hdstHashSlot (moveDstMaskedWord_canonical I) hdstFitSolc (by simp)
@@ -1757,7 +1757,7 @@ theorem vatMoveAuthorizedPath
           solcSlotWord σSrc I (solcMappingSlot ⟨5⟩ (moveDstMaskedWord I)) +
               moveRadWord I =
             dstDaiNew := by
-        simp [dstDaiNew, dstOld, vatSlotWord, moveDstDaiSlot_eq I]
+        simp [dstDaiNew, dstOld, solcSlotWordAt, moveDstDaiSlot_eq I]
       have h6033Move := h6033
       rw [hdstValEq] at h6033Move
       let memDestAdd := wordAt0Mem (moveDstMaskedWord I) memDestIn
@@ -1783,16 +1783,16 @@ theorem vatMoveAuthorizedPath
           (Solm.EVM.storageLoad
               (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                 (moveSrcDaiSlot I)
-                (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                   (moveRadWord I)))
               (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                 (moveSrcDaiSlot I)
-                (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                   (moveRadWord I))).executionEnv.codeOwner
               (moveDstDaiSlot I)).toNat + (moveRadWord I).toNat < UInt256.size := by
         rw [hloadDstSolm]
         have htmp :
-            (vatSlotWord (moveDstDaiSlot I) σSrc I).toNat +
+            (solcSlotWordAt (moveDstDaiSlot I) σSrc I).toNat +
                 (moveRadWord I).toNat < UInt256.size := by
           simpa [dstOld] using hdstFit
         exact htmp
@@ -1807,35 +1807,35 @@ theorem vatMoveAuthorizedPath
             (Solm.EVM.storageStore
                 (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                   (moveSrcDaiSlot I)
-                  (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                  (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                     (moveRadWord I)))
                 (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                   (moveSrcDaiSlot I)
-                  (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                  (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                     (moveRadWord I))).executionEnv.codeOwner
                 (moveDstDaiSlot I)
                 ((Solm.EVM.storageLoad
                     (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                       (moveSrcDaiSlot I)
-                      (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                      (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                         (moveRadWord I)))
                     (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                       (moveSrcDaiSlot I)
-                      (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                      (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                         (moveRadWord I))).executionEnv.codeOwner
                     (moveDstDaiSlot I)) + moveRadWord I)).accountMap := by
         have hloadDstSolmOwner :
             Solm.EVM.storageLoad
                 (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                   (moveSrcDaiSlot I)
-                  (UInt256.sub (vatSlotWord (moveSrcDaiSlot I) σ I)
+                  (UInt256.sub (solcSlotWordAt (moveSrcDaiSlot I) σ I)
                     (moveRadWord I)))
                 evm0.executionEnv.codeOwner
                 (moveDstDaiSlot I) =
-              vatSlotWord (moveDstDaiSlot I) σSrc I := by
+              solcSlotWordAt (moveDstDaiSlot I) σSrc I := by
           simpa [storageStore_executionEnv] using hloadDstSolm
         have hdstDaiNewSolmOwner :
-            vatSlotWord (moveDstDaiSlot I) σSrc I + moveRadWord I = dstDaiNew := by
+            solcSlotWordAt (moveDstDaiSlot I) σSrc I + moveRadWord I = dstDaiNew := by
           simp [dstDaiNew, dstOld]
         rw [storageStore_accountMap, storageStore_executionEnv]
         rw [hloadDstSolmOwner, hdstDaiNewSolmOwner]
@@ -1913,10 +1913,10 @@ theorem vatMoveBodyCore : VatBodyTheorem 19 := by
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm hwv
         hdispatch hdecode hmemWish
         (by simpa [evm0] using hwishSolm) h5951
-    · by_cases hcanEvm : vatSlotWord (moveWishSlot I) σ I = ⟨1⟩
+    · by_cases hcanEvm : solcSlotWordAt (moveWishSlot I) σ I = ⟨1⟩
       · have hcanSolm :
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveWishSlot I) = ⟨1⟩ := by
-          simpa [evm0, initState, vatSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+          simpa [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage] using hcanEvm
         have hwishSolm :
             evalExpr? config { contract := contract, locals := moveStore I } evm0
@@ -1935,7 +1935,7 @@ theorem vatMoveBodyCore : VatBodyTheorem 19 := by
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (moveWishSlot I) ≠ ⟨1⟩ := by
           intro hbad
           apply hcanEvm
-          simpa [evm0, initState, vatSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+          simpa [evm0, initState, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage] using hbad
         have hwishSolm :
             evalExpr? config { contract := contract, locals := moveStore I } evm0

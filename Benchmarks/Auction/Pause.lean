@@ -54,7 +54,7 @@ theorem pauseBodyCore {σ σ₀ A I} {g : UInt256}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp
         exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
           hcode hd hdec hbody (by simp [storageStore_accountMap, initState,
-            storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
+            solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
           (.fallthrough rfl rfl (by native_decide))
       · have hbody := pauseBodyAlreadyPaused
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp

@@ -1,3 +1,4 @@
+import Reasoning.Solc
 import Examples.Ballot.Common
 import Reasoning.Memory
 import Reasoning.SolmBody
@@ -87,11 +88,6 @@ theorem giveRightWord_eq_of_maskedAddress_eq_source {w : UInt256} {I : Execution
     simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)] at hval
   exact hval
 
-theorem u256_eq_zero_of_word_ne {a b : UInt256} (h : a ≠ b) :
-    UInt256.eq a b = ⟨0⟩ := by
-  show UInt256.fromBool (decide (a = b)) = ⟨0⟩
-  rw [decide_eq_false h]
-  rfl
 
 /-! ### ABI decode -/
 
@@ -131,36 +127,6 @@ theorem ballotDecode_giveRightToVote_none_huge {I : ExecutionEnv}
 
 /-! ### Storage helpers -/
 
-theorem ballotStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
-
-theorem giveRightStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32} :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool }
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
-
-theorem giveRightStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
-      .bool false := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem giveRightStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    {hbound : (⟨0⟩ : UInt256).toNat + (⟨1⟩ : UInt256).toNat ≤ 32}
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := hbound, type := .bool } =
-      .bool true := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
 /-! ### Source-level body facts -/
 
@@ -187,7 +153,7 @@ theorem evalExpr_giveRight_chair_true (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    rw [evalExpr_storage_scalar
+    erw [evalExpr_storage_scalar
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -195,7 +161,7 @@ theorem evalExpr_giveRight_chair_true (evm : EVM.State) (I : ExecutionEnv)
       (her := by simp [evalStorageRef, evalStorageRefSteps, chairpersonRef, EvalResult.bind,
         bind, pure])
       (hty := by simp [storageTypeAt?, ballotContract, ballotStorageDecls, addrSt])
-      (hloc := by rfl), ballotStorageLocLoad_address_offset0]
+      (hloc := by rfl), storageLocLoad_address_offset0]
   have haddr : AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         solcAddrMask).toNat = evm.executionEnv.source := by
@@ -223,7 +189,7 @@ theorem evalExpr_giveRight_chair_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    rw [evalExpr_storage_scalar
+    erw [evalExpr_storage_scalar
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -231,7 +197,7 @@ theorem evalExpr_giveRight_chair_false (evm : EVM.State) (I : ExecutionEnv)
       (her := by simp [evalStorageRef, evalStorageRefSteps, chairpersonRef, EvalResult.bind,
         bind, pure])
       (hty := by simp [storageTypeAt?, ballotContract, ballotStorageDecls, addrSt])
-      (hloc := by rfl), ballotStorageLocLoad_address_offset0]
+      (hloc := by rfl), storageLocLoad_address_offset0]
   have haddr : AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
         solcAddrMask).toNat ≠ evm.executionEnv.source := by
@@ -282,7 +248,7 @@ theorem evalExpr_giveRight_notVoted_true (evm : EVM.State) (I : ExecutionEnv)
     change EvalResult.ok (storageLocLoad evm
         { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool false)
-    rw [giveRightStorageLocLoad_bool_offset0_false evm (giveRightVotedSlot I) hvoted]
+    rw [storageLocLoad_bool_offset0_false' evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]
 
 theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
@@ -302,7 +268,7 @@ theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
     change EvalResult.ok (storageLocLoad evm
         { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool true)
-    rw [giveRightStorageLocLoad_bool_offset0_true evm (giveRightVotedSlot I) hvoted]
+    rw [storageLocLoad_bool_offset0_true' evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]
 
 theorem evalExpr_giveRight_weight_zero_true (evm : EVM.State) (I : ExecutionEnv)
@@ -315,12 +281,12 @@ theorem evalExpr_giveRight_weight_zero_true (evm : EVM.State) (I : ExecutionEnv)
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    rw [evalExpr_storage_scalar (t := .int uint256Int)
+    erw [evalExpr_storage_scalar (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), ballotStorageLocLoad_uint256]
+      (hloc := by rfl), storageLocLoad_uint256]
     simp [giveRightVoterSlot]
   simp [EvalResult.bind, bind, pure, hstorage, evalExpr?, evalBinaryOp?, hweight]
 
@@ -334,12 +300,12 @@ theorem evalExpr_giveRight_weight_zero_false (evm : EVM.State) (I : ExecutionEnv
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    rw [evalExpr_storage_scalar (t := .int uint256Int)
+    erw [evalExpr_storage_scalar (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), ballotStorageLocLoad_uint256]
+      (hloc := by rfl), storageLocLoad_uint256]
     simp [giveRightVoterSlot]
   have hnat : (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat ≠
       0 := by
@@ -362,7 +328,7 @@ theorem giveRightAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := by rfl)
   change storageLocStore evm (wordLoc (giveRightVoterSlot I))
       (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) = some (giveRightPostState evm I)
-  rw [ballotStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [giveRightPostState]
 
 theorem ballotGiveRightToVoteBodyReturns (evm : EVM.State) (I : ExecutionEnv)
@@ -1102,7 +1068,7 @@ theorem ballotGiveRightToVoteX_chairRevert {σ σ₀ A I} {g : Sat256} {sel : UI
         (giveRightChairWord σ I)) = ⟨0⟩ := by
     change UInt256.eq (giveRightSourceWord I)
       (UInt256.land solcAddrMask (giveRightChairWord σ I)) = ⟨0⟩
-    apply u256_eq_zero_of_word_ne
+    apply u256_eq_of_ne
     intro h
     apply hchair
     rw [u256_land_comm (giveRightChairWord σ I) solcAddrMask]

@@ -17,7 +17,7 @@ theorem RD.jugDripToRpowRoutine
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2153⟩
       (jugRay :: UInt256.sub (UInt256.ofNat I.header.timestamp)
-          (jugSlotWord (fileDutyRhoSlotFor I) σ' I) ::
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I) ::
         fee :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
@@ -31,7 +31,7 @@ theorem RD.jugDripToRpowRoutine
   have hmem0 : 64 ≤ mem0.size := by
     change 64 ≤ (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
       (dripVatIlksPostCallMem I out)).size
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I) (⟨1⟩ : UInt256) hpostSize]
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I) (⟨1⟩ : UInt256) hpostSize]
     exact hpostSize
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian (KEC (mem1.readWithPadding 0 64))) =
@@ -39,7 +39,7 @@ theorem RD.jugDripToRpowRoutine
     change UInt256.ofNat (fromByteArrayBigEndian
         (KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem0).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ (fileDutyIlkWord I)
-    exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
+    exact twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (fileDutyIlkWord I) hmem0
   have rd1489 := evm_run rd1485 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -65,10 +65,10 @@ theorem RD.jugDripToRpowRoutine
   obtain ⟨k1505, C1505, rd1505raw⟩ := rd1504.sload (by native_decide) (by evm_ov)
   have rd1505 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1505⟩
-      (jugSlotWord (fileDutyRhoSlotFor I) σ' I :: fee :: ⟨1524⟩ :: ⟨1530⟩ ::
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I :: fee :: ⟨1524⟩ :: ⟨1530⟩ ::
         dripVatIlksPrevWord out :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem1 (UInt256.ofNat 6) out σ' k1505 C1505 := by
-    simpa [jugSlotWord, solcSlotWord, fileDutyRhoSlotFor_eq hsz36,
+    simpa [solcSlotWordAt, solcSlotWord, fileDutyRhoSlotFor_eq hsz36,
       u256_add_comm] using rd1505raw
   have rd1506 := RD.timestamp rd1505 (by native_decide) (by evm_ov)
   have rd1507 := rd1506.sub (by native_decide) (by evm_ov)
@@ -666,7 +666,7 @@ theorem RD.jugDiffSameReturnsZero
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (hvMax : (v.toNat : Int) ≤ maxInt256)
+    (hvMax : (v.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
@@ -677,7 +677,7 @@ theorem RD.jugDiffSameReturnsZero
   have hvHi : v.toNat < 2 ^ 255 := by
     have hvInt : (v.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (v.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-        simpa [maxInt256] using hvMax
+        simpa [Reasoning.Theory.maxInt256] using hvMax
       omega
     exact_mod_cast hvInt
   have hslt : UInt256.slt v (⟨0⟩ : UInt256) = ⟨0⟩ := by
@@ -724,8 +724,8 @@ theorem RD.jugDiffReturns
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (hrateMax : (rate.toNat : Int) ≤ maxInt256)
-    (hprevMax : (prev.toNat : Int) ≤ maxInt256)
+    (hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
+    (hprevMax : (prev.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
@@ -736,13 +736,13 @@ theorem RD.jugDiffReturns
   have hrateHi : rate.toNat < 2 ^ 255 := by
     have hrateInt : (rate.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (rate.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-        simpa [maxInt256] using hrateMax
+        simpa [Reasoning.Theory.maxInt256] using hrateMax
       omega
     exact_mod_cast hrateInt
   have hprevHi : prev.toNat < 2 ^ 255 := by
     have hprevInt : (prev.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (prev.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-        simpa [maxInt256] using hprevMax
+        simpa [Reasoning.Theory.maxInt256] using hprevMax
       omega
     exact_mod_cast hprevInt
   have hrateSlt : UInt256.slt rate (⟨0⟩ : UInt256) = ⟨0⟩ := by
@@ -790,7 +790,7 @@ theorem RD.jugDiffSameRevertXBound
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (hvMaxNot : ¬ (v.toNat : Int) ≤ maxInt256)
+    (hvMaxNot : ¬ (v.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (v :: v :: ⟨1570⟩ :: R)
@@ -799,9 +799,9 @@ theorem RD.jugDiffSameRevertXBound
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hvHi : 2 ^ 255 ≤ v.toNat := by
     have hvInt : ((2 ^ 255 : ℕ) : Int) ≤ (v.toNat : Int) := by
-      have hvGt : maxInt256 < (v.toNat : Int) := by
+      have hvGt : Reasoning.Theory.maxInt256 < (v.toNat : Int) := by
         omega
-      simpa [maxInt256] using hvGt
+      simpa [Reasoning.Theory.maxInt256] using hvGt
     exact_mod_cast hvInt
   have hslt : UInt256.slt v (⟨0⟩ : UInt256) = ⟨1⟩ := by
     simpa using slt_lit_one_high (a := v) (m := 0) (by norm_num) hvHi
@@ -837,7 +837,7 @@ theorem RD.jugDiffRevertXBound
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (hrateMaxNot : ¬ (rate.toNat : Int) ≤ maxInt256)
+    (hrateMaxNot : ¬ (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
@@ -846,9 +846,9 @@ theorem RD.jugDiffRevertXBound
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hrateHi : 2 ^ 255 ≤ rate.toNat := by
     have hrateInt : ((2 ^ 255 : ℕ) : Int) ≤ (rate.toNat : Int) := by
-      have hrateGt : maxInt256 < (rate.toNat : Int) := by
+      have hrateGt : Reasoning.Theory.maxInt256 < (rate.toNat : Int) := by
         omega
-      simpa [maxInt256] using hrateGt
+      simpa [Reasoning.Theory.maxInt256] using hrateGt
     exact_mod_cast hrateInt
   have hslt : UInt256.slt rate (⟨0⟩ : UInt256) = ⟨1⟩ := by
     simpa using slt_lit_one_high (a := rate) (m := 0) (by norm_num) hrateHi
@@ -884,8 +884,8 @@ theorem RD.jugDiffRevertYBound
     {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
-    (hrateMax : (rate.toNat : Int) ≤ maxInt256)
-    (hprevMaxNot : ¬ (prev.toNat : Int) ≤ maxInt256)
+    (hrateMax : (rate.toNat : Int) ≤ Reasoning.Theory.maxInt256)
+    (hprevMaxNot : ¬ (prev.toNat : Int) ≤ Reasoning.Theory.maxInt256)
     (rd2397 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: R)
@@ -895,14 +895,14 @@ theorem RD.jugDiffRevertYBound
   have hrateHi : rate.toNat < 2 ^ 255 := by
     have hrateInt : (rate.toNat : Int) < (2 : Int) ^ 255 := by
       have hle : (rate.toNat : Int) ≤ (2 : Int) ^ 255 - 1 := by
-        simpa [maxInt256] using hrateMax
+        simpa [Reasoning.Theory.maxInt256] using hrateMax
       omega
     exact_mod_cast hrateInt
   have hprevHi : 2 ^ 255 ≤ prev.toNat := by
     have hprevInt : ((2 ^ 255 : ℕ) : Int) ≤ (prev.toNat : Int) := by
-      have hprevGt : maxInt256 < (prev.toNat : Int) := by
+      have hprevGt : Reasoning.Theory.maxInt256 < (prev.toNat : Int) := by
         omega
-      simpa [maxInt256] using hprevGt
+      simpa [Reasoning.Theory.maxInt256] using hprevGt
     exact_mod_cast hprevInt
   have hrateSlt : UInt256.slt rate (⟨0⟩ : UInt256) = ⟨0⟩ := by
     simpa using slt_lit_zero (a := rate) (m := 0) (by norm_num) (by omega) hrateHi

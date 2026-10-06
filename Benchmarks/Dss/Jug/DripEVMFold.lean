@@ -17,8 +17,8 @@ theorem RD.jugDripToDiffRoutine
         dripVatFoldSelectorWord :: dripVatTargetWord σ' I :: prev :: rate ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k' C' := by
-  let vatRaw := jugSlotWord ⟨2⟩ σ' I
-  let vowRaw := jugSlotWord ⟨3⟩ σ' I
+  let vatRaw := solcSlotWordAt ⟨2⟩ σ' I
+  let vowRaw := solcSlotWordAt ⟨3⟩ σ' I
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -37,7 +37,7 @@ theorem RD.jugDripToDiffRoutine
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1534⟩
       (vatRaw :: rate :: prev :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k1534 C1534 := by
-    simpa [vatRaw, jugSlotWord, solcSlotWord] using rd1534raw
+    simpa [vatRaw, solcSlotWordAt, solcSlotWord] using rd1534raw
   have rd1536 := rd1534.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1537, C1537, rd1537raw⟩ := rd1536.sload (by native_decide) (by evm_ov)
   have rd1537 : RD jugBytecode I (Sat256.ofUInt256 g)
@@ -45,7 +45,7 @@ theorem RD.jugDripToDiffRoutine
       (vowRaw :: vatRaw :: rate :: prev :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
         sel :: [])
       mem (UInt256.ofNat 6) out σ' k1537 C1537 := by
-    simpa [vowRaw, jugSlotWord, solcSlotWord] using rd1537raw
+    simpa [vowRaw, solcSlotWordAt, solcSlotWord] using rd1537raw
   have rd1569 := evm_run rd1537 with [
     raw swap2 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
@@ -102,8 +102,8 @@ theorem RD.jugDripVatFoldCallGuard
         dripVatFoldSelectorShifted := by
     native_decide
   have hvowCanon : (dripVowTargetWord σ' I).toNat < EVM.addressModulus := by
-    simpa [dripVowTargetWord, jugAddressReturnWord] using
-      solcAddrMask_result_canonical (jugSlotWord ⟨3⟩ σ' I)
+    simpa [dripVowTargetWord, solcAddressSlotWord] using
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨3⟩ σ' I)
   have hvowMask :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
         (dripVowTargetWord σ' I) = dripVowTargetWord σ' I := by
@@ -328,17 +328,17 @@ theorem RD.jugDripVatFoldStoreRhoReturns
   let retMem := dripVatFoldReturnMem hashMem rate
   have hhashMemSize : hashMem.size = 228 := by
     dsimp [hashMem]
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
       (by rw [hmem]; omega), hmem]
   have hhashRead64 : hashMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [hashMem]
-    exact drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
+    exact twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
       (by rw [hmem]; omega) hread64
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian (KEC (hashMem.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     dsimp [hashMem]
-    exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
+    exact twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (fileDutyIlkWord I) (by rw [hmem]; omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ hashMem.size then ⟨0⟩

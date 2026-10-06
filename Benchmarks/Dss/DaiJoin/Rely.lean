@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.DaiJoin.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,7 +37,7 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  daiJoinSlotWord (relyAuthStorageSlot I) σ I
+  solcSlotWordAt (relyAuthStorageSlot I) σ I
 
 def relyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (relyUsrStorageSlot I) ⟨1⟩
@@ -96,9 +97,6 @@ theorem evalStorageRef_rely_auth (evm : EVM.State) (I : ExecutionEnv)
     relyAuthKey, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure,
     evalExpr?]
 
-theorem uint256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
@@ -122,7 +120,7 @@ theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using daiJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -149,7 +147,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_rely_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact daiJoinStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -157,7 +155,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -183,7 +181,7 @@ theorem relyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [relyPostState] using
-    daiJoinStorageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨1⟩
+    storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨1⟩
 
 theorem daiJoinRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -380,7 +378,7 @@ theorem daiJoinRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd791 : RD daiJoinBytecode I g s0 ⟨791⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k791 C791 := by
-    simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd791raw
   have rd794pre := evm_run rd791 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -431,7 +429,7 @@ theorem daiJoinRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd791 : RD daiJoinBytecode I g s0 ⟨791⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k791 C791 := by
-    simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd791raw
   have rd794pre := evm_run rd791 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -603,7 +601,7 @@ theorem daiJoinRelyBodyCoreOk
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiJoinRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -636,7 +634,7 @@ theorem daiJoinRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiJoinRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

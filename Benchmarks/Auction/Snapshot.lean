@@ -14,8 +14,8 @@ structure Snapshot where
   packed : UInt256
 
 def snapshotOf (σ : AccountMap) (I : ExecutionEnv) : Snapshot :=
-  ⟨storedWord σ I ⟨207⟩, storedWord σ I ⟨208⟩, storedWord σ I ⟨209⟩,
-    storedWord σ I ⟨210⟩, storedWord σ I ⟨211⟩⟩
+  ⟨solcSlotWord σ I ⟨207⟩, solcSlotWord σ I ⟨208⟩, solcSlotWord σ I ⟨209⟩,
+    solcSlotWord σ I ⟨210⟩, solcSlotWord σ I ⟨211⟩⟩
 
 def snapshotOfState (evm : EVM.State) : Snapshot :=
   ⟨Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨207⟩,

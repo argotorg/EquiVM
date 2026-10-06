@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
 import Reasoning.SolmBody
@@ -104,14 +105,6 @@ theorem erc6909Decode_supportsInterface_none_pad {I : ExecutionEnv}
   simpa [bytes4, bytes4Width, abiBytes4, abiBytes4Width] using
     decodeCalldata_bytes4_none_pad (cd := I.calldata) (x := "interfaceId") hsz36 hbig hpad
 
-theorem erc6909Decide_eq_list_beq_uint8 (xs ys : List UInt8) :
-    decide (xs = ys) = (xs == ys) := by
-  by_cases h : xs = ys
-  · subst ys
-    simp
-  · have hb : (xs == ys) = false := by
-      exact beq_eq_false_iff_ne.mpr h
-    simp [h, hb]
 
 theorem supportsInterfaceEqOne_of_padding {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
@@ -135,7 +128,7 @@ theorem supportsInterfaceEqZero_of_padding_none {I : ExecutionEnv}
   have hword :
       supportsInterfaceWord I =
         UInt256.land (supportsInterfaceWord I) supportsInterfaceMask :=
-    OpenZeppelinBench.AccessControl.accessControlUInt256_eq_one_eq heq
+    Reasoning.Theory.uInt256_eq_one_eq heq
   exact (OpenZeppelinBench.AccessControl.supportsInterfaceModNeZero_of_padding_none hsz36 hpad)
     (OpenZeppelinBench.AccessControl.supportsInterfaceModZero_of_land_eq _ hword.symm)
 
@@ -255,10 +248,10 @@ theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       by_cases h6909 : (supportsInterfaceArgBytes I).beq [0x0f, 0x63, 0x2f, 0xb3] = true
       · simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
           evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, pure, BEq.beq,
-          erc6909Decide_eq_list_beq_uint8, h6909]
+          listUInt8_decide_eq_beq, h6909]
       · simp [supportsInterfaceStore, supportsInterfaceResult, ierc6909Id, ierc165Id,
           evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, pure, BEq.beq,
-          erc6909Decide_eq_list_beq_uint8, h6909])
+          listUInt8_decide_eq_beq, h6909])
 
 theorem erc6909SupportsInterfaceX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}

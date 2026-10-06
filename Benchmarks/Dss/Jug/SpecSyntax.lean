@@ -40,8 +40,8 @@ def contractSyntax : ContractDecl := solidity% contract Jug {
 
   function _diff(uint256 x, uint256 y) internal returns (int256) {
     int256 z = (x - y) as int256;
-    require(x <= #maxInt256);
-    require(y <= #maxInt256);
+    require(x <= #Reasoning.Theory.maxInt256);
+    require(y <= #Reasoning.Theory.maxInt256);
     return z;
   }
 

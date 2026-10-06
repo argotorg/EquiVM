@@ -109,9 +109,9 @@ theorem flipperDentBodyFrom4733Refund
       have hrefundEncode :
           config.externalABI.encode? "move" (dentRefundMoveArgValsOf evm0Solm I) =
             some ((dentVatRefundCallMem memHash σ I).readWithPadding 128 100) := by
-        simpa [evm0Solm, memHash, dentRefundMoveArgValsOf, initState, flipperSlotWord,
+        simpa [evm0Solm, memHash, dentRefundMoveArgValsOf, initState, solcSlotWordAt,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          bidGuyWord, bidPackedSlotOfWord, flipperAddressReturnWord]
+          bidGuyWord, bidPackedSlotOfWord, solcAddressSlotWord]
           using dentVatRefundCallMem_encode (mem := memHash) (σ := σ) (I := I)
             hhashSize
       have hcallRefundSolm :
@@ -271,7 +271,7 @@ theorem flipperDentBodyFrom4733Refund
         have hmapGuyEvm : evmGuyEvm.accountMap = dentAfterRefundMap σ_ref I := by
           simpa [evmGuyEvm, evmRefundEvm, evm0Evm, dentAfterRefundMap,
             storageStore_accountMap, initState, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage, flipperSlotWord, solcSlotWord]
+            Account.lookupStorage, solcSlotWordAt, solcSlotWord]
         let memFlux := twoWordHashMem (dentId I) ⟨1⟩ (dentVatRefundCallMem memHash σ I)
         have hmemFluxSize : memFlux.size = 228 := by
           dsimp [memFlux]
@@ -279,7 +279,7 @@ theorem flipperDentBodyFrom4733Refund
             (twoWordHashMem (dentId I) ⟨1⟩
                 (dentVatRefundCallMem memHash σ I)).size =
                 (dentVatRefundCallMem memHash σ I).size :=
-              tendTwoWordHashMem_size_of_size_ge (dentId I) ⟨1⟩ (by
+              twoWordHashMem_size_of_size_ge (dentId I) ⟨1⟩ (by
                 rw [hrefundMemSize]
                 norm_num)
             _ = 228 := hrefundMemSize
@@ -312,7 +312,7 @@ theorem flipperDentBodyFrom4733Refund
                   0 (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_extCodeSizeWord_zero_lookup_code_zero
+              extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -347,7 +347,7 @@ theorem flipperDentBodyFrom4733Refund
                     0 (fun acc => acc.code.size))).toNat := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_extCodeSizeWord_pos_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -382,7 +382,7 @@ theorem flipperDentBodyFrom4733Refund
             typedCallViaEVM_sameInputs_stateEquiv
               (evm_solm := evmGuySolm) hcallFluxEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_sigma0, initState])
+                storageStore_σ₀, initState])
               hGuyCallStateEquiv.executionEnv
           let evmFluxSolm : EVM.State :=
             { evmGuySolm with
@@ -510,7 +510,7 @@ theorem flipperDentBodyFrom4733Refund
                   64 ≤
                     (twoWordHashMem (dentId I) ⟨1⟩
                       (dentVatFluxCallMem memFlux (dentAfterRefundMap σ_ref I) I)).size := by
-                rw [tendTwoWordHashMem_size_of_size_ge]
+                rw [twoWordHashMem_size_of_size_ge]
                 · exact hfluxMemGe
                 · exact hfluxMemGe
               have hret := flipperDentX_storeTicReturn hperm hticMemGe rd3859
@@ -585,7 +585,7 @@ theorem flipperDentBodyFrom4733Refund
                   simp [evmLotEvm, evmFluxEvm, evmGuyCallEvm, evm0Evm,
                     storageStore_executionEnv, initState]
                 simpa [evmTicEvm, hmapLotEvm, hownerLot, tendStoreTicMap,
-                  tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+                  tendStoredTicWord, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, storageStore_accountMap, dentId,
                   tendId] using rfl
               have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by

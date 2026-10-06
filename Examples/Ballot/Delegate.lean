@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Examples.Ballot.Vote
 import Reasoning.Memory
@@ -351,7 +352,7 @@ theorem evalExpr_delegate_sender_weight (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (delegateSenderSlot I)).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateSenderSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -390,28 +391,6 @@ theorem evalExpr_delegate_sender_weight_zero_true (evm : EVM.State) (I : Executi
     rfl
   simp [EvalResult.bind, bind, pure, hstorage, evalExpr?, evalBinaryOp?, hnat]
 
-theorem delegateStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
-
-theorem delegateStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool } =
-      .bool false := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem delegateStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool } =
-      .bool true := by
-  simpa [boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
 
 theorem evalExpr_delegate_sender_voted_false (evm : EVM.State) (I : ExecutionEnv)
     (hvoted : UInt256.land
@@ -428,7 +407,7 @@ theorem evalExpr_delegate_sender_voted_false (evm : EVM.State) (I : ExecutionEnv
         { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := _,
           type := .bool }) =
       EvalResult.ok (Value.bool false)
-    rw [delegateStorageLocLoad_bool_offset0_false evm (delegateSenderPackedSlot I)]
+    erw [storageLocLoad_bool_offset0_false evm (delegateSenderPackedSlot I)]
     exact hvoted
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -448,7 +427,7 @@ theorem evalExpr_delegate_sender_voted_true (evm : EVM.State) (I : ExecutionEnv)
         { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := _,
           type := .bool }) =
       EvalResult.ok (Value.bool true)
-    rw [delegateStorageLocLoad_bool_offset0_true evm (delegateSenderPackedSlot I)]
+    erw [storageLocLoad_bool_offset0_true evm (delegateSenderPackedSlot I)]
     exact hvoted
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -692,15 +671,6 @@ theorem resolveStorageRef_delegate_senderField_afterDelegate (evm : EVM.State) (
   simp [evalStorageRefFrom?, evalStorageRefStep, delegateSenderRef, delegateSenderFieldRef,
     EvalResult.bind, EvalResult.ofOption, bind, pure, hty]
 
-theorem delegatePackedAddressAfterBoolTrueBytes_toNat (old val : UInt256)
-    (hcanon : val.toNat < EVM.addressModulus) :
-    let w1 := UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
-    fromBytes'
-        ((EVM.Word.toBytesLEWithSizeProof w1).1.take 1 ++
-          (EVM.Word.toBytesLEWithSizeProof val).1.take 20 ++
-          (EVM.Word.toBytesLEWithSizeProof w1).1.drop 21) =
-      1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168 :=
-  packedAddressAfterBoolTrueBytes_toNat old val hcanon
 
 theorem evalExpr_delegate_voter_delegate (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
@@ -740,35 +710,10 @@ theorem delegateAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
     (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateSenderFieldRef, delegateSenderPackedSlot,
     delegateSenderSlot]
-  rw [voteStorageLocStore_bool_true_offset0]
+  rw [storageLocStore_bool_true_offset0']
   simp [delegateAfterVotedState, delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent,
     delegateSenderPackedSlot, delegateSenderSlot]
 
-theorem ballotStorageLocStore_address_offset1_after_bool_true (evm : EVM.State)
-    (slot val : UInt256) {acc : Account} (hacc : evm.lookupAccount evm.executionEnv.codeOwner =
-      some acc) (hcanon : val.toNat < EVM.addressModulus)
-    {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32} :
-    storageLocStore
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-          (UInt256.lor
-            (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-              (UInt256.lnot ⟨255⟩)) ⟨1⟩))
-        { slot := slot, offset := 1, size := 20, hbound := hbound, type := .address }
-        (.address (AccountAddress.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-          (UInt256.lor
-            (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-              (UInt256.lnot ⟨255⟩)) ⟨1⟩))
-        evm.executionEnv.codeOwner slot
-        (UInt256.lor ⟨1⟩
-          (UInt256.lor
-            (UInt256.mul (UInt256.land val solcAddrMask) ⟨256⟩)
-            (UInt256.land
-              (UInt256.lnot
-                (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
-              (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))))) :=
-  storageLocStore_address_offset1_after_bool_true evm slot val (hacc := hacc) (hcanon := hcanon)
 
 theorem delegateAssignDelegate (evm : EVM.State) (I : ExecutionEnv)
     (hacc : evm.lookupAccount evm.executionEnv.codeOwner ≠ none)
@@ -788,7 +733,7 @@ theorem delegateAssignDelegate (evm : EVM.State) (I : ExecutionEnv)
     delegateSenderVotedStoreCurrent delegateSenderPackedCurrent delegateToValue
   unfold delegateSenderPackedSlot delegateSenderSlot
   -- Shared packed-slot store helper, supplied from `Common.lean`.
-  rw [ballotStorageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
+  rw [storageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
     (hcanon := hcanon)]
 
 theorem evalExpr_delegate_delegate_voted_false (evm : EVM.State) (I : ExecutionEnv)
@@ -803,7 +748,7 @@ theorem evalExpr_delegate_delegate_voted_false (evm : EVM.State) (I : ExecutionE
     change EvalResult.ok (storageLocLoad evm
         { slot := delegateVoterPackedSlot (delegateToWord I), offset := 0, size := 1,
           hbound := _, type := .bool }) = EvalResult.ok (Value.bool false)
-    rw [delegateStorageLocLoad_bool_offset0_false]
+    erw [storageLocLoad_bool_offset0_false]
     simpa [delegateVoterVotedByteCurrent, delegateVoterPackedCurrent, u256_land_comm] using hzero
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -820,7 +765,7 @@ theorem evalExpr_delegate_delegate_voted_true (evm : EVM.State) (I : ExecutionEn
     change EvalResult.ok (storageLocLoad evm
         { slot := delegateVoterPackedSlot (delegateToWord I), offset := 0, size := 1,
           hbound := _, type := .bool }) = EvalResult.ok (Value.bool true)
-    rw [delegateStorageLocLoad_bool_offset0_true]
+    erw [storageLocLoad_bool_offset0_true]
     simpa [delegateVoterVotedByteCurrent, delegateVoterPackedCurrent, u256_land_comm] using hnz
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -836,7 +781,7 @@ theorem evalExpr_delegate_delegate_weight (evm : EVM.State) (I : ExecutionEnv) :
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateVoterWeightCurrent evm I).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateVoterWeightCurrent, delegateVoterSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -873,7 +818,7 @@ theorem evalExpr_delegate_sender_weight_afterDelegate (evm : EVM.State) (I : Exe
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateSenderWeightCurrent evm I).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateSenderWeightCurrent, delegateSenderSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -949,7 +894,7 @@ theorem delegateAssignVoterWeight (evm : EVM.State) (I : ExecutionEnv) :
   simp only [resolveStorageRef_delegate_delegateField (delegateAfterSenderState evm I) I "weight"
     (.elem (.int uint256Int)) (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateVoterFieldRef, delegateVoterSlot]
-  rw [voteStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [delegateFalseSuccessState, delegateUpdatedVoterWeightCurrent, delegateVoterSlot]
 
 theorem evalExpr_delegate_delegate_vote (evm : EVM.State) (I : ExecutionEnv) :
@@ -963,7 +908,7 @@ theorem evalExpr_delegate_delegate_vote (evm : EVM.State) (I : ExecutionEnv) :
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateVoterVoteCurrent evm I).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateVoterVoteCurrent, delegateVoterVoteSlot, delegateVoterSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -994,8 +939,9 @@ theorem delegateArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
         UInt256.toNat (Solm.EVM.storageLoad (delegateAfterSenderState evm I)
           evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [delegateProposalsLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout, ballotContract,
-    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, ballotStorageLocLoad_uint256,
+  simp [show wordLoc = uint256Loc from rfl, arrayIndexInBounds?, storageTypeAt?, ballotConfig,
+    ballotStorageLayout, ballotContract,
+    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, storageLocLoad_uint256,
     hboundStorage]
 
 theorem delegateArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
@@ -1016,8 +962,9 @@ theorem delegateArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
           evm.executionEnv.codeOwner ⟨2⟩) ≤
         (delegateVoterVoteCurrent (delegateAfterSenderState evm I) I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout, ballotContract,
-    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, ballotStorageLocLoad_uint256,
+  simp [show wordLoc = uint256Loc from rfl, arrayIndexInBounds?, storageTypeAt?, ballotConfig,
+    ballotStorageLayout, ballotContract,
+    ballotStorageDecls, proposalStructTy, uint256St, bytes32St, storageLocLoad_uint256,
     hleStorage]
 
 theorem evalStorageRef_delegate_proposalCount (evm : EVM.State) (I : ExecutionEnv)
@@ -1092,7 +1039,7 @@ theorem evalExpr_delegate_proposal_count (evm : EVM.State) (I : ExecutionEnv)
       .int (Int.ofNat (Solm.EVM.storageLoad (delegateAfterSenderState evm I)
         (delegateAfterSenderState evm I).executionEnv.codeOwner
         (delegateProposalCountSlotCurrent evm I)).toNat)
-    exact ballotStorageLocLoad_uint256 (delegateAfterSenderState evm I)
+    exact storageLocLoad_uint256 (delegateAfterSenderState evm I)
       (delegateProposalCountSlotCurrent evm I)
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_delegate_proposalCount evm I hbound) (hty := hty) (hloc := hloc)]
@@ -1220,7 +1167,7 @@ theorem delegateAssignProposalCount (evm : EVM.State) (I : ExecutionEnv)
         funext evm'
         simp [delegateProposalCountEvaledRef, ballotConfig, ballotStorageLayout,
           delegateProposalCountSlotCurrent_spec, u256_add_comm])
-  rw [voteStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [delegateTrueSuccessState, delegateUpdatedProposalCountCurrent]
 
 theorem delegateSenderWeightCurrent_ne_zero_account (evm : EVM.State) (I : ExecutionEnv)
@@ -1501,23 +1448,6 @@ theorem delegateVoterDelegateWordCurrent_init {σ σ₀ A I} {g : Sat256} :
       delegateVoterDelegateWord σ I (delegateToWord I) := by
   rfl
 
-theorem u256_lor_one_ne_zero (w : UInt256) : UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ := by
-  intro h
-  have hval : (UInt256.lor ⟨1⟩ w).toNat = 0 := by
-    simpa using congrArg UInt256.toNat h
-  rw [u256_lor_toNat] at hval
-  change Nat.lor 1 w.toNat % UInt256.size = 0 at hval
-  have hlt : Nat.lor 1 w.toNat < UInt256.size := by
-    have hw : w.toNat < 2 ^ 256 := by
-      simpa [UInt256.toNat, UInt256.size] using w.val.isLt
-    simpa [UInt256.size] using Nat.or_lt_two_pow (by norm_num : 1 < 2 ^ 256) hw
-  rw [Nat.mod_eq_of_lt hlt] at hval
-  have hbitTrue : Nat.testBit (Nat.lor 1 w.toNat) 0 = true := by
-    change Nat.testBit (1 ||| w.toNat) 0 = true
-    rw [Nat.testBit_lor]
-    norm_num
-  rw [hval] at hbitTrue
-  simp at hbitTrue
 
 theorem delegateAfterSenderState_getD_init {σ σ₀ A I} {g : Sat256}
     (readSlot : UInt256) :
@@ -1537,7 +1467,7 @@ theorem delegateAfterSenderState_getD_init {σ σ₀ A I} {g : Sat256}
   simpa [delegateAfterSenderState, delegateAfterVotedState, delegateAfterSenderMap,
     delegateSenderPackedStoreCurrent, delegateSenderPackedStoreWord, delegateSenderVotedStoreCurrent,
     delegateSenderPackedCurrent, delegateSenderPackedWord, initState, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, storageStore_accountMap, voteStorageStore_executionEnv]
+    State.lookupAccount, Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv'']
     using hlookup
 
 theorem delegateVoterVotedByteCurrent_afterSenderState_init {σ σ₀ A I} {g : Sat256} :
@@ -1594,44 +1524,15 @@ theorem delegateProposalCountCurrent_init {σ σ₀ A I} {g : Sat256} :
   unfold delegateProposalCountCurrent delegateProposalCountSlotCurrent
   rw [delegateVoterVoteCurrent_afterSenderState_init]
   simpa [delegateProposalCountWord, delegateProposalCountSlot, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, initState, voteStorageStore_executionEnv]
+    State.lookupAccount, Account.lookupStorage, initState, storageStore_executionEnv'']
     using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (delegateProposalCountSlot σ I)
 
-theorem u256_add_ne_zero_of_right_ne_zero {a b : UInt256}
-    (hb : b ≠ ⟨0⟩) (hfit : a.toNat + b.toNat < UInt256.size) :
-    UInt256.add a b ≠ ⟨0⟩ := by
-  intro hzero
-  have hnat : (UInt256.add a b).toNat = a.toNat + b.toNat := by
-    change (a + b).toNat = _
-    rw [uadd_toNat]
-    exact Nat.mod_eq_of_lt hfit
-  have hsum : a.toNat + b.toNat = 0 := by
-    have hz := congrArg UInt256.toNat hzero
-    simpa [hnat] using hz
-  have hbNat : b.toNat = 0 := by omega
-  exact hb (uint256_toNat_eq_zero hbNat)
-
-theorem u256_add_one_ne_self (a : UInt256) : a + ⟨1⟩ ≠ a := by
-  intro h
-  have hmod : (a.toNat + 1) % UInt256.size = a.toNat := by
-    have hnat := congrArg UInt256.toNat h
-    simpa [uadd_toNat] using hnat
-  have ha : a.toNat < UInt256.size := a.val.isLt
-  by_cases hlt : a.toNat + 1 < UInt256.size
-  · rw [Nat.mod_eq_of_lt hlt] at hmod
-    omega
-  · have hge : UInt256.size ≤ a.toNat + 1 := Nat.le_of_not_gt hlt
-    have hle : a.toNat + 1 ≤ UInt256.size := Nat.succ_le_of_lt ha
-    have heq : a.toNat + 1 = UInt256.size := le_antisymm hle hge
-    rw [heq, Nat.mod_self] at hmod
-    have hsize : 1 < UInt256.size := by norm_num [UInt256.size]
-    omega
 
 theorem delegateSenderSlot_ne_packedSlot (I : ExecutionEnv) :
     delegateSenderSlot I ≠ delegateSenderPackedSlot I := by
   intro h
-  exact (u256_add_one_ne_self (delegateSenderSlot I))
+  exact (u256_add_one_ne_self' (delegateSenderSlot I))
     (by simpa [delegateSenderPackedSlot] using h.symm)
 
 theorem delegateSenderWeightWord_afterSenderMap (σ : AccountMap) (I : ExecutionEnv) :
@@ -1676,7 +1577,7 @@ theorem delegateAfterSenderState_accountMap_eq_init {σ σ₀ A I} {g : Sat256} 
   simpa [delegateAfterSenderState, delegateAfterVotedState, delegateAfterSenderMap,
     delegateSenderPackedStoreCurrent, delegateSenderPackedStoreWord, delegateSenderVotedStoreCurrent,
     delegateSenderPackedCurrent, delegateSenderPackedWord, initState, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, storageStore_accountMap, voteStorageStore_executionEnv]
+    State.lookupAccount, Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv'']
     using h
 
 theorem delegateFalseSuccessState_accountMap_eq_init {σ σ₀ A I} {g : Sat256} :
@@ -1689,7 +1590,7 @@ theorem delegateFalseSuccessState_accountMap_eq_init {σ σ₀ A I} {g : Sat256}
   simpa [delegateFalseSuccessState, delegateFalseSuccessMap, delegateUpdatedVoterWeightCurrent,
     delegateUpdatedVoterWeight, delegateVoterWeightCurrent_afterSenderState_init,
     delegateSenderWeightCurrent_afterSenderState_init, storageStore_accountMap,
-    voteStorageStore_executionEnv] using h
+    storageStore_executionEnv''] using h
 
 theorem delegateTrueSuccessState_accountMap_eq_init {σ σ₀ A I} {g : Sat256} :
     delegateTrueSuccessMap σ I =
@@ -1702,7 +1603,7 @@ theorem delegateTrueSuccessState_accountMap_eq_init {σ σ₀ A I} {g : Sat256} 
     delegateUpdatedProposalCount, delegateProposalCountCurrent_init,
     delegateSenderWeightCurrent_afterSenderState_init, delegateProposalCountSlot,
     delegateProposalCountSlotCurrent, delegateVoterVoteCurrent_afterSenderState_init,
-    storageStore_accountMap, voteStorageStore_executionEnv] using h
+    storageStore_accountMap, storageStore_executionEnv''] using h
 
 /-! ### `EVMStateEquiv` simulation chains for the delegate success states
 
@@ -2374,28 +2275,6 @@ theorem delegateProposalsDataBaseKeccak (toWord senderWord : UInt256) :
   unfold proposalsDataBase
   exact keccakSlot_eq _
 
-theorem delegateOverflowGt (target addend : UInt256)
-    (hover : UInt256.size ≤ target.toNat + addend.toNat) :
-    UInt256.gt target (addend + target) = ⟨1⟩ := by
-  have hover' : UInt256.size ≤ addend.toNat + target.toNat := by
-    omega
-  have hsum_lt2 : addend.toNat + target.toNat < 2 * UInt256.size := by
-    have ht : target.toNat < UInt256.size := target.val.isLt
-    have ha : addend.toNat < UInt256.size := addend.val.isLt
-    omega
-  have hmod : (addend.toNat + target.toNat) % UInt256.size =
-      addend.toNat + target.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover']
-    rw [Nat.mod_eq_of_lt (by omega)]
-  have haddNat : (addend + target).toNat = addend.toNat + target.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  show UInt256.fromBool (decide (target > addend + target)) = ⟨1⟩
-  rw [decide_eq_true]
-  · rfl
-  · show target.toNat > (addend + target).toNat
-    rw [haddNat]
-    have ha : addend.toNat < UInt256.size := addend.val.isLt
-    omega
 
 end Ballot
 
@@ -3305,7 +3184,7 @@ theorem ballotDelegateX_delegateNotVotedOverflow {σ σ₀ A I} {g : Sat256}
   let addend := delegateSenderWeightWord (delegateAfterSenderMap σ I) I
   have rd1842 := evm_run rd1835 with [jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero]
   have hgt : UInt256.gt target (addend + target) = ⟨1⟩ := by
-    exact delegateOverflowGt target addend (by simpa [target, addend] using hover)
+    exact u256_gt_add_right_of_overflow target addend (by simpa [target, addend] using hover)
   have rd1842' := rd1842
   rw [show delegateVoterWeightWord (delegateAfterSenderMap σ I) I (delegateToWord I) = target
         from rfl,
@@ -3590,7 +3469,7 @@ theorem ballotDelegateX_delegateVotedOverflow {σ σ₀ A I} {g : Sat256}
   let addend := delegateSenderWeightWord (delegateAfterSenderMap σ I) I
   have rd1842 := evm_run rd1835 with [jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero]
   have hgt : UInt256.gt target (addend + target) = ⟨1⟩ := by
-    exact delegateOverflowGt target addend (by simpa [target, addend] using hover)
+    exact u256_gt_add_right_of_overflow target addend (by simpa [target, addend] using hover)
   have rd1842' := rd1842
   rw [show delegateProposalCountWord σ I = target from rfl,
       show delegateSenderWeightWord (delegateAfterSenderMap σ I) I = addend from rfl, hgt,

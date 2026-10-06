@@ -90,7 +90,7 @@ theorem flipperDenyBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : flipperSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (flipperUsrSlotFor I) ⟨0⟩
     have hbody :
@@ -111,7 +111,7 @@ theorem flipperDenyBodyCoreOk
             valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind, locals]
         have hstore :
             storageLocStore evm0 (wordLoc (flipperUsrSlotFor I)) (.int 0) = some evm1 := by
-          simpa [evm1] using flipperStorageLocStore_uint256 evm0 (flipperUsrSlotFor I) ⟨0⟩
+          simpa [evm1] using storageLocStore_uint256 evm0 (flipperUsrSlotFor I) ⟨0⟩
         exact assignStorageRef_storage_scalar
           (ty := .elem (.int uint256Int)) (loc := wordLoc (flipperUsrSlotFor I))
           (hbase := by simp [locals, flipperUsrStore, wardsRef])
@@ -133,7 +133,7 @@ theorem flipperDenyBodyCoreOk
         flipperUsrStore] using ExecFuncBody.execBlockOK hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, flipperCallerWardsSlot, flipperSlotWord] using hauthEvm
+      simpa [callerSlot, flipperCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.flipperAuthCheckOk
       (code := flipperBytecode) (pc := ⟨5233⟩) (okPc := ⟨5315⟩) (key := key)
       (ret := ⟨323⟩) (R := [sel])
@@ -186,7 +186,7 @@ theorem flipperDenyBodyCoreOk
         flipperUsrStore] using ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, flipperCallerWardsSlot, flipperSlotWord] using hauthEvm
+      simpa [callerSlot, flipperCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.flipperAuthCheckRevert
       (pc := ⟨5233⟩) (okPc := ⟨5315⟩) (key := key) (ret := ⟨323⟩) (R := [sel])
       (by simpa [key, flipperUsrKey] using hroutine)

@@ -81,90 +81,6 @@ theorem fileUintWhatWord_ne_of_bytes_ne {I : ExecutionEnv} {bs : List UInt8}
   intro hword
   exact hneq (fileUintWhat_eq_of_word_eq hsz36 hword hbsLen)
 
-theorem decodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 32).take 32))
-
-theorem decodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
-theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      some (((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36]
-
-theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_uint256_legacy_none_short (bytes := cd.toList.drop 4) (by
-      rw [List.length_drop, htlen]
-      omega)]
 
 theorem flipperDecode_fileUint_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileUintTransition.params.map Param.name)
@@ -303,7 +219,7 @@ theorem assign_fileUintBegStorage (evm : EVM.State) (I : ExecutionEnv) :
       (her := by simp [begRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using flipperStorageLocStore_uint256 evm ⟨4⟩ (fileUintData I)
+  simpa [evm'] using storageLocStore_uint256 evm ⟨4⟩ (fileUintData I)
 
 theorem assign_fileUintTtlStorage (evm : EVM.State) (I : ExecutionEnv) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
@@ -347,7 +263,7 @@ theorem assign_fileUintTauStorage (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem flipperFileUintSourceBodyBeg {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintBegBytes) :
     let locals := fileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -396,7 +312,7 @@ theorem flipperFileUintSourceBodyBeg {σ σ₀ A I} {g : UInt256}
 
 theorem flipperFileUintSourceBodyTtl {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hwhat : fileUintWhat I = fileUintTtlBytes) :
     let locals := fileUintLocals I
@@ -465,7 +381,7 @@ theorem flipperFileUintSourceBodyTtl {σ σ₀ A I} {g : UInt256}
 
 theorem flipperFileUintSourceBodyTau {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hwhat : fileUintWhat I = fileUintTauBytes) :
@@ -549,7 +465,7 @@ theorem flipperFileUintSourceBodyTau {σ σ₀ A I} {g : UInt256}
 
 theorem flipperFileUintSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
@@ -581,7 +497,7 @@ theorem flipperFileUintSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
 
 theorem flipperFileUintSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hnotTau : fileUintWhat I ≠ fileUintTauBytes) :
@@ -732,7 +648,7 @@ theorem flipperFileUintX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem flipperFileUintX_authorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨1705⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -742,7 +658,7 @@ theorem flipperFileUintX_authorized {σ I} {g : Sat256} {s0 : State}
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [flipperCallerWardsSlot, flipperSlotWord] using hauth
+    simpa [flipperCallerWardsSlot, solcSlotWordAt] using hauth
   exact RD.flipperAuthCheckOk
     (code := flipperBytecode) (pc := ⟨1705⟩) (okPc := ⟨1787⟩)
     (key := fileUintData I) (ret := calldataWord I.calldata 4) (R := [⟨323⟩, sel])
@@ -754,14 +670,14 @@ theorem flipperFileUintX_authorized {σ I} {g : Sat256} {s0 : State}
 
 theorem flipperFileUintX_unauthorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨1705⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [flipperCallerWardsSlot, flipperSlotWord] using hauth
+    simpa [flipperCallerWardsSlot, solcSlotWordAt] using hauth
   exact RD.flipperAuthCheckRevert
     (pc := ⟨1705⟩) (okPc := ⟨1787⟩) (key := fileUintData I)
     (ret := calldataWord I.calldata 4) (R := [⟨323⟩, sel])
@@ -1224,7 +1140,7 @@ theorem flipperFileUintBodyCoreOkBeg
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintBegBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hdecode :
@@ -1261,7 +1177,7 @@ theorem flipperFileUintBodyCoreOkTtl
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hwhat : fileUintWhat I = fileUintTtlBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
@@ -1309,7 +1225,7 @@ theorem flipperFileUintBodyCoreOkTau
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hwhat : fileUintWhat I = fileUintTauBytes)
@@ -1360,7 +1276,7 @@ theorem flipperFileUintBodyCoreUnauthorized
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileUintTransition.params.map Param.name)
@@ -1387,7 +1303,7 @@ theorem flipperFileUintBodyCoreUnrecognized
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hnotTau : fileUintWhat I ≠ fileUintTauBytes)
@@ -1448,7 +1364,7 @@ theorem flipperFileUintBodyCore {σ σ₀ A I} {g : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩
+  · by_cases hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩
     · by_cases hbeg : fileUintWhat I = fileUintBegBytes
       · exact flipperFileUintBodyCoreOkBeg hcode hsize hperm hwv hsz68 hauth hbeg
           hdispatch (flipperDecode_fileUint_ok hsz68) hreach

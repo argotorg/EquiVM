@@ -16,7 +16,7 @@ theorem uniswapMintFeeActualRootArithmeticCasesOfTail
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast ::
         feeToWord :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
       mem feeToStaticcallActiveWords rdata σFee k C)
-    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
+    (htotalEq : mintFunctionTotalSupplyWord evmFeeS = solcSlotWordAt ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
     (hrootKLastSize : rootKLast.toNat < UInt256.size)

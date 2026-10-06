@@ -1,3 +1,4 @@
+import Reasoning.Solc
 import Benchmarks.Dss.Cure.Common
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -7,19 +8,19 @@ namespace Benchmarks.Dss.Cure
 /-! ## `tell()` -/
 
 def tellLiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨1⟩ σ I
+  solcSlotWordAt ⟨1⟩ σ I
 
 def tellSrcsLenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 def tellWhenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 def tellLCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 def tellSayWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 def tellTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
@@ -74,7 +75,7 @@ theorem evalExpr_tellLiveStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
         .ok (.int (Int.ofNat (tellLiveWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellLiveEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨1⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 _ ⟨1⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨1⟩)
   · exact hbase
   · simp [tellLiveEvaledRef, liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
@@ -89,7 +90,7 @@ theorem evalExpr_tellWhenStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
         .ok (.int (Int.ofNat (tellWhenWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellWhenEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨4⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 _ ⟨4⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨4⟩)
   · exact hbase
   · simp [tellWhenEvaledRef, whenRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
@@ -104,7 +105,7 @@ theorem evalExpr_tellLCountStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
         .ok (.int (Int.ofNat (tellLCountWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellLCountEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 _ ⟨8⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨8⟩)
   · exact hbase
   · simp [tellLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
@@ -119,7 +120,7 @@ theorem evalExpr_tellSayStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
         .ok (.int (Int.ofNat (tellSayWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellSayEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
-  · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 _ ⟨9⟩)
+  · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨9⟩)
   · exact hbase
   · simp [tellSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
@@ -131,7 +132,7 @@ theorem evalExpr_tellSrcsLength {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ }
       (initState σ σ₀ g A I) (.arrayLength .storage srcsRef) =
         .ok (.int (Int.ofNat (tellSrcsLenWord σ I).toNat)) := by
-  simp [evalExpr?, tellSrcsLenWord, cureSlotWord, initState, config, contract,
+  simp [evalExpr?, tellSrcsLenWord, solcSlotWordAt, initState, config, contract,
     srcsRef, storageDecls, storageLayout, solidityStorageLayout, storageLayoutRaw,
     readStorageArrayLength?, resolveStorageRef?, storageTypeAt?, evalStorageRef,
     evalStorageRefSteps, wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
@@ -140,9 +141,9 @@ theorem evalExpr_tellSrcsLength {σ σ₀ A I} {g : Sat256} :
       (initState σ σ₀ g A I) (wordLoc ⟨2⟩) with
     | Value.int n => EvalResult.ok (Value.int n)
     | _ => EvalResult.error EvalError.storageError) =
-      EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ I).toNat)
-  rw [cureStorageLocLoad_uint256]
-  simp [cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
+      EvalResult.ok (Value.int ↑(solcSlotWordAt ⟨2⟩ σ I).toNat)
+  erw [storageLocLoad_uint256]
+  simp [solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
     Account.lookupStorage]
 
 theorem evalExpr_tellTimestamp {σ σ₀ A I} {g : Sat256} {locals : Store} :
@@ -793,13 +794,13 @@ theorem cureTellReturn_count {σ σ₀ A I} {g : UInt256}
     (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
     (pc := ⟨2232⟩) (guardPc := ⟨2267⟩) (successPc := ⟨2326⟩)
     (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine cureTellCountSuccessWf_concrete
-    (by simpa [tellLiveWord, cureSlotWord] using hlive)
-    (by simpa [tellLCountWord, tellSrcsLenWord, cureSlotWord] using hcount)
+    (by simpa [tellLiveWord, solcSlotWordAt] using hlive)
+    (by simpa [tellLCountWord, tellSrcsLenWord, solcSlotWordAt] using hcount)
     (by jump_dest) (by jump_dest) (by jump_dest) (by simp)
   have hret := RD.solcReturnWordFromMem
     (pc := ⟨343⟩) (val := tellSayWord σ I) (ret := cureSelWord I) (R := [])
     (memout := solcReturnMem (tellSayWord σ I))
-    (by simpa [tellSayWord, cureSlotWord] using hretPc)
+    (by simpa [tellSayWord, solcSlotWordAt] using hretPc)
     hretmem
     solcFreePtrMem_mload64
     (by rfl)
@@ -833,14 +834,14 @@ theorem cureTellReturn_time {σ σ₀ A I} {g : UInt256}
     (g := Sat256.ofUInt256 g)
     (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
     (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine
-    (by simpa [tellLiveWord, cureSlotWord] using hlive)
-    (by simpa [tellLCountWord, tellSrcsLenWord, cureSlotWord] using hcount)
-    (by simpa [tellWhenWord, tellTimestampWord, cureSlotWord] using htime)
+    (by simpa [tellLiveWord, solcSlotWordAt] using hlive)
+    (by simpa [tellLCountWord, tellSrcsLenWord, solcSlotWordAt] using hcount)
+    (by simpa [tellWhenWord, tellTimestampWord, solcSlotWordAt] using htime)
     (by jump_dest) (by jump_dest) (by simp)
   have hret := RD.solcReturnWordFromMem
     (pc := ⟨343⟩) (val := tellSayWord σ I) (ret := cureSelWord I) (R := [])
     (memout := solcReturnMem (tellSayWord σ I))
-    (by simpa [tellSayWord, cureSlotWord] using hretPc)
+    (by simpa [tellSayWord, solcSlotWordAt] using hretPc)
     hretmem
     solcFreePtrMem_mload64
     (by rfl)
@@ -852,23 +853,6 @@ theorem cureTellReturn_time {σ σ₀ A I} {g : UInt256}
 def cureTellRevertLiteralMem : ByteArray :=
   cureBytecode.write 3826 (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem) 196 37
 
-theorem solcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem2 len mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
 
 theorem cureTellRevertLiteralMem_size :
     cureTellRevertLiteralMem.size = 233 := by
@@ -1034,15 +1018,15 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
           (pc := ⟨2232⟩) (guardPc := ⟨2267⟩) (successPc := ⟨2326⟩)
           (ret := ⟨343⟩) (R := [cureSelWord I])
           hroutine cureTellCountSuccessWf_concrete
-          (by simpa [tellLiveWord, cureSlotWord] using hliveEvm)
-          (by simpa [tellLCountWord, tellSrcsLenWord, cureSlotWord] using hcountEvm)
+          (by simpa [tellLiveWord, solcSlotWordAt] using hliveEvm)
+          (by simpa [tellLCountWord, tellSrcsLenWord, solcSlotWordAt] using hcountEvm)
           (by simp)
         obtain ⟨_, _, hrevPc⟩ := RD.cureTellTimeTailGuardFalseConcrete
           (g := Sat256.ofUInt256 g)
           (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (ret := ⟨343⟩) (junk := ⟨0⟩) (keep := ⟨0⟩)
           (R := [cureSelWord I]) htail
-          (by simpa [tellWhenWord, tellTimestampWord, cureSlotWord]
+          (by simpa [tellWhenWord, tellTimestampWord, solcSlotWordAt]
             using Nat.lt_of_not_ge htimeEvm)
           (by simp)
         have hrev := RD.cureTellRevertTail hrevPc (by simp)
@@ -1060,7 +1044,7 @@ theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
       (g := Sat256.ofUInt256 g)
       (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
       (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine
-      (by simpa [tellLiveWord, cureSlotWord] using hliveEvm) (by simp)
+      (by simpa [tellLiveWord, solcSlotWordAt] using hliveEvm) (by simp)
     have hrev := RD.cureTellRevertTail hrevPc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

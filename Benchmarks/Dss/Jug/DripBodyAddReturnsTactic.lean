@@ -13,10 +13,10 @@ private def jugDripAddReturnsScript : String := r#"
 obtain ⟨_, _, rd1485⟩ := RD.jugDripAddReturns haddOverflow _rd2131
 obtain ⟨_, _, _rd2153⟩ := RD.jugDripToRpowRoutine hsz36 hlo hout rd1485
 let fee :=
-  jugSlotWord ⟨4⟩ σ' I + jugSlotWord (fileDutyDutySlotFor I) σ' I
+  solcSlotWordAt ⟨4⟩ σ' I + solcSlotWordAt (fileDutyDutySlotFor I) σ' I
 let age :=
   UInt256.sub (UInt256.ofNat I.header.timestamp)
-    (jugSlotWord (fileDutyRhoSlotFor I) σ' I)
+    (solcSlotWordAt (fileDutyRhoSlotFor I) σ' I)
 have _rpowNZeroProgress :
     age = ⟨0⟩ →
       ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
@@ -53,7 +53,7 @@ have _rpowRmulNZeroProgress :
 have _diffNZeroBoundRevert :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
-        ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
+        ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           RDrev jugBytecode (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   intro hage0 hfitRmul hprevMaxNot
@@ -68,7 +68,7 @@ have _diffNZeroBoundRevert :
 have _diffNZeroProgress :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
-        ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
+        ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
             (⟨0⟩ :: dripVowTargetWord σ' I :: fileDutyIlkWord I ::
@@ -91,7 +91,7 @@ have _diffNZeroProgress :
 have _foldNZeroCallReady :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
-        ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
+        ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) ≠ ⟨0⟩ →
             ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
@@ -121,22 +121,22 @@ have _foldNZeroCallReady :
   have hinnerSize :
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
         (dripVatIlksPostCallMem I out)).size = 192 := by
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hpostSize]; omega), hpostSize]
   have hinnerRead64 :
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
         (dripVatIlksPostCallMem I out)).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
+    twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
       (by rw [hpostSize]; omega) hpostRead64
   have hfoldBaseSize : foldBaseMem.size = 192 := by
     dsimp [foldBaseMem]
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega), hinnerSize]
   have hfoldBaseRead64 :
       foldBaseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [foldBaseMem]
-    exact drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I)
+    exact twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega) hinnerRead64
   obtain ⟨_, _, rd1570⟩ :=
     _diffNZeroProgress hage0 hfitRmul hprevMax
@@ -145,7 +145,7 @@ have _foldNZeroCallReady :
 have _foldNZeroNoCode :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
-        ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
+        ((dripVatIlksPrevWord out).toNat : Int) ≤ Reasoning.Theory.maxInt256 →
           Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) = ⟨0⟩ →
             RDrev jugBytecode (Sat256.ofUInt256 g)
@@ -164,22 +164,22 @@ have _foldNZeroNoCode :
   have hinnerSize :
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
         (dripVatIlksPostCallMem I out)).size = 192 := by
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hpostSize]; omega), hpostSize]
   have hinnerRead64 :
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
         (dripVatIlksPostCallMem I out)).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
-    drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
+    twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
       (by rw [hpostSize]; omega) hpostRead64
   have hfoldBaseSize : foldBaseMem.size = 192 := by
     dsimp [foldBaseMem]
-    rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
+    rw [twoWordHashMem_size_of_ge64 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega), hinnerSize]
   have hfoldBaseRead64 :
       foldBaseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [foldBaseMem]
-    exact drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I)
+    exact twoWordHashMem_read64_of_ge_96 (fileDutyIlkWord I)
       (⟨1⟩ : UInt256) (by rw [hinnerSize]; omega) hinnerRead64
   obtain ⟨_, _, rd1570⟩ :=
     _diffNZeroProgress hage0 hfitRmul hprevMax

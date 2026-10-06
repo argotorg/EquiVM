@@ -36,7 +36,7 @@ theorem jugDripBodyCoreInvalidNow
     (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat)
+        (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dripTransition.params.map Param.name)
@@ -63,7 +63,7 @@ theorem jugDripBodyCoreVatIlksNoCode
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
@@ -102,7 +102,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
@@ -151,7 +151,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
       EVM.address (dripVatAddress σ I) =
         AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
     rw [htgtAddr]
-    exact evmAddress_accountAddress _
+    exact address_of_val _
   have hΘE :
       (σ', g'', A', false, out) =
         Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -185,7 +185,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
@@ -245,7 +245,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
@@ -295,7 +295,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
       EVM.address (dripVatAddress σ I) =
         AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
     rw [htgtAddr]
-    exact evmAddress_accountAddress _
+    exact address_of_val _
   have hΘE :
       (σ', g'', A', true, out) =
         Ethereum.EVM.Θ evm.accountMap evm.σ₀ Ain
@@ -332,7 +332,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
-      (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+      (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hdispatch : dispatchMsg contract I.calldata = some dripTransition)
     (hdecode :
@@ -343,7 +343,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     (hdepth : I.depth.val < 1024)
     (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ' I :: jugSlotWord ⟨4⟩ σ' I ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ' I :: solcSlotWordAt ⟨4⟩ σ' I ::
         ⟨1485⟩ :: ⟨1524⟩ :: ⟨1530⟩ :: dripVatIlksPrevWord out :: ⟨0⟩ ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out σ' k C)
@@ -362,8 +362,8 @@ theorem jugDripBodyCoreVatIlksAddOverflow
         some [.int (Int.ofNat (dripVatIlksArtWord out).toNat),
           .int (Int.ofNat (dripVatIlksPrevWord out).toNat)])
     (haddOverflow :
-      UInt256.size ≤ (jugSlotWord ⟨4⟩ σ' I).toNat +
-        (jugSlotWord (fileDutyDutySlotFor I) σ' I).toNat) :
+      UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
+        (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := dripLocals I
   let evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -390,25 +390,25 @@ theorem jugDripBodyCoreVatIlksAddOverflow
       EVM.address (dripVatAddress σ I) =
         AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
     rw [dripVatAddress_eq_target σ I]
-    exact evmAddress_accountAddress _
+    exact address_of_val _
   have hcall :
       typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
         (true, { evm with accountMap := σ', substate := A' }, out) true :=
     callCoincides
-      (jugInitStateDepth_ne_1024_of_lt
+      (initStateDepth_ne_1024_of_lt
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hdepth)
       htgt (dripVatIlksEncode_eq I hsz36) hΘE
   have hbody :
       ExecTransitionBody config contract evm locals dripTransition.body .reverted := by
-    simpa [evm, locals, initState, jugSlotWord] using
+    simpa [evm, locals, initState, solcSlotWordAt] using
       (jugDripSourceBodyVatIlksAddOverflowReverts
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmVat := { evm with accountMap := σ', substate := A' })
         (out := out) hwv hsz36 hle hvatCodeSolm
         (by simpa [evm] using hcall) hdec
-        (by simpa [evm, initState, jugSlotWord] using haddOverflow))
+        (by simpa [evm, initState, solcSlotWordAt] using haddOverflow))
   have hrev := RD.jugDripAddOverflowReverts haddOverflow rd2131
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

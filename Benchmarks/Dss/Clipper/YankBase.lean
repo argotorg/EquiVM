@@ -103,7 +103,7 @@ theorem clipperDecode_yank_ok (v : ClipperImmutables) {I : ExecutionEnv}
         some (clipperYankStore I) := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = _
   simpa [config, clipperYankStore, clipperYankArgValue, clipperYankArgWord] using
-    decodeCalldataWithMode_legacyUint256_ok (cd := I.calldata) (x := "id") hsz36
+    decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "id") hsz36
 
 theorem clipperDecode_yank_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -111,7 +111,7 @@ theorem clipperDecode_yank_none_short (v : ClipperImmutables) {I : ExecutionEnv}
       (transitionSignature (yankTransition v)).paramTypes I.calldata = none := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["id"] [uint256] I.calldata = none
   simpa [config] using
-    decodeCalldataWithMode_legacyUint256_none_short (cd := I.calldata) (x := "id") hsz4
+    decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "id") hsz4
       hshort
 
 theorem clipperYankSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
@@ -212,7 +212,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperYankSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -235,7 +235,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h369 := clipperSplitTaken (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
+  have h369 := RD.selectorSplitTakenPush2 (pc := (⟨261⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
       (by
@@ -263,7 +263,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨369⟩ : UInt256) (by native_decide))
     (by simp)
-  have h381 := clipperSplitNotTaken (pc := (⟨370⟩ : UInt256))
+  have h381 := RD.selectorSplitNotTakenPush2 (pc := (⟨370⟩ : UInt256))
     (next := (⟨381⟩ : UInt256)) (pivot := clipperSelNat 21)
     (tgt := (⟨429⟩ : UInt256))
     (h369.jumpdest
@@ -292,7 +292,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h392 := clipperArmNotTaken (pc := (⟨381⟩ : UInt256))
+  have h392 := RD.selectorArmNotTakenPush2 (pc := (⟨381⟩ : UInt256))
     (next := (⟨392⟩ : UInt256)) (sel := clipperSelNat 21)
     (tgt := (⟨592⟩ : UInt256)) h381
     (by
@@ -316,7 +316,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h403 := clipperArmNotTaken (pc := (⟨392⟩ : UInt256))
+  have h403 := RD.selectorArmNotTakenPush2 (pc := (⟨392⟩ : UInt256))
     (next := (⟨403⟩ : UInt256)) (sel := clipperSelNat 1)
     (tgt := (⟨600⟩ : UInt256)) h392
     (by
@@ -340,7 +340,7 @@ theorem clipperReachYankBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h608 := clipperArmTaken (pc := (⟨403⟩ : UInt256)) (sel := clipperSelNat 28)
+  have h608 := RD.selectorArmTakenPush2 (pc := (⟨403⟩ : UInt256)) (sel := clipperSelNat 28)
     (tgt := (⟨608⟩ : UInt256)) h403
     (by
         change decode code (⟨403⟩ : UInt256) = some (.DUP1, .none)
@@ -381,7 +381,7 @@ theorem clipperJumpDest1912 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 2500) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

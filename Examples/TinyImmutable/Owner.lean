@@ -22,7 +22,7 @@ theorem tinyOwnerBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       simpa [owner] using
-        evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner)
+        evalAddressLiteral (config v) { contract := contract v, locals := locals } evm v.owner)
 
 theorem tinyOwnerReturnEncoding (v : TinyImmutables) :
     encodeReturnValue? addr (.address v.owner) =

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.FileAddressSource
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -12,7 +13,7 @@ theorem clipperFileAddressPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -57,7 +58,7 @@ theorem clipperFileAddressRoutineJumpDest (v : ClipperImmutables) {code : ByteAr
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -71,7 +72,7 @@ theorem clipperFileAddressJumpDest6922 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -85,7 +86,7 @@ theorem clipperFileAddressJumpDest6999 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -99,7 +100,7 @@ theorem clipperFileAddressJumpDest7054 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -113,7 +114,7 @@ theorem clipperFileAddressJumpDest7100 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -127,7 +128,7 @@ theorem clipperFileAddressJumpDest7146 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -141,7 +142,7 @@ theorem clipperFileAddressJumpDest7189 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -155,7 +156,7 @@ theorem clipperFileAddressJumpDest2988 (v : ClipperImmutables) {code : ByteArray
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7200) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -475,21 +476,6 @@ theorem clipperFileAddressX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd7005raw⟩
 
-theorem clipperFileAddressSetWord_eq (old data : UInt256) :
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-      setAddressOffset0Word old data := by
-  calc
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-        UInt256.lor (UInt256.land data solcAddrMask)
-          (UInt256.land old (UInt256.lnot solcAddrMask)) := by
-          rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
-    _ = UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask))
-          (UInt256.land data solcAddrMask) := by
-          exact u256_lor_comm _ _
-    _ = setAddressOffset0Word old data := by
-          rfl
 
 set_option maxHeartbeats 1000000 in
 theorem clipperFileAddressX_spotterStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -554,7 +540,7 @@ theorem clipperFileAddressX_spotterStore {σ I} {g : Sat256} {s0 : State} {k C :
   have rd7053 := rd7050raw.pushConst (⟨7189⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by clipper_file_address_decode) (by evm_ov)
   exact ⟨_, _, by
-    simpa [solcSlotWord, clipperFileAddressSetWord_eq,
+    simpa [solcSlotWord, ctorSetAddressWord_eq,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd7053.jump (by clipper_file_address_decode)
@@ -656,7 +642,7 @@ theorem clipperFileAddressX_dogStoreFrom {σ I} {g : Sat256} {s0 : State} {k C :
   have rd7099 := rd7096raw.pushConst (⟨7189⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by clipper_file_address_decode) (by evm_ov)
   exact ⟨_, _, by
-    simpa [solcSlotWord, clipperFileAddressSetWord_eq,
+    simpa [solcSlotWord, ctorSetAddressWord_eq,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd7099.jump (by clipper_file_address_decode)
@@ -760,7 +746,7 @@ theorem clipperFileAddressX_vowStoreFrom {σ I} {g : Sat256} {s0 : State} {k C :
   have rd7145 := rd7142raw.pushConst (⟨7189⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by clipper_file_address_decode) (by evm_ov)
   exact ⟨_, _, by
-    simpa [solcSlotWord, clipperFileAddressSetWord_eq,
+    simpa [solcSlotWord, ctorSetAddressWord_eq,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd7145.jump (by clipper_file_address_decode)
@@ -862,7 +848,7 @@ theorem clipperFileAddressX_calcStoreFrom {σ I} {g : Sat256} {s0 : State} {k C 
   obtain ⟨_, _, rd7189raw⟩ := rd7187.sstore hperm (by clipper_file_address_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by
-    simpa [solcSlotWord, clipperFileAddressSetWord_eq,
+    simpa [solcSlotWord, ctorSetAddressWord_eq,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd7189raw⟩

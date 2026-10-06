@@ -1,3 +1,5 @@
+import Reasoning.Stepping
+import Reasoning.Reach
 import Examples.UniswapV2Pair.MintProportionalRuntimeCalls
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -19,7 +21,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyZero
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
       mem aw rdata σFee k C)
-    (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩) :
+    (htotalZero : solcSlotWordAt ⟨0⟩ σFee I = ⟨0⟩) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3713⟩
       [⟨0⟩, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
@@ -29,10 +31,10 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyZero
   obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3705⟩
-      [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
+      [solcSlotWordAt ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata σFee k3705 C3705 := by
-    simpa [uniswapSlotWord] using rd3705₀
+    simpa [solcSlotWordAt, solcSlotWord] using rd3705₀
   have rd3712pre := evm_run rd3705 with [swap1, swap2, pop, dup1, push2 ⟨3762⟩]
   rw [htotalZero] at rd3712pre
   have rd3713 := evm_run rd3712pre with [jumpiNT (by native_decide)]
@@ -52,7 +54,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
       mem aw rdata σFee k C)
-    (htotal : uniswapSlotWord ⟨0⟩ σFee I = totalSupply)
+    (htotal : solcSlotWordAt ⟨0⟩ σFee I = totalSupply)
     (htotalNonzero : totalSupply ≠ ⟨0⟩) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3762⟩
@@ -63,10 +65,10 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero
   obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3705⟩
-      [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
+      [solcSlotWordAt ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata σFee k3705 C3705 := by
-    simpa [uniswapSlotWord] using rd3705₀
+    simpa [solcSlotWordAt, solcSlotWord] using rd3705₀
   have rd3712pre := evm_run rd3705 with [swap1, swap2, pop, dup1, push2 ⟨3762⟩]
   rw [htotal] at rd3712pre
   have rd3762 := evm_run rd3712pre with [jumpiT htotalNonzero (by jump_dest)]
@@ -171,31 +173,6 @@ theorem uniswapMintRuntimeInitialLiquidityLargeRootLoopEntry
   exact uniswapSqrtRuntimeLargePrefix rd8046 hlarge
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-set_option maxHeartbeats 1000000 in
-/- Local reachability wrapper for `SWAP9`; `Reasoning.Reach` provides adjacent swap helpers but
-not this one. -/
-theorem RD.uniswapSwap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
-    (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
-      mem aw rdata acc (k + 1) (C + 3) := by
-  apply rd.stepSwap
-  intro s hcode hpc hstk
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.SWAP9, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_swap9 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t).length - 10 + 10 >
-          1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only initial-liquidity branch from the checked `root - 1000` subtraction to the
@@ -227,7 +204,7 @@ theorem uniswapMintRuntimeInitialMinimumMintEntry
     RD.uniswapSafeMathSubSuccess rd6879 hrootGeMin (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3743 := evm_run rd3742 with [jumpdest]
-  have rd3744 := RD.uniswapSwap9 rd3743 (by native_decide)
+  have rd3744 := RD.swap9 rd3743 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd8128pre := evm_run rd3744 with [
     pop, push2 ⟨3757⟩, push1 ⟨0⟩, push2 ⟨1000⟩,
@@ -253,11 +230,11 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootEntry
     (hrootGeMin : (⟨1000⟩ : UInt256).toNat ≤ root.toNat)
     (hperm : I.perm = true)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hmem : mem.size = 164)
@@ -269,12 +246,12 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootEntry
     let σAfterMinimum :=
       sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩
           (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨3841⟩
@@ -288,12 +265,12 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootEntry
   let σAfterMinimum :=
     sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-        (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+        (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
       (uniswapInternalMintBalanceHashSlot ⟨0⟩
         (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
   obtain ⟨_, _, rd8128⟩ :=
     uniswapMintRuntimeInitialMinimumMintEntry rd2531 hliquidity hrootGeMin
@@ -403,90 +380,6 @@ theorem uniswapMinRuntimeReturns {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       jumpdest, swap4, swap3, pop, pop, pop, jump hret]
     exact ⟨_, _, by simpa [minFunctionResultWord, hlt] using rdRet⟩
 
-def uniswapStLog2 (s : State) (a b c d : UInt256) (t : List UInt256) : State :=
-  {s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG2)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
-theorem uniswapLog2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG2, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat <
-            memoryExpansionCost s .LOG2 +
-              (GasConstants.Glog + GasConstants.Glogdata * b.toNat +
-                2 * GasConstants.Glogtopic)
-       then .error .OutOfGass else .ok (uniswapStLog2 s a b c d t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG2, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_log2 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: t).length - 4 + 0 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, uniswapStLog2]
-
-theorem RD.uniswapLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 2 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
-      hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := by
-      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
-    have hperms : s.executionEnv.perm = true := by
-      rw [hee]
-      exact hperm
-    have st := uniswapLog2_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨uniswapStLog2 s a b c d t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [uniswapStLog2]
-        exact hcode
-      · simp only [uniswapStLog2]
-        rw [hpc]
-      · simp only [uniswapStLog2]
-      · simp only [uniswapStLog2, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [uniswapStLog2]
-        exact hmem
-      · simp only [uniswapStLog2]
-        rw [haw, hawout]
-      · simp only [uniswapStLog2]
-        exact hrdata
-      · simp only [uniswapStLog2]
-        exact hacc
-      · simp only [uniswapStLog2]
-        exact hee
-      · simp only [uniswapStLog2]
-        exact hworld
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only proportional-liquidity branch through `min(liquidity0, liquidity1)`, rejoining at
@@ -522,7 +415,7 @@ theorem uniswapMintRuntimeProportionalLiquidityEntry
   obtain ⟨_, _, rd3838⟩ := uniswapMinRuntimeReturns rd8278 (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3839 := evm_run rd3838 with [jumpdest]
-  have rd3840 := RD.uniswapSwap9 rd3839 (by native_decide)
+  have rd3840 := RD.swap9 rd3839 (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, evm_run rd3840 with [pop]⟩
 
@@ -574,10 +467,10 @@ theorem uniswapMintRuntimeLiquidityMintReturn
       mem feeToStaticcallActiveWords rdata σFee k C)
     (hliqNonzero : liquidity ≠ ⟨0⟩)
     (hperm : I.perm = true)
-    (htotalFit : (uniswapSlotWord ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
+    (htotalFit : (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat < UInt256.size)
     (hbalanceFit :
       (uniswapCodeOwnerStorageWord I
-        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+        (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
         (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat <
           UInt256.size)
     (hmload64 :
@@ -609,10 +502,10 @@ theorem uniswapMintRuntimeLiquidityMintReturn
           (uniswapInternalMintBalanceHashMem toWord mem)))
       feeToStaticcallActiveWords rdata
       (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+          (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
           (uniswapInternalMintBalanceHashSlot toWord (uniswapInternalMintBalanceHashMem toWord mem))
           (uniswapCodeOwnerStorageWord I
-            (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (uniswapSlotWord ⟨0⟩ σFee I + liquidity))
+            (sstoreAccountMap I.codeOwner σFee ⟨0⟩ (solcSlotWordAt ⟨0⟩ σFee I + liquidity))
             (uniswapInternalMintBalanceHashSlot toWord mem) + liquidity)) k' C' := by
   obtain ⟨_, _, rd8128⟩ := uniswapMintRuntimeLiquidityMintEntry rd3841 hliqNonzero
   exact uniswapInternalMintRuntimeSuccess rd8128 hperm htotalFit hbalanceFit hmload64
@@ -658,36 +551,38 @@ theorem uniswapMintRuntimeUpdateElapsedZeroStore
     (hfit0 : balance0.toNat ≤ reserve112Mask.toNat)
     (hfit1 : balance1.toNat ≤ reserve112Mask.toNat)
     (helapsed0 :
-      UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σMint I) I) reserve32Mask =
+      UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σMint I) I) reserve32Mask =
         ⟨0⟩)
     (hperm : I.perm = true) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       s0 ⟨7339⟩
       [reserve112Shift, reserve112Mask,
-        uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σMint I)
+        uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σMint I)
           (uniswapUpdateTimestampWord I) balance1 balance0,
-        uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σMint I) I,
+        uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σMint I) I,
         uniswapUpdateTimestampWord I,
         reserve1, reserve0, balance1, balance0, ⟨3926⟩, totalSupply, feeOn, amount1, amount0,
         balance1, balance0, reserve1, reserve0, liquidity, toWord, ⟨861⟩, sel]
       mem aw rdata
       (sstoreAccountMap I.codeOwner σMint ⟨8⟩
-        (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ σMint I)
+        (uniswapUpdatePackedReserveWord (solcSlotWordAt ⟨8⟩ σMint I)
           (uniswapUpdateTimestampWord I) balance1 balance0)) k' C' := by
   obtain ⟨_, _, rd7060⟩ := RD.uniswapUpdateOverflowGuardOk rd6959 hfit0 hfit1
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd7241⟩ := RD.uniswapUpdateElapsedZeroSkipsCumulatives rd7060
     (by
-      simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord]
+      simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt, solcSlotWord]
         using helapsed0)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd7339⟩ := RD.uniswapUpdateStorePackedReserves
     (by
-      simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using rd7241)
+      simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+        solcSlotWord] using rd7241)
     hperm
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by
-    simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using rd7339⟩
+    simpa [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+      solcSlotWord] using rd7339⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only Mint `_update` suffix: emit `Sync` and return from `_update` to pc 3926.  The
@@ -783,8 +678,8 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
       mem aw rdata σUpd k C)
     (hfeeOn : feeOn ≠ ⟨0⟩)
     (hfit :
-      (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask).toNat *
-          (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+      (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask).toNat *
+          (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
             reserve112Mask).toNat < UInt256.size)
     (hperm : I.perm = true) :
     ∃ k' C', RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
@@ -793,10 +688,10 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
         liquidity, toWord, ⟨861⟩, sel]
       mem aw rdata
       (sstoreAccountMap I.codeOwner σUpd ⟨11⟩
-        (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
-          (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+        (UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask)
+          (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
             reserve112Mask))) k' C' := by
-  let slot8 := uniswapSlotWord ⟨8⟩ σUpd I
+  let slot8 := solcSlotWordAt ⟨8⟩ σUpd I
   let packedReserve0 := UInt256.land slot8 reserve112Mask
   let packedReserve1 := UInt256.land (UInt256.div slot8 reserve112Shift) reserve112Mask
   have rd3932pre := evm_run rd3926 with [jumpdest, dup2, iszero, push2 ⟨3974⟩]
@@ -809,7 +704,7 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
       [slot8, totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1,
         reserve0, liquidity, toWord, ⟨861⟩, sel]
       mem aw rdata σUpd k3936 C3936 := by
-    simpa [slot8, uniswapSlotWord] using rd3936₀
+    simpa [slot8, solcSlotWordAt, solcSlotWord] using rd3936₀
   have rd6780pre := evm_run rd3936 with [
     push2 ⟨3970⟩, swap1, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3,
     and, swap2, push1 ⟨1⟩, push1 ⟨112⟩, shl, swap1, div, and, push4 ⟨0xffffffff⟩,
@@ -988,7 +883,7 @@ theorem uniswapMintRuntimeFinalizeToReturnWrapper
     (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4032 := evm_run rd4026 with [swap3, dup3, swap1, sub, add, swap1]
-  have rd4033 := RD.uniswapLog2 0 feeToStaticcallActiveWords rd4032
+  have rd4033 := RD.log2OfCost 0 feeToStaticcallActiveWords rd4032
     (by native_decide) hperm mem_cost (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4039pre := evm_run rd4033 with [pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
@@ -1142,8 +1037,8 @@ theorem uniswapMintRuntimeAfterUpdateFeeOnReturns
       mem feeToStaticcallActiveWords rdata σUpd k C)
     (hfeeOn : feeOn ≠ ⟨0⟩)
     (hfit :
-      (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask).toNat *
-          (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+      (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask).toNat *
+          (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
             reserve112Mask).toNat < UInt256.size)
     (hmem : mem.size = 192)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1152,8 +1047,8 @@ theorem uniswapMintRuntimeAfterUpdateFeeOnReturns
       s0
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σUpd ⟨11⟩
-          (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
-            (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Shift)
+          (UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Mask)
+            (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σUpd I) reserve112Shift)
               reserve112Mask))) ⟨12⟩ (⟨1⟩ : UInt256))
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3974⟩ := uniswapMintRuntimeAfterUpdateFeeOn rd3926 hfeeOn hfit hperm

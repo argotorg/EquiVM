@@ -43,7 +43,7 @@ theorem uniswapMintBody
       by_cases htoken0NoCode :
         extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
-            (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
+            (solcSlotWordAt ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
           ⟨0⟩
       · have hguard0 :=
           mintToken0GuardFalse_initState_of_noCode
@@ -130,7 +130,7 @@ theorem uniswapMintBody
                 uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst rd3505 ho32 hoSize
               by_cases htoken1NoCode :
                 extCodeSizeWord σ'
-                  (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
+                  (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩ σ' I)) = ⟨0⟩
               · have hbody :
                     ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
                       .reverted := by
@@ -404,7 +404,7 @@ theorem uniswapMintBody
                                   hPostAccountsFee henvFeeI
                               have htotalEq :
                                   mintFunctionTotalSupplyWord evmFeeS =
-                                    uniswapSlotWord ⟨0⟩ σFee I :=
+                                    solcSlotWordAt ⟨0⟩ σFee I :=
                                 mintFunctionTotalSupplyWord_eq_slot
                                   hPostAccountsFee henvFeeI
                               have hamount0Eq := congrArg (balance0.sub ·) hreserve0Eq

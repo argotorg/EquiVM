@@ -62,7 +62,7 @@ theorem safeTransferDynamicMem4_read128_32 {base : ByteArray} (ptr toWord value 
     simpa only [show ptr.toNat + 132 - 4 = ptr.toNat + 100 + 28 by omega] using h
   unfold safeTransferDynamicMem4
   rw [h132]
-  have h := safeTransferCalldata_read_boundary_word (safeTransferDynamicMem3 base ptr toWord)
+  have h := wordWrite_read_boundary4 (safeTransferDynamicMem3 base ptr toWord)
     (UInt256.land solcAddrMask toWord) value (ptr.toNat + 132) (by omega) hs3 hleft
   simpa only [show ptr.toNat + 132 - 4 = ptr.toNat + 128 by omega] using h
 

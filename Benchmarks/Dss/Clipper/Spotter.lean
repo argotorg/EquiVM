@@ -100,7 +100,7 @@ theorem clipperEvalSpotter (v : ClipperImmutables) (evm : EVM.State) (locals : S
     funext evm'
     rfl
   exact evalExpr_storage_scalar_value hbase her hty hloc
-    (clipperStorageLocLoad_address evm ⟨3⟩)
+    (storageLocLoad_address_offset0 evm ⟨3⟩)
 
 theorem clipperSpotterBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "spotter" = none) :
@@ -125,7 +125,7 @@ theorem clipperReachSpotterBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperSpotterSelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
         change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none)
@@ -148,7 +148,7 @@ theorem clipperReachSpotterBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -177,7 +177,7 @@ theorem clipperReachSpotterBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h331 := clipperSplitTaken (pc := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 6)
+  have h331 := RD.selectorSplitTakenPush2 (pc := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 6)
     (tgt := (⟨331⟩ : UInt256)) h272
     (by
         change decode code (⟨272⟩ : UInt256) = some (.DUP1, .none)
@@ -200,7 +200,7 @@ theorem clipperReachSpotterBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨331⟩ : UInt256) (by native_decide))
     (by simp)
-  have h343 := clipperArmNotTaken (pc := (⟨332⟩ : UInt256))
+  have h343 := RD.selectorArmNotTakenPush2 (pc := (⟨332⟩ : UInt256))
     (next := (⟨343⟩ : UInt256)) (sel := clipperSelNat 9)
     (tgt := (⟨673⟩ : UInt256))
     (h331.jumpdest
@@ -229,7 +229,7 @@ theorem clipperReachSpotterBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h708 := clipperArmTaken (pc := (⟨343⟩ : UInt256)) (sel := clipperSelNat 19)
+  have h708 := RD.selectorArmTakenPush2 (pc := (⟨343⟩ : UInt256)) (sel := clipperSelNat 19)
     (tgt := (⟨708⟩ : UInt256)) h343
     (by
         change decode code (⟨343⟩ : UInt256) = some (.DUP1, .none)
@@ -271,7 +271,7 @@ theorem clipperSpotterPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : N
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hlo hhi ⊢
   · simp [hIlk] at hlo hhi ⊢
     omega
@@ -297,7 +297,7 @@ theorem clipperJumpDest3128 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

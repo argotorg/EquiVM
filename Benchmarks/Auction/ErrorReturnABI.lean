@@ -1,3 +1,4 @@
+import Reasoning.ABI
 import Benchmarks.Auction.UIntReturnDecoder
 import Benchmarks.Auction.ErrorDecodeMemory
 
@@ -5,48 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
--- LIBRARY CANDIDATE: convert a byte-array slice to the decoder's list representation.
-theorem extract_toList (out : ByteArray) (start finish : Nat) :
-    (out.extract start finish).toList = (out.toList.drop start).take (finish - start) := by
-  simp only [byteArray_toList_eq, ByteArray.data_extract, Array.toList_extract,
-    List.extract_eq_take_drop]
-
--- LIBRARY CANDIDATE: a complete word is unchanged by taking an enclosing byte-array slice.
-theorem calldataWord_extract_zero {out : ByteArray} {start finish : Nat}
-    (hs : start + 32 ≤ finish) (he : finish ≤ out.size) :
-    calldataWord (out.extract start finish) 0 = calldataWord out start := by
-  have hl : 32 ≤ (out.extract start finish).size := by
-    rw [ByteArray.size_extract]
-    omega
-  have hw : bytesToWord (((out.extract start finish).toList.drop 0).take 32) =
-      calldataWord (out.extract start finish) 0 :=
-    decode_word_at_eq_any (out.extract start finish) 0 hl
-  rw [← hw,
-    extract_toList, List.drop_zero, List.take_take, Nat.min_eq_left (by omega),
-    decode_word_at_eq_any out start (by omega)]
-
--- LIBRARY CANDIDATE: decode a uint256 from a bounded byte-array slice.
-theorem decodeReturnUint_extract {out : ByteArray} {start finish : Nat}
-    (hs : start + 32 ≤ finish) (he : finish ≤ out.size) (hb : finish - start < 2 ^ 255) :
-    ABI.decodeReturnValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (out.extract start finish) = some (.int (Int.ofNat (calldataWord out start).toNat)) := by
-  rw [decodeReturnUint_long (by rw [ByteArray.size_extract]; omega)
-    (by rw [ByteArray.size_extract]; omega), calldataWord_extract_zero hs he]
-
--- LIBRARY CANDIDATE: dynamic string return decoding from its three successful reads.
-theorem decodeReturnString_of_reads {out : ByteArray} {offset len : Nat} {payload : List UInt8}
-    (hb : out.toList.length < 2 ^ 255)
-    (ho : readNat? out.toList 0 = some offset)
-    (hl : readNat? out.toList offset = some len)
-    (hp : readBytes? out.toList (offset + 32) len = some payload)
-    (ho64 : offset ≤ solcMaxU64) (hl64 : len ≤ solcMaxU64) :
-    ABI.decodeReturnValue? .string out = some (.bytes ⟨payload.toArray⟩) := by
-  unfold ABI.decodeReturnValue? ABI.decodeReturnValues?
-  rw [if_neg (by simp only [List.isEmpty_cons]; omega)]
-  have hh : abiTupleHeadSize? [.string] = some 32 := by native_decide
-  simp only [hh, bind, Option.bind, decodeABIValues?, isDynamicABIType, ↓reduceIte,
-    Nat.zero_add, ho, solcMaxLen, show ¬ solcMaxU64 < offset by omega,
-    decodeABIValue?, hl, show ¬ solcMaxU64 < len by omega, hp]
 
 theorem errorReturnString_ok {out : ByteArray} (hv : ErrorDataValid out)
     (hb : out.size < 2 ^ 255) :

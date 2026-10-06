@@ -10,10 +10,10 @@ namespace UniswapV2Pair
 /-! ## `token1()` getter -/
 
 def token1Word (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨7⟩ σ I
+  solcSlotWordAt ⟨7⟩ σ I
 
 abbrev token1ReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapAddressReturnWord ⟨7⟩ σ I
+  solcAddressSlotWord ⟨7⟩ σ I
 
 /-- The Solm `token1()` body returns the address stored in slot 7. -/
 theorem uniswapToken1BodyReturns (evm : EVM.State) (locals : Store)

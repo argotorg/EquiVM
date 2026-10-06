@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.BalanceOf
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -137,7 +138,7 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         (her := her)
         (hty := hty)
         (hloc := hloc)]
-      rw [vyperERC20StorageLocLoad_uint256])
+      erw [storageLocLoad_uint256])
 
 def allowanceDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 817 ByteArray.empty 30 2
@@ -409,22 +410,6 @@ theorem allowanceReturnMem_read128 (owner spender val : UInt256) :
 macro "vyper_erc20_allowance_decode" : tactic =>
   `(tactic| native_decide)
 
-theorem calldataSizeGuard68 {n : Nat} (hsz68 : 68 ≤ n) (hsize : n < UInt256.size) :
-    UInt256.lt (UInt256.ofNat n) ⟨68⟩ = ⟨0⟩ := by
-  have hnot : ¬ (UInt256.ofNat n < (⟨68⟩ : UInt256)) := by
-    intro hlt
-    have hltNat : (UInt256.ofNat n).toNat < (⟨68⟩ : UInt256).toNat := hlt
-    have hn : (UInt256.ofNat n).toNat = n := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hsize
-    rw [hn] at hltNat
-    change n < 68 at hltNat
-    omega
-  unfold UInt256.lt UInt256.fromBool Bool.toUInt256
-  rw [show decide (UInt256.ofNat n < (⟨68⟩ : UInt256)) = false from by
-    exact decide_eq_false hnot]
-  native_decide
 
 theorem erc20X_allowanceFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)

@@ -147,7 +147,7 @@ theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some (snapshotOf σ I).values)) := by
-      simpa [snapshotOf, snapshotOfState, storedWord, initState,
+      simpa [snapshotOf, snapshotOfState, solcSlotWord, initState,
         Solm.EVM.storageLoad, State.lookupAccount] using
         auctionBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)

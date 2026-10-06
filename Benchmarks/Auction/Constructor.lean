@@ -57,7 +57,8 @@ theorem auctionConstructorBodyCore :
         (ctorResultEquiv.success rfl rfl rfl rfl)
   · have hr := evm_run rd8 with [
       push2 ⟨15⟩, jumpiNT (isZero_eq_zero_of_ne hwv),
-      raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
+      raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+        ]
     rcases hr.xiResult hcode with hoog | ⟨g', o, hrevert⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
     · refine constructorEquivalenceFor.execution hrevert ?_ (ctorResultEquiv.revert rfl rfl)

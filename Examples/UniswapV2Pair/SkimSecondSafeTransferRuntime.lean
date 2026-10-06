@@ -176,7 +176,7 @@ theorem skimSecondSafeTransferMem5_size
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (skimSecondSafeTransferMem5 self o toWord prevValue out2 value).size = 456 := by
   rw [skimSecondSafeTransferMem5_eq_writeCascade]
-  exact safeTransferCalldata_writeCascade_size _ _ 388 456
+  exact writeCascade_size_of_eq _ _ 388 456
     (skimSecondBalanceStaticcallMem_size_of_size_ge self toWord prevValue out2
       ho32 hoSize hout32 houtSize)
     (by
@@ -904,7 +904,7 @@ theorem skimSecondSafeTransferMem4_read420_32
       (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).extract 28 32 ++
         (UInt256.toByteArray value).extract 0 28 := by
   unfold skimSecondSafeTransferMem4
-  exact safeTransferCalldata_read_boundary_word _ _ _ 424 (by norm_num)
+  exact wordWrite_read_boundary4 _ _ _ 424 (by norm_num)
     (skimSecondSafeTransferMem3_size self toWord prevValue ho32 hoSize hout32 houtSize)
     (skimSecondSafeTransferMem3_read420_4 self toWord prevValue ho32 hoSize hout32 houtSize)
 

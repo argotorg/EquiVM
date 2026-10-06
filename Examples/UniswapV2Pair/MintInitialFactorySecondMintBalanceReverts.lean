@@ -138,11 +138,11 @@ theorem uniswapMintInitialFeeOffKLastZeroSecondMintBalanceOverflowFromFactoryWit
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hfitSupplySource :
@@ -159,14 +159,14 @@ theorem uniswapMintInitialFeeOffKLastZeroSecondMintBalanceOverflowFromFactoryWit
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
     (hruntimeOverflow :
       let minimumMem :=
         uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
@@ -175,17 +175,17 @@ theorem uniswapMintInitialFeeOffKLastZeroSecondMintBalanceOverflowFromFactoryWit
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem)).toNat +
             liquidity.toNat)
     (hmem : mem.size = 164)
@@ -358,11 +358,11 @@ theorem uniswapMintInitialFeeOnKLastZeroSecondMintBalanceOverflowFromFactoryWitn
           (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hbalanceFitMin :
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-          (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+          (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
     (hfitSupplySource :
@@ -379,14 +379,14 @@ theorem uniswapMintInitialFeeOnKLastZeroSecondMintBalanceOverflowFromFactoryWitn
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
     (hruntimeOverflow :
       let minimumMem :=
         uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
@@ -395,17 +395,17 @@ theorem uniswapMintInitialFeeOnKLastZeroSecondMintBalanceOverflowFromFactoryWitn
       let σAfterMinimum :=
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+            (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
             (uniswapInternalMintBalanceHashMem ⟨0⟩ mem))
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner σFee ⟨0⟩
-              (uniswapSlotWord ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
+              (solcSlotWordAt ⟨0⟩ σFee I + (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem)).toNat +
             liquidity.toNat)
     (hmem : mem.size = 164)
@@ -583,7 +583,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
           (AccountAddress.ofNat 0) (⟨1000⟩ : UInt256) <
         UInt256.size)
     (htotalFitMin :
-      (uniswapSlotWord ⟨0⟩
+      (solcSlotWordAt ⟨0⟩
         (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I).toNat +
           (⟨1000⟩ : UInt256).toNat <
         UInt256.size)
@@ -591,7 +591,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
       (uniswapCodeOwnerStorageWord I
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-          (uniswapSlotWord ⟨0⟩
+          (solcSlotWordAt ⟨0⟩
             (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I + (⟨1000⟩ : UInt256)))
         (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem)).toNat +
           (⟨1000⟩ : UInt256).toNat < UInt256.size)
@@ -612,7 +612,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-            (uniswapSlotWord ⟨0⟩
+            (solcSlotWordAt ⟨0⟩
               (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
               (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
@@ -620,11 +620,11 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-              (uniswapSlotWord ⟨0⟩
+              (solcSlotWordAt ⟨0⟩
                 (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
                 (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
-      (uniswapSlotWord ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
+      (solcSlotWordAt ⟨0⟩ σAfterMinimum I).toNat + liquidity.toNat < UInt256.size)
     (hruntimeOverflow :
       let minimumMem :=
         uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
@@ -634,7 +634,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
         sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-            (uniswapSlotWord ⟨0⟩
+            (solcSlotWordAt ⟨0⟩
               (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
               (⟨1000⟩ : UInt256)))
           (uniswapInternalMintBalanceHashSlot ⟨0⟩
@@ -642,14 +642,14 @@ theorem uniswapMintInitialFeeOffKLastNonzeroSecondMintBalanceOverflowFromFactory
           (uniswapCodeOwnerStorageWord I
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) ⟨0⟩
-              (uniswapSlotWord ⟨0⟩
+              (solcSlotWordAt ⟨0⟩
                 (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I +
                 (⟨1000⟩ : UInt256)))
             (uniswapInternalMintBalanceHashSlot ⟨0⟩ mem) + (⟨1000⟩ : UInt256))
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σAfterMinimum ⟨0⟩
-            (uniswapSlotWord ⟨0⟩ σAfterMinimum I + liquidity))
+            (solcSlotWordAt ⟨0⟩ σAfterMinimum I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) minimumMem)).toNat +
             liquidity.toNat)
     (hmem : mem.size = 164)

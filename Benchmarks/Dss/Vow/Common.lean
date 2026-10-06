@@ -1,3 +1,5 @@
+import Reasoning.ABIComposite
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Vow.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -104,231 +106,6 @@ def vowHighHighSelBytes : ℕ → ByteArray
   | 4 => ⟨#[0xe4, 0x33, 0x05, 0x45]⟩ -- dump()
   | _ => ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩  -- heal(uint256)
 
-def vowSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  solcSlotWord σ I slot
-
-abbrev vowAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (vowSlotWord slot σ I) solcAddrMask
-
-theorem vowStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem vowStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
-
-theorem decodeCalldata_legacyUInt256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-theorem decodeCalldata_legacyUInt256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
-
--- LIBRARY CANDIDATE: generalizes `Reasoning.Solc.RD.solcCheckedAddStringRevert` for
--- solc checked-add routines whose failure path is a bare `revert(0, 0)`.
-@[reducible] def solcCheckedAddEmptyRevertWf
-    (code : ByteArray) (pc okPc : UInt256) : Prop :=
-  solcCheckedAddSuccessWf code pc okPc
-  ∧ decode code (solcCheckedArithmeticRevertPc pc) =
-      some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2) =
-      some (.DUP1, .none)
-  ∧ decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2 + ⟨1⟩) =
-      some (.REVERT, .none)
-
-set_option maxHeartbeats 1000000 in
-theorem RD.solcCheckedAddEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
-    {mem : ByteArray} {rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
-    (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
-    (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with ⟨hadd, hdRev0, hdRev2, hdRev3⟩
-  rcases hadd with
-    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
-  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hmod : (a.toNat + b.toNat) % UInt256.size =
-      a.toNat + b.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover]
-    exact Nat.mod_eq_of_lt (by omega)
-  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
-    apply ult_one
-    rw [haddNat]
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have rd6 := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw dup1 hd1 (by evm_ov),
-    raw dup3 hd2 (by evm_ov),
-    raw add hd3 (by evm_ov),
-    raw dup3 hd4 (by evm_ov),
-    raw dup2 hd5 (by evm_ov)]
-  have rd7₀ := evm_run rd6 with [raw lt hd6 (by evm_ov)]
-  have rd7 := rd7₀
-  rw [hlt] at rd7
-  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
-  have rd8 := rd8₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
-  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
-  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
-  have rdTail := by
-    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
-  exact evm_run rdTail with [
-    raw push1 ⟨0⟩ hdRev0 (by evm_ov),
-    raw dup1 hdRev2 (by evm_ov),
-    raw rev 0 hdRev3 mem_cost (by evm_ov)]
-
-theorem RD.solcCheckedAddEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
-    {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem aw rdata acc k C)
-    (hwf : solcCheckedAddEmptyRevertWf code pc okPc)
-    (hover : UInt256.size ≤ a.toNat + b.toNat)
-    (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with ⟨hadd, hdRev0, hdRev2, hdRev3⟩
-  rcases hadd with
-    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
-  have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hmod : (a.toNat + b.toNat) % UInt256.size =
-      a.toNat + b.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover]
-    exact Nat.mod_eq_of_lt (by omega)
-  have haddNat : (a + b).toNat = a.toNat + b.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
-    apply ult_one
-    rw [haddNat]
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have rd6 := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw dup1 hd1 (by evm_ov),
-    raw dup3 hd2 (by evm_ov),
-    raw add hd3 (by evm_ov),
-    raw dup3 hd4 (by evm_ov),
-    raw dup2 hd5 (by evm_ov)]
-  have rd7₀ := evm_run rd6 with [raw lt hd6 (by evm_ov)]
-  have rd7 := rd7₀
-  rw [hlt] at rd7
-  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
-  have rd8 := rd8₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
-  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
-  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
-  have rdTail := by
-    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
-  have rdRev := evm_run rdTail with [
-    raw push1 ⟨0⟩ hdRev0 (by evm_ov),
-    raw dup1 hdRev2 (by evm_ov)]
-  exact RD.rev 0 rdRev hdRev3 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by evm_ov)
-
--- LIBRARY CANDIDATE: checked-sub variant of `RD.solcCheckedAddEmptyRevert`.
-@[reducible] def solcCheckedSubEmptyRevertWf
-    (code : ByteArray) (pc okPc : UInt256) : Prop :=
-  solcCheckedSubSuccessWf code pc okPc
-  ∧ decode code (solcCheckedArithmeticRevertPc pc) =
-      some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2) =
-      some (.DUP1, .none)
-  ∧ decode code (solcCheckedArithmeticRevertPc pc + UInt256.ofNat 2 + ⟨1⟩) =
-      some (.REVERT, .none)
-
-set_option maxHeartbeats 1000000 in
-theorem RD.solcCheckedSubEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
-    {mem : ByteArray} {rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc (b :: a :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
-    (hwf : solcCheckedSubEmptyRevertWf code pc okPc)
-    (hlt : a.toNat < b.toNat)
-    (hov : R.length + 9 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with ⟨hsub, hdRev0, hdRev2, hdRev3⟩
-  rcases hsub with
-    ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
-  have hsubNat : (UInt256.sub a b).toNat = UInt256.size + a.toNat - b.toNat :=
-    usub_toNat_underflow hlt
-  have hgt : UInt256.gt (UInt256.sub a b) a = ⟨1⟩ := by
-    show UInt256.fromBool (decide (UInt256.sub a b > a)) = ⟨1⟩
-    rw [decide_eq_true]
-    · rfl
-    · show (UInt256.sub a b).toNat > a.toNat
-      rw [hsubNat]
-      have hb : b.toNat < UInt256.size := b.val.isLt
-      omega
-  have rd6 := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw dup1 hd1 (by evm_ov),
-    raw dup3 hd2 (by evm_ov),
-    raw sub hd3 (by evm_ov),
-    raw dup3 hd4 (by evm_ov),
-    raw dup2 hd5 (by evm_ov)]
-  have rd7₀ := evm_run rd6 with [raw gt hd6 (by evm_ov)]
-  have rd7 := rd7₀
-  rw [hgt] at rd7
-  have rd8₀ := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
-  have rd8 := rd8₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
-  have rdPush := evm_run rd8 with [raw push2 okPc hd8 (by evm_ov)]
-  have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
-  have rdTail := by
-    simpa [solcCheckedArithmeticRevertPc] using rdTail₀
-  exact evm_run rdTail with [
-    raw push1 ⟨0⟩ hdRev0 (by evm_ov),
-    raw dup1 hdRev2 (by evm_ov),
-    raw rev 0 hdRev3 mem_cost (by evm_ov)]
 
 theorem vowSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -935,7 +712,7 @@ theorem vowAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem vowUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -951,7 +728,7 @@ theorem vowUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem vowAddressGetterBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -974,16 +751,16 @@ theorem vowAddressGetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (vowAddressReturnWord slot σ I).toNat))]))) :
+            (solcAddressSlotWord slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (vowAddressReturnWord slot σ I))
-        (some [(.address (AccountAddress.ofNat (vowAddressReturnWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
-    simpa [vowAddressReturnWord] using
+    simpa [solcAddressSlotWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (vowSlotWord slot σ I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWordAt slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := vowBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨465⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -993,8 +770,8 @@ theorem vowAddressGetterBodyCore
   have hret' :
       RDret vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vowAddressReturnWord slot σ I)) := by
-    simpa [vowAddressReturnWord, vowSlotWord] using hret
+        (UInt256.toByteArray (solcAddressSlotWord slot σ I)) := by
+    simpa [solcAddressSlotWord, solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vowUint256GetterBodyCore
@@ -1017,15 +794,15 @@ theorem vowUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vowSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (vowSlotWord slot σ I))
-        (some [(.int (Int.ofNat (vowSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vowSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   have hret := RD.solcWordGetterExternal (code := vowBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := ⟨357⟩) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine (by jump_dest)
@@ -1035,8 +812,8 @@ theorem vowUint256GetterBodyCore
   have hret' :
       RDret vowBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vowSlotWord slot σ I)) := by
-    simpa [vowSlotWord] using hret
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
+    simpa [solcSlotWordAt] using hret
   exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vowDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :

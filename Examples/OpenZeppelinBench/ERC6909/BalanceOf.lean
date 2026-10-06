@@ -153,7 +153,7 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             storageTypeStep?])
         (hloc := by
           simp [config, storageLayout, balanceOfEvaledRef, balanceOfSlot])]
-      rw [erc6909StorageLocLoad_uint256])
+      erw [storageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/
 

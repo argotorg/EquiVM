@@ -18,7 +18,7 @@ def constructorFactoryState (evm : EVM.State) : EVM.State :=
 
 theorem constructorAssignDomain (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm .storage
-      domainSeparatorRef (permitWordBytes32Value
+      domainSeparatorRef (wordBytes32Value
         (constructorDomainHashWord (UInt256.ofNat evm.executionEnv.codeOwner.val))) =
       .ok ({ contract := contract, locals := ∅ }, constructorDomainState evm) := by
   apply assignStorageRef_storage_scalar_value (ty := bytes32St)
@@ -42,7 +42,7 @@ theorem constructorAssignFactory (evm : EVM.State) :
   · rfl
   · trivial
   · rw [← uniswapSource_ofNat evm.executionEnv]
-    exact uniswapStorageLocStore_address_offset0 evm _ _ (uniswapSourceWord_canonical _)
+    exact storageLocStore_address_offset0 evm _ _ (uniswapSourceWord_canonical _)
 
 theorem uniswapConstructorSourceReturns (evm : EVM.State) (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm ∅ constructorDecl.body

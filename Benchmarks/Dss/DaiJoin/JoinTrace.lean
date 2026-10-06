@@ -417,7 +417,7 @@ theorem daiJoinJoinToMul {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         joinWadWord I, joinUsrMaskedWord I, ⟨232⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hmask :
-      UInt256.land (daiJoinSlotWord ⟨1⟩ σ I) solcAddrMask =
+      UInt256.land (solcSlotWordAt ⟨1⟩ σ I) solcAddrMask =
         daiJoinVatTargetWord σ I := rfl
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -427,9 +427,9 @@ theorem daiJoinJoinToMul {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k453, C453, rd453raw⟩ := rd452.sload (by native_decide) (by evm_ov)
   have rd453 : RD daiJoinBytecode I g s0 ⟨453⟩
-      (daiJoinSlotWord ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: [sel])
+      (solcSlotWordAt ⟨1⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k453 C453 := by
-    simpa [daiJoinSlotWord, solcSlotWord] using rd453raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd453raw
   have rd467 := evm_run rd453 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -443,7 +443,7 @@ theorem daiJoinJoinToMul {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         joinUsrMaskedWord I, ⟨232⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
-      simpa [daiJoinVatTargetWord, daiJoinAddressReturnWord, hmaskConst, u256_land_comm]
+      simpa [daiJoinVatTargetWord, solcAddressSlotWord, hmaskConst, u256_land_comm]
         using rd467⟩
   obtain ⟨_, _, rd467'⟩ := rd467Norm
   have rd468 := RD.address rd467' (by native_decide) (by evm_ov)
@@ -876,12 +876,12 @@ theorem daiJoinJoinVatMoveToDaiBurnExtcodesizeGuard
   obtain ⟨k601, C601, rd601raw⟩ := rd601p.sload (by native_decide) (by evm_ov)
   have rd602 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨602⟩
-      (daiJoinSlotWord ⟨2⟩ σ' I :: joinMoveSelectorPlainWord ::
+      (solcSlotWordAt ⟨2⟩ σ' I :: joinMoveSelectorPlainWord ::
         daiJoinVatTargetWord σ I :: joinWadWord I :: joinUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (joinMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
       rdata σ' k601 C601 := by
-    simpa [daiJoinSlotWord, solcSlotWord] using rd601raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd601raw
   have rd671 := evm_run rd602 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -957,7 +957,7 @@ theorem daiJoinJoinVatMoveToDaiBurnExtcodesizeGuard
         ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨671⟩ : UInt256) := by
     native_decide
   exact ⟨_, _, by
-    simpa [daiJoinDaiTargetWord, daiJoinAddressReturnWord, hmaskConst, hburnSelector,
+    simpa [daiJoinDaiTargetWord, solcAddressSlotWord, hmaskConst, hburnSelector,
       joinBurnSelectorShiftedWord, joinBurnSelectorSeedWord, joinBurnSelectorPlainWord,
       joinBurnSelectorMem, joinBurnSenderMem, joinBurnCalldataMem, u256_land_comm, hpc]
       using rd671⟩

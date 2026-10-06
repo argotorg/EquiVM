@@ -36,7 +36,7 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [denyPostState] using
-    potStorageLocStore_uint256 evm (relyGuyStorageSlot I) ⟨0⟩
+    storageLocStore_uint256 evm (relyGuyStorageSlot I) ⟨0⟩
 
 theorem potDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -185,7 +185,7 @@ theorem potDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1721 : RD potBytecode I g s0 ⟨1721⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1721 C1721 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
   have rd1724pre := evm_run rd1721 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -233,7 +233,7 @@ theorem potDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1721 : RD potBytecode I g s0 ⟨1721⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1721 C1721 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1721raw
   have rd1724pre := evm_run rd1721 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -367,7 +367,7 @@ theorem potDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -400,7 +400,7 @@ theorem potDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

@@ -25,14 +25,14 @@ theorem flipperDentBodyCore {σ σ₀ A I} {g : UInt256}
     let locals := dentLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hpacked :
-        flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I =
-          flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I := rfl
+        solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I =
+          solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I := rfl
     have hbidWordEq : bidBidWord (dentId I) σ I = bidBidWord (dentId I) σ I := rfl
     have htabWordEq : bidTabWord (dentId I) σ I = bidTabWord (dentId I) σ I := rfl
     have hlotWordEq : bidLotWord (dentId I) σ I = bidLotWord (dentId I) σ I := rfl
     have hbegWordEq : dentBegWord σ I = dentBegWord σ I := rfl
     have hguyEq : bidGuyWord (dentId I) σ I = bidGuyWord (dentId I) σ I := by
-      simp [bidGuyWord, flipperAddressReturnWord, hpacked]
+      simp [bidGuyWord, solcAddressSlotWord, hpacked]
     have hticEq : bidTicWord (dentId I) σ I = bidTicWord (dentId I) σ I := by
       simp [bidTicWord, flipperUint48Offset20Word, hpacked]
     have hendEq : bidEndWord (dentId I) σ I = bidEndWord (dentId I) σ I := by

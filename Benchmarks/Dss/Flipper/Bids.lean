@@ -1,3 +1,7 @@
+import Reasoning.ABIViews
+import Reasoning.ABIComposite
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Flipper.Dispatch
 import Benchmarks.Dss.Flipper.BidStorage
 
@@ -26,13 +30,13 @@ abbrev bidsEvaledRef (I : ExecutionEnv) (field : Ident) : EvaledStorageRef :=
   { base := "bids", steps := [.mindex (.int (Int.ofNat (bidsId I).toNat)), .field field] }
 
 abbrev bidsBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidsBaseWord I) σ I
+  solcSlotWordAt (bidsBaseWord I) σ I
 
 abbrev bidsLotWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidsBaseWord I + ⟨1⟩) σ I
+  solcSlotWordAt (bidsBaseWord I + ⟨1⟩) σ I
 
 abbrev bidsPackedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidsPackedSlot I) σ I
+  solcSlotWordAt (bidsPackedSlot I) σ I
 
 abbrev bidsGuyWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (bidsPackedWord σ I) solcAddrMask
@@ -44,13 +48,13 @@ abbrev bidsEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   flipperUint48Offset26Word (bidsPackedSlot I) σ I
 
 abbrev bidsUsrWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (flipperSlotWord (bidsBaseWord I + ⟨3⟩) σ I) solcAddrMask
+  UInt256.land (solcSlotWordAt (bidsBaseWord I + ⟨3⟩) σ I) solcAddrMask
 
 abbrev bidsGalWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (flipperSlotWord (bidsBaseWord I + ⟨4⟩) σ I) solcAddrMask
+  UInt256.land (solcSlotWordAt (bidsBaseWord I + ⟨4⟩) σ I) solcAddrMask
 
 abbrev bidsTabWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flipperSlotWord (bidsBaseWord I + ⟨5⟩) σ I
+  solcSlotWordAt (bidsBaseWord I + ⟨5⟩) σ I
 
 def bidsReturnValues (σ : AccountMap) (I : ExecutionEnv) : List Value :=
   [ .int (Int.ofNat (bidsBidWord σ I).toNat),
@@ -142,9 +146,9 @@ theorem evalExpr_bidsBid {σ σ₀ A I} {g : Sat256} :
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsBidWord, flipperSlotWord] using
+  simpa [initState, bidsBidWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I) (bidsBaseWord I))
+      (storageLocLoad_uint256 (initState σ σ₀ g A I) (bidsBaseWord I))
 
 theorem evalExpr_bidsLot {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
@@ -165,9 +169,9 @@ theorem evalExpr_bidsLot {σ σ₀ A I} {g : Sat256} :
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsLotWord, flipperSlotWord] using
+  simpa [initState, bidsLotWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
+      (storageLocLoad_uint256 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨1⟩))
 
 theorem evalExpr_bidsGuy {σ σ₀ A I} {g : Sat256} :
@@ -189,9 +193,9 @@ theorem evalExpr_bidsGuy {σ σ₀ A I} {g : Sat256} :
         bidsPackedSlot, bidPackedSlotOfWord, bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsGuyWord, bidsPackedWord, flipperSlotWord] using
+  simpa [initState, bidsGuyWord, bidsPackedWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+      (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
 
 theorem evalExpr_bidsTic {σ σ₀ A I} {g : Sat256} :
@@ -214,7 +218,7 @@ theorem evalExpr_bidsTic {σ σ₀ A I} {g : Sat256} :
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsTicWord, flipperUint48Offset20Word, bidsPackedWord,
-    flipperSlotWord] using
+    solcSlotWordAt] using
     congrArg EvalResult.ok
       (flipperStorageLocLoad_uint48_offset20 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
@@ -239,7 +243,7 @@ theorem evalExpr_bidsEnd {σ σ₀ A I} {g : Sat256} :
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsEndWord, flipperUint48Offset26Word, bidsPackedWord,
-    flipperSlotWord] using
+    solcSlotWordAt] using
     congrArg EvalResult.ok
       (flipperStorageLocLoad_uint48_offset26 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
@@ -263,9 +267,9 @@ theorem evalExpr_bidsUsr {σ σ₀ A I} {g : Sat256} :
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsUsrWord, flipperSlotWord] using
+  simpa [initState, bidsUsrWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+      (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨3⟩))
 
 theorem evalExpr_bidsGal {σ σ₀ A I} {g : Sat256} :
@@ -287,9 +291,9 @@ theorem evalExpr_bidsGal {σ σ₀ A I} {g : Sat256} :
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsGalWord, flipperSlotWord] using
+  simpa [initState, bidsGalWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
+      (storageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨4⟩))
 
 theorem evalExpr_bidsTab {σ σ₀ A I} {g : Sat256} :
@@ -311,9 +315,9 @@ theorem evalExpr_bidsTab {σ σ₀ A I} {g : Sat256} :
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
-  simpa [initState, bidsTabWord, flipperSlotWord] using
+  simpa [initState, bidsTabWord, solcSlotWordAt] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
+      (storageLocLoad_uint256 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨5⟩))
 
 theorem evalExprs_bidsReturn {σ σ₀ A I} {g : Sat256} :
@@ -349,13 +353,6 @@ theorem flipperBidsSourceBody {σ σ₀ A I} {g : UInt256}
           (evalExprs_bidsReturn (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g))))
 
-theorem encodeABIValue_uint256_word (w : UInt256) :
-    encodeABIValue? uint256 (.int (Int.ofNat w.toNat)) =
-      some (UInt256.toByteArray w).toList := by
-  have hlt : w.toNat < EVM.twoPow 256 := w.val.isLt
-  have hword : EVM.word w.toNat = w := u256_ofNat_toNat w
-  simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hlt, hword,
-    toByteArray_eq_toBytesBE, byteArray_toList_eq]
 
 theorem encodeABIValue_uint48_word (w : UInt256) :
     encodeABIValue? uint48 (.int (Int.ofNat (UInt256.land w uint48Mask).toNat)) =
@@ -366,19 +363,6 @@ theorem encodeABIValue_uint48_word (w : UInt256) :
   simp [uint48, uint48Int, encodeABIValue?, encodeABIWord?, hlt, hword,
     toByteArray_eq_toBytesBE, byteArray_toList_eq]
 
-theorem encodeABIValue_address_word (w : UInt256) :
-    encodeABIValue? addr
-        (.address (AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat)) =
-      some (UInt256.toByteArray (UInt256.land w solcAddrMask)).toList := by
-  have hcanon := solcAddrMask_result_canonical w
-  have haddrMod : (UInt256.land w solcAddrMask).toNat % AccountAddress.size =
-      (UInt256.land w solcAddrMask).toNat := by
-    apply Nat.mod_eq_of_lt
-    simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon
-  have hword : EVM.word (UInt256.land w solcAddrMask).toNat =
-      UInt256.land w solcAddrMask := u256_ofNat_toNat _
-  simp [addr, encodeABIValue?, encodeABIWord?, AccountAddress.ofNat, haddrMod, hword,
-    toByteArray_eq_toBytesBE, byteArray_toList_eq]
 
 theorem bidsReturnEncoding (σ : AccountMap) (I : ExecutionEnv) :
     encodeReturnValues? bidsTransition.returnType (bidsReturnValues σ I) =
@@ -389,67 +373,31 @@ theorem bidsReturnEncoding (σ : AccountMap) (I : ExecutionEnv) :
   unfold encodeReturnValues? encodeABIValues?
   rw [show abiTupleHeadSize? bidsTransition.returnType = some 256 by native_decide]
   simp only [bidsTransition, bidsReturnValues, bidsReturnData, bind]
-  simp only [encodeABIValuesFrom?, encodeABIValue_uint256_word, encodeABIValue_uint48_word,
-    encodeABIValue_address_word, hdu, hda, hd48, Bool.false_eq_true, if_false,
+  simp only [show uint256 = abiUInt256 from rfl, show addr = abiAddress from rfl,
+    encodeABIValuesFrom?, encodeABIValue_uint256_word, encodeABIValue_uint48_word,
+    encodeABIValue_address_word, hdu, hda, hd48,
+    show isDynamicABIType abiUInt256 = false from rfl,
+    show isDynamicABIType abiAddress = false from rfl, Bool.false_eq_true, if_false,
     bind, Option.bind, List.nil_append]
   apply congrArg some
   apply ByteArray.ext
   simp [ByteArray.data_append, Array.toList_append, byteArray_toList_eq, bidsGuyWord,
     bidsTicWord, bidsEndWord, bidsUsrWord, bidsGalWord]
 
-theorem flipperDecodeCalldata_legacyUInt256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, hlen]
-    omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  simp [decodeCalldata.insertValues, hword4]
-
-theorem flipperDecodeCalldata_legacyUInt256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have hlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256])
-    (cd := cd) (by decide)]
-  rw [if_neg (by rw [hlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, hlen]
-    omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-    (start := 0) (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem flipperDecode_bids_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (bidsTransition.params.map Param.name)
       (transitionSignature bidsTransition).paramTypes I.calldata =
         some (bidsLocals I) := by
   simpa [config, bidsTransition, transitionSignature, bidsLocals, bidsId]
-    using (flipperDecodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "arg0") hsz36)
+    using (decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "arg0") hsz36)
 
 theorem flipperDecode_bids_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (bidsTransition.params.map Param.name)
       (transitionSignature bidsTransition).paramTypes I.calldata = none := by
   simpa [config, bidsTransition, transitionSignature]
-    using (flipperDecodeCalldata_legacyUInt256_none_short (cd := I.calldata)
+    using (decodeCalldata_legacyUInt256_none_short (cd := I.calldata)
       (x := "arg0") hsz4 hshort)
 
 theorem flipperDispatchBids {I : ExecutionEnv}
@@ -781,7 +729,7 @@ theorem flipperBidsX_loadStruct {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       bidsLotWord, bidsPackedWord, bidsGuyWord, bidsTicWord, bidsEndWord, bidsUsrWord,
       bidsGalWord, bidsTabWord, flipperUint48Offset20Word, flipperUint48Offset26Word,
       hmask160, hmask160', hdiv160, hdiv208, haddrMaskClean, hticClean, hendClean,
-      hticComm, u256_land_comm, flipperSlotWord]
+      hticComm, u256_land_comm, solcSlotWordAt]
       using rd509⟩
 
 theorem flipperBidsX_return {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -883,13 +831,13 @@ theorem flipperBidsX_return {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [u256_land_comm]
     exact solcAddrMask_clean
       (solcAddrMask_result_canonical
-        (flipperSlotWord (bidsBaseWord I + (⟨3⟩ : UInt256)) σ I))
+        (solcSlotWordAt (bidsBaseWord I + (⟨3⟩ : UInt256)) σ I))
   have hgalClean :
       UInt256.land solcAddrMask (bidsGalWord σ I) = bidsGalWord σ I := by
     rw [u256_land_comm]
     exact solcAddrMask_clean
       (solcAddrMask_result_canonical
-        (flipperSlotWord (bidsBaseWord I + (⟨4⟩ : UInt256)) σ I))
+        (solcSlotWordAt (bidsBaseWord I + (⟨4⟩ : UInt256)) σ I))
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide

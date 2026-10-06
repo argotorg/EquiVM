@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.VyperERC20.Bytecode
 import Examples.VyperERC20.Storage
 import Examples.ERC20.Common
@@ -52,9 +53,9 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? erc20Contract.storage ({ base := "totalSupply", steps := [] } : EvaledStorageRef)
           = some (.elem (.int uint256Int)) := by
         decide
-      rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := vyperERC20Config_storage_totalSupply),
-        vyperERC20StorageLocLoad_uint256])
+        storageLocLoad_uint256])
 
 macro "vyper_erc20_runtime_decode" : tactic =>
   `(tactic| native_decide)
@@ -92,52 +93,6 @@ theorem vyperRuntimeRevert797 {σ σ₀ A I} {g : Sat256}
   exact rd800.rev 0 (by vyper_erc20_runtime_decode)
     (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
-theorem calldataSizeGuardOk {n m : Nat}
-    (hm : m ≤ n) (hsize : n < UInt256.size) :
-    UInt256.lt (UInt256.ofNat n) (UInt256.ofNat m) = ⟨0⟩ := by
-  exact ult_zero (by
-    have hn : (UInt256.ofNat n).toNat = n := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hsize
-    have hm' : (UInt256.ofNat m).toNat = m := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt (lt_of_le_of_lt hm hsize)
-    rw [hn, hm']
-    exact hm)
-
-theorem calldataSizeGuardShort {n m : Nat}
-    (hsize : n < UInt256.size) (hmlt : m < UInt256.size) (hshort : n < m) :
-    UInt256.lt (UInt256.ofNat n) (UInt256.ofNat m) = ⟨1⟩ := by
-  exact ult_one (by
-    have hn : (UInt256.ofNat n).toNat = n := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hsize
-    have hm : (UInt256.ofNat m).toNat = m := by
-      unfold UInt256.toNat UInt256.ofNat
-      simp only [Id.run]
-      exact Nat.mod_eq_of_lt hmlt
-    rw [hn, hm]
-    exact hshort)
-
-theorem u256_lt_addressModulus_of_shiftRight160_zero (w : UInt256)
-    (h : UInt256.shiftRight w ⟨160⟩ = ⟨0⟩) :
-    w.toNat < EVM.addressModulus := by
-  cases w with
-  | mk val =>
-    unfold UInt256.shiftRight at h
-    simp at h
-    have hdiv : val.val / 2 ^ 160 = 0 := by
-      have hval := congrArg Fin.val h
-      simpa [Fin.shiftRight_val, Nat.shiftRight_eq_div_pow] using hval
-    unfold UInt256.toNat
-    change val.val < 2 ^ 160
-    by_contra hnot
-    have hge : 2 ^ 160 ≤ val.val := by omega
-    have hpos : 0 < val.val / 2 ^ 160 := Nat.div_pos hge (by positivity)
-    omega
 
 theorem totalSupplySelectorWord_of_calldata {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size)

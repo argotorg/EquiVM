@@ -202,7 +202,7 @@ theorem flapperDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1855 : RD flapperBytecode I g s0 ⟨3004⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
-    simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -250,7 +250,7 @@ theorem flapperDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1855 : RD flapperBytecode I g s0 ⟨3004⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
-    simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -387,7 +387,7 @@ theorem flapperDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, flapperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -425,7 +425,7 @@ theorem flapperDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, flapperSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flapperDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

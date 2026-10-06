@@ -992,7 +992,7 @@ theorem RD.cureLoadEventReturn {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rdLogged := RD.cureLog2 0 (UInt256.ofNat 5) rdLogPrefix
+  have rdLogged := RD.log2 0 (UInt256.ofNat 5) rdLogPrefix
     (by native_decide) hperm mem_cost (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rdPop := evm_run rdLogged with [

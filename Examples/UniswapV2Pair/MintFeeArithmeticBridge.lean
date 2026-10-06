@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.MintFeeRoutinesCore
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -162,28 +163,6 @@ theorem mintFeeLiquidityWord_eq_runtime_div
       hrootKLastNonneg hnumFit,
     mintFeeDenominatorWord_eq_runtime_add rootK rootKLast hrootFiveFit hdenFit]
 
-theorem mintFeeRuntimeRootGt_of_int_gt
-    (rootK rootKLast : Int)
-    (hroot : rootK > rootKLast)
-    (hrootKSize : rootK.toNat < UInt256.size)
-    (hrootKLastNonneg : 0 ≤ rootKLast) :
-    (UInt256.ofNat rootKLast.toNat).toNat < (UInt256.ofNat rootK.toNat).toNat := by
-  have hrootKPos : 0 < rootK := by omega
-  have hlastSize : rootKLast.toNat < UInt256.size := by
-    have hlastLe : rootKLast.toNat ≤ rootK.toNat :=
-      Int.toNat_le_toNat (by omega)
-    exact lt_of_le_of_lt hlastLe hrootKSize
-  rw [ulit_toNat' _ hlastSize, ulit_toNat' _ hrootKSize]
-  exact (Int.toNat_lt_toNat hrootKPos).mpr hroot
-
-theorem mintFeeRuntimeRootLe_of_int_not_gt
-    (rootK rootKLast : Int)
-    (hroot : ¬ rootK > rootKLast)
-    (hrootKSize : rootK.toNat < UInt256.size)
-    (hrootKLastSize : rootKLast.toNat < UInt256.size) :
-    (UInt256.ofNat rootK.toNat).toNat ≤ (UInt256.ofNat rootKLast.toNat).toNat := by
-  rw [ulit_toNat' _ hrootKSize, ulit_toNat' _ hrootKLastSize]
-  exact Int.toNat_le_toNat (by omega)
 
 theorem mintFeeRuntimeNumeratorFit
     (evm : EVM.State) (rootK rootKLast : Int)

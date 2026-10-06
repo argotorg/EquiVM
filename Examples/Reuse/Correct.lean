@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.Reuse.Bytecode
 import Examples.Reuse.Spec
 import Reasoning.ABI
@@ -307,79 +309,6 @@ theorem cDecode_g_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldat
 
 namespace Reasoning.Theory
 
-theorem cDiv_mul2 {v : UInt256} (h : 2 * v.toNat < UInt256.size) :
-    UInt256.div (UInt256.mul v ⟨2⟩) ⟨2⟩ = v := by
-  apply u256_inj
-  unfold UInt256.div UInt256.toNat
-  simp
-  change (UInt256.mul v ⟨2⟩).toNat / 2 = v.toNat
-  rw [mul2_toNat h]
-  exact Nat.mul_div_right v.toNat (by norm_num)
-
-theorem cMul2_wrap_toNat {v : UInt256} (hover : UInt256.size ≤ 2 * v.toNat) :
-    (UInt256.mul v ⟨2⟩).toNat = 2 * v.toNat - UInt256.size := by
-  show (v.val * (⟨2⟩ : UInt256).val).val = 2 * v.toNat - UInt256.size
-  rw [Fin.val_mul]
-  change (v.toNat * 2) % UInt256.size = 2 * v.toNat - UInt256.size
-  rw [Nat.mul_comm]
-  have hlt : 2 * v.toNat < 2 * UInt256.size := by
-    have hvlt : v.toNat < UInt256.size := v.val.isLt
-    omega
-  rw [Nat.mod_eq_sub_mod hover]
-  rw [Nat.mod_eq_of_lt (by omega)]
-
-theorem cDiv_mul2_overflow_lt {v : UInt256} (hover : UInt256.size ≤ 2 * v.toNat) :
-    (UInt256.div (UInt256.mul v ⟨2⟩) ⟨2⟩).toNat < v.toNat := by
-  have hprod : (UInt256.mul v ⟨2⟩).toNat = 2 * v.toNat - UInt256.size :=
-    cMul2_wrap_toNat hover
-  have hdiv : (UInt256.div (UInt256.mul v ⟨2⟩) ⟨2⟩).toNat =
-      (2 * v.toNat - UInt256.size) / 2 := by
-    unfold Ethereum.UInt256.div Ethereum.UInt256.toNat
-    simp only
-    change (UInt256.mul v ⟨2⟩).toNat / (⟨2⟩ : UInt256).toNat = _
-    rw [show (⟨2⟩ : UInt256).toNat = 2 from by decide, hprod]
-    change (2 * v.toNat - UInt256.size) / 2 = (2 * v.toNat - UInt256.size) / 2
-    rfl
-  rw [hdiv]
-  apply Nat.lt_of_not_ge
-  intro hge
-  have hm := Nat.le_div_two_iff_mul_two_le.mp hge
-  have hpos : 0 < UInt256.size := by
-    norm_num [UInt256.size]
-  omega
-
-theorem cEq_mul2_div_overflow {v : UInt256} (hover : UInt256.size ≤ 2 * v.toNat) :
-    UInt256.eq v (UInt256.div (UInt256.mul v ⟨2⟩) ⟨2⟩) = ⟨0⟩ := by
-  apply u256_eq_of_ne
-  intro heqv
-  have hlt := cDiv_mul2_overflow_lt hover
-  have hnat := congrArg UInt256.toNat heqv
-  omega
-
-theorem cUgt_zero {a b : UInt256} (h : a.toNat ≤ b.toNat) : UInt256.gt a b = ⟨0⟩ := by
-  show UInt256.fromBool (decide (a > b)) = ⟨0⟩
-  rw [decide_eq_false (show ¬ (a > b) from by
-    show ¬ (a.toNat > b.toNat)
-    omega)]
-  rfl
-
-theorem cAdd1_overflow_gt {v : UInt256} (hover : UInt256.size ≤ v.toNat + 1) :
-    UInt256.gt ⟨1⟩ (v + ⟨1⟩) = ⟨1⟩ := by
-  have hvlt : v.toNat < UInt256.size := v.val.isLt
-  have hle : v.toNat + 1 ≤ UInt256.size := by
-    omega
-  have hv : v.toNat + 1 = UInt256.size := by
-    omega
-  have hsum : (v + ⟨1⟩).toNat = 0 := by
-    rw [uadd_toNat]
-    change (v.toNat + 1) % UInt256.size = 0
-    rw [hv, Nat.mod_self]
-  show UInt256.fromBool (decide ((⟨1⟩ : UInt256) > (v + ⟨1⟩))) = ⟨1⟩
-  rw [decide_eq_true]
-  · rfl
-  · show (⟨1⟩ : UInt256).toNat > (v + ⟨1⟩).toNat
-    rw [hsum]
-    decide
 
 end Reasoning.Theory
 
@@ -463,7 +392,7 @@ theorem RD.cCheckedAdd1 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     ∃ k' C', RD cBytecode ee g s0 ret ((v + ⟨1⟩) :: R) mem aw rdata acc k' C' := by
   have hsum : (v + ⟨1⟩).toNat = v.toNat + 1 := add1_toNat hadd
   have hgt : UInt256.gt ⟨1⟩ (v + ⟨1⟩) = ⟨0⟩ :=
-    Reasoning.Theory.cUgt_zero (by
+    Reasoning.Theory.ugt_zero (by
       change 1 ≤ (v + ⟨1⟩).toNat
       rw [hsum]
       omega)
@@ -928,20 +857,7 @@ theorem cBindFArg (I : ExecutionEnv) :
 theorem cStorageLocStore_uint256 (evm : EVM.State) (val : UInt256) :
     storageLocStore evm Reuse.sLoc (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ val) := by
-  unfold storageLocStore storageLocWriteWord Reuse.sLoc
-  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof val).2
-  congr 2
-  apply u256_inj
-  show fromBytes'
-      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
-        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = val.toNat
-  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
-    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
-    List.append_nil, List.take_of_length_le (by rw [hvlen]),
-    fromBytes'_toBytesLEWithSizeProof]
+  exact storageLocStore_uint256 evm ⟨0⟩ val
 
 theorem cAssignS (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? cConfig { contract := Reuse.cContract, locals := cGStoreAfterF I } evm

@@ -13,7 +13,7 @@ def initializeBaseMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 
 def initializePausedMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner (initializeBaseMap σ I) ⟨51⟩
-    (pauseWord (storedWord (initializeBaseMap σ I) I ⟨51⟩))
+    (pauseWord (solcSlotWord (initializeBaseMap σ I) I ⟨51⟩))
 
 def initializeFinalMap (args : InitializeArgs) (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   initializerExited (args.storeMap (initializePausedMap σ I) I) I
@@ -24,10 +24,10 @@ theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
   unfold initializerPauseMap pausedWord
   cases ha : σ.get? I.codeOwner with
   | none =>
-    rw [sstoreAccountMap_absent_same ha, storedWord_absent ha]
+    rw [sstoreAccountMap_absent_same ha, solcSlotWord_absent ha]
     decide
   | some acc =>
-    rw [storedWord_sstore_present σ I ha]
+    rw [solcSlotWord_sstore_present σ I ha]
     apply u256_inj
     simp only [uland_toNat, Nat.and_assoc]
     have hm : (UInt256.lnot (⟨255⟩ : UInt256)).toNat &&& (⟨255⟩ : UInt256).toNat = 0 :=
@@ -38,8 +38,8 @@ theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
 theorem initializeBaseMap_unpaused (σ : AccountMap) (I : ExecutionEnv) :
     pausedWord (initializeBaseMap σ I) I = ⟨0⟩ := by
   unfold initializeBaseMap initializerOwnerMap initializerStatusMap pausedWord
-  rw [storedWord_sstore_ne _ _ ⟨51⟩ ⟨151⟩ _ (by decide),
-    storedWord_sstore_ne _ _ ⟨51⟩ ⟨101⟩ _ (by decide)]
+  rw [solcSlotWord_sstore_ne _ _ ⟨51⟩ ⟨151⟩ _ (by decide),
+    solcSlotWord_sstore_ne _ _ ⟨51⟩ ⟨101⟩ _ (by decide)]
   exact pausedWord_initializerPauseMap _ _
 
 theorem initializeNestedSetup {I g s0 R rdata σ k C}
@@ -53,7 +53,7 @@ theorem initializeNestedSetup {I g s0 R rdata σ k C}
     jumpdest, push2 ⟨2221⟩, push2 ⟨3778⟩, jump (by jump_dest) ]
   obtain ⟨_, _, rd2221⟩ := pausableInitializer rd3778 hr hperm (by jump_dest) (by evm_ov)
   have hr1 := initializerReady_sstore hr ⟨51⟩
-    (UInt256.land (storedWord (initializerEntered σ I) I ⟨51⟩) (UInt256.lnot ⟨255⟩)) (by decide)
+    (UInt256.land (solcSlotWord (initializerEntered σ I) I ⟨51⟩) (UInt256.lnot ⟨255⟩)) (by decide)
   have rd3896 := evm_run rd2221 with [
     jumpdest, push2 ⟨2229⟩, push2 ⟨3896⟩, jump (by jump_dest) ]
   obtain ⟨_, _, rd2229⟩ := reentrancyInitializer rd3896 hr1 hperm (by jump_dest) (by evm_ov)

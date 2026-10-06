@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Vat
 /-! ## `Line()` getter -/
 
 def LineWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vatSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem vatDecode_Line {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (LineTransition.params.map Param.name)
@@ -58,7 +58,7 @@ theorem vatLineBodyCore : VatBodyTheorem 0 := by
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (LineWord σ I).toNat))])) := by
-    simpa [LineTransition, LineWord, vatSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [LineTransition, LineWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

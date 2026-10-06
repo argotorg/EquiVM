@@ -192,9 +192,9 @@ theorem vatDenyBodyCoreOk
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
       (code := vatBytecode) (pc := ⟨5362⟩) (okPc := ⟨5444⟩) (key := key)
       (ret := ⟨524⟩) (R := [sel])
@@ -203,7 +203,7 @@ theorem vatDenyBodyCoreOk
         unfold vatAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
-    by_cases hliveEvm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
+    by_cases hliveEvm : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨0⟩
       have hbody :
@@ -229,7 +229,7 @@ theorem vatDenyBodyCoreOk
               EvalResult.ofOption, EvalResult.bind, pure, bind, locals]
           have hstore :
               storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 0) = some evm1 := by
-            simpa [evm1] using vatStorageLocStore_uint256 evm0 (relySlotFor I) ⟨0⟩
+            simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨0⟩
           exact assignStorageRef_storage_scalar
             (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
             (hbase := by simp [locals, wardsRef])
@@ -256,7 +256,7 @@ theorem vatDenyBodyCoreOk
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, requireLive, evm0, evm1] using
           ExecFuncBody.execBlockOK hblock
       have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
-        simpa [vatSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vatLiveGuardOk
         (code := vatBytecode) (pc := ⟨5444⟩) (okPc := ⟨5514⟩) (key := key)
         (ret := ⟨524⟩) (R := [sel]) hafterAuth
@@ -316,7 +316,7 @@ theorem vatDenyBodyCoreOk
         simpa [ExecTransitionBody, denyTransition, nonpayable, auth, requireLive, evm0] using
           ExecFuncBody.execBlockRevert hblock
       have hliveSolc : solcSlotWord σ I ⟨10⟩ ≠ ⟨1⟩ := by
-        simpa [vatSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hmemAuth :
           (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
         twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -354,7 +354,7 @@ theorem vatDenyBodyCoreOk
       simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.vatAuthCheckRevert
       (pc := ⟨5362⟩) (okPc := ⟨5444⟩) (key := key)
       (ret := ⟨524⟩) (R := [sel])

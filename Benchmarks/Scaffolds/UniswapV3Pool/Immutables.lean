@@ -1,3 +1,4 @@
+import Reasoning.BytecodePatching
 import Solm
 import Reasoning.Immutables
 
@@ -59,15 +60,12 @@ def immValues (v : PoolImmutables) : List (Ident × Value) :=
     ("imm_maxLiquidityPerTick", .int v.maxLiquidityPerTick),
     ("imm_original",            .address v.original) ]
 
-/-- A `Value`'s 32-byte word (big-endian), as `valueToWord` computes it. -/
-def wordBytes? (v : Value) : Option ByteArray :=
-  (valueToWord v).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 /-- Build the `(offset, 32-byte word)` patch list by looking each `imm_<name>` up via `get`. -/
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let v ← get p.1
-    let bytes ← wordBytes? v
+    let bytes ← Reasoning.Theory.wordBytes? v
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 /-- The patch list for a concrete immutable assignment (used at the per-value theorem site). -/

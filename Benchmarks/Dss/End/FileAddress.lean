@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.FileUint
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -146,7 +147,7 @@ theorem endDecode_fileAddress_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.s
         some (endFileAddressLocals I) := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr, endFileAddressLocals,
     endFileAddressWhat, endFileAddressData, abiBytes32, abiBytes32Width, abiAddress] using
-    (endDecode_legacyBytes32_address_ok (cd := I.calldata) (x := "what")
+    (decode_legacyBytes32_address_ok (cd := I.calldata) (x := "what")
       (y := "data") hsz68)
 
 theorem endDecode_fileAddress_none_short {I : ExecutionEnv}
@@ -155,7 +156,7 @@ theorem endDecode_fileAddress_none_short {I : ExecutionEnv}
       (transitionSignature fileAddressTransition).paramTypes I.calldata = none := by
   simpa [config, fileAddressTransition, bytes32, bytes32Width, addr, abiBytes32,
     abiBytes32Width, abiAddress] using
-    (endDecode_legacyBytes32_address_none_short (cd := I.calldata) (x := "what")
+    (decode_legacyBytes32_address_none_short (cd := I.calldata) (x := "what")
       (y := "data") hsz4 hshort)
 
 theorem endFileAddressLocals_get_what (I : ExecutionEnv) :
@@ -246,7 +247,7 @@ theorem evalExpr_endFileAddress_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using endStorageLocLoad_uint256 evm (endRelyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (endRelyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -274,7 +275,7 @@ theorem evalExpr_endFileAddress_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileAddress_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm (endRelyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (endRelyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -282,7 +283,7 @@ theorem evalExpr_endFileAddress_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact endUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -322,7 +323,7 @@ theorem evalExpr_endFileAddress_live_true (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileAddress_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using endStorageLocLoad_uint256 evm ⟨8⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨8⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -346,7 +347,7 @@ theorem evalExpr_endFileAddress_live_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileAddress_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨8⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨8⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ≠
@@ -354,7 +355,7 @@ theorem evalExpr_endFileAddress_live_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact endUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ==
@@ -542,7 +543,7 @@ theorem endFileAddressX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   simpa [endRelyAuthHashMem] using
     RD.endAuthCheckOk
@@ -563,7 +564,7 @@ theorem endFileAddressX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev endBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   exact RD.endAuthCheckRevert
     (code := endBytecode) (pc := endFileAddressAuthPc) (okPc := endFileAddressLivePc)
@@ -579,7 +580,7 @@ theorem endFileAddressX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
     hauthSolc (by simp)
 
 theorem endFileAddressX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    {sel : UInt256} (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (h : RD endBytecode I g s0 endFileAddressLivePc
       [endFileAddressDataMaskedWord I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -587,7 +588,7 @@ theorem endFileAddressX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [endFileAddressDataMaskedWord I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ = ⟨1⟩ := by
-    simpa [endSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   exact RD.endLiveGuardOk
     (code := endBytecode) (pc := endFileAddressLivePc) (okPc := endFileAddressSwitchPc)
     (key := endFileAddressDataMaskedWord I) (ret := calldataWord I.calldata 4)
@@ -599,13 +600,13 @@ theorem endFileAddressX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     hliveSolc (by jump_dest) (by simp)
 
 theorem endFileAddressX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
+    {sel : UInt256} (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : RD endBytecode I g s0 endFileAddressLivePc
       [endFileAddressDataMaskedWord I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev endBytecode g s0 := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ ≠ ⟨1⟩ := by
-    simpa [endSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   exact RD.endLiveGuardRevert
     (code := endBytecode) (pc := endFileAddressLivePc) (okPc := endFileAddressSwitchPc)
     (key := endFileAddressDataMaskedWord I) (ret := calldataWord I.calldata 4)
@@ -822,21 +823,6 @@ theorem RD.endFileAddressStoreVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
         solcAddrMask from by decide]
       using rd8472.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem endFileAddressStoreWord_eq (old data : UInt256) :
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-      setAddressOffset0Word old data := by
-  calc
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-        UInt256.lor (UInt256.land data solcAddrMask)
-          (UInt256.land old (UInt256.lnot solcAddrMask)) := by
-          rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
-    _ = UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask))
-          (UInt256.land data solcAddrMask) := by
-          exact u256_lor_comm _ _
-    _ = setAddressOffset0Word old data := by
-          rfl
 
 theorem RD.endFileAddressSkipCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -912,7 +898,7 @@ theorem RD.endFileAddressStoreCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨2⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨2⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -993,7 +979,7 @@ theorem RD.endFileAddressStoreDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨3⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨3⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1074,7 +1060,7 @@ theorem RD.endFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨4⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨4⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1155,7 +1141,7 @@ theorem RD.endFileAddressStorePot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨5⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨5⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1236,7 +1222,7 @@ theorem RD.endFileAddressStoreSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨6⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨6⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1316,7 +1302,7 @@ theorem RD.endFileAddressStoreCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.or (by native_decide) (by evm_ov)
   have rd := rd.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨7⟩) data
+  have hword := ctorSetAddressWord_eq (solcSlotWord σ ee ⟨7⟩) data
   exact ⟨_, _, by
     simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1359,7 +1345,7 @@ theorem endFileAddressSourceAuthReverts {σ σ₀ A I} {g : UInt256}
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_false evm0 I (by simp [evm0, initState]) hauth
   refine ExecFuncBody.execBlockRevert ?_
@@ -1386,7 +1372,7 @@ theorem endFileAddressSourceAuthReverts {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩) :
     let locals := endFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
@@ -1394,13 +1380,13 @@ theorem endFileAddressSourceLiveReverts {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_false evm0 I hlive
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 fileAddressTransition.body
@@ -1415,7 +1401,7 @@ theorem endFileAddressSourceLiveReverts {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceVatOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hwhat : endFileAddressWhat I = endFileAddressVatBytes) :
     let locals := endFileAddressLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1426,13 +1412,13 @@ theorem endFileAddressSourceVatOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1476,7 +1462,7 @@ theorem endFileAddressSourceVatOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceCatOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hwhat : endFileAddressWhat I = endFileAddressCatBytes) :
     let locals := endFileAddressLocals I
@@ -1488,13 +1474,13 @@ theorem endFileAddressSourceCatOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1556,7 +1542,7 @@ theorem endFileAddressSourceCatOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceDogOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hwhat : endFileAddressWhat I = endFileAddressDogBytes) :
@@ -1569,13 +1555,13 @@ theorem endFileAddressSourceDogOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1654,7 +1640,7 @@ theorem endFileAddressSourceDogOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceVowOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hnotDog : endFileAddressWhat I ≠ endFileAddressDogBytes)
@@ -1668,13 +1654,13 @@ theorem endFileAddressSourceVowOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1769,7 +1755,7 @@ theorem endFileAddressSourceVowOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourcePotOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hnotDog : endFileAddressWhat I ≠ endFileAddressDogBytes)
@@ -1784,13 +1770,13 @@ theorem endFileAddressSourcePotOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -1900,7 +1886,7 @@ theorem endFileAddressSourcePotOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceSpotOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hnotDog : endFileAddressWhat I ≠ endFileAddressDogBytes)
@@ -1916,13 +1902,13 @@ theorem endFileAddressSourceSpotOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -2046,7 +2032,7 @@ theorem endFileAddressSourceSpotOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceCureOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hnotDog : endFileAddressWhat I ≠ endFileAddressDogBytes)
@@ -2063,13 +2049,13 @@ theorem endFileAddressSourceCureOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -2206,7 +2192,7 @@ theorem endFileAddressSourceCureOk {σ σ₀ A I} {g : UInt256}
 theorem endFileAddressSourceUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotVat : endFileAddressWhat I ≠ endFileAddressVatBytes)
     (hnotCat : endFileAddressWhat I ≠ endFileAddressCatBytes)
     (hnotDog : endFileAddressWhat I ≠ endFileAddressDogBytes)
@@ -2221,13 +2207,13 @@ theorem endFileAddressSourceUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileAddress_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileAddress_live_true evm0 I hlive
   have hvat :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -2386,7 +2372,7 @@ theorem endFileAddressBodyCoreStore
     hret'.reEquivExecutionGen hcode hdispatch hdecode
       (by simpa [evmSolm] using hbody)
       (by simp [endFileAddressPostState, evmSolm, initState, storageStore_accountMap,
-        stored, solcSlotWord, endSlotWord, Solm.EVM.storageLoad,
+        stored, solcSlotWord, solcSlotWordAt, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]) henc
 
 theorem endFileAddressBody {σ σ₀ A I} {g : UInt256}
@@ -2411,8 +2397,8 @@ theorem endFileAddressBody {σ σ₀ A I} {g : UInt256}
     by_cases hauth : endRelyAuthWord σ I = ⟨1⟩
     · have hauthSolm : endRelyAuthWord σ I = ⟨1⟩ := hauth
       obtain ⟨_, _, hauthPc⟩ := endFileAddressX_authorized (I := I) hauth hdecoded
-      by_cases hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩
-      · have hliveSolm : endSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+      by_cases hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩
+      · have hliveSolm : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
         obtain ⟨_, _, hswitch⟩ := endFileAddressX_live (I := I) hlive hauthPc
         have hsz36 : 36 ≤ I.calldata.size := by omega
         by_cases hvat : endFileAddressWhat I = endFileAddressVatBytes
@@ -2582,7 +2568,7 @@ theorem endFileAddressBody {σ σ₀ A I} {g : UInt256}
                       exact (endFileAddressX_unrecognized hnotVatWord hnotCatWord
                         hnotDogWord hnotVowWord hnotPotWord hnotSpotWord hnotCureWord hswitch)
                         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hliveSolm : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩ := by
+      · have hliveSolm : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩ := by
           intro hbad
           exact hlive hbad
         have hbody :

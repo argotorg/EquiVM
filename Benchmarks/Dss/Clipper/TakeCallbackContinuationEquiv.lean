@@ -1,3 +1,4 @@
+import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.TakeCallbackContinuationSource
 import Benchmarks.Dss.Clipper.TakeCallbackEquiv
 import Benchmarks.Dss.Clipper.TakeDynamicRemove
@@ -8,48 +9,6 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
-theorem clipperTypedCallViaEVM_preservesBase {cfg : Config}
-    {evm evm' : EVM.State} {tgt : EVM.Address} {name : Ident}
-    {value : ℤ} {args : List Value} {z : Bool} {out : ByteArray}
-    {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg evm tgt name value args
-      (z, evm', out) callPerm) :
-    evm'.σ₀ = evm.σ₀ ∧ evm'.executionEnv = evm.executionEnv := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
-  cases hraw with
-  | callMade _hvalue _hTheta hevm' _hvalue' _hdepth =>
-      subst hevm'
-      exact ⟨rfl, rfl⟩
-  | callNotMade _hsubstate hevm' _hvalue =>
-      subst hevm'
-      exact ⟨rfl, rfl⟩
-
-theorem clipperTypedCallSyncFromState {cfg : Config}
-    {evmEvm evmSolm evmEvm' : EVM.State}
-    {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
-    {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hAccounts : evmEvm.accountMap = evmSolm.accountMap)
-    (hSigma0 : evmSolm.σ₀ = evmEvm.σ₀)
-    (hEnv : evmSolm.executionEnv = evmEvm.executionEnv)
-    (hcall : typedCallViaEVM cfg evmEvm tgt name value args
-      (z, evmEvm', out) callPerm) :
-    ∃ evmSolm',
-      typedCallViaEVM cfg evmSolm tgt name value args
-        (z, evmSolm', out) callPerm ∧
-      evmEvm'.accountMap = evmSolm'.accountMap ∧
-      evmSolm'.σ₀ = evmEvm'.σ₀ ∧
-      evmSolm'.executionEnv = evmEvm'.executionEnv := by
-  have hbase := clipperTypedCallViaEVM_preservesBase hcall
-  obtain ⟨σSolm', ASolm', hcallSolm, hAccounts'⟩ :=
-    Reasoning.Theory.typedCallViaEVM_sameInputs hcall hAccounts hSigma0.symm hEnv.symm
-  let evmSolm' : EVM.State :=
-    { evmSolm with accountMap := σSolm', substate := ASolm' }
-  refine ⟨evmSolm', ?_, ?_⟩
-  · simpa [evmSolm'] using hcallSolm
-  · refine ⟨?_, ?_, ?_⟩
-    · simpa [evmSolm'] using hAccounts'
-    · simpa [evmSolm'] using hSigma0.trans hbase.1.symm
-    · simpa [evmSolm'] using (hbase.2.trans hEnv.symm).symm
 
 set_option maxHeartbeats 1000000 in
 theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords

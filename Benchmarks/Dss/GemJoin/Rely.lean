@@ -250,7 +250,7 @@ theorem gemJoinRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1046 : RD gemJoinBytecode I g s0 ⟨1046⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1046 C1046 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
   have rd1049pre := evm_run rd1046 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -298,7 +298,7 @@ theorem gemJoinRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1046 : RD gemJoinBytecode I g s0 ⟨1046⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1046 C1046 := by
-    simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1046raw
   have rd1049pre := evm_run rd1046 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -461,7 +461,7 @@ theorem gemJoinRelyBodyCoreOk
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -496,7 +496,7 @@ theorem gemJoinRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       gemJoinRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

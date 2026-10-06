@@ -18,7 +18,7 @@ def bidStoredState (evm : EVM.State) : EVM.State := bidWinnerState (bidAmountSta
 def bidStoredAccounts (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   let σ1 := sstoreAccountMap I.codeOwner σ ⟨208⟩ I.weiValue
   sstoreAccountMap I.codeOwner σ1 ⟨211⟩
-    (setAddressOffset0Word (storedWord σ1 I ⟨211⟩) (solcSourceWord I))
+    (setAddressOffset0Word (solcSlotWord σ1 I ⟨211⟩) (solcSourceWord I))
 
 theorem SourceState.bidStores {s0 I σ evm} (hs : SourceState s0 I σ evm) :
     SourceState s0 I (bidStoredAccounts σ I) (bidStoredState evm) := by

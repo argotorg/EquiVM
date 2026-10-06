@@ -8,7 +8,7 @@ The whole `vat.sol` spec written with `solidity%` and proven definitionally equa
 spec in `Spec.lean`.  Maker's checked-arithmetic helper statement lists are inlined: unsigned
 add/sub/mul are the `as uint256` range checks, the signed variants wrap with
 `% #(Int.ofNat EVM.wordModulus)` and check the sign conditions, and signed mul is the
-`as int256` range check plus the `#maxInt256` bound.  `wish` is the inline
+`as int256` range check plus the `#Reasoning.Theory.maxInt256` bound.  `wish` is the inline
 `x == msg.sender || can[x][msg.sender] == 1`.  `file` keys are big-endian `bytes32` ASCII
 literals.  Transition order matches `contract.transitions` (selector order).
 -/
@@ -117,7 +117,7 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     require(rate <= 0 || rateNew >= ilks[i].rate);
     ilks[i].rate = rateNew;
     int256 rad = (ilks[i].Art * rate) as int256;
-    require(ilks[i].Art <= #maxInt256);
+    require(ilks[i].Art <= #Reasoning.Theory.maxInt256);
     require(rate == 0 || rad / rate == ilks[i].Art);
     uint256 daiNew = (dai[u] + rad) % #(Int.ofNat EVM.wordModulus);
     require(rad >= 0 || daiNew <= dai[u]);
@@ -186,7 +186,7 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     require(dart >= 0 || ilkArtNew <= ilkArt);
     require(dart <= 0 || ilkArtNew >= ilkArt);
     int256 dtab = (ilkRate * dart) as int256;
-    require(ilkRate <= #maxInt256);
+    require(ilkRate <= #Reasoning.Theory.maxInt256);
     require(dart == 0 || dtab / dart == ilkRate);
     uint256 tab = (ilkRate * urnArtNew) as uint256;
     require(urnArtNew == 0 || tab / urnArtNew == ilkRate);
@@ -240,7 +240,7 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     require(dart <= 0 || ilkArtNew >= ilks[i].Art);
     ilks[i].Art = ilkArtNew;
     int256 dtab = (ilks[i].rate * dart) as int256;
-    require(ilks[i].rate <= #maxInt256);
+    require(ilks[i].rate <= #Reasoning.Theory.maxInt256);
     require(dart == 0 || dtab / dart == ilks[i].rate);
     uint256 gemNew = (gem[i][v] - dink) % #(Int.ofNat EVM.wordModulus);
     require(dink <= 0 || gemNew <= gem[i][v]);

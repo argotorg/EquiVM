@@ -92,7 +92,7 @@ theorem clipperReachChipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperChipSelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by
@@ -116,7 +116,7 @@ theorem clipperReachChipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h54 := clipperSplitNotTaken (pc := (⟨43⟩ : UInt256))
+  have h54 := RD.selectorSplitNotTakenPush2 (pc := (⟨43⟩ : UInt256))
     (next := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
     (by
@@ -140,7 +140,7 @@ theorem clipperReachChipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h113 := clipperSplitTaken (pc := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 12)
+  have h113 := RD.selectorSplitTakenPush2 (pc := (⟨54⟩ : UInt256)) (pivot := clipperSelNat 12)
     (tgt := (⟨113⟩ : UInt256)) h54
     (by
         change decode code (⟨54⟩ : UInt256) = some (.DUP1, .none)
@@ -163,7 +163,7 @@ theorem clipperReachChipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨113⟩ : UInt256) (by native_decide))
     (by simp)
-  have h1258 := clipperArmTaken (pc := (⟨114⟩ : UInt256)) (sel := clipperSelNat 3)
+  have h1258 := RD.selectorArmTakenPush2 (pc := (⟨114⟩ : UInt256)) (sel := clipperSelNat 3)
     (tgt := (⟨1258⟩ : UInt256))
     (h113.jumpdest
       (by
@@ -205,9 +205,9 @@ theorem clipperChipGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperChipReturnMaskedWf (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
-    clipperReturnMaskedFromMemWf code (⟨1266⟩ : UInt256)
+    solcReturnMaskedFromMemWf code (⟨1266⟩ : UInt256)
       (UInt256.ofNat (2 ^ 64 - 1)) 8 .PUSH8 := by
-  unfold clipperReturnMaskedFromMemWf
+  unfold solcReturnMaskedFromMemWf
   repeat' first | apply And.intro
   all_goals
     first
@@ -223,7 +223,7 @@ theorem clipperChipPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk
   · simp [hIlk] at hwin ⊢
     try omega
   · simp [hIlk] at hwin ⊢
@@ -231,9 +231,9 @@ theorem clipperChipPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
 
 theorem clipperChipSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
-    clipperPackedUintSlotGetterWf code (⟨6743⟩ : UInt256) (⟨8⟩ : UInt256)
+    solcPackedUintSlotGetterWf code (⟨6743⟩ : UInt256) (⟨8⟩ : UInt256)
       (UInt256.ofNat (2 ^ 64 - 1)) 8 .PUSH8 := by
-  unfold clipperPackedUintSlotGetterWf
+  unfold solcPackedUintSlotGetterWf
   repeat' first | apply And.intro
   · exact patchRuntime_decode_disjoint_of_decode_res hpatch
       (by apply clipperChipPatchesWindowDisjoint32 v; native_decide)
@@ -271,7 +271,7 @@ theorem clipperJumpDest6743 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -318,7 +318,7 @@ theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
   have hreach := clipperReachChipBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
-  have hret := clipperPackedUintGetterExternal (code := code)
+  have hret := solcPackedUintGetterExternal (code := code)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := clipperSelWord I) (entry := (⟨1258⟩ : UInt256))
     (routine := (⟨6743⟩ : UInt256)) (slot := (⟨8⟩ : UInt256))

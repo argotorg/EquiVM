@@ -1,3 +1,5 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
 import Reasoning.Immutables
 
@@ -19,8 +21,6 @@ structure ClipperImmutables where
   vat : EVM.Address
   ilk_wf : ∃ bs, ilk = .fixedBytes ⟨31, by decide⟩ bs ∧ bs.length = 32
 
-def addrLit (a : EVM.Address) : Expr :=
-  .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
 
 variable (v : ClipperImmutables)
 
@@ -29,7 +29,7 @@ def ilkExpr : Expr :=
   | .fixedBytes n bs => .fixedBytesLit n bs
   | _ => .fixedBytesLit ⟨31, by decide⟩ (List.replicate 32 0)
 
-def vatExpr : Expr := addrLit v.vat
+def vatExpr : Expr := Reasoning.Theory.addressLiteral v.vat
 
 def offsets : List (Ident × List Nat) :=
   -- These groups follow the constructor's actual write order. The windows are disjoint, so the
@@ -44,13 +44,11 @@ def immutableLayout : Reasoning.Immutables.Layout :=
 def immValues (v : ClipperImmutables) : List (Ident × Value) :=
   [("imm_ilk", v.ilk), ("imm_vat", .address v.vat)]
 
-def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let x ← get p.1
-    let bytes ← wordBytes? x
+    let bytes ← Reasoning.Theory.wordBytes? x
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 def patches (v : ClipperImmutables) : List (Nat × ByteArray) :=

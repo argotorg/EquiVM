@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
@@ -656,18 +657,6 @@ def auctionEndEndedWordState (evm : EVM.State) : UInt256 :=
 def auctionEndCallStore (success : Bool) (out : ByteArray) : Store :=
   ((∅ : Store).insert "success" (.bool success)).insert "_data" (.bytes out)
 
-theorem auctionEndAddress_ofNat_toNat (w : UInt256) :
-    AccountAddress.ofNat (UInt256.land w solcAddrMask).toNat =
-      AccountAddress.ofUInt256 (UInt256.land w solcAddrMask) := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat AccountAddress.ofUInt256
-  simp [UInt256.toNat]
-
-theorem auctionEndAddress_from_toNat (a : AccountAddress) :
-    EVM.address a.toNat = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt a.isLt
 
 theorem auctionEndCallStore_success_get (success : Bool) (out : ByteArray) :
     (auctionEndCallStore success out)["success"]? = some (.bool success) := by
@@ -691,7 +680,7 @@ theorem evalExpr_auctionEnd_auctionEndTime (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime)]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
 
 theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
@@ -706,7 +695,7 @@ theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_beneficiary)]
-  rw [simpleAuctionStorageLocLoad_address_offset0]
+  erw [storageLocLoad_address_offset0]
   rfl
 
 theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
@@ -723,7 +712,7 @@ theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
     decide
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
-  rw [simpleAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   rfl
 
 theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
@@ -740,7 +729,7 @@ theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    simpleAuctionStorageLocLoad_bool_offset0_false evm ⟨5⟩ hzero
+    storageLocLoad_bool_offset0_false evm ⟨5⟩ hzero
 
 theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
     (hnz : auctionEndEndedWordState evm ≠ ⟨0⟩) :
@@ -756,7 +745,7 @@ theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    simpleAuctionStorageLocLoad_bool_offset0_true evm ⟨5⟩ hnz
+    storageLocLoad_bool_offset0_true evm ⟨5⟩ hnz
 
 theorem evalExpr_auctionEnd_time_true (evm : EVM.State)
     (htime :
@@ -818,7 +807,7 @@ theorem auctionEndAssignEnded (evm : EVM.State) :
       (hty := by decide)
       (hloc := simpleAuctionConfig_storage_ended)
       (hscalar := by trivial)
-  rw [simpleAuctionStorageLocStore_bool_true_offset0]
+  erw [storageLocStore_bool_true_offset0]
   rfl
 
 theorem simpleAuctionAuctionEndBodyReverts_time (evm : EVM.State)
@@ -1194,11 +1183,11 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   simp [targetE, hBenefTarget]
                 _ = AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat := by
                   simpa [auctionEndBeneficiaryWordState] using
-                    (auctionEndAddress_ofNat_toNat
+                    (accountAddress_masked_ofNat_toNat
                       (auctionEndBeneficiaryRawWordState evmAfter)).symm
                 _ = EVM.address
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat) := by
-                  exact (auctionEndAddress_from_toNat
+                  exact (evm_address_of_address_toNat
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmAfter).toNat)).symm
             have hValueTarget :
                 auctionEndHighestBidWord evmAfter.accountMap evmAfter.executionEnv =

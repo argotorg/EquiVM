@@ -1,9 +1,95 @@
+import Reasoning.SolcRoutines
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.Dispatch
+
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+set_option maxHeartbeats 1000000 in
+theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 6) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdWord := evm_run rdRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at rdWord
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -16,16 +102,16 @@ abbrev endThawReturnPc : UInt256 := ⟨562⟩
 abbrev endThawBodyPc : UInt256 := ⟨4525⟩
 
 abbrev endThawLiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    endSlotWord ⟨8⟩ σ I
+    solcSlotWordAt ⟨8⟩ σ I
 
 abbrev endThawDebtWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    endSlotWord ⟨11⟩ σ I
+    solcSlotWordAt ⟨11⟩ σ I
 
 abbrev endThawWhenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    endSlotWord ⟨9⟩ σ I
+    solcSlotWordAt ⟨9⟩ σ I
 
 abbrev endThawWaitWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    endSlotWord ⟨10⟩ σ I
+    solcSlotWordAt ⟨10⟩ σ I
 
 abbrev endThawDeadlineWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
     endThawWhenWord σ I + endThawWaitWord σ I
@@ -34,13 +120,13 @@ abbrev endThawTimestampWord (I : ExecutionEnv) : UInt256 :=
     UInt256.ofNat I.header.timestamp
 
 abbrev endThawVatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    UInt256.land (endSlotWord ⟨1⟩ σ I) solcAddrMask
+    UInt256.land (solcSlotWordAt ⟨1⟩ σ I) solcAddrMask
 
 abbrev endThawVowWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    UInt256.land (endSlotWord ⟨4⟩ σ I) solcAddrMask
+    UInt256.land (solcSlotWordAt ⟨4⟩ σ I) solcAddrMask
 
 abbrev endThawCureWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-    UInt256.land (endSlotWord ⟨7⟩ σ I) solcAddrMask
+    UInt256.land (solcSlotWordAt ⟨7⟩ σ I) solcAddrMask
 
 abbrev endThawVatAddr (σ : AccountMap) (I : ExecutionEnv) : AccountAddress :=
     AccountAddress.ofNat (endThawVatWord σ I).toNat
@@ -217,7 +303,7 @@ theorem endThawDaiEncode_eq (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArra
   rw [endThawDaiCalldataMem_read128_36 σ I hmem]
   have hvowCanon : (endThawVowWord σ I).toNat < EVM.addressModulus := by
     simpa [endThawVowWord] using
-      solcAddrMask_result_canonical (endSlotWord ⟨4⟩ σ I)
+      solcAddrMask_result_canonical (solcSlotWordAt ⟨4⟩ σ I)
   have hvowVal :
       (endThawVowAddr σ I).val = (endThawVowWord σ I).toNat := by
     unfold endThawVowAddr AccountAddress.ofNat
@@ -727,7 +813,7 @@ theorem endThawVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endThawVatWord σ I) (addr := endThawVatAddr σ I)
       (endThawVatAddr_eq_ofUInt256 σ I) hzero
 
@@ -737,7 +823,7 @@ theorem endThawVatCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
       (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endThawVatWord σ I) (addr := endThawVatAddr σ I)
       (endThawVatAddr_eq_ofUInt256 σ I) hne
 
@@ -815,7 +901,7 @@ theorem endThawX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4529⟩
         (endThawLiveWord σ I :: endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endThawLiveWord, endSlotWord, solcSlotWord] using rd4529raw⟩
+    exact ⟨_, _, by simpa [endThawLiveWord, solcSlotWordAt, solcSlotWord] using rd4529raw⟩
   obtain ⟨_, _, rd4529⟩ := rd4529
   have rd4530raw := rd4529.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endThawLiveWord σ I) = ⟨0⟩ :=
@@ -853,7 +939,7 @@ theorem endThawX_debtNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-      simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      simpa [endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
@@ -875,7 +961,7 @@ theorem endThawX_debtNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4599⟩
         (endThawDebtWord σ I :: endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endThawDebtWord, endSlotWord, solcSlotWord] using rd4599raw⟩
+    exact ⟨_, _, by simpa [endThawDebtWord, solcSlotWordAt, solcSlotWord] using rd4599raw⟩
   obtain ⟨_, _, rd4599⟩ := rd4599
   have rd4600raw := rd4599.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endThawDebtWord σ I) = ⟨0⟩ :=
@@ -919,7 +1005,7 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-      simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      simpa [endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
@@ -940,7 +1026,7 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   have hdebtRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-      simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      simpa [endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw
   rw [hdebtRaw] at rd4599zero
   obtain ⟨_, _, rd4599⟩ : ∃ k' C',
@@ -960,19 +1046,19 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd4671raw⟩ := rd4670.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4672⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4672⟩
-        (endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4671raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4671raw⟩
   have rd4675pre := evm_run rd4672 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4675raw⟩ := rd4675pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4676⟩
-        (endSlotWord ⟨4⟩ σ I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ I ::
+        (solcSlotWordAt ⟨4⟩ σ I :: ⟨4⟩ :: solcSlotWordAt ⟨1⟩ σ I ::
           endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4675raw⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
@@ -993,14 +1079,14 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   have hvatMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨1⟩ σ I) = endThawVatWord σ I := by
+          (solcSlotWordAt ⟨1⟩ σ I) = endThawVatWord σ I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
   have hvowMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨4⟩ σ I) = endThawVowWord σ I := by
+          (solcSlotWordAt ⟨4⟩ σ I) = endThawVowWord σ I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
@@ -1068,7 +1154,7 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, by
     simpa [endThawDaiSelectorMem, endThawDaiCalldataMem, endThawDaiOutPtr,
       endThawDaiInSize, endThawDaiOutSize, endThawDaiEndPtr, endThawDaiSelectorWord,
-      endThawDaiSelectorRaw, endThawVatWord, endThawVowWord, endSlotWord, solcSlotWord,
+      endThawDaiSelectorRaw, endThawVatWord, endThawVowWord, solcSlotWordAt, solcSlotWord,
       solcAddrMask, hvatMask, hvowMask, u256_land_comm, hinSize, hendPtr] using rd4737pre⟩
 
 theorem endThawX_daiCallReady {σ σ₀ A I} {g : Sat256}
@@ -1317,7 +1403,7 @@ theorem endThawX_deadlineAddEntry {σ σ' σ₀ A I}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4873⟩
         (endThawWhenWord σ' I :: ⟨4880⟩ :: endThawReturnPc :: sel :: [])
         mem (UInt256.ofNat 6) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endThawWhenWord, endSlotWord, solcSlotWord] using rd4873raw⟩
+    exact ⟨_, _, by simpa [endThawWhenWord, solcSlotWordAt, solcSlotWord] using rd4873raw⟩
   have rd4875 := evm_run rd4873 with [
     raw push1 ⟨10⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4876raw⟩ := rd4875.sload (by native_decide) (by evm_ov)
@@ -1326,7 +1412,7 @@ theorem endThawX_deadlineAddEntry {σ σ' σ₀ A I}
         (endThawWaitWord σ' I :: endThawWhenWord σ' I :: ⟨4880⟩ ::
           endThawReturnPc :: sel :: [])
         mem (UInt256.ofNat 6) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endThawWaitWord, endSlotWord, solcSlotWord] using rd4876raw⟩
+    exact ⟨_, _, by simpa [endThawWaitWord, solcSlotWordAt, solcSlotWord] using rd4876raw⟩
   have rd4879 := evm_run rd4876 with [
     raw push2 ⟨10092⟩ (by native_decide) (by evm_ov)]
   exact ⟨_, _, rd4879.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -1431,77 +1517,6 @@ theorem endThawX_deadlineAddSuccess {σ σ' σ₀ A I}
   exact ⟨_, _, by
     simpa [endThawDeadlineWord, whenWord, waitWord, hcomm] using rd4880⟩
 
-set_option maxHeartbeats 1000000 in
-theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sat256}
-    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
-    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : AccountMap}
-    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 6) rdata acc k C)
-    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
-    (hpush : op ≠ .PUSH0)
-    (hword : UInt256.shiftLeft rawWord shift = word)
-    (hmem : mem.size = 164)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : stk.length + 5 ≤ 1024) :
-    RDrev code g s0 := by
-  rcases hwf with
-    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
-      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
-      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
-      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
-  have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ hd0 (by evm_ov),
-    raw dup1 hd2 (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) hd3
-      mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
-      (by decide) (by evm_ov)]
-  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) hd4
-    (by simp only [List.length_cons]; omega)
-  have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ hd8 (by evm_ov),
-    raw shl hd10 (by evm_ov),
-    raw dup2 hd11 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
-      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ hd13 (by evm_ov),
-    raw push1 ⟨4⟩ hd15 (by evm_ov),
-    raw dup3 hd17 (by evm_ov),
-    raw add hd18 (by evm_ov),
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 len hd20 (by evm_ov),
-    raw push1 ⟨36⟩ hd22 (by evm_ov),
-    raw dup3 hd24 (by evm_ov),
-    raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorStringMem2 len mem)
-      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
-    hpush hd27 (by simp only [List.length_cons]; omega)
-  have rdWord := evm_run rdRaw with [
-    raw push1 shift hdRawOut (by evm_ov),
-    raw shl hdShl (by evm_ov)]
-  rw [hword] at rdWord
-  exact evm_run rdWord with [
-    raw push1 ⟨68⟩ hd68 (by evm_ov),
-    raw dup3 hdDup3 (by evm_ov),
-    raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorStringMem3 len word mem)
-      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 hdSwap (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
-      mem_cost
-      (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
-      (by decide) (by evm_ov),
-    raw swap1 hdSwap2 (by evm_ov),
-    raw dup2 hdDup2 (by evm_ov),
-    raw swap1 hdSwap3 (by evm_ov),
-    raw sub hdSub (by evm_ov),
-    raw push1 ⟨100⟩ hd100 (by evm_ov),
-    raw add hdAdd2 (by evm_ov),
-    raw swap1 hdSwap4 (by evm_ov),
-    raw rev 0 hdRev mem_cost (by evm_ov)]
 
 theorem endThawX_daiNonzero {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {out : ByteArray} {k C : ℕ}
@@ -1626,7 +1641,7 @@ theorem endThawX_debtCallReady {σ σ' σ₀ A I}
   have hvatMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨1⟩ σ' I) = endThawVatWord σ' I := by
+          (solcSlotWordAt ⟨1⟩ σ' I) = endThawVatWord σ' I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
@@ -1636,9 +1651,9 @@ theorem endThawX_debtCallReady {σ σ' σ₀ A I}
   obtain ⟨_, _, rd4960raw⟩ := rd4959.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4960⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4960⟩
-        (endSlotWord ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
         mem (UInt256.ofNat 6) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4960raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4960raw⟩
   have rd5016pre := evm_run rd4960 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1739,7 +1754,7 @@ theorem endThawX_debtNoCode {σ σ' σ₀ A I}
   have hvatMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨1⟩ σ' I) = endThawVatWord σ' I := by
+          (solcSlotWordAt ⟨1⟩ σ' I) = endThawVatWord σ' I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
@@ -1749,9 +1764,9 @@ theorem endThawX_debtNoCode {σ σ' σ₀ A I}
   obtain ⟨_, _, rd4960raw⟩ := rd4959.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4960⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4960⟩
-        (endSlotWord ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ' I :: endThawReturnPc :: sel :: [])
         mem (UInt256.ofNat 6) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4960raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4960raw⟩
   have rd5016pre := evm_run rd4960 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -1984,7 +1999,7 @@ theorem endThawX_tellCallReady {σ σ' σ₀ A I}
       (by rw [endThawNoArgCalldataMem_size hpostSize]; decide)
       (endThawNoArgCalldataMem_read64 hpostSize hpostRead64)
   have hcureMask :
-      UInt256.land (endSlotWord ⟨7⟩ σ' I)
+      UInt256.land (solcSlotWordAt ⟨7⟩ σ' I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         endThawCureWord σ' I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -1994,11 +2009,11 @@ theorem endThawX_tellCallReady {σ σ' σ₀ A I}
   obtain ⟨_, _, rd5076raw⟩ := rd5075.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5076⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨5076⟩
-        (endSlotWord ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
+        (solcSlotWordAt ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
           endThawReturnPc :: sel :: [])
         (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
         rdata σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd5076raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd5076raw⟩
   have rd5129pre := evm_run rd5076 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -2116,7 +2131,7 @@ theorem endThawX_tellNoCode {σ σ' σ₀ A I}
       (by rw [endThawNoArgCalldataMem_size hpostSize]; decide)
       (endThawNoArgCalldataMem_read64 hpostSize hpostRead64)
   have hcureMask :
-      UInt256.land (endSlotWord ⟨7⟩ σ' I)
+      UInt256.land (solcSlotWordAt ⟨7⟩ σ' I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         endThawCureWord σ' I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -2126,11 +2141,11 @@ theorem endThawX_tellNoCode {σ σ' σ₀ A I}
   obtain ⟨_, _, rd5076raw⟩ := rd5075.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5076⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨5076⟩
-        (endSlotWord ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
+        (solcSlotWordAt ⟨7⟩ σ' I :: endThawReturnWord debtOut :: ⟨5190⟩ ::
           endThawReturnPc :: sel :: [])
         (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
         rdata σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd5076raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd5076raw⟩
   have rd5129pre := evm_run rd5076 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -2444,7 +2459,7 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hliveRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-      simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      simpa [endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
   rw [hliveRaw] at rd4529zero
   obtain ⟨_, _, rd4529⟩ : ∃ k' C',
@@ -2465,7 +2480,7 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hdebtRaw :
       (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-      simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      simpa [endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw
   rw [hdebtRaw] at rd4599zero
   obtain ⟨_, _, rd4599⟩ : ∃ k' C',
@@ -2485,18 +2500,18 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd4671raw⟩ := rd4670.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4672⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4672⟩
-        (endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4671raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4671raw⟩
   have rd4675pre := evm_run rd4672 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4675raw⟩ := rd4675pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨4676⟩
-        (endSlotWord ⟨4⟩ σ I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
+        (solcSlotWordAt ⟨4⟩ σ I :: ⟨4⟩ :: solcSlotWordAt ⟨1⟩ σ I :: endThawReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
+    exact ⟨_, _, by simpa [solcSlotWordAt, solcSlotWord] using rd4675raw⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
@@ -2517,14 +2532,14 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hvatMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨1⟩ σ I) = endThawVatWord σ I := by
+          (solcSlotWordAt ⟨1⟩ σ I) = endThawVatWord σ I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
   have hvowMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-          (endSlotWord ⟨4⟩ σ I) = endThawVowWord σ I := by
+          (solcSlotWordAt ⟨4⟩ σ I) = endThawVowWord σ I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by native_decide]
@@ -2587,7 +2602,7 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by
       simpa [endThawDaiSelectorMem, endThawDaiCalldataMem, endThawDaiOutPtr,
         endThawDaiInSize, endThawDaiEndPtr, endThawDaiSelectorWord, endThawDaiSelectorRaw,
-        endThawVatWord, endThawVowWord, endSlotWord, solcSlotWord, solcAddrMask,
+        endThawVatWord, endThawVowWord, solcSlotWordAt, solcSlotWord, solcAddrMask,
         hvatMask, hvowMask, u256_land_comm] using rd4737pre)
   have hcodeSizeGuard := hcodeSize
   rw [← hvatMask] at hcodeSizeGuard
@@ -2656,7 +2671,7 @@ theorem evalExpr_endThaw_vat {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endThaw_vat hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_address_offset0 evm ⟨1⟩)
+    (hload := storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem evalExpr_endThaw_vow {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "vow" = none) :
@@ -2675,7 +2690,7 @@ theorem evalExpr_endThaw_vow {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endThaw_vow hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_address_offset0 evm ⟨4⟩)
+    (hload := storageLocLoad_address_offset0 evm ⟨4⟩)
 
 theorem evalExpr_endThaw_cure {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "cure" = none) :
@@ -2694,7 +2709,7 @@ theorem evalExpr_endThaw_cure {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endThaw_cure hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_address_offset0 evm ⟨7⟩)
+    (hload := storageLocLoad_address_offset0 evm ⟨7⟩)
 
 theorem evalExpr_endThaw_when {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "when" = none) :
@@ -2711,7 +2726,7 @@ theorem evalExpr_endThaw_when {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endThaw_when hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm ⟨9⟩)
+    (hload := storageLocLoad_uint256 evm ⟨9⟩)
 
 theorem evalExpr_endThaw_wait {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "wait" = none) :
@@ -2728,7 +2743,7 @@ theorem evalExpr_endThaw_wait {locals : Store} (evm : EVM.State)
     (her := evalStorageRef_endThaw_wait hbase evm)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-    (hload := endStorageLocLoad_uint256 evm ⟨10⟩)
+    (hload := storageLocLoad_uint256 evm ⟨10⟩)
 
 theorem evalExpr_endThaw_timestamp {locals : Store} (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := locals } evm nowT =
@@ -2755,7 +2770,7 @@ theorem evalExpr_endThaw_live_zero_false (evm : EVM.State)
       (her := evalStorageRef_endThaw_live evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨8⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨8⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ≠
@@ -2788,7 +2803,7 @@ theorem endThawBodyReverts_liveNonzero {σ σ₀ A I} {g : UInt256}
     intro hbad
     apply hlive
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hbad
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguard :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool false) :=
@@ -2835,7 +2850,7 @@ theorem evalExpr_endThaw_debt_zero_false (evm : EVM.State)
       (her := evalStorageRef_endThaw_debt evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨11⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨11⟩)
   have hzero :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm
         (.intLit 0) = .ok (.int 0) := by
@@ -2855,13 +2870,13 @@ theorem endThawBodyReverts_debtNonzero {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩ := by
     intro hbad
     apply hdebt
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hbad
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hbad
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -2880,7 +2895,7 @@ theorem endThawBodyReverts_debtNonzero {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -2912,11 +2927,11 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -2935,7 +2950,7 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -2959,7 +2974,7 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_debt evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hdebtLoad] using endStorageLocLoad_uint256 evm0 ⟨11⟩)]
+        (hload := by simpa [hdebtLoad] using storageLocLoad_uint256 evm0 ⟨11⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -2969,7 +2984,7 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodeZero :
       (UInt256.ofNat
@@ -3045,11 +3060,11 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -3068,7 +3083,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3092,7 +3107,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_debt evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hdebtLoad] using endStorageLocLoad_uint256 evm0 ⟨11⟩)]
+        (hload := by simpa [hdebtLoad] using storageLocLoad_uint256 evm0 ⟨11⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3102,7 +3117,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3119,7 +3134,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         vowAddr = .ok (.address (endThawVowAddr σ I)) := by
       simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVowAddr, endThawVowWord, endSlotWord, solcSlotWord] using
+      endThawVowAddr, endThawVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vow (locals := (∅ : Store)) evm0 (by simp)
   have hargs :
       evalExprs? config { contract := contract, locals := (∅ : Store) } evm0 [vowAddr] =
@@ -3187,11 +3202,11 @@ theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -3210,7 +3225,7 @@ theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3234,7 +3249,7 @@ theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_debt evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hdebtLoad] using endStorageLocLoad_uint256 evm0 ⟨11⟩)]
+        (hload := by simpa [hdebtLoad] using storageLocLoad_uint256 evm0 ⟨11⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3294,7 +3309,7 @@ theorem endThawBodyReverts_daiDecodeShort {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3311,7 +3326,7 @@ theorem endThawBodyReverts_daiDecodeShort {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         vowAddr = .ok (.address (endThawVowAddr σ I)) := by
       simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVowAddr, endThawVowWord, endSlotWord, solcSlotWord] using
+      endThawVowAddr, endThawVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vow (locals := (∅ : Store)) evm0 (by simp)
   have hargs :
       evalExprs? config { contract := contract, locals := (∅ : Store) } evm0 [vowAddr] =
@@ -3362,11 +3377,11 @@ theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -3385,7 +3400,7 @@ theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3409,7 +3424,7 @@ theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_debt evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hdebtLoad] using endStorageLocLoad_uint256 evm0 ⟨11⟩)]
+        (hload := by simpa [hdebtLoad] using storageLocLoad_uint256 evm0 ⟨11⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -3470,7 +3485,7 @@ theorem endThawBodyReverts_daiNonzero {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3487,7 +3502,7 @@ theorem endThawBodyReverts_daiNonzero {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         vowAddr = .ok (.address (endThawVowAddr σ I)) := by
       simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVowAddr, endThawVowWord, endSlotWord, solcSlotWord] using
+      endThawVowAddr, endThawVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vow (locals := (∅ : Store)) evm0 (by simp)
   have hargs :
       evalExprs? config { contract := contract, locals := (∅ : Store) } evm0 [vowAddr] =
@@ -3580,7 +3595,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3597,7 +3612,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         vowAddr = .ok (.address (endThawVowAddr σ I)) := by
       simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVowAddr, endThawVowWord, endSlotWord, solcSlotWord] using
+      endThawVowAddr, endThawVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vow (locals := (∅ : Store)) evm0 (by simp)
   have hargs :
       evalExprs? config { contract := contract, locals := (∅ : Store) } evm0 [vowAddr] =
@@ -3735,7 +3750,7 @@ theorem endThawBodyReverts_waitNotFinished {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.storage vatRef) = .ok (.address (endThawVatAddr σ I)) := by
       simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+      endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vat (locals := (∅ : Store)) evm0 (by simp)
   have hcodePos :
       0 < (UInt256.ofNat
@@ -3752,7 +3767,7 @@ theorem endThawBodyReverts_waitNotFinished {σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         vowAddr = .ok (.address (endThawVowAddr σ I)) := by
       simpa [vowAddr, evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawVowAddr, endThawVowWord, endSlotWord, solcSlotWord] using
+      endThawVowAddr, endThawVowWord, solcSlotWordAt, solcSlotWord] using
       evalExpr_endThaw_vow (locals := (∅ : Store)) evm0 (by simp)
   have hargs :
       evalExprs? config { contract := contract, locals := (∅ : Store) } evm0 [vowAddr] =
@@ -3992,7 +4007,7 @@ theorem endThawVatCode_zero_of_state {evm : EVM.State}
       ((evm.lookupAccount (endThawVatAddr evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := evm.accountMap) (target := endThawVatWord evm.accountMap evm.executionEnv)
       (addr := endThawVatAddr evm.accountMap evm.executionEnv)
       (endThawVatAddr_eq_ofUInt256 evm.accountMap evm.executionEnv) hzero
@@ -4005,7 +4020,7 @@ theorem endThawVatCode_pos_of_state {evm : EVM.State}
       ((evm.lookupAccount (endThawVatAddr evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := evm.accountMap) (target := endThawVatWord evm.accountMap evm.executionEnv)
       (addr := endThawVatAddr evm.accountMap evm.executionEnv)
       (endThawVatAddr_eq_ofUInt256 evm.accountMap evm.executionEnv) hne
@@ -4018,7 +4033,7 @@ theorem endThawCureCode_zero_of_state {evm : EVM.State}
       ((evm.lookupAccount (endThawCureAddr evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := evm.accountMap) (target := endThawCureWord evm.accountMap evm.executionEnv)
       (addr := endThawCureAddr evm.accountMap evm.executionEnv)
       (endThawCureAddr_eq_ofUInt256 evm.accountMap evm.executionEnv) hzero
@@ -4031,7 +4046,7 @@ theorem endThawCureCode_pos_of_state {evm : EVM.State}
       ((evm.lookupAccount (endThawCureAddr evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
-    endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := evm.accountMap) (target := endThawCureWord evm.accountMap evm.executionEnv)
       (addr := endThawCureAddr evm.accountMap evm.executionEnv)
       (endThawCureAddr_eq_ofUInt256 evm.accountMap evm.executionEnv) hne
@@ -4059,7 +4074,7 @@ theorem endThawAssignDebt {locals : Store} (evm : EVM.State) (debtNew : UInt256)
       (her := evalStorageRef_endThaw_debt_of_locals hbase evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (by simpa [endThawPostState] using endStorageLocStore_uint256 evm ⟨11⟩ debtNew)
+      (by simpa [endThawPostState] using storageLocStore_uint256 evm ⟨11⟩ debtNew)
 
 theorem endThawCheckedDebtNoCode (evm : EVM.State) (out : ByteArray)
     (deadline : UInt256)
@@ -4073,7 +4088,7 @@ theorem endThawCheckedDebtNoCode (evm : EVM.State) (out : ByteArray)
       evalExpr? config { contract := contract, locals := endThawStoreDeadlineWord out deadline }
         evm (.storage vatRef) =
           .ok (.address (endThawVatAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord,
+      simpa [endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_vat (locals := endThawStoreDeadlineWord out deadline) evm
         (by simp [endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4105,7 +4120,7 @@ theorem endThawCheckedDebtFailure {evm evm' : EVM.State} {out debtOut : ByteArra
       evalExpr? config { contract := contract, locals := endThawStoreDeadlineWord out deadline }
         evm (.storage vatRef) =
           .ok (.address (endThawVatAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord,
+      simpa [endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_vat (locals := endThawStoreDeadlineWord out deadline) evm
         (by simp [endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4144,7 +4159,7 @@ theorem endThawCheckedDebtDecodeRevert {evm evm' : EVM.State} {out debtOut : Byt
       evalExpr? config { contract := contract, locals := endThawStoreDeadlineWord out deadline }
         evm (.storage vatRef) =
           .ok (.address (endThawVatAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord,
+      simpa [endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_vat (locals := endThawStoreDeadlineWord out deadline) evm
         (by simp [endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4184,7 +4199,7 @@ theorem endThawCheckedDebtSuccess {evm evm' : EVM.State} {out debtOut : ByteArra
       evalExpr? config { contract := contract, locals := endThawStoreDeadlineWord out deadline }
         evm (.storage vatRef) =
           .ok (.address (endThawVatAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord,
+      simpa [endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_vat (locals := endThawStoreDeadlineWord out deadline) evm
         (by simp [endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4220,7 +4235,7 @@ theorem endThawCheckedTellNoCode (evm : EVM.State) (out debtOut : ByteArray)
       evalExpr? config { contract := contract, locals := endThawStoreVatDebt out debtOut deadline }
         evm (.storage cureRef) =
           .ok (.address (endThawCureAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawCureAddr, endThawCureWord, endSlotWord, solcSlotWord,
+      simpa [endThawCureAddr, endThawCureWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_cure (locals := endThawStoreVatDebt out debtOut deadline) evm
         (by simp [endThawStoreVatDebt, endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4252,7 +4267,7 @@ theorem endThawCheckedTellFailure {evm evm' : EVM.State}
       evalExpr? config { contract := contract, locals := endThawStoreVatDebt out debtOut deadline }
         evm (.storage cureRef) =
           .ok (.address (endThawCureAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawCureAddr, endThawCureWord, endSlotWord, solcSlotWord,
+      simpa [endThawCureAddr, endThawCureWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_cure (locals := endThawStoreVatDebt out debtOut deadline) evm
         (by simp [endThawStoreVatDebt, endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4291,7 +4306,7 @@ theorem endThawCheckedTellDecodeRevert {evm evm' : EVM.State}
       evalExpr? config { contract := contract, locals := endThawStoreVatDebt out debtOut deadline }
         evm (.storage cureRef) =
           .ok (.address (endThawCureAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawCureAddr, endThawCureWord, endSlotWord, solcSlotWord,
+      simpa [endThawCureAddr, endThawCureWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_cure (locals := endThawStoreVatDebt out debtOut deadline) evm
         (by simp [endThawStoreVatDebt, endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4332,7 +4347,7 @@ theorem endThawCheckedTellSuccess {evm evm' : EVM.State}
       evalExpr? config { contract := contract, locals := endThawStoreVatDebt out debtOut deadline }
         evm (.storage cureRef) =
           .ok (.address (endThawCureAddr evm.accountMap evm.executionEnv)) := by
-      simpa [endThawCureAddr, endThawCureWord, endSlotWord, solcSlotWord,
+      simpa [endThawCureAddr, endThawCureWord, solcSlotWordAt, solcSlotWord,
       Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_endThaw_cure (locals := endThawStoreVatDebt out debtOut deadline) evm
         (by simp [endThawStoreVatDebt, endThawStoreDeadlineWord, endThawStoreVatDai])
@@ -4532,11 +4547,11 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawLiveWord, endSlotWord, solcSlotWord] using hlive
+      endThawLiveWord, solcSlotWordAt, solcSlotWord] using hlive
   have hdebtLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
     simpa [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
+      endThawDebtWord, solcSlotWordAt, solcSlotWord] using hdebt
   have hguardLive :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
         (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
@@ -4555,7 +4570,7 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_live evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hliveLoad] using endStorageLocLoad_uint256 evm0 ⟨8⟩)]
+        (hload := by simpa [hliveLoad] using storageLocLoad_uint256 evm0 ⟨8⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -4579,7 +4594,7 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
         (her := evalStorageRef_endThaw_debt evm0)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by rfl)
-        (hload := by simpa [hdebtLoad] using endStorageLocLoad_uint256 evm0 ⟨11⟩)]
+        (hload := by simpa [hdebtLoad] using storageLocLoad_uint256 evm0 ⟨11⟩)]
     have hzero :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.intLit 0) = .ok (.int 0) := by
@@ -4620,23 +4635,18 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
     simpa [checkedExternalCallStmts, List.append_assoc] using hdaiWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
 
-theorem endThaw_EVM_address_id (a : AccountAddress) : EVM.address a = a := by
-  apply Fin.ext
-  show ↑a % EVM.twoPow 160 = ↑a
-  rw [Nat.mod_eq_of_lt]
-  exact a.isLt
 
 theorem endThawVatAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : Eq σ τ) :
     EVM.address (endThawVatAddr τ I) = AccountAddress.ofUInt256 (endThawVatWord σ I) := by
   rw [hAccounts, endThawVatAddr_eq_ofUInt256]
-  exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawVatWord τ I))
+  exact eVM_address_id (AccountAddress.ofUInt256 (endThawVatWord τ I))
 
 theorem endThawCureAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : Eq σ τ) :
     EVM.address (endThawCureAddr τ I) = AccountAddress.ofUInt256 (endThawCureWord σ I) := by
   rw [hAccounts, endThawCureAddr_eq_ofUInt256]
-  exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawCureWord τ I))
+  exact eVM_address_id (AccountAddress.ofUInt256 (endThawCureWord τ I))
 
 theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
     {σ' : AccountMap}
@@ -5132,13 +5142,13 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨9⟩ := by
                     simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, Account.lookupStorage, endThawWhenWord, endSlotWord, solcSlotWord]
+                      State.lookupAccount, Account.lookupStorage, endThawWhenWord, solcSlotWordAt, solcSlotWord]
                 have hwaitCouple :
                     endThawWaitWord σ' I =
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨10⟩ := by
                     simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, Account.lookupStorage, endThawWaitWord, endSlotWord, solcSlotWord]
+                      State.lookupAccount, Account.lookupStorage, endThawWaitWord, solcSlotWordAt, solcSlotWord]
                 by_cases hoverDeadline :
                     UInt256.size ≤
                       (endThawWhenWord σ' I).toNat + (endThawWaitWord σ' I).toNat
@@ -5213,7 +5223,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                             evmSolm (.storage vatRef) =
                               .ok (.address (endThawVatAddr σ I)) := by
                           simpa [evmSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
-                          endThawVatAddr, endThawVatWord, endSlotWord, solcSlotWord] using
+                          endThawVatAddr, endThawVatWord, solcSlotWordAt, solcSlotWord] using
                           evalExpr_endThaw_vat (locals := (∅ : Store)) evmSolm (by simp)
                         have hcodePos :
                             0 < (UInt256.ofNat
@@ -5236,7 +5246,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                 .ok (.address (endThawVowAddr σ I)) := by
                             simpa [vowAddr, evmSolm, initState, Solm.EVM.storageLoad,
                             State.lookupAccount, endThawVowAddr, endThawVowWord,
-                            endSlotWord, solcSlotWord] using
+                            solcSlotWordAt, solcSlotWord] using
                             evalExpr_endThaw_vow (locals := (∅ : Store)) evmSolm (by simp)
                         have hargs :
                             evalExprs? config { contract := contract, locals := (∅ : Store) }

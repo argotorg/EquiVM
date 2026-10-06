@@ -115,7 +115,7 @@ theorem catDenyBodyCore
   let locals : Store := (∅ : Store).insert "usr" (.address (denyUsr I))
   have hslot : denySlotFor I = slot := by
     simp [slot, key, denySlotFor_eq]
-  have hcallerWord : catSlotWord callerSlot σ I = catSlotWord callerSlot σ I :=
+  have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
     rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨507⟩) (ret := ⟨302⟩)
@@ -130,8 +130,8 @@ theorem catDenyBodyCore
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : catSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : catSlotWord callerSlot σ I = ⟨1⟩ := by
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+  · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
@@ -175,13 +175,13 @@ theorem catDenyBodyCore
       simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1] using
         ExecFuncBody.execBlockOK hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
-    obtain ⟨_, _, hokPc⟩ := RD.catAuthCheckOk
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
+    obtain ⟨_, _, hokPc⟩ := RD.solcAuthCheckOk
       (code := catBytecode) (pc := ⟨2941⟩) (okPc := ⟨3030⟩) (key := key)
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [key, denyKey] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
     have hmemAuth :
@@ -191,11 +191,11 @@ theorem catDenyBodyCore
       dsimp [key, denyKey]
       rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
       exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-    obtain ⟨_, _, hretPc⟩ := RD.catDenyStoreZero
+    obtain ⟨_, _, hretPc⟩ := RD.solcMapping0StoreZero
       (code := catBytecode) (pc := ⟨3030⟩) (key := key) (ret := ⟨302⟩) (R := [sel])
       hokPc
       (by
-        unfold catDenyStoreZeroWf
+        unfold solcMapping0StoreZeroWf
         repeat' first | apply And.intro | native_decide)
       (by jump_dest) hperm hmemAuth hcanonKey (by simp)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
@@ -212,7 +212,7 @@ theorem catDenyBodyCore
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
     exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
       haccounts henc
-  · have hauthSolm : catSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+  · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
@@ -230,16 +230,16 @@ theorem catDenyBodyCore
       simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.catAuthCheckRevert
       (code := catBytecode) (pc := ⟨2941⟩) (okPc := ⟨3030⟩) (key := key)
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [key, denyKey] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       (by
-        unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
+        unfold solcErrorStringRevertTailWf solcAuthTailPc catNotAuthorizedRawWord
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

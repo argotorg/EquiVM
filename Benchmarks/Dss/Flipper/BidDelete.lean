@@ -114,7 +114,7 @@ theorem clearStorage_bid_bid {evm : EVM.State} {id : UInt256} :
       (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
     | some a => EvalResult.ok a
     | none => EvalResult.error EvalError.storageError) = _
-  rw [flipperStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem clearStorage_bid_lot {evm : EVM.State} {id : UInt256} :
     clearStorage? config evm
@@ -129,7 +129,7 @@ theorem clearStorage_bid_lot {evm : EVM.State} {id : UInt256} :
     | some a => EvalResult.ok a
     | none => EvalResult.error EvalError.storageError) = _
   rw [show bidSlotOfWord id ⟨1⟩ = bidBaseOfWord id + ⟨1⟩ by rfl]
-  rw [flipperStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem clearStorage_bid_guy {evm : EVM.State} {id : UInt256} :
     clearStorage? config evm
@@ -245,7 +245,7 @@ theorem clearStorage_bid_tab {evm : EVM.State} {id : UInt256} :
     | some a => EvalResult.ok a
     | none => EvalResult.error EvalError.storageError) = _
   rw [show bidSlotOfWord id ⟨5⟩ = bidBaseOfWord id + ⟨5⟩ by rfl]
-  rw [flipperStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem bid_slot2_delete_word {old : UInt256} :
     setUint48Offset26Word
@@ -285,34 +285,6 @@ theorem bid_slot2_delete_word {old : UInt256} :
   rw [hmod]
   norm_num
 
-theorem sstoreAccountMap_get?_owner_some_of_some
-    (σ : AccountMap) (a : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : σ.get? a = some acc) :
-    ∃ acc', (sstoreAccountMap a σ slot val).get? a = some acc' := by
-  unfold sstoreAccountMap
-  rw [hacc]
-  simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?,
-    Std.ExtTreeMap.getElem?_insert_self]
-  exact ⟨if val == (default : UInt256) then { acc with storage := acc.storage.erase slot }
-    else { acc with storage := acc.storage.insert slot val }, rfl⟩
-
-theorem sstoreAccountMap_storage_getD_self_zero_present
-    (σ : AccountMap) (a : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : σ.get? a = some acc) :
-    (((sstoreAccountMap a σ slot val).get? a).option (⟨0⟩ : UInt256)
-        (fun acc => acc.storage.getD slot ⟨0⟩)) = val := by
-  unfold sstoreAccountMap
-  rw [hacc]
-  simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?,
-    Std.ExtTreeMap.getElem?_insert_self]
-  by_cases hzero : (val == (default : UInt256)) = true
-  · have hval : val = (⟨0⟩ : UInt256) := by
-      simpa using eq_of_beq hzero
-    subst val
-    simp [hzero]
-  · have hfalse : (val == (default : UInt256)) = false := by
-      cases h : (val == (default : UInt256)) <;> simp [h] at hzero ⊢
-    simp [hfalse]
 
 theorem bidDeleteCollapsedAccountMap_eq_source (owner : AccountAddress)
     (σ : AccountMap) (id : UInt256) :

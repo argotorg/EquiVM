@@ -226,13 +226,13 @@ theorem dogCageBodyCoreOk {v : DogImmutables} {code : ByteArray}
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨432⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hauthEvm : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩) :
+    (hauthEvm : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let callerSlot := dogCallerWardsSlot I
   let locals : Store := ∅
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := dogCagePostState evm0
-  have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
+  have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
   have hbody :
       ExecTransitionBody (config v) (contract v) evm0 locals cageTransition.body
         (.returned { contract := contract v, locals := locals } evm1 none) := by
@@ -267,13 +267,13 @@ theorem dogCageBodyCoreOk {v : DogImmutables} {code : ByteArray}
     (dogPatchedJumpDest hpatch (by native_decide))
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
-  obtain ⟨_, _, hafterAuth⟩ := RD.dogAuthCheckOk
+    simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
+  obtain ⟨_, _, hafterAuth⟩ := RD.solcAuthCheckOk
     (code := code) (pc := ⟨1612⟩) (okPc := ⟨1701⟩)
     (key := ⟨313⟩) (ret := sel) (R := [])
     (by simpa using hentry)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -334,12 +334,12 @@ theorem dogCageBodyCoreAuthRevert {v : DogImmutables} {code : ByteArray}
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨432⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hauthEvm : dogSlotWord (dogCallerWardsSlot I) σ I ≠ ⟨1⟩) :
+    (hauthEvm : solcSlotWordAt (dogCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let callerSlot := dogCallerWardsSlot I
   let locals : Store := ∅
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := hauthEvm
+  have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := hauthEvm
   have hbody : ExecTransitionBody (config v) (contract v) evm0 locals cageTransition.body .reverted := by
     have hguard := dogAuthGuardEval_false (v := v)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -367,19 +367,19 @@ theorem dogCageBodyCoreAuthRevert {v : DogImmutables} {code : ByteArray}
     (dogPatchedJumpDest hpatch (by native_decide))
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+    simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
   have hrev := RD.dogAuthCheckRevert
     (code := code) (pc := ⟨1612⟩) (okPc := ⟨1701⟩)
     (key := ⟨313⟩) (ret := sel) (R := [])
     (by simpa using hentry)
     (by
-      unfold dogAuthCheckWf
+      unfold solcAuthCheckWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
           native_decide)
     (by
-      unfold solcErrorStringRevertTailWf dogAuthTailPc dogNotAuthorizedRawWord
+      unfold solcErrorStringRevertTailWf solcAuthTailPc dogNotAuthorizedRawWord
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -407,7 +407,7 @@ theorem dogCageBodyCore {v : DogImmutables} {code : ByteArray}
   have hreach := dogReachCageBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
-  by_cases hauthEvm : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩
   · exact dogCageBodyCoreOk hpatch hcode hwv hperm hdispatch hdecode hreach
       hauthEvm
   · exact dogCageBodyCoreAuthRevert hpatch hcode hwv hdispatch hdecode hreach

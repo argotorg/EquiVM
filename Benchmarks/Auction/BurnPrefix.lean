@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 def nounsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (storedWord σ I ⟨201⟩) solcAddrMask
+  UInt256.land (solcSlotWord σ I ⟨201⟩) solcAddrMask
 
 theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
@@ -28,7 +28,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
     raw mstoreSymbolic (by native_decide) (by evm_ov)]
   have hsel : UInt256.shiftLeft ⟨0x0852cd8d⟩ ⟨227⟩ = burnWord := by native_decide
   rw [hsel] at rd4453
-  change RD _ _ _ _ ⟨4453⟩ (ptr :: nounId :: storedWord σ I ⟨201⟩ :: snap :: ret :: R)
+  change RD _ _ _ _ ⟨4453⟩ (ptr :: nounId :: solcSlotWord σ I ⟨201⟩ :: snap :: ret :: R)
     (selectorMem mem ptr burnWord) (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd4453
   have rd4481 := evm_run rd4453 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap3, and, swap2, push4 ⟨0x42966c68⟩, swap2, push2 ⟨4486⟩, swap2,
@@ -75,7 +75,7 @@ theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd4505⟩ := burnCodeGuard h hm hb hn ha (by omega)
   exact evm_run rd4505 with [jumpiNT (by rw [hno]; decide),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem burnCallPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)

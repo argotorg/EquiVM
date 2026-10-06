@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `spot()` getter -/
 
 def spotWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨6⟩ σ I
+  solcAddressSlotWord ⟨6⟩ σ I
 
 theorem endDecode_spot {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (spotTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endSpotBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (spotWord σ I).toNat))])) := by
-    simpa [spotTransition, spotWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [spotTransition, spotWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.Storage
 
 /-!
@@ -28,11 +29,6 @@ abbrev wtfAllowSlot (ee : ExecutionEnv) (owner : UInt256) : UInt256 :=
 /-- The scratch memory after building the `balanceOf[src]` key (`src ‖ 3` at `0x00`). -/
 abbrev wtfBalHashMem (s : UInt256) : ByteArray := twoWordHashMem s ⟨3⟩ solcFreePtrMem
 
-/-- Mask literal helper: `src ∧ ((1<<160)-1) = src` for a canonical (address-sized) `src`. -/
-private theorem wtf_maskLiteral {src : UInt256} (hsrc : src.toNat < EVM.addressModulus) :
-    UInt256.land src (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = src := by
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask from by decide]
-  exact solcAddrMask_clean hsrc
 
 /-- The `balanceOf[src] ≥ wad` require prologue (pc 1087 → 1124): mask src, hash `keccak(src‖3)`,
     `SLOAD`, `GT wad; ISZERO; JUMPI` past the revert. -/
@@ -103,7 +99,7 @@ theorem weth9TFReqBalanceRev {ee g s0 rdata σ k C} {src dst wad ret : UInt256} 
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup4 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rdMasked
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdMasked
   have rdKey := rdMasked.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -147,7 +143,7 @@ theorem weth9TFBranchSkipSender {ee g s0 rdata σ k C} {src dst wad ret : UInt25
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rdMasked
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdMasked
   have rdEq := rdMasked.caller (by native_decide) (by simp only [List.length_cons]; omega)
     |>.eq (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -201,7 +197,7 @@ theorem weth9TFAllowLoaded {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd1144
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd1144
   have rd1144b := rd1144.caller (by native_decide) (by simp only [List.length_cons]; omega)
     |>.eq (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -219,7 +215,7 @@ theorem weth9TFAllowLoaded {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd1171
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd1171
   have rd1171b := rd1171.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -278,8 +274,6 @@ theorem wtfAllowHashMem_read64 (ee : ExecutionEnv) (src : UInt256) :
     (twoWordHashMem_read64 src ⟨4⟩ (twoWordHashMem_size_96 src ⟨3⟩ solcFreePtrMem_size)
       (wtfBalHashMem_read64 src))
 
-theorem wtf_lnot0_toNat : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
-  unfold UInt256.lnot; decide
 
 /-- Branch join, case `allowance == uint(-1)` (pc 1186 → 1282): the `&&` is false, skip the spend. -/
 theorem weth9TFBranchSkipMax {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
@@ -293,7 +287,7 @@ theorem weth9TFBranchSkipMax {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hallow : solcSlotWord σ ee (wtfAllowSlot ee src) = UInt256.lnot ⟨0⟩ :=
-    u256_inj (by rw [hmax, wtf_lnot0_toNat])
+    u256_inj (by rw [hmax, u256_lnot_zero_toNat])
   exact ⟨_, _, h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.iszero (by native_decide) (by simp only [List.length_cons]; omega)
     |>.pushConst (⟨1282⟩ : UInt256) (op := .PUSH2) (width := 2) (by decide) (by native_decide)
@@ -329,7 +323,7 @@ theorem weth9TFRequireAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt25
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd
   have rd2 := rd.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -395,7 +389,7 @@ theorem weth9TFDecrementAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd
   have rd2 := rd.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -438,18 +432,6 @@ theorem weth9TFDecrementAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt
   obtain ⟨_, _, rd6⟩ := rd5.sstore hperm (by native_decide) (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rd6⟩
 
-theorem wtf_nestedHashMem_size (baseSlot owner : UInt256) (ee : ExecutionEnv) (mem : ByteArray)
-    (h : mem.size = 96) : (solcNestedMappingCallerHashMem baseSlot owner ee mem).size = 96 := by
-  unfold solcNestedMappingCallerHashMem
-  exact twoWordHashMem_size_96 _ _ (twoWordHashMem_size_96 owner baseSlot h)
-
-theorem wtf_nestedHashMem_read64 (baseSlot owner : UInt256) (ee : ExecutionEnv) (mem : ByteArray)
-    (hsize : mem.size = 96) (hr : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 64 32
-      = UInt256.toByteArray ⟨128⟩ := by
-  unfold solcNestedMappingCallerHashMem
-  exact twoWordHashMem_read64 _ _ (twoWordHashMem_size_96 owner baseSlot hsize)
-    (twoWordHashMem_read64 owner baseSlot hsize hr)
 
 /-- Branch join, case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance ≥ wad` (pc 1186 → 1282):
     require the allowance, decrement it. -/
@@ -484,7 +466,7 @@ theorem weth9TFBranchSpendOk {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     |>.jumpiT (by native_decide) (by rw [ugt_zero hallowEnough]; decide) (by jump_dest)
         (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd1282⟩ := weth9TFDecrementAllowance rd1239 hperm hsrc
-    (wtf_nestedHashMem_size ⟨4⟩ src ee (wtfAllowHashMem ee src) (wtfAllowHashMem_size ee src)) hov
+    (nestedHashMem_size ⟨4⟩ src ee (wtfAllowHashMem ee src) (wtfAllowHashMem_size ee src)) hov
   exact ⟨_, _, rd1282⟩
 
 /-- Branch join, revert case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance < wad` (pc 1186 → the
@@ -526,41 +508,6 @@ def wtfPostMap (ee : ExecutionEnv) (σ : AccountMap) (src dst wad : UInt256) : A
   sstoreAccountMap ee.codeOwner (wtfSrcDebitedMap ee σ src wad) (wtfBalSlot dst)
     (UInt256.add wad (solcSlotWord (wtfSrcDebitedMap ee σ src wad) ee (wtfBalSlot dst)))
 
-/-- `wordAt0Mem` leaves the free-pointer slot (bytes 64–95) untouched. -/
-private theorem wtfTail_wordAt0Mem_read64 {m : ByteArray} (word : UInt256) (hm : m.size = 96) :
-    (wordAt0Mem word m).readWithPadding 64 32 = m.readWithPadding 64 32 := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hm]; omega) (by omega)
-    (by rw [hm])]
-
-/-- Overwriting `mem[0]` with `key` (leaving `slot` at `mem[32]`) makes the first 64 scratch bytes
-    hash to the mapping slot `keccak(key ‖ slot)`. -/
-private theorem wtfTail_wordAt0Mem_keccak {m : ByteArray} (key slot : UInt256) (hm : m.size = 96)
-    (hread32 : m.readWithPadding 32 32 = UInt256.toByteArray slot) :
-    UInt256.ofNat (fromByteArrayBigEndian (KEC ((wordAt0Mem key m).readWithPadding 0 64))) =
-      solcMappingSlot slot key := by
-  have hread0 : (wordAt0Mem key m).readWithPadding 0 32 = UInt256.toByteArray key :=
-    wordAt0Mem_read0 key m
-  have hread32' : (wordAt0Mem key m).readWithPadding 32 32 = UInt256.toByteArray slot := by
-    unfold wordAt0Mem
-    rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size]) (by rw [hm]; omega) (by omega)
-      (by rw [hm]; omega)]
-    exact hread32
-  have hread0_64 : (wordAt0Mem key m).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-    rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [wordAt0Mem_size_96 key hm]; omega)]
-    have hleft : (wordAt0Mem key m).extract 0 32 = UInt256.toByteArray key := by
-      rw [← readWithPadding_eq_extract _ 0 (by rw [wordAt0Mem_size_96 key hm]; omega), hread0]
-    have hright : (wordAt0Mem key m).extract 32 64 = UInt256.toByteArray slot := by
-      rw [← readWithPadding_eq_extract _ 32 (by rw [wordAt0Mem_size_96 key hm]; omega), hread32']
-    rw [show (wordAt0Mem key m).extract 0 64 =
-        (wordAt0Mem key m).extract 0 32 ++ (wordAt0Mem key m).extract 32 64 by
-      rw [ByteArray.extract_append_extract]; norm_num]
-    rw [hleft, hright]
-  rw [hread0_64]
-  unfold solcMappingSlot
-  exact mappingSlot_single key slot
 
 /-- The shared tail (pc 1282 → JUMP `ret`): `balanceOf[src] -= wad`, `balanceOf[dst] += wad`,
     emit the `Transfer` LOG3, push the boolean `1`, and JUMP back to the caller's return address,
@@ -583,18 +530,19 @@ theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List
     wordAt0Mem_size_96 dst hmem0size
   have hM0read64 : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 64 32
       = UInt256.toByteArray ⟨128⟩ := by
-    rw [wtfTail_wordAt0Mem_read64 dst hmem0size, twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64]
+    rw [wordAt0Mem_read64_preserved_of_size96 dst hmem0size,
+      twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64]
   have hkecSrc : UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((twoWordHashMem src ⟨3⟩ mem).readWithPadding 0 64))) = wtfBalSlot src :=
     twoWordHashMem_solcMappingSlot ⟨3⟩ src hmemsize
   have hkecDst : UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 0 64)))
         = wtfBalSlot dst :=
-    wtfTail_wordAt0Mem_keccak dst ⟨3⟩ hmem0size (twoWordHashMem_read32 src ⟨3⟩ hmemsize)
+    wordAt0Mem_keccak dst ⟨3⟩ hmem0size (twoWordHashMem_read32 src ⟨3⟩ hmemsize)
   -- pc 1282 → 1293: build the address mask, mask `src`
   have rdA := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup1, dup6, and]
-  rw [wtf_maskLiteral hsrc] at rdA
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdA
   -- pc 1294 → 1311: scratch `src ‖ 3`, keccak `balanceOf[src]` slot, DUP1 for the store
   have rdB := evm_run rdA with [
     push1 ⟨0⟩, dup2, dup2,
@@ -613,7 +561,7 @@ theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List
   obtain ⟨_, _, rdC2⟩ := rdC.sstore hperm (by native_decide) (by evm_ov)
   -- pc 1318 → 1320: mask `dst`
   have rdD := evm_run rdC2 with [swap4, dup8, and]
-  rw [wtf_maskLiteral hdst] at rdD
+  rw [addressMaskLiteral_clean_of_canonical hdst] at rdD
   -- pc 1321 → 1328: scratch `dst ‖ 3`, keccak `balanceOf[dst]` slot, DUP1 for the store
   have rdE := evm_run rdD with [
     dup1, dup4,

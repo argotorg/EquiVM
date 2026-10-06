@@ -42,12 +42,12 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
       obtain ⟨_, _, rd4933⟩ := RD.uniswapBurnAfterUpdateFeeOff rd hflag (by simp only [List.length_cons]; omega)
       exact ⟨σ, _, _, hAccounts, rd4933⟩
     | true =>
-      have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = uniswapSlotWord ⟨8⟩ σ I := by
+      have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = solcSlotWordAt ⟨8⟩ σ I := by
         simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          uniswapSlotWord, henv, hAccounts]
+          solcSlotWordAt, solcSlotWord, henv, hAccounts]
       have hkValue : mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm) =
-          UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σ I) reserve112Mask)
-            (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ I) reserve112Shift) reserve112Mask) := by
+          UInt256.mul (UInt256.land (solcSlotWordAt ⟨8⟩ σ I) reserve112Mask)
+            (UInt256.land (UInt256.div (solcSlotWordAt ⟨8⟩ σ I) reserve112Shift) reserve112Mask) := by
         rw [mintFeeReserveProductWord_eq_mul _ _ (mintFeeReserveProductNat_source_lt evm)]
         simp only [uniswapReserve0Word, uniswapReserve1Word, hslot8]
       obtain ⟨_, _, rd4933⟩ := RD.uniswapBurnAfterUpdateFeeOn rd (by rw [hflag]; decide)

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.ConstructorBase
 
 /-!
@@ -46,10 +47,6 @@ abbrev potCtorPostState (evm : EVM.State) (vat : AccountAddress) : EVM.State :=
         (potCtorAfterDsrState
           (potCtorAfterVatState (potCtorAfterWardsState evm) vat))))
 
-private theorem accountAddress_of_word_val (a : AccountAddress) :
-    AccountAddress.ofNat (EVM.word a.val).toNat = a := by
-  rw [← accountAddress_ofUInt256_eq_ofNat_toNat]
-  exact accountAddress_roundtrip a
 
 theorem evalExpr_potCtorLocalVat {evm : EVM.State} (vat : AccountAddress) :
     evalExpr? config { contract := contract, locals := potCtorLocals vat } evm (.var "vat_") =
@@ -146,7 +143,7 @@ theorem assign_potCtorDsrStorage (evm : EVM.State) (locals : Store)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
   rw [potCtorOne_eq_one]
-  exact potStorageLocStore_uint256 evm ⟨3⟩ potCtorOne
+  exact storageLocStore_uint256 evm ⟨3⟩ potCtorOne
 
 theorem assign_potCtorChiStorage (evm : EVM.State) (locals : Store)
     (hbaseAbsent : locals.get? "chi" = none) :
@@ -160,7 +157,7 @@ theorem assign_potCtorChiStorage (evm : EVM.State) (locals : Store)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
   rw [potCtorOne_eq_one]
-  exact potStorageLocStore_uint256 evm ⟨4⟩ potCtorOne
+  exact storageLocStore_uint256 evm ⟨4⟩ potCtorOne
 
 theorem assign_potCtorRhoStorage (evm : EVM.State) (locals : Store)
     (hbaseAbsent : locals.get? "rho" = none) :
@@ -174,7 +171,7 @@ theorem assign_potCtorRhoStorage (evm : EVM.State) (locals : Store)
     (her := by simp [rhoRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-  exact potStorageLocStore_uint256 evm ⟨7⟩
+  exact storageLocStore_uint256 evm ⟨7⟩
     (UInt256.ofNat evm.executionEnv.header.timestamp)
 
 theorem assign_potCtorLiveStorage (evm : EVM.State) (locals : Store)
@@ -188,7 +185,7 @@ theorem assign_potCtorLiveStorage (evm : EVM.State) (locals : Store)
     (her := by simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)
-  simpa using potStorageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
+  simpa using storageLocStore_uint256 evm ⟨8⟩ ⟨1⟩
 
 theorem potCtorCallerWardsSlot_eq (I : ExecutionEnv) :
     wardsSlot (.address I.source) = potCtorCallerWardsSlot I := by

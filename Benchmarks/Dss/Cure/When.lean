@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `when()` -/
 
 def whenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨4⟩ σ I
+  solcSlotWordAt ⟨4⟩ σ I
 
 theorem cureDispatchWhen {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 19)) :
@@ -47,7 +47,7 @@ theorem cureWhenBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (whenWord σ I).toNat))])) := by
-    simpa [whenTransition, whenWord, cureSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [whenTransition, whenWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

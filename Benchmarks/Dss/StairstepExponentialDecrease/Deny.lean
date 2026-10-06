@@ -36,7 +36,7 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [denyPostState] using
-    stairstepStorageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
+    storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
 
 theorem stairstepDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -199,7 +199,7 @@ theorem stairstepDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd883 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨883⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨165⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k883 C883 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd883raw
   have rd886pre := evm_run rd883 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -250,7 +250,7 @@ theorem stairstepDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd883 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨883⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨165⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k883 C883 := by
-    simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd883raw
   have rd886pre := evm_run rd883 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -414,7 +414,7 @@ theorem stairstepDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -447,7 +447,7 @@ theorem stairstepDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

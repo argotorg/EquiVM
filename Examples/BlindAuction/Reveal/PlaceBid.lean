@@ -1,3 +1,5 @@
+import Reasoning.PackedStorage
+import Reasoning.WordArithmetic
 import Examples.BlindAuction.Reveal.Common
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -18,15 +20,10 @@ def scratch_placeBidAfterHigh (evm : EVM.State) (value : UInt256) : EVM.State :=
 
 def scratch_placeBidAfterBidder (evm : EVM.State) (bidder : AccountAddress) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
-    (SimpleAuction.simpleAuctionSetAddressWord
+    (Reasoning.Theory.setAddressOffset0Word
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
       (UInt256.ofNat bidder.val))
 
-theorem scratch_addressWord_canonical (a : AccountAddress) :
-    (UInt256.ofNat a.val).toNat < EVM.addressModulus := by
-  rw [UInt256.toNat_ofNat_of_lt
-    (lt_of_lt_of_le a.isLt (by decide : AccountAddress.size ≤ UInt256.size))]
-  simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using a.isLt
 
 theorem scratch_placeBidStore_value (bidder : AccountAddress) (value : UInt256) :
     (scratch_placeBidStore bidder value).get? "value" =
@@ -67,10 +64,10 @@ theorem scratch_blindAuctionStorageLocStore_address_offset0 (evm : EVM.State)
     storageLocStore evm (blindAuctionAddrLoc slot)
         (.address (AccountAddress.ofNat addr.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (SimpleAuction.simpleAuctionSetAddressWord
+        (Reasoning.Theory.setAddressOffset0Word
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) := by
   simpa [blindAuctionAddrLoc, SimpleAuction.simpleAuctionAddrLoc] using
-    SimpleAuction.simpleAuctionStorageLocStore_address_offset0 evm slot addr hcanon
+    Reasoning.Theory.storageLocStore_address_offset0 evm slot addr hcanon
 
 theorem scratch_eval_placeBid_highestBid
     (evm : EVM.State) (bidder : AccountAddress) (value high : UInt256)
@@ -85,7 +82,7 @@ theorem scratch_eval_placeBid_highestBid
     (er := { base := "highestBid", steps := [] })
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc ⟨6⟩)]
-  · rw [blindAuctionStorageLocLoad_uint256, hhigh]
+  · erw [storageLocLoad_uint256, hhigh]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · simp [evalStorageRef, evalStorageRefSteps, highestBidRef, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidRef, uint256St]
@@ -135,7 +132,7 @@ theorem scratch_eval_placeBid_highestBidder
     (er := { base := "highestBidder", steps := [] })
     (t := .address)
     (loc := blindAuctionAddrLoc ⟨5⟩)]
-  · rw [blindAuctionStorageLocLoad_address_offset0, hold]
+  · erw [storageLocLoad_address_offset0, hold]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · simp [evalStorageRef, evalStorageRefSteps, highestBidderRef, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidderRef, addrSt]
@@ -229,7 +226,7 @@ theorem scratch_eval_placeBid_pendingReturns
     (er := { base := "pendingReturns", steps := [.mindex (.address oldAddr)] })
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc (pendingReturnsSlot (.address oldAddr)))]
-  · rw [blindAuctionStorageLocLoad_uint256, hpending]
+  · erw [storageLocLoad_uint256, hpending]
   · exact scratch_placeBidStore_base_none bidder value (by decide) (by decide)
   · exact scratch_evalStorageRef_placeBid_pendingReturns evm bidder oldAddr value old hold holdAddr
   · simp [storageTypeAt?, blindAuctionContract, storageDecls, storageTypeStep?,
@@ -387,18 +384,18 @@ theorem scratch_assign_placeBid_highestBidder
   have hstore :
       storageLocStore evm (blindAuctionAddrLoc ⟨5⟩) (.address bidder) =
         some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
-          (SimpleAuction.simpleAuctionSetAddressWord
+          (Reasoning.Theory.setAddressOffset0Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
             (UInt256.ofNat bidder.val))) := by
     simpa [haddrOfNat] using
       scratch_blindAuctionStorageLocStore_address_offset0 evm ⟨5⟩ (UInt256.ofNat bidder.val)
-        (scratch_addressWord_canonical bidder)
+        (addressWord_canonical bidder)
   exact assignStorageRef_storage_scalar_value
     (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
     (evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩
-      (SimpleAuction.simpleAuctionSetAddressWord
+      (Reasoning.Theory.setAddressOffset0Word
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩) (UInt256.ofNat bidder.val)))
     (slot := highestBidderRef)
     (er := { base := "highestBidder", steps := [] })
@@ -596,7 +593,7 @@ def scratch_placeBidStoreHighMap (σ : AccountMap) (I : ExecutionEnv) (value : U
 def scratch_placeBidStoreBidderMap (σ : AccountMap) (I : ExecutionEnv) (bidder : UInt256) :
     AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨5⟩
-    (SimpleAuction.simpleAuctionSetAddressWord
+    (Reasoning.Theory.setAddressOffset0Word
       (scratch_placeBidHighestBidderWord σ I) bidder)
 
 set_option maxHeartbeats 1000000 in
@@ -626,39 +623,6 @@ theorem scratch_RD_placeBid_false {g : Sat256} {s0 : State} {I : ExecutionEnv}
     jump (by jump_dest), jumpdest]
   exact ⟨_, _, evm_run rd1655 with [swap3, swap2, pop, pop, jump hret]⟩
 
-theorem scratch_blindAuctionCheckedAddNoOverflowGt (a b : UInt256)
-    (hfit : a.toNat + b.toNat < UInt256.size) :
-    UInt256.gt a (b + a) = ⟨0⟩ := by
-  have hsum : (b + a).toNat = b.toNat + a.toNat := by
-    rw [uadd_toNat]
-    have hfit' : b.toNat + a.toNat < UInt256.size := by omega
-    exact Nat.mod_eq_of_lt hfit'
-  have hle : a.toNat ≤ (b + a).toNat := by
-    rw [hsum]
-    omega
-  exact ugt_zero hle
-
-theorem scratch_blindAuctionCheckedAddOverflowGt (a b : UInt256)
-    (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    UInt256.gt a (b + a) = ⟨1⟩ := by
-  have hover' : UInt256.size ≤ b.toNat + a.toNat := by omega
-  have hsum_lt2 : b.toNat + a.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hmod : (b.toNat + a.toNat) % UInt256.size =
-      b.toNat + a.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover']
-    rw [Nat.mod_eq_of_lt (by omega)]
-  have hsum : (b + a).toNat = b.toNat + a.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  show UInt256.fromBool (decide (a > b + a)) = ⟨1⟩
-  rw [decide_eq_true]
-  · rfl
-  · show a.toNat > (b + a).toNat
-    rw [hsum]
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
 
 set_option maxHeartbeats 1000000 in
 theorem scratch_blindAuctionCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -672,7 +636,7 @@ theorem scratch_blindAuctionCheckedAddOk {g : Sat256} {s0 : State} {ee : Executi
     (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD blindAuctionBytecode ee g s0 ret ((b + a) :: R)
       mem aw rdata acc k' C' := by
-  have hgt := scratch_blindAuctionCheckedAddNoOverflowGt a b hfit
+  have hgt := checkedAddNoOverflowGt a b hfit
   have rd2052₀ := evm_run rd with [jumpdest, dup1, dup3, add, dup1, dup3, gt]
   have rd2052 := rd2052₀
   rw [hgt] at rd2052
@@ -908,15 +872,6 @@ theorem scratch_blindAuctionRevealX_placeBidTrue_toNext {I} {g : Sat256}
   have rd1315 := evm_run rd1312 with [jumpdest, swap6, pop]
   exact scratch_blindAuctionRevealX_zeroBlinded_toNext rd1315 hperm
 
-theorem scratch_placeBidPackedBidderWord_eq_setAddress (old bidder : UInt256)
-    (hcanon : bidder.toNat < EVM.addressModulus) :
-    UInt256.lor (UInt256.land bidder solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-      SimpleAuction.simpleAuctionSetAddressWord old bidder := by
-  unfold SimpleAuction.simpleAuctionSetAddressWord
-  rw [Reasoning.Theory.u256_land_comm (UInt256.lnot solcAddrMask) old]
-  rw [solcAddrMask_clean hcanon]
-  exact u256_lor_comm bidder (UInt256.land old (UInt256.lnot solcAddrMask))
 
 set_option maxHeartbeats 1000000 in
 theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEnv}
@@ -987,17 +942,17 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
           (UInt256.land (UInt256.lnot (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
             (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap σ I value) I)
           ) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap σ I value) I)
           bidder :=
     by
       change UInt256.lor (UInt256.land bidder solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask)
             (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap σ I value) I)) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap σ I value) I)
           bidder
-      exact scratch_placeBidPackedBidderWord_eq_setAddress
+      exact setAddressOffset0Word_comm
         (scratch_placeBidHighestBidderWord (scratch_placeBidStoreHighMap σ I value) I)
         bidder hbidderCanon
   have rd1650' := rd1650
@@ -1376,7 +1331,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
                 I value)
               I)
           ) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord
             (scratch_placeBidStoreHighMap
               (scratch_placeBidStorePendingMap σ I
@@ -1393,7 +1348,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
                   (scratch_placeBidHighestBidWord σ I + scratch_placeBidPendingWord σ I))
                 I value)
               I)) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord
             (scratch_placeBidStoreHighMap
               (scratch_placeBidStorePendingMap σ I
@@ -1401,7 +1356,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
               I value)
             I)
           bidder
-      exact scratch_placeBidPackedBidderWord_eq_setAddress
+      exact setAddressOffset0Word_comm
         (scratch_placeBidHighestBidderWord
           (scratch_placeBidStoreHighMap
             (scratch_placeBidStorePendingMap σ I
@@ -1598,7 +1553,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
                 I value)
               I)
           ) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord
             (scratch_placeBidStoreHighMap
               (scratch_placeBidStorePendingMap σ I
@@ -1615,7 +1570,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
                   (scratch_placeBidHighestBidWord σ I + scratch_placeBidPendingWord σ I))
                 I value)
               I)) =
-        SimpleAuction.simpleAuctionSetAddressWord
+        Reasoning.Theory.setAddressOffset0Word
           (scratch_placeBidHighestBidderWord
             (scratch_placeBidStoreHighMap
               (scratch_placeBidStorePendingMap σ I
@@ -1623,7 +1578,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
               I value)
             I)
           bidder
-      exact scratch_placeBidPackedBidderWord_eq_setAddress
+      exact setAddressOffset0Word_comm
         (scratch_placeBidHighestBidderWord
           (scratch_placeBidStoreHighMap
             (scratch_placeBidStorePendingMap σ I
@@ -1648,11 +1603,6 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
   exact ⟨_, _, by simpa [aw1, aw2, aw3, memHash] using
     (evm_run rd1655 with [swap3, swap2, pop, pop, jump hret])⟩
 
-theorem scratch_revealSourceWord_canonical (I : ExecutionEnv) :
-    (UInt256.ofNat I.source.val).toNat < EVM.addressModulus := by
-  rw [ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))]
-  simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using I.source.isLt
 
 theorem scratch_blindAuctionRevealX_placeCond_placeBid_false_toNext {I} {g : Sat256}
     {s0 : State} {k C : ℕ} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -1715,7 +1665,7 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_zero_toNext {I} {g :
       (value := value) (bidder := UInt256.ofNat I.source.val) (ret := ⟨1297⟩)
       (R := [secret, ⟨0⟩, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel])
-      rd1534 hperm hplaceTrue hhighestBidderZero (scratch_revealSourceWord_canonical I)
+      rd1534 hperm hplaceTrue hhighestBidderZero (sourceWord_canonical I)
       (by jump_dest) (by simp)
   exact scratch_blindAuctionRevealX_placeBidTrue_toNext rd1297 hrefund hperm
 
@@ -1766,7 +1716,7 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_toNext {I} {
       (value := value) (bidder := UInt256.ofNat I.source.val) (ret := ⟨1297⟩)
       (R := [secret, ⟨0⟩, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel])
-      rd1534 hperm hplaceTrue hhighestBidderNonzero (scratch_revealSourceWord_canonical I)
+      rd1534 hperm hplaceTrue hhighestBidderNonzero (sourceWord_canonical I)
       hsum (by jump_dest) (by simp)
   obtain ⟨k', C', rd1014⟩ := scratch_blindAuctionRevealX_placeBidTrue_toNext rd1297 hrefund hperm
   exact ⟨k', C', by simpa [aw1, aw2, aw3] using rd1014⟩

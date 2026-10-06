@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Auction.InitializerSource
 import Benchmarks.Auction.InitializeRuntime
 
@@ -29,15 +30,6 @@ theorem initializerEnteredState_accounts (evm : EVM.State) :
   · rw [initializerEntered, if_neg hi, initializerEnteredState,
       if_neg (by simp [initializeTop, hi])]
 
--- LIBRARY CANDIDATE: lift a read-modify-write through account-map equality.
-theorem storageWordWrite_accounts {σ : AccountMap} {evm : EVM.State}
-    (h : σ = evm.accountMap) (slot : UInt256) (f : UInt256 → UInt256) :
-    (sstoreAccountMap evm.executionEnv.codeOwner σ slot
-        (f (storedWord σ evm.executionEnv slot))) =
-      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (f (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))).accountMap := by
-  rw [storageStore_accountMap, h]
-  rfl
 
 def initializerPauseState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨51⟩
@@ -148,14 +140,14 @@ theorem initializeFinalState_accounts (args : InitializeArgs) {σ : AccountMap} 
   generalize heA : args.storeState evmP = evmA at h1
   have henvA : evmA.executionEnv = evm.executionEnv := by
     rw [← heA, InitializeArgs.storeState_env, henvP]
-  have h2 := storageWordWrite_accounts (evm := evmA) h1 ⟨0⟩ initializerEndWord
+  have h2 := storageWordWrite_accounts (evm := evmA) h1 ⟨0⟩ clearBoolOffset1Word
   rw [henvA] at h2
   unfold initializeFinalMap initializeFinalState initializerExited initializerExitedState
   rw [hσP, heP, heA, h]
   by_cases hi : initializingWord evm.accountMap evm.executionEnv = ⟨0⟩
   · have ht : initializeTop evm = true := by simp [initializeTop, hi]
     rw [hi, if_neg (show UInt256.isZero (⟨0⟩ : UInt256) ≠ ⟨0⟩ by decide), if_pos ht]
-    simpa only [setInitializingState, setInitializingWord_false, henvA] using h2
+    simpa only [setInitializingState, setBoolOffset1Word_false, henvA] using h2
   · have ht : initializeTop evm ≠ true := by simp [initializeTop, hi]
     rw [isZero_eq_zero_of_ne hi, if_pos rfl, if_neg ht]
     exact h1

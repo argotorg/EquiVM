@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.Routines
 
 /-!
@@ -17,12 +18,6 @@ namespace Benchmarks.WETH9
 def decimalsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) ⟨255⟩
 
-theorem land255_double (x : UInt256) :
-    UInt256.land (UInt256.land ⟨255⟩ x) ⟨255⟩ = UInt256.land x ⟨255⟩ := by
-  apply u256_inj
-  have h255 : (⟨255⟩ : UInt256).toNat = 255 := by decide
-  rw [uland_toNat, uland_toNat, uland_toNat, h255]
-  rw [Nat.and_comm 255 x.toNat, Nat.and_assoc, Nat.and_self]
 
 theorem decimalsWord_lt (σ : AccountMap) (I : ExecutionEnv) :
     (decimalsWord σ I).toNat < EVM.twoPow 8 := by
@@ -103,7 +98,7 @@ theorem weth9DecimalsX_ok {σ σ₀ A I} {g : Sat256}
       (UInt256.toByteArray (decimalsWord σ I)) := by
   obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h543⟩ := weth9GuardPeelOk (gt := ⟨541⟩) h529 hwv
+  obtain ⟨_, _, h543⟩ := solcFunctionGuardPeelOk (gt := ⟨541⟩) h529 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have h1544 := h543.push2 ⟨550⟩ (by native_decide) (by simp)
@@ -154,7 +149,7 @@ theorem weth9DecimalsBodyCore {σ σ₀ A I} {g : UInt256}
       calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
     obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨541⟩) h529 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨541⟩) h529 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchDecimals hsel)

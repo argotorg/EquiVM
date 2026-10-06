@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Vow
 /-! ## `Sin()` getter -/
 
 def SinWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  vowSlotWord ⟨5⟩ σ I
+  solcSlotWordAt ⟨5⟩ σ I
 
 theorem vowDispatch_Sin {I : ExecutionEnv} (hsel : selIs I ⟨#[0xd0, 0xad, 0xc3, 0x5f]⟩) :
     dispatchMsg contract I.calldata = some SinTransition := by
@@ -84,7 +84,7 @@ theorem vowSinBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (SinWord σ I).toNat))])) := by
-    simpa [SinTransition, SinWord, vowSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [SinTransition, SinWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

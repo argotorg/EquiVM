@@ -26,7 +26,7 @@ theorem uint8WordFail {I g s0 offset ret R mem aw rdata acc k C}
   exact evm_run h with [
     jumpdest, dup1, calldataload, push1 ⟨255⟩, dup2, and, dup2, eq, push2 ⟨5320⟩,
     jumpiNT (u256_eq_of_ne hne),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov) ]
 
 set_option synthInstance.maxSize 1024 in
 theorem uint8HeadWf : calldataHeadWf auctionBytecode ⟨5325⟩ ⟨5341⟩ ⟨32⟩ := by

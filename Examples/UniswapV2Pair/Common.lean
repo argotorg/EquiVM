@@ -452,8 +452,8 @@ theorem RD.addressGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hret825 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨825⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) σ
-      (UInt256.toByteArray (UniswapV2Pair.uniswapAddressReturnWord slot σ I)) := by
-  simpa [UniswapV2Pair.uniswapAddressReturnWord, UniswapV2Pair.uniswapSlotWord, solcSlotWord]
+      (UInt256.toByteArray (Reasoning.Reach.solcAddressSlotWord slot σ I)) := by
+  simpa [Reasoning.Reach.solcAddressSlotWord, Reasoning.Reach.solcSlotWordAt, solcSlotWord]
     using RD.solcAddressGetterExternal (returnPc := ⟨825⟩)
       hreach hentry hgetter hroutine hret825
       (by
@@ -471,8 +471,8 @@ theorem RD.uniswapWordGetterExternal {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hret861 : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ⟨861⟩ = true) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) σ
-      (UInt256.toByteArray (UniswapV2Pair.uniswapSlotWord slot σ I)) := by
-  simpa [UniswapV2Pair.uniswapSlotWord, solcSlotWord]
+      (UInt256.toByteArray (Reasoning.Reach.solcSlotWordAt slot σ I)) := by
+  simpa [Reasoning.Reach.solcSlotWordAt, solcSlotWord]
     using RD.solcWordGetterExternal (returnPc := ⟨861⟩)
       hreach hentry hgetter hroutine hret861
       (by
@@ -540,16 +540,16 @@ theorem uniswapAddressGetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (uniswapAddressReturnWord slot σ I).toNat))]))) :
+            (solcAddressSlotWord slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapAddressReturnWord slot σ I))
-        (some [(.address (AccountAddress.ofNat (uniswapAddressReturnWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
-    simpa [uniswapAddressReturnWord] using
+    simpa [solcAddressSlotWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (solcSlotWordAt slot σ I)))
   exact (RD.addressGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
       (by jump_dest)).reEquivExecution
@@ -575,15 +575,15 @@ theorem uniswapUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (uniswapSlotWord slot σ I).toNat))]))) :
+          (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ I))
-        (some [(.int (Int.ofNat (uniswapSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (uniswapSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
       (by jump_dest)).reEquivExecution
@@ -610,16 +610,16 @@ theorem uniswapBytes32GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩
-            (EVM.Word.toBytesBE (uniswapSlotWord slot σ I)))]))) :
+            (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))]))) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (uniswapSlotWord slot σ I))
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (uniswapSlotWord slot σ I)))])
+          (EVM.Word.toBytesBE (solcSlotWordAt slot σ I)))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [bytes32] using bytes32ReturnEncoding (uniswapSlotWord slot σ I))
+      (by simpa [bytes32] using bytes32ReturnEncoding (solcSlotWordAt slot σ I))
   exact (RD.uniswapWordGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
       (by jump_dest)).reEquivExecution

@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `vat()` getter -/
 
 def vatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨1⟩ σ I
+  solcAddressSlotWord ⟨1⟩ σ I
 
 theorem endDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endVatBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vatWord σ I).toNat))])) := by
-    simpa [vatTransition, vatWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [vatTransition, vatWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

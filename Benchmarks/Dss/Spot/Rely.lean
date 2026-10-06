@@ -1,3 +1,5 @@
+import Reasoning.Solc
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Spot.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -36,7 +38,7 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  spotSlotWord (relyAuthStorageSlot I) σ I
+  solcSlotWordAt (relyAuthStorageSlot I) σ I
 
 def relyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (relyGuyStorageSlot I) ⟨1⟩
@@ -98,9 +100,6 @@ theorem evalStorageRef_rely_auth (evm : EVM.State) (I : ExecutionEnv)
     relyAuthKey, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure,
     evalExpr?]
 
-theorem uint256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
     (hsrc : evm.executionEnv.source = I.source)
@@ -124,7 +123,7 @@ theorem evalExpr_rely_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using spotStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -151,7 +150,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_rely_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact spotStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -159,7 +158,7 @@ theorem evalExpr_rely_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -207,7 +206,7 @@ theorem evalExpr_auth_true_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using spotStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -236,7 +235,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_auth_of_wards_none evm I locals hwards hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact spotStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -244,7 +243,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -339,52 +338,6 @@ theorem relyStoreHashMem_size (I : ExecutionEnv) :
 
 /-! ### Spotter CODECOPY-backed `Error(string)` auth tail -/
 
-theorem spotErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem2 len mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem1
-  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
-      (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem0
-  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
-      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
-  exact hread64
-
-theorem write32_read_above_from (src base : ByteArray) (srcAddr destAddr readAddr : ℕ)
-    (hsrc : srcAddr + 32 ≤ src.size) (hlo : destAddr ≤ base.size)
-    (habove : destAddr + 32 ≤ readAddr) (hin : readAddr + 32 ≤ base.size) :
-    (src.write srcAddr base destAddr 32).readWithPadding readAddr 32 =
-      base.readWithPadding readAddr 32 := by
-  have hbsz : (base.extract 0 destAddr).size = destAddr := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsrcsz : (src.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [ByteArray.size_extract]
-    omega
-  have hcsz : (base.extract (destAddr + 32) base.size).size =
-      base.size - (destAddr + 32) := by
-    rw [ByteArray.size_extract]
-    omega
-  have habsz :
-      (base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + 32)).size =
-        destAddr + 32 := by
-    rw [ByteArray.size_append, hbsz, hsrcsz]
-  rw [write_eq_gen_from src base srcAddr destAddr 32 (by decide) hsrc (by omega),
-      readWithPadding_eq_extract _ readAddr
-        (by rw [ByteArray.size_append, habsz, hcsz]; omega),
-      readWithPadding_eq_extract _ readAddr (by omega),
-      extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz,
-      extract_extract_BA,
-      show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
-      show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size =
-          readAddr + 32 from by omega]
 
 def spotCodecopyErrorScratchMem (offset len : UInt256)
     (mem : ByteArray) : ByteArray :=
@@ -448,12 +401,12 @@ theorem spotCodecopyErrorRestoreMem_read64 {mem : ByteArray}
             spotCodecopyErrorScratchMem_size offset len hmem hsrc
         rw [hbase]
         omega)]
-  rw [write32_read_above_from spotBytecode (solcErrorStringMem2 len mem) offset.toNat 0 64
+  rw [write32_read_above_from' spotBytecode (solcErrorStringMem2 len mem) offset.toNat 0 64
       hsrc (by omega) (by omega)
       (by
         rw [solcErrorStringMem2_size len hmem]
         omega)]
-  exact spotErrorStringMem2_read64 len hmem hread64
+  exact solcErrorStringMem2_read64 len hmem hread64
 
 theorem spotCodecopyErrorFinalMem_read64 {mem : ByteArray}
     (offset len scratchWord copiedWord : UInt256)
@@ -799,7 +752,7 @@ theorem spotRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1485 : RD spotBytecode I g s0 ⟨1485⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1485 C1485 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
   have rd1488pre := evm_run rd1485 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -847,7 +800,7 @@ theorem spotRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1485 : RD spotBytecode I g s0 ⟨1485⟩
       (relyAuthWord σ I :: relyGuyMaskedWord I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1485 C1485 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1485raw
   have rd1488pre := evm_run rd1485 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -974,7 +927,7 @@ theorem spotRelyBodyCoreOk
         relyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (relyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -1008,7 +961,7 @@ theorem spotRelyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

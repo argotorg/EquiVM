@@ -437,23 +437,6 @@ theorem transferFromAllowanceHashMem_read64 (I : ExecutionEnv) :
     (twoWordHashMem_read64 (transferFromSrcMaskedWord I) ⟨3⟩
       (transferFromSrcHashMem_size I) (transferFromSrcHashMem_read64 I))
 
-theorem solcNestedMappingCallerHashMem_size_96 {mem : ByteArray}
-    (baseSlot owner : UInt256) (I : ExecutionEnv) (hmem : mem.size = 96) :
-    (solcNestedMappingCallerHashMem baseSlot owner I mem).size = 96 := by
-  unfold solcNestedMappingCallerHashMem
-  exact twoWordHashMem_size_96 (solcSourceWord I) (solcMappingSlot baseSlot owner)
-    (twoWordHashMem_size_96 owner baseSlot hmem)
-
-theorem solcNestedMappingCallerHashMem_read64_96 {mem : ByteArray}
-    (baseSlot owner : UInt256) (I : ExecutionEnv)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcNestedMappingCallerHashMem baseSlot owner I mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcNestedMappingCallerHashMem
-  exact twoWordHashMem_read64 (solcSourceWord I) (solcMappingSlot baseSlot owner)
-    (twoWordHashMem_size_96 owner baseSlot hmem)
-    (twoWordHashMem_read64 owner baseSlot hmem hread64)
 
 abbrev transferFromAllowanceReloadHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (transferFromSrcMaskedWord I) I
@@ -562,54 +545,6 @@ theorem transferFromBoolReturnMem_read128 (I : ExecutionEnv) :
       rw [solcScratchReturnMem_size (transferFromWadWord I) (transferFromDstHashMem_size I)]
       decide)
 
-theorem wordAt0Mem_read64_of_size_96 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (wordAt0Mem word mem).readWithPadding 64 32 = mem.readWithPadding 64 32 := by
-  unfold wordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-    (by rw [hmem]; omega) (by omega) (by rw [hmem])]
-
-theorem wordAt0Mem_solcMappingSlot_of_read32 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96)
-    (hread32 : mem.readWithPadding 32 32 = UInt256.toByteArray slot) :
-    UInt256.ofNat
-        (fromByteArrayBigEndian (KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
-      solcMappingSlot slot key := by
-  have hread0 :
-      (wordAt0Mem key mem).readWithPadding 0 32 = UInt256.toByteArray key :=
-    wordAt0Mem_read0 key mem
-  have hread32' :
-      (wordAt0Mem key mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
-    unfold wordAt0Mem
-    rw [write32_read_above _ _ 0 32 (by rw [toByteArray_size])
-      (by rw [hmem]; omega)
-      (by omega)
-      (by rw [hmem]; omega)]
-    exact hread32
-  have hread0_64 :
-      (wordAt0Mem key mem).readWithPadding 0 64 =
-        UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-    rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [wordAt0Mem_size_96 key hmem]; omega)]
-    have hleft :
-        (wordAt0Mem key mem).extract 0 32 = UInt256.toByteArray key := by
-      rw [← readWithPadding_eq_extract _ 0
-          (by rw [wordAt0Mem_size_96 key hmem]; omega),
-        hread0]
-    have hright :
-        (wordAt0Mem key mem).extract 32 64 = UInt256.toByteArray slot := by
-      rw [← readWithPadding_eq_extract _ 32
-          (by rw [wordAt0Mem_size_96 key hmem]; omega),
-        hread32']
-    rw [show (wordAt0Mem key mem).extract 0 64 =
-        (wordAt0Mem key mem).extract 0 32 ++
-          (wordAt0Mem key mem).extract 32 64 by
-        rw [ByteArray.extract_append_extract]
-        norm_num]
-    rw [hleft, hright]
-  rw [hread0_64]
-  unfold solcMappingSlot
-  exact mappingSlot_single key slot
 
 abbrev transferFromTailSrcStoreMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=

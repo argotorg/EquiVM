@@ -7,6 +7,33 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem skimSafeTransferReturnDataActiveWords_M_mul32_lt (out : ByteArray)
+    (houtSize : out.size < 2 ^ 255) :
+    MachineState.M (UInt256.ofNat 13).toNat 324 out.size * 32 < UInt256.size := by
+  rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
+  unfold MachineState.M
+  split
+  · norm_num [UInt256.size]
+  · by_cases hle : 13 ≤ (324 + out.size + 31) / 32
+    · rw [Nat.max_eq_right hle]
+      have hdiv : ((324 + out.size + 31) / 32) * 32 ≤ 324 + out.size + 31 :=
+        Nat.div_mul_le_self _ _
+      have hcap : 2 ^ 255 + 355 < UInt256.size := by norm_num [UInt256.size]
+      omega
+    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
+      norm_num [UInt256.size]
+
+end UniswapV2Pair
+
+end
+
 namespace UniswapV2Pair
 
 /-! ## `skim(address)` `_safeTransfer` runtime tail -/
@@ -417,105 +444,6 @@ theorem skimSafeTransferCallMem2_mload64
   mloadWordValue_of_readWithPadding
     (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; decide) (skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize)
 
-theorem skimFromBytesBigEndian_append (a b : List UInt8) :
-    fromBytesBigEndian (a ++ b) =
-      fromBytesBigEndian a * 2 ^ (8 * b.length) + fromBytesBigEndian b := by
-  unfold fromBytesBigEndian Function.comp
-  rw [List.reverse_append, fromBytes'_append, List.length_reverse]
-  ring
-
-theorem skimFromBytesBigEndian_bound (xs : List UInt8) :
-    fromBytesBigEndian xs < 2 ^ (8 * xs.length) := by
-  unfold fromBytesBigEndian Function.comp
-  simpa [List.length_reverse] using (fromBytes'_le (bs := xs.reverse))
-
-theorem skimFromByteArrayBigEndian_append (a b : ByteArray) :
-    fromByteArrayBigEndian (a ++ b) =
-      fromByteArrayBigEndian a * 2 ^ (8 * b.size) + fromByteArrayBigEndian b := by
-  simp [fromByteArrayBigEndian, byteArray_toList_eq, skimFromBytesBigEndian_append]
-
-theorem toByteArray_extract4_32_toList (w : UInt256) :
-    ((UInt256.toByteArray w).extract 4 32).toList =
-      (UInt256.toByteArray w).toList.drop 4 := by
-  rw [byteArray_toList_eq, byteArray_toList_eq]
-  rw [ByteArray.data_extract, Array.toList_extract]
-  rw [List.extract_eq_take_drop]
-  have hlen : (UInt256.toByteArray w).data.toList.length = 32 := by
-    rw [← byteArray_toList_eq]
-    have hs := toByteArray_size w
-    simpa [byteArray_toList_eq] using congrArg (fun n => n) hs
-  rw [List.take_of_length_le]
-  rw [List.length_drop, hlen]
-
-theorem fromByteArrayBigEndian_toByteArray_extract4_32 (w : UInt256) :
-    fromByteArrayBigEndian ((UInt256.toByteArray w).extract 4 32) =
-      w.toNat % 2 ^ 224 := by
-  let xs := (UInt256.toByteArray w).toList
-  have hxsLen : xs.length = 32 := by
-    dsimp [xs]
-    simpa [byteArray_toList_eq] using toByteArray_size w
-  have htailLen : (xs.drop 4).length = 28 := by
-    rw [List.length_drop, hxsLen]
-  have htailBound : fromBytesBigEndian (xs.drop 4) < 2 ^ 224 := by
-    have hb := skimFromBytesBigEndian_bound (xs.drop 4)
-    rw [htailLen] at hb
-    simpa using hb
-  have hfull : fromBytesBigEndian xs = w.toNat := by
-    dsimp [xs]
-    simpa [fromByteArrayBigEndian] using fromByteArrayBigEndian_toByteArray w
-  have hsplit :
-      fromBytesBigEndian xs =
-        fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4) := by
-    calc
-      fromBytesBigEndian xs = fromBytesBigEndian (xs.take 4 ++ xs.drop 4) := by
-        exact congrArg fromBytesBigEndian (List.take_append_drop 4 xs).symm
-      _ = fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4) := by
-        rw [skimFromBytesBigEndian_append, htailLen]
-  have hfull' :
-      w.toNat =
-        fromBytesBigEndian (xs.take 4) * 2 ^ 224 + fromBytesBigEndian (xs.drop 4) := by
-    rw [← hfull, hsplit]
-  unfold fromByteArrayBigEndian
-  rw [toByteArray_extract4_32_toList]
-  dsimp [xs] at htailLen htailBound hfull' ⊢
-  rw [hfull']
-  change fromBytesBigEndian (List.drop 4 (UInt256.toByteArray w).toList) =
-    (fromBytesBigEndian (List.take 4 (UInt256.toByteArray w).toList) * 2 ^ 224 +
-      fromBytesBigEndian (List.drop 4 (UInt256.toByteArray w).toList)) % 2 ^ 224
-  rw [show fromBytesBigEndian (List.take 4 (UInt256.toByteArray w).toList) * 2 ^ 224 +
-        fromBytesBigEndian (List.drop 4 (UInt256.toByteArray w).toList) =
-      fromBytesBigEndian (List.drop 4 (UInt256.toByteArray w).toList) +
-        2 ^ 224 * fromBytesBigEndian (List.take 4 (UInt256.toByteArray w).toList) by ring]
-  rw [Nat.add_mul_mod_self_left]
-  exact (Nat.mod_eq_of_lt htailBound).symm
-
-theorem toByteArray_extract0_4_toList (w : UInt256) :
-    ((UInt256.toByteArray w).extract 0 4).toList =
-      (UInt256.toByteArray w).toList.take 4 := by
-  rw [byteArray_toList_eq, byteArray_toList_eq]
-  rw [ByteArray.data_extract, Array.toList_extract]
-  rw [List.extract_eq_take_drop, List.drop_zero]
-
-theorem fromByteArrayBigEndian_toByteArray_extract0_4 (w : UInt256) :
-    fromByteArrayBigEndian ((UInt256.toByteArray w).extract 0 4) =
-      w.toNat / 2 ^ 224 := by
-  let xs := (UInt256.toByteArray w).toList
-  have hxsLen : xs.length = 32 := by
-    dsimp [xs]
-    simpa [byteArray_toList_eq] using toByteArray_size w
-  have htailLen : (xs.drop 4).length = 28 := by
-    rw [List.length_drop, hxsLen]
-  have hfull : fromBytesBigEndian xs = w.toNat := by
-    dsimp [xs]
-    simpa [fromByteArrayBigEndian] using fromByteArrayBigEndian_toByteArray w
-  have hdiv : fromBytesBigEndian xs / 2 ^ 224 = fromBytesBigEndian (xs.take 4) := by
-    conv_lhs => rw [← List.take_append_drop 4 xs]
-    rw [show (224 : ℕ) = 8 * (xs.drop 4).length by rw [htailLen],
-      fromBytesBigEndian_append_div]
-  unfold fromByteArrayBigEndian
-  rw [toByteArray_extract0_4_toList]
-  dsimp [xs] at hfull hdiv ⊢
-  rw [← hdiv, hfull]
 
 theorem skimSafeTransferSelectorPatchMask_toNat :
     skimSafeTransferSelectorPatchMask.toNat = 2 ^ 224 - 1 := by
@@ -572,11 +500,11 @@ theorem skimSafeTransferPatchedSelector_toByteArray (w : UInt256) :
   apply u256_inj
   rw [skimSafeTransferPatchedSelector_toNat]
   rw [UInt256.toNat_ofNat_of_lt]
-  · rw [skimFromByteArrayBigEndian_append]
+  · rw [fromByteArrayBigEndian_append]
     rw [transferSelector_fromByteArrayBigEndian, fromByteArrayBigEndian_toByteArray_extract4_32]
     rw [ByteArray.size_extract, toByteArray_size]
     rw [show 8 * (min 32 32 - 4) = 224 by norm_num]
-  · rw [skimFromByteArrayBigEndian_append]
+  · rw [fromByteArrayBigEndian_append]
     rw [transferSelector_fromByteArrayBigEndian, fromByteArrayBigEndian_toByteArray_extract4_32]
     rw [ByteArray.size_extract, toByteArray_size]
     rw [show 8 * (min 32 32 - 4) = 224 by norm_num]
@@ -648,7 +576,7 @@ theorem skimSafeTransferMem4_read256_32
       (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).extract 28 32 ++
         (UInt256.toByteArray value).extract 0 28 := by
   unfold skimSafeTransferMem4
-  exact safeTransferCalldata_read_boundary_word _ _ _ 260 (by norm_num)
+  exact wordWrite_read_boundary4 _ _ _ 260 (by norm_num)
     (skimSafeTransferMem3_size self toWord ho32 hoSize)
     (skimSafeTransferMem3_read256_4 self toWord ho32 hoSize)
 
@@ -1568,21 +1496,6 @@ theorem skimSafeTransferReturnDataMem_read64
       (skimSafeTransferReturnDataSizeMem self o toWord value out) 64 (by rw [hbase]; omega)]
     exact skimSafeTransferReturnDataSizeMem_read64 self toWord value out ho32 hoSize
 
-theorem skimSafeTransferReturnDataActiveWords_M_mul32_lt (out : ByteArray)
-    (houtSize : out.size < 2 ^ 255) :
-    MachineState.M (UInt256.ofNat 13).toNat 324 out.size * 32 < UInt256.size := by
-  rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
-  unfold MachineState.M
-  split
-  · norm_num [UInt256.size]
-  · by_cases hle : 13 ≤ (324 + out.size + 31) / 32
-    · rw [Nat.max_eq_right hle]
-      have hdiv : ((324 + out.size + 31) / 32) * 32 ≤ 324 + out.size + 31 :=
-        Nat.div_mul_le_self _ _
-      have hcap : 2 ^ 255 + 355 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
-      norm_num [UInt256.size]
 
 theorem skimSafeTransferReturnDataActiveWords_toNat_ge (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :

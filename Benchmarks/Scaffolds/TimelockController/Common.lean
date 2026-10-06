@@ -63,15 +63,5 @@ def tlcSelBytes : ℕ → ByteArray
   | 26 => ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ -- supportsInterface(bytes4)
   | _  => ⟨#[0x64, 0xd6, 0x23, 0x53]⟩ -- updateDelay(uint256)
 
-theorem tlcDepth_ne_1024_of_lt {d : Fin 1025} (h : d.val < 1024) : d ≠ 1024 := by
-  intro hd
-  have hdval : d.val = (1024 : Fin 1025).val := congrArg Fin.val hd
-  have h1024 : (1024 : Fin 1025).val = 1024 := by decide
-  omega
-
-theorem tlcInitStateDepth_ne_1024_of_lt {σ σ₀ A I g}
-    (h : I.depth.val < 1024) :
-    (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
-  simpa [initState] using tlcDepth_ne_1024_of_lt h
 
 end OpenZeppelinBench.TimelockController

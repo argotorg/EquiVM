@@ -113,7 +113,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
   · have hfakeNorm :
         normalizeRawBoolWord? (rawBoolWordValue word) =
           .ok (.bool false) := by
-      exact scratch_normalizeRawBoolWord_false_of_u256
+      exact normalizeRawBoolWord_false_of_u256
         hfakeWordSmall (by rw [← hfakeWordEq]; exact hfakeZero)
     let slot : UInt256 :=
       bidsElemSlot (.address I.source)
@@ -131,7 +131,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
             UInt256.toByteArray a.fp ∧
           memSlot3.size = (memOf a).size := by
       simpa [memSlot1, memSlot2, memSlot3, memOf] using
-        scratch_revealThreeScratchWrites_preserve_fp
+        threeScratchWrites_preserve_fp
           (mem := memOf a) (fp := a.fp)
           (key := revealScratchSenderWord I)
           (slot := (⟨4⟩ : UInt256))
@@ -145,7 +145,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
             (memSlot3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
           a.fp := by
       rcases hslotMemFacts with ⟨hreadSlot, hsizeSlot⟩
-      exact scratch_mload_of_read
+      exact mload_of_read
         (mem := memSlot3) (fp := (⟨64⟩ : UInt256))
         (packedLen := a.fp)
         (by
@@ -175,9 +175,9 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         (valuesEnd := valuesEnd)
         (sel := sel)
         rd1023
-        (scratch_reveal_aw_mstore0_of_ge3 a.haw)
-        (scratch_reveal_aw_mstore32_of_ge3 a.haw)
-        (scratch_reveal_aw_keccak64_of_ge3 a.haw)
+        (activeWords_mstore0_of_ge3 a.haw)
+        (activeWords_mstore32_of_ge3 a.haw)
+        (activeWords_keccak64_of_ge3 a.haw)
         hbaseHash hlenLoad hboundBids hdataHash
     have hslotRead :
         memSlot3.readWithPadding 64 32 =
@@ -209,7 +209,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       uInt256OfByteArray
         (KEC
           (ByteArray.mk
-            (scratch_revealPackedBytes value false secret).toArray))
+            (packedUint256BoolBytes32Bytes value false secret).toArray))
     by_cases hflag0 : UInt256.eq blinded hashWord = ⟨0⟩
     · obtain ⟨hbodyMismatch, nextFp, memNext, awNext, kNext, CNext,
         rdNext, hawNext, hawNextSmall, hfpNext, hreadNext,
@@ -662,8 +662,8 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 have heq :
                     EVM.Word.toBytesBE blinded =
                       (KEC (ByteArray.mk
-                        (scratch_revealPackedBytes value false secret).toArray)).toList := by
-                  exact scratch_revealPackedHash_eq_of_u256_eq_one
+                        (packedUint256BoolBytes32Bytes value false secret).toArray)).toList := by
+                  exact packedUint256BoolBytes32Hash_eq_of_u256_eq_one
                     (blinded := blinded) (value := value)
                     (secret := secret) (fake := false)
                     (by simpa [hashWord] using hflag1)
@@ -689,7 +689,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (idx a) value secret blinded deposit
                     (rawBoolWordValue word)
                     (KEC (ByteArray.mk
-                      (scratch_revealPackedBytes value false secret).toArray)).toList
+                      (packedUint256BoolBytes32Bytes value false secret).toArray)).toList
                     hbidsL hvaluesL hfakesL hsecretsL hiL hrefundL
                     hlenSrc hboundBids hboundValues hboundFakes
                     hboundSecrets hvalueLookup hfakeLookup hfakeNorm
@@ -813,8 +813,8 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         have heq :
             EVM.Word.toBytesBE blinded =
               (KEC (ByteArray.mk
-                (scratch_revealPackedBytes value false secret).toArray)).toList := by
-          exact scratch_revealPackedHash_eq_of_u256_eq_one
+                (packedUint256BoolBytes32Bytes value false secret).toArray)).toList := by
+          exact packedUint256BoolBytes32Hash_eq_of_u256_eq_one
             (blinded := blinded) (value := value) (secret := secret)
             (fake := false) (by simpa [hashWord] using hflag1)
         have hhashEval :=

@@ -144,7 +144,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperDenySelectorWord hsz hsel
-  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+  have h43 := RD.selectorSplitNotTakenPush2 (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -164,7 +164,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256))
+  have h162 := RD.selectorSplitTakenPush2 (pc := (⟨43⟩ : UInt256))
     (pivot := clipperSelNat 3) (tgt := (⟨162⟩ : UInt256)) h43
     (by change decode code (⟨43⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -183,7 +183,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
     (by simp)
-  have h174 := clipperSplitNotTaken (pc := (⟨163⟩ : UInt256))
+  have h174 := RD.selectorSplitNotTakenPush2 (pc := (⟨163⟩ : UInt256))
     (next := (⟨174⟩ : UInt256)) (pivot := clipperSelNat 13)
     (tgt := (⟨222⟩ : UInt256))
     (h162.jumpdest
@@ -206,7 +206,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h185 := clipperArmNotTaken (pc := (⟨174⟩ : UInt256))
+  have h185 := RD.selectorArmNotTakenPush2 (pc := (⟨174⟩ : UInt256))
     (next := (⟨185⟩ : UInt256)) (sel := clipperSelNat 13)
     (tgt := (⟨1057⟩ : UInt256)) h174
     (by change decode code (⟨174⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -226,7 +226,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h196 := clipperArmNotTaken (pc := (⟨185⟩ : UInt256))
+  have h196 := RD.selectorArmNotTakenPush2 (pc := (⟨185⟩ : UInt256))
     (next := (⟨196⟩ : UInt256)) (sel := clipperSelNat 2)
     (tgt := (⟨1115⟩ : UInt256)) h185
     (by change decode code (⟨185⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -246,7 +246,7 @@ theorem clipperReachDenyBody {σ σ₀ A I} {g : Sat256}
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h1123 := clipperArmTaken (pc := (⟨196⟩ : UInt256)) (sel := clipperSelNat 7)
+  have h1123 := RD.selectorArmTakenPush2 (pc := (⟨196⟩ : UInt256)) (sel := clipperSelNat 7)
     (tgt := (⟨1123⟩ : UInt256)) h196
     (by change decode code (⟨196⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -272,7 +272,7 @@ theorem clipperDenyPatchesWindowDisjoint (v : ClipperImmutables) (lo hi : Nat)
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -344,7 +344,7 @@ theorem clipperDenyRoutineJumpDest (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -358,7 +358,7 @@ theorem clipperDenySuccessJumpDest (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 7000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

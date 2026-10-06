@@ -278,7 +278,7 @@ theorem weth9ApproveReachDecode {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
-  obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
+  obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
@@ -473,7 +473,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-  obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
+  obtain ⟨_, _, h318⟩ := solcFunctionGuardPeelOk (gt := ⟨316⟩) h304 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -512,7 +512,7 @@ theorem weth9ApproveBodyCore {σ σ₀ A I} {g : UInt256}
     · exact weth9ApproveBodyCoreDecodeFailed_short hcode hsize hwv hsz4 (by omega) hsel
   · obtain ⟨_, _, h304⟩ := weth9ReachApprove (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
-    have hrev := weth9GuardPeelRev (gt := ⟨316⟩) h304 hwv
+    have hrev := solcFunctionGuardPeelRev (gt := ⟨316⟩) h304 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchApprove hsel)

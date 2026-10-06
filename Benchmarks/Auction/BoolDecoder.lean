@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Auction.CalldataHead
 import Benchmarks.Auction.DynamicMemory
 
@@ -5,14 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem boolWordClean_iff (word : UInt256) :
-    UInt256.isZero (UInt256.isZero word) = word ↔ word = ⟨0⟩ ∨ word = ⟨1⟩ := by
-  by_cases hz : word = ⟨0⟩
-  · subst word
-    decide
-  · rw [isZero_eq_zero_of_ne hz]
-    change ⟨1⟩ = word ↔ word = ⟨0⟩ ∨ word = ⟨1⟩
-    simp only [hz, false_or, eq_comm]
 
 set_option synthInstance.maxSize 1024 in
 theorem boolHeadWf : calldataHeadWf auctionBytecode ⟨6062⟩ ⟨6078⟩ ⟨32⟩ := by
@@ -49,7 +42,7 @@ theorem boolDecodeNoncanonical {I g s0 off finish ret R mem aw rdata acc k C wor
     fun he => hc ((boolWordClean_iff word).mp he.symm)
   exact evm_run rd6081 with [dup1, iszero, iszero, dup2, eq, push2 ⟨5350⟩,
     jumpiNT (u256_eq_of_ne hne),
-    raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
+    raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
 theorem boolDecodeShort {I g s0 off finish ret R mem aw rdata acc k C}
     (h : RD auctionBytecode I g s0 ⟨6062⟩ (off :: finish :: ret :: R)

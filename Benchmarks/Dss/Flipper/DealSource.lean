@@ -242,7 +242,7 @@ theorem evalExpr_dealIlk_ofLocals {evm : EVM.State} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
-  exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm ⟨3⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm ⟨3⟩)
 
 theorem evalExpr_dealIlk {evm : EVM.State} :
     evalExpr? config { contract := contract, locals := dealLocals evm.executionEnv } evm

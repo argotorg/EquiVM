@@ -48,8 +48,8 @@ def potSuckReturnMem (mem : ByteArray) (tmp : UInt256) : ByteArray :=
 
 theorem dripVowTargetWord_canonical (σ : AccountMap) (I : ExecutionEnv) :
     (dripVowTargetWord σ I).toNat < EVM.addressModulus := by
-  simpa [dripVowTargetWord, potAddressReturnWord] using
-    solcAddrMask_result_canonical (potSlotWord ⟨6⟩ σ I)
+  simpa [dripVowTargetWord, solcAddressSlotWord] using
+    solcAddrMask_result_canonical (solcSlotWordAt ⟨6⟩ σ I)
 
 theorem dripThisWord_canonical (I : ExecutionEnv) :
     (dripThisWord I).toNat < EVM.addressModulus := by

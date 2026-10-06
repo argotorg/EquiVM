@@ -30,13 +30,13 @@ theorem stringStoreLiteClearCurrentLongValid
   let len := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩ := rfl
   have hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31
+    solidityBytesLongValid_gt31
       (header := currentLengthHeaderWord σ I) (len := len) hflag (by simpa [len] using hvalid)
   have hnonzero : len ≠ ⟨0⟩ :=
-    currentLengthLongValid_nonzero
+    solidityBytesLongValid_nonzero
       (header := currentLengthHeaderWord σ I) (len := len) hflag (by simpa [len] using hvalid)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcountNat :
       (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat =
@@ -140,7 +140,7 @@ theorem stringStoreLiteSetRuntime
                     hsz36 hhi hoff hlenWord hsizeSign hlenZero hheader
                 · have hlenZeroAbi :
                       calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat) = ⟨0⟩ := by
-                    rw [← setLengthWord_eq_abi I.calldata hoff]
+                    rw [← calldataLengthWord_eq_abi I.calldata hoff]
                     exact hlenZero
                   have hpayload :
                       ((((I.calldata.toList.drop 4).drop
@@ -198,7 +198,7 @@ theorem stringStoreLiteSetRuntime
                   · exact stringStoreLiteSetPayloadShortRuntime hcode hsize hperm hwv hsel
                       hsz36 hhi hoff hlenWord hsizeSign hlenHuge hpayloadList hpayloadWord
                   · have hpwOne :=
-                      setPayloadWord_one_of_payload_short I.calldata hsize hoff hlenWord
+                      calldataPayloadWord_one_of_payload_short I.calldata hsize hoff hlenWord
                         hlenHuge hpayloadList
                     exact False.elim (hpayloadWord hpwOne)
                 · have hpayload :

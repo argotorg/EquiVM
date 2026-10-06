@@ -148,7 +148,8 @@ theorem evalStorageRef_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
     omega
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleAdminRef,
     evalExpr_grantRole_role, grantRoleAdminEvaledRef, grantRoleRoleValue, grantRoleRoleKey,
-    accessControlValueToKey_bytes32_of_length hlen, EvalResult.bind, EvalResult.ofOption, bind,
+    show bytes32Width = abiBytes32Width from rfl, valueToKey_bytes32_of_length hlen,
+      EvalResult.bind, EvalResult.ofOption, bind,
     pure]
 
 theorem evalExpr_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
@@ -174,7 +175,7 @@ theorem evalStorageRef_grantRole_adminHasRole (evm : EVM.State) (I : ExecutionEn
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleHasRoleRef, sender,
     envValue, evalExpr_grantRole_adminRole, grantRoleAdminHasRoleEvaledRef,
     grantRoleAdminValue, grantRoleAdminKey, grantRoleSenderKey,
-    accessControlValueToKey_bytes32_toBytesBE, accessControlValueToKey_address,
+    show bytes32Width = abiBytes32Width from rfl, valueToKey_bytes32_toBytesBE, valueToKey_address,
     EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?]
 
 theorem evalExpr_grantRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEnv)
@@ -192,7 +193,7 @@ theorem evalExpr_grantRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEnv
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
+  erw [storageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEnv)
     (hzero : UInt256.land
@@ -209,7 +210,7 @@ theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEn
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
+  erw [storageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalStorageRef_grantRole_target (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
@@ -225,7 +226,8 @@ theorem evalStorageRef_grantRole_target (evm : EVM.State) (I : ExecutionEnv)
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleHasRoleRef,
     evalExpr_grantRole_role_withAdmin, evalExpr_grantRole_account, grantRoleTargetEvaledRef,
     grantRoleRoleValue, grantRoleRoleKey, grantRoleAccountValue, grantRoleAccountKey,
-    accessControlValueToKey_bytes32_of_length hlen, accessControlValueToKey_address,
+    show bytes32Width = abiBytes32Width from rfl, valueToKey_bytes32_of_length hlen,
+      valueToKey_address,
     EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
@@ -244,7 +246,7 @@ theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
+  erw [storageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -262,7 +264,7 @@ theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
+  erw [storageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem evalExpr_grantRole_target_not_true (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -612,7 +614,7 @@ theorem grantRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.siz
     grantRoleAdminSlot I = revokeRoleBaseSlot (grantRoleRoleWord I) + ⟨1⟩ := by
   unfold grantRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
   rw [grantRoleRoleKeyValueToWord hsz68]
-  rw [revokeRoleAddSlot_eq]
+  rw [word_ofNat_add_one_eq]
   unfold revokeRoleBaseSlot
   rw [revokeRoleBaseHashMem_read0_64]
   rw [uInt256OfByteArray_eq]
@@ -680,7 +682,7 @@ theorem accessControlGrantRoleX_adminLoaded {σ σ₀ A I} {g : Sat256}
         revokeRoleBaseSlot (grantRoleRoleWord I) := rfl
   have rd370pre := evm_run rd353 with [
     jumpdest, push0, dup3, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (grantRoleRoleWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, swap1,
     raw mstore 0 (revokeRoleBaseHashMem (grantRoleRoleWord I)) (UInt256.ofNat 3)
@@ -1039,7 +1041,7 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     jumpdest, push2 ⟨676⟩, jumpiNT (by rw [htarget]) ]
   have rd569pre := evm_run rd556 with [
     push0, dup4, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (grantRoleRoleWord I) memTarget)
+    raw mstore 0 (wordAt0Mem (grantRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
     raw mstore 0 (revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)

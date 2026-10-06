@@ -18,22 +18,6 @@ The contract has two scalar `address` slots.  The helper below proves the byte-l
 round trip for a Solidity `address` stored at offset 0 in a 32-byte EVM storage word.
 -/
 
-theorem ownable2StepStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem ownable2StepHigh160Mask_toNat (old : UInt256) :
-    (UInt256.land old (UInt256.lnot solcAddrMask)).toNat =
-      (old.toNat / 2 ^ 160) * 2 ^ 160 := by
-  exact addressOffset0High160Mask_toNat old
-
-theorem ownable2StepSetAddressNat_lt_size (old addr : UInt256)
-    (hcanon : addr.toNat < EVM.addressModulus) :
-    addr.toNat + (old.toNat / 2 ^ 160) * 2 ^ 160 < UInt256.size := by
-  exact setAddressOffset0Nat_lt_size old addr hcanon
 
 theorem ownable2StepSetAddressWord_eq (old addr : UInt256)
     (hcanon : addr.toNat < EVM.addressModulus) :
@@ -49,14 +33,5 @@ theorem ownable2StepSetAddressWord_toNat (old addr : UInt256)
   simpa [ownable2StepSetAddressWord, setAddressOffset0Word] using
     setAddressOffset0Word_toNat old addr hcanon
 
-theorem ownable2StepStorageLocStore_address_offset0 (evm : EVM.State)
-    (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
-    storageLocStore evm (addrLoc slot)
-        (.address (AccountAddress.ofNat addr.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (ownable2StepSetAddressWord
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) := by
-  simpa [addrLoc, addressOffset0Loc, ownable2StepSetAddressWord,
-    setAddressOffset0Word] using storageLocStore_address_offset0 evm slot addr hcanon
 
 end OpenZeppelinBench.Ownable2Step

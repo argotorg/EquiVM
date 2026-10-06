@@ -66,10 +66,10 @@ theorem flopperCtorDefaultsReach
       rfl
     simpa [hload] using rd33raw
   have rd36 := flopper_ctor_run rd33 with [push2 flopperCtorTtlWord]
-  have rd43 := rd36.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd43 := rd36.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flopper_ctor_decode) (by evm_ov)
   have rd48 := flopper_ctor_run rd43 with [not, swap1, swap2, and, or]
-  have rd55 := rd48.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd55 := rd48.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flopper_ctor_decode) (by evm_ov)
   have rd60 := flopper_ctor_run rd55 with [push1 ⟨48⟩, shl, not, and]
   have rd70 := rd60.pushConst (UInt256.shiftLeft flopperCtorTauWord ⟨48⟩)

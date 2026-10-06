@@ -51,7 +51,7 @@ theorem unpauseBodyCore {σ σ₀ A I} {g : UInt256}
             (ExecBlock.consNormal (ExecStmt.requireTrue howner)
               (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
                 (ExecBlock.consNormal (unpauseStoreSource (by simp)) ExecBlock.nil)))
-        rcases unpauseAfterRoutine rd1126 hs0.unpause hperm
+        rcases unpauseAfterRoutine rd1126 (SourceState.unpause hs0) hperm
             (addressEventHeap freshHeapMemory (solcSourceWord I) (by decide))
             (by jump_dest) (by evm_ov) with
           ⟨evm', σ', locals', mem', aw', out, _, _, hafter, hs', rd413⟩ | ⟨hafter, hr⟩

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.StringLayout
 import Reasoning.Storage
 import Reasoning.EVMWord
@@ -33,52 +34,9 @@ theorem weth9DataBaseSlot1 :
 
 /-! ## Small `UInt256` additive helpers (no `AddCommMagma UInt256` instance is available) -/
 
-theorem uadd_comm (a b : UInt256) : a + b = b + a := by
-  apply u256_inj; rw [uadd_toNat, uadd_toNat, Nat.add_comm]
-
-theorem uadd_assoc (a b c : UInt256) : a + b + c = a + (b + c) := by
-  apply u256_inj
-  rw [uadd_toNat, uadd_toNat, uadd_toNat, uadd_toNat, Nat.mod_add_mod, Nat.add_mod_mod,
-    Nat.add_assoc]
 
 /-! ## `clearDataWordsForwardFrom` last-store peel -/
 
-/-- General append/split for the forward zeroing fold: running `fuel + tail` clears is running
-    `tail` more clears from the advanced cursor after the first `fuel`. -/
-theorem clearDataWordsForwardFrom_append_gen (owner : AccountAddress) (base : UInt256) :
-    ∀ (fuel : Nat) (τ : AccountMap) (idx : UInt256) (tail : Nat),
-      clearDataWordsForwardFrom owner τ base idx (fuel + tail) =
-        clearDataWordsForwardFrom owner
-          (clearDataWordsForwardFrom owner τ base idx fuel) base
-          (UInt256.ofNat fuel + idx) tail
-  | 0, τ, idx, tail => by
-      simp only [Nat.zero_add, clearDataWordsForwardFrom]
-      rw [show (UInt256.ofNat 0 + idx) = idx from by
-        apply u256_inj; rw [uadd_toNat]
-        simp only [show (UInt256.ofNat 0).toNat = 0 from rfl, Nat.zero_add]
-        exact Nat.mod_eq_of_lt idx.val.isLt]
-  | fuel + 1, τ, idx, tail => by
-      have key : fuel + 1 + tail = (fuel + tail) + 1 := by omega
-      rw [key, clearDataWordsForwardFrom,
-        clearDataWordsForwardFrom_append_gen owner base fuel
-          (sstoreAccountMap owner τ (base + idx) ⟨0⟩) ((⟨1⟩ : UInt256) + idx) tail]
-      conv_rhs => rw [clearDataWordsForwardFrom]
-      rw [show UInt256.ofNat (fuel + 1) + idx = UInt256.ofNat fuel + ((⟨1⟩ : UInt256) + idx) from by
-        rw [← u256_one_add_ofNat, uadd_comm (⟨1⟩ : UInt256) (UInt256.ofNat fuel), uadd_assoc]]
-
-/-- Peel the final store off a `⟨0⟩`-based clear run: `n+1` clears equal `n` clears followed by a
-    single `sstore` of `⟨0⟩` at `base + n`. -/
-theorem clearDataWordsForwardFrom_append (owner : AccountAddress) (τ : AccountMap)
-    (base : UInt256) (n : Nat) :
-    clearDataWordsForwardFrom owner τ base ⟨0⟩ (n + 1) =
-      sstoreAccountMap owner (clearDataWordsForwardFrom owner τ base ⟨0⟩ n)
-        (base + UInt256.ofNat n) ⟨0⟩ := by
-  rw [clearDataWordsForwardFrom_append_gen owner base n τ ⟨0⟩ 1]
-  rw [show (UInt256.ofNat n + (⟨0⟩ : UInt256)) = UInt256.ofNat n from by
-    apply u256_inj; rw [uadd_toNat]
-    simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.add_zero]
-    exact Nat.mod_eq_of_lt (UInt256.ofNat n).val.isLt]
-  rw [clearDataWordsForwardFrom, clearDataWordsForwardFrom]
 
 /-! ## The mask-arithmetic length decode agrees with the total 0.5.16 decode -/
 
@@ -98,13 +56,11 @@ def weth9DecodeLenWord (S : UInt256) : UInt256 :=
 theorem weth9DecodeBytesLengthHeader_eq (S : UInt256) :
     weth9DecodeBytesLengthHeader S = .ok (weth9DecodeLenWord S).toNat := rfl
 
-theorem uland_comm (a b : UInt256) : UInt256.land a b = UInt256.land b a := by
-  apply u256_inj; rw [uland_toNat, uland_toNat, Nat.and_comm]
 
 /-- `∀S` identity: the mask arithmetic equals the total decode's length word. -/
 theorem weth9EvmLenWord_eq (S : UInt256) : weth9EvmLenWord S = weth9DecodeLenWord S := by
   unfold weth9EvmLenWord weth9DecodeLenWord
-  rw [uland_comm ⟨1⟩ S]
+  rw [u256_land_comm ⟨1⟩ S]
   by_cases h : UInt256.land S ⟨1⟩ = ⟨0⟩
   · rw [h, if_pos rfl]
     rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from rfl]

@@ -50,7 +50,7 @@ theorem tinyQuoteBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
   exact ExecFuncBody.execBlockRet <|
     ((ABlock.start.requireStep (evalCallvalueEq_true hcv)).requireStep (by
       simp only [sender, owner, evalExpr?, envValue, EvalResult.bind, bind, pure]
-      rw [evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner,
+      rw [evalAddressLiteral (config v) { contract := contract v, locals := locals } evm v.owner,
         hcaller]
       simp [evalBinaryOp?])).returns (by
         simp only [wrap256, scale, evalExpr?, EvalResult.bind, bind, pure]
@@ -66,7 +66,7 @@ theorem tinyQuoteBodyRevertsUnauthorized (v : TinyImmutables) (evm : EVM.State) 
   exact ExecFuncBody.execBlockRevert <|
     (ABlock.start.requireStep (evalCallvalueEq_true hcv)).requireRevert (by
       simp only [sender, owner, evalExpr?, envValue, EvalResult.bind, bind, pure]
-      rw [evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner]
+      rw [evalAddressLiteral (config v) { contract := contract v, locals := locals } evm v.owner]
       simp [evalBinaryOp?, hcaller])
 
 theorem tinyOwnerWord_eq_source_of_caller {I : ExecutionEnv} {v : TinyImmutables}
