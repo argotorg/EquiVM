@@ -8,6 +8,7 @@ Most declarations are in `Reasoning.Theory`. The EVM trace layer (`RD`, `evm_run
 `SolcRoutines.lean`, and the `RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`) is in
 `Reasoning.Reach`. `SolmArithmetic.lean` includes the nested `Reasoning.Theory.RpowB` and
 `Reasoning.Theory.RpowBase` namespaces for the two source-variable conventions.
+`Immutables.lean` uses `Reasoning.Immutables` for immutable layouts and decoding.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
 
 Some existing helpers use `native_decide`; refactors should not introduce additional axiom
@@ -38,6 +39,7 @@ dependencies.
 | `PackedStorage.lean` | Packed address, bool, uint8, and uint48 locations, masks, loads, and stores. |
 | `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying, including prefix composition and repeated stores. |
 | `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
+| `Immutables.lean` | Named immutable layouts, runtime construction, preserved decode windows, and decoding of patched PUSH20/PUSH32 operands for generated block summaries. |
 | `SolcRoutines.lean` | Bytecode-parameterized getter, authorization, storage-update, checked-arithmetic, and revert routines. |
 | `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, local-variable frames, and exponentiation-frame evaluation facts. |
 
@@ -75,6 +77,8 @@ The remaining extension modules have distinct responsibilities:
   used by compiler and storage proofs, with `SolmBody` and `Initcode` also available.
 - `BytecodePatching` uses `Initcode`, `MemCascade`, and `Solm.Immutables` to connect bytecode
   splices to word writes and preserve decoding.
+- `Immutables` uses `MemCascade` and `Reach` to prove decoding rules for named immutable layouts
+  consumed by generated block summaries.
 - `SolcRoutines` combines compiler primitives with heap, packed-storage, and word facts.
 - `SolmArithmetic` combines source evaluation, ABI types, and word arithmetic. Its `RpowB`
   and `RpowBase` namespaces retain the two local-variable conventions for exponentiation.
@@ -133,6 +137,7 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 - Elementary source evaluation → `SolmBody`; arithmetic and exponentiation frames →
   `SolmArithmetic`.
 - Immutable bytecode patching and decode preservation → `BytecodePatching`.
+- Named immutable layouts and generated-summary decoding → `Immutables`.
 - Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`.
 - An external call inside a function body → `ExternalCall` (EVM side: `RD.call` in `Reach`;
   Solm side: `SolmBody`).
@@ -141,7 +146,7 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 
 ## Build
 
-`lake build Reasoning` builds all twenty-three modules. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds all twenty-four modules. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.
 
 After changing shared lemmas, check their callers with

@@ -1,5 +1,6 @@
 import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # UniswapV3Pool immutable values, offset table, and `runtimeCodeOf`
@@ -44,6 +45,10 @@ def offsets : List (Ident × List Nat) :=
     ("imm_tickSpacing",         [3072, 10493, 19402, 19452]),
     ("imm_maxLiquidityPerTick", [8174, 19295, 19350]),
     ("imm_original",            [11259]) ]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 /-- The immutable values as Solm `Value`s under their `imm_<name>` keys. -/
 def immValues (v : PoolImmutables) : List (Ident × Value) :=

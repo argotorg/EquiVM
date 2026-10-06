@@ -10,11 +10,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000
 
-namespace Reasoning.Reach
-
-
-end Reasoning.Reach
-
 namespace Benchmarks.Dss.Flipper
 
 /-! ## `bids(uint256)` getter -/

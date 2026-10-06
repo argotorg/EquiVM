@@ -1,6 +1,7 @@
 import Reasoning.SolmBody
 import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # EAS Attester immutable values, offset table, and `runtimeCodeOf`
@@ -29,6 +30,10 @@ def easExpr : Expr := Reasoning.Theory.addressLiteral v.eas
 /-- solc `immutableReferences` offsets, keyed by `imm_eas` (AST id 516 = `_eas`). -/
 def offsets : List (Ident × List Nat) :=
   [("imm_eas", [722, 1465, 1598, 1939])]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 /-- The immutable value as a `Value` under its constructor-local `imm_eas` key. -/
 def immValues (v : AttesterImmutables) : List (Ident × Value) :=

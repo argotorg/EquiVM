@@ -1,6 +1,7 @@
 import Reasoning.SolmBody
 import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # MakerDAO/Sky DSS Dog immutable values, offset table, and `runtimeCodeOf`
@@ -28,6 +29,10 @@ def vatExpr : Expr := Reasoning.Theory.addressLiteral v.vat
 
 def offsets : List (Ident × List Nat) :=
   [("imm_vat", [1405, 2890, 3170, 3965])]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 def immValues (v : DogImmutables) : List (Ident × Value) :=
   [("imm_vat", .address v.vat)]

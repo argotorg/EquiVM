@@ -1,6 +1,7 @@
 import Reasoning.SolmBody
 import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # MakerDAO/Sky DSS Clipper immutable values, offset table, and `runtimeCodeOf`
@@ -35,6 +36,10 @@ def offsets : List (Ident × List Nat) :=
   -- ordering does not change the deployed bytes, but it keeps the proof's write cascade direct.
   [ ("imm_vat", [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936]),
     ("imm_ilk", [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747]) ]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 def immValues (v : ClipperImmutables) : List (Ident × Value) :=
   [("imm_ilk", v.ilk), ("imm_vat", .address v.vat)]

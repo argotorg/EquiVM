@@ -8,6 +8,7 @@ import Reasoning.Dispatch
 import Reasoning.EVMWord
 import Reasoning.ExternalCall
 import Reasoning.HeapMemory
+import Reasoning.Immutables
 import Reasoning.Initcode
 import Reasoning.JumpDest
 import Reasoning.MemCascade

@@ -29,10 +29,14 @@ variable (v : TinyImmutables)
 def owner : Expr := Reasoning.Theory.addressLiteral v.owner
 def scale : Expr := .intLit (Int.ofNat v.scale.toNat)
 
+/-- One source for the constructor local, summary key, and solc patch offsets. -/
+def immutableReferences : List (Ident × String × List Nat) :=
+  [ ("imm_scale", "scale", [186, 361]),
+    ("imm_owner", "owner", [72, 245]) ]
+
 /-- solc `immutableReferences` offsets, keyed by the constructor locals `imm_<name>`. -/
 def offsets : List (Ident × List Nat) :=
-  [ ("imm_scale", [186, 361]),
-    ("imm_owner", [72, 245]) ]
+  immutableReferences.map (fun (name, _, sites) => (name, sites))
 
 /-- The immutable values as Solm `Value`s under the `imm_<name>` keys. -/
 def immValues (v : TinyImmutables) : List (Ident × Value) :=
