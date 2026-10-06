@@ -57,6 +57,10 @@ jobs:
       - name: Build Solidity proofs
         run: lake build Solidity.Theory.InterpEquiv
 
+      # ERC20 (solc 0.8.35, optimizer on) refines its Solidity spec: deployment + every call.
+      - name: Build Solidity ERC20 proof
+        run: lake build Solidity.Examples.ERC20.Correct
+
       # These End dispatch consumers previously overflowed Lean's default stack.
       # Keep this focused regression check even while the full benchmarks are disabled.
       - name: Check End dispatch proof stack

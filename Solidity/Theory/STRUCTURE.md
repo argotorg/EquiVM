@@ -31,6 +31,13 @@ one refinement relation (`Solidity/Equiv.lean`: accounts, return data, exact rev
 
 ## Where to look
 
+- A complete contract proof → `Solidity/Examples/ERC20/` (solc 0.8.35, optimizer on; capstone
+  `ERC20.Opt.erc20Correct : contractEquivalence …` in `Correct.lean`; CI target
+  `Solidity.Examples.ERC20.Correct`, not in the `Solidity` umbrella).  `Common.lean` holds the
+  per-contract facts (layout, selectors, dispatcher), `Shapes.lean` the bytecode's decoders, return
+  tails, `Error(string)`/`Panic` tails and checked arithmetic, one file per function, and
+  `Constructor.lean` the creation code on `erc20Creation ++ args` (`ctor_run`, a `ctor_decode`
+  variant of `evm_run` for the symbolic argument tail, via `EVMReasoning/Initcode.lean`).
 - A whole message call or deployment → `Trace.lean` (`Returned.specExecutionW` with a `WorldEquiv`
   built from `WorldEquiv.init` and threaded through `sstore`/`pushLog`/`callMade`).
 - A revert's exact bytes → `Trace.lean` (`Panic.data_eq`, `solcErrorStringPayload_eq`, the
@@ -93,6 +100,13 @@ core proof are deleted; `Solidity/Equiv.lean` has one relation.  Its `decodingFa
 empty revert data, or `Panic(0x41)` when the dispatched function decodes a dynamic argument into
 memory (`hasDynamicMemoryParam`, `decodeFailureData`); bridges `Reverted.specDecodingFailed`
 (empty) and `Reverted.specDecodingPanic`.
+
+Added 2026-10-06: the ERC20 proof of the one relation (`Solidity/Examples/ERC20/`, see "Where to
+look").  Shapes proved there and not yet moved here: an `Error(string)` tail that falls through
+into the shared `REVERT` block instead of jumping to it (`errBlock` + `errTailAllowance`), the
+inlined three-argument `(address,address,uint256)` decoder, `checked_sub` underflow, and memory
+facts beyond the 96-byte scratch space (`write_gap_eq` for a `CODECOPY` past the end of memory,
+`twoWordHashMem_{size,read0_64,read64,slot}_of_le` for hashing on a larger memory).
 
 Changed 2026-10-04: a `constant` is converted to its declared type where it is read (rules
 `constVar`/`constVarRevert`/`constVarPanic`; `EvalExpr.constVarVal`, `EvalExpr.constVarLitU256`);
@@ -408,7 +422,8 @@ model's precompiles: the spec says nothing about the hash values themselves.
 Solidity side: log-entry instances for event shapes other than the ones listed (the bytes come from
 `encodeABIValues?_of_encs` and the per-element lemmas; each `mkLogEntry_*` instance is one `simp`);
 arrays of dynamic elements (`string[]`, `bytes[]`) in the ABI;
-the `runtimeCodeOf imms = some out` fact of a constructor (per contract).
+the `runtimeCodeOf imms = some out` fact of a constructor is per contract (ERC20: `cm6_read`,
+`write0_read_back_from_gen` + `extract_append_left` + `native_decide` on the pinned bytes).
 Shared ABI library: the success lemma for decoding `string`/`bytes` (`EVMReasoning/ABI.lean` has only
 the failure cases), needed for `string calldata` parameters through `decodeArgs_eq` and for the
 `catch Error(string)` round trip.

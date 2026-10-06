@@ -216,7 +216,7 @@ def runAll (f : SpecEntry → IO Bool) : IO Bool := do
 /-! ## Differential scenarios -/
 
 def scenarios : List Scenario :=
-  [ ERC20.scenario, ERC20.scenarioSolc, ERC20.scenarioPinnedCtor, Ballot.scenario,
+  [ ERC20.scenario, ERC20.scenarioSolc, ERC20.scenarioOpt, ERC20.scenarioPinnedCtor, Ballot.scenario,
     Ballot.scenarioSolc, SimpleAuction.scenario, SimpleAuction.scenarioSolc,
     SimpleAuction.scenarioPinnedCtor, Truth.scenario, Truth.scenarioSolc, Pow.scenario,
     Pow.scenarioSolc, Pow.scenarioPinnedCtor, Caller.scenario, Caller.scenarioSolc,

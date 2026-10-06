@@ -2,6 +2,7 @@ import Solidity.Test.Harness
 import Solidity.Test.Specs.ERC20
 import Solm.Examples.ERC20.Bytecode
 import Solidity.Test.Fixtures.ERC20Solc
+import Solidity.Examples.ERC20.Bytecode
 
 /-!
 # Differential cases: ERC20
@@ -99,6 +100,14 @@ def scenarioSolc : Scenario :=
   { scenario with
       name := "ERC20/solc-0.8.35",
       cases := cases.filterMap fun c => if c.ctorArgs.isSome then none else some { c with code := runtime } }
+
+/-- Every case on the optimizer-ON bytecode the Solidity proof is about (`Solidity/Examples/ERC20`). -/
+def scenarioOpt : Scenario :=
+  { scenario with
+      name := "ERC20/optimized",
+      cases := cases.map fun c => match c.ctorArgs with
+        | some (args, _) => { c with code := _root_.ERC20.Opt.erc20Creation, ctorArgs := some (args, _root_.ERC20.Opt.erc20Runtime) }
+        | none => { c with code := _root_.ERC20.Opt.erc20Runtime } }
 
 /-- Deployment through the pinned hand-written `erc20Initcode`, which does not emit `Transfer`. -/
 def scenarioPinnedCtor : Scenario :=

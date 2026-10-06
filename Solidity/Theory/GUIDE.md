@@ -5,7 +5,8 @@ This is the workflow an agent follows to prove `runtimeEquivalenceFor` (and
 `SolcTrace.lean`, `SolcIdioms.lean`) and the Solidity coupling layer (`Solidity/Theory/`).
 `STRUCTURE.md` in this directory lists every lemma by file; this file says in which order to use
 them.  The usage examples in `Usage.lean` (compiled with the library) show the builders applied to
-real statements and to a whole body.
+real statements and to a whole body.  `Solidity/Examples/ERC20/` is a complete proof following this
+recipe (six functions, constructor, dispatcher, capstone `erc20Correct`).
 
 ## 0. Inputs of a contract proof
 
@@ -116,6 +117,19 @@ guards).  The EVM side of the dispatcher is shared (`Run.dispatchNoMatch`,
   `native_decide`-checked constants, never unfolded.
 - Check axioms at the end: `#print axioms` must show only `propext`, `Classical.choice`,
   `Quot.sound`, the `native_decide` auxiliaries and the contract's declared selector facts.
+- Read the disassembly of every tail you reuse a shape for: solc emits the same `Error(string)`
+  tail once with `PUSH2 … JUMP` into the shared revert block and once falling straight into it
+  (ERC20 `transferFrom`), and the address mask `AND` with either operand order (`u256_land_comm`).
+- Give builders their expected type when the frame is not fixed by an argument
+  (`have h : EvalExpr … := EvalExpr.subU256 …`); otherwise the `by frame_simp` discharges see
+  metavariables.  `ExecCtorChain.topPlain` needs `(step := ⟨…⟩)` explicitly.
+- After `rw [h_size]` a goal `a + b ≤ n` on numerals is often closed by `rw`'s `rfl`; a following
+  `omega` then fails with "no goals".
+- Creation code: `I.code = creation ++ args`.  Import `EVMReasoning.Initcode` and discharge decodes
+  with `decode_append_left_window` and jump destinations with `D_J_contains_append_left`
+  (ERC20 `Constructor.lean`: `ctor_decode`, `ctor_jd`, `ctor_run`).  The argument copy
+  `CODECOPY` lands past the end of memory (`write_gap_eq`); the hash and free-pointer lemmas for a
+  memory larger than 96 bytes are the `twoWordHashMem_*_of_le` family.
 
 ## 4. What the library does not yet give you
 
