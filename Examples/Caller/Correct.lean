@@ -1014,9 +1014,9 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
     simp [storageTypeAt?, callerContract]
   have hbackend : callerConfig.storageBackend =
       solidityStorageBackend Caller.callerStorageLayout := rfl
-  have hloc : Caller.callerStorageLayout { base := "stored", steps := [] } evm' =
-      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-             bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) } := rfl
+  have hloc : Caller.callerStorageLayout { base := "stored", steps := [] } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+                    bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
   exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
     (Or.inl ⟨_, rfl⟩) (callerLocStore evm' k)
 

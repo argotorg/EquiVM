@@ -73,14 +73,14 @@ def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
 def storageLayout : StorageLayout :=
   solidityLayout! [[roleDataStruct]] [storageDecls]
 
-@[simp] theorem storageLayout_hasRole (role account : KeyValue) (evm : EVM.State) :
+@[simp] theorem storageLayout_hasRole (role account : KeyValue) :
     storageLayout { base := "_roles", steps := [.mindex role, .field "hasRole", .mindex account] }
-      evm = some (boolLoc (roleHasRoleSlot role account)) := by
+      = some (.leaf (boolLoc (roleHasRoleSlot role account))) := by
   rfl
 
-@[simp] theorem storageLayout_adminRole (role : KeyValue) (evm : EVM.State) :
-    storageLayout { base := "_roles", steps := [.mindex role, .field "adminRole"] } evm =
-      some (bytes32Loc (roleAdminSlot role)) := by
+@[simp] theorem storageLayout_adminRole (role : KeyValue) :
+    storageLayout { base := "_roles", steps := [.mindex role, .field "adminRole"] } =
+      some (.leaf (bytes32Loc (roleAdminSlot role))) := by
   rfl
 
 def defaultAdminRoleTransition : TransitionDecl :=

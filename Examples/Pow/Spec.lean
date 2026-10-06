@@ -1,6 +1,7 @@
 import Solm.Semantics
 import Solm.SolidityLayout
 import Solm.SolidityStorage
+import Solm.MetaSolidityLayout
 
 /-!
 # Pow — the Solm specification for `Pow.sol`'s `pow2(uint256 n)`
@@ -64,6 +65,6 @@ end Pow
 
 /-- Verification config: empty storage backend, default external-call ABI. -/
 def powConfig : Config :=
-  { storageBackend := solidityStorageBackend (fun _ _ => none)
+  { storageBackend := solidityStorage! [([] : List StructDecl)] [Pow.powContract.storage]
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Pow.powContract.ctor.params }

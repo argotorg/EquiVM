@@ -99,8 +99,8 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
     simp [winnerNameNameEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, bytes32St]
   have hloc :
-      ballotConfig.storageBackend.locate? (winnerNameNameEvaledRef w) evm =
-        some (winnerNameNameLoc w) := by
+      ballotConfig.storageBackend.locate? (winnerNameNameEvaledRef w) =
+        some (.leaf (winnerNameNameLoc w)) := by
     simp [winnerNameNameEvaledRef, winnerNameNameLoc, ballotConfig,
       winnerNameNameSlot_spec]
   have hload :

@@ -537,7 +537,7 @@ theorem renounceRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
         simpa [config, renounceRoleTargetEvaledRef, renounceRoleTargetSlot] using
           storageLayout_hasRole
             (.fixedBytes bytes32Width ((I.calldata.toList.drop 4).take 32))
-            (renounceRoleCallerKey I) evm)
+            (renounceRoleCallerKey I))
       (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, renounceRoleClearLowByteWord] using

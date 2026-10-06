@@ -29,32 +29,43 @@ def declarations : List StorageDecl :=
 
 def layout : StorageLayout := solidityLayout! [([] : List StructDecl)] [declarations]
 
-def summary (ref : EvaledStorageRef) : Option (Nat × Nat × Nat) := do
-  let loc <- layout ref default
-  pure (loc.slot.toNat, loc.offset.val, loc.size.val)
+def leafSummary (ref : EvaledStorageRef) : Option (Nat × Nat × Nat) :=
+  match layout ref with
+  | some (.leaf loc) => some (loc.slot.toNat, loc.offset.val, loc.size.val)
+  | _ => none
+
+def anchorSummary (ref : EvaledStorageRef) : Option Nat :=
+  match layout ref with
+  | some (.anchor slot) => some slot.toNat
+  | _ => none
+
+def byteSummary (ref : EvaledStorageRef) : Option (Nat × Nat) :=
+  match layout ref with
+  | some (.byte header index) => some (header.toNat, index)
+  | _ => none
 
 -- A full-slot first declaration starts at slot zero (the old generator incorrectly returned one).
-#guard summary { base := "first" } = some (0, 0, 32)
+#guard leafSummary { base := "first" } = some (0, 0, 32)
 -- Two uint128 declarations share slot one and advance to slot two afterwards.
-#guard summary { base := "left" } = some (1, 0, 16)
-#guard summary { base := "right" } = some (1, 16, 16)
+#guard leafSummary { base := "left" } = some (1, 0, 16)
+#guard leafSummary { base := "right" } = some (1, 16, 16)
 -- The mapping root consumes slot two, even though it has no directly readable leaf.
-#guard summary { base := "tail" } = some (3, 0, 1)
--- A dynamic value following a packed scalar starts at the next slot.  In the default (short)
--- representation, Solidity byte zero is the most-significant byte of that slot.
-#guard summary { base := "blob" } = some (4, 0, 1)
-#guard summary { base := "blob", steps := [.aindex (.int 0)] } = some (4, 31, 1)
+#guard leafSummary { base := "tail" } = some (3, 0, 1)
+-- A dynamic value following a packed scalar starts at the next slot. Its indexed byte retains
+-- the header and logical index; the backend resolves short or long representation from the state.
+#guard anchorSummary { base := "blob" } = some 4
+#guard byteSummary { base := "blob", steps := [.aindex (.int 0)] } = some (4, 0)
 -- Struct fields pack internally, while the full-width field starts the next word.
-#guard summary { base := "direct", steps := [.field "flag"] } = some (5, 0, 1)
-#guard summary { base := "direct", steps := [.field "owner"] } = some (5, 1, 20)
-#guard summary { base := "direct", steps := [.field "count"] } = some (6, 0, 32)
+#guard leafSummary { base := "direct", steps := [.field "flag"] } = some (5, 0, 1)
+#guard leafSummary { base := "direct", steps := [.field "owner"] } = some (5, 1, 20)
+#guard leafSummary { base := "direct", steps := [.field "count"] } = some (6, 0, 32)
 -- The struct occupies two complete words, so the following dynamic-array root starts at slot seven.
-#guard summary { base := "items" } = some (7, 0, 32)
+#guard anchorSummary { base := "items" } = some 7
 -- Struct sizes are byte counts, so fixed-array elements advance by the struct's two-word stride.
-#guard summary { base := "pairs", steps := [.aindex (.int 0), .field "flag"] } = some (8, 0, 1)
-#guard summary { base := "pairs", steps := [.aindex (.int 0), .field "count"] } = some (9, 0, 32)
-#guard summary { base := "pairs", steps := [.aindex (.int 1), .field "count"] } = some (11, 0, 32)
-#guard summary { base := "afterPairs" } = some (12, 0, 1)
+#guard leafSummary { base := "pairs", steps := [.aindex (.int 0), .field "flag"] } = some (8, 0, 1)
+#guard leafSummary { base := "pairs", steps := [.aindex (.int 0), .field "count"] } = some (9, 0, 32)
+#guard leafSummary { base := "pairs", steps := [.aindex (.int 1), .field "count"] } = some (11, 0, 32)
+#guard leafSummary { base := "afterPairs" } = some (12, 0, 1)
 
 def generatedBackend : StorageBackend :=
   solidityStorage! [([] : List StructDecl)] [declarations]
@@ -76,8 +87,8 @@ example (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
     generatedConfig.storageBackend.read er ty evm = generatedBackend.read er ty evm := by
   rfl
 
-example (ref : EvaledStorageRef) (evm : EVM.State) :
-    generatedBackend.locate? ref evm = layout ref evm := by
+example (ref : EvaledStorageRef) :
+    generatedBackend.locate? ref = layout ref := by
   rfl
 
 /-! ## Executable backend-law regressions

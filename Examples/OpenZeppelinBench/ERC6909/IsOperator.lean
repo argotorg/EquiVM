@@ -141,11 +141,11 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
       { base := "_operatorApprovals",
         steps := [.mindex (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] }
-      evm = some (boolLoc (isOperatorSlot I)) := by
+      = some (.leaf (boolLoc (isOperatorSlot I))) := by
     simpa [config, isOperatorSlot] using
       storageLayout_operatorApproval
         (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat))
-        (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat)) evm
+        (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))
   rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (hbase := isOperatorStore_operatorApprovals I)
     (her := her) (hty := hty) (hloc := hloc)]

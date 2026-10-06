@@ -325,9 +325,9 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
   have hbackend : ctorStoreConfig.storageBackend =
       solidityStorageBackend CtorStore.generatedStorageBackend.locate? := rfl
   have hloc : CtorStore.generatedStorageBackend.locate?
-      { base := "stored", steps := [] } evm =
-      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-             type := .int (.uint ⟨256, (by decide)⟩) } := rfl
+      { base := "stored", steps := [] } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+                    type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
   exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
     (Or.inl ⟨_, rfl⟩) (ctorStoreLocStore _ _ h0)
 

@@ -71,20 +71,20 @@ def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def storageLayout : StorageLayout :=
   solidityLayout! [([] : List StructDecl)] [storageDecls]
 
-@[simp] theorem storageLayout_balance (owner id : KeyValue) (evm : EVM.State) :
-    storageLayout { base := "_balances", steps := [.mindex owner, .mindex id] } evm =
-      some (wordLoc (balanceSlot owner id)) := by
+@[simp] theorem storageLayout_balance (owner id : KeyValue) :
+    storageLayout { base := "_balances", steps := [.mindex owner, .mindex id] } =
+      some (.leaf (wordLoc (balanceSlot owner id))) := by
   rfl
 
-@[simp] theorem storageLayout_operatorApproval (owner spender : KeyValue) (evm : EVM.State) :
+@[simp] theorem storageLayout_operatorApproval (owner spender : KeyValue) :
     storageLayout { base := "_operatorApprovals", steps := [.mindex owner, .mindex spender] }
-      evm = some (boolLoc (operatorApprovalSlot owner spender)) := by
+      = some (.leaf (boolLoc (operatorApprovalSlot owner spender))) := by
   rfl
 
-@[simp] theorem storageLayout_allowance (owner spender id : KeyValue) (evm : EVM.State) :
+@[simp] theorem storageLayout_allowance (owner spender id : KeyValue) :
     storageLayout
-      { base := "_allowances", steps := [.mindex owner, .mindex spender, .mindex id] } evm =
-      some (wordLoc (allowanceSlot owner spender id)) := by
+      { base := "_allowances", steps := [.mindex owner, .mindex spender, .mindex id] } =
+      some (.leaf (wordLoc (allowanceSlot owner spender id))) := by
   rfl
 
 def supportsInterfaceTransition : TransitionDecl :=

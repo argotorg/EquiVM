@@ -33,7 +33,7 @@ theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
           ({ base := "chairperson", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
       rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := ballotStorageLayout_chairperson evm)]
+        (hty := hty) (hloc := ballotStorageLayout_chairperson)]
       simpa using congrArg EvalResult.ok (ballotStorageLocLoad_address_offset0 evm ⟨0⟩))
 
 theorem ballotX_chairperson {σ σ₀ A I} {g : Sat256} {sel : UInt256}

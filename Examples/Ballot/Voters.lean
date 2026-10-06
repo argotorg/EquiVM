@@ -99,7 +99,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
           (hloc := by simpa only [votersEvaledRef, votersBaseSlot] using
-            (ballotStorageLayout_voterWeight (.address (AccountAddress.ofNat (votersArgWord I).toNat)) evm)),
+            (ballotStorageLayout_voterWeight (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           ballotStorageLocLoad_uint256]
         simp [votersWeightWord, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
@@ -113,7 +113,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, boolSt, storageTypeStep?])
           (hloc := by simpa only [votersEvaledRef, votersPackedSlot, votersBaseSlot] using
-            (ballotStorageLayout_voterVoted (.address (AccountAddress.ofNat (votersArgWord I).toNat)) evm)),
+            (ballotStorageLayout_voterVoted (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           ballotStorageLocLoad_bool_offset0]
         simp [votersVotedWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -127,7 +127,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, addrSt, storageTypeStep?])
           (hloc := by simpa only [votersEvaledRef, votersPackedSlot, votersBaseSlot] using
-            (ballotStorageLayout_voterDelegate (.address (AccountAddress.ofNat (votersArgWord I).toNat)) evm)),
+            (ballotStorageLayout_voterDelegate (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           storageLocLoad_address_offset1]
         simp [votersDelegateWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -141,7 +141,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
           (hloc := by simpa only [votersEvaledRef, votersVoteSlot, votersBaseSlot] using
-            (ballotStorageLayout_voterVote (.address (AccountAddress.ofNat (votersArgWord I).toNat)) evm)),
+            (ballotStorageLayout_voterVote (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           ballotStorageLocLoad_uint256]
         simp [votersVoteWord, votersVoteSlot, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]

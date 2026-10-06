@@ -246,7 +246,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
           storageLayout_allowance
             (.address evm.executionEnv.source)
             (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
-            (.int (Int.ofNat (approveIdWord I).toNat)) evm)
+            (.int (Int.ofNat (approveIdWord I).toNat)))
   rw [erc6909StorageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 

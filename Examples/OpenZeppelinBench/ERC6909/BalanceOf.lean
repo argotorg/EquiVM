@@ -155,7 +155,7 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           simpa [config, balanceOfEvaledRef, balanceOfSlot] using
             storageLayout_balance
               (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat))
-              (.int (Int.ofNat (balanceOfIdWord I).toNat)) evm)]
+              (.int (Int.ofNat (balanceOfIdWord I).toNat)))]
       rw [erc6909StorageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/

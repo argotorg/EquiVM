@@ -126,8 +126,8 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   have hloc : vyperERC20Config.storageBackend.locate?
       { base := "allowance",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
-                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } evm =
-      some (vyperUint256Loc (allowanceSlot I)) := by
+                  .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))] } =
+      some (.leaf (vyperUint256Loc (allowanceSlot I))) := by
     simp [allowanceSlot, vyperERC20Config_storage_allowance, allowanceOwnerValue,
       allowanceSpenderValue, erc20AllowanceSlot]
   exact ExecFuncBody.execBlockRet <|

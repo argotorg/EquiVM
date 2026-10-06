@@ -187,7 +187,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
           pure, evalExpr?])
       (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
         ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
-      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source) (evm := evm))
+      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))
   have hword :
       (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
     constructorUInt256Word_toNat initialSupply h0 hlt
@@ -218,7 +218,7 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
           EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
         ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage])
-      (hloc := vyperERC20Config_storage_totalSupply (evm := evm))
+      (hloc := vyperERC20Config_storage_totalSupply)
   have hword :
       (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
     constructorUInt256Word_toNat initialSupply h0 hlt

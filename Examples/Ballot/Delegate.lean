@@ -1094,9 +1094,8 @@ theorem evalExpr_delegate_proposal_count (evm : EVM.State) (I : ExecutionEnv)
     simp [delegateProposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, uint256St]
   have hloc :
-      ballotConfig.storageBackend.locate? (delegateProposalCountEvaledRef evm I)
-        (delegateAfterSenderState evm I) =
-        some (wordLoc (delegateProposalCountSlotCurrent evm I)) := by
+      ballotConfig.storageBackend.locate? (delegateProposalCountEvaledRef evm I) =
+        some (.leaf (wordLoc (delegateProposalCountSlotCurrent evm I))) := by
     simp [delegateProposalCountEvaledRef, ballotConfig,
       delegateProposalCountSlotCurrent_spec, u256_add_comm]
   have hload :

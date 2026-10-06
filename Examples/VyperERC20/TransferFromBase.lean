@@ -575,7 +575,7 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_allowance
       (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
-      (.address evm.executionEnv.source) (evm := evm))]
+      (.address evm.executionEnv.source))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferFromAllowanceEvaledRef, transferFromAllowanceSlot,
     transferFromCurrentAllowanceWord]
@@ -643,7 +643,7 @@ theorem evalExpr_transferFrom_from_balance (evm : EVM.State) (I : ExecutionEnv) 
       ERC20.erc20Contract, erc20StorageDecls, ERC20.erc20StorageDecls, uint256Storage,
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
-      (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)) (evm := evm))]
+      (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferFromFromBalanceEvaledRef, transferFromFromSlot, transferFromFromBalanceWord]
 
@@ -662,7 +662,7 @@ theorem evalExpr_transferFrom_from_balance_fromBalance
       ERC20.erc20Contract, erc20StorageDecls, ERC20.erc20StorageDecls, uint256Storage,
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
-      (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)) (evm := evm'))]
+      (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferFromFromBalanceEvaledRef, transferFromFromSlot, transferFromFromBalanceWord]
 
@@ -738,7 +738,7 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
         ERC20.uint256Storage, storageTypeStep?])
       (hloc := vyperERC20Config_storage_allowance
         (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
-        (.address evm.executionEnv.source) (evm := evm))
+        (.address evm.executionEnv.source))
   rw [vyperERC20StorageLocStore_uint256]
   simp [transferFromAfterAllowanceState, transferFromAllowanceSlot]
 
@@ -849,8 +849,7 @@ theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         ERC20.erc20Contract, erc20StorageDecls, ERC20.erc20StorageDecls, uint256Storage,
         ERC20.uint256Storage, storageTypeStep?])
       (hloc := vyperERC20Config_storage_balanceOf
-        (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
-        (evm := transferFromAfterAllowanceState evm I))
+        (.address (AccountAddress.ofNat (transferFromFromWord I).toNat)))
   rw [vyperERC20StorageLocStore_uint256]
   simp [transferFromAfterBalanceState, transferFromFromSlot, transferFromAfterAllowance_codeOwner]
 
@@ -891,8 +890,7 @@ theorem evalExpr_transferFrom_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       ERC20.erc20Contract, erc20StorageDecls, ERC20.erc20StorageDecls, uint256Storage,
       ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
-      (.address (AccountAddress.ofNat (transferFromToWord I).toNat))
-      (evm := transferFromAfterBalanceState evm I))]
+      (.address (AccountAddress.ofNat (transferFromToWord I).toNat)))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferFromToEvaledRef, transferFromToSlot, transferFromToBalanceWord,
     transferFromAfterBalance_codeOwner]
@@ -965,8 +963,7 @@ theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
         ERC20.erc20Contract, erc20StorageDecls, ERC20.erc20StorageDecls, uint256Storage,
         ERC20.uint256Storage, storageTypeStep?])
       (hloc := vyperERC20Config_storage_balanceOf
-        (.address (AccountAddress.ofNat (transferFromToWord I).toNat))
-        (evm := transferFromAfterBalanceState evm I))
+        (.address (AccountAddress.ofNat (transferFromToWord I).toNat)))
   rw [← transferFromNewToWord_toNat evm I hfit]
   rw [vyperERC20StorageLocStore_uint256]
   simp [transferFromPostState, transferFromToSlot, transferFromAfterBalance_codeOwner]

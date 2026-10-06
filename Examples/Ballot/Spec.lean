@@ -125,43 +125,43 @@ def wordLoc (s : Ethereum.UInt256) : StorageLoc :=
 def ballotStorageLayout : StorageLayout :=
   solidityLayout! [[voterStructDecl, proposalStructDecl]] [ballotStorageDecls]
 
-@[simp] theorem ballotStorageLayout_chairperson (evm : EVM.State) :
-    ballotStorageLayout { base := "chairperson" } evm =
-      some { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address } := by
+@[simp] theorem ballotStorageLayout_chairperson :
+    ballotStorageLayout { base := "chairperson" } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address }) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_voterWeight (a : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "weight"] } evm =
-      some (wordLoc (voterBase a)) := by
+@[simp] theorem ballotStorageLayout_voterWeight (a : KeyValue) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "weight"] } =
+      some (.leaf (wordLoc (voterBase a))) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_voterVoted (a : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "voted"] } evm =
-      some ({ slot := voterBase a + ⟨1⟩, offset := 0, size := 1, hbound := by decide, type := .bool } : StorageLoc) := by
+@[simp] theorem ballotStorageLayout_voterVoted (a : KeyValue) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "voted"] } =
+      some (.leaf ({ slot := voterBase a + ⟨1⟩, offset := 0, size := 1, hbound := by decide, type := .bool } : StorageLoc)) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_voterDelegate (a : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "delegate"] } evm =
-      some ({ slot := voterBase a + ⟨1⟩, offset := 1, size := 20, hbound := by decide, type := .address } : StorageLoc) := by
+@[simp] theorem ballotStorageLayout_voterDelegate (a : KeyValue) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "delegate"] } =
+      some (.leaf ({ slot := voterBase a + ⟨1⟩, offset := 1, size := 20, hbound := by decide, type := .address } : StorageLoc)) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_voterVote (a : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "vote"] } evm =
-      some (wordLoc (voterBase a + ⟨2⟩)) := by
+@[simp] theorem ballotStorageLayout_voterVote (a : KeyValue) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "vote"] } =
+      some (.leaf (wordLoc (voterBase a + ⟨2⟩))) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_proposals (evm : EVM.State) :
-    ballotStorageLayout { base := "proposals" } evm = some (wordLoc ⟨2⟩) := by
+@[simp] theorem ballotStorageLayout_proposals :
+    ballotStorageLayout { base := "proposals" } = some (.anchor ⟨2⟩) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_proposalName (i : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "name"] } evm =
-      some ({ slot := proposalElemSlot i, offset := 0, size := 32, hbound := by decide, type := .bytes ⟨31, by decide⟩ } : StorageLoc) := by
+@[simp] theorem ballotStorageLayout_proposalName (i : KeyValue) :
+    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "name"] } =
+      some (.leaf ({ slot := proposalElemSlot i, offset := 0, size := 32, hbound := by decide, type := .bytes ⟨31, by decide⟩ } : StorageLoc)) := by
   rfl
 
-@[simp] theorem ballotStorageLayout_proposalVoteCount (i : KeyValue) (evm : EVM.State) :
-    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "voteCount"] } evm =
-      some (wordLoc (proposalElemSlot i + ⟨1⟩)) := by
+@[simp] theorem ballotStorageLayout_proposalVoteCount (i : KeyValue) :
+    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "voteCount"] } =
+      some (.leaf (wordLoc (proposalElemSlot i + ⟨1⟩))) := by
   rfl
 
 /-! ## Constructor

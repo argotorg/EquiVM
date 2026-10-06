@@ -141,8 +141,8 @@ theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UIn
     simp [winningProposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, uint256St]
   have hloc :
-      ballotConfig.storageBackend.locate? (winningProposalCountEvaledRef p) evm =
-        some (wordLoc (winningProposalVoteCountSlot p)) := by
+      ballotConfig.storageBackend.locate? (winningProposalCountEvaledRef p) =
+        some (.leaf (wordLoc (winningProposalVoteCountSlot p))) := by
     simp [winningProposalCountEvaledRef, winningProposalVoteCountSlot_spec, ballotConfig,
       u256_add_comm]
   have hload :

@@ -239,7 +239,7 @@ theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     (her := evalStorageRef_transfer_sender_balance evm I)
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, ERC20.erc20Contract,
        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
-    (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source) (evm := evm))]
+    (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferSenderEvaledRef, transferSenderSlot, transferFromBalanceWord]
 
@@ -327,7 +327,7 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
       (her := evalStorageRef_transfer_sender_balance_fromBalance evm I)
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, erc20Contract, ERC20.erc20Contract,
          ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
-      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source) (evm := evm))
+      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))
   rw [vyperERC20StorageLocStore_uint256]
   simp [transferAfterDebitState, transferSenderSlot]
 
@@ -342,8 +342,7 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by simp [storageTypeAt?, transferToEvaledRef, erc20Contract, ERC20.erc20Contract,
        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
     (hloc := vyperERC20Config_storage_balanceOf
-      (.address (AccountAddress.ofNat (transferToWord I).toNat))
-      (evm := transferAfterDebitState evm I))]
+      (.address (AccountAddress.ofNat (transferToWord I).toNat)))]
   rw [vyperERC20StorageLocLoad_uint256]
   simp [transferToEvaledRef, transferToSlot, transferToBalanceWord, transferAfterDebit_codeOwner]
 
@@ -411,12 +410,10 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
       ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?]
   have hloc :
       vyperERC20Config.storageBackend.locate? (transferToEvaledRef I)
-        (transferAfterDebitState evm I) =
-        some (vyperUint256Loc (transferToSlot I)) := by
+        = some (.leaf (vyperUint256Loc (transferToSlot I))) := by
     simpa [transferToEvaledRef, transferToSlot] using
       vyperERC20Config_storage_balanceOf
         (.address (AccountAddress.ofNat (transferToWord I).toNat))
-        (evm := transferAfterDebitState evm I)
   simp only [balanceOfRef]
   refine assignStorageRef_storage_scalar
     (cfg := vyperERC20Config)

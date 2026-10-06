@@ -304,7 +304,7 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
           boolSt, storageTypeStep?])
       (hloc := by
         simpa [config, grantRoleTargetEvaledRef, grantRoleTargetSlot] using
-          storageLayout_hasRole (grantRoleRoleKey I) (grantRoleAccountKey I) evm)
+          storageLayout_hasRole (grantRoleRoleKey I) (grantRoleAccountKey I))
       (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, grantRoleSetTrueWord] using

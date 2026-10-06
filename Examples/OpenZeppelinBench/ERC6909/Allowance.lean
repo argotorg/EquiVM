@@ -148,8 +148,8 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
       { base := "_allowances",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)),
-                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } evm =
-      some (wordLoc (allowanceSlotOf I)) := by
+                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
+      some (.leaf (wordLoc (allowanceSlotOf I))) := by
     rfl
   rw [evalExpr_storage_scalar (hbackend := rfl)
     (hbase := by

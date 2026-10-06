@@ -281,7 +281,7 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
           boolSt, storageTypeStep?])
       (hloc := by
         simpa [config, revokeRoleTargetEvaledRef, revokeRoleTargetSlot] using
-          storageLayout_hasRole (revokeRoleRoleKey I) (revokeRoleAccountKey I) evm)
+          storageLayout_hasRole (revokeRoleRoleKey I) (revokeRoleAccountKey I))
       (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, revokeRoleClearLowByteWord] using

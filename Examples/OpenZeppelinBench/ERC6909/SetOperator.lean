@@ -51,7 +51,7 @@ theorem assignStorageRef_storage_bool_word {cfg : Config} {layout : StorageLayou
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hbackend : cfg.storageBackend = solidityStorageBackend layout)
-    (hloc : layout er evm = some loc)
+    (hloc : layout er = some (.leaf loc))
     (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
     (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
     assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =

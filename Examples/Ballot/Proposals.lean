@@ -148,13 +148,13 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simp [proposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
           ballotStorageDecls, proposalStructTy, uint256St]
       have hlocName :
-          ballotConfig.storageBackend.locate? (proposalNameEvaledRef I) evm =
-            some (proposalNameLoc I) := by
+          ballotConfig.storageBackend.locate? (proposalNameEvaledRef I) =
+            some (.leaf (proposalNameLoc I)) := by
         simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig,
           proposalNameSlot_spec]
       have hlocCount :
-          ballotConfig.storageBackend.locate? (proposalCountEvaledRef I) evm =
-            some (wordLoc (proposalCountSlot I)) := by
+          ballotConfig.storageBackend.locate? (proposalCountEvaledRef I) =
+            some (.leaf (wordLoc (proposalCountSlot I))) := by
         simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig,
           proposalNameSlot_spec, u256_add_comm]
       have hnameLoad :

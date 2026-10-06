@@ -172,10 +172,10 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
       simp [storageTypeAt?, hasRoleEvaledRef, contract, storageDecls, roleDataSt, boolSt,
         storageTypeStep?])
     (hloc := by
-      show config.storageBackend.locate? (hasRoleEvaledRef I) evm =
-        some (boolLoc (hasRoleSlot I))
+      show config.storageBackend.locate? (hasRoleEvaledRef I) =
+        some (.leaf (boolLoc (hasRoleSlot I)))
       simpa [config, hasRoleEvaledRef, hasRoleSlot] using
-        storageLayout_hasRole (hasRoleRoleKey I) (hasRoleAccountKey I) evm)]
+        storageLayout_hasRole (hasRoleRoleKey I) (hasRoleAccountKey I))]
   rw [accessControlStorageLocLoad_bool_offset0 evm (hasRoleSlot I)]
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
