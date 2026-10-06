@@ -22,7 +22,7 @@ inductive EvaledStorageRefStep where
   | tupleElem : Nat -> EvaledStorageRefStep
   | mindex : KeyValue -> EvaledStorageRefStep
   | aindex : KeyValue -> EvaledStorageRefStep
-  /- Accessor for the slot that holds the length of an array. -/
+  /- Legacy locator-only alias for an array or bytes header. New backends use the bare ref. -/
   | length : EvaledStorageRefStep
   deriving Repr, Inhabited
 

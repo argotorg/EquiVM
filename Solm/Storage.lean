@@ -1,6 +1,7 @@
 import EVM.Types
 import EVM.Lemmas
 import Solm.Value
+import Solm.Result
 
 -- TODO: get rid of these maybe
 import Ethereum.Semantics
@@ -53,12 +54,6 @@ structure StorageLoc where
                           -- proof that we are withing slot bounds
   bitOffset : Option (Fin 8) := .none -- offset within byte in bits; Needed for packed bytes
   type    : ElemType      -- A value to be loaded from storage must be a primitive
-  deriving Repr
-
-inductive StorageReadResult (α : Type) where
-  | ok : α -> StorageReadResult α
-  | revert : StorageReadResult α
-  | error : StorageReadResult α
   deriving Repr
 
 
@@ -145,29 +140,20 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
-structure StorageLayout where
-  layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
-  -- layouts that need representation-specific behavior can opt in at selected leaves.
-  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult Value) :=
-    fun _ _ _ => none
-  -- Optional high-level storage write hook. Used for representation-sensitive leaves such as
-  -- Solidity `bytes`/`string`, where slot-level byte locations are not the ABI boundary.
-  writeValue? : EvaledStorageRef -> StorageType -> Value -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ _ => none
-  -- Optional high-level storage clear hook, for the same representation-sensitive leaves.
-  clearValue? : EvaledStorageRef -> StorageType -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ => none
-  -- Optional layout-owned read for whole `bytes`/`string` lengths. This is needed for layouts
-  -- such as Solidity's packed short/long representation, where reading the length can validate
-  -- and revert on malformed encodings rather than merely loading a configured location.
-  readBytesLength : EvaledStorageRef -> EVM.State -> Option (StorageReadResult Nat) :=
-    fun _ _ => none
-  -- Note: The above definition may need to also carry some assumptions if
-  -- we want have a type system on top of these semantics,
-  -- e.g. access within array bounds returns `.some v`
+/-- Locate a physical storage leaf. Representation-sensitive operations, including Solidity
+    bytes and strings, belong to `StorageBackend` rather than this locator. -/
+abbrev StorageLayout := EvaledStorageRef -> EVM.State -> Option StorageLoc
+
+/-- Storage operations selected by a configuration. `locate?` is for proofs and diagnostics;
+    execution uses the operations themselves. -/
+structure StorageBackend where
+  read : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Value
+  write : EvaledStorageRef -> StorageType -> Value -> EVM.State -> EvalResult EVM.State
+  clear : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  length : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Nat
+  push : EvaledStorageRef -> StorageType -> Option Value -> EVM.State -> EvalResult EVM.State
+  pop : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  locate? : StorageLayout := fun _ _ => none
 
 
 def intTypeSize (t : IntType) : Fin 33 :=

@@ -267,16 +267,8 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     | none => .error .unboundVariable
   | .storage => do
     let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-    match value with
-    | .struct _ _ | .array _ | .bytes _ => do
-      -- whole-array / whole-struct assignment: write every slot by the declared type
-      let evm' <- writeStorage? cfg evm evaledStorageRef ty value
-      pure (solm, evm')
-    | _ => do
-      -- scalar leaf: a single whole/partial-slot store
-      let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
-      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
-      pure (solm, evm')
+    let evm' <- cfg.storageBackend.write evaledStorageRef ty value evm
+    pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -318,12 +310,12 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .env var => pure (envValue evm var)
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
-      readStorage? cfg evm evaledStorageRef ty
+      cfg.storageBackend.read evaledStorageRef ty evm
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg solm evm slot
-          readStorageArrayLength? cfg evm er ty
+          pure (.int (← cfg.storageBackend.length er ty evm))
       | .localVar =>
           match solm.locals.get? slot.base with
           | some root => do
@@ -340,7 +332,7 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       | .storageRef er ty => do
           let step := EvaledStorageRefStep.field name
           let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty step)
-          readStorage? cfg evm { er with steps := er.steps ++ [step] } ty'
+          cfg.storageBackend.read { er with steps := er.steps ++ [step] } ty' evm
       | _ => EvalResult.ofOption .typeError (lookupField? baseValue name)
   | .cast expr ty => do /- TODO do we really need to have casting? -/
       let value <- evalExpr? cfg solm evm expr

@@ -81,81 +81,22 @@ def resumeAfterInternalCall (caller : Frame) (retVar : Ident) (value : Option (L
     | some vs => collapseReturns vs
   { caller with locals := caller.locals.insert retVar valueToWrite }
 
-/-- `arr.push(v?)`: grow the dynamic array named by `ref` by one.  Reads the current length `L`
-    (the layout's `.length` query), stores length `L+1`, then `some v` writes the value at element
-    `L` via `writeStorage?`.  Writing the length first mirrors solc's generated storage order and
-    also makes the new index in-bounds for the ordinary storage writer.  `none` is a grow-only push
-    (the new slots are already zero by storage default).  `.revert`s only if evaluating the array ref
-    does.  It `.error`s (a stuck, ill-formed program) when the target isn't a dynamic array, the
-    layout has no `.length`/element slot for it, the length slot doesn't hold an integer, or a
-    compound value's shape doesn't match the element type — i.e. for a well-formed layout + matching
-    value, `.revert` is the only non-`.ok` outcome. -/
+/-- Grow a dynamic storage value through the selected backend. -/
 def pushArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     (value : Option Value) : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  match ty with
-  | .dynamicArray elemTy => do
-      let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-      match storageLocLoad evm lenLoc with
-      | .int len => do
-          let evmLen <- EvalResult.ofOption .storageError (storageLocStore evm lenLoc (.int (len + 1)))
-          match value with
-            | some v =>
-                writeStorage? cfg evmLen
-                  { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
-            | none => pure evmLen
-      | _ => .error .storageError
-  -- `bytes`/`string` push: read-modify-write the whole value through the layout hooks (they handle
-  -- short↔long transitions).  Arg-less appends a zero byte; else a `bytes1` (`fixedBytes ⟨0,_⟩`).
-  | .bytes | .string => do
-      match (← readStorage? cfg evm er ty) with
-      | .bytes ba =>
-          match value with
-          | none => writeStorage? cfg evm er ty (.bytes (ba.push 0))
-          | some (.fixedBytes n bs) =>
-              if n.val = 0 ∧ bs.length = 1 then
-                writeStorage? cfg evm er ty (.bytes (ba ++ ByteArray.mk bs.toArray))
-              else .error .typeError
-          | some _ => .error .typeError
-      | _ => .error .storageError
-  | _ => .error .storageError
+  cfg.storageBackend.push er ty value evm
 
-/-- `arr.pop()`: remove the last element of the dynamic array named by `ref`.  Reverts when the
-    array is empty (solc's `Panic(0x31)`).  Otherwise recursively clears the whole last element
-    (per its declared type, via `clearStorage?` — so nested arrays/structs are fully zeroed) and
-    sets the length to `L-1`. -/
-def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
-    : EvalResult EVM.State := do
+def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef) :
+    EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  match ty with
-  | .dynamicArray elemTy => do
-      let lenLoc <- EvalResult.ofOption .storageError
-        (cfg.storage.layout { er with steps := er.steps ++ [.length] } evm)
-      match storageLocLoad evm lenLoc with
-      | .int len =>
-          if len ≤ 0 then .revert
-          else do
-            let evm1 <- clearStorage? cfg evm
-              { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
-            EvalResult.ofOption .storageError (storageLocStore evm1 lenLoc (.int (len - 1)))
-      | _ => .error .storageError
-  -- `bytes`/`string` pop: read-modify-write; empty → revert (solc `Panic(0x31)`).
-  | .bytes | .string => do
-      match (← readStorage? cfg evm er ty) with
-      | .bytes ba =>
-          if ba.size = 0 then .revert
-          else writeStorage? cfg evm er ty (.bytes (ba.extract 0 (ba.size - 1)))
-      | _ => .error .storageError
-  | _ => .error .storageError
+  cfg.storageBackend.pop er ty evm
 
-/-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
-    (`clearStorage?` — a dynamic array becomes empty, a struct/array is fully zeroed).  `.revert`s
-    only if evaluating the ref does; `.error`s on an ill-formed layout/type. -/
+/-- `delete x`: reset the storage at `ref` through the configured backend. -/
 def deleteStorage? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     : EvalResult EVM.State := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
-  clearStorage? cfg evm er ty
+  cfg.storageBackend.clear er ty evm
 
 /-- Evaluate a `new`'s optional salt: `none` ⇒ CREATE; `some e` must be a `bytes32` ⇒ CREATE2. -/
 def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :
