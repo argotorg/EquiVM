@@ -43,7 +43,9 @@ theorem wordOfInt_zero : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by decide
     (`htgt`), and the ABI encoding of `name args` is exactly the calldata the bytecode placed in
     memory (`hcd`) — the Solm `typedCallViaEVM` holds for the *same* opaque `(z, σ', o)`.
     Instantiate the Solm existentials with the EVM witnesses; `Θ`'s determinism does the rest.
-    Generic over the config / callee name / arguments (value `0`). -/
+    Generic over the config / callee name / arguments (value `0`).  The `Θ`-link carries the
+    callee permission `callPerm && evm.executionEnv.perm`: for a `CALL` (`callPerm = true`) this
+    is the caller's own bit, as `RD.call` produces it; for a `STATICCALL` it is `false`. -/
 theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : List Value}
     {tgt : EVM.Address} {targetWord : UInt256}
     {σ' : AccountMap} {A' A_in : Substate}
@@ -59,7 +61,8 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
           (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
-          evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks callPerm) :
+          evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks
+          (callPerm && evm.executionEnv.perm)) :
     typedCallViaEVM cfg evm tgt name 0 args
       (z, { evm with accountMap := σ', substate := A' }, o)
       callPerm := by
@@ -242,7 +245,8 @@ theorem typedCallViaEVM_callMade_sameInputs {cfg : Config}
           callGas (UInt256.ofNat evm_evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
-          evm_evm.executionEnv.blobVersionedHashes evm_evm.executionEnv.blocks callPerm)
+          evm_evm.executionEnv.blobVersionedHashes evm_evm.executionEnv.blocks
+          (callPerm && evm_evm.executionEnv.perm))
     (hAccounts : evm_evm.accountMap = evm_solm.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
     (hEnv : evm_evm.executionEnv = evm_solm.executionEnv) :

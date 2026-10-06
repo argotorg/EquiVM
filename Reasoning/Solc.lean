@@ -3254,7 +3254,7 @@ theorem RD.solcSingleMappingLoadToRoutineMem {code : ByteArray} {g : Sat256} {s0
   p30 + ⟨1⟩
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcSingleMappingStoreDebitMemSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value aux key ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
@@ -3262,14 +3262,15 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcSingleMappingStoreDebitMemWf code pc baseSlot)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: aux :: key :: ret :: R)
       (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
       (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd21, hd22, hd24, hd25, hd26, hd27, hd28, hd29, hd30⟩
@@ -3323,9 +3324,32 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
     raw swap4 hd27 (by evm_ov),
     raw swap1 hd28 (by evm_ov),
     raw swap4 hd29 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hd30 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd30
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcSingleMappingStoreDebitOutPc] using rdOut⟩
+
+theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value aux key ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (newValue :: value :: aux :: key :: ret :: R)
+      (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata σ k C)
+    (hwf : solcSingleMappingStoreDebitMemWf code pc baseSlot)
+    (hmem : mem.size = 96)
+    (hperm : ee.perm = true)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreDebitOutPc pc)
+      (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: value :: aux :: key :: ret :: R)
+      (twoWordHashMem key baseSlot (twoWordHashMem key baseSlot mem))
+      (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C' :=
+  permSplit_true hperm (RD.solcSingleMappingStoreDebitMemSplit h hwf hmem hcanonKey hov)
 
 @[reducible] def solcSingleMappingStoreCreditMemWf
     (code : ByteArray) (pc baseSlot : UInt256) : Prop :=
@@ -3413,7 +3437,7 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
   p33 + ⟨1⟩
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcSingleMappingStoreCreditMemSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value key aux ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
@@ -3424,13 +3448,14 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
-    (hperm : ee.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
       (⟨64⟩ :: key :: solcAddrMask :: ⟨32⟩ :: value :: key :: aux :: ret :: R)
       (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd12, hd14, hd15, hd16,
       hd17, hd19, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29, hd30, hd31,
@@ -3478,9 +3503,34 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
     raw swap5 hd30 (by evm_ov),
     raw swap1 hd31 (by evm_ov),
     raw swap5 hd32 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hd33 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd33
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcSingleMappingStoreCreditOutPc] using rdOut⟩
+
+theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot newValue value key aux ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (newValue :: value :: key :: aux :: ret :: R)
+      mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
+    (hslot :
+      UInt256.ofNat (fromByteArrayBigEndian
+          (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        solcMappingSlot baseSlot key)
+    (hperm : ee.perm = true)
+    (hcanonKey : key.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (solcSingleMappingStoreCreditOutPc pc)
+      (⟨64⟩ :: key :: solcAddrMask :: ⟨32⟩ :: value :: key :: aux :: ret :: R)
+      (twoWordHashMem key baseSlot mem) (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot baseSlot key) newValue) k' C' :=
+  permSplit_true hperm (RD.solcSingleMappingStoreCreditMemSplit h hwf hslot hcanonKey hov)
 
 @[reducible] def solcNestedMappingStoreInnerHashWf
     (code : ByteArray) (pc baseSlot : UInt256) : Prop :=
@@ -3667,7 +3717,7 @@ theorem RD.solcNestedMappingStoreInnerHash {code : ByteArray} {g : Sat256} {s0 :
   let p15 := p14 + ⟨1⟩
   p15 + ⟨1⟩
 
-theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcNestedMappingStoreOuterSstoreSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc innerSlot value spender owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
@@ -3677,15 +3727,16 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingStoreOuterSstoreWf code pc)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hcanonSpender : spender.toNat < EVM.addressModulus)
     (hov : R.length + 13 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
       (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
       (twoWordHashMem spender innerSlot mem)
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ (solcMappingSlot innerSlot spender) value)
-      k' C' := by
+      k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12,
       hd13, hd14, hd15⟩
@@ -3720,9 +3771,35 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
   have rdBeforeStore := evm_run rdSlot with [
     raw dup6 hd13 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hd15 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd15
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingStoreOuterSstoreOutPc] using rdOut⟩
+
+theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc innerSlot value spender owner ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc
+      (innerSlot :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
+        value :: spender :: owner :: ret :: R)
+      mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : solcNestedMappingStoreOuterSstoreWf code pc)
+    (hmem : mem.size = 96)
+    (hperm : ee.perm = true)
+    (hcanonSpender : spender.toNat < EVM.addressModulus)
+    (hov : R.length + 13 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (solcNestedMappingStoreOuterSstoreOutPc pc)
+      (⟨32⟩ :: ⟨64⟩ :: owner :: spender :: value :: spender :: owner :: ret :: R)
+      (twoWordHashMem spender innerSlot mem)
+      (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot innerSlot spender) value)
+      k' C' :=
+  permSplit_true hperm (RD.solcNestedMappingStoreOuterSstoreSplit h hwf hmem hcanonSpender hov)
 
 def solcNestedMappingCallerHashMem
     (baseSlot owner : UInt256) (ee : ExecutionEnv) (mem : ByteArray) : ByteArray :=
@@ -3824,7 +3901,7 @@ def solcNestedMappingCallerHashMem
   p36 + ⟨1⟩
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcNestedMappingCallerStoreMem
+theorem RD.solcNestedMappingCallerStoreMemSplit
     {code : ByteArray} {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot newValue discard value aux owner ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
@@ -3833,16 +3910,17 @@ theorem RD.solcNestedMappingCallerStoreMem
       mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcNestedMappingCallerStoreMemWf code pc baseSlot)
     (hmem : mem.size = 96)
-    (hperm : ee.perm = true)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hov : R.length + 16 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
       (discard :: value :: aux :: owner :: ret :: R)
       (solcNestedMappingCallerHashMem baseSlot owner ee mem)
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
         (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)) newValue)
-      k' C' := by
+      k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd18, hd20, hd21, hd22, hd23, hd25, hd26, hd27, hd28, hd29,
@@ -3913,9 +3991,35 @@ theorem RD.solcNestedMappingCallerStoreMem
   have rdOuterHash := rdOuterHashPrefix.keccak256 0
     (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee))
     (UInt256.ofNat 3) hd35 mem_cost houter (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdOuterHash.sstoreStatic (by simpa using hperm) hd36 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdOuterHash.sstore hperm hd36
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingCallerStoreMemOutPc] using rdOut⟩
+
+theorem RD.solcNestedMappingCallerStoreMem
+    {code : ByteArray} {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+    {pc baseSlot newValue discard value aux owner ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (newValue :: discard :: value :: aux :: owner :: ret :: R)
+      mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : solcNestedMappingCallerStoreMemWf code pc baseSlot)
+    (hmem : mem.size = 96)
+    (hperm : ee.perm = true)
+    (hcanonOwner : owner.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (solcNestedMappingCallerStoreMemOutPc pc)
+      (discard :: value :: aux :: owner :: ret :: R)
+      (solcNestedMappingCallerHashMem baseSlot owner ee mem)
+      (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ
+        (solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)) newValue)
+      k' C' :=
+  permSplit_true hperm (RD.solcNestedMappingCallerStoreMemSplit h hwf hmem hcanonOwner hov)
 
 @[reducible] def solcNestedMappingCallerLoadWf
     (code : ByteArray) (pc baseSlot : UInt256) : Prop :=
@@ -4714,18 +4818,19 @@ theorem RD.solcNestedMappingLoadAndJump {code : ByteArray} {g : Sat256} {s0 : St
   ∧ decode code pOk5 = some (.SSTORE, .none)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcLockEnterOkSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc slot unlocked locked : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
     {σ : AccountMap}
     (h : RD code ee g s0 pc R mem aw rdata σ k C)
     (hwf : solcLockEnterOkWf code pc okPc slot unlocked locked)
-    (hperm : ee.perm = true)
     (hunlocked : solcSlotWord σ ee slot = unlocked)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 2 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
-      (sstoreAccountMap ee.codeOwner σ slot locked) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ slot locked) k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd6, hd7, hd10, hdOk, hdOk1, hdOk3, hdOk5⟩
   have rd1 := h.jumpdest hd0 (by omega)
@@ -4746,6 +4851,11 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rdOk1 := rdOk.jumpdest hdOk (by omega)
   have rdOk3 := rdOk1.push1 locked hdOk1 (by omega)
   have rdOk5 := rdOk3.push1 slot hdOk3 (by simp only [List.length_cons]; omega)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdOk5.sstoreStatic (by simpa using hperm) hdOk5 (by omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdAfter⟩ := rdOk5.sstore hperm hdOk5 (by omega)
   have hpcOut :
       okPc + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ =
@@ -4757,6 +4867,20 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
   exact ⟨_, _, by simpa [hpcOut] using rdAfter⟩
 
 /-! ## Solc checked arithmetic success tails -/
+
+theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc okPc slot unlocked locked : UInt256}
+    {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc R mem aw rdata σ k C)
+    (hwf : solcLockEnterOkWf code pc okPc slot unlocked locked)
+    (hperm : ee.perm = true)
+    (hunlocked : solcSlotWord σ ee slot = unlocked)
+    (hok : (D_J code 0).contains okPc = true)
+    (hov : R.length + 2 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 (okPc + UInt256.ofNat 6) R mem aw rdata
+      (sstoreAccountMap ee.codeOwner σ slot locked) k' C' :=
+  permSplit_true hperm (RD.solcLockEnterOkSplit h hwf hunlocked hok hov)
 
 @[reducible] def solcCheckedSubSuccessWf
     (code : ByteArray) (pc okPc : UInt256) : Prop :=
@@ -5440,7 +5564,7 @@ theorem RD.solcDiscard4ReturnTrue {code : ByteArray} {g : Sat256} {s0 : State}
   ∧ decode code p57 = some (.JUMP, .none)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcMaskedTransferLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value toWord src ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -5461,12 +5585,13 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
-    (hperm : ee.perm = true)
     (hcanonSrc : src.toNat < EVM.addressModulus)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 ret R
-      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' := by
+      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd12,
       hd13, hd46, hd47, hd48, hd49, hd50, hd51, hd52, hd53, hd54, hd55, hd56,
@@ -5501,6 +5626,11 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     raw sub hd50 (by evm_ov),
     raw add hd51 (by evm_ov),
     raw swap1 hd52 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd53.log3Static (by simpa using hperm) hd53 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rd54 := rd53.log3 0 (UInt256.ofNat 5) hd53 hperm mem_cost
     (by decide) (by simp only [List.length_cons]; omega)
   have rd57 := evm_run rd54 with [
@@ -5508,6 +5638,35 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
     raw pop hd55 (by evm_ov),
     raw pop hd56 (by evm_ov)]
   exact ⟨_, _, rd57.jump hd57 hret (by evm_ov)⟩
+
+theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc topic value toWord src ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc
+      (⟨64⟩ :: toWord :: solcAddrMask :: ⟨32⟩ :: value :: toWord :: src :: ret :: R)
+      mem (UInt256.ofNat 3) rdata acc k C)
+    (hwf : solcMaskedTransferLog3AndJumpWf code pc topic)
+    (hmload :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hlogMload :
+      (if (⟨64⟩ : UInt256).toNat ≥
+            ((UInt256.toByteArray value).write 0 mem 128 32).size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hperm : ee.perm = true)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret R
+      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' :=
+  permSplit_true hperm (RD.solcMaskedTransferLog3AndJumpSplit h hwf hmload hlogMload hcanonSrc hret hov)
 
 @[reducible] def solcPlainLog3AndJumpWf
     (code : ByteArray) (pc topic : UInt256) : Prop :=
@@ -5554,7 +5713,7 @@ theorem RD.solcMaskedTransferLog3AndJump {code : ByteArray} {g : Sat256} {s0 : S
   ∧ decode code p52 = some (.JUMP, .none)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.solcPlainLog3AndJumpSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc topic value topic1 topic2 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -5575,11 +5734,12 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
           (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
-    (hperm : ee.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 11 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 ret R
-      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' := by
+      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd40, hd41, hd42, hd43, hd44,
       hd45, hd46, hd47, hd48, hd49, hd50, hd51, hd52⟩
@@ -5605,6 +5765,11 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap2 hd45 (by evm_ov),
     raw add hd46 (by evm_ov),
     raw swap1 hd47 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd48.log3Static (by simpa using hperm) hd48 (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rd49 := rd48.log3 0 (UInt256.ofNat 5) hd48 hperm mem_cost
     (by decide) (by simp only [List.length_cons]; omega)
   have rd52 := evm_run rd49 with [
@@ -5614,6 +5779,34 @@ theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
   exact ⟨_, _, rd52.jump hd52 hret (by evm_ov)⟩
 
 /-! ## Solc one-word return wrappers from scratch memory -/
+
+theorem RD.solcPlainLog3AndJump {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc topic value topic1 topic2 ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc
+      (⟨32⟩ :: ⟨64⟩ :: topic1 :: topic2 :: value :: topic2 :: topic1 :: ret :: R)
+      mem (UInt256.ofNat 3) rdata acc k C)
+    (hwf : solcPlainLog3AndJumpWf code pc topic)
+    (hmload :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hlogMload :
+      (if (⟨64⟩ : UInt256).toNat ≥
+            ((UInt256.toByteArray value).write 0 mem 128 32).size then ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian
+          (((UInt256.toByteArray value).write 0 mem 128 32).readWithPadding
+            (⟨64⟩ : UInt256).toNat 32)))
+        = ⟨128⟩)
+    (hperm : ee.perm = true)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 11 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret R
+      ((UInt256.toByteArray value).write 0 mem 128 32) (UInt256.ofNat 5) rdata acc k' C' :=
+  permSplit_true hperm (RD.solcPlainLog3AndJumpSplit h hwf hmload hlogMload hret hov)
 
 @[reducible] def solcReturnWordFromMemWf (code : ByteArray) (pc : UInt256) : Prop :=
   decode code pc = some (.JUMPDEST, .none)

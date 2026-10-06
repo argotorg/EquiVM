@@ -660,6 +660,7 @@ theorem execBlock_append_term {cfg : Config} {s2 : List Stmt} :
       | consRevert hstmt => exact ExecBlock.consRevert hstmt
       | consBreak hstmt => exact ExecBlock.consBreak hstmt
       | consContinue hstmt => exact ExecBlock.consContinue hstmt
+      | consStatic hstmt => exact ExecBlock.consStatic hstmt
 
 /-! ## Forward block builder
 
@@ -692,6 +693,14 @@ theorem ABlock.letStep {cfg evm solm₀ stmts₀ solm rest} {name ty expr value}
     (heval : evalExpr? cfg solm evm expr = .ok value) :
     ABlock cfg evm solm₀ stmts₀ { solm with locals := solm.locals.insert name value } rest :=
   ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.letDecl heval) h)⟩
+
+/-- An `emit` (frame unchanged; the arguments evaluate). -/
+theorem ABlock.emitStep {cfg evm solm₀ stmts₀ solm rest} {name : Ident} {args : List Expr}
+    {vals : List Value}
+    (prev : ABlock cfg evm solm₀ stmts₀ solm (.emit name args :: rest))
+    (heval : evalExprs? cfg solm evm args = .ok vals) :
+    ABlock cfg evm solm₀ stmts₀ solm rest :=
+  ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.emit heval) h)⟩
 
 /-- A `while` loop that runs to `.ok` at frame `solm'` (supply the loop fact, e.g. `execWhile_var`). -/
 theorem ABlock.whileStep {cfg evm solm₀ stmts₀ solm solm' rest} {cond body}

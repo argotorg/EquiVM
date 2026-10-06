@@ -17,6 +17,13 @@ inductive ExecResult where
   | break : Frame -> EVM.State -> ExecResult
   | continue : Frame -> EVM.State -> ExecResult
   | reverted : ExecResult
+  /-- Static-mode halt: a state-changing statement (storage write, event, value call, `new`) ran
+      with `evm.executionEnv.perm = false`.  Mirrors the EVM's `StaticModeViolation` exception.
+      The rules producing it are *additional* to the ordinary ones, which are not guarded by the
+      permission bit: under `perm = false` a body may halt at any such statement.  The EVM halts
+      at its first one, so the refinement only needs some halting run to exist; a body without
+      such statements (a view function) has none. -/
+  | staticViolation : ExecResult
 
 structure CallableDecl where
   params : List Param
@@ -201,6 +208,12 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm expr = .ok value ->
       assignStorageRef? cfg solm evm origin slot value = .revert ->
       ExecStmt cfg solm evm (.assign origin slot expr) .reverted
+  /-- Static mode: a storage write that would otherwise succeed halts (`SSTORE` is forbidden). -/
+  | assignStatic :
+      evalExpr? cfg solm evm expr = .ok value ->
+      assignStorageRef? cfg solm evm .storage slot value = .ok (solm', evm') ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.assign .storage slot expr) .staticViolation
   | pushVal :
       evalExpr? cfg solm evm expr = .ok value ->
       pushArray? cfg solm evm ref (some value) = .ok evm' ->
@@ -212,24 +225,41 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm expr = .ok value ->
       pushArray? cfg solm evm ref (some value) = .revert ->
       ExecStmt cfg solm evm (.push ref (some expr)) .reverted
+  | pushValStatic :
+      evalExpr? cfg solm evm expr = .ok value ->
+      pushArray? cfg solm evm ref (some value) = .ok evm' ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.push ref (some expr)) .staticViolation
   | pushGrow :
       pushArray? cfg solm evm ref none = .ok evm' ->
       ExecStmt cfg solm evm (.push ref none) (.ok solm evm')
   | pushGrowRevert :
       pushArray? cfg solm evm ref none = .revert ->
       ExecStmt cfg solm evm (.push ref none) .reverted
+  | pushGrowStatic :
+      pushArray? cfg solm evm ref none = .ok evm' ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.push ref none) .staticViolation
   | pop :
       popArray? cfg solm evm ref = .ok evm' ->
       ExecStmt cfg solm evm (.pop ref) (.ok solm evm')
   | popRevert :
       popArray? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.pop ref) .reverted
+  | popStatic :
+      popArray? cfg solm evm ref = .ok evm' ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.pop ref) .staticViolation
   | delete :
       deleteStorage? cfg solm evm ref = .ok evm' ->
       ExecStmt cfg solm evm (.delete ref) (.ok solm evm')
   | deleteRevert :
       deleteStorage? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.delete ref) .reverted
+  | deleteStatic :
+      deleteStorage? cfg solm evm ref = .ok evm' ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.delete ref) .staticViolation
   | requireTrue {condExpr} :
       evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
       ExecStmt cfg solm evm (.require condExpr) (.ok solm evm)
@@ -267,6 +297,10 @@ inductive ExecStmt (cfg : Config) :
       ExecBlock cfg solm evm body (.continue solm' evm') ->
       ExecStmt cfg solm' evm' (.while condExpr body) result ->
       ExecStmt cfg solm evm (.while condExpr body) result
+  | whileStatic {condExpr} :
+      evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
+      ExecBlock cfg solm evm body .staticViolation ->
+      ExecStmt cfg solm evm (.while condExpr body) .staticViolation
   /-- `for (init; cond; post) { body }`: run `init` once, then loop via `ExecForLoop`. -/
   | for :
       ExecBlock cfg solm evm init (.ok solm1 evm1) ->
@@ -278,6 +312,9 @@ inductive ExecStmt (cfg : Config) :
   | forInitRevert :
       ExecBlock cfg solm evm init .reverted ->
       ExecStmt cfg solm evm (.for init condExpr post body) .reverted
+  | forInitStatic :
+      ExecBlock cfg solm evm init .staticViolation ->
+      ExecStmt cfg solm evm (.for init condExpr post body) .staticViolation
   | iteTrue {condExpr} :
       evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
       ExecBlock cfg solm evm thenB result ->
@@ -306,6 +343,12 @@ inductive ExecStmt (cfg : Config) :
   | internalCallArgsRevert :
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm (.internalCall name args retVar) .reverted
+  | internalCallStatic :
+      evalExprs? cfg solm evm args = .ok argVals ->
+      lookupCallable? solm.contract name = some callee ->
+      bindParams? callee.params argVals = some locals ->
+      ExecFuncBody cfg { solm with locals := locals } evm callee.body .staticViolation ->
+      ExecStmt cfg solm evm (.internalCall name args retVar) .staticViolation
   | externalCallSuccess :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -345,6 +388,15 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm)) .reverted
+  /-- Static mode: a `CALL` transferring value halts before the call is made. -/
+  | externalCallStatic :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      EVM.wordOfInt sendVal ≠ ⟨0⟩ ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm))
+        .staticViolation
   | lowLevelCallSuccess :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -371,6 +423,14 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
       evalExpr? cfg solm evm cdata = .revert ->
       ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm)) .reverted
+  | lowLevelCallStatic :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
+      EVM.wordOfInt sendVal ≠ ⟨0⟩ ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.lowLevelCall receiver eth cdata okVar dataVar (perm := perm))
+        .staticViolation
   | delegateCallSuccess :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm cdata = .ok (.bytes calldata) ->
@@ -443,6 +503,15 @@ inductive ExecStmt (cfg : Config) :
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm
         (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) .reverted
+  | checkedCallStatic :
+      evalExpr? cfg solm evm receiver = .ok (.address target) ->
+      evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      EVM.wordOfInt sendVal ≠ ⟨0⟩ ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm
+        (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm))
+        .staticViolation
   | newSuccess :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .ok argVals ->
@@ -464,6 +533,13 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
       evalExprs? cfg solm evm args = .revert ->
       ExecStmt cfg solm evm (.new name valExpr args retVar salt) .reverted
+  /-- Static mode: `CREATE`/`CREATE2` is forbidden regardless of value. -/
+  | newStatic :
+      evalExpr? cfg solm evm valExpr = .ok (.int sendVal) ->
+      evalExprs? cfg solm evm args = .ok argVals ->
+      evalSalt? cfg solm evm salt = .ok saltBytes ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.new name valExpr args retVar salt) .staticViolation
   | return :
       evalExprs? cfg solm evm exprs = .ok values ->
       ExecStmt cfg solm evm (.return exprs) (.returned solm evm (some values))
@@ -474,6 +550,18 @@ inductive ExecStmt (cfg : Config) :
       ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
       ExecStmt cfg solm evm .continue (.continue solm evm)
+  /-- `emit`: the arguments are evaluated; the log is not modelled. -/
+  | emit :
+      evalExprs? cfg solm evm args = .ok vals ->
+      ExecStmt cfg solm evm (.emit name args) (.ok solm evm)
+  | emitArgsRevert :
+      evalExprs? cfg solm evm args = .revert ->
+      ExecStmt cfg solm evm (.emit name args) .reverted
+  /-- Static mode: `LOG*` is forbidden. -/
+  | emitStatic :
+      evalExprs? cfg solm evm args = .ok vals ->
+      evm.executionEnv.perm = false ->
+      ExecStmt cfg solm evm (.emit name args) .staticViolation
 
 /-- The loop part of a `for (init; cond; post) { body }`, after `init` has run.  Each iteration
     checks `cond`; on `true` it runs `body` then `post` and loops.  A `break` in `body` exits the
@@ -522,6 +610,20 @@ inductive ExecForLoop (cfg : Config) :
       ExecBlock cfg solm evm body (.continue solm1 evm1) ->
       ExecBlock cfg solm1 evm1 post .reverted ->
       ExecForLoop cfg solm evm condExpr post body .reverted
+  | bodyStatic {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body .staticViolation ->
+      ExecForLoop cfg solm evm condExpr post body .staticViolation
+  | iteratePostStatic {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.ok solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post .staticViolation ->
+      ExecForLoop cfg solm evm condExpr post body .staticViolation
+  | continuePostStatic {condExpr} :
+      evalExpr? cfg solm evm condExpr =.ok (.bool true) ->
+      ExecBlock cfg solm evm body (.continue solm1 evm1) ->
+      ExecBlock cfg solm1 evm1 post .staticViolation ->
+      ExecForLoop cfg solm evm condExpr post body .staticViolation
 
 inductive ExecBlock (cfg : Config) :
     Frame -> EVM.State -> List Stmt -> ExecResult -> Prop where
@@ -543,6 +645,9 @@ inductive ExecBlock (cfg : Config) :
   | consContinue :
       ExecStmt cfg solm evm stmt (.continue solm' evm') ->
       ExecBlock cfg solm evm (stmt :: stmts) (.continue solm' evm')
+  | consStatic :
+      ExecStmt cfg solm evm stmt .staticViolation ->
+      ExecBlock cfg solm evm (stmt :: stmts) .staticViolation
 
 inductive ExecFuncBody (cfg : Config) :
     Frame -> EVM.State -> List Stmt -> ExecResult -> Prop where
@@ -563,6 +668,9 @@ inductive ExecFuncBody (cfg : Config) :
   | execBlockContinue :
       ExecBlock cfg solm evm body (.continue solm' evm') ->
       ExecFuncBody cfg solm evm body (.returned solm' evm' none)
+  | execBlockStatic :
+      ExecBlock cfg solm evm body .staticViolation ->
+      ExecFuncBody cfg solm evm body .staticViolation
 
 end
 

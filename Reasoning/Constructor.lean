@@ -135,4 +135,23 @@ theorem emptyContractCorrect_of_RDret
     (emptyConstructorCorrect_of_RDret hself hparams hbody hrun)
     hruntime
 
+/-- `emptyContractCorrect_of_RDret` with the runtime side in either permission mode. -/
+theorem emptyContractCorrectAnyPerm_of_RDret
+    {cfg : Config} {contract : ContractDecl} {initcode runtimeCode : ByteArray}
+    (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
+    (hparams : contract.ctor.params = [])
+    (hbody : contract.ctor.body = [])
+    (hrun : ∀ {σ : Ethereum.AccountMap}
+        {σ₀ : Ethereum.AccountMap}
+        {A : Ethereum.Substate}
+        {I : Ethereum.ExecutionEnv}
+        {g : Sat256},
+      I.code = initcode →
+      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
+    (hruntime : runtimeEquivalenceAnyPerm cfg runtimeCode contract) :
+    contractEquivalenceAnyPerm cfg initcode runtimeCode contract :=
+  contractEquivalenceAnyPerm.intro
+    (emptyConstructorCorrect_of_RDret hself hparams hbody hrun)
+    hruntime
+
 end Reasoning.Theory

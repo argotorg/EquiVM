@@ -101,6 +101,14 @@ inductive execResultsEquiv
     evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
+  -- Static mode (`I.perm = false`, the contract was entered through `STATICCALL`): the EVM's
+  -- `StaticModeViolation` at a forbidden opcode refines a Solm `.staticViolation`, which only a
+  -- state-changing statement can produce.  A body without one (a view function) can never match
+  -- an EVM static halt.
+  | staticHalt :
+    evmRes = .error .StaticModeViolation →
+    solmRes = .staticViolation →
+    execResultsEquiv evmRes solmRes returnConvention
 
 inductive ctorResultEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
@@ -136,7 +144,9 @@ inductive ctorResultEquiv
 
     Holds in exactly one of four ways:
     * `execution`: Solm dispatches and runs a transition to `solmRes`; the EVM result is
-      `execResultsEquiv`-related to it under the transition's return convention.
+      `execResultsEquiv`-related to it under the transition's return convention.  This includes
+      the static-mode case (`I.perm = false`): an EVM `StaticModeViolation` pairs with a Solm
+      `.staticViolation`.
     * `noDispatch`: no Solm transition accepts the calldata, and the EVM reverts.
     * `decodingFailed`: the selector matches a transition but calldata decoding fails,
       and the EVM reverts.
@@ -210,10 +220,8 @@ inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : C
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
+    -- The contract is entered with write permission (through `CALL`, or by the transaction entry
+    -- `Υ`).  `runtimeEquivalenceAnyPerm` below drops this hypothesis.
     I.perm = true →
     runtimeEquivalenceFor cfg contract σ σ₀ g A I
     ) →
@@ -237,6 +245,54 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
         refine runtimeEquivalenceWithWF.intro ?_
         intro σ σ₀ g A I hcode hsize hperm _hwf
         exact hrun σ σ₀ g A I hcode hsize hperm
+
+/-! ## Runtime equivalence in either permission mode
+
+The same relations without `I.perm = true`: `I.perm = false` is the contract entered through
+`STATICCALL`, where the EVM halts at the first forbidden opcode and Solm halts at a state-changing
+statement (`execResultsEquiv.staticHalt`).  Each implies its permission-assuming counterpart. -/
+
+inductive runtimeEquivalenceAnyPerm (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) : Prop where
+  | intro :
+    (∀ (σ : Ethereum.AccountMap)
+      (σ₀ : Ethereum.AccountMap)
+      (g : Ethereum.UInt256)
+      (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv),
+    I.code = bytecode →
+    I.calldata.size < Ethereum.UInt256.size →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
+    ) →
+    runtimeEquivalenceAnyPerm cfg bytecode contract
+
+theorem runtimeEquivalenceAnyPerm.toPerm {cfg : Config} {bytecode : ByteArray}
+    {contract : ContractDecl} (h : runtimeEquivalenceAnyPerm cfg bytecode contract) :
+    runtimeEquivalence cfg bytecode contract := by
+  obtain ⟨hrun⟩ := h
+  exact ⟨fun σ σ₀ g A I hcode hsize _ => hrun σ σ₀ g A I hcode hsize⟩
+
+inductive runtimeEquivalenceWithWFAnyPerm (wf : StorageWF) (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) : Prop where
+  | intro :
+    (∀ (σ : Ethereum.AccountMap)
+      (σ₀ : Ethereum.AccountMap)
+      (g : Ethereum.UInt256)
+      (A : Ethereum.Substate)
+      (I : Ethereum.ExecutionEnv),
+    I.code = bytecode →
+    I.calldata.size < Ethereum.UInt256.size →
+    wf σ I →
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I
+    ) →
+    runtimeEquivalenceWithWFAnyPerm wf cfg bytecode contract
+
+theorem runtimeEquivalenceWithWFAnyPerm.toPerm {wf : StorageWF} {cfg : Config}
+    {bytecode : ByteArray} {contract : ContractDecl}
+    (h : runtimeEquivalenceWithWFAnyPerm wf cfg bytecode contract) :
+    runtimeEquivalenceWithWF wf cfg bytecode contract := by
+  obtain ⟨hrun⟩ := h
+  exact ⟨fun σ σ₀ g A I hcode hsize _ hwf => hrun σ σ₀ g A I hcode hsize hwf⟩
 
 
 /-- Constructor (deployment) equivalence at fixed transaction inputs: couples the EVM
@@ -298,10 +354,9 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
+    -- Init code never runs in static mode: the transaction entry `Υ` passes `true` to `Λ`, and
+    -- `CREATE`/`CREATE2` are themselves forbidden under `perm = false`, so `Λ` is never reached
+    -- with it.  The hypothesis excludes nothing reachable.
     I.perm = true →
     -- We need to enforce that all successful execution paths return the same runtime code
     constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
@@ -400,7 +455,7 @@ inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (cont
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    I.perm = true →
+    I.perm = true →  -- unreachable otherwise, see `constructorEquivalence`
     constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
     ) →
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf
@@ -421,5 +476,69 @@ inductive contractEquivalenceWithWF (wf : StorageWF) (cfg : Config) (initcode : 
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
     runtimeEquivalenceWithWF wf cfg runtimeCode contract →
     contractEquivalenceWithWF wf cfg initcode runtimeCode contract runtimeCodeOf
+
+/-! ## Contract equivalence with the runtime side in either permission mode
+
+The four bundles above with `runtimeEquivalence*AnyPerm` on the runtime side; each implies the
+permission-assuming bundle.  The constructor side is unchanged (init code never runs in static
+mode). -/
+
+inductive contractEquivalenceAnyPerm (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalenceAnyPerm cfg runtimeCode contract →
+    contractEquivalenceAnyPerm cfg initcode runtimeCode contract
+
+theorem contractEquivalenceAnyPerm.toPerm {cfg : Config} {initcode runtimeCode : EVM.Bytes}
+    {contract : ContractDecl} (h : contractEquivalenceAnyPerm cfg initcode runtimeCode contract) :
+    contractEquivalence cfg initcode runtimeCode contract := by
+  obtain ⟨hctor, hrun⟩ := h
+  exact ⟨hctor, hrun.toPerm⟩
+
+inductive contractEquivalenceWFAnyPerm (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalenceWithWFAnyPerm wf cfg runtimeCode contract →
+    contractEquivalenceWFAnyPerm wf cfg initcode runtimeCode contract
+
+theorem contractEquivalenceWFAnyPerm.toPerm {wf : StorageWF} {cfg : Config}
+    {initcode runtimeCode : EVM.Bytes} {contract : ContractDecl}
+    (h : contractEquivalenceWFAnyPerm wf cfg initcode runtimeCode contract) :
+    contractEquivalenceWF wf cfg initcode runtimeCode contract := by
+  obtain ⟨hctor, hrun⟩ := h
+  exact ⟨hctor, hrun.toPerm⟩
+
+inductive contractEquivalenceWithAnyPerm (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
+    runtimeEquivalenceAnyPerm cfg runtimeCode contract →
+    contractEquivalenceWithAnyPerm cfg initcode runtimeCode contract runtimeCodeOf
+
+theorem contractEquivalenceWithAnyPerm.toPerm {cfg : Config} {initcode runtimeCode : EVM.Bytes}
+    {contract : ContractDecl} {runtimeCodeOf : Store → Option ByteArray}
+    (h : contractEquivalenceWithAnyPerm cfg initcode runtimeCode contract runtimeCodeOf) :
+    contractEquivalenceWith cfg initcode runtimeCode contract runtimeCodeOf := by
+  obtain ⟨hctor, hrun⟩ := h
+  exact ⟨hctor, hrun.toPerm⟩
+
+inductive contractEquivalenceWithWFAnyPerm (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
+    (runtimeCode : EVM.Bytes) (contract : ContractDecl)
+    (runtimeCodeOf : Store → Option ByteArray) : Prop where
+  | intro :
+    constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
+    runtimeEquivalenceWithWFAnyPerm wf cfg runtimeCode contract →
+    contractEquivalenceWithWFAnyPerm wf cfg initcode runtimeCode contract runtimeCodeOf
+
+theorem contractEquivalenceWithWFAnyPerm.toPerm {wf : StorageWF} {cfg : Config}
+    {initcode runtimeCode : EVM.Bytes} {contract : ContractDecl}
+    {runtimeCodeOf : Store → Option ByteArray}
+    (h : contractEquivalenceWithWFAnyPerm wf cfg initcode runtimeCode contract runtimeCodeOf) :
+    contractEquivalenceWithWF wf cfg initcode runtimeCode contract runtimeCodeOf := by
+  obtain ⟨hctor, hrun⟩ := h
+  exact ⟨hctor, hrun.toPerm⟩
 
 end Solm
