@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin AccessControl benchmark spec
@@ -69,14 +70,18 @@ def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes bytes32Width }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_roles", [.mindex role, .field "hasRole", .mindex account] =>
-        some (boolLoc (roleHasRoleSlot role account))
-    | "_roles", [.mindex role, .field "adminRole"] =>
-        some (bytes32Loc (roleAdminSlot role))
-    | _, _ => none
+def storageLayout : StorageLayout :=
+  solidityLayout! [[roleDataStruct]] [storageDecls]
+
+@[simp] theorem storageLayout_hasRole (role account : KeyValue) (evm : EVM.State) :
+    storageLayout { base := "_roles", steps := [.mindex role, .field "hasRole", .mindex account] }
+      evm = some (boolLoc (roleHasRoleSlot role account)) := by
+  rfl
+
+@[simp] theorem storageLayout_adminRole (role : KeyValue) (evm : EVM.State) :
+    storageLayout { base := "_roles", steps := [.mindex role, .field "adminRole"] } evm =
+      some (bytes32Loc (roleAdminSlot role)) := by
+  rfl
 
 def defaultAdminRoleTransition : TransitionDecl :=
   { name := "DEFAULT_ADMIN_ROLE"
@@ -172,7 +177,7 @@ def contract : ContractDecl :=
         supportsInterfaceTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.SolidityStorage
 
 /-! # Truth — Solm specification for `truth()` (pure data; independent of the proof library). -/
 
@@ -23,8 +24,8 @@ def truthContract : ContractDecl :=
     ctor := { params := [], body := [] }
     transitions := [truthTransition] }
 
-/-- Configuration: empty storage layout and the default external-call ABI. -/
+/-- Configuration: empty storage backend and the default external-call ABI. -/
 def truthConfig : Config :=
-  { storage := { layout := fun _ _ => none }
+  { storageBackend := solidityStorageBackend (fun _ _ => none)
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment truthContract.ctor.params }

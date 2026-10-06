@@ -148,16 +148,14 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simp [proposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
           ballotStorageDecls, proposalStructTy, uint256St]
       have hlocName :
-          ballotConfig.storage.layout (proposalNameEvaledRef I) =
-            fun _ => some (proposalNameLoc I) := by
-        funext evm'
-        simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig, ballotStorageLayout,
+          ballotConfig.storageBackend.locate? (proposalNameEvaledRef I) evm =
+            some (proposalNameLoc I) := by
+        simp [proposalNameEvaledRef, proposalNameLoc, ballotConfig,
           proposalNameSlot_spec]
       have hlocCount :
-          ballotConfig.storage.layout (proposalCountEvaledRef I) =
-            fun _ => some (wordLoc (proposalCountSlot I)) := by
-        funext evm'
-        simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig, ballotStorageLayout,
+          ballotConfig.storageBackend.locate? (proposalCountEvaledRef I) evm =
+            some (wordLoc (proposalCountSlot I)) := by
+        simp [proposalCountEvaledRef, proposalCountSlot, ballotConfig,
           proposalNameSlot_spec, u256_add_comm]
       have hnameLoad :
           storageLocLoad evm (proposalNameLoc I) =
@@ -170,9 +168,9 @@ theorem ballotProposalsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simpa [proposalCountCurrent] using
           (ballotStorageLocLoad_uint256 evm (proposalCountSlot I))
       simp only [Solm.evalExprs?.eq_def,
-        evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbaseName)
           (her := herName) (hty := htyName) (hloc := hlocName),
-        evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseCount)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbaseCount)
           (her := herCount) (hty := htyCount) (hloc := hlocCount),
         EvalResult.bind, bind, pure, proposalNameCurrent, proposalCountCurrent,
         hnameLoad, hcountLoad])

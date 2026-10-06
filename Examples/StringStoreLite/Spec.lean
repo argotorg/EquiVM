@@ -1,5 +1,5 @@
 import Solm.Semantics
-import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # StringStoreLite — focused string storage example
@@ -85,46 +85,44 @@ def uint8Loc (slot : Ethereum.UInt256) (offset : Fin 32) : StorageLoc :=
 def bytesLikeDataBase (baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
   Ethereum.uInt256OfByteArray (KEC baseSlot.toByteArray)
 
-abbrev bytesLikeLengthLoc := Solm.bytesLikeLengthLoc
+/-- The Solidity schema determines the actual storage locations. The `.length` path is retained
+    as a locator-only spelling for proofs about the length header. -/
+def stringStoreLiteGeneratedLayout : StorageLayout :=
+  solidityLayout! [[]] [storageDecls]
 
-def bytesLikeByteLoc? (baseSlot : Ethereum.UInt256) (index : KeyValue)
-    (evm : EVM.State) : Option StorageLoc :=
-  match index with
-  | .int i =>
-      if i < 0 then
-        none
-      else
-        let idx := i.toNat
-        if checkBytesPacked baseSlot evm then
-          if hidx : idx < 31 then
-            some (uint8Loc baseSlot ⟨31 - idx, by omega⟩)
-          else
-            none
-        else
-          some (uint8Loc
-            (bytesLikeDataBase baseSlot + Ethereum.UInt256.ofNat (idx / 32))
-            ⟨31 - (idx % 32), by
-              have hmod : idx % 32 < 32 := Nat.mod_lt idx (by decide)
-              omega⟩)
-  | _ => none
+def stringStoreLiteLayout : StorageLayout
+  | { base := "current", steps := [.length] } =>
+      stringStoreLiteGeneratedLayout { base := "current" }
+  | ref => stringStoreLiteGeneratedLayout ref
 
-def stringStoreLiteLayout : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "current", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨0⟩ evm)
-  | { base := "current", steps := [.aindex i] }, evm => bytesLikeByteLoc? ⟨0⟩ i evm
-  | _, _ => none
+/-- Convenient names for the backend operations used throughout the string proofs. -/
+@[simp] def stringLength? (cfg : Config) (evm : EVM.State) (ref : EvaledStorageRef) :
+    EvalResult Nat :=
+  cfg.storageBackend.length ref .string evm
 
-def stringStoreLiteStorageLayout : StorageLayout :=
-  solidityStorageLayout stringStoreLiteLayout
+@[simp] def stringWrite? (cfg : Config) (evm : EVM.State) (ref : EvaledStorageRef)
+    (ty : StorageType) (value : Value) : EvalResult EVM.State :=
+  cfg.storageBackend.write ref ty value evm
+
+@[simp] theorem stringStoreLiteLayout_current :
+    stringStoreLiteLayout { base := "current" } =
+      some (.anchor ⟨0⟩) := by
+  rfl
+
+@[simp] theorem stringStoreLiteLayout_current_length :
+    stringStoreLiteLayout { base := "current", steps := [.length] } =
+      some (.anchor ⟨0⟩) := by
+  rfl
 
 end StringStoreLite
 
 def stringStoreLiteConfig : Config :=
-  { storage := StringStoreLite.stringStoreLiteStorageLayout
+  { storageBackend := solidityStorageBackend StringStoreLite.stringStoreLiteLayout
     externalABI := defaultExternalCallABI
     selfDeployment :=
       genSolidityConstructorDeployment StringStoreLite.stringStoreLiteContract.ctor.params }
 
 @[simp] theorem stringStoreLiteConfig_storage_current_length :
-    stringStoreLiteConfig.storage.layout { base := "current", steps := [.length] } =
-      fun evm => some (StringStoreLite.bytesLikeLengthLoc ⟨0⟩ evm) :=
+    stringStoreLiteConfig.storageBackend.locate? { base := "current", steps := [.length] } =
+      some (.anchor ⟨0⟩) := by
   rfl

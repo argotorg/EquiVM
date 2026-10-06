@@ -698,7 +698,7 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
         .ok ({ contract := simpleAuctionContract,
                locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress },
              simpleAuctionCtorAfterBeneficiaryState evm beneficiaryAddress) := by
-  apply assignStorageRef_storage_scalar_value (ty := addrSt)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl) (ty := addrSt)
       (hbase := by simp [simpleAuctionCtorLocals, beneficiaryRef, simpleAuctionContract,
         constructorDecl])
       (her := by
@@ -708,7 +708,7 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
           EvaledStorageRef) = some addrSt
         decide)
       (hloc := simpleAuctionConfig_storage_beneficiary)
-      (hscalar := by trivial)
+      (hleaf := Or.inl ⟨_, rfl⟩)
   simpa [simpleAuctionCtorAfterBeneficiaryState, simpleAuctionBeneficiary_ofNat] using
     simpleAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
       (simpleAuctionBeneficiaryWord_canonical beneficiaryAddress)
@@ -831,7 +831,7 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
              Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨1⟩
                (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
                  biddingTime.toNat))) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := by
         unfold simpleAuctionCtorLocals
         simp only [simpleAuctionContract, constructorDecl, List.map_cons, List.map_nil,

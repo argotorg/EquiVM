@@ -998,7 +998,7 @@ theorem evalExpr_bid_auctionEndTime (evm : EVM.State) :
       ({ base := "auctionEndTime", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime)]
   rw [simpleAuctionStorageLocLoad_uint256]
 
@@ -1014,7 +1014,7 @@ theorem evalExpr_bid_highestBid (evm : EVM.State) :
       ({ base := "highestBid", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
   rw [simpleAuctionStorageLocLoad_uint256]
 
@@ -1030,7 +1030,7 @@ theorem evalExpr_bid_highestBidder (evm : EVM.State) :
       ({ base := "highestBidder", steps := [] } : EvaledStorageRef) =
       some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBidder)]
   rw [simpleAuctionStorageLocLoad_address_offset0]
   rfl
@@ -1046,11 +1046,12 @@ theorem evalExpr_bid_pendingReturns_current (evm : EVM.State) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
       (.storage (pendingReturnsRef (.storage highestBidderRef))) =
         .ok (.int (Int.ofNat (bidPendingReturnsWordState evm).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp [pendingReturnsRef])
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp [pendingReturnsRef])
     (her := evalStorageRef_bid_pending_current evm)
     (hty := by simp [storageTypeAt?, simpleAuctionContract, storageDecls, uint256St,
       storageTypeStep?])
-    (hloc := simpleAuctionConfig_storage_pendingReturns (bidHighestBidderKeyState evm))]
+    (hloc := simpleAuctionConfig_storage_pendingReturns (bidHighestBidderKeyState evm)
+     )]
   rw [simpleAuctionStorageLocLoad_uint256]
   rfl
 
@@ -1201,12 +1202,13 @@ theorem bidAssignPending (evm : EVM.State) :
       .storage (pendingReturnsRef (.storage highestBidderRef))
       (.int (Int.ofNat (bidPendingReturnsWordState evm + bidHighestBidWordState evm).toNat)) =
         .ok ({ contract := simpleAuctionContract, locals := ∅ }, bidAfterPendingState evm) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := by simp [pendingReturnsRef])
       (her := evalStorageRef_bid_pending_current evm)
       (hty := by simp [storageTypeAt?, simpleAuctionContract, storageDecls, uint256St,
         storageTypeStep?])
-      (hloc := simpleAuctionConfig_storage_pendingReturns (bidHighestBidderKeyState evm))
+      (hloc := simpleAuctionConfig_storage_pendingReturns (bidHighestBidderKeyState evm)
+       )
   rw [bidStorageLocStore_uint256]
   simp [bidAfterPendingState, bidPendingSlotState]
 
@@ -1216,13 +1218,13 @@ theorem bidAssignHighestBidder (evm : EVM.State) (I : ExecutionEnv)
       .storage highestBidderRef (.address evm.executionEnv.source) =
         .ok ({ contract := simpleAuctionContract, locals := ∅ },
           bidAfterHighestBidderState evm I) := by
-  apply assignStorageRef_storage_scalar_value (ty := addrSt)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl) (ty := addrSt)
       (hbase := by simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, highestBidderRef, EvalResult.bind, pure, bind])
       (hty := by decide)
       (hloc := simpleAuctionConfig_storage_highestBidder)
-      (hscalar := by trivial)
+      (hleaf := Or.inl ⟨_, rfl⟩)
   have hsource : evm.executionEnv.source = AccountAddress.ofNat (bidSenderWord I).toNat := by
     rw [hEnv, bidSender_ofNat]
   rw [hsource]
@@ -1237,12 +1239,13 @@ theorem bidAssignHighestBid (evm : EVM.State) (I : ExecutionEnv)
       (.int (Int.ofNat I.weiValue.toNat)) =
         .ok ({ contract := simpleAuctionContract, locals := ∅ },
           bidPostStateNoPending evm I) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := by simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, highestBidRef, EvalResult.bind, pure, bind])
       (hty := by decide)
-      (hloc := simpleAuctionConfig_storage_highestBid)
+      (hloc := simpleAuctionConfig_storage_highestBid
+       )
   rw [bidStorageLocStore_uint256]
   simp [bidPostStateNoPending]
 

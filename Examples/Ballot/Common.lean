@@ -52,6 +52,14 @@ theorem ballotStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
+@[simp] theorem ballotStorageLength_proposals (elem : StorageType) (evm : EVM.State) :
+    (solidityStorageBackend ballotStorageLayout).length { base := "proposals" }
+      (.dynamicArray elem) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  simp [solidityStorageBackend, solidityStorageLength?, solidityDynamicLength?,
+    ballotStorageLayout_proposals, ballotStorageLocLoad_uint256,
+    EvalResult.ofOption, EvalResult.bind, bind]
+
 /-- Loading a full-slot Solidity `bytes32` returns the big-endian fixed-bytes value. -/
 theorem ballotStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm

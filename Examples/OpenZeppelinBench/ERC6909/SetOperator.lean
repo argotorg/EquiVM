@@ -44,18 +44,19 @@ theorem erc6909WordToElem_bool_scalar (word : UInt256) :
     | _ => True
   by_cases h : (word.val == 0) = true <;> simp [h]
 
-theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
+theorem assignStorageRef_storage_bool_word {cfg : Config} {layout : StorageLayout} {solm : Frame}
     {evm evm' : EVM.State} {slot : StorageRef} {er : EvaledStorageRef}
     {ty : StorageType} {loc : StorageLoc} {word : UInt256}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
-    (hloc : cfg.storage.layout er = fun _ => some loc)
+    (hbackend : cfg.storageBackend = solidityStorageBackend layout)
+    (hloc : layout er evm = some loc)
+    (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
     (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
     assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =
       .ok (solm, evm') := by
-  exact assignStorageRef_storage_scalar_value hbase her hty hloc
-    (erc6909WordToElem_bool_scalar word) hstore
+  exact assignStorageRef_storage_scalar_value hbase her hty hbackend hloc hleaf hstore
 
 abbrev setOperatorStore (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "spender" (setOperatorSpenderValue I)).insert "approved"
@@ -216,6 +217,7 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := setOperatorStore I },
           setOperatorPostState evm I) := by
   apply assignStorageRef_storage_bool_word
+      (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
       (er := setOperatorEvaledRef evm I) (ty := boolSt)
       (loc := boolLoc (setOperatorSlot evm I))
       (word := setOperatorApprovedWord I)
@@ -230,7 +232,7 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
         simp [storageTypeAt?, setOperatorEvaledRef, contract, storageDecls, boolSt,
           storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, setOperatorEvaledRef, setOperatorSlot])
+        simp [config, setOperatorEvaledRef, setOperatorSlot])
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, setOperatorBoolWord, setBoolOffset0Word] using
           storageLocStore_bool_word_offset0 evm (setOperatorSlot evm I)

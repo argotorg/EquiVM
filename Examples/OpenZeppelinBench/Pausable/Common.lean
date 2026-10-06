@@ -89,7 +89,7 @@ theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (loc := boolLoc ⟨0⟩) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
     (hloc := by rfl), pausableStorageLocLoad_bool_offset0_false evm ⟨0⟩ hstorageZero]
 
 theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
@@ -107,7 +107,7 @@ theorem pausableEvalPausedTrue (evm : EVM.State) (locals : Store)
   have hty : storageTypeAt? contract.storage
       ({ base := "_paused", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (loc := boolLoc ⟨0⟩) (t := .bool) (hbase := hlocals) (her := her) (hty := hty)
     (hloc := by rfl), pausableStorageLocLoad_bool_offset0_true evm ⟨0⟩ hstorageNz]
 
 theorem pausableEvalWhenNotPausedTrue (evm : EVM.State) (locals : Store)

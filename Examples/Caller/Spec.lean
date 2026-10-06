@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.SolidityStorage
 import Examples.Pow.Spec
 
 /-!
@@ -42,13 +43,12 @@ def callerExternalABI : ExternalCallABI where
   decode? := defaultDecodeReturn?
 
 /-- Storage layout: `stored` occupies the whole of slot 0. -/
-def callerStorageLayout : StorageLayout where
-  layout := fun ref _ =>
-    if ref.base = "stored" ∧ ref.steps = [] then
-      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
-             bitOffset := .none,
-             type := .int (.uint ⟨256, by decide⟩) }
-    else none
+def callerStorageLayout : StorageLayout := fun ref _ =>
+  if ref.base = "stored" ∧ ref.steps = [] then
+    some { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
+           bitOffset := .none,
+           type := .int (.uint ⟨256, by decide⟩) }
+  else none
 
 /-- The single transition `run(address t, uint256 n)`:
     * `require(callvalue == 0)` — the compiler-inserted non-payable guard;
@@ -76,6 +76,6 @@ end Caller
 
 /-- Verification config: `stored` at slot 0, and the `pow2` external-call ABI. -/
 def callerConfig : Config :=
-  { storage := Caller.callerStorageLayout
+  { storageBackend := solidityStorageBackend Caller.callerStorageLayout
     externalABI := Caller.callerExternalABI
     selfDeployment := genSolidityConstructorDeployment Caller.callerContract.ctor.params }

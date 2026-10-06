@@ -487,7 +487,7 @@ theorem evalExpr_renounceRole_target_true (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := renounceRoleStore I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "callerConfirmation"))) =
         .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (renounceRoleTargetSlot I))
     (hbase := renounceRoleStore_roles I)
     (her := evalStorageRef_renounceRole_target evm I hsz68)
@@ -506,7 +506,7 @@ theorem evalExpr_renounceRole_target_false (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := renounceRoleStore I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "callerConfirmation"))) =
         .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (renounceRoleTargetSlot I))
     (hbase := renounceRoleStore_roles I)
     (her := evalStorageRef_renounceRole_target evm I hsz68)
@@ -523,7 +523,7 @@ theorem renounceRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       .storage (roleHasRoleRef (.var "role") (.var "callerConfirmation")) (.bool false) =
         .ok ({ contract := contract, locals := renounceRoleStore I },
           renounceRolePostState evm I) := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (er := renounceRoleTargetEvaledRef I) (ty := boolSt)
       (loc := boolLoc (renounceRoleTargetSlot I))
       (value := .bool false)
@@ -534,8 +534,11 @@ theorem renounceRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, renounceRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, renounceRoleTargetEvaledRef, renounceRoleTargetSlot])
-      (hscalar := by trivial)
+        simpa [config, renounceRoleTargetEvaledRef, renounceRoleTargetSlot] using
+          storageLayout_hasRole
+            (.fixedBytes bytes32Width ((I.calldata.toList.drop 4).take 32))
+            (renounceRoleCallerKey I) evm)
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, renounceRoleClearLowByteWord] using
           storageLocStore_bool_false_offset0 evm (renounceRoleTargetSlot I))

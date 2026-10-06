@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.SolidityStorage
 
 /-!
 # CtorTruth — Solm specification for a constructor-equivalence smoke test
@@ -35,8 +36,8 @@ def contract : ContractDecl :=
 
 end CtorTruth
 
-/-- Configuration: empty storage layout and Solidity constructor deployment encoding. -/
+/-- Configuration: empty storage backend and Solidity constructor deployment encoding. -/
 def ctorTruthConfig : Config :=
-  { storage := { layout := fun _ _ => none }
+  { storageBackend := solidityStorageBackend (fun _ _ => none)
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment CtorTruth.contract.ctor.params }

@@ -94,7 +94,8 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := approveStore I } evm
       .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := contract, locals := approveStore I }, approvePostState evm I) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (approveStorageSlot evm I))
       (hbase := approveStore_allowance I)
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by

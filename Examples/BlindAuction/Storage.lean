@@ -31,6 +31,17 @@ theorem blindAuctionStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [blindAuctionUint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
+@[simp] theorem blindAuctionStorageLength_bids (a : KeyValue) (elem : StorageType)
+    (evm : EVM.State) :
+    (solidityStorageBackend blindAuctionStorageLayout).length
+      { base := "bids", steps := [.mindex a] } (.dynamicArray elem) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidsBase a)).toNat := by
+  have hloc : solidityLengthLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex a] } =
+        some (blindAuctionUint256Loc (bidsBase a)) := by rfl
+  simp [solidityStorageBackend, solidityStorageLength?, solidityDynamicLength?,
+    hloc, blindAuctionStorageLocLoad_uint256, EvalResult.ofOption, EvalResult.bind, bind]
+
 theorem blindAuctionStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionAddrLoc slot) =
       .address (AccountAddress.ofNat

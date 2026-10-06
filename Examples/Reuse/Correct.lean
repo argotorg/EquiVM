@@ -948,7 +948,8 @@ theorem cAssignS (evm : EVM.State) (I : ExecutionEnv) :
         .storage Reuse.sRef (cFResultValue I) =
       .ok ({ contract := Reuse.cContract, locals := cGStoreAfterF I },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (cFResultWord I)) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩)
     (er := ({ base := "s", steps := [] } : EvaledStorageRef))
     (ty := .elem (.int Reuse.uint256Int)) (loc := Reuse.sLoc)
   · exact cGStoreAfterF_s_none I

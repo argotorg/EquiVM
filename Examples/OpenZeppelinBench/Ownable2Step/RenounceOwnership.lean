@@ -106,7 +106,8 @@ theorem evalExpr_renounceOwnership_owner (evm : EVM.State) :
   have hty : storageTypeAt? contract.storage
       ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (loc := addrLoc ⟨0⟩)
+    (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
 
 theorem evalExpr_renounceOwnership_sender (evm : EVM.State) :
@@ -171,12 +172,13 @@ theorem renounceOwnershipAssignPending (evm : EVM.State) :
         some (renounceOwnershipAfterPendingState evm) := by
     simpa [renounceOwnershipAfterPendingState, renounceOwnershipClearAddressWord] using
       ownable2StepStorageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config)
     (solm := { contract := contract, locals := ∅ }) (evm := evm)
     (evm' := renounceOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
     (er := { base := "_pendingOwner", steps := [] }) (ty := .elem .address)
     (loc := addrLoc ⟨1⟩) (value := .address (AccountAddress.ofNat 0))
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (hbase := by simp) (her := her) (hty := hty) (hloc := by rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (hstore := hstore)
 
 theorem renounceOwnershipAssignOwner (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ }
@@ -197,13 +199,14 @@ theorem renounceOwnershipAssignOwner (evm : EVM.State) :
     simpa [renounceOwnershipAfterOwnerState, renounceOwnershipClearAddressWord] using
       ownable2StepStorageLocStore_address_offset0 (renounceOwnershipAfterPendingState evm) ⟨0⟩
         ⟨0⟩ (by decide)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config)
     (solm := { contract := contract, locals := ∅ })
     (evm := renounceOwnershipAfterPendingState evm)
     (evm' := renounceOwnershipAfterOwnerState evm) (slot := ownerRef)
     (er := { base := "_owner", steps := [] }) (ty := .elem .address)
     (loc := addrLoc ⟨0⟩) (value := .address (AccountAddress.ofNat 0))
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (hbase := by simp) (her := her) (hty := hty) (hloc := by rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (hstore := hstore)
 
 theorem ownable2StepRenounceOwnershipBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

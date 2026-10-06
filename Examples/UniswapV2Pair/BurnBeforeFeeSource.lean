@@ -25,7 +25,8 @@ theorem evalExpr_burn_liquidity (evm : EVM.State) (locals : Store)
     simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, balanceOfRef,
       burnFunctionFromEvaledRef, burnFunctionFromKey, valueToKey?,
       EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr_uniswap_this]
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (burnFunctionFromSlot evm.executionEnv.codeOwner))
     (hbase := hbase) (her := her)
     (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?]) (hloc := by rfl)]

@@ -216,7 +216,8 @@ theorem evalStorageRef_transfer_sender_balance_fromBalance
 theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferStore I } evm
       (.storage (balanceOfRef sender)) = .ok (transferFromBalanceValue evm) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferSenderSlot evm))
     (hbase := by simp [transferStore, balanceOfRef])
     (her := evalStorageRef_transfer_sender_balance evm I)
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
@@ -287,7 +288,8 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferStoreFromBalance evm I },
           transferAfterDebitState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferSenderSlot evm))
       (hbase := by simp [transferStoreFromBalance, balanceOfRef])
       (her := evalStorageRef_transfer_sender_balance_fromBalance evm I)
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
@@ -300,7 +302,8 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferStoreFromBalance evm I }
       (transferAfterDebitState evm I) (.storage (balanceOfRef (.var "to"))) =
         .ok (transferToBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (transferToSlot I))
     (hbase := by simp [transferStoreFromBalance, balanceOfRef])
     (her := evalStorageRef_transfer_to_balance_fromBalance evm (transferAfterDebitState evm I) I)
     (hty := by simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls,
@@ -348,7 +351,8 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferStoreToBalance evm I },
           transferPostState evm I) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (transferToSlot I))
       (hbase := by simp [transferStoreToBalance, transferStoreFromBalance, balanceOfRef])
       (her := evalStorageRef_transfer_to_balance_toBalance evm (transferAfterDebitState evm I) I)
       (hty := by simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls,

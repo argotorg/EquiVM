@@ -207,14 +207,12 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, blindAuctionContract,
           storageDecls, bidStructTy, uint256St]
       have hlocBlinded :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "blindedBid") =
-            fun _ => some (blindAuctionBytes32Loc (bidsElementSlot I)) := by
-        funext evm'
+          blindAuctionConfig.storageBackend.locate? (bidsEvaledRef I "blindedBid") =
+            some (.leaf (blindAuctionBytes32Loc (bidsElementSlot I))) := by
         simp [bidsEvaledRef, bidsElementSlot]
       have hlocDeposit :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "deposit") =
-            fun _ => some (blindAuctionUint256Loc (bidsDepositSlot I)) := by
-        funext evm'
+          blindAuctionConfig.storageBackend.locate? (bidsEvaledRef I "deposit") =
+            some (.leaf (blindAuctionUint256Loc (bidsDepositSlot I))) := by
         simp [bidsEvaledRef, bidsDepositSlot, bidsElementSlot]
       have hloadBlinded :
           storageLocLoad evm (blindAuctionBytes32Loc (bidsElementSlot I)) =
@@ -227,10 +225,10 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simpa [bidsDepositCurrent] using
           blindAuctionStorageLocLoad_uint256 evm (bidsDepositSlot I)
       simp only [Solm.evalExprs?.eq_def,
-        evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
           (her := evalStorageRef_bidsField_ok evm I "blindedBid" hbound)
           (hty := htyBlinded) (hloc := hlocBlinded),
-        evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseDeposit)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbaseDeposit)
           (her := evalStorageRef_bidsField_ok evm I "deposit" hbound)
           (hty := htyDeposit) (hloc := hlocDeposit),
         EvalResult.bind, bind, pure, hloadBlinded, hloadDeposit,

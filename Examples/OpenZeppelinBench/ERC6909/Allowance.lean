@@ -144,14 +144,14 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
       some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?]
-  have hloc : config.storage.layout
+  have hloc : config.storageBackend.locate?
       { base := "_allowances",
         steps := [.mindex (.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat)),
                   .mindex (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)),
-                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } =
-      fun _ => some (wordLoc (allowanceSlotOf I)) := by
+                  .mindex (.int (Int.ofNat (allowanceIdWord I).toNat))] } evm =
+      some (wordLoc (allowanceSlotOf I)) := by
     rfl
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (hbase := by
       rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
         store_get_ne _ _ (by decide)]

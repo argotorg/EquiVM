@@ -657,7 +657,8 @@ theorem uniswapAssignPrice0CumulativeLastOfStore
     assignStorageRef? config { contract := contract, locals := locals } evm .storage
       price0CumulativeLastRef value =
         .ok ({ contract := contract, locals := locals }, evm') := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (er := ({ base := "price0CumulativeLast", steps := [] } : EvaledStorageRef))
       (ty := uint256St) (loc := wordLoc ⟨9⟩)
   · simpa [price0CumulativeLastRef] using hbase
@@ -665,8 +666,6 @@ theorem uniswapAssignPrice0CumulativeLastOfStore
       pure, bind]
   · rfl
   · rfl
-  · cases value <;> simp at hscalar ⊢
-    simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 theorem uniswapAssignPrice1CumulativeLastOfStore
@@ -677,7 +676,8 @@ theorem uniswapAssignPrice1CumulativeLastOfStore
     assignStorageRef? config { contract := contract, locals := locals } evm .storage
       price1CumulativeLastRef value =
         .ok ({ contract := contract, locals := locals }, evm') := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef))
       (ty := uint256St) (loc := wordLoc ⟨10⟩)
   · simpa [price1CumulativeLastRef] using hbase
@@ -685,8 +685,6 @@ theorem uniswapAssignPrice1CumulativeLastOfStore
       pure, bind]
   · rfl
   · rfl
-  · cases value <;> simp at hscalar ⊢
-    simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 theorem evalExpr_sync_balance0_le_max_true (evm : EVM.State) (balance0 balance1 : UInt256)
@@ -755,7 +753,7 @@ theorem evalExpr_sync_blockTimestampLast (evm : EVM.State) (locals : Store)
       storageLocLoad evm (uint32Loc28 ⟨8⟩) =
         .int (Int.ofNat (syncBlockTimestampLastWord evm).toNat) := by
     simpa [syncBlockTimestampLastWord] using uniswapStorageLocLoad_uint32_offset28 evm ⟨8⟩
-  rw [evalExpr_storage_scalar (t := .int uint32Int) (slot := blockTimestampLastRef)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint32Int) (slot := blockTimestampLastRef)
     (er := ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef))
     (loc := uint32Loc28 ⟨8⟩)
     (hbase := by simpa [blockTimestampLastRef] using hbase)
@@ -774,7 +772,7 @@ theorem evalExpr_sync_price0CumulativeLast (evm : EVM.State) (locals : Store)
         .int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat) := by
     exact uniswapStorageLocLoad_uint256 evm ⟨9⟩
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (slot := price0CumulativeLastRef)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (slot := price0CumulativeLastRef)
     (er := ({ base := "price0CumulativeLast", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨9⟩)
     (hbase := by simpa [price0CumulativeLastRef] using hbase)
@@ -795,7 +793,7 @@ theorem evalExpr_sync_price1CumulativeLast (evm : EVM.State) (locals : Store)
         .int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat) := by
     exact uniswapStorageLocLoad_uint256 evm ⟨10⟩
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (slot := price1CumulativeLastRef)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (slot := price1CumulativeLastRef)
     (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨10⟩)
     (hbase := by simpa [price1CumulativeLastRef] using hbase)

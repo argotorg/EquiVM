@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # Ballot — Solm specification for `Ballot.sol`
@@ -19,8 +20,7 @@ contract.  This exercises a broad slice of the Solm surface that earlier example
   `proposals(uint256)`) that solc adds to the external ABI, modelled as transitions returning
   ABI tuples for the struct getters.
 
-The storage layout is **hand-written** to match the deployed bytecode's slot assignment exactly
-(rather than relying on `genSolidityLayout`, whose packed-struct layout is still WIP):
+The generated Solidity storage layout matches the deployed bytecode's slot assignment:
 
 | variable          | slot                                   | notes |
 |-------------------|----------------------------------------|-------|
@@ -101,7 +101,7 @@ def ballotStorageDecls : List StorageDecl :=
     { name := "voters", ty := .mapping .address voterStructTy },
     { name := "proposals", ty := .dynamicArray proposalStructTy } ]
 
-/-! ## Storage layout (hand-written, matches deployed bytecode) -/
+/-! ## Storage layout (generated, matches deployed bytecode) -/
 
 /-- Solidity mapping slot: `keccak256(key ‖ baseSlot)`. -/
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
@@ -122,24 +122,47 @@ def proposalElemSlot (i : KeyValue) : Ethereum.UInt256 :=
 def wordLoc (s : Ethereum.UInt256) : StorageLoc :=
   { slot := s, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
 
-def ballotStorageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "chairperson", [] =>
-        some { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address }
-    | "voters", [.mindex a, .field "weight"]   => some (wordLoc (voterBase a))
-    | "voters", [.mindex a, .field "voted"]    =>
-        some { slot := voterBase a + ⟨1⟩, offset := 0, size := 1, hbound := by decide, type := .bool }
-    | "voters", [.mindex a, .field "delegate"] =>
-        some { slot := voterBase a + ⟨1⟩, offset := 1, size := 20, hbound := by decide, type := .address }
-    | "voters", [.mindex a, .field "vote"]     => some (wordLoc (voterBase a + ⟨2⟩))
-    | "proposals", [.length] => some (wordLoc ⟨2⟩)
-    | "proposals", [.aindex i, .field "name"] =>
-        some { slot := proposalElemSlot i, offset := 0, size := 32, hbound := by decide,
-               type := .bytes ⟨31, by decide⟩ }
-    | "proposals", [.aindex i, .field "voteCount"] =>
-        some (wordLoc (proposalElemSlot i + ⟨1⟩))
-    | _, _ => none
+def ballotStorageLayout : StorageLayout :=
+  solidityLayout! [[voterStructDecl, proposalStructDecl]] [ballotStorageDecls]
+
+@[simp] theorem ballotStorageLayout_chairperson (evm : EVM.State) :
+    ballotStorageLayout { base := "chairperson" } evm =
+      some { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address } := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_voterWeight (a : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "weight"] } evm =
+      some (wordLoc (voterBase a)) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_voterVoted (a : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "voted"] } evm =
+      some ({ slot := voterBase a + ⟨1⟩, offset := 0, size := 1, hbound := by decide, type := .bool } : StorageLoc) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_voterDelegate (a : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "delegate"] } evm =
+      some ({ slot := voterBase a + ⟨1⟩, offset := 1, size := 20, hbound := by decide, type := .address } : StorageLoc) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_voterVote (a : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "voters", steps := [.mindex a, .field "vote"] } evm =
+      some (wordLoc (voterBase a + ⟨2⟩)) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_proposals (evm : EVM.State) :
+    ballotStorageLayout { base := "proposals" } evm = some (wordLoc ⟨2⟩) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_proposalName (i : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "name"] } evm =
+      some ({ slot := proposalElemSlot i, offset := 0, size := 32, hbound := by decide, type := .bytes ⟨31, by decide⟩ } : StorageLoc) := by
+  rfl
+
+@[simp] theorem ballotStorageLayout_proposalVoteCount (i : KeyValue) (evm : EVM.State) :
+    ballotStorageLayout { base := "proposals", steps := [.aindex i, .field "voteCount"] } evm =
+      some (wordLoc (proposalElemSlot i + ⟨1⟩)) := by
+  rfl
 
 /-! ## Constructor
 
@@ -318,6 +341,6 @@ def ballotContract : ContractDecl :=
 end Ballot
 
 def ballotConfig : Config :=
-  { storage := Ballot.ballotStorageLayout
+  { storageBackend := solidityStorageBackend Ballot.ballotStorageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Ballot.ballotContract.ctor.params }

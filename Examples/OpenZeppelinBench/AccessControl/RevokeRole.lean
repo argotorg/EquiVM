@@ -154,7 +154,7 @@ theorem evalExpr_revokeRole_admin (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := revokeRoleStore I } evm
       (.storage (roleAdminRef (.var "role"))) = .ok (revokeRoleAdminValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes bytes32Width)
     (loc := bytes32Loc (revokeRoleAdminSlot I))
     (hbase := revokeRoleStore_roles I)
     (her := evalStorageRef_revokeRole_admin evm I hsz68)
@@ -182,7 +182,7 @@ theorem evalExpr_revokeRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEn
         ⟨255⟩ ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleAdminHasRoleSlot evm I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_adminHasRole evm I)
@@ -199,7 +199,7 @@ theorem evalExpr_revokeRole_adminHasRole_false (evm : EVM.State) (I : ExecutionE
         ⟨255⟩ = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleAdminHasRoleSlot evm I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_adminHasRole evm I)
@@ -234,7 +234,7 @@ theorem evalExpr_revokeRole_target_true (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleTargetSlot I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_target evm I hsz68)
@@ -252,7 +252,7 @@ theorem evalExpr_revokeRole_target_false (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleTargetSlot I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_target evm I hsz68)
@@ -269,7 +269,7 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       .storage (roleHasRoleRef (.var "role") (.var "account")) (.bool false) =
         .ok ({ contract := contract, locals := revokeRoleStoreWithAdmin evm I },
           revokeRolePostState evm I) := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (er := revokeRoleTargetEvaledRef I) (ty := boolSt)
       (loc := boolLoc (revokeRoleTargetSlot I))
       (value := .bool false)
@@ -280,8 +280,9 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, revokeRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, revokeRoleTargetEvaledRef, revokeRoleTargetSlot])
-      (hscalar := by trivial)
+        simpa [config, revokeRoleTargetEvaledRef, revokeRoleTargetSlot] using
+          storageLayout_hasRole (revokeRoleRoleKey I) (revokeRoleAccountKey I) evm)
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, revokeRoleClearLowByteWord] using
           storageLocStore_bool_false_offset0 evm (revokeRoleTargetSlot I))

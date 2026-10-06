@@ -102,14 +102,15 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage (allowanceRef sender (.var "spender")) (approveValueValue I) =
         .ok ({ contract := erc20Contract, locals := approveStore I }, approvePostState evm I) := by
   simp only [allowanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256Storage)
       (hbase := approveStore_allowance I)
       (her := evalStorageRef_approve_allowance evm I)
       (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract, ERC20.erc20Contract,
                        ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage,
                        storageTypeStep?])
       (hloc := vyperERC20Config_storage_allowance (.address evm.executionEnv.source)
-          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
+          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) (evm := evm))
   rw [vyperERC20StorageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 

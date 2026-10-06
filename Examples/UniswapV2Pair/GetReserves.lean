@@ -137,7 +137,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
               reserve112Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve0Ref)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint112Int) (slot := reserve0Ref)
           (er := ({ base := "reserve0", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc0 ⟨8⟩)
           (hbase := by simp [reserve0Ref])
@@ -151,7 +151,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
                 reserve112Shift) reserve112Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint112Int) (slot := reserve1Ref)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint112Int) (slot := reserve1Ref)
           (er := ({ base := "reserve1", steps := [] } : EvaledStorageRef))
           (loc := uint112Loc14 ⟨8⟩)
           (hbase := by simp [reserve1Ref])
@@ -165,7 +165,7 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
             .ok (.int (Int.ofNat (UInt256.land
               (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
                 reserve224Shift) reserve32Mask).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint32Int) (slot := blockTimestampLastRef)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint32Int) (slot := blockTimestampLastRef)
           (er := ({ base := "blockTimestampLast", steps := [] } : EvaledStorageRef))
           (loc := uint32Loc28 ⟨8⟩)
           (hbase := by simp [blockTimestampLastRef])

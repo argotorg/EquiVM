@@ -144,7 +144,7 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (loc := wordLoc (balanceOfSlot I))
         (hbase := by simp [balanceOfStore, balanceRef])
         (her := evalStorageRef_balanceOf_balance evm I)
@@ -152,7 +152,10 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           simp [storageTypeAt?, balanceOfEvaledRef, contract, storageDecls, uint256St,
             storageTypeStep?])
         (hloc := by
-          simp [config, storageLayout, balanceOfEvaledRef, balanceOfSlot])]
+          simpa [config, balanceOfEvaledRef, balanceOfSlot] using
+            storageLayout_balance
+              (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat))
+              (.int (Int.ofNat (balanceOfIdWord I).toNat)) evm)]
       rw [erc6909StorageLocLoad_uint256])
 
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/

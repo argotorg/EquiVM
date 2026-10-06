@@ -322,10 +322,14 @@ theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
   have hty : storageTypeAt? CtorStore.contract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
     simp [storageTypeAt?, CtorStore.contract]
-  have hloc : ctorStoreConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (ctorStoreLocStore _ _ h0)
+  have hbackend : ctorStoreConfig.storageBackend =
+      solidityStorageBackend CtorStore.generatedStorageBackend.locate? := rfl
+  have hloc : CtorStore.generatedStorageBackend.locate?
+      { base := "stored", steps := [] } evm =
+      some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+             type := .int (.uint ⟨256, (by decide)⟩) } := rfl
+  exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
+    (Or.inl ⟨_, rfl⟩) (ctorStoreLocStore _ _ h0)
 
 theorem ctorStoreCtorBodyReturns (evm : EVM.State) (locals : Store) (i : Int)
     (h0 : 0 ≤ i)

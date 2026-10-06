@@ -99,10 +99,9 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
     simp [winnerNameNameEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, bytes32St]
   have hloc :
-      ballotConfig.storage.layout (winnerNameNameEvaledRef w) =
-        fun _ => some (winnerNameNameLoc w) := by
-    funext evm'
-    simp [winnerNameNameEvaledRef, winnerNameNameLoc, ballotConfig, ballotStorageLayout,
+      ballotConfig.storageBackend.locate? (winnerNameNameEvaledRef w) evm =
+        some (winnerNameNameLoc w) := by
+    simp [winnerNameNameEvaledRef, winnerNameNameLoc, ballotConfig,
       winnerNameNameSlot_spec]
   have hload :
       storageLocLoad evm (winnerNameNameLoc w) =
@@ -110,7 +109,7 @@ theorem winnerNameEvalName (evm : EVM.State) (locals : Store) (w : UInt256)
           (EVM.Word.toBytesBE
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (winnerNameNameSlot w))) := by
     simpa [winnerNameNameLoc] using (ballotStorageLocLoad_bytes32 evm (winnerNameNameSlot w))
-  rw [evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbase)
     (her := her) (hty := hty) (hloc := hloc)]
   rw [hload]
 

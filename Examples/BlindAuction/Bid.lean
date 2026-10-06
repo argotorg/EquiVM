@@ -549,34 +549,72 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
       .ok (bidPostState evm evm.executionEnv (bidLengthWord evm.accountMap evm.executionEnv)) := by
   unfold pushArray? resolveStorageRef? evalStorageRef evalStorageRefSteps
     evalStorageRefStep bidsRef sender valueToKey? storageTypeAt? storageTypeStep?
-    blindAuctionContract storageDecls bidStructTy bidStructDecl blindAuctionConfig
-    blindAuctionStorageLayout bidPostState bidAfterBlindedState bidAfterLengthState
+    blindAuctionContract storageDecls bidStructTy bidStructDecl
+    bidPostState bidAfterBlindedState bidAfterLengthState
     bidDepositSlot bidElementSlot bidLengthSlot bidSenderKey bidStructValue bidCallValue
   simp [bidStore, evalExpr?, envValue, List.nil_append, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
+  simp only [blindAuctionConfig, solidityStorageBackend, solidityPushStorage?,
+    solidityDynamicLength?]
+  rw [show solidityLengthLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex (.address evm.executionEnv.source)] } =
+      some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) from rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
   rw [blindAuctionStorageLocLoad_uint256]
-  simp only [EvalResult.bind, bind]
-  rw [bidStorageLocStore_uint256_succ]
+  dsimp only
+  rw [if_neg (show ¬ Int.ofNat
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (bidsBase (.address evm.executionEnv.source))).toNat < 0 by simp)]
+  dsimp only [Int.toNat]
+  rw [← Int.ofNat_eq_natCast]
+  rw [bidStorageLocStore_uint256_succ evm
+    (bidsBase (.address evm.executionEnv.source))
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+      (bidsBase (.address evm.executionEnv.source)))]
   simp only [Option.bind, EvalResult.bind, bind, pure]
-  rw [writeStorage?.eq_def]
+  rw [solidityWriteStorage?.eq_def]
   simp only [EvalResult.bind, bind]
-  rw [writeFields?.eq_def]
+  rw [solidityWriteFields?.eq_def]
   simp only [beq_self_eq_true, reduceIte]
-  rw [writeStorage?.eq_def]
+  rw [solidityWriteStorage?.eq_def]
   simp only [bytes32St]
   simp only [List.cons_append, List.nil_append]
+  simp only [show ∀ s : EVM.State,
+    solidityLeafLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex (.address evm.executionEnv.source),
+        .aindex (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (bidsBase (.address evm.executionEnv.source))).toNat)), .field "blindedBid"] } s =
+      some (blindAuctionBytes32Loc
+        (bidsElemSlot (.address evm.executionEnv.source)
+          (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (bidsBase (.address evm.executionEnv.source))).toNat)))) from by
+      intro s
+      rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
   rw [blindAuctionStorageLocStore_bytes32
     (word := bidBlindedWord evm.executionEnv)
     (hval := bidBlindedValue_toWord evm.executionEnv hsz36)]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
-  rw [writeFields?.eq_def]
+  rw [solidityWriteFields?.eq_def]
   simp only [beq_self_eq_true, reduceIte]
-  rw [writeStorage?.eq_def]
+  rw [solidityWriteStorage?.eq_def]
   simp only [uint256St]
   simp only [List.cons_append, List.nil_append]
+  simp only [show ∀ s : EVM.State,
+    solidityLeafLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex (.address evm.executionEnv.source),
+        .aindex (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (bidsBase (.address evm.executionEnv.source))).toNat)), .field "deposit"] } s =
+      some (blindAuctionUint256Loc
+        (bidsElemSlot (.address evm.executionEnv.source)
+          (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+            (bidsBase (.address evm.executionEnv.source))).toNat)) + ⟨1⟩)) from by
+      intro s
+      rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
   rw [blindAuctionStorageLocStore_uint256_natCast]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
-  rw [writeFields?.eq_def]
+  rw [solidityWriteFields?.eq_def]
   rfl
 
 theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
@@ -593,7 +631,7 @@ theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
       ({ base := "biddingEnd", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (hbase := by simp [bidStore, biddingEndRef])
     (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
   rw [blindAuctionStorageLocLoad_uint256]

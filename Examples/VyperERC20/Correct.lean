@@ -178,7 +178,8 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
       evm .storage (balanceOfRef sender) (.int initialSupply) =
         .ok ({ contract := erc20Contract, locals := erc20CtorLocals initialSupply },
           erc20CtorBalancePostState evm (EVM.word initialSupply.toNat)) := by
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256Storage)
       (hbase := erc20CtorLocals_get_balanceOf initialSupply)
       (her := by
         simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, balanceOfRef, sender,
@@ -186,7 +187,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
           pure, evalExpr?])
       (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
         ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage, storageTypeStep?])
-      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source))
+      (hloc := vyperERC20Config_storage_balanceOf (.address evm.executionEnv.source) (evm := evm))
   have hword :
       (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
     constructorUInt256Word_toNat initialSupply h0 hlt
@@ -209,14 +210,15 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
         .ok ({ contract := erc20Contract, locals := erc20CtorLocals initialSupply },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩
             (EVM.word initialSupply.toNat)) := by
-  apply assignStorageRef_storage_scalar (ty := uint256Storage)
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256Storage)
       (hbase := erc20CtorLocals_get_totalSupply initialSupply)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, totalSupplyRef, ERC20.totalSupplyRef,
           EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, erc20Contract, ERC20.erc20Contract,
         ERC20.erc20StorageDecls, uint256Storage, ERC20.uint256Storage])
-      (hloc := vyperERC20Config_storage_totalSupply)
+      (hloc := vyperERC20Config_storage_totalSupply (evm := evm))
   have hword :
       (EVM.word initialSupply.toNat).toNat = initialSupply.toNat :=
     constructorUInt256Word_toNat initialSupply h0 hlt
