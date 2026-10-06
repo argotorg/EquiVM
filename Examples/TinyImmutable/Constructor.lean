@@ -508,8 +508,9 @@ theorem tinyCtorRuntime_codecopy_mem (owner : AccountAddress) (scale : UInt256)
 
 theorem tinyCtorPatchedRuntime_eq_patchedRuntime (owner : AccountAddress) (scale : UInt256) :
     tinyCtorPatchedRuntime owner scale = patchedRuntime { owner := owner, scale := scale } := by
-  unfold tinyCtorPatchedRuntime patchedRuntime runtimeWrites
-  rw [wordOfInt_ofNat_toNat]
+  simp only [tinyCtorPatchedRuntime, patchedRuntime, Reasoning.Immutables.Layout.runtime,
+    Reasoning.Immutables.Layout.writes, immutableLayout, immutableReferences, immutableWords,
+    wordOfInt_ofNat_toNat]
   rfl
 
 theorem tinyCtorPatchedRuntime_read (owner : AccountAddress) (scale : UInt256) :
@@ -704,7 +705,7 @@ theorem tinyCtorRuntimeCodeOf_true (v : TinyImmutables) (owner : AccountAddress)
       some (patchedRuntime { owner := owner, scale := EVM.word scaleInt.toNat }) := by
   have hword : (EVM.word scaleInt.toNat).toNat = scaleInt.toNat :=
     constructorUInt256Word_toNat scaleInt h0 hlt
-  unfold runtimeCodeOf patchesFrom offsets wordBytes?
+  unfold runtimeCodeOf patchesFrom offsets immutableReferences wordBytes?
   simp [List.foldrM]
   rw [show (tinyCtorFinalLocals v owner scaleInt true)["imm_owner"]? =
       some (.address owner) by
@@ -713,7 +714,7 @@ theorem tinyCtorRuntimeCodeOf_true (v : TinyImmutables) (owner : AccountAddress)
       some (.int scaleInt) by
     exact tinyCtorFinalLocals_get_scale_true v owner scaleInt]
   simp [valueToWord, wordOfInt_nonneg _ h0]
-  simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+  simpa [patches, patchesFrom, offsets, immutableReferences, immValues, wordBytes?, valueToWord,
     List.lookup_cons,
     hword, Int.toNat_of_nonneg h0, wordOfInt_nonneg _ h0] using
     (patchRuntime_eq_patchedRuntime
@@ -723,7 +724,7 @@ theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress
     (scaleInt : Int) :
     runtimeCodeOf tinyImmutableBytecode (tinyCtorFinalLocals v owner scaleInt false) =
       some (patchedRuntime { owner := owner, scale := ⟨0⟩ }) := by
-  unfold runtimeCodeOf patchesFrom offsets wordBytes?
+  unfold runtimeCodeOf patchesFrom offsets immutableReferences wordBytes?
   simp [List.foldrM]
   rw [show (tinyCtorFinalLocals v owner scaleInt false)["imm_owner"]? =
       some (.address owner) by
@@ -732,7 +733,7 @@ theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress
       some (.int 0) by
     exact tinyCtorFinalLocals_get_scale_false v owner scaleInt]
   simp [valueToWord]
-  simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
+  simpa [patches, patchesFrom, offsets, immutableReferences, immValues, wordBytes?, valueToWord,
     show EVM.wordOfInt 0 = (⟨0⟩ : UInt256) by decide] using
     (patchRuntime_eq_patchedRuntime
       (v := { owner := owner, scale := (⟨0⟩ : UInt256) }))

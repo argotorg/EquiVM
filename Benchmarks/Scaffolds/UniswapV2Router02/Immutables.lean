@@ -1,4 +1,5 @@
 import Solm
+import Reasoning.Immutables
 
 /-!
 # UniswapV2Router02 immutable values, offset table, and `runtimeCodeOf`
@@ -40,6 +41,10 @@ def offsets : List (Ident × List Nat) :=
       [428, 3677, 3736, 4053, 4760, 5874, 6358, 7710, 8098, 8306, 8569, 9004,
        9153, 9843, 10010, 10223, 10484, 10716, 10845, 12524, 13346, 13432,
        13484, 13613, 14151, 14583, 14732]) ]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 /-- The immutable values as `Value`s under their `imm_<name>` keys. -/
 def immValues (v : RouterImmutables) : List (Ident × Value) :=

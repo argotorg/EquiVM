@@ -58,6 +58,14 @@ jobs:
             Examples.Reuse.Correct \
             Examples.VyperERC20.Correct
 
+      - name: Compile generated large benchmark blocks
+        run: |
+          python3 -m unittest scripts/test_generate_rd_blocks.py
+          python3 scripts/check_all_benchmark_blocks.py \
+            --contract Scaffolds/UniswapV3Pool \
+            --contract Scaffolds/Safe \
+            --jobs 4
+
       # These End dispatch consumers previously overflowed Lean's default stack.
       # Keep this focused regression check even while the full benchmarks are disabled.
       - name: Check End dispatch proof stack
