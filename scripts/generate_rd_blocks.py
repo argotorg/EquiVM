@@ -26,10 +26,10 @@ lifted from the fixed prefix.
 For runtime immutables, pass an imported Lean layout with
 ``--layout-term MyContract.immutableLayout`` and ``--import MyContract.Immutables``.
 The generator evaluates that layout's sites through Lean and checks that they
-are complete PUSH32 payloads in the template. Generated modules refer to the
-imported layout and quantify a ``String → UInt256`` value map. This mode applies
-to complete PUSH32 arguments, as in the supported Solidity immutable references;
-it does not model arbitrary byte patches within the instruction stream.
+are complete PUSH20 or PUSH32 payloads in the template. Generated modules refer
+to the imported layout and quantify a ``String → UInt256`` value map. PUSH20
+sites use the word's low 20 bytes; PUSH32 sites use the whole word. This mode
+does not model arbitrary byte patches within the instruction stream.
 ``--runtime-suffix`` is a separate mode that quantifies arbitrary bytes appended
 to the template, as in Vyper's immutable scheme. Its summaries execute
 ``template ++ suffix``. Only instructions entirely inside the fixed template
@@ -132,31 +132,31 @@ def lean_decode_arg(ins: Instruction) -> str:
     return "none"
 
 
-def validate_immutable_sites(raw: object, code: bytes) -> dict[int, str]:
-    """Validate fixed-width PUSH32 payload sites and return their value keys."""
+def validate_immutable_sites(raw: object, code: bytes) -> dict[int, tuple[int, str]]:
+    """Validate complete PUSH20/PUSH32 payload sites and return widths and keys."""
     if not isinstance(raw, list):
         raise ValueError("Lean immutable layout must contain a sites list")
-    starts = {ins.pc + 1 for ins in disassemble(code) if ins.opcode == 0x7F
-              and ins.complete}
-    sites: dict[int, str] = {}
+    starts = {ins.pc + 1: ins.width for ins in disassemble(code)
+              if ins.opcode in (0x73, 0x7F) and ins.complete}
+    sites: dict[int, tuple[int, str]] = {}
     for entry in raw:
         if not isinstance(entry, dict):
             raise ValueError("each immutable site must be an object")
         off, length, key = entry.get("offset"), entry.get("length"), entry.get("key")
         if type(off) is not int or not isinstance(key, str) or not key:
             raise ValueError("immutable sites require an integer offset and nonempty key")
-        if type(length) is not int or length != 32:
-            raise ValueError(f"immutable site {off} must have length 32 for PUSH32")
-        if off in sites or off not in starts:
-            raise ValueError(f"immutable site {off} is repeated or is not a PUSH32 payload")
-        if any(not (off + 32 <= previous or previous + 32 <= off)
-               for previous in sites):
+        if type(length) is not int or length not in (20, 32):
+            raise ValueError(f"immutable site {off} must have length 20 or 32")
+        if off in sites or starts.get(off) != length:
+            raise ValueError(f"immutable site {off} is repeated or is not a PUSH{length} payload")
+        if any(not (off + length <= previous or previous + prev_width <= off)
+               for previous, (prev_width, _) in sites.items()):
             raise ValueError(f"immutable site {off} overlaps another site")
-        sites[off] = key
+        sites[off] = (length, key)
     return sites
 
 
-def read_lean_layout(layout_term: str, imports: list[str], code: bytes) -> dict[int, str]:
+def read_lean_layout(layout_term: str, imports: list[str], code: bytes) -> dict[int, tuple[int, str]]:
     """Evaluate one imported Lean Layout, then validate its sites against bytecode."""
     source = ["import Reasoning.Immutables", *(f"import {module}" for module in imports),
               "open Lean Reasoning.Immutables",
@@ -573,7 +573,7 @@ class Summary:
 def simulate(block: list[Instruction], branch: str | None,
                       decode_proof: str = "(by native_decide)",
              creation_prefix: str | None = None,
-             immutable_sites: dict[int, str] | None = None,
+             immutable_sites: dict[int, tuple[int, str]] | None = None,
              runtime_suffix: bool = False) -> Summary:
     depth = required_input_depth(block)
     initial = [f"x{i}" for i in range(depth)]
@@ -635,6 +635,8 @@ def simulate(block: list[Instruction], branch: str | None,
         )
 
     index = 0
+    narrow_sites = immutable_sites is not None and any(
+        width == 20 for width, _ in immutable_sites.values())
     while index < len(block):
         ins = block[index]
         op = ins.opcode
@@ -647,7 +649,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 f"{lean_decode_arg(ins)}))"
             )
         elif immutable_sites is not None:
-            if ins.opcode == 0x7F and ins.pc + 1 in immutable_sites:
+            if ins.pc + 1 in immutable_sites:
                 decode = (
                     "(by\n"
                     f"    conv_lhs => arg 2; change (⟨{ins.pc}⟩ : UInt256)\n"
@@ -655,7 +657,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 )
             else:
                 decode = (
-                    "(by immutable_decode(__LAYOUT__, __TEMPLATE__, immWords, "
+                    f"(by {'immutable_decode_n' if narrow_sites else 'immutable_decode'}(__LAYOUT__, __TEMPLATE__, immWords, "
                     f"(⟨{ins.pc}⟩ : UInt256), UInt8.ofNat {ins.opcode}, "
                     f"{lean_operation(ins)}, {lean_decode_arg(ins)}, "
                     "immutableLayout_inBounds, immutableTemplate_size64))"
@@ -668,9 +670,12 @@ def simulate(block: list[Instruction], branch: str | None,
             proof.append(f"  have {after} := {before}.push0 {decode} {ov}")
         elif 0x60 <= op <= 0x7F:
             assert ins.argument is not None
-            value = (f"(immWords {json.dumps(immutable_sites[ins.pc + 1])})"
+            value = (f"(immWords {json.dumps(immutable_sites[ins.pc + 1][1])})"
                      if immutable_sites is not None and ins.pc + 1 in immutable_sites
                      else u256_nat(ins.argument))
+            if narrow_sites and immutable_sites is not None \
+                    and ins.pc + 1 in immutable_sites:
+                value = f"(Layout.siteWord {ins.width} {value})"
             stack.insert(0, value)
             if ins.width in {1, 2, 4, 20}:
                 call = f"{before}.push{ins.width} {value} {decode} {ov}"
@@ -910,7 +915,7 @@ def simulate(block: list[Instruction], branch: str | None,
 def render_summary(prefix: str, code_term: str, block: list[Instruction], summary: Summary,
                    creation_code: bool = False,
                    creation_code_size: int | None = None,
-                   immutable_sites: dict[int, str] | None = None,
+                   immutable_sites: dict[int, tuple[int, str]] | None = None,
                    layout_term: str | None = None,
                    runtime_suffix: bool = False) -> str:
     name = summary_name(prefix, block, summary.branch)
@@ -928,7 +933,7 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
     )
     effective_code_term = (f"({code_term} ++ suffix)"
                            if runtime_suffix else
-                           f"({layout_term}.runtime {code_term} immWords)"
+                           f"({layout_term}.{'runtimeN' if any(width == 20 for width, _ in immutable_sites.values()) else 'runtime'} {code_term} immWords)"
                            if immutable_sites is not None else
                            f"({code_term} ++ tail)" if creation_code else code_term)
     assumptions: list[str] = []
@@ -1065,7 +1070,7 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                           fail_on_unsupported: bool = False, keep_metadata: bool = False,
                           max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
                           creation_code: bool = False,
-                          immutable_sites: dict[int, str] | None = None,
+                          immutable_sites: dict[int, tuple[int, str]] | None = None,
                           layout_term: str | None = None,
                           runtime_suffix: bool = False) -> list[GeneratedUnit]:
     """Generate theorem/comment units with index metadata and no module wrapper."""
@@ -1125,7 +1130,7 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                    fail_on_unsupported: bool = False, keep_metadata: bool = False,
                    max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
                    creation_code: bool = False,
-                   immutable_sites: dict[int, str] | None = None,
+                   immutable_sites: dict[int, tuple[int, str]] | None = None,
                    layout_term: str | None = None,
                    runtime_suffix: bool = False) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
@@ -1139,13 +1144,16 @@ def generate_units(code: bytes, prefix: str, code_term: str,
 
 
 def render_immutable_helpers(code: bytes, code_term: str, layout_term: str,
-                             units: list[Unit], sites: dict[int, str]) -> list[str]:
+                             units: list[Unit], sites: dict[int, tuple[int, str]]) -> list[str]:
     """Emit local decode proofs for the instructions used by this module."""
+    if any(width == 20 for width, _ in sites.values()):
+        return render_immutable_helpers_n(code, code_term, layout_term, units, sites)
     used_pcs = {pc for unit in units if isinstance(unit, GeneratedUnit)
                 for pc in unit.pcs if pc + 1 in sites}
     instructions = {ins.pc: ins for ins in disassemble(code)}
     site_entries = ", ".join(
-        f"({off}, 32, {json.dumps(key)})" for off, key in sites.items()
+        f"({off}, {width}, {json.dumps(key)})"
+        for off, (width, key) in sites.items()
     )
     output = [
         "theorem immutableLayout_sites :",
@@ -1165,23 +1173,23 @@ def render_immutable_helpers(code: bytes, code_term: str, layout_term: str,
     for pc in sorted(used_pcs):
         ins = instructions[pc]
         pc_term = f"(⟨{pc}⟩ : UInt256)"
-        is_site = ins.opcode == 0x7F and pc + 1 in sites
+        is_site = pc + 1 in sites
         if is_site:
             off = pc + 1
-            key = sites[off]
+            width, key = sites[off]
             site_list = list(sites.items())
             index = next(i for i, (site_off, _) in enumerate(site_list) if site_off == off)
-            def writes(entries: list[tuple[int, str]]) -> str:
+            def writes(entries: list[tuple[int, tuple[int, str]]]) -> str:
                 return "[" + ", ".join(
                     f"({site_off}, immWords {json.dumps(site_key)})"
-                    for site_off, site_key in entries
+                    for site_off, (_, site_key) in entries
                 ) + "]"
             before = writes(site_list[:index])
             after = writes(site_list[index + 1:])
             output += [
                 f"theorem immutableDecode_{pc} (immWords : String → UInt256) :",
                 f"    decode ({layout_term}.runtime {code_term} immWords) {pc_term} =",
-                f"      some (.Push .PUSH32, some (immWords {json.dumps(key)}, 32)) := by",
+                f"      some (.Push .PUSH{width}, some (immWords {json.dumps(key)}, {width})) := by",
                 f"  exact Layout.decodeSite (pc := {pc_term}) (words := immWords)",
                 f"    {off} {json.dumps(key)} {before} {after}",
                 "    (by native_decide) (immutableRuntime_size immWords)",
@@ -1199,10 +1207,60 @@ def render_immutable_helpers(code: bytes, code_term: str, layout_term: str,
     return output
 
 
+def render_immutable_helpers_n(code: bytes, code_term: str, layout_term: str,
+                               units: list[Unit],
+                               sites: dict[int, tuple[int, str]]) -> list[str]:
+    """Emit decode proofs for mixed PUSH20/PUSH32 layouts."""
+    used_pcs = {pc for unit in units if isinstance(unit, GeneratedUnit)
+                for pc in unit.pcs if pc + 1 in sites}
+    entries = list(sites.items())
+
+    def site_list(items: list[tuple[int, tuple[int, str]]]) -> str:
+        return "[" + ", ".join(
+            f"({off}, {width}, {json.dumps(key)})"
+            for off, (width, key) in items
+        ) + "]"
+
+    output = [
+        "theorem immutableLayout_sites :",
+        f"    {layout_term}.sites = {site_list(entries)} := by native_decide",
+        "",
+        "theorem immutableLayout_inBounds :",
+        f"    {layout_term}.inBoundsN {code_term} = true := by native_decide",
+        "",
+        "theorem immutableTemplate_size64 :",
+        f"    {code_term}.size < 2 ^ 64 := by native_decide",
+        "",
+        "theorem immutableRuntime_size (immWords : String → UInt256) :",
+        f"    ({layout_term}.runtimeN {code_term} immWords).size = {code_term}.size := by",
+        "  exact Layout.runtimeN_size_of_bounds immutableLayout_inBounds",
+        "",
+    ]
+    for pc in sorted(used_pcs):
+        off = pc + 1
+        width, key = sites[off]
+        index = next(i for i, (site_off, _) in enumerate(entries) if site_off == off)
+        before, after = entries[:index], entries[index + 1:]
+        pc_term = f"(⟨{pc}⟩ : UInt256)"
+        output += [
+            f"theorem immutableDecode_{pc} (immWords : String → UInt256) :",
+            f"    decode ({layout_term}.runtimeN {code_term} immWords) {pc_term} =",
+            f"      some (.Push .PUSH{width}, some (Layout.siteWord {width} (immWords {json.dumps(key)}), {width})) := by",
+            f"  exact Layout.decodeSite{width if width == 20 else '32N'}",
+            f"    (pc := {pc_term}) (words := immWords) {off} {json.dumps(key)}",
+            f"    {site_list(before)} {site_list(after)}",
+            "    (by native_decide) immutableLayout_inBounds immutableTemplate_size64",
+            "    (by native_decide) (by native_decide)",
+            "    (by simpa [immutableLayout_sites]) (by native_decide)",
+            "",
+        ]
+    return output
+
+
 def render_module(prefix: str, imports: list[str], units: list[Unit],
                   creation_code: bool = False,
                   code_term: str | None = None,
-                  immutable_sites: dict[int, str] | None = None,
+                  immutable_sites: dict[int, tuple[int, str]] | None = None,
                   code: bytes | None = None,
                   layout_term: str | None = None,
                   runtime_suffix: bool = False) -> str:
@@ -1243,7 +1301,7 @@ def generate(code: bytes, prefix: str, code_term: str, imports: list[str],
              fail_on_unsupported: bool = False, keep_metadata: bool = False,
              max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
              creation_code: bool = False,
-             immutable_sites: dict[int, str] | None = None,
+             immutable_sites: dict[int, tuple[int, str]] | None = None,
              layout_term: str | None = None,
              runtime_suffix: bool = False) -> str:
     """Generate a single Lean module. Use ``write_outputs`` for file sharding."""
@@ -1339,7 +1397,7 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
                   shard_size: int | None, creation_code: bool = False,
                   code_term: str | None = None,
                   index_output: Path | None = None,
-                  immutable_sites: dict[int, str] | None = None,
+                  immutable_sites: dict[int, tuple[int, str]] | None = None,
                   code: bytes | None = None,
                   layout_term: str | None = None,
                   runtime_suffix: bool = False) -> list[Path]:

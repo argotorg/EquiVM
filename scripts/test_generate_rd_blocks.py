@@ -102,11 +102,26 @@ class GeneratorTests(unittest.TestCase):
                 [{"offset": 2, "length": 32, "key": "owner"}],
                 bytes([0x7F, *([0] * 32)]))
 
-    def test_immutable_layout_rejects_value_dependent_width(self) -> None:
-        with self.assertRaisesRegex(ValueError, "must have length 32"):
+    def test_immutable_layout_rejects_width_mismatched_to_opcode(self) -> None:
+        with self.assertRaisesRegex(ValueError, "not a PUSH20 payload"):
             rd.validate_immutable_sites(
                 [{"offset": 1, "length": 20, "key": "owner"}],
                 bytes([0x7F, *([0] * 32)]))
+        with self.assertRaisesRegex(ValueError, "length 20 or 32"):
+            rd.validate_immutable_sites(
+                [{"offset": 1, "length": 21, "key": "owner"}],
+                bytes([0x74, *([0] * 21)]))
+
+    def test_immutable_layout_accepts_push20(self) -> None:
+        code = bytes([0x73, *([0] * 20), 0x50, 0x00])
+        sites = rd.validate_immutable_sites(
+            [{"offset": 1, "length": 20, "key": "owner"}], code)
+        rendered = rd.generate(code, "imm20", "template", ["Contract.Immutables"],
+                               immutable_sites=sites, layout_term="Contract.layout")
+        self.assertIn("RD (Contract.layout.runtimeN template immWords)", rendered)
+        self.assertIn('Layout.siteWord 20 (immWords "owner")', rendered)
+        self.assertIn("Layout.decodeSite20", rendered)
+        self.assertIn("immutable_decode_n(", rendered)
 
     def test_full_copy_variants_discharge_guard(self) -> None:
         variants = (
