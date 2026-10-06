@@ -1,4 +1,5 @@
 import Solm
+import Reasoning.Immutables
 
 /-!
 # Compound III Comet immutable values, offset table, and `runtimeCodeOf`
@@ -104,6 +105,10 @@ def offsets : List (Ident × List Nat) :=
     ("imm_numAssets", [5030, 7705, 10456, 10797, 16643]),
     ("imm_accrualDescaleFactor", [11826]),
     ("imm_assetList", [6223, 7424]) ]
+
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
 
 /-- The immutable values as `Value`s under their `imm_<name>` keys. -/
 def immValues (v : CometImmutables) : List (Ident × Value) :=
