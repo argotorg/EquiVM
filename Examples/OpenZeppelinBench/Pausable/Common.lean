@@ -335,14 +335,14 @@ theorem pausableNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem pausableShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (pausableX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (pausableDispatch_none_short hsz)
 
 theorem pausableNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size

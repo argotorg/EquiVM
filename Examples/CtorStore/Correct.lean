@@ -44,8 +44,8 @@ theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
     raw rev 0 (by decide) mem_cost (by evm_ov)]
 
 theorem ctorStoreRuntimeCorrect :
-    runtimeEquivalence ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun σ σ₀ g A I hcode _hsize _hperm => ?_⟩
+    runtimeEquivalenceAnyPerm ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
+  refine ⟨fun σ σ₀ g A I hcode _hsize => ?_⟩
   exact (ctorStoreRuntimeRevert (σ := σ)
     (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode
@@ -392,6 +392,6 @@ theorem ctorStoreConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorStoreCorrect :
-    contractEquivalence ctorStoreConfig ctorStoreInitcode ctorStoreRuntimeBytecode
+    contractEquivalenceAnyPerm ctorStoreConfig ctorStoreInitcode ctorStoreRuntimeBytecode
       CtorStore.contract :=
-  contractEquivalence.intro ctorStoreConstructorCorrect ctorStoreRuntimeCorrect
+  contractEquivalenceAnyPerm.intro ctorStoreConstructorCorrect ctorStoreRuntimeCorrect

@@ -18,7 +18,6 @@ theorem stringStoreLiteSetValidRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -41,9 +40,9 @@ theorem stringStoreLiteSetValidRuntime
       σ σ₀ g A I := by
   by_cases hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
-  · exact stringStoreLiteSetNewShortRuntime hcode hsize hperm hwv hsel hsz36 hhi
+  · exact stringStoreLiteSetNewShortRuntime hcode hsize hwv hsel hsz36 hhi
       hoffMax hlenWord hsizeSign hlenMax hpayload hnonzero hnewShort
-  · exact stringStoreLiteSetNewLongRuntime hcode hsize hperm hwv hsel hsz36 hhi
+  · exact stringStoreLiteSetNewLongRuntime hcode hsize hwv hsel hsz36 hhi
       hoffMax hlenWord hsizeSign hlenMax hpayload hnonzero hnewShort
 
 

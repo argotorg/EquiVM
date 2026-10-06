@@ -2641,7 +2641,6 @@ theorem clearCurrentBaseMemFrom_size_eq {mem : ByteArray}
 
 theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     {g : Sat256} {len : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨145⟩ [stringStoreLiteSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -2651,12 +2650,14 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     (hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hnonzero : len ≠ ⟨0⟩)
     (hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩) :
+    (I.perm = true ∧
     RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
       (clearDataWordsForwardFrom I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩)
         clearCurrentBaseWord ⟨0⟩
         (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat)
-      (UInt256.toByteArray len) := by
+      (UInt256.toByteArray len)) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let fuel := (len.toNat - 1) / 32
   let copyAwStore := UInt256.ofNat
     (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
@@ -2715,9 +2716,9 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     simpa [copyFinal, fuel, copyAwStore, copyMloadCost, copyAwLoad] using
       stringStoreLiteX_clearCurrentLongReachDeleteGenerated
         (g := g) (len := len) hreach hflag hvalid hlen hnonzero hgt31
-  have hdelReach := stringStoreLiteX_clearCurrentDeleteLongValid
+  refine permSplit_bind (stringStoreLiteX_clearCurrentDeleteLongValid
     (g := g) (len := len) (mem := copyFinal.memout) (aw := copyFinal.awLoad)
-    hperm hreadStart hflag hvalid hlen hgt31
+    hreadStart hflag hvalid hlen hgt31) fun _ hdelReach => ?_
   have hadd32 : ∀ i, i ≤ fuel →
       (((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr).toNat =
         (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32) := by

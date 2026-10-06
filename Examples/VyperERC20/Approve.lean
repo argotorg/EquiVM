@@ -84,6 +84,14 @@ theorem evalExpr_approve_value (evm : EVM.State) (I : ExecutionEnv) :
   simp only [evalExpr?, EvalResult.ofOption]
   rw [approveStore_value]
 
+/-- The `Approval(msg.sender, spender, value)` event arguments of the shared ERC20 spec. -/
+theorem evalExprs_approve_event (evm : EVM.State) (I : ExecutionEnv) :
+    evalExprs? vyperERC20Config { contract := erc20Contract, locals := approveStore I } evm
+      [ERC20.sender, .var "spender", .var "value"]
+      = .ok [.address evm.executionEnv.source, approveSpenderValue I, approveValueValue I] := by
+  simp [evalExprs?, evalExpr_approve_spender, evalExpr_approve_value, ERC20.sender, evalExpr?,
+    envValue, EvalResult.bind, bind, pure]
+
 def approveEvaledRef (evm : EVM.State) (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "allowance",
     steps := [.mindex (.address evm.executionEnv.source),
@@ -151,7 +159,18 @@ theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
   refine ExecBlock.consNormal (ExecStmt.assign (evalExpr_approve_value evm I) (approveAssign evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.emit (evalExprs_approve_event (approvePostState evm I) I)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- Static mode: the body halts at the allowance write. -/
+theorem erc20ApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody vyperERC20Config erc20Contract evm (approveStore I)
+      ERC20.approveTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_value evm I) (approveAssign evm I) hperm)
 
 def approveDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 807 ByteArray.empty 30 2
@@ -408,15 +427,15 @@ macro "vyper_erc20_approve_decode" : tactic =>
 
 theorem erc20X_approveFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨206⟩
       [approveSelectorWord] approveDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
-    RDret vyperERC20Bytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret vyperERC20Bytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveValueWord I))
-      (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
+      (UInt256.toByteArray (⟨1⟩ : UInt256)))
+    ∨ (I.perm = false ∧ RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd206⟩ := hreach
   have hslot := approveOuterKeccakSlot I hcanonSpender
   have hsizeGuard := calldataSizeGuard68 (n := I.calldata.size) hsz68 hsize
@@ -467,8 +486,13 @@ theorem erc20X_approveFromEntry {σ σ₀ A I} {g : Sat256}
     raw keccak256 0 (approveSlotI I) (UInt256.ofNat 3)
       (by vyper_erc20_approve_decode) mem_cost hslot (by decide) (by evm_ov),
     swap1, pop]
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rdBeforeStore.sstoreStatic hpf (by vyper_erc20_approve_decode) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
   obtain ⟨k1, C1, rdAfterStore⟩ :=
-    rdBeforeStore.sstore hperm (by vyper_erc20_approve_decode) (by evm_ov)
+    rdBeforeStore.sstore hp (by vyper_erc20_approve_decode) (by evm_ov)
   have rdAfterTopic := (evm_run rdAfterStore with [
     push1 ⟨64⟩,
     raw mload 0 (approveSpenderWord I) (UInt256.ofNat 3)
@@ -489,7 +513,7 @@ theorem erc20X_approveFromEntry {σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_approve_decode) mem_cost rfl (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨96⟩]
   have rdAfterLog := rdBeforeLog.log3 0 (UInt256.ofNat 4)
-    (by vyper_erc20_approve_decode) hperm mem_cost (by decide) (by evm_ov)
+    (by vyper_erc20_approve_decode) hp mem_cost (by decide) (by evm_ov)
   have rdBeforeReturn := evm_run rdAfterLog with [
     push1 ⟨1⟩, push1 ⟨96⟩,
     raw mstore 0 (approveReturnMem (approveOwnerWord I) (approveSpenderWord I) (approveValueWord I))
@@ -610,7 +634,6 @@ theorem erc20Dispatch_approve {cd : ByteArray}
 theorem erc20ApproveBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
@@ -632,12 +655,19 @@ theorem erc20ApproveBodyCore
             (transitionSignature ERC20.approveTransition).paramTypes I.calldata =
               some (approveStore I) := by
         simpa [vyperERC20Config] using hdec0
-      exact (erc20X_approveFromEntry (g := Sat256.ofUInt256 g)
-          hwv hperm hsz68 hsize hcanonSpender hreach)
-        |>.reEquivExecutionGen hcode hd hdec hbody
-          (by simp [evm, approvePostState, approveSlot, approveSlotI, initState,
-            storageStore_accountMap])
-          (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
+      by_cases hperm : I.perm = true
+      · exact (permSplit_true hperm (erc20X_approveFromEntry (g := Sat256.ofUInt256 g)
+            hwv hsz68 hsize hcanonSpender hreach))
+          |>.reEquivExecutionGen hcode hd hdec hbody
+            (by simp [evm, approvePostState, approveSlot, approveSlotI, initState,
+              storageStore_accountMap])
+            (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
+      · have hpf : I.perm = false := by simpa using hperm
+        exact (permSplit_false hpf (erc20X_approveFromEntry (g := Sat256.ofUInt256 g)
+            hwv hsz68 hsize hcanonSpender hreach))
+          |>.reEquivStaticHalt hcode hd hdec
+            (erc20ApproveBodyStatic evm I (by simp only [evm, initState]; exact hwv)
+              (by simp only [evm, initState]; exact hpf))
     · have hdec0 := erc20Decode_approve_none_noncanon (I := I) hsz68 hcanonSpender
       have hdec :
           decodeCalldataWithMode vyperERC20Config.abiDecodeMode
@@ -660,12 +690,11 @@ theorem erc20ApproveBodyCore
 theorem erc20ApproveRuntimeSuccess
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     runtimeEquivalenceFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
-  exact erc20ApproveBodyCore hcode hwv hperm hsize hsel
+  exact erc20ApproveBodyCore hcode hwv hsize hsel
     (erc20X_approveReach (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
 

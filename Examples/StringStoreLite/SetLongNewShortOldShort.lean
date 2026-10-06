@@ -17,7 +17,6 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -111,11 +110,11 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
     simpa [len, payloadStart] using rd175₀
   obtain ⟨_, _, rd1350⟩ :=
     stringStoreLiteX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
-  have hwriteReach := stringStoreLiteX_setWriteShortNonemptyValid
-    (oldLen := oldLen) hperm hnz hshort hsrc rd1350 hflag rfl
-    (by simpa [oldLen] using hvalid)
-  have hret := stringStoreLiteX_setShortNonemptyReturnFromWrite
-    (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
+  have hsplit := permSplit_bind (stringStoreLiteX_setWriteShortNonemptyValid
+    (oldLen := oldLen) hnz hshort hsrc rd1350 hflag rfl
+    (by simpa [oldLen] using hvalid))
+    fun _ hwriteReach => stringStoreLiteX_setShortNonemptyReturnFromWrite
+      (payloadStart := payloadStart) (len := len) hnz hshort hsrc hwriteReach
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -145,7 +144,11 @@ theorem stringStoreLiteSetNewShortOldShortValidRuntime
         solidityShortBytesWord (setDecodedValueBytes I) :=
     setShortPackedHeader_eq_solidityShortBytesWord (I := I) (len := len)
       (payloadStart := payloadStart) hlenAbi rfl hoffMax hnz hshort hsrc hpayload
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by simp [evmSolm1, evmSolm0, initState, storageStore_accountMap, hheaderEq])
     hretEnc
 

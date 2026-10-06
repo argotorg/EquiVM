@@ -124,7 +124,7 @@ theorem blindAuctionDecode_beneficiary {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
 theorem blindAuctionBeneficiaryBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
+    (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨278⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -132,7 +132,6 @@ theorem blindAuctionBeneficiaryBodyCore {σ σ₀ A I}
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionBeneficiarySelector_size hsel
   have hd := blindAuctionDispatch_beneficiary (cd := I.calldata) hsel

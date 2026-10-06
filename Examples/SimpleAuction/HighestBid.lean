@@ -120,7 +120,7 @@ theorem simpleAuctionDecode_highestBid {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
 theorem simpleAuctionHighestBidBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩)
+    (hsel : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty

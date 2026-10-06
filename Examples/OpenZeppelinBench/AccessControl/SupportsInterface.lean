@@ -796,7 +796,7 @@ theorem accessControlSupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
 theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨126⟩
@@ -804,7 +804,6 @@ theorem accessControlSupportsInterfaceBody {σ σ₀ A I}
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := supportsInterfaceSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_supportsInterface (cd := I.calldata) (by
     simpa [selIs] using hsel)

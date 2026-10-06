@@ -593,7 +593,7 @@ theorem blindAuctionReturnOneWord206 {g : Sat256} {s0 : State} {ee : ExecutionEn
 
 theorem blindAuctionShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsz : I.calldata.size < 4) :
+    (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   exact (blindAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
@@ -601,7 +601,6 @@ theorem blindAuctionShortRevert {σ σ₀ A I} {g : UInt256}
 
 theorem blindAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hnm : ∀ i, i < 11 → (blindAuctionSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by

@@ -1186,7 +1186,6 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
     {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hperm : I.perm = true)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
     (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
     (henough : (transferFromAmountWord I).toNat ≤
@@ -1200,7 +1199,7 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
         transferFromIdWord I, transferFromReceiverWord I, transferFromSenderWord I,
         ⟨193⟩, sel]
       base (UInt256.ofNat 3) ByteArray.empty σcur k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
       [transferFromCallerWord I, transferFromAmountWord I, transferFromIdWord I,
         transferFromReceiverWord I, transferFromSenderWord I, ⟨760⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
@@ -1212,7 +1211,8 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
         (transferFromSenderWord I) (transferFromIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
-        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
+        (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1437⟩ := erc6909TransferFromX_from1323_afterRequire_base
     (σ := σ) (σ₀ := σ₀) (σcur := σcur)
     (A := A) (g := g) (sel := sel) hbase hcanonSender hsenderNZ henough rd1323
@@ -1298,8 +1298,11 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
   rw [hdebit, hslot] at rd1475
-  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
-  exact ⟨_, _, by simpa [senderMem] using rd1476⟩
+  by_cases hp : I.perm = true
+  · obtain ⟨_, _, rd1476⟩ := rd1475.sstore hp (by decide) (by evm_ov)
+    exact Or.inl ⟨hp, _, _, by simpa [senderMem] using rd1476⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1475.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc6909TransferFromX_from1323_toCheckedAdd_base
     {σ σ₀ σcur A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -1340,10 +1343,10 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σcur (transferFromSenderBalanceSlot I)
         (transferFromTailSenderDebitWord (initState σcur σ₀ g A I) I)) k C := by
-  obtain ⟨_, _, rd1476⟩ := erc6909TransferFromX_from1323_afterDebit_base
+  obtain ⟨_, _, rd1476⟩ := permSplit_true hperm (erc6909TransferFromX_from1323_afterDebit_base
     (σ := σ) (σ₀ := σ₀) (σcur := σcur)
-    (A := A) (g := g) (sel := sel) hbase hread64 hperm hcanonSender hsenderNZ
-    henough rd1323
+    (A := A) (g := g) (sel := sel) hbase hread64 hcanonSender hsenderNZ
+    henough rd1323)
   let senderMem := transferMapScratchMem base (transferFromSenderWord I) (transferFromIdWord I)
   let debitMem := transferMapScratchMem senderMem (transferFromSenderWord I)
     (transferFromIdWord I)

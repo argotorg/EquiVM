@@ -246,8 +246,8 @@ theorem truthReEquiv_callvalueZero
 
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem truthCorrect :
-    runtimeEquivalence truthConfig truthBytecode truthContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+    runtimeEquivalenceAnyPerm truthConfig truthBytecode truthContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact truthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
@@ -333,5 +333,5 @@ theorem truthConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem truthContractCorrect :
-    contractEquivalence truthConfig ctorTruthInitcode truthBytecode truthContract :=
-  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode) truthCorrect
+    contractEquivalenceAnyPerm truthConfig ctorTruthInitcode truthBytecode truthContract :=
+  emptyContractCorrectAnyPerm_of_RDret rfl rfl rfl (fun hcode => truthInitcodeRun hcode) truthCorrect

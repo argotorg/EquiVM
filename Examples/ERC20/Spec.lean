@@ -6,8 +6,9 @@ import Solm.SolidityLayout
 
 This is the Solm-level specification for the core ERC20 surface:
 `totalSupply`, `balanceOf`, `allowance`, `approve`, `transfer`, and `transferFrom`.
-The Solidity contract emits the standard events, but the current Solm statement tracks storage and
-return values only.
+The mutating transitions `emit` the standard events where the runtime bytecode logs them; the log
+itself is not modelled.  The compiled constructor prefix used here logs nothing, so the spec
+constructor has no `emit`.
 -/
 
 open Solm ABI
@@ -143,6 +144,7 @@ def approveTransition : TransitionDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
+        .emit "Approval" [sender, .var "spender", .var "value"],
         .return [(.boolLit true)] ] }
 
 def transferTransition : TransitionDecl :=
@@ -158,6 +160,7 @@ def transferTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .emit "Transfer" [sender, .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -180,6 +183,7 @@ def transferFromTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .emit "Transfer" [.var "from", .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
 def erc20Contract : ContractDecl :=

@@ -449,6 +449,75 @@ theorem erc6909TransferFromX_operatorApproved_success
     (g := g) (sel := sel) (base := base) hbase hread64 hperm hcanonSender hcanonReceiver
     hsenderNZ hreceiverNZ henough hfit rd1323
 
+/-- Unlimited-allowance path in static mode: the run halts at the sender debit. -/
+theorem erc6909TransferFromX_operatorFalse_allowanceMax_static
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hpf : I.perm = false)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
+    (hopZero : transferFromOperatorWord (initState σ σ₀ g A I) I = ⟨0⟩)
+    (hallowanceMax : UInt256.size - 1 ≤
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have hbase := transferFromOperatorAllowanceScratchMem_size I
+  have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
+  obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_operatorFalse_allowanceMax_to1323
+    (σ := σ) (σ₀ := σ₀) (A := A)
+    (g := g) (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver
+    hsenderNe hopZero hallowanceMax hsenderNZ hreceiverNZ hreach
+  exact permSplit_false hpf (erc6909TransferFromX_from1323_afterDebit_base
+    (σ := σ) (σ₀ := σ₀) (σcur := σ)
+    (A := A) (g := g) (sel := sel) (base := transferFromOperatorAllowanceScratchMem I)
+    hbase hread64 hcanonSender hsenderNZ henough rd1323)
+
+/-- Approved-operator path in static mode: the run halts at the sender debit. -/
+theorem erc6909TransferFromX_operatorApproved_static
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hsz132 : 132 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
+    (hpf : I.perm = false)
+    (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus)
+    (hcanonReceiver : (transferFromReceiverWord I).toNat < EVM.addressModulus)
+    (hsenderNe : transferFromSenderWord I ≠ transferFromCallerWord I)
+    (hop : transferFromOperatorWord (initState σ σ₀ g A I) I ≠ ⟨0⟩)
+    (hsenderNZ : transferFromSenderWord I ≠ ⟨0⟩)
+    (hreceiverNZ : transferFromReceiverWord I ≠ ⟨0⟩)
+    (henough : (transferFromAmountWord I).toNat ≤
+      (transferFromSenderBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g
+      (initState σ σ₀ g A I) ⟨388⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  let base := isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)
+  have hbase : base.size = 96 := by
+    dsimp [base]
+    exact isOperatorOuterHashMem_size (transferFromSenderWord I) (transferFromCallerWord I)
+  have hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+    dsimp [base]
+    exact isOperatorOuterHashMem_read64 (transferFromSenderWord I) (transferFromCallerWord I)
+  obtain ⟨_, _, rd661⟩ := erc6909TransferFromX_operatorApproved_toUpdate
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (sel := sel) hsz132 hsize hszhi hcanonSender hcanonReceiver hsenderNe hop hreach
+  obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_from661_toUpdateHelper_base
+    (σ := σ) (σ₀ := σ₀) (σcur := σ) (A := A)
+    (g := g) (sel := sel) (base := base) hcanonSender hcanonReceiver hsenderNZ
+    hreceiverNZ rd661
+  exact permSplit_false hpf (erc6909TransferFromX_from1323_afterDebit_base
+    (σ := σ) (σ₀ := σ₀) (σcur := σ) (A := A)
+    (g := g) (sel := sel) (base := base) hbase hread64 hcanonSender hsenderNZ henough rd1323)
+
 theorem erc6909TransferFromX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

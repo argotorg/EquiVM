@@ -108,7 +108,7 @@ theorem simpleAuctionDecode_beneficiary {I : ExecutionEnv} (hsz : 4 ≤ I.callda
 theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
+    (hsel : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨144⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -116,7 +116,6 @@ theorem simpleAuctionBeneficiaryBody {σ σ₀ A I}
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
   have hsz := simpleAuctionBeneficiarySelector_size hsel
   have hd := simpleAuctionDispatch_beneficiary (cd := I.calldata) hsel
   have hdec := simpleAuctionDecode_beneficiary (I := I) hsz

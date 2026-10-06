@@ -1304,6 +1304,36 @@ theorem ballotDelegateBodyReturns_notVoted (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_delegate_delegate_weight_add (delegateAfterSenderState evm I) I hfit)
       (delegateAssignVoterWeight evm I)) ExecBlock.nil
 
+/-- Static mode (no delegation chain): the body halts at `sender.voted = true`. -/
+theorem ballotDelegateBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hcanon : (delegateToWord I).toNat < EVM.addressModulus)
+    (hweight : delegateSenderWeightCurrent evm I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
+    (hnotself : delegateToWord I ≠ delegateSourceWord I)
+    (hdelegate : delegateVoterDelegateWordCurrent evm I = ⟨0⟩)
+    (hdelegateWeight : delegateVoterWeightCurrent evm I ≠ ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+      delegateTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letStorage (resolveStorageRef_delegate_sender evm I hsrc)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_sender_weight_zero_false evm I hweight)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_sender_not_voted_true evm I hvoted)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_to_ne_sender_true evm I hsrc hcanon hnotself)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.whileFalse (evalExpr_delegate_loop_done evm I hdelegate)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letStorage (resolveStorageRef_delegate_voter evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_delegate_weight_ge_true evm I hdelegateWeight)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (delegateAssignVoted evm I) hperm)
+
 theorem ballotDelegateBodyReverts_notVotedOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -3014,7 +3044,7 @@ theorem ballotDelegateX_delegateWeightRevert {σ σ₀ A I} {g : Sat256}
 theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (delegateToWord I).toNat < EVM.addressModulus)
     (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
     (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
@@ -3023,11 +3053,12 @@ theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
     (hdelegateWeight : delegateVoterWeightWord σ I (delegateToWord I) ≠ ⟨0⟩)
     (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨245⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
+    (I.perm = true ∧ ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot (delegateToWord I), delegateSenderSlot I, delegateToWord I,
         ⟨156⟩, sel]
       (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)) (UInt256.ofNat 3)
-      ByteArray.empty (delegateAfterSenderMap σ I) k C := by
+      ByteArray.empty (delegateAfterSenderMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic ballotBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1174⟩ := ballotDelegateX_afterDelegateWeight
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach
@@ -3049,7 +3080,12 @@ theorem ballotDelegateX_afterSenderPackedStore {σ σ₀ A I} {g : Sat256}
   have rd1208 := evm_run rd1207 with [dup3]
   have rd1209 := RD.or rd1208 (by decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
-  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1210.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hp (by decide) (by evm_ov)
+  refine Or.inl ⟨hp, ?_⟩
   exact ⟨_, _, by
     simpa [delegateAfterSenderMap, delegateSenderPackedStoreWord, delegateSenderPackedWord,
       delegateSenderPackedSlot, initState] using rd1211⟩
@@ -3072,9 +3108,9 @@ theorem ballotDelegateX_delegateNotVotedBranch {σ σ₀ A I} {g : Sat256}
       [delegateVoterSlot (delegateToWord I), delegateSenderSlot I, delegateToWord I, ⟨156⟩, sel]
       (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)) (UInt256.ofNat 3)
       ByteArray.empty (delegateAfterSenderMap σ I) k C := by
-  obtain ⟨_, _, rd1211⟩ := ballotDelegateX_afterSenderPackedStore
+  obtain ⟨_, _, rd1211⟩ := permSplit_true hperm (ballotDelegateX_afterSenderPackedStore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
-    hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach
+    hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach)
   have rd1213 := evm_run rd1211 with [dup2, add]
   obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
@@ -3117,9 +3153,9 @@ theorem ballotDelegateX_delegateVotedBranch {σ σ₀ A I} {g : Sat256}
       [delegateVoterSlot (delegateToWord I), delegateSenderSlot I, delegateToWord I, ⟨156⟩, sel]
       (delegateLoopHashMem (delegateToWord I) (delegateSourceWord I)) (UInt256.ofNat 3)
       ByteArray.empty (delegateAfterSenderMap σ I) k C := by
-  obtain ⟨_, _, rd1211⟩ := ballotDelegateX_afterSenderPackedStore
+  obtain ⟨_, _, rd1211⟩ := permSplit_true hperm (ballotDelegateX_afterSenderPackedStore
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
-    hsz36 hsize hszhi hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach
+    hsz36 hsize hszhi hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach)
   have rd1213 := evm_run rd1211 with [dup2, add]
   obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
@@ -3770,6 +3806,48 @@ theorem ballotDelegateDelegateWeightRevertEquiv
       hsz36 hsize hbig hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
+/-- Static mode (no delegation chain): both sides halt at the packed sender write. -/
+theorem ballotDelegateStaticEquiv
+    {σ σ₀ A I} {g : UInt256}
+    {sel : UInt256}
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩) (hpf : I.perm = false)
+    (hsel : ((⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hcanon : (delegateToWord I).toNat < EVM.addressModulus)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
+    (hnotself : delegateToWord I ≠ delegateSourceWord I)
+    (hdelegate : delegateVoterDelegateWord σ I (delegateToWord I) = ⟨0⟩)
+    (hdelegateWeight : delegateVoterWeightWord σ I (delegateToWord I) ≠ ⟨0⟩)
+    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
+  have hd := ballotDispatch_delegate (cd := I.calldata) hsel
+  have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanon
+  have hbody := ballotDelegateBodyStatic
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+    (by simp only [initState]; exact hwv)
+    (by simp [initState])
+    hcanon
+    (by rw [delegateSenderWeightCurrent_init]; exact hweight)
+    (by
+      rw [delegateSenderVotedByteCurrent_init]
+      exact hvoted)
+    hnotself
+    (by
+      rw [delegateVoterDelegateWordCurrent_init]
+      exact hdelegate)
+    (by
+      rw [delegateVoterWeightCurrent_init]
+      exact hdelegateWeight)
+    (by simp only [initState]; exact hpf)
+  exact (permSplit_false hpf (ballotDelegateX_afterSenderPackedStore (g := Sat256.ofUInt256 g)
+      hsz36 hsize hbig hcanon hweight hvoted hnotself hdelegate hdelegateWeight hreach))
+    |>.reEquivStaticHalt hcode hd hdec hbody
+
 theorem ballotDelegateNotVotedSuccessEquiv
     {σ σ₀ A I} {g : UInt256}
     {sel : UInt256}
@@ -4141,7 +4219,7 @@ theorem ballotDelegateDecodeNoncanonEquiv
 theorem ballotDelegateBodyCoreFrontier
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [sel]
@@ -4153,7 +4231,6 @@ theorem ballotDelegateBodyCoreFrontier
       delegateSenderWeightWord σ I ≠ ⟨0⟩ →
       delegateSenderVotedByte σ I = ⟨0⟩ →
       delegateToWord I ≠ delegateSourceWord I →
-      I.perm = true →
       delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩ →
       runtimeEquivalenceFor ballotConfig ballotContract
         σ σ₀ g A I) :
@@ -4175,7 +4252,11 @@ theorem ballotDelegateBodyCoreFrontier
                   delegateVoterWeightWord σ I (delegateToWord I) = ⟨0⟩
                 · exact ballotDelegateDelegateWeightRevertEquiv hcode hsize hwv hsel hsz36 hbig
                     hcanon hweight hvoted hself hdelegate hdelegateWeight hreach
-                · by_cases hdelegateNotVoted :
+                · by_cases hperm : I.perm = true
+                  swap
+                  · exact ballotDelegateStaticEquiv hcode hsize hwv (by simpa using hperm) hsel
+                      hsz36 hbig hcanon hweight hvoted hself hdelegate hdelegateWeight hreach
+                  by_cases hdelegateNotVoted :
                     delegateVoterVotedByte (delegateAfterSenderMap σ I) I
                       (delegateToWord I) = ⟨0⟩
                   · by_cases hfit :
@@ -4217,7 +4298,7 @@ theorem ballotDelegateBodyCoreFrontier
                     · exact ballotDelegateVotedOobEquiv hcode hsize hwv hperm hsel hsz36 hbig
                         hcanon hweight hvoted hself hdelegate hdelegateWeight hdelegateNotVoted
                         hbound hreach
-              · exact hsuccess hsz36 hbig hcanon hweight hvoted hself hperm hdelegate
+              · exact hsuccess hsz36 hbig hcanon hweight hvoted hself hdelegate
           · exact ballotDelegateVotedRevertEquiv hcode hsize hwv hsel hsz36 hbig hcanon hweight
               hvoted hreach
       · exact ballotDelegateDecodeNoncanonEquiv hcode hsize hsel hsz36 hbig hcanon hreach

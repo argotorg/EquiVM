@@ -642,6 +642,26 @@ theorem ballotVoteBodyReverts_voted (evm : EVM.State) (I : ExecutionEnv)
           ExecBlock.consRevert (ExecStmt.requireFalse
             (evalExpr_vote_sender_not_voted_false evm I hvoted))
 
+/-- Static mode: the body halts at its first storage write (`sender.voted = true`). -/
+theorem ballotVoteBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source = I.source)
+    (hweight : voteSenderWeightCurrent evm I ≠ ⟨0⟩)
+    (hvoted : voteSenderVotedByteCurrent evm I = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody ballotConfig ballotContract evm (voteStore I) voteTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letStorage (resolveStorageRef_vote_sender evm I hsource)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_vote_sender_weight_ne_zero_true evm I hweight)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_vote_sender_not_voted_true evm I hvoted)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (voteAssignVoted evm I) hperm)
+
 theorem ballotVoteBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsource : evm.executionEnv.source = I.source)
@@ -1153,14 +1173,15 @@ theorem ballotVoteX_afterNotVoted {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 theorem ballotVoteX_afterSenderStores {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hweight : voteSenderWeightWord σ I ≠ ⟨0⟩)
     (hvoted : voteSenderVotedByte σ I = ⟨0⟩)
     (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨137⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨611⟩
+    (I.perm = true ∧ ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨611⟩
       [⟨2⟩, voteSenderSlot I, voteProposalWord I, ⟨156⟩, sel]
-      (voteHashMem I) (UInt256.ofNat 3) ByteArray.empty (voteAfterVoteMap σ I) k C := by
+      (voteHashMem I) (UInt256.ofNat 3) ByteArray.empty (voteAfterVoteMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic ballotBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd586⟩ := ballotVoteX_afterNotVoted
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hweight hvoted hreach
@@ -1169,9 +1190,14 @@ theorem ballotVoteX_afterSenderStores {σ σ₀ A I} {g : Sat256} {sel : UInt256
   have rd600 := evm_run rd594 with [push1 ⟨255⟩, not, and, swap1, swap2]
   have rd601 := RD.or rd600 (by decide) (by evm_ov)
   have rd602 := evm_run rd601 with [swap1]
-  obtain ⟨_, _, rd603⟩ := rd602.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd602.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd603⟩ := rd602.sstore hp (by decide) (by evm_ov)
   have rd610 := evm_run rd603 with [push1 ⟨2⟩, dup1, dup3, add, dup4, swap1]
-  obtain ⟨_, _, rd611⟩ := rd610.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd611⟩ := rd610.sstore hp (by decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [voteAfterVoteMap, voteAfterVotedMap, voteSenderVotedStoreWord,
       voteSenderPackedWord, voteSenderPackedSlot, voteSenderVoteSlot, u256_add_comm,
@@ -1190,9 +1216,9 @@ theorem ballotVoteX_afterBounds {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       [voteProposalWord I, ⟨2⟩, voteSenderWeightWord (voteAfterVoteMap σ I) I,
         voteSenderSlot I, voteProposalWord I, ⟨156⟩, sel]
       (voteHashMem I) (UInt256.ofNat 3) ByteArray.empty (voteAfterVoteMap σ I) k C := by
-  obtain ⟨_, _, rd611⟩ := ballotVoteX_afterSenderStores
+  obtain ⟨_, _, rd611⟩ := permSplit_true hperm (ballotVoteX_afterSenderStores
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz36 hsize hszhi hperm hweight hvoted hreach
+    hsz36 hsize hszhi hweight hvoted hreach)
   have rd612 := evm_run rd611 with [dup2]
   obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD ballotBytecode I g
@@ -1447,9 +1473,9 @@ theorem ballotVoteX_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨137⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev ballotBytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, rd611⟩ := ballotVoteX_afterSenderStores
+  obtain ⟨_, _, rd611⟩ := permSplit_true hperm (ballotVoteX_afterSenderStores
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz36 hsize hszhi hperm hweight hvoted hreach
+    hsz36 hsize hszhi hweight hvoted hreach)
   have rd612 := evm_run rd611 with [dup2]
   obtain ⟨_, _, rd613₀⟩ := rd612.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd613⟩ : ∃ k C, RD ballotBytecode I g
@@ -1784,6 +1810,36 @@ theorem ballotVoteBodyCore_oob
       hsz36 hsize hbig hperm hweight hvoted hbound hreach)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
+theorem ballotVoteBodyCore_static
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hpf : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : ((⟨#[0x01, 0x21, 0xb9, 0x3f]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
+    (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
+    (hweight : voteSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : voteSenderVotedByte σ I = ⟨0⟩) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
+  have hd := ballotDispatch_vote (cd := I.calldata) hsel
+  have hdec := ballotDecode_vote_ok (I := I) hsz36 hbig
+  have hbody := ballotVoteBodyStatic
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+    (by simp only [initState]; exact hwv)
+    (by simp [initState])
+    (by
+      rw [voteSenderWeightCurrent_init]
+      exact hweight)
+    (by
+      rw [voteSenderVotedByteCurrent_init]
+      exact hvoted)
+    (by simp only [initState]; exact hpf)
+  exact (permSplit_false hpf (ballotVoteX_afterSenderStores (g := Sat256.ofUInt256 g)
+      hsz36 hsize hbig hweight hvoted hreach))
+    |>.reEquivStaticHalt hcode hd hdec hbody
+
 theorem ballotVoteBodyCore_voted
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -1816,7 +1872,7 @@ theorem ballotVoteBodyCore_voted
 theorem ballotVoteBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x01, 0x21, 0xb9, 0x3f]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [sel]
@@ -1828,7 +1884,11 @@ theorem ballotVoteBodyCore
     · by_cases hweight : voteSenderWeightWord σ I = ⟨0⟩
       · exact ballotVoteBodyCore_weight hcode hsize hwv hsel hreach hsz36 hbig hweight
       · by_cases hvoted : voteSenderVotedByte σ I = ⟨0⟩
-        · by_cases hbound :
+        · by_cases hperm : I.perm = true
+          swap
+          · exact ballotVoteBodyCore_static hcode hsize (by simpa using hperm) hwv hsel hreach
+              hsz36 hbig hweight hvoted
+          by_cases hbound :
             (voteProposalWord I).toNat <
               (voteProposalsLengthWord (voteAfterVoteMap σ I) I).toNat
           · by_cases hfit :

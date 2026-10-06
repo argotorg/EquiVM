@@ -206,11 +206,13 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     (hfakeLookup : lookupNth? fakes a.idx.toNat = some (rawBoolWordValue word))
     (hsecretLookup :
       lookupNth? secrets a.idx.toNat =
-        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
-    (hperm : I.perm = true) :
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))) :
     (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .reverted ∧
       RDrev blindAuctionBytecode g s0) ∨
+    (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        scratch_revealLoopBodyStmts .staticViolation ∧
+      RDstatic blindAuctionBytecode g s0) ∨
     ∃ a' L1 evm1 L2 evm2 k' C',
       (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
@@ -230,6 +232,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
   rcases hInv with
     ⟨_hiL, _hlenL, _hrefundL, _hbidsL, _hvaluesL, _hfakesL, _hsecretsL,
       _hvariant, _hidxLe, henv, _hσ0, _hsub, haccounts⟩
+  have hpermEvm : evm.executionEnv.perm = I.perm := by rw [henv]
   have hfakeNorm :
       normalizeRawBoolWord? (rawBoolWordValue word) = .ok (.bool true) := by
     exact scratch_normalizeRawBoolWord_true_of_u256 hfakeWordSmall
@@ -370,7 +373,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
         (secretsLen := secretsLen) (secretsEnd := secretsEnd)
         (fakesLen := fakesLen) (fakesEnd := fakesEnd)
         (valuesLen := valuesLen) (valuesEnd := valuesEnd) (sel := sel) rd1235
-    exact Or.inr <|
+    exact Or.inr <| Or.inr <|
       scratch_revealLoopAdvance_secretStore_continue
         (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
         (v := v) (k := kNext) (C := CNext) (loopLen := loopLen)
@@ -402,7 +405,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
         scratch_revealBidDepositSlot, scratch_revealBidBlindedSlot, slot, deposit,
         u256_zero_add, henv, haccounts] using hdepositEvm
     by_cases hfit : a.refund.toNat + deposit.toNat < UInt256.size
-    · obtain ⟨hbodyOk, hrdNext⟩ :=
+    · rcases
         scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair
           (I := I) (g := g) (s0 := s0) (k := kPacked) (C := CPacked)
           (mem := memPacked) (aw := awPacked) (rdata := ByteArray.empty)
@@ -420,11 +423,14 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
           (by simpa [hnewFreeEq] using rd1207) hfpPacked hlenPacked
           (by simpa [hashWord] using hhashPacked)
           hblindedEvm (by simpa [hashWord] using hflag1)
-          hdepositEvm hperm hbidsL hvaluesL hfakesL hsecretsL hiL hrefundL hlenSrc
+          hdepositEvm hpermEvm hbidsL hvaluesL hfakesL hsecretsL hiL hrefundL hlenSrc
           hboundBids hboundValues hboundFakes hboundSecrets hvalueLookup hfakeLookup hfakeNorm
           hsecretLookup hblindedSrc hdepositSrc (by simpa using hfakeOne) hfit (Or.inl rfl)
+        with ⟨_, hbodyOk, hrdNext⟩ | ⟨_, hbodySt, hrdSt⟩
+      swap
+      · exact Or.inr (Or.inl ⟨hbodySt, hrdSt⟩)
       obtain ⟨kNext, CNext, rdNext⟩ := hrdNext
-      exact Or.inr <|
+      exact Or.inr <| Or.inr <|
         scratch_revealLoopAdvance_refundAdded_zeroBlinded
           (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
           (v := v) (k := kNext) (C := CNext) (loopLen := loopLen) (slot := slot)

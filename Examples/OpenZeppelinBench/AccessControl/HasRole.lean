@@ -657,7 +657,7 @@ theorem accessControlHasRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
 theorem accessControlHasRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
@@ -665,7 +665,6 @@ theorem accessControlHasRoleBody {σ σ₀ A I}
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
   by_cases hsz68 : 68 ≤ I.calldata.size

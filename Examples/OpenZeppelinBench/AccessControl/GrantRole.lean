@@ -336,6 +336,29 @@ theorem accessControlGrantRoleBodyReturns_write (evm : EVM.State) (I : Execution
     exact ExecBlock.nil
   exact ExecBlock.nil
 
+/-- Static mode: the body halts at the role write inside the `if`. -/
+theorem accessControlGrantRoleBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hadmin : UInt256.land
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleAdminHasRoleSlot evm I))
+        ⟨255⟩ ≠ ⟨0⟩)
+    (htarget : UInt256.land
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (grantRoleTargetSlot I)) ⟨255⟩ =
+        ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (grantRoleStore I) grantRoleTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_grantRole_adminHasRole_true evm I hadmin)) ?_
+  refine ExecBlock.consStatic
+    (ExecStmt.iteTrue (evalExpr_grantRole_target_not_true evm I hsz68 htarget) ?_)
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (grantRoleAssignTarget evm I hsz68) hperm)
+
 theorem accessControlGrantRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -962,7 +985,6 @@ theorem accessControlGrantRoleX_grant_noop {σ σ₀ A I} {g : Sat256}
 
 theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus)
     (htarget : UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ = ⟨0⟩)
@@ -973,8 +995,9 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
       (revokeRoleHasRoleSlotHashMemFrom (grantRoleAdminStorageWord σ I)
         (grantRoleSourceWord I) (revokeRoleBaseHashMem (grantRoleRoleWord I)))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
-      (grantRolePostMap σ I) ByteArray.empty := by
+    (I.perm = true ∧ RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+      (grantRolePostMap σ I) ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic accessControlBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd379⟩ := hreach
   have rd540 := evm_run rd379 with [
     jumpdest, push2 ⟨389⟩, dup4, dup4, push2 ⟨540⟩, jump (by jump_dest) ]
@@ -1110,7 +1133,12 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     rw [hsetLandComm, u256_lor_comm]
     rfl
   rw [hsetWord] at rd597pre
-  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd597pre.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd598₀⟩ := rd597pre.sstore hp (by decide) (by evm_ov)
   have rd598 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨598⟩
         [⟨0⟩, grantRoleAccountWord I, grantRoleRoleWord I, ⟨389⟩,
@@ -1152,7 +1180,7 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
     decide
   have rd668' := rd668
   rw [hlen0] at rd668'
-  have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by decide) hperm
+  have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by decide) hp
     (by
       simp [M]
       native_decide)
@@ -1167,7 +1195,7 @@ theorem accessControlGrantRoleX_grant_write {σ σ₀ A I} {g : Sat256}
 theorem accessControlGrantRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x2f, 0x2f, 0xf1, 0x5d]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨214⟩
@@ -1175,7 +1203,6 @@ theorem accessControlGrantRoleBody {σ σ₀ A I}
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := grantRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_grantRole (cd := I.calldata)
     (by simpa [selIs] using hsel)
@@ -1226,18 +1253,26 @@ theorem accessControlGrantRoleBody {σ σ₀ A I}
               simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
                 grantRoleTargetStorageWord, grantRoleStorageWordAt, revokeRoleStorageWordAt] using
                   htarget
-            have hbody := accessControlGrantRoleBodyReturns_write evmS I hsz68
-              (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
-            exact (accessControlGrantRoleX_grant_write (g := Sat256.ofUInt256 g)
-                hperm hsz68 hcanonAccount htarget rd379)
-              |>.reEquivExecutionGen hcode hd hdec hbody
-                (by
-                  simp [grantRolePostState, grantRolePostMap, evmS, initState,
-                    storageStore_accountMap,
-                    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                    grantRoleTargetStorageWord, grantRoleStorageWordAt,
-                    revokeRoleStorageWordAt])
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+            by_cases hperm : I.perm = true
+            · have hbody := accessControlGrantRoleBodyReturns_write evmS I hsz68
+                (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
+              exact (permSplit_true hperm (accessControlGrantRoleX_grant_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanonAccount htarget rd379))
+                |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by
+                    simp [grantRolePostState, grantRolePostMap, evmS, initState,
+                      storageStore_accountMap,
+                      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                      grantRoleTargetStorageWord, grantRoleStorageWordAt,
+                      revokeRoleStorageWordAt])
+                  (returnEquiv.fallthrough rfl rfl (by native_decide))
+            · have hpf : I.perm = false := by simpa using hperm
+              have hbody := accessControlGrantRoleBodyStatic evmS I hsz68
+                (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
+                (by simp only [evmS, initState]; exact hpf)
+              exact (permSplit_false hpf (accessControlGrantRoleX_grant_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanonAccount htarget rd379))
+                |>.reEquivStaticHalt hcode hd hdec hbody
           · have htargetNonzero :
                 UInt256.land (grantRoleTargetStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :

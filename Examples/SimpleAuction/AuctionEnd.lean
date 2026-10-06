@@ -286,16 +286,17 @@ theorem simpleAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, evm_run rd598 with [push2 ⟨626⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
 theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨124⟩ [simpleAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndAuctionEndWord σ I).toNat ≤ (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩) :
-    ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨714⟩
+    (I.perm = true ∧ ∃ k C, RD simpleAuctionBytecode I g (initState σ σ₀ g A I) ⟨714⟩
       [⟨122⟩, simpleAuctionSelWord I]
       (auctionEndEventMem (auctionEndAfterEndedMap σ I) I) (UInt256.ofNat 6)
-      ByteArray.empty (auctionEndAfterEndedMap σ I) k C := by
+      ByteArray.empty (auctionEndAfterEndedMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic simpleAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd626⟩ := simpleAuctionX_auctionEnd_afterNotEnded
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime hended
   have rd630 := evm_run rd626 with [jumpdest, push1 ⟨5⟩, dup1]
@@ -321,7 +322,12 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
       (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩))
   rw [hlor] at rd638
   have rd639 := evm_run rd638 with [swap1]
-  obtain ⟨_, _, rd640₀⟩ := rd639.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd639.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd640₀⟩ := rd639.sstore hp (by decide) (by evm_ov)
   obtain ⟨_, _, rd640⟩ : ∃ k C, RD simpleAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨640⟩
       [⟨122⟩, simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -373,7 +379,7 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     decide
   have rd713' := rd713
   rw [hlen64] at rd713'
-  have rd714 := RD.log1 0 (UInt256.ofNat 6) rd713' (by decide) hperm
+  have rd714 := RD.log1 0 (UInt256.ofNat 6) rd713' (by decide) hp
     (by simp [M, MachineState.M, u256_ofNat_toNat]; native_decide)
     (by decide) (by evm_ov)
   exact ⟨_, _, by simpa [σa] using rd714⟩
@@ -394,9 +400,9 @@ theorem simpleAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
         ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
       (auctionEndEventMem (auctionEndAfterEndedMap σ I) I) (UInt256.ofNat 6)
       ByteArray.empty (auctionEndAfterEndedMap σ I) k C := by
-  obtain ⟨_, _, rd714⟩ := simpleAuctionX_auctionEnd_afterStoreAndLog
+  obtain ⟨_, _, rd714⟩ := permSplit_true hperm (simpleAuctionX_auctionEnd_afterStoreAndLog
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hperm hwv hreach htime hended
+    hwv hreach htime hended)
   let σa := auctionEndAfterEndedMap σ I
   have rd716 := evm_run rd714 with [push0, dup1]
   obtain ⟨_, _, rd717₀⟩ := rd716.sload (by decide) (by evm_ov)
@@ -879,6 +885,25 @@ theorem simpleAuctionAuctionEndBodyReverts_callFailure
       (evalExpr_auctionEnd_emptyBytes (auctionEndAfterEndedState evm)) hcall) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalExpr_auctionEnd_success evm' false out))
 
+/-- Static mode: the body halts at the `ended` write. -/
+theorem simpleAuctionAuctionEndBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (htime :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat ≤
+        (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+    (hended : auctionEndEndedWordState evm = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody simpleAuctionConfig simpleAuctionContract evm ∅
+      auctionEndTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold auctionEndTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_auctionEnd_time_true evm htime)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_auctionEnd_not_ended_true evm hended)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (auctionEndAssignEnded evm) hperm)
+
 theorem simpleAuctionAuctionEndBodyReturns_callSuccess
     (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1018,7 +1043,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_return {σ σ₀ A I} {g : Sat256}
 theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
+    (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨124⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -1054,6 +1079,20 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
       · have hendedSState : auctionEndEndedWordState evm = ⟨0⟩ := by
           simpa [evm, initState, auctionEndEndedWordState, auctionEndEndedRawWordState,
             auctionEndEndedWord, Solm.EVM.storageLoad, State.lookupAccount] using hendedZero
+        by_cases hperm : I.perm = true
+        swap
+        · -- static mode: both sides halt at the `ended` write
+          have hpf : I.perm = false := by simpa using hperm
+          have hbody := simpleAuctionAuctionEndBodyStatic evm
+            (by simpa [evm, initState] using hwv)
+            (by
+              simpa [evm, initState, auctionEndAuctionEndWord, auctionEndTimestampWord,
+                Solm.EVM.storageLoad, State.lookupAccount] using htimeLe)
+            hendedSState
+            (by simp only [evm, initState]; exact hpf)
+          exact (permSplit_false hpf (simpleAuctionX_auctionEnd_afterStoreAndLog
+              (g := Sat256.ofUInt256 g) hwv hreach htimeLe hendedZero))
+            |>.reEquivStaticHalt hcode hd hdec hbody
         let evmAfter := auctionEndAfterEndedState evm
         by_cases hdepthEq : I.depth = 1024
         · let evmSFail : EVM.State :=

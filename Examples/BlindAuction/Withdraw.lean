@@ -601,6 +601,38 @@ theorem blindAuctionWithdrawBodyReverts_callFailure
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_withdraw_success evm' amount false out))
 
+theorem blindAuctionWithdrawBodyStatic
+    (evm : EVM.State) (amount : UInt256)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hamount :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (withdrawAmountSlot evm.executionEnv) =
+        amount)
+    (hpos : amount ≠ ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody blindAuctionConfig blindAuctionContract evm ∅
+      withdrawTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold withdrawTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  have hamountEval :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := ∅ } evm
+        (.storage (pendingReturnsRef sender)) =
+          .ok (.int (Int.ofNat amount.toNat)) := by
+    simpa [hamount] using withdrawPendingReturns_load evm ∅ (by simp)
+  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consStatic
+    (ExecStmt.iteTrue (result := .staticViolation)
+      (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_)
+  show ExecBlock blindAuctionConfig
+    { contract := blindAuctionContract, locals := withdrawAmountStore amount } evm
+    [ .assign .storage (pendingReturnsRef sender) (.intLit 0),
+      .lowLevelCall sender (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
+      .require (.var "success") ]
+    .staticViolation
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (withdrawAssignZero evm amount) hperm)
+
 theorem blindAuctionWithdrawSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩) :
     4 ≤ I.calldata.size := by
@@ -709,12 +741,12 @@ theorem blindAuctionX_withdraw_zero {σ σ₀ A I} {g : Sat256}
 
 set_option maxHeartbeats 1000000 in
 theorem blindAuctionX_withdraw_toCall {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨332⟩ [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ gasArg k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨766⟩
       [gasArg, withdrawSourceWord I, withdrawAmountWord σ I,
@@ -722,7 +754,8 @@ theorem blindAuctionX_withdraw_toCall {σ σ₀ A I} {g : Sat256}
         withdrawAmountWord σ I, withdrawSourceWord I, ⟨0⟩,
         withdrawAmountWord σ I, ⟨276⟩, blindAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (withdrawZeroMap σ I) k C := by
+      (withdrawZeroMap σ I) k C) ∨
+      (I.perm = false ∧ RDstatic blindAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd850⟩ := blindAuctionX_withdraw_loadAmount
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach
   have hnez : UInt256.isZero (withdrawAmountWord σ I) = ⟨0⟩ :=
@@ -746,6 +779,11 @@ theorem blindAuctionX_withdraw_toCall {σ σ₀ A I} {g : Sat256}
     raw keccak256 0 (withdrawAmountSlot I) (UInt256.ofNat 3) (by decide)
       mem_cost (withdrawRehashMappingKeccak I) (by decide) (by evm_ov),
     dup3, swap1]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd873₀.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd874₀⟩ := rd873₀.sstore hperm (by decide) (by evm_ov)
   have rd765₀ := evm_run rd874₀ with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -785,9 +823,9 @@ theorem blindAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
             withdrawAmountWord σ I, withdrawSourceWord I, ⟨0⟩,
             withdrawAmountWord σ I, ⟨276⟩, blindAuctionSelWord I]
           (withdrawRehashMem I) (UInt256.ofNat 3) o σ' k C := by
-  obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_withdraw_toCall
+  obtain ⟨gasArg, _, _, rd766⟩ := permSplit_true hperm (blindAuctionX_withdraw_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hperm hwv hreach hpos
+    hwv hreach hpos)
   obtain ⟨σ', z, o, A_in, callGas, k', C', hΘ, rd767₀, hosz⟩ :=
     rd766.callValueMade (by decide) hperm hbalance hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 0 := by
@@ -833,9 +871,9 @@ theorem blindAuctionX_withdraw_callDepth {σ σ₀ A I} {g : Sat256}
         withdrawAmountWord σ I, ⟨276⟩, blindAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
       (withdrawZeroMap σ I) k C := by
-  obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_withdraw_toCall
+  obtain ⟨gasArg, _, _, rd766⟩ := permSplit_true hperm (blindAuctionX_withdraw_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hperm hwv hreach hpos
+    hwv hreach hpos)
   obtain ⟨k', C', rd767₀⟩ := rd766.callValueDepthLimit hperm (by decide) hdepth (by evm_ov)
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     decide
@@ -862,9 +900,9 @@ theorem blindAuctionX_withdraw_callInsufficient {σ σ₀ A I} {g : Sat256}
         withdrawAmountWord σ I, ⟨276⟩, blindAuctionSelWord I]
       (withdrawRehashMem I) (UInt256.ofNat 3) ByteArray.empty
       (withdrawZeroMap σ I) k C := by
-  obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_withdraw_toCall
+  obtain ⟨gasArg, _, _, rd766⟩ := permSplit_true hperm (blindAuctionX_withdraw_toCall
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hperm hwv hreach hpos
+    hwv hreach hpos)
   obtain ⟨k', C', rd767₀⟩ :=
     RD.callValueInsufficientBalance rd766 hperm
       (by decide) hbalance hdepth (by evm_ov)
@@ -1078,7 +1116,7 @@ theorem blindAuctionWithdrawBodyReverts_nonpayable {evm : EVM.State} {locals : S
 theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩)
+    (hsel : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨332⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -1087,7 +1125,6 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionWithdrawSelector_size hsel
   have hd := blindAuctionDispatch_withdraw (cd := I.calldata) hsel
@@ -1125,6 +1162,14 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
         simp [evmS, initState, withdrawAmountWord, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
       have hZeroMap : withdrawZeroMap σ I = withdrawZeroMap σ I := rfl
+      by_cases hperm : I.perm = true
+      swap
+      · have hpf : I.perm = false := by simpa using hperm
+        exact (permSplit_false hpf (blindAuctionX_withdraw_toCall (g := Sat256.ofUInt256 g)
+            hwv hreach hnonzero)).reEquivStaticHalt hcode hd hdec
+          (blindAuctionWithdrawBodyStatic evmS (withdrawAmountWord σ I)
+            (by simpa [evmS, initState] using hwv) hamountS hposS
+            (by simpa [evmS, initState] using hpf))
       by_cases hdepthEq : I.depth = 1024
       · let evmSFail : EVM.State :=
           { evmSZero with

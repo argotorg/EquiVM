@@ -1512,6 +1512,7 @@ theorem blindAuctionRevealBody_of_zero_tail {evm : EVM.State} {locals : Store} {
   | execBlockRevert hblk => exact ExecFuncBody.execBlockRevert (ExecBlock.consNormal hreq hblk)
   | execBlockBreak hblk => exact ExecFuncBody.execBlockBreak (ExecBlock.consNormal hreq hblk)
   | execBlockContinue hblk => exact ExecFuncBody.execBlockContinue (ExecBlock.consNormal hreq hblk)
+  | execBlockStatic hblk => exact ExecFuncBody.execBlockStatic (ExecBlock.consNormal hreq hblk)
 
 theorem evalExpr_reveal_biddingEnd (evm : EVM.State) (locals : Store)
     (hbase : locals.get? biddingEndRef.base = none) :
@@ -3361,13 +3362,19 @@ theorem scratch_blindAuctionRevealX_zeroBlinded_toNext {I} {g : Sat256} {s0 : St
     (rd : RD blindAuctionBytecode I g s0 ⟨1315⟩
       [secret, fake, value, slot, i, refund, len, revealEnd, biddingEnd, secretsLen,
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
-      mem aw rdata σ k C)
-    (hperm : I.perm = true) :
+      mem aw rdata σ k C) :
+    (I.perm = true ∧
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1014⟩
       (scratch_revealEvmLoopStack (i + ⟨1⟩) refund len revealEnd biddingEnd secretsLen
         secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
-      mem aw rdata (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C' := by
+      mem aw rdata (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic blindAuctionBytecode g s0) := by
   have rd1321₀ := evm_run rd with [jumpdest, pop, pop, push0, swap1, swap2]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1321₀.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1322₀⟩ := rd1321₀.sstore hperm (by decide) (by evm_ov)
   have rd1323 := evm_run rd1322₀ with [pop, jumpdest, push1 ⟨1⟩, add,
     push2 ⟨1014⟩, jump (by jump_dest)]

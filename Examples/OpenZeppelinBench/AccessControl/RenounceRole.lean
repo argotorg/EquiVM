@@ -564,6 +564,27 @@ theorem accessControlRenounceRoleBodyReturns_write (evm : EVM.State) (I : Execut
     exact ExecBlock.nil
   exact ExecBlock.nil
 
+/-- Static mode: the body halts at the role write inside the `if`. -/
+theorem accessControlRenounceRoleBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hcaller : AccountAddress.ofNat (renounceRoleCallerWord I).toNat = evm.executionEnv.source)
+    (htarget : UInt256.land
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (renounceRoleTargetSlot I)) ⟨255⟩ ≠
+        ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (renounceRoleStore I) renounceRoleTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_renounceRole_callerConfirmation_eq_true evm I hcaller)) ?_
+  refine ExecBlock.consStatic
+    (ExecStmt.iteTrue (evalExpr_renounceRole_target_true evm I hsz68 htarget) ?_)
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (renounceRoleAssignTarget evm I hsz68)
+      hperm)
+
 theorem accessControlRenounceRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -848,7 +869,6 @@ theorem accessControlRenounceRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
 
 theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (htarget : renounceRoleMaskedWord σ I ≠ ⟨0⟩)
@@ -856,8 +876,9 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I) ⟨436⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
-      (renounceRolePostMap σ I) ByteArray.empty := by
+    (I.perm = true ∧ RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+      (renounceRolePostMap σ I) ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic accessControlBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd436⟩ := hreach
   have rd683 := evm_run rd436 with [
     jumpdest, push2 ⟨446⟩, dup3, dup3, push2 ⟨683⟩, jump (by jump_dest) ]
@@ -972,7 +993,12 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (renounceRoleStorageWord σ I)
   have rd739pre := evm_run rd733 with [push1 ⟨255⟩, not, and, swap1]
   rw [hclearComm] at rd739pre
-  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd739pre.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hp (by decide) (by evm_ov)
   have rd740 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, renounceRoleCallerWord I, ⟨0⟩, ⟨0⟩, renounceRoleCallerWord I,
@@ -1000,7 +1026,7 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
+  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hp
     (by
       simp [M]
       native_decide)
@@ -1015,7 +1041,7 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
 theorem accessControlRenounceRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x36, 0x56, 0x8a, 0xbe]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨235⟩
@@ -1023,7 +1049,6 @@ theorem accessControlRenounceRoleBody {σ σ₀ A I}
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := renounceRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_renounceRole (cd := I.calldata)
     (by simpa [selIs] using hsel)
@@ -1060,16 +1085,24 @@ theorem accessControlRenounceRoleBody {σ σ₀ A I}
                     (renounceRoleTargetSlot I)) ⟨255⟩ ≠ ⟨0⟩ := by
               simpa [renounceRoleMaskedWord, renounceRoleStorageWord, evmS, initState,
                 Solm.EVM.storageLoad, State.lookupAccount] using htargetNonzero
-            have hbody := accessControlRenounceRoleBodyReturns_write evmS I hsz68
-              (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
-            exact (accessControlRenounceRoleX_revoke_write (g := Sat256.ofUInt256 g)
-                hperm hsz68 hcanon htargetNonzero rd436)
-              |>.reEquivExecutionGen hcode hd hdec hbody
-                (by
-                  simp [renounceRolePostState, renounceRolePostMap, evmS, initState,
-                    storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,
-                    Account.lookupStorage, renounceRoleStorageWord])
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+            by_cases hperm : I.perm = true
+            · have hbody := accessControlRenounceRoleBodyReturns_write evmS I hsz68
+                (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
+              exact (permSplit_true hperm (accessControlRenounceRoleX_revoke_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanon htargetNonzero rd436))
+                |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by
+                    simp [renounceRolePostState, renounceRolePostMap, evmS, initState,
+                      storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,
+                      Account.lookupStorage, renounceRoleStorageWord])
+                  (returnEquiv.fallthrough rfl rfl (by native_decide))
+            · have hpf : I.perm = false := by simpa using hperm
+              have hbody := accessControlRenounceRoleBodyStatic evmS I hsz68
+                (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
+                (by simp only [evmS, initState]; exact hpf)
+              exact (permSplit_false hpf (accessControlRenounceRoleX_revoke_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanon htargetNonzero rd436))
+                |>.reEquivStaticHalt hcode hd hdec hbody
         · have hcallerSolm :
               AccountAddress.ofNat (renounceRoleCallerWord I).toNat ≠ evmS.executionEnv.source := by
             simpa [evmS, initState] using hcaller

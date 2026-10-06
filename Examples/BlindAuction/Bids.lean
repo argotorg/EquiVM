@@ -909,7 +909,7 @@ theorem blindAuctionBidsX_oob {σ σ₀ A I} {g : Sat256}
 /-- `bids(address,uint256)` getter body (pc 158) refines its transition. -/
 theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩)
+    (hsel : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -917,7 +917,6 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
  :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
 
   have hsz4 := blindAuctionBidsSelector_size hsel
   have hd := blindAuctionDispatch_bids (cd := I.calldata) hsel

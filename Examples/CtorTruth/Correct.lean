@@ -87,8 +87,8 @@ theorem ctorTruthReEquiv_callvalueZero
 
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
-    runtimeEquivalence ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+    runtimeEquivalenceAnyPerm ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by
@@ -177,6 +177,6 @@ theorem ctorTruthConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem ctorTruthCorrect :
-    contractEquivalence ctorTruthConfig ctorTruthInitcode ctorTruthRuntimeBytecode
+    contractEquivalenceAnyPerm ctorTruthConfig ctorTruthInitcode ctorTruthRuntimeBytecode
       CtorTruth.contract :=
-  contractEquivalence.intro ctorTruthConstructorCorrect ctorTruthRuntimeCorrect
+  contractEquivalenceAnyPerm.intro ctorTruthConstructorCorrect ctorTruthRuntimeCorrect

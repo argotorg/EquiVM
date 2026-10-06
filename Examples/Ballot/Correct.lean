@@ -317,18 +317,18 @@ theorem ballotReachLowBody {σ σ₀ A I} {g : Sat256}
 
 /-- `vote(uint256)` body (pc 137) refines its transition. -/
 theorem ballotVoteBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x01, 0x21, 0xb9, 0x3f]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor ballotConfig ballotContract
       σ σ₀ g A I := by
-  exact ballotVoteBodyCore hcode hsize hperm hwv hsel hreach
+  exact ballotVoteBodyCore hcode hsize hwv hsel hreach
 
 /-- `proposals(uint256)` getter body (pc 158) refines its transition. -/
 theorem ballotProposalsBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [ballotSelWord I]
@@ -339,7 +339,7 @@ theorem ballotProposalsBody {σ σ₀ A I} {g : UInt256}
 
 /-- `chairperson()` getter body (pc 203) refines its transition. -/
 theorem ballotChairpersonBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [ballotSelWord I]
@@ -350,19 +350,19 @@ theorem ballotChairpersonBody {σ σ₀ A I} {g : UInt256}
 
 /-- `delegate(address)` body (pc 245) refines its transition. -/
 theorem ballotDelegateBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor ballotConfig ballotContract
       σ σ₀ g A I := by
-  exact ballotDelegateBodyCoreComplete hcode hsize hperm hwv hsel hreach
+  exact ballotDelegateBodyCoreComplete hcode hsize hwv hsel hreach
 
 /-- `winningProposal()` body (pc 264) refines its transition.  `public`, so this body is the shared
     routine reused by `winnerName`'s internal call (the `Reuse` pattern). -/
 theorem ballotWinningProposalBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [ballotSelWord I]
@@ -373,18 +373,18 @@ theorem ballotWinningProposalBody {σ σ₀ A I} {g : UInt256}
 
 /-- `giveRightToVote(address)` body (pc 286) refines its transition. -/
 theorem ballotGiveRightToVoteBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor ballotConfig ballotContract
       σ σ₀ g A I := by
-  exact ballotGiveRightToVoteBodyCore hcode hsize hperm hwv hsel hreach
+  exact ballotGiveRightToVoteBodyCore hcode hsize hwv hsel hreach
 
 /-- `voters(address)` getter body (pc 305) refines its transition. -/
 theorem ballotVotersBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [ballotSelWord I]
@@ -395,7 +395,7 @@ theorem ballotVotersBody {σ σ₀ A I} {g : UInt256}
 
 /-- `winnerName()` body (pc 417) refines its transition (calls `winningProposal` internally). -/
 theorem ballotWinnerNameBody {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [ballotSelWord I]
@@ -568,7 +568,7 @@ theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
 
 /-- Calldata shorter than a selector (`size < 4`) ⇒ the size guard reverts before dispatch. -/
 theorem ballotShortRevert {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor ballotConfig ballotContract
       σ σ₀ g A I := by
@@ -577,7 +577,7 @@ theorem ballotShortRevert {σ σ₀ A I} {g : UInt256}
 
 /-- `size ≥ 4` but no selector matches ⇒ `dispatchMsg = none` and the EVM falls through to revert. -/
 theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true)
+    (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (ballotSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor ballotConfig ballotContract
@@ -592,41 +592,42 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
 /-! ## Top-level theorem — drive the dispatcher, route each body to its correctness -/
 
 /-- The deployed Ballot runtime bytecode refines the Solm specification, for every initial state. -/
-theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+theorem ballotCorrect :
+    runtimeEquivalenceAnyPerm ballotConfig ballotBytecode ballotContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · -- callvalue = 0, size ≥ 4: dispatch on the selector
       by_cases h0 : selIs I ⟨#[0x01, 0x21, 0xb9, 0x3f]⟩
-      · exact ballotVoteBody hcode hsize hperm hwv h0
+      · exact ballotVoteBody hcode hsize hwv h0
           (ballotReachLowBody 0 (by omega) ⟨137⟩ hcode hwv hsz hsize
             (ballotPivotTaken 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0))
             (ballotLowMatches 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0)).1
             (ballotLowMatches 0 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h0)).2
             (by jump_dest) (by decide))
       · by_cases h1 : selIs I ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩
-        · exact ballotProposalsBody hcode hsize hperm hwv h1
+        · exact ballotProposalsBody hcode hsize hwv h1
             (ballotReachLowBody 1 (by omega) ⟨158⟩ hcode hwv hsz hsize
               (ballotPivotTaken 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1))
               (ballotLowMatches 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1)).1
               (ballotLowMatches 1 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h1)).2
               (by jump_dest) (by decide))
         · by_cases h2 : selIs I ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩
-          · exact ballotChairpersonBody hcode hsize hperm hwv h2
+          · exact ballotChairpersonBody hcode hsize hwv h2
               (ballotReachLowBody 2 (by omega) ⟨203⟩ hcode hwv hsz hsize
                 (ballotPivotTaken 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2))
                 (ballotLowMatches 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2)).1
                 (ballotLowMatches 2 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h2)).2
                 (by jump_dest) (by decide))
           · by_cases h3 : selIs I ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩
-            · exact ballotDelegateBody hcode hsize hperm hwv h3
+            · exact ballotDelegateBody hcode hsize hwv h3
                 (ballotReachLowBody 3 (by omega) ⟨245⟩ hcode hwv hsz hsize
                   (ballotPivotTaken 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3))
                   (ballotLowMatches 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3)).1
                   (ballotLowMatches 3 (by omega) hsz (by simpa [selIs, ballotSelBytes] using h3)).2
                   (by jump_dest) (by decide))
             · by_cases h4 : selIs I ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩
-              · exact ballotWinningProposalBody hcode hsize hperm hwv h4
+              · exact ballotWinningProposalBody hcode hsize hwv h4
                   (ballotReachHighBody 0 (by omega) ⟨264⟩ hcode hwv hsz hsize
                     (ballotPivotNotTaken 0 (by omega) hsz
                       (by simpa [selIs, ballotSelBytes] using h4))
@@ -636,7 +637,7 @@ theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotCon
                       (by simpa [selIs, ballotSelBytes] using h4)).2
                     (by jump_dest) (by decide))
               · by_cases h5 : selIs I ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩
-                · exact ballotGiveRightToVoteBody hcode hsize hperm hwv h5
+                · exact ballotGiveRightToVoteBody hcode hsize hwv h5
                     (ballotReachHighBody 1 (by omega) ⟨286⟩ hcode hwv hsz hsize
                       (ballotPivotNotTaken 1 (by omega) hsz
                         (by simpa [selIs, ballotSelBytes] using h5))
@@ -646,7 +647,7 @@ theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotCon
                         (by simpa [selIs, ballotSelBytes] using h5)).2
                       (by jump_dest) (by decide))
                 · by_cases h6 : selIs I ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩
-                  · exact ballotVotersBody hcode hsize hperm hwv h6
+                  · exact ballotVotersBody hcode hsize hwv h6
                       (ballotReachHighBody 2 (by omega) ⟨305⟩ hcode hwv hsz hsize
                         (ballotPivotNotTaken 2 (by omega) hsz
                           (by simpa [selIs, ballotSelBytes] using h6))
@@ -656,7 +657,7 @@ theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotCon
                           (by simpa [selIs, ballotSelBytes] using h6)).2
                         (by jump_dest) (by decide))
                   · by_cases h7 : selIs I ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩
-                    · exact ballotWinnerNameBody hcode hsize hperm hwv h7
+                    · exact ballotWinnerNameBody hcode hsize hwv h7
                         (ballotReachHighBody 3 (by omega) ⟨417⟩ hcode hwv hsz hsize
                           (ballotPivotNotTaken 3 (by omega) hsz
                             (by simpa [selIs, ballotSelBytes] using h7))
@@ -666,7 +667,7 @@ theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotCon
                             (by simpa [selIs, ballotSelBytes] using h7)).2
                           (by jump_dest) (by decide))
                     · -- size ≥ 4 but no selector matches
-                      refine ballotNoDispatch hcode hsize hperm hwv ?_
+                      refine ballotNoDispatch hcode hsize hwv ?_
                       intro i hi
                       interval_cases i
                       · simpa [selIs, ballotSelBytes] using h0
@@ -678,7 +679,7 @@ theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotCon
                       · simpa [selIs, ballotSelBytes] using h6
                       · simpa [selIs, ballotSelBytes] using h7
     · -- callvalue = 0, size < 4: size guard reverts before dispatch
-      exact ballotShortRevert hcode hsize hperm hwv (by omega)
+      exact ballotShortRevert hcode hsize hwv (by omega)
   · -- callvalue ≠ 0: non-payable revert
     exact ballotNonPayable hcode hwv
 
