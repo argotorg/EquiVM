@@ -20,6 +20,23 @@ def valueToWord : Value -> Option EVM.Word
         none
   | .storageRef _ _ => .none
 
+/-- The zero value of an elementary type: an immutable's value before the constructor assigns
+    it. -/
+def elemDefaultValue : ABI.ElemType -> Value
+  | .bool => .bool false
+  | .address => .address (.ofNat 0)
+  | .bytes n => .fixedBytes n (List.replicate (n.val + 1) 0)
+  | _ => .int 0
+
+/-- Whether `v` is a value of the elementary type `ty`; integers must be in range. -/
+def elemValueFits : ABI.ElemType -> Value -> Bool
+  | .bool, .bool _ => true
+  | .address, .address _ => true
+  | .int (.uint n), .int i => decide (0 ≤ i ∧ i < 2 ^ n.val)
+  | .int (.sint n), .int i => decide (-(2 ^ (n.val - 1)) ≤ i ∧ i < 2 ^ (n.val - 1))
+  | .bytes n, .fixedBytes m bs => decide (n = m ∧ bs.length = n.val + 1)
+  | _, _ => false
+
 /-- Normalize an integer to the semantic value of a Solidity integer type.
 
 Solm keeps local integers as unbounded `Int` values, while explicit Solidity

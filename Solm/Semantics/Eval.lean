@@ -45,6 +45,8 @@ mutual
     | .balanceOf e => exprEvalSize e + 1
     | .extCodeHash e => exprEvalSize e + 1
     | .fixedBytesLit _ _ => 1
+    | .immutable _ => 1
+    | .const _ => 1
   termination_by expr => (sizeOf expr, 0)
   decreasing_by
     all_goals simp_wf
@@ -97,6 +99,80 @@ mutual
     all_goals simp_wf
     all_goals decreasing_tactic
 end
+
+/-! ## Constant expressions
+
+A `constant`'s value is a compile-time constant expression: literals, operators, casts, range
+checks, `keccak256`, and other constants.  Anything else (variables, storage, environment, calls)
+is not a constant expression and is a `.typeError`, as solc rejects it at compile time.  The
+operators share their definitions with `evalExpr?`. -/
+
+/-- Evaluate a constant expression; `resolve` gives the values of the constants it names. -/
+def evalConstExprWith (resolve : Ident -> EvalResult Value) : Expr -> EvalResult Value
+  | .intLit n => pure (.int n)
+  | .boolLit b => pure (.bool b)
+  | .bytesLit b => pure (.bytes b)
+  | .fixedBytesLit n bs => pure (.fixedBytes n bs)
+  | .const name => resolve name
+  | .cast expr ty => do
+      let value <- evalConstExprWith resolve expr
+      EvalResult.ofOption .typeError (castValue? value ty)
+  | .unary op expr => do
+      let value <- evalConstExprWith resolve expr
+      EvalResult.ofOption .typeError (evalUnaryOp? op value)
+  | .binary .and lhs rhs => do
+      match <- evalConstExprWith resolve lhs with
+      | .bool false => pure (.bool false)
+      | .bool true =>
+          (match <- evalConstExprWith resolve rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
+  | .binary .or lhs rhs => do
+      match <- evalConstExprWith resolve lhs with
+      | .bool true => pure (.bool true)
+      | .bool false =>
+          (match <- evalConstExprWith resolve rhs with
+           | .bool b => pure (.bool b)
+           | _ => .error .typeError)
+      | _ => .error .typeError
+  | .binary op lhs rhs => do
+      let lhsValue <- evalConstExprWith resolve lhs
+      let rhsValue <- evalConstExprWith resolve rhs
+      evalBinaryOp? op lhsValue rhsValue
+  | .ite cond thenExpr elseExpr => do
+      match <- evalConstExprWith resolve cond with
+      | .bool true => evalConstExprWith resolve thenExpr
+      | .bool false => evalConstExprWith resolve elseExpr
+      | _ => .error .typeError
+  | .inRange intType expr => do
+      let value <- evalConstExprWith resolve expr
+      match value, intType with
+      | .int i, .uint n =>
+          if i < 0 || i >= 2^(n.val) then .revert else pure value
+      | .int i, .sint n =>
+          let bound : Int := 2^(n.val - 1)
+          if i < -bound || i >= bound then .revert else pure value
+      | _, _ => .error .typeError
+  | .keccak256 e => do
+      match <- evalConstExprWith resolve e with
+      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC ba).toList)
+      | _ => .error .typeError
+  | _ => .error .typeError
+
+/-- The value of the constant `name` among `constants`, unfolding at most `fuel` constant
+    references; running out of fuel means the definitions are cyclic. -/
+def evalConstant? (constants : List ConstantDecl) : Nat -> Ident -> EvalResult Value
+  | 0, _ => .error .typeError
+  | fuel + 1, name =>
+      match constants.find? (·.name == name) with
+      | some decl => evalConstExprWith (evalConstant? constants fuel) decl.value
+      | none => .error .unboundVariable
+
+/-- The value of the contract's constant `name`.  An acyclic chain of constant references is at
+    most as long as the constant list, so that much fuel suffices. -/
+def constantValue? (contract : ContractDecl) (name : Ident) : EvalResult Value :=
+  evalConstant? contract.constants contract.constants.length name
 
 mutual
 
@@ -463,6 +539,8 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
           pure (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE h))
       | _ => .error .typeError
   | .fixedBytesLit n bs => pure (.fixedBytes n bs)
+  | .immutable name => EvalResult.ofOption .unboundVariable (solm.immutables.get? name)
+  | .const name => constantValue? solm.contract name
   termination_by expr => (exprEvalSize expr, 0)
 decreasing_by
   all_goals simp [exprEvalSize, slotEvalSize]

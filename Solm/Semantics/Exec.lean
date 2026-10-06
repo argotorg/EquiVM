@@ -57,6 +57,18 @@ def lookupCallable? (contract : ContractDecl) (name : Ident) : Option CallableDe
   | some decl => some decl
   | none => lookupTransition? contract.transitions name
 
+/-- The declared type of the immutable `name`. -/
+def immutableType? (contract : ContractDecl) (name : Ident) : Option ElemType :=
+  (contract.immutables.find? (·.name == name)).map (·.ty)
+
+/-- The immutables at the start of construction: every declared immutable at its zero value. -/
+def initialImmutables (contract : ContractDecl) : Store :=
+  contract.immutables.foldl (fun acc d => acc.insert d.name (elemDefaultValue d.ty)) ∅
+
+theorem initialImmutables_noImmutables {contract : ContractDecl} (h : contract.immutables = []) :
+    initialImmutables contract = ∅ := by
+  simp [initialImmutables, h]
+
 /-- CREATE2 salt: a `bytes32` value → its 32 salt bytes; anything else is invalid. -/
 def saltBytes? : Value → Option ByteArray
   | .fixedBytes n bs => if n.val = 31 ∧ bs.length = 32 then some (ByteArray.mk bs.toArray) else none
@@ -470,6 +482,17 @@ inductive ExecStmt (cfg : Config) :
   | returnRevert :
       evalExprs? cfg solm evm exprs = .revert ->
       ExecStmt cfg solm evm (.return exprs) .reverted
+  /-- `name = e;` for a declared immutable: the value must have the declared type.  Solidity only
+      accepts this in the constructor, where `solmCtorExec` keeps the final values. -/
+  | setImmutable :
+      evalExpr? cfg solm evm expr = .ok value ->
+      immutableType? solm.contract name = some ty ->
+      elemValueFits ty value = true ->
+      ExecStmt cfg solm evm (.setImmutable name expr)
+        (.ok { solm with immutables := solm.immutables.insert name value } evm)
+  | setImmutableRevert :
+      evalExpr? cfg solm evm expr = .revert ->
+      ExecStmt cfg solm evm (.setImmutable name expr) .reverted
   | break :
       ExecStmt cfg solm evm .break (.break solm evm)
   | continue :
@@ -566,14 +589,19 @@ inductive ExecFuncBody (cfg : Config) :
 
 end
 
+/-- Run a transition (or constructor) body from a fresh frame with the given locals and
+    immutables. -/
 def ExecTransitionBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State)
-    (locals : Store) (body : Body) (result : ExecResult) : Prop :=
-  ExecFuncBody cfg { contract := contract, locals := locals } evm body result
+    (locals : Store) (body : Body) (result : ExecResult) (immutables : Store := ∅) : Prop :=
+  ExecFuncBody cfg { contract := contract, locals := locals, immutables := immutables } evm body
+    result
 
-/-- Solm transaction dispatch and execution. -/
+/-- Solm transaction dispatch and execution, with `immutables` the values the deployed contract
+    was constructed with. -/
 inductive solmExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
+    (immutables : Store)
     (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
@@ -595,8 +623,8 @@ inductive solmExec
           substate := A
           machineState.gasAvailable := .ofUInt256 g
       } →
-    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
-    solmExec conf contract σ σ₀ g A I solmRes
+    ExecTransitionBody conf contract evmState callargs transition.body solmRes immutables →
+    solmExec conf contract immutables σ σ₀ g A I solmRes
       (.abi transition.returnType)
   | fallback :
     /- Solidity fallback dispatch has no selector or ABI argument decoding. -/
@@ -613,8 +641,8 @@ inductive solmExec
           substate := A
           machineState.gasAvailable := .ofUInt256 g
       } →
-    ExecTransitionBody conf contract evmState callargs transition.body solmRes →
-    solmExec conf contract σ σ₀ g A I solmRes
+    ExecTransitionBody conf contract evmState callargs transition.body solmRes immutables →
+    solmExec conf contract immutables σ σ₀ g A I solmRes
       returnConvention
   | receive :
     /- Solidity receive dispatch has no selector or ABI argument decoding. -/
@@ -629,10 +657,11 @@ inductive solmExec
           substate := A
           machineState.gasAvailable := .ofUInt256 g
       } →
-    ExecTransitionBody conf contract evmState ∅ transition.body solmRes →
-    solmExec conf contract σ σ₀ g A I solmRes (.abi [])
+    ExecTransitionBody conf contract evmState ∅ transition.body solmRes immutables →
+    solmExec conf contract immutables σ σ₀ g A I solmRes (.abi [])
 
-/-- Solm constructor execution. -/
+/-- Solm constructor execution.  The body starts from the zero immutables; the final frame of a
+    `.returned` result holds the immutables the deployed code embeds. -/
 inductive solmCtorExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
@@ -657,7 +686,8 @@ inductive solmCtorExec
     -- encoding, but it keeps the parameter store from relying on `List.zip` truncation.
     args.length = contract.ctor.params.length →
     argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
-    ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
+    ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes
+      (initialImmutables contract) →
     solmCtorExec conf contract args σ σ₀ g A I solmRes
 
 end Solm
