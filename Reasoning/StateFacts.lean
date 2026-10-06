@@ -114,7 +114,7 @@ theorem storageLocStore_uint256_pred (evm : EVM.State) (slot len : UInt256)
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (UInt256.ofNat (len.toNat - 1))) := by
   unfold storageLocStore storageLocWriteWord uint256Loc
-  simp only [valueToWord, dropWordOfInt_pred len hpos, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_natCast_pred_of_pos len hpos, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat (len.toNat - 1))).2
@@ -132,7 +132,7 @@ theorem storageLocStore_uint256_succ (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (uint256Loc slot) (.int (Int.ofNat val.toNat + 1)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (val + ⟨1⟩)) := by
   unfold storageLocStore storageLocWriteWord uint256Loc
-  simp only [valueToWord, bidWordOfInt_succ, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_natCast_succ, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (val + ⟨1⟩)).2
@@ -736,7 +736,7 @@ theorem sourceWord_canonical (I : ExecutionEnv) :
     (show AccountAddress.size ≤ UInt256.size from by decide))]
   simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using I.source.isLt
 
-theorem withdrawAccountMapEquiv_balance {σ τ : AccountMap}
+theorem accountMap_balance_eq_of_eq {σ τ : AccountMap}
     (hστ : σ = τ) (addr : AccountAddress) :
     (σ.get? addr |>.elim ⟨0⟩ (·.balance)) =
       (τ.get? addr |>.elim ⟨0⟩ (·.balance)) := by
@@ -871,7 +871,7 @@ theorem cast_addressAsUint256 (w : UInt256) :
     castValue? (.address (AccountAddress.ofNat w.toNat)) packedUInt256StorageType =
       some (.int (Int.ofNat (UInt256.land solcAddrMask w).toNat)) := by
   have haddr : (AccountAddress.ofNat w.toNat).toNat =
-      (UInt256.land solcAddrMask w).toNat := permitAddress_toNat_mask w
+      (UInt256.land solcAddrMask w).toNat := accountAddress_ofNat_toNat_eq_mask w
   have hlt : (AccountAddress.ofNat w.toNat).toNat < EVM.twoPow 256 := by
     exact lt_of_lt_of_le (AccountAddress.ofNat w.toNat).isLt (by decide)
   simp only [castValue?, packedUInt256StorageType, abiUInt256Int]

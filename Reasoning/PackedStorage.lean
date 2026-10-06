@@ -921,10 +921,10 @@ theorem clearStorage_uint48_offset26_zero {cfg : Config} {evm : EVM.State}
   rw [storageLocStore_uint48_offset26_zero]
   rfl
 
-def initializerBeginWord (old : UInt256) : UInt256 :=
+def setBoolPairTrueWord (old : UInt256) : UInt256 :=
   UInt256.lor (UInt256.land old (UInt256.lnot ⟨65535⟩)) ⟨257⟩
 
-def initializerEndWord (old : UInt256) : UInt256 :=
+def clearBoolOffset1Word (old : UInt256) : UInt256 :=
   UInt256.land old (UInt256.lnot ⟨65280⟩)
 
 theorem solcSlotWord_absent {σ : AccountMap} {I : ExecutionEnv}
@@ -937,19 +937,19 @@ theorem solcSlotWord_sstore_ne (σ : AccountMap) (I : ExecutionEnv)
       solcSlotWord σ I readSlot :=
   sstoreAccountMap_storage_getD_ne σ I.codeOwner readSlot writeSlot value hne
 
-theorem initializerHighWord_toNat (old : UInt256) :
+theorem clearLow16Bits_toNat (old : UInt256) :
     (UInt256.land old (UInt256.lnot ⟨65535⟩)).toNat = old.toNat / 65536 * 65536 := by
   rw [u256_land_comm]
   exact u256_land_high_mask_toNat old 16 (by decide)
 
-theorem initializerBeginWord_toNat (old : UInt256) :
-    (initializerBeginWord old).toNat = 257 + old.toNat / 65536 * 65536 := by
-  rw [initializerBeginWord, u256_lor_toNat_exact, initializerHighWord_toNat, Nat.or_comm]
+theorem setBoolPairTrueWord_toNat (old : UInt256) :
+    (setBoolPairTrueWord old).toNat = 257 + old.toNat / 65536 * 65536 := by
+  rw [setBoolPairTrueWord, u256_lor_toNat_exact, clearLow16Bits_toNat, Nat.or_comm]
   exact nat_lor_shift_add 257 (old.toNat / 65536) 16 (by decide)
 
-theorem initializerEndWord_toNat (old : UInt256) :
-    (initializerEndWord old).toNat = old.toNat % 256 + old.toNat / 65536 * 65536 := by
-  rw [initializerEndWord, uland_toNat]
+theorem clearBoolOffset1Word_toNat (old : UInt256) :
+    (clearBoolOffset1Word old).toNat = old.toNat % 256 + old.toNat / 65536 * 65536 := by
+  rw [clearBoolOffset1Word, uland_toNat]
   have hm : (UInt256.lnot (⟨65280⟩ : UInt256)).toNat =
       255 ||| (2 ^ 256 - 2 ^ 16) := by decide
   rw [hm, Nat.and_or_distrib_left]
@@ -972,16 +972,16 @@ theorem setBoolOffset1Word_toNat (old : UInt256) (value : Bool) :
     simp only [Bool.toNat_false, Bool.toNat_true, Nat.mul_zero, Nat.mul_one] <;> omega
 
 theorem setBoolOffset1Word_false (old : UInt256) :
-    setBoolOffset1Word old false = initializerEndWord old := by
+    setBoolOffset1Word old false = clearBoolOffset1Word old := by
   apply u256_inj
-  rw [setBoolOffset1Word_toNat, initializerEndWord_toNat]
+  rw [setBoolOffset1Word_toNat, clearBoolOffset1Word_toNat]
   rfl
 
 theorem setInitializingThenInitialized (old : UInt256) :
     UInt256.lor (UInt256.land (setBoolOffset1Word old true) (UInt256.lnot ⟨255⟩)) ⟨1⟩ =
-      initializerBeginWord old := by
+      setBoolPairTrueWord old := by
   apply u256_inj
-  rw [packedSetTrueWord_toNat, setBoolOffset1Word_toNat, initializerBeginWord_toNat]
+  rw [packedSetTrueWord_toNat, setBoolOffset1Word_toNat, setBoolPairTrueWord_toNat]
   have hlow := Nat.mod_lt old.toNat (by decide : 0 < 256)
   simp only [Bool.toNat_true, Nat.mul_one]
   omega
@@ -1023,11 +1023,11 @@ theorem solcSlotWord_sstore_present (σ : AccountMap) (I : ExecutionEnv)
   · simp [hz]
 
 theorem initializingBeginWord (old : UInt256) :
-    UInt256.land (UInt256.div (initializerBeginWord old) ⟨256⟩) ⟨255⟩ = ⟨1⟩ := by
+    UInt256.land (UInt256.div (setBoolPairTrueWord old) ⟨256⟩) ⟨255⟩ = ⟨1⟩ := by
   apply u256_inj
   rw [uland_toNat]
-  change Nat.land ((initializerBeginWord old).toNat / 256) (2 ^ 8 - 1) = 1
-  rw [nat_land_mask_eq_mod, initializerBeginWord_toNat]
+  change Nat.land ((setBoolPairTrueWord old).toNat / 256) (2 ^ 8 - 1) = 1
+  rw [nat_land_mask_eq_mod, setBoolPairTrueWord_toNat]
   omega
 
 def setBoolTrueOffset20Word (old : UInt256) : UInt256 :=

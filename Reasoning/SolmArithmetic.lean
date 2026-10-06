@@ -634,26 +634,6 @@ theorem evalExpr_mod_intLit {cfg : Config} {frame : Frame} {evm : EVM.State}
   · decide
   · decide
 
-/-- `i < n` evaluates from the locals. -/
-theorem pow2EvalLt {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a b : Int}
-    (hi : L.get? "i" = some (.int a)) (hn : L.get? "n" = some (.int b)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .lt (.var "i") (.var "n"))
-      = .ok (.bool (a < b)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi, hn]
-
-/-- `r * 2` evaluates from the locals. -/
-theorem pow2EvalMul2 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hr : L.get? "r" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .mul (.var "r") (.intLit 2))
-      = .ok (.int (a * 2)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hr]
-
-/-- `i + 1` evaluates from the locals. -/
-theorem pow2EvalAdd1 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hi : L.get? "i" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .add (.var "i") (.intLit 1))
-      = .ok (.int (a + 1)) := by
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi]
 
 /-- Reading a plain variable from the locals. -/
 theorem evalLocalVar {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State}
@@ -662,74 +642,5 @@ theorem evalLocalVar {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : E
     evalExpr? cfg { contract := C, locals := L } evm (.var name) = .ok v := by
   simp only [evalExpr?, EvalResult.ofOption, h]
 
-/-- The loop body of `pow2`. -/
-def pow2LoopBody : List Stmt :=
-  [ .letDecl "r" (some abiUInt256) (.binary .mul (.var "r") (.intLit 2)),
-    .letDecl "i" (some abiUInt256) (.binary .add (.var "i") (.intLit 1)) ]
-
-/-- The loop condition of `pow2`. -/
-def pow2LoopCond : Expr := .binary .lt (.var "i") (.var "n")
-
-/-- **Solm-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while` runs
-    (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  A direct instance of the
-    generic `execWhile_var` Hoare rule (variant `N − i`, coupling invariant on the locals). -/
-theorem pow2LoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ) :
-    ∀ (var i : ℕ) (L : Solm.Store),
-      N - i = var → i ≤ N →
-      L.get? "i" = some (.int (Int.ofNat i)) →
-      L.get? "r" = some (.int (Int.ofNat (2 ^ i))) →
-      L.get? "n" = some (.int (Int.ofNat N)) →
-      ∃ L', ExecStmt cfg { contract := C, locals := L } evm (.while pow2LoopCond pow2LoopBody)
-              (.ok { contract := C, locals := L' } evm)
-            ∧ L'.get? "r" = some (.int (Int.ofNat (2 ^ N))) := by
-  -- variant-indexed invariant: `var` iterations left ⟺ a counter `i` with `N − i = var`
-  let P : ℕ → Solm.Store → Prop := fun var L =>
-    ∃ i, N - i = var ∧ i ≤ N ∧ L.get? "i" = some (.int (Int.ofNat i))
-      ∧ L.get? "r" = some (.int (Int.ofNat (2 ^ i))) ∧ L.get? "n" = some (.int (Int.ofNat N))
-  have hfalse : ∀ L, P 0 L →
-      evalExpr? cfg { contract := C, locals := L } evm pow2LoopCond = .ok (.bool false) := by
-    rintro L ⟨i, hvar, hile, hi, _, hn⟩
-    rw [pow2LoopCond, pow2EvalLt hi hn,
-        decide_eq_false (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
-  have htrue : ∀ v L, P (v + 1) L →
-      evalExpr? cfg { contract := C, locals := L } evm pow2LoopCond = .ok (.bool true) := by
-    rintro v L ⟨i, hvar, hile, hi, _, hn⟩
-    rw [pow2LoopCond, pow2EvalLt hi hn,
-        decide_eq_true (by simp only [Int.ofNat_eq_natCast, Nat.cast_lt]; omega)]
-  have hstep : ∀ v L, P (v + 1) L →
-      ∃ L', ExecBlock cfg { contract := C, locals := L } evm pow2LoopBody
-              (.ok { contract := C, locals := L' } evm) ∧ P v L' := by
-    rintro v L ⟨i, hvar, hile, hi, hr, hn⟩
-    have e1 : (Int.ofNat i + 1 : Int) = Int.ofNat (i + 1) := by
-      simp only [Int.ofNat_eq_natCast]; push_cast; ring
-    have e2 : (Int.ofNat (2 ^ i) * 2 : Int) = Int.ofNat (2 ^ (i + 1)) := by
-      simp only [Int.ofNat_eq_natCast]; push_cast [pow_succ]; ring
-    set L1 := L.insert "r" (.int (Int.ofNat (2 ^ i) * 2)) with hL1
-    set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
-    have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
-    have hL2r : L2.get? "r" = some (.int (Int.ofNat (2 ^ (i + 1)))) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_self, e2]
-    have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
-      rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
-    refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
-    refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
-              ExecBlock.nil)
-    · rw [pow2EvalMul2 hr]
-    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
-          = .ok (.int (Int.ofNat i + 1))
-      rw [pow2EvalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
-  intro var i L hvar hile hi hr hn
-  obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
-    execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
-  exact ⟨L', hwhile, by rw [hjr, show j = N by omega]⟩
-
-/-- `require(n < 256)` passes when the argument is in range. -/
-theorem pow2EvalReqN {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {N : ℕ}
-    (hn : L.get? "n" = some (.int (Int.ofNat N))) (hN : N < 256) :
-    evalExpr? cfg { contract := C, locals := L } evm
-        (.binary .lt (.var "n") (.intLit 256)) = .ok (.bool true) := by
-  have h : (Int.ofNat N < (256 : Int)) := by simp only [Int.ofNat_eq_natCast]; omega
-  simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hn]
-  rw [decide_eq_true h]
 
 end Reasoning.Theory

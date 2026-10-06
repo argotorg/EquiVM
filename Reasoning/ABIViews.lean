@@ -76,7 +76,7 @@ theorem addrUintUintReturnEncoding (w chop dunk : UInt256) :
   apply ByteArray.ext
   simp [ByteArray.data_append, ByteArray.append_assoc]
 
-theorem spotterIlksDecode_none_short_aux {out : ByteArray}
+theorem decodeReturnValues_legacyAddressUint256_none_short {out : ByteArray}
     (hshort : out.size < 64) :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiAddress, abiUInt256] out =
       none := by
@@ -138,7 +138,8 @@ theorem decode_none_short_aux {out : ByteArray} (hshort : out.size < 64) :
   simp only [bind, Option.bind]
   rw [decodeABIValues_legacy_none_short (bytes := out.toList) (by omega)]
 
-theorem vatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size < 160) :
+theorem decodeReturnValues_legacyFiveUint256_none_short {out : ByteArray} (hshort : out.size < 160)
+    :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
       [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256] out = none := by
   have hlen : out.toList.length = out.size := by
@@ -186,7 +187,7 @@ theorem encodePacked_dynamic_bytes (bytes : ByteArray) :
     encodePackedValue? ABIType.bytes (.bytes bytes) = some bytes.toList := by
   rfl
 
-theorem ilksReturnEncoding (clip chop hole dirt : UInt256) :
+theorem addressThreeUint256ReturnEncoding (clip chop hole dirt : UInt256) :
     encodeReturnValues? [abiAddress, abiUInt256, abiUInt256, abiUInt256]
       [.address (AccountAddress.ofNat (UInt256.land clip solcAddrMask).toNat),
         .int (Int.ofNat chop.toNat), .int (Int.ofNat hole.toNat),
@@ -404,7 +405,7 @@ theorem decode_legacyBytes32_uint256_none_short {cd : ByteArray}
       rw [List.length_drop, htlen]
       omega)]
 
-theorem freeUrnsDecode_none_short_aux {out : ByteArray} (hshort : out.size < 64) :
+theorem decodeReturnValues_legacyUint256Pair_none_short {out : ByteArray} (hshort : out.size < 64) :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256] out =
       none := by
   have hlen : out.toList.length = out.size := by
@@ -652,7 +653,7 @@ theorem uint256FiveReturnEncoding (art rate spot line dust : UInt256) :
   simp [ByteArray.data_append]
 
 /-- ABI-encoding a `Proposal` getter return list is exactly `name || voteCount`. -/
-theorem proposalReturnEncoding (name count : UInt256) :
+theorem bytes32Uint256ReturnEncoding (name count : UInt256) :
     encodeReturnValues? [abiBytes32, abiUInt256]
       [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE name),
         .int (Int.ofNat count.toNat)] =
@@ -687,7 +688,7 @@ theorem proposalReturnEncoding (name count : UInt256) :
   apply Array.toList_inj.mp
   simp
 
-theorem bidsReturnEncoding (blinded deposit : UInt256) :
+theorem bytes32Uint256ReturnEncoding' (blinded deposit : UInt256) :
     encodeReturnValues? [abiBytes32, abiUInt256]
       [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE blinded),
         .int (Int.ofNat deposit.toNat)] =
@@ -724,7 +725,7 @@ theorem bidsReturnEncoding (blinded deposit : UInt256) :
 
 /-- The 32-byte big-endian ABI encoding of `2^N` (for `N < 256`, so it fits a word) is exactly the
     EVM `RETURN` word `UInt256.ofNat (2^N)`. -/
-theorem pow2ReturnEncoding {N : ℕ} (hN : N < 256) :
+theorem uint256PowerOfTwoReturnEncoding {N : ℕ} (hN : N < 256) :
     encodeReturnValue? abiUInt256 (.int (Int.ofNat (2 ^ N)))
       = some (UInt256.toByteArray (UInt256.ofNat (2 ^ N))) := by
   have hlt : Int.ofNat (2 ^ N) < Int.ofNat (EVM.twoPow 256) := by
@@ -1315,7 +1316,7 @@ theorem decodeABIValues_bytes32_address_legacy {bytes : List UInt8}
     staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
   simp [readWord?, readBytes?, decodeABIWord?, hlen32, UInt256.toNat]
 
-theorem biteIlkBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
+theorem calldata_first_word_min_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     min 32 (I.calldata.toList.length - 4) = abiBytes32Width.val + 1 := by
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
@@ -1364,13 +1365,13 @@ theorem decodeABIValue_legacy_bytes32_ok {bytes : List UInt8} {start : Nat}
     List.take_of_length_le (by rw [hlen])
   simp [htake]
 
-theorem barkAddressArgEncodingMasked (w : UInt256)
+theorem encodeABIValue_address_ofUInt256_of_canonical (w : UInt256)
     (hcanon : w.toNat < EVM.addressModulus) :
     ABI.encodeABIValue? (.elem .address) (.address (AccountAddress.ofUInt256 w)) =
       some (EVM.Word.toBytesBE w) := by
-  simp [ABI.encodeABIValue?, ABI.encodeABIWord?, barkAddressWord_ofUInt256_masked w hcanon]
+  simp [ABI.encodeABIValue?, ABI.encodeABIWord?, word_of_addressOfUInt256_of_canonical w hcanon]
 
-theorem valueToWord_ctorIlk (ilk : UInt256) :
+theorem valueToWord_bytes32_toBytesBE (ilk : UInt256) :
     valueToWord (.fixedBytes abiBytes32Width (EVM.Word.toBytesBE ilk)) = some ilk := by
   have hlen : (EVM.Word.toBytesBE ilk).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size ilk
@@ -1421,25 +1422,8 @@ theorem decodeABIValues_legacy_ok {bytes : List UInt8}
     rw [hbytes0, hbool]
     simp [hhas]
 
-theorem forkIlkBytes_len (I : ExecutionEnv) (hsz164 : 164 ≤ I.calldata.size) :
-    ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [List.length_take, List.length_drop, htlen]
-  simp [abiBytes32Width]
-  omega
 
-theorem frobIBytes_len (I : ExecutionEnv) (hsz196 : 196 ≤ I.calldata.size) :
-    ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [List.length_take, List.length_drop, htlen]
-  simp [abiBytes32Width]
-  omega
-
-theorem initIlkBytes_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
+theorem calldata_first_word_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
   rw [List.length_take, List.length_drop]
   have htlen : I.calldata.toList.length = I.calldata.size := by
@@ -1559,7 +1543,7 @@ theorem list_drop_take_full_chunk_succ (xs : List UInt8) (i fuel : Nat) :
   rw [List.drop_drop]
   rw [show 32 * i + 32 = 32 * (i + 1) by omega]
 
-theorem swapReadNat_drop4_eq_calldataWord {I : ExecutionEnv} {headOff : Nat}
+theorem readNat_drop4_eq_calldataWord_add {I : ExecutionEnv} {headOff : Nat}
     (h : 4 + headOff + 32 ≤ I.calldata.size) :
     readNat? (I.calldata.toList.drop 4) headOff =
       some (calldataWord I.calldata (4 + headOff)).toNat := by
@@ -1687,12 +1671,12 @@ def packedUint256BoolBytes32ValueMem (mem : ByteArray) (base value : UInt256) :
     ByteArray :=
   (UInt256.toByteArray value).write 0 mem base.toNat 32
 
-def packedUint256BoolBytes32FakeMem (mem : ByteArray) (base fakeWord : UInt256) :
+def packedUint256BoolBytes32BoolMem (mem : ByteArray) (base fakeWord : UInt256) :
     ByteArray :=
   (UInt256.toByteArray (UInt256.shiftLeft (UInt256.isZero (UInt256.isZero fakeWord)) ⟨248⟩)).write
     0 mem base.toNat 32
 
-def packedUint256BoolBytes32SecretMem (mem : ByteArray) (base secret : UInt256) :
+def packedUint256BoolBytes32Bytes32Mem (mem : ByteArray) (base secret : UInt256) :
     ByteArray :=
   (UInt256.toByteArray secret).write 0 mem base.toNat 32
 
@@ -1769,8 +1753,8 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
     mem5.readWithPadding base.toNat packedLen.toNat =
@@ -1829,7 +1813,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_value : mem2.readWithPadding base.toNat 32 = UInt256.toByteArray value := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [write32_read_below
       (src := UInt256.toByteArray
         (UInt256.shiftLeft (UInt256.isZero (UInt256.isZero fakeWord)) ⟨248⟩))
@@ -1840,7 +1824,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     exact hmem1_read
   have hmem2_fake : mem2.readWithPadding fakeBase.toNat 1 =
       ByteArray.mk #[if fake then (1 : UInt8) else 0] := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [write32_read_prefix_len]
     · subst fakeWord
       rw [toByteArray_eq_toBytesBE]
@@ -1851,7 +1835,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     · norm_num
     · norm_num
   have hmem2_size : mem2.size = fp.toNat + 96 := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [show fakeBase.toNat = mem1.size by rw [hmem1_size, hfakeBaseNat]]
     rw [write_at_end_eq]
     · rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, hmem1_size]
@@ -1859,7 +1843,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     · decide
     · rw [toByteArray_size]
   have hmem3_value : mem3.readWithPadding base.toNat 32 = UInt256.toByteArray value := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_read_below
       (src := UInt256.toByteArray secret) (base := mem2)
       (destAddr := secretBase.toNat) (readAddr := base.toNat)
@@ -1869,7 +1853,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     exact hmem2_value
   have hmem3_fake : mem3.readWithPadding fakeBase.toNat 1 =
       ByteArray.mk #[if fake then (1 : UInt8) else 0] := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_read_below_len
       (src := UInt256.toByteArray secret) (base := mem2)
       (dest := secretBase.toNat) (read := fakeBase.toNat) (len := 1)
@@ -1880,7 +1864,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
       (hpos := by norm_num) (hlen64 := by norm_num)]
     exact hmem2_fake
   have hmem3_secret : mem3.readWithPadding secretBase.toNat 32 = UInt256.toByteArray secret := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_read_back]
     · rw [show (UInt256.toByteArray secret).extract 0 32 = UInt256.toByteArray secret by
         rw [show 32 = (UInt256.toByteArray secret).size by rw [toByteArray_size]]
@@ -1888,7 +1872,7 @@ theorem packedUint256BoolBytes32Mem_readWithPadding {mem : ByteArray}
     · rw [toByteArray_size]
     · rw [hmem2_size, hsecretBaseNat]; omega
   have hmem3_size : mem3.size = fp.toNat + 97 := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_eq _ _ secretBase.toNat]
     · rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, hmem2_size,
@@ -2000,8 +1984,8 @@ theorem packedUint256BoolBytes32Mem_hash {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
     UInt256.ofNat
@@ -2030,8 +2014,8 @@ theorem packedUint256BoolBytes32Mem_len_read {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
     mem5.readWithPadding fp.toNat 32 = UInt256.toByteArray packedLen := by
@@ -2063,7 +2047,7 @@ theorem packedUint256BoolBytes32Mem_len_read {mem : ByteArray}
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [show fakeBase.toNat = mem1.size by rw [hmem1_size, hfakeBaseNat]]
     rw [write_at_end_eq]
     · rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, hmem1_size]
@@ -2071,7 +2055,7 @@ theorem packedUint256BoolBytes32Mem_len_read {mem : ByteArray}
     · decide
     · rw [toByteArray_size]
   have hmem3_size : mem3.size = fp.toNat + 97 := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_eq _ _ secretBase.toNat]
     · rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, hmem2_size,
@@ -2116,8 +2100,8 @@ theorem packedUint256BoolBytes32Mem_beforeFreePtr_size {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     mem4.size = fp.toNat + 97 := by
   intro base fakeBase secretBase newFree packedLen mem1 mem2 mem3 mem4
@@ -2148,7 +2132,7 @@ theorem packedUint256BoolBytes32Mem_beforeFreePtr_size {mem : ByteArray}
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [show fakeBase.toNat = mem1.size by rw [hmem1_size, hfakeBaseNat]]
     rw [write_at_end_eq]
     · rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, hmem1_size]
@@ -2156,7 +2140,7 @@ theorem packedUint256BoolBytes32Mem_beforeFreePtr_size {mem : ByteArray}
     · decide
     · rw [toByteArray_size]
   have hmem3_size : mem3.size = fp.toNat + 97 := by
-    dsimp [mem3, packedUint256BoolBytes32SecretMem]
+    dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
     rw [write32_eq _ _ secretBase.toNat]
     · rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, hmem2_size,
@@ -2183,8 +2167,8 @@ theorem packedUint256BoolBytes32Mem_size {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
     mem5.size = fp.toNat + 97 := by
@@ -2213,8 +2197,8 @@ theorem packedUint256BoolBytes32Mem_freePtr_read {mem : ByteArray}
     let newFree := (⟨65⟩ : UInt256) + base
     let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
     let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
     mem5.readWithPadding 64 32 = UInt256.toByteArray newFree := by
@@ -2242,8 +2226,8 @@ theorem packedUint256BoolBytes32Prefix_size {mem : ByteArray}
     let fakeBase := base + ⟨32⟩
     let secretBase := base + ⟨33⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     mem3.size = fp.toNat + 97 := by
   intro base fakeBase secretBase mem1 mem2 mem3
   have hbaseNat : base.toNat = fp.toNat + 32 := by
@@ -2273,14 +2257,14 @@ theorem packedUint256BoolBytes32Prefix_size {mem : ByteArray}
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_size : mem2.size = fp.toNat + 96 := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [show fakeBase.toNat = mem1.size by rw [hmem1_size, hfakeBaseNat]]
     rw [write_at_end_eq]
     · rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, hmem1_size]
       omega
     · decide
     · rw [toByteArray_size]
-  dsimp [mem3, packedUint256BoolBytes32SecretMem]
+  dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
   rw [write32_eq _ _ secretBase.toNat]
   · rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract, toByteArray_size, hmem2_size,
@@ -2300,8 +2284,8 @@ theorem packedUint256BoolBytes32Prefix_preserve_fp {mem : ByteArray}
     let fakeBase := base + ⟨32⟩
     let secretBase := base + ⟨33⟩
     let mem1 := packedUint256BoolBytes32ValueMem mem base value
-    let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-    let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+    let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+    let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
     mem3.readWithPadding 64 32 = UInt256.toByteArray fp := by
   intro base fakeBase secretBase mem1 mem2 mem3
   have hbaseNat : base.toNat = fp.toNat + 32 := by
@@ -2338,7 +2322,7 @@ theorem packedUint256BoolBytes32Prefix_preserve_fp {mem : ByteArray}
     · rw [hbaseNat]; exact hmemle
     · simpa [hbaseNat] using hgap
   have hmem2_read : mem2.readWithPadding 64 32 = UInt256.toByteArray fp := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [toByteArray_write_read_below_of_gap]
     · exact hmem1_read
     · rw [hmem1_size]; omega
@@ -2347,14 +2331,14 @@ theorem packedUint256BoolBytes32Prefix_preserve_fp {mem : ByteArray}
       have hpos : 0 < USize.size := USize.size_pos
       omega
   have hmem2_size : mem2.size = fp.toNat + 96 := by
-    dsimp [mem2, packedUint256BoolBytes32FakeMem]
+    dsimp [mem2, packedUint256BoolBytes32BoolMem]
     rw [show fakeBase.toNat = mem1.size by rw [hmem1_size, hfakeBaseNat]]
     rw [write_at_end_eq]
     · rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, hmem1_size]
       omega
     · decide
     · rw [toByteArray_size]
-  dsimp [mem3, packedUint256BoolBytes32SecretMem]
+  dsimp [mem3, packedUint256BoolBytes32Bytes32Mem]
   rw [toByteArray_write_read_below_of_gap]
   · exact hmem2_read
   · rw [hmem2_size]; omega
@@ -2429,79 +2413,79 @@ theorem packedUint256BoolBytes32_aw_facts {aw fp : UInt256}
       change 32 ≤ 97
       norm_num
   have hawP1_ge : 3 ≤ awP1.toNat := by
-    simpa [awP1] using reveal_aw_M_ge3
+    simpa [awP1] using activeWords_expand_ge3
       (aw := aw) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) haw
   have hawP1_small : awP1.toNat * 32 < UInt256.size := by
-    simpa [awP1] using reveal_aw_M_small
+    simpa [awP1] using activeWords_expand_mul32_lt_size
       (aw := aw) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) hawSmall
       (by decide)
   have hawP2_ge : 3 ≤ awP2.toNat := by
-    simpa [awP2] using reveal_aw_M_ge3
+    simpa [awP2] using activeWords_expand_ge3
       (aw := awP1) (off := base) (len := ⟨32⟩) hawP1_ge
   have hawP2_small : awP2.toNat * 32 < UInt256.size := by
-    simpa [awP2] using reveal_aw_M_small
+    simpa [awP2] using activeWords_expand_mul32_lt_size
       (aw := awP1) (off := base) (len := ⟨32⟩) hawP1_small
       (by
         rw [hbaseNat]
         change fp.toNat + 32 + 32 + 31 < UInt256.size
         omega)
   have hawP3_ge : 3 ≤ awP3.toNat := by
-    simpa [awP3] using reveal_aw_M_ge3
+    simpa [awP3] using activeWords_expand_ge3
       (aw := awP2) (off := fakeBase) (len := ⟨32⟩) hawP2_ge
   have hawP3_small : awP3.toNat * 32 < UInt256.size := by
-    simpa [awP3] using reveal_aw_M_small
+    simpa [awP3] using activeWords_expand_mul32_lt_size
       (aw := awP2) (off := fakeBase) (len := ⟨32⟩) hawP2_small
       (by
         rw [hfakeBaseNat]
         change fp.toNat + 64 + 32 + 31 < UInt256.size
         omega)
   have hawP4_ge : 3 ≤ awP4.toNat := by
-    simpa [awP4] using reveal_aw_M_ge3
+    simpa [awP4] using activeWords_expand_ge3
       (aw := awP3) (off := secretBase) (len := ⟨32⟩) hawP3_ge
   have hawP4_small : awP4.toNat * 32 < UInt256.size := by
-    simpa [awP4] using reveal_aw_M_small
+    simpa [awP4] using activeWords_expand_mul32_lt_size
       (aw := awP3) (off := secretBase) (len := ⟨32⟩) hawP3_small
       (by
         rw [hsecretBaseNat]
         change fp.toNat + 65 + 32 + 31 < UInt256.size
         omega)
   have haw1_ge : 3 ≤ aw1.toNat := by
-    simpa [aw1] using reveal_aw_M_ge3
+    simpa [aw1] using activeWords_expand_ge3
       (aw := awP4) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) hawP4_ge
   have haw1_small : aw1.toNat * 32 < UInt256.size := by
-    simpa [aw1] using reveal_aw_M_small
+    simpa [aw1] using activeWords_expand_mul32_lt_size
       (aw := awP4) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) hawP4_small
       (by decide)
   have haw2_ge : 3 ≤ aw2.toNat := by
-    simpa [aw2] using reveal_aw_M_ge3
+    simpa [aw2] using activeWords_expand_ge3
       (aw := aw1) (off := fp) (len := ⟨32⟩) haw1_ge
   have haw2_small : aw2.toNat * 32 < UInt256.size := by
-    simpa [aw2] using reveal_aw_M_small
+    simpa [aw2] using activeWords_expand_mul32_lt_size
       (aw := aw1) (off := fp) (len := ⟨32⟩) haw1_small
       (by
         change fp.toNat + 32 + 31 < UInt256.size
         omega)
   have haw3_ge : 3 ≤ aw3.toNat := by
-    simpa [aw3] using reveal_aw_M_ge3
+    simpa [aw3] using activeWords_expand_ge3
       (aw := aw2) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) haw2_ge
   have haw3_small : aw3.toNat * 32 < UInt256.size := by
-    simpa [aw3] using reveal_aw_M_small
+    simpa [aw3] using activeWords_expand_mul32_lt_size
       (aw := aw2) (off := (⟨64⟩ : UInt256)) (len := ⟨32⟩) haw2_small
       (by decide)
   have haw4_ge : 3 ≤ aw4.toNat := by
-    simpa [aw4] using reveal_aw_M_ge3
+    simpa [aw4] using activeWords_expand_ge3
       (aw := aw3) (off := fp) (len := ⟨32⟩) haw3_ge
   have haw4_small : aw4.toNat * 32 < UInt256.size := by
-    simpa [aw4] using reveal_aw_M_small
+    simpa [aw4] using activeWords_expand_mul32_lt_size
       (aw := aw3) (off := fp) (len := ⟨32⟩) haw3_small
       (by
         change fp.toNat + 32 + 31 < UInt256.size
         omega)
   have haw5_ge : 3 ≤ aw5.toNat := by
-    simpa [aw5] using reveal_aw_M_ge3
+    simpa [aw5] using activeWords_expand_ge3
       (aw := aw4) (off := base) (len := packedLen) haw4_ge
   have haw5_small : aw5.toNat * 32 < UInt256.size := by
-    simpa [aw5] using reveal_aw_M_small
+    simpa [aw5] using activeWords_expand_mul32_lt_size
       (aw := aw4) (off := base) (len := packedLen) haw4_small
       (by
         rw [hbaseNat, hpackedLenNat]

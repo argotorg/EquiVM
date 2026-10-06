@@ -166,7 +166,7 @@ theorem longDataTailMaskedWord_padded {len word : UInt256} {bytes : List UInt8}
     rw [hremNat]
     rw [hbytesLen]
     exact Nat.mod_lt _ (by decide : 0 < 32)
-  have hmask := setShortPackedHeader_mask_of_short (len := remWord) hremLt
+  have hmask := shortPackedHeader_mask_of_short (len := remWord) hremLt
   have hwordZero :
       word.toNat % 2 ^ (256 - 8 * bytes.length) = 0 := by
     subst word

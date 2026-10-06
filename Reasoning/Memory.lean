@@ -388,7 +388,7 @@ theorem zeroes_ofNat_size (n : ℕ) (_h : n < 2 ^ 32) :
 
 -- `zeroes` used to be an `opaque` extern in evmlean, i.e. an unfolding WALL during defeq.  It is
 -- now a plain def (`Array.replicate`), and letting defeq descend into it makes large state
--- comparisons stack-overflow (observed in UniswapV2Pair/Mint).  Re-erect the wall: reason about
+-- comparisons stack-overflow. Re-erect the wall: reason about
 -- `zeroes` only through the equations above (`ByteArray_zeroes_size`, `zeroes_zero`, …).
 set_option allowUnsafeReducibility true in
 attribute [irreducible] ByteArray.zeroes

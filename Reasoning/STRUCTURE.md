@@ -44,7 +44,7 @@ The shared reasoning library introduces no axioms.
 | `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying. |
 | `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
 | `SolcRoutines.lean` | Bytecode-parameterized getter, authorization, storage-update, checked-arithmetic, and revert routines. |
-| `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, power-of-two loops, and shared local-variable frames. |
+| `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, and shared local-variable frames. |
 | `SolmRpow.lean` | Exponentiation local-variable frames and their contract-independent evaluation facts. |
 
 ## Dependencies
@@ -88,6 +88,29 @@ The additional modules build on that core:
 These modules do not import `Examples` or `Benchmarks`. Contract-specific bytecode, selectors,
 and storage layouts stay with their proofs. Where a proof is extracted from a concrete source
 configuration, the original theorem remains as a specialization of the shared result.
+
+## What belongs in the library
+
+A shared declaration should state a reusable property and have a name that describes that
+property independently of its originating contract. For example, an address-word bound or an
+ABI tuple encoder belongs here under an address or encoding name. Contract names and names of
+individual contract operations should not be used to name shared facts.
+
+Accepting arbitrary words or byte arrays is not sufficient by itself. A lemma can still encode
+one contract's concrete memory layout, return buffer, fee constants, or local-variable program.
+Keep those specializations in the owning contract directory. In particular:
+
+- `gemJoinCtorDecimalsReturnWrite_size` and `gemJoinCtorDecimalsReturnWrite_read224_32` live in
+  `Benchmarks/Dss/GemJoin/ConstructorTraceCall.lean`: the 256-byte buffer and offset 224 describe
+  that constructor's decimals call.
+- Revert-memory lemmas for particular buffer sizes and free-pointer values stay beside the
+  corresponding contract traces. The parameterized memory and revert rules remain shared.
+- Fixed decimal values, fee calculations, and the Pow example's concrete loop stay with their
+  contract proofs.
+
+Constants dictated by EVM, ABI, or a reusable compiler convention, such as 32-byte words,
+160-bit addresses, and ABI field offsets, can appear in shared rules. The distinction is the
+source of the constraint and the rule's reuse, rather than the absence of numeric literals.
 
 ## Where to look
 
