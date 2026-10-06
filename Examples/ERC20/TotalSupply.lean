@@ -30,8 +30,8 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
         simp [evalStorageRef, evalStorageRefSteps, totalSupplyRef, EvalResult.bind, pure, bind]
       have hty : storageTypeAt? erc20Contract.storage ({ base := "totalSupply", steps := [] } : EvaledStorageRef)
           = some (.elem (.int uint256Int)) := by decide
-      rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
-        (hty := hty) (hloc := erc20Config_storage_totalSupply), erc20StorageLocLoad_uint256])
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hlocals) (her := her)
+        (hty := hty) (hloc := erc20Config_storage_totalSupply (evm := evm)), erc20StorageLocLoad_uint256])
 
 /-- The EVM `totalSupply()` wrapper loads slot 2 and returns it as a single ABI word. -/
 theorem erc20X_totalSupply {σ σ₀ A I} {g : Sat256} {sel : UInt256}

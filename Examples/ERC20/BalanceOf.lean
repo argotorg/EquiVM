@@ -69,7 +69,7 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (hbase := by simp [balanceOfStore, balanceOfRef])
         (her := by
           simp [evalStorageRef, evalStorageRefStep, balanceOfRef, balanceOfStore,
