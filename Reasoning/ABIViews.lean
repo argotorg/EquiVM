@@ -1,5 +1,5 @@
 import Reasoning.ABIComposite
-import Reasoning.MemoryArithmetic
+import Reasoning.WordArithmetic
 
 /-!
 # ABI word views and compiler bounds
@@ -1563,30 +1563,7 @@ theorem decodeReturnValues_legacyUInt256UInt256_none_short {out : ByteArray}
     (hshort : out.size < 64) :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiUInt256, abiUInt256] out =
       none := by
-  have hlen : out.toList.length = out.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256, abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiUInt256, abiUInt256]) (bytes := out.toList) (cursor := 0)
-    (total := 32 * [abiUInt256, abiUInt256].length)
-    (by decide) (by simp)]
-  simp only [decodeScalarWordsWithMode?]
-  by_cases hfirst : ((out.toList.drop 0).take 32).length = 32
-  · rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp only [Option.bind_eq_bind, Option.bind_some]
-    have htake32n : ¬ ((out.toList.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, hlen]
-      omega
-    rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 32) htake32n]
-    simp
-  · rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
-      (bytes := out.toList) (start := 0) hfirst]
-    simp
+  exact Reasoning.Theory.decodeReturnValues_legacyUint256Pair_none_short hshort
 
 theorem selector_toNat_readBytes4 (cd : ByteArray) :
     (UInt256.shiftRight (uInt256OfByteArray (ByteArray.readBytes cd 0 32)) ⟨224⟩).toNat
@@ -2497,5 +2474,124 @@ theorem packedUint256BoolBytes32_aw_facts {aw fp : UInt256}
 theorem encodePacked_bool (fake : Bool) :
     encodePackedValue? abiBool (.bool fake) = some [if fake then (1 : UInt8) else 0] := by
   cases fake <;> simp [encodePackedValue?, abiBool]
+
+end Reasoning.Theory
+
+/-! ## Compiler offset guards -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem readNat_drop4_array_len_eq {I : ExecutionEnv} {off len : UInt256}
+    (hoff : off.toNat ≤ solcMaxU64)
+    (hbound : 4 + off.toNat + 32 ≤ I.calldata.size)
+    (hlenWord :
+      uInt256OfByteArray (I.calldata.readBytes (((⟨4⟩ : UInt256) + off).toNat) 32) =
+        len) :
+    readNat? (List.drop 4 I.calldata.toList) off.toNat = some len.toNat := by
+  have hread :=
+    readNat_drop4_eq_calldataWord (I := I) (headOff := off.toNat)
+      (by simpa [Nat.add_assoc] using hbound)
+  have hstart : ((⟨4⟩ : UInt256) + off).toNat = 4 + off.toNat :=
+    add4_word_toNat off hoff
+  have hword : calldataWord I.calldata (4 + off.toNat) = len := by
+    unfold calldataWord
+    rw [← hstart]
+    exact hlenWord
+  rw [hread, hword]
+
+/-- The offset bound check `iszero(gt(0x20, 2^64-1))` is taken (offset `0x20 ≤ 2^64-1`). -/
+theorem decoderValidOff :
+    (UInt256.isZero (UInt256.gt (UInt256.ofNat 32)
+      (UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨0x40⟩) ⟨1⟩))) ≠ ⟨0⟩ := by
+  rw [ugt_zero (by rw [u64mask_toNat, ulit_toNat' _ (by decide : (32:ℕ) < UInt256.size)]; omega)]
+  decide
+
+theorem start_bound_of_slt_one {I : ExecutionEnv} {off : UInt256}
+    (hcalldataSign : I.calldata.size < 2 ^ 255)
+    (hoff : off.toNat ≤ solcMaxU64)
+    (hstart : UInt256.slt (((⟨4⟩ : UInt256) + off) + ⟨31⟩)
+      (UInt256.ofNat I.calldata.size) = ⟨1⟩) :
+    4 + off.toNat + 31 < I.calldata.size := by
+  by_contra hnot
+  have hleft :
+      (((⟨4⟩ : UInt256) + off) + ⟨31⟩).toNat = 4 + off.toNat + 31 :=
+    add4_word_add31_toNat off hoff
+  have hhi : (((⟨4⟩ : UInt256) + off) + ⟨31⟩).toNat < 2 ^ 255 := by
+    rw [hleft]
+    rw [show solcMaxU64 = 18446744073709551615 by rfl] at hoff
+    omega
+  have hzero :
+      UInt256.slt (((⟨4⟩ : UInt256) + off) + ⟨31⟩)
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩ := by
+    apply slt_lit_zero hcalldataSign
+    · rw [hleft]
+      omega
+    · exact hhi
+  rw [hstart] at hzero
+  have hnat := congrArg UInt256.toNat hzero
+  change (1 : Nat) = 0 at hnat
+  omega
+
+theorem array_end_bound_of_ugt_zero {I : ExecutionEnv} {off len : UInt256}
+    (hoff : off.toNat ≤ solcMaxU64)
+    (hlen : len.toNat ≤ solcMaxU64)
+    (hend : UInt256.gt (((((⟨4⟩ : UInt256) + off) +
+          UInt256.shiftLeft len ⟨5⟩) + ⟨32⟩))
+        (UInt256.ofNat I.calldata.size) = ⟨0⟩)
+    (hsize : I.calldata.size < UInt256.size) :
+    4 + off.toNat + 32 + 32 * len.toNat ≤ I.calldata.size := by
+  have h32lenSmall : 32 * len.toNat < UInt256.size := by
+    rw [show solcMaxU64 = 18446744073709551615 by rfl] at hlen
+    norm_num [UInt256.size]
+    omega
+  have hleft :
+      (((((⟨4⟩ : UInt256) + off) + UInt256.shiftLeft len ⟨5⟩) + ⟨32⟩)).toNat =
+        4 + off.toNat + 32 * len.toNat + 32 := by
+    rw [← u256_ofNat_toNat off, ← u256_ofNat_toNat len,
+      shiftLeft5_ofNat_eq h32lenSmall]
+    have h4off32len :
+        ((UInt256.ofNat 4 + UInt256.ofNat off.toNat) +
+            UInt256.ofNat (32 * len.toNat)).toNat =
+          4 + off.toNat + 32 * len.toNat := by
+      apply uadd3_ofNat_toNat
+      · norm_num [UInt256.size]
+      · exact off.val.isLt
+      · exact h32lenSmall
+      · rw [show solcMaxU64 = 18446744073709551615 by rfl] at hoff
+        norm_num [UInt256.size]
+        omega
+      · rw [show solcMaxU64 = 18446744073709551615 by rfl] at hoff hlen
+        norm_num [UInt256.size]
+        omega
+    rw [uadd_toNat]
+    change
+      (((UInt256.ofNat 4 + UInt256.ofNat off.toNat) +
+            UInt256.ofNat (32 * len.toNat)).toNat + (UInt256.ofNat 32).toNat) %
+          UInt256.size =
+        4 + (UInt256.ofNat off.toNat).toNat +
+          32 * (UInt256.ofNat len.toNat).toNat + 32
+    rw [h4off32len, ulit_toNat' 32 (by norm_num [UInt256.size]),
+      ulit_toNat' off.toNat off.val.isLt, ulit_toNat' len.toNat len.val.isLt]
+    apply Nat.mod_eq_of_lt
+    rw [show solcMaxU64 = 18446744073709551615 by rfl] at hoff hlen
+    norm_num [UInt256.size]
+    omega
+  by_contra hnot
+  have hgt : UInt256.gt
+      (((((⟨4⟩ : UInt256) + off) + UInt256.shiftLeft len ⟨5⟩) + ⟨32⟩))
+      (UInt256.ofNat I.calldata.size) = ⟨1⟩ := by
+    apply ugt_one
+    rw [hleft, ulit_toNat' I.calldata.size hsize]
+    omega
+  rw [hend] at hgt
+  have hnat := congrArg UInt256.toNat hgt
+  change (0 : Nat) = 1 at hnat
+  omega
 
 end Reasoning.Theory

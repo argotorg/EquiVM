@@ -1129,3 +1129,36 @@ theorem accountAddress_roundtrip (a : AccountAddress) :
   rw [Nat.mod_eq_of_lt hlt, Nat.mod_eq_of_lt hlt]
 
 end Reasoning.Theory
+
+/-! ## Word masks and bounded exponentiation -/
+
+namespace Reasoning.Theory
+
+open Ethereum Ethereum.EVM Reasoning.Theory
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+/-- `~x` as a word value: `2^256 - 1 - x`. -/
+theorem lnot_toNat_gen (x : UInt256) : (UInt256.lnot x).toNat = 2 ^ 256 - 1 - x.toNat := by
+  have hx : x.toNat < 2 ^ 256 := by
+    change x.val.val < 2 ^ 256; simpa [UInt256.size] using x.val.isLt
+  have hsz : (UInt256.ofNat (UInt256.size - 1)).toNat = 2 ^ 256 - 1 := by
+    rw [ulit_toNat' _ (by simp [UInt256.size])]
+    rfl
+  show (UInt256.sub (UInt256.ofNat (UInt256.size - 1)) x).toNat = 2 ^ 256 - 1 - x.toNat
+  rw [usub_toNat (by rw [hsz]; omega), hsz]
+
+/-- `256^e` fits in a word for `e ≤ 31`, and `EXP 256 e = 256^e`. -/
+theorem exp256_toNat (e : ℕ) (he : e ≤ 31) :
+    (UInt256.exp ⟨256⟩ (UInt256.ofNat e)).toNat = 256 ^ e := by
+  interval_cases e <;> decide +kernel
+
+theorem setAddZero_toNat (w : UInt256) :
+    ((w + ⟨0⟩ : UInt256).toNat) = w.toNat := by
+  rw [uadd_toNat]
+  simp only [UInt256.toNat]
+  exact Nat.mod_eq_of_lt w.val.isLt
+
+end Reasoning.Theory

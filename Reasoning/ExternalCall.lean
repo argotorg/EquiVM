@@ -23,9 +23,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Reach
 namespace Reasoning.Theory
 
 
-
-
-
 /-- **Coincidence (call made).**  Given the EVM-side `Θ`-link produced by `RD.call` (with witnesses
     `A_in`, `callGas`) and the trace couplings — the Solm target `tgt` is the cleaned stack address
     (`htgt`), and the ABI encoding of `name args` is exactly the calldata the bytecode placed in
@@ -697,5 +694,226 @@ theorem callMade_accountMapEq_with_substate {cfg : Config}
     exact hdepth
   refine ⟨σ', A', ?_, rfl, rfl⟩
   exact callCoincides hdepthSolm htgt hcd hΘ_s
+
+end Reasoning.Theory
+
+/-! ## Code-size guards and precompile results -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+/-- Code size at an address transports across `EVMStateEquiv` (`Eq` preserves code). -/
+theorem codeW_eq_of_equiv {a b : EVM.State} (addr : AccountAddress) (h : EVMStateEquiv a b) :
+    UInt256.ofNat ((a.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
+      UInt256.ofNat ((b.lookupAccount addr).option 0 (fun acc => acc.code.size)) := by
+  simpa only [State.lookupAccount, h.accountMap]
+
+/-- `extCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
+    function of `(σ.getD a default).code` — the projection `accountCodeStateEq` preserves. -/
+theorem extCodeSizeWord_eq_ofNat_getD (σ : AccountMap) (target : UInt256) :
+    Reasoning.Theory.extCodeSizeWord σ target
+      = UInt256.ofNat (σ.getD (AccountAddress.ofUInt256 target) default).code.size := by
+  unfold Reasoning.Theory.extCodeSizeWord
+  cases h : σ.get? (AccountAddress.ofUInt256 target) with
+  | none =>
+      have hdefault : (default : Account).code.size = 0 := by
+        decide
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, hdefault, h]
+      rfl
+  | some acc =>
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, h]
+
+/-- Code preservation transfers to `extCodeSizeWord`: static calls leave every account's
+    `EXTCODESIZE` word unchanged. -/
+theorem extCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target : UInt256)
+    (h : accountCodeStateEq σ σ') :
+    Reasoning.Theory.extCodeSizeWord σ' target
+      = Reasoning.Theory.extCodeSizeWord σ target := by
+  rw [extCodeSizeWord_eq_ofNat_getD, extCodeSizeWord_eq_ofNat_getD,
+    (h (AccountAddress.ofUInt256 target)).symm]
+
+theorem extCodeSizeWord_eq (σ : AccountMap) (target : UInt256) :
+    extCodeSizeWord σ target =
+      UInt256.ofNat ((σ.get? (AccountAddress.ofUInt256 target)).option 0
+        (fun acc => acc.code.size)) := by
+  unfold extCodeSizeWord
+  cases σ.get? (AccountAddress.ofUInt256 target) <;> rfl
+
+theorem toExecute_ecrecover_precompile (σ : AccountMap) :
+    toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+      ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
+  unfold toExecute
+  have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π := by
+    unfold π
+    decide
+  rw [if_pos hmem]
+
+theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
+    (I : ExecutionEnv) :
+    let r := Ξ_ECREC σ g A I
+    r.2.2.2.size = 0 ∨ r.2.2.2.size = 32 := by
+  unfold Ξ_ECREC
+  dsimp
+  split
+  · left
+    rfl
+  · split
+    · left
+      rfl
+    · split
+      · right
+        rw [ByteArray.size_append]
+        rw [ByteArray_zeroes_size]
+        rw [ByteArray.size_extract]
+        rw [keccak_size]
+        decide
+      · left
+        rfl
+
+theorem staticcallTheta_ecrecover_output_size
+    {blobVersionedHashes blocks σ σ₀ A_in r s g p v v' d e H w σ' g' A' z o}
+    (hΘ : (σ', g', A', z, o) =
+      Θ σ σ₀ A_in r s
+        (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
+          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          g p v v' d e H blobVersionedHashes blocks w) :
+    o.size = 0 ∨ o.size = 32 := by
+  have hpre : toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) =
+      ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
+    exact toExecute_ecrecover_precompile σ
+  have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
+    decide
+  have hout := congrArg (fun x => x.2.2.2.2.size) hΘ
+  have hout' :
+      o.size =
+        (Θ σ σ₀ A_in r s
+          (AccountAddress.ofUInt256 (⟨1⟩ : UInt256))
+          (toExecute σ (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)))
+          g p v v' d e H blobVersionedHashes blocks w).2.2.2.2.size := by
+    simpa using hout
+  rw [hout']
+  unfold Θ
+  rw [hpre, hone]
+  dsimp
+  exact ecrecover_output_size _ g A_in _
+
+theorem code_zero_of_codeSize_zero {evm : EVM.State} {target : UInt256}
+    {addr : AccountAddress}
+    (haddr : addr = AccountAddress.ofUInt256 target)
+    (hzero : Reasoning.Theory.extCodeSizeWord evm.accountMap target = ⟨0⟩) :
+    (UInt256.ofNat
+      ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+  simpa [State.lookupAccount] using
+    extCodeSizeWord_zero_lookup_code_zero
+      (σ := evm.accountMap) haddr hzero
+
+theorem code_pos_of_codeSize_ne_zero {evm : EVM.State} {target : UInt256}
+    {addr : AccountAddress}
+    (haddr : addr = AccountAddress.ofUInt256 target)
+    (hne : Reasoning.Theory.extCodeSizeWord evm.accountMap target ≠ ⟨0⟩) :
+    0 <
+      (UInt256.ofNat
+        ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size))).toNat := by
+  by_contra hnot
+  have hnat :
+      (UInt256.ofNat
+        ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size))).toNat = 0 :=
+    Nat.eq_zero_of_not_pos hnot
+  have hwordZero :
+      UInt256.ofNat ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
+    uint256_toNat_eq_zero hnat
+  have hword :
+      UInt256.ofNat ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
+        Reasoning.Theory.extCodeSizeWord evm.accountMap target := by
+    subst addr
+    cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 target) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord, hacc,
+        Option.option] <;>
+      decide
+  exact hne (by rw [← hword, hwordZero])
+
+theorem code_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt256}
+    (hzero :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord = ⟨0⟩) :
+    (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
+        (fun acc => acc.code.size))).toNat = 0 := by
+  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
+  | none =>
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc, Option.option] using
+        (show (UInt256.ofNat 0).toNat = 0 from by decide)
+  | some acc =>
+      have hword := congrArg UInt256.toNat hzero
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using hword
+
+theorem code_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256}
+    (hne :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord ≠ ⟨0⟩) :
+    0 < (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
+        (fun acc => acc.code.size))).toNat := by
+  rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
+  unfold Reasoning.Theory.extCodeSizeWord at hne
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
+  | none =>
+      exfalso
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
+  | some acc =>
+      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
+        intro hzero
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
+      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
+        intro hzeroNat
+        apply hwordNe
+        cases hword : UInt256.ofNat acc.code.size with
+        | mk val =>
+            cases val using Fin.cases
+            · rfl
+            · simp [UInt256.toNat, hword] at hzeroNat
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+        hacc] using Nat.pos_of_ne_zero htoNatNe
+
+theorem addressWordCode_zero_of_state {evm : EVM.State} (target : UInt256)
+    (hzero : Reasoning.Theory.extCodeSizeWord evm.accountMap target = ⟨0⟩) :
+    (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat target.toNat)).option 0
+        (fun acc => acc.code.size))).toNat = 0 := by
+  simpa [State.lookupAccount] using
+    extCodeSizeWord_zero_lookup_code_zero
+      (σ := evm.accountMap) (target := target)
+      (addr := AccountAddress.ofNat target.toNat)
+      (accountAddress_ofUInt256_eq_ofNat_toNat target).symm hzero
+
+theorem addressWordCode_pos_of_state {evm : EVM.State} (target : UInt256)
+    (hne : Reasoning.Theory.extCodeSizeWord evm.accountMap target ≠ ⟨0⟩) :
+    0 < (UInt256.ofNat
+      ((evm.lookupAccount (AccountAddress.ofNat target.toNat)).option 0
+        (fun acc => acc.code.size))).toNat := by
+  simpa [State.lookupAccount] using
+    extCodeSizeWord_ne_zero_lookup_code_pos
+      (σ := evm.accountMap) (target := target)
+      (addr := AccountAddress.ofNat target.toNat)
+      (accountAddress_ofUInt256_eq_ofNat_toNat target).symm hne
+
+theorem depth_ne_1024_of_lt {d : Fin 1025} (h : d.val < 1024) : d ≠ 1024 := by
+  intro hd
+  have hdval : d.val = (1024 : Fin 1025).val := congrArg Fin.val hd
+  have h1024 : (1024 : Fin 1025).val = 1024 := by decide
+  omega
+
+theorem initStateDepth_ne_1024_of_lt {σ σ₀ A I g}
+    (h : I.depth.val < 1024) :
+    (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
+  simpa [initState] using depth_ne_1024_of_lt h
 
 end Reasoning.Theory

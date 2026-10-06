@@ -1,6 +1,7 @@
 import Reasoning.Initcode
 import Reasoning.Memory
 import Solm.Immutables
+import Reasoning.MemCascade
 
 /-!
 # Bytecode patching
@@ -742,7 +743,6 @@ theorem patchRuntime_size_eq {template out : ByteArray} {ps : List (Nat × ByteA
         simp at hpatch
 
 
-
 theorem byteArray_prefix_suffix (b : ByteArray) (n : Nat) (hn : n ≤ b.size) :
     b.extract 0 n ++ b.extract n b.size = b := by
   rw [ByteArray.extract_append_extract]
@@ -1102,5 +1102,90 @@ decreasing_by
   have hi := lt_size_of_get?_bind_parseInstr_some htemplate
   simp [N]
   omega
+
+end Reasoning.Theory
+
+/-! ## Memory-write representation and decode preservation -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat)
+    (w : UInt256) (h : off + 32 ≤ mem.size) :
+    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
+  unfold spliceBytes? Reasoning.Theory.writeWord
+  rw [toByteArray_size, if_pos h]
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  rw [toByteArray_extract_all]
+
+theorem patchRuntime_wordWrites_eq_writeCascade
+    (mem : ByteArray) (writes : List (Nat × UInt256))
+    (hfit : ∀ p ∈ writes, p.1 + 32 ≤ mem.size) :
+    patchRuntime mem (writes.map fun p => (p.1, UInt256.toByteArray p.2)) =
+      some (writeCascade mem writes) := by
+  induction writes generalizing mem with
+  | nil => rfl
+  | cons p rest ih =>
+      rcases p with ⟨off, word⟩
+      have hoff : off + 32 ≤ mem.size := hfit (off, word) (by simp)
+      have hgap : off - mem.size < USize.size := by
+        rw [Nat.sub_eq_zero_of_le (by omega)]
+        exact lt_usize 0 (by norm_num)
+      have hsize : (writeWord mem off word).size = mem.size := by
+        rw [writeWord_size mem off word hgap]
+        omega
+      have hrest : ∀ p ∈ rest, p.1 + 32 ≤ (writeWord mem off word).size := by
+        intro p hp
+        rw [hsize]
+        exact hfit p (by simp [hp])
+      simp only [List.map_cons, patchRuntime, List.foldlM_cons,
+        Option.bind_eq_bind, toByteArray_size, ↓reduceIte]
+      rw [spliceBytes_toByteArray_eq_writeWord mem off word hoff]
+      simpa [writeCascade] using ih (writeWord mem off word) hrest
+
+theorem get?_eq_of_extract_one' (a b : ByteArray) (i : Nat) (ha : i < a.size) (hb : i < b.size)
+    (h : a.extract i (i + 1) = b.extract i (i + 1)) :
+    a.get? i = b.get? i := by
+  unfold ByteArray.get?
+  simp only [dif_pos ha, dif_pos hb]
+  have h0 : (a.extract i (i + 1)).get? 0 = (b.extract i (i + 1)).get? 0 := by rw [h]
+  unfold ByteArray.get? at h0
+  have hsa : 0 < (a.extract i (i + 1)).size := by rw [ByteArray.size_extract]; omega
+  have hsb : 0 < (b.extract i (i + 1)).size := by rw [ByteArray.size_extract]; omega
+  simp only [dif_pos hsa, dif_pos hsb] at h0
+  have hla : (a.extract i (i + 1)).get 0 hsa = a.get i ha := by
+    change (a.extract i (i + 1))[0] = a[i]
+    simpa using ByteArray.get_extract (a := a) (start := i) (stop := i + 1) (i := 0) hsa
+  have hlb : (b.extract i (i + 1)).get 0 hsb = b.get i hb := by
+    change (b.extract i (i + 1))[0] = b[i]
+    simpa using ByteArray.get_extract (a := b) (start := i) (stop := i + 1) (i := 0) hsb
+  rw [hla, hlb] at h0
+  exact h0
+
+theorem decode_eq_of_get?_arg_eq (a b : ByteArray) (pc : UInt256)
+    (hget : a.get? pc.toNat = b.get? pc.toNat)
+    (harg : ∀ byte instr,
+      b.get? pc.toNat = some byte → parseInstr byte = some instr →
+      a.extract' (pc.toNat + 1) (pc.toNat + 1 + argOnNBytesOfInstr instr) =
+        b.extract' (pc.toNat + 1) (pc.toNat + 1 + argOnNBytesOfInstr instr)) :
+    decode a pc = decode b pc := by
+  unfold decode
+  rw [hget]
+  cases hb : b.get? pc.toNat with
+  | none => rfl
+  | some byte =>
+      cases hi : parseInstr byte with
+      | none => simp [hi]
+      | some instr =>
+          simp [hi]
+          by_cases hn : argOnNBytesOfInstr instr = 0
+          · simp [hn]
+          · simp [hn]
+            rw [harg byte instr hb hi]
 
 end Reasoning.Theory

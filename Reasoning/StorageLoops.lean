@@ -1,4 +1,4 @@
-import Reasoning.StateFacts
+import Reasoning.WordArithmetic
 
 /-!
 # Storage word loops
@@ -201,6 +201,44 @@ theorem longDataTailMaskedWord_padded {len word : UInt256} {bytes : List UInt8}
   rw [hremNat]
   exact u256_land_high_mask_eq_self word (by omega) hwordZero
 
+section
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem sstoreZero_clearDataWordsForwardFrom_comm
+    (owner : AccountAddress) (σ : AccountMap) (base idx slot : UInt256) :
+    ∀ fuel,
+      sstoreAccountMap owner
+          (clearDataWordsForwardFrom owner σ base idx fuel) slot ⟨0⟩ =
+        clearDataWordsForwardFrom owner
+          (sstoreAccountMap owner σ slot ⟨0⟩) base idx fuel
+  | 0 => rfl
+  | n + 1 => by
+      simp [clearDataWordsForwardFrom]
+      have ih := sstoreZero_clearDataWordsForwardFrom_comm
+        owner (sstoreAccountMap owner σ (base + idx) ⟨0⟩)
+        base ((⟨1⟩ : UInt256) + idx) slot n
+      have hcomm₀ :
+          sstoreAccountMap owner
+              (sstoreAccountMap owner σ (base + idx) ⟨0⟩) slot ⟨0⟩ =
+            sstoreAccountMap owner
+              (sstoreAccountMap owner σ slot ⟨0⟩) (base + idx) ⟨0⟩ := by
+        by_cases hne : slot ≠ base + idx
+        · exact (sstoreAccountMap_comm σ owner slot ⟨0⟩ (base + idx) ⟨0⟩ hne).symm
+        · have heq : slot = base + idx := by exact Classical.not_not.mp hne
+          subst slot
+          rfl
+      have hcomm := congrArg
+        (fun accounts => clearDataWordsForwardFrom owner accounts base
+          ((⟨1⟩ : UInt256) + idx) n) hcomm₀
+      exact Eq.trans ih hcomm
+
+end
+
 theorem clearDataWordsForwardFrom_split
     {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
     ∀ (pref tail : Nat),
@@ -360,6 +398,53 @@ theorem longDataLoopDone (len : UInt256) :
   rw [hidxNat, longDataCutoff_toNat]
   exact Nat.le_of_eq (Nat.mul_comm _ _)
 
+section
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+/-- General append/split for the forward zeroing fold: running `fuel + tail` clears is running
+    `tail` more clears from the advanced cursor after the first `fuel`. -/
+theorem clearDataWordsForwardFrom_append_gen (owner : AccountAddress) (base : UInt256) :
+    ∀ (fuel : Nat) (τ : AccountMap) (idx : UInt256) (tail : Nat),
+      clearDataWordsForwardFrom owner τ base idx (fuel + tail) =
+        clearDataWordsForwardFrom owner
+          (clearDataWordsForwardFrom owner τ base idx fuel) base
+          (UInt256.ofNat fuel + idx) tail
+  | 0, τ, idx, tail => by
+      simp only [Nat.zero_add, clearDataWordsForwardFrom]
+      rw [show (UInt256.ofNat 0 + idx) = idx from by
+        apply u256_inj; rw [uadd_toNat]
+        simp only [show (UInt256.ofNat 0).toNat = 0 from rfl, Nat.zero_add]
+        exact Nat.mod_eq_of_lt idx.val.isLt]
+  | fuel + 1, τ, idx, tail => by
+      have key : fuel + 1 + tail = (fuel + tail) + 1 := by omega
+      rw [key, clearDataWordsForwardFrom,
+        clearDataWordsForwardFrom_append_gen owner base fuel
+          (sstoreAccountMap owner τ (base + idx) ⟨0⟩) ((⟨1⟩ : UInt256) + idx) tail]
+      conv_rhs => rw [clearDataWordsForwardFrom]
+      rw [show UInt256.ofNat (fuel + 1) + idx = UInt256.ofNat fuel + ((⟨1⟩ : UInt256) + idx) from by
+        rw [← u256_one_add_ofNat, u256_add_comm (⟨1⟩ : UInt256) (UInt256.ofNat fuel), uadd_assoc]]
+
+/-- Peel the final store off a `⟨0⟩`-based clear run: `n+1` clears equal `n` clears followed by a
+    single `sstore` of `⟨0⟩` at `base + n`. -/
+theorem clearDataWordsForwardFrom_append (owner : AccountAddress) (τ : AccountMap)
+    (base : UInt256) (n : Nat) :
+    clearDataWordsForwardFrom owner τ base ⟨0⟩ (n + 1) =
+      sstoreAccountMap owner (clearDataWordsForwardFrom owner τ base ⟨0⟩ n)
+        (base + UInt256.ofNat n) ⟨0⟩ := by
+  rw [clearDataWordsForwardFrom_append_gen owner base n τ ⟨0⟩ 1]
+  rw [show (UInt256.ofNat n + (⟨0⟩ : UInt256)) = UInt256.ofNat n from by
+    apply u256_inj; rw [uadd_toNat]
+    simp only [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.add_zero]
+    exact Nat.mod_eq_of_lt (UInt256.ofNat n).val.isLt]
+  rw [clearDataWordsForwardFrom, clearDataWordsForwardFrom]
+
+end
+
 /-- The EVM stores the short word at `slot` **then** clears the keccak-data words; the Solm write
     clears **then** stores. Since the slots are disjoint, the resulting account maps are equal. -/
 theorem clearDataWordsForwardFrom_sstore_comm (cO : AccountAddress) (K slot sw : UInt256) :
@@ -374,5 +459,63 @@ theorem clearDataWordsForwardFrom_sstore_comm (cO : AccountAddress) (K slot sw :
         (fun i hi => hdisj i (by omega))]
       exact sstoreAccountMap_comm (clearDataWordsForwardFrom cO σ K ⟨0⟩ n)
         cO slot sw (K + UInt256.ofNat n) ⟨0⟩ (hdisj n (by omega))
+
+end Reasoning.Theory
+
+/-! ## Clearing prefixes and repeated stores -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem sstoreZero_clearDataWordsForwardFrom_absorb_first
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} (fuel : Nat) :
+    sstoreAccountMap owner
+        (clearDataWordsForwardFrom owner τ base idx (fuel + 1)) (base + idx) ⟨0⟩ =
+      clearDataWordsForwardFrom owner τ base idx (fuel + 1) := by
+  simp [clearDataWordsForwardFrom]
+  have hcomm := sstoreZero_clearDataWordsForwardFrom_comm
+    owner (sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+    base ((⟨1⟩ : UInt256) + idx) (base + idx) fuel
+  have hself := sstoreAccountMap_self_update
+    τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+  have htailSelf := congrArg
+    (fun accounts => clearDataWordsForwardFrom owner accounts base
+      ((⟨1⟩ : UInt256) + idx) fuel) hself
+  exact Eq.trans hcomm (Eq.symm htailSelf)
+
+theorem clearDataWordsForwardFrom_double_prefix
+    {owner : AccountAddress} {τ : AccountMap} {base idx : UInt256} :
+    ∀ oldFuel newFuel : Nat, oldFuel ≤ newFuel →
+      clearDataWordsForwardFrom owner
+          (clearDataWordsForwardFrom owner τ base idx oldFuel) base idx newFuel =
+        clearDataWordsForwardFrom owner τ base idx newFuel
+  | 0, newFuel, _hle => by
+      simp [clearDataWordsForwardFrom]
+  | oldFuel + 1, 0, hle => by
+      omega
+  | oldFuel + 1, newFuel + 1, hle => by
+      simp [clearDataWordsForwardFrom]
+      have hcomm := sstoreZero_clearDataWordsForwardFrom_comm
+        owner (sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+        base ((⟨1⟩ : UInt256) + idx) (base + idx) oldFuel
+      have hself := sstoreAccountMap_self_update
+        τ owner (base + idx) (⟨0⟩ : UInt256) (⟨0⟩ : UInt256)
+      have htailSelf := congrArg
+        (fun accounts => clearDataWordsForwardFrom owner accounts base
+          ((⟨1⟩ : UInt256) + idx) oldFuel) hself
+      have hbase := Eq.trans hcomm (Eq.symm htailSelf)
+      have hcong := congrArg
+        (fun accounts => clearDataWordsForwardFrom owner accounts base
+          ((⟨1⟩ : UInt256) + idx) newFuel) hbase
+      have htail := clearDataWordsForwardFrom_double_prefix
+        (owner := owner) (τ := sstoreAccountMap owner τ (base + idx) ⟨0⟩)
+        (base := base) (idx := ((⟨1⟩ : UInt256) + idx))
+        oldFuel newFuel (by omega)
+      exact Eq.trans hcong htail
 
 end Reasoning.Theory

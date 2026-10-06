@@ -443,23 +443,6 @@ theorem u256_pred_lt_of_ne_zero (len : UInt256) (hlen : len ≠ ⟨0⟩) :
   · rw [show (⟨1⟩ : UInt256).toNat = 1 from by decide]
     exact Nat.succ_le_of_lt hpos
 
-theorem wordOfInt_natCast_pred_of_pos (w : UInt256) (hpos : 0 < w.toNat) :
-    EVM.wordOfInt (Int.ofNat w.toNat - 1) = UInt256.ofNat (w.toNat - 1) := by
-  have hleNat : 1 ≤ w.toNat := Nat.succ_le_of_lt hpos
-  have hle : (1 : Int) ≤ Int.ofNat w.toNat := by
-    simpa using (show (1 : Int) ≤ (w.toNat : Int) by exact_mod_cast hleNat)
-  have hnonneg : 0 ≤ Int.ofNat w.toNat - 1 := sub_nonneg.mpr hle
-  rw [wordOfInt_nonneg (Int.ofNat w.toNat - 1) hnonneg]
-  have hto : (Int.ofNat w.toNat - 1).toNat = w.toNat - 1 := by
-    have hcast :
-        (((Int.ofNat w.toNat - 1).toNat : Nat) : Int) =
-          ((w.toNat - 1 : Nat) : Int) := by
-      rw [Int.toNat_sub_of_le hle]
-      rw [Nat.cast_sub hleNat]
-      simp
-    exact Int.ofNat.inj hcast
-  rw [hto]
-  rfl
 
 theorem u256_add_lnot_zero_eq_pred_of_pos (len : UInt256) (hpos : 0 < len.toNat) :
     len + UInt256.lnot ⟨0⟩ = UInt256.ofNat (len.toNat - 1) := by
@@ -491,20 +474,6 @@ theorem u256_sub_one_eq_pred_of_pos (w : UInt256) (hpos : 0 < w.toNat) :
     omega)]
   rfl
 
-theorem wordOfInt_natCast_succ (w : UInt256) :
-    EVM.wordOfInt (Int.ofNat w.toNat + 1) = w + ⟨1⟩ := by
-  have hnonneg : 0 ≤ Int.ofNat w.toNat + 1 :=
-    Int.add_nonneg (Int.natCast_nonneg _) (by decide)
-  rw [wordOfInt_nonneg (Int.ofNat w.toNat + 1) hnonneg]
-  apply u256_inj
-  change ((Int.ofNat w.toNat + 1).toNat % UInt256.size) = (w + ⟨1⟩).toNat
-  have hto : (Int.ofNat w.toNat + 1).toNat = w.toNat + 1 := by
-    have hcast : (((Int.ofNat w.toNat + 1).toNat : Nat) : Int) = w.toNat + 1 := by
-      rw [Int.toNat_of_nonneg hnonneg]
-      norm_num
-    omega
-  rw [hto, uadd_toNat]
-  rfl
 
 /-- Symbolic `¬ off ≥ aw·32` from `off < aw.toNat·32` (no `aw·32` overflow). -/
 theorem wordMul32_not_ge_of_lt {off aw : UInt256} (hlt : off.toNat < aw.toNat * 32)
@@ -2065,25 +2034,6 @@ theorem lnot_zero_add (Z : UInt256) : UInt256.lnot ⟨0⟩ + Z = UInt256.sub Z �
   · rw [uadd_toNat, hlnot, usub_toNat (by rw [h1]; omega), h1,
       show UInt256.size = 2 ^ 256 from by decide]; omega
 
-/-- `~x` as a word value: `2^256 - 1 - x`. -/
-theorem lnot_toNat_gen (x : UInt256) : (UInt256.lnot x).toNat = 2 ^ 256 - 1 - x.toNat := by
-  have hx : x.toNat < 2 ^ 256 := by
-    change x.val.val < 2 ^ 256; simpa [UInt256.size] using x.val.isLt
-  have hsz : (UInt256.ofNat (UInt256.size - 1)).toNat = 2 ^ 256 - 1 := by
-    rw [ulit_toNat' _ (by simp [UInt256.size])]
-    rfl
-  show (UInt256.sub (UInt256.ofNat (UInt256.size - 1)) x).toNat = 2 ^ 256 - 1 - x.toNat
-  rw [usub_toNat (by rw [hsz]; omega), hsz]
-
-/-- `256^e` fits in a word for `e ≤ 31`, and `EXP 256 e = 256^e`. -/
-theorem exp256_toNat (e : ℕ) (he : e ≤ 31) :
-    (UInt256.exp ⟨256⟩ (UInt256.ofNat e)).toNat = 256 ^ e := by
-  interval_cases e <;> decide +kernel
-
-theorem fromBytesBE_word (w : UInt256) : fromBytesBigEndian (EVM.Word.toBytesBE w) = w.toNat := by
-  have h := congrArg fromByteArrayBigEndian (word_toBytesBE_toByteArray_eq_toByteArray w)
-  simpa [fromByteArrayBigEndian, byteArray_toList_eq] using
-    h.trans (fromByteArrayBigEndian_toByteArray w)
 
 theorem paddedSize_of_pos_le32 (r : ℕ) (h1 : 0 < r) (h2 : r ≤ 32) : ABI.paddedSize r = 32 := by
   unfold ABI.paddedSize; rw [show (r + 31) / 32 = 1 from by omega]
@@ -2686,11 +2636,6 @@ theorem ctorCheckedAddNoOverflowLt (timestamp biddingTime : UInt256)
     UInt256.lt (biddingTime + timestamp) timestamp = ⟨0⟩ :=
   constructorCheckedAddNoOverflowLt timestamp biddingTime hno
 
-theorem setAddZero_toNat (w : UInt256) :
-    ((w + ⟨0⟩ : UInt256).toNat) = w.toNat := by
-  rw [uadd_toNat]
-  simp only [UInt256.toNat]
-  exact Nat.mod_eq_of_lt w.val.isLt
 
 theorem wordMul32_not_le64_of_ge3 {aw : UInt256}
     (hge : 3 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :

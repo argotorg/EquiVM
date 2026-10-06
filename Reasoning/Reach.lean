@@ -4397,3 +4397,78 @@ theorem RD.selectorArmTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat
   h.selectorArmTaken hdup hpush4 heq hop hpushT hjumpi hb hjd hov
 
 end Reasoning.Reach
+
+/-! ## Memory gas and final account maps -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem mstoreCost_eq_machineState_M {aw off : UInt256} :
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw =
+      Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
+  rfl
+
+/-- `REVERT` memory-expansion cost is `0` when the reverted region `[off, off+len)` is already within
+    active-words (`M aw off len = aw`). Mirrors `mloadCost0`/`memoryCost_zero_of_M_eq'`. -/
+theorem memoryCost_zero_of_M_eq {aw off len : UInt256}
+    (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat) = aw) :
+    Cₘ (M aw off len) - Cₘ aw = 0 := by
+  simp [M, hM]
+
+theorem memoryCost_zero_of_M_eq' {aw off sz : UInt256}
+    (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat sz.toNat) = aw) :
+    Cₘ (M aw off sz) - Cₘ aw = 0 := by
+  simp [M, hM]
+
+theorem mloadCost0 {aw off : UInt256}
+    (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 := by
+  exact memoryExpansionCost_zero_of_aw_stable hM
+
+theorem mloadCostZero {aw off : UInt256}
+    (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 :=
+  memoryExpansionCost_zero_of_aw_stable hawOff
+
+/-- Lift a return trace whose final account map may differ from the initial map to `Ξ`. -/
+theorem RDretXiResultAccountMap {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
+    {acc : AccountMap} (hcode : I.code = code)
+    (h : RDret code g (initState σ σ₀ g A I) acc o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
+      ∃ (g' : UInt256) (A' : Substate),
+        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
+  rcases h with hOOG | ⟨s, hX, hacc⟩
+  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hOOG
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hOOG))
+  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hX
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
+    rw [hacc] at hxi
+    exact Or.inr ⟨_, _, hxi⟩
+
+theorem RDretXiResultAccountMapReordered {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
+    {g : Sat256} {code o : ByteArray}
+    (hcode : I.code = code)
+    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    ∨ ∃ (g' : UInt256) (A' : Substate),
+        Ξ σ σ₀ g.toUInt256 A I =
+          .ok (.success (σ', g', A') o) := by
+  rcases h with hoog | ⟨s, hX, hacc⟩
+  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hoog
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
+  · have hσ : s.accountMap = σ' := hacc
+    have hxi := Xi_success_of_X (g := g.toUInt256) (by
+      rw [← hcode] at hX
+      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
+    rw [hσ] at hxi
+    exact Or.inr ⟨_, _, hxi⟩
+
+end Reasoning.Theory

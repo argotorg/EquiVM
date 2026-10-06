@@ -2128,3 +2128,23 @@ theorem swap13_xstep {s : State} {code : ByteArray}
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
+
+/-! ## Saturated-gas execution error transport -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem xi_error_of_X_sat_local {σ σ₀ A I}
+    {g : Sat256} {e : ExecutionException}
+    (h : X (g.toNat + 1) (D_J I.code 0)
+            (initState σ σ₀ g A I) = .error e) :
+    Ξ σ σ₀ g.toUInt256 A I = .error e :=
+  Xi_error_of_X (g := g.toUInt256) (by
+    simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using h)
+
+end Reasoning.Theory

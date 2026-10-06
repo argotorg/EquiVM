@@ -1131,3 +1131,134 @@ theorem execBlock_reverted_append {cfg : Config} {s2 : List Stmt} :
           exact ExecBlock.consRevert hstmt
 
 end Reasoning.Theory
+
+/-! ## Elementary expression and local-store facts -/
+
+namespace Reasoning.Theory
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+set_option autoImplicit false
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+
+theorem evalBinaryOpGtInt (x y : Int) :
+    evalBinaryOp? .gt (.int x) (.int y) = .ok (.bool (x > y)) := by
+  rfl
+
+theorem evalBinaryOpNeAddress (a b : AccountAddress) :
+    evalBinaryOp? .ne (.address a) (.address b) =
+      .ok (.bool (!(Value.address a == Value.address b))) := by
+  rfl
+
+theorem evalExpr_binary_nonshort {cfg solm evm op lhs rhs}
+    (hand : op ≠ BinaryOp.and) (hor : op ≠ BinaryOp.or) :
+    evalExpr? cfg solm evm (.binary op lhs rhs) =
+      (do
+        let lhsValue <- evalExpr? cfg solm evm lhs
+        let rhsValue <- evalExpr? cfg solm evm rhs
+        evalBinaryOp? op lhsValue rhsValue) := by
+  cases op <;> simp [evalExpr?] at hand hor ⊢
+
+theorem evalBinaryOp_lt_int_ok (x y : Int) :
+    evalBinaryOp? .lt (.int x) (.int y) = .ok (.bool (x < y)) := by
+  rfl
+
+theorem evalBinaryOp_add_int_ok (x y : Int) :
+    evalBinaryOp? .add (.int x) (.int y) = .ok (.int (x + y)) := by
+  rfl
+
+theorem getElem?_insert_ne (locals : Store) {k a : Ident} (value : Value)
+    (h : (k == a) = false) :
+    (locals.insert k value)[a]? = locals[a]? := by
+  simp [Std.HashMap.getElem?_insert, h]
+
+theorem getElem?_insert_self (locals : Store) (k : Ident) (value : Value) :
+    (locals.insert k value)[k]? = some value := by
+  simp
+
+theorem normalizeRawBoolWord_false_of_u256 {word : Nat}
+    (hword : (UInt256.ofNat word).toNat = word) (hzero : UInt256.ofNat word = ⟨0⟩) :
+    normalizeRawBoolWord? (rawBoolWordValue word) = .ok (.bool false) := by
+  have hword0 : word = 0 := by
+    have h := congrArg UInt256.toNat hzero
+    simpa [hword] using h
+  subst word
+  rfl
+
+theorem normalizeRawBoolWord_true_of_u256 {word : Nat}
+    (hword : (UInt256.ofNat word).toNat = word) (hone : UInt256.ofNat word = ⟨1⟩) :
+    normalizeRawBoolWord? (rawBoolWordValue word) = .ok (.bool true) := by
+  have hword1 : word = 1 := by
+    have h := congrArg UInt256.toNat hone
+    simpa [hword] using h
+  subst word
+  rfl
+
+theorem normalizeRawBoolWord_revert_of_u256 {word : Nat}
+    (hword : (UInt256.ofNat word).toNat = word)
+    (hzero : UInt256.ofNat word ≠ ⟨0⟩) (hone : UInt256.ofNat word ≠ ⟨1⟩) :
+    normalizeRawBoolWord? (rawBoolWordValue word) = .revert := by
+  have hword0 : word ≠ 0 := by
+    intro h0
+    apply hzero
+    subst word
+    rfl
+  have hword1 : word ≠ 1 := by
+    intro h1
+    apply hone
+    subst word
+    rfl
+  simp [normalizeRawBoolWord?, rawBoolWordValue, hword0, hword1]
+
+theorem evalBinaryOp_eq_int_ok (x y : Int) :
+    evalBinaryOp? .eq (.int x) (.int y) =
+      .ok (.bool (Value.int x == Value.int y)) := by
+  rfl
+
+theorem store_get_empty (k : Ident) : (∅ : Solm.Store).get? k = none := by simp
+
+theorem wordToElem_bool_scalar (word : UInt256) :
+    match wordToElem .bool word with
+    | .struct _ _ => False
+    | .array _ => False
+    | .bytes _ => False
+    | _ => True := by
+  change
+    match
+        (if (word.val == 0) = true then
+          Value.bool false
+        else
+          Value.bool true) with
+    | .struct _ _ => False
+    | .array _ => False
+    | .bytes _ => False
+    | _ => True
+  by_cases h : (word.val == 0) = true <;> simp [h]
+
+theorem evalBinaryOp_ne_int_ok (x y : Int) :
+    evalBinaryOp? .ne (.int x) (.int y) =
+      .ok (.bool (!(Value.int x == Value.int y))) := by
+  rfl
+
+theorem valueInt_beq_false_of_ne {x y : Int} (h : x ≠ y) :
+    (Value.int x == Value.int y) = false := by
+  rw [beq_eq_false_iff_ne]
+  intro hv
+  cases hv
+  exact h rfl
+
+theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
+    {evm evm' : EVM.State} {slot : StorageRef} {er : EvaledStorageRef}
+    {ty : StorageType} {loc : StorageLoc} {word : UInt256}
+    (hbase : solm.locals.get? slot.base = none)
+    (her : evalStorageRef cfg solm evm slot = .ok er)
+    (hty : storageTypeAt? solm.contract.storage er = some ty)
+    (hloc : cfg.storage.layout er = fun _ => some loc)
+    (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
+    assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =
+      .ok (solm, evm') := by
+  exact assignStorageRef_storage_scalar_value hbase her hty hloc
+    (wordToElem_bool_scalar word) hstore
+
+end Reasoning.Theory

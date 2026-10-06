@@ -6,11 +6,12 @@ files plus contract-specific facts (bytecode literals, selectors, storage layout
 
 Most declarations are in `Reasoning.Theory`. The EVM trace layer (`RD`, `evm_run`,
 `SolcRoutines.lean`, and the `RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`) is in
-`Reasoning.Reach`. `SolmRpow.lean` uses the nested `Reasoning.Theory.RpowB` and
+`Reasoning.Reach`. `SolmArithmetic.lean` includes the nested `Reasoning.Theory.RpowB` and
 `Reasoning.Theory.RpowBase` namespaces for the two source-variable conventions.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
 
-The shared reasoning library introduces no axioms.
+Some existing helpers use `native_decide`; refactors should not introduce additional axiom
+dependencies.
 
 ## Files
 
@@ -22,7 +23,7 @@ The shared reasoning library introduces no axioms.
 | `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts, and the `keccak_size` theorem. |
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with the `reEquiv_*` case builders for `runtimeEquivalenceFor` and the `reEquivElim` eliminators, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
 | `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
-| `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
+| `MemCascade.lean` | Word-write cascades, sparse writes, scratch-memory shapes, and read/size preservation. |
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
 | `Initcode.lean` | Constructor-time facts: decode of the initcode prefix, jump-table survival, constructor-argument arithmetic. |
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
@@ -31,21 +32,14 @@ The shared reasoning library introduces no axioms.
 | `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps and substate changes. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
 | `WordArithmetic.lean` | Further signed and unsigned word bounds, masks, shifts, rounding, and compiler guard arithmetic. |
-| `HeapMemory.lean` | Memory prefixes and cursors, sparse writes, copying, and return-data memory. |
-| `DynamicMemory.lean` | Dynamic byte-array memory, padding, copying, and revert-data layouts. |
-| `MemoryShapes.lean` | Reusable single-word, two-word, and error-string memory shapes, with read, size, preservation, and hash facts. |
-| `SolcMemory.lean` | Compiler memory facts combining shared memory shapes with solc allocation and mapping conventions. |
-| `MemoryArithmetic.lean` | Memory-size and gas bounds, byte-array conversions, copy results, and write-cascade facts. |
-| `ABILegacy.lean` | Legacy solc ABI scalar encoders and decoders, including padded word handling. |
-| `ABIComposite.lean` | Shared ABI type aliases, tuple and dynamic-value encodings, and strict and legacy decoding facts. |
+| `HeapMemory.lean` | Heap prefixes and cursors, allocation invariants, dynamic tuple and return-data layouts, and dynamic revert payloads. |
+| `ABIComposite.lean` | Shared ABI type aliases, strict and legacy scalar-tuple decoders, dynamic-value decoders, and calldata word reads. |
 | `ABIViews.lean` | ABI word views, tuple encoders, packed tuple memory and hashes, calldata bounds, selector extraction, and return-value decoding. |
 | `PackedStorage.lean` | Packed address, bool, uint8, and uint48 locations, masks, loads, and stores. |
-| `StateFacts.lean` | Account and storage projections, state equality, external-code and precompile facts, and elementary source evaluation. |
-| `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying. |
+| `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying, including prefix composition and repeated stores. |
 | `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
 | `SolcRoutines.lean` | Bytecode-parameterized getter, authorization, storage-update, checked-arithmetic, and revert routines. |
-| `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, and shared local-variable frames. |
-| `SolmRpow.lean` | Exponentiation local-variable frames and their contract-independent evaluation facts. |
+| `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, local-variable frames, and exponentiation-frame evaluation facts. |
 
 ## Dependencies
 
@@ -71,25 +65,37 @@ Stepping   EVMWord ── SolmBody
 Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ethereum only)
 ```
 
-The additional modules build on that core:
+The remaining extension modules have distinct responsibilities:
 
-- `PackedStorage` builds on `Storage`; `WordArithmetic` also uses `SolmBody` and `Initcode`.
-- `MemoryShapes` builds on `MemCascade`; `SolcMemory`, `HeapMemory`, and `DynamicMemory`
-  also use `Solc`.
-- `ABILegacy` builds on `ABI`, and `ABIComposite` builds on `ABILegacy`.
-- `BytecodePatching` uses `Initcode`, `Memory`, and `Solm.Immutables`.
-- `MemoryArithmetic` combines the memory, word, patching, and composite ABI facts.
-  `ABIViews` builds on this layer.
-- `StateFacts` combines `ExternalCall`, `WordArithmetic`, and `MemoryArithmetic`;
-  `StorageLoops` builds on `StateFacts`.
-- `SolcRoutines` combines `Solc` with packed-storage, memory-shape, and memory-arithmetic facts.
-- `SolmArithmetic` builds on `SolmBody` and `ABI`; `SolmRpow` also uses `WordArithmetic`.
+- `ABIComposite` extends `ABI` with tuple and dynamic decoders; `ABIViews` connects those
+  encodings to compiler word operations and calldata guards.
+- `MemCascade` builds on `Memory`. `Solc` also imports it for scratch-memory layouts;
+  `HeapMemory` adds heap invariants and dynamic layouts above `Solc`.
+- `PackedStorage` extends `Storage`. `WordArithmetic` supplies the higher-level word bounds
+  used by compiler and storage proofs, with `SolmBody` and `Initcode` also available.
+- `BytecodePatching` uses `Initcode`, `MemCascade`, and `Solm.Immutables` to connect bytecode
+  splices to word writes and preserve decoding.
+- `SolcRoutines` combines compiler primitives with heap, packed-storage, and word facts.
+- `SolmArithmetic` combines source evaluation, ABI types, and word arithmetic. Its `RpowB`
+  and `RpowBase` namespaces retain the two local-variable conventions for exponentiation.
+- `StorageLoops` combines storage updates and word arithmetic for clearing and copying loops.
+
+Basic memory bounds and byte-array conversions live in `Memory`; write-cascade facts live in
+`MemCascade`; compiler allocation and mapping-memory facts live in `Solc`. State projections
+live in `Storage`, code-size/precompile facts in `ExternalCall`, and elementary source evaluation
+in `SolmBody`. This keeps those facts beside their definitions instead of collecting them in
+separate files by the contract from which they were extracted.
 
 These modules do not import `Examples` or `Benchmarks`. Contract-specific bytecode, selectors,
 and storage layouts stay with their proofs. Where a proof is extracted from a concrete source
 configuration, the original theorem remains as a specialization of the shared result.
 
 ## What belongs in the library
+
+Extend the module that owns the relevant definitions when its dependencies permit it. A new
+module should introduce a coherent abstraction or a necessary dependency layer. Before adding
+a theorem, look for an existing statement with the same hypotheses and conclusion. Existing
+public names for duplicate statements can remain as short applications of one shared proof.
 
 A shared declaration should state a reusable property and have a name that describes that
 property independently of its originating contract. For example, an address-word bound or an
@@ -116,13 +122,16 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 
 - Run one opcode of a concrete trace → `Stepping` (`<op>_xstep`), chained via `Reach` (`evm_run`).
 - Word arithmetic side condition → `EVMWord`, `WordArithmetic`.
-- Memory read/write or keccak slot → `Memory`, `MemoryShapes`, `SolcMemory`;
-  chains of writes → `MemCascade`; copy and size bounds → `MemoryArithmetic`.
-- Decode calldata / encode a return value → `ABI`, `ABILegacy`, `ABIComposite`, `ABIViews`.
-- A code shape the compiler always emits → `Solc`, `SolcRoutines`.
-- Storage read/write, packed values, bytes/string layout, account-map equality → `Storage`,
-  `PackedStorage`, `StateFacts`; clearing and copying loops → `StorageLoops`.
-- Source arithmetic and local-variable frames → `SolmArithmetic`, `SolmRpow`.
+- Memory bounds, byte conversions, and basic read/write facts → `Memory`.
+- Write cascades, scratch shapes, and sparse writes → `MemCascade`.
+- Compiler memory conventions → `Solc`; heap allocation and dynamic layouts → `HeapMemory`.
+- Decode calldata / encode a return value → `ABI`, `ABIComposite`, `ABIViews`.
+- A code shape the compiler emits → `Solc`, `SolcRoutines`.
+- Storage, state projections, and account-map equality → `Storage`; packed values →
+  `PackedStorage`; clearing and copying loops → `StorageLoops`.
+- Code-size guards and precompile results → `ExternalCall`.
+- Elementary source evaluation → `SolmBody`; arithmetic and exponentiation frames →
+  `SolmArithmetic`.
 - Immutable bytecode patching and decode preservation → `BytecodePatching`.
 - Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`.
 - An external call inside a function body → `ExternalCall` (EVM side: `RD.call` in `Reach`;
@@ -132,7 +141,7 @@ source of the constraint and the rule's reuse, rather than the absence of numeri
 
 ## Build
 
-`lake build Reasoning` builds all thirty modules. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds all twenty-three modules. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.
 
 After changing shared lemmas, check their callers with
