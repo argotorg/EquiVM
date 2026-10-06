@@ -126,7 +126,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, approveEvaledRef, erc20Contract, erc20StorageDecls,
                        uint256Storage, storageTypeStep?])
       (hloc := erc20Config_storage_allowance (.address evm.executionEnv.source)
-          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)) (evm := evm))
+          (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
   rw [erc20StorageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 

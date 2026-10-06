@@ -6,10 +6,11 @@ import Solm.SolidityStorage
 # Compile-time Solidity storage generation
 
 `solidityLayout!` evaluates a closed storage schema while elaborating and emits one self-contained
-locator function. Bare dynamically-sized references locate their length/header anchor. The
-generated function contains only matching on the evaluated reference and its slot arithmetic; it
-does not rebuild `StorageNode`s, traverse the declaration list, or run another layout-generation
-function at runtime.
+locator function. Bare dynamically-sized references locate their length/header anchor, and an
+index into a bytes/string locates symbolically as `.byte header index`. The generated function
+does not depend on the EVM state: it contains only matching on the evaluated reference and its
+slot arithmetic; it does not rebuild `StorageNode`s, traverse the declaration list, or run another
+layout-generation function at runtime.
 -/
 
 namespace Solm
@@ -150,22 +151,16 @@ private def storageLocBody (loc : GeneratedLoc) (size : Nat) (elem : ElemType) :
   let sizeStx := natTerm size
   `(term|
     some
-      ({ slot := $(loc.slot)
-         offset := $(loc.offset)
-         size := $sizeStx
-         bitOffset := none
-         type := $elemStx
-         hbound := by simp only [Fin.val_ofNat] <;> omega } : StorageLoc))
+      (StorageAddr.leaf
+        ({ slot := $(loc.slot)
+           offset := $(loc.offset)
+           size := $sizeStx
+           bitOffset := none
+           type := $elemStx
+           hbound := by simp only [Fin.val_ofNat] <;> omega } : StorageLoc)))
 
-private def uint256LengthLocBody (slot : Term) : TermElabM Term :=
-  `(term|
-    some
-      ({ slot := $slot
-         offset := 0
-         size := 32
-         bitOffset := none
-         type := .int (.uint ⟨256, by decide⟩)
-         hbound := by decide } : StorageLoc))
+private def anchorBody (slot : Term) : TermElabM Term :=
+  `(term| some (StorageAddr.anchor $slot))
 
 private def wrapLet (name : Name) (value : Term) (body : Term) : TermElabM Term := do
   let ident := mkIdent name
@@ -180,7 +175,7 @@ private def wrapCasesLet (cases : List GeneratedCase) (name : Name) (value : Ter
 private def declarationsOfFields (fields : List (Ident × StorageType)) : List StorageDecl :=
   fields.map fun field => { name := field.1, ty := field.2 }
 
-private partial def generateCases (structs : List StructDecl) (evmName : Name)
+private partial def generateCases (structs : List StructDecl)
     (ty : StorageType) (loc : GeneratedLoc) (path : List StepPattern) :
     TermElabM (List GeneratedCase) := do
   match ty with
@@ -202,7 +197,7 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
         Ethereum.uInt256OfByteArray
           (Ethereum.KEC ((keyValueToWord $index).toByteArray ++ ($(loc.slot)).toByteArray)))
       let zero <- finTerm 32 0
-      let cases <- generateCases structs evmName value
+      let cases <- generateCases structs value
         { slot := mappedSlot, offset := zero } (path ++ [.mindex indexName])
       wrapCasesLet cases slotName slotValue
   | .array elem _ =>
@@ -237,12 +232,12 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
               ($indexNat * $(natTerm wordsPerElem)))
           let offset <- finTerm 32 0
           pure (slotValue, offset)
-      let cases <- generateCases structs evmName elem
+      let cases <- generateCases structs elem
         { slot := elementSlot, offset := offset } (path ++ [.aindex indexName])
       let cases <- wrapCasesLet cases elementSlotName slotValue
       wrapCasesLet cases indexNatName indexNatValue
   | .dynamicArray elem =>
-      let lengthBody <- uint256LengthLocBody loc.slot
+      let lengthBody <- anchorBody loc.slot
       let anchorCase : GeneratedCase := { steps := path, body := lengthBody }
       let elemSize <-
         match typeSize? structs elem with
@@ -279,36 +274,18 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
               ($indexNat * $(natTerm wordsPerElem)))
           let offset <- finTerm 32 0
           pure (slotValue, offset)
-      let elementCases <- generateCases structs evmName elem
+      let elementCases <- generateCases structs elem
         { slot := elementSlot, offset := offset } (path ++ [.aindex indexName])
       let elementCases <- wrapCasesLet elementCases elementSlotName slotValue
       let elementCases <- wrapCasesLet elementCases dataBaseName dataBaseValue
       let elementCases <- wrapCasesLet elementCases indexNatName indexNatValue
       pure (anchorCase :: elementCases)
   | .bytes | .string =>
-      let evm := mkIdent evmName
-      let lengthBody <- `(term| some (bytesLikeLengthLoc $(loc.slot) $evm))
-      let anchorCase : GeneratedCase := { steps := path, body := lengthBody }
+      let anchorCase : GeneratedCase := { steps := path, body := (← anchorBody loc.slot) }
       let indexName <- mkFreshUserName `index
-      let indexNatName <- mkFreshUserName `indexNat
       let index := mkIdent indexName
-      let indexNat := mkIdent indexNatName
-      let indexNatValue <- `(term| (keyValueToWord $index).toNat)
-      let packedOffset <- `(term| Fin.ofNat 32 (31 - $indexNat))
-      let packedBody <- storageLocBody
-        { slot := loc.slot, offset := packedOffset } 1 (.int (.uint ⟨8, by decide⟩))
-      let longSlot <- `(term|
-        Ethereum.uInt256OfByteArray (Ethereum.KEC ($(loc.slot)).toByteArray) +
-          Ethereum.UInt256.ofNat ($indexNat / 32))
-      let longOffset <- `(term| Fin.ofNat 32 (31 - $indexNat % 32))
-      let longBody <- storageLocBody
-        { slot := longSlot, offset := longOffset } 1 (.int (.uint ⟨8, by decide⟩))
       let indexedBody <- `(term|
-        let $(mkIdent indexNatName):ident := $indexNatValue
-        if checkBytesPacked $(loc.slot) $evm then
-          if $indexNat < 31 then $packedBody else none
-        else
-          $longBody)
+        some (StorageAddr.byte $(loc.slot) (keyValueToWord $index).toNat))
       pure
         [ anchorCase,
           { steps := path ++ [.aindex indexName], body := indexedBody } ]
@@ -319,7 +296,7 @@ private partial def generateCases (structs : List StructDecl) (evmName : Name)
       for allocation in allocations do
         let fieldSlot <- slotPlusNat loc.slot allocation.slot
         let fieldOffset <- finTerm 32 allocation.offset
-        let generated <- generateCases structs evmName allocation.ty
+        let generated <- generateCases structs allocation.ty
           { slot := fieldSlot, offset := fieldOffset }
           (path ++ [.field allocation.name])
         cases := cases ++ generated
@@ -343,14 +320,12 @@ private def stepsPatternTerm : List StepPattern -> TermElabM Term
 private def generatedRawLayout (structs : List StructDecl)
     (allocations : List BaseAllocation) : TermElabM Term := do
   let refName <- mkFreshUserName `ref
-  let evmName <- mkFreshUserName `evm
   let ref := mkIdent refName
-  let evm := mkIdent evmName
   let mut alts : Array (TSyntax ``Lean.Parser.Term.matchAlt) := #[]
   for allocation in allocations do
     let slot <- `(term| (⟨$(natTerm allocation.slot)⟩ : Ethereum.UInt256))
     let offset <- finTerm 32 allocation.offset
-    let generated <- generateCases structs evmName allocation.ty { slot := slot, offset := offset } []
+    let generated <- generateCases structs allocation.ty { slot := slot, offset := offset } []
     for generatedCase in generated do
       let name := stringTerm allocation.name
       let steps <- stepsPatternTerm generatedCase.steps
@@ -359,7 +334,7 @@ private def generatedRawLayout (structs : List StructDecl)
   alts := alts.push (← `(Lean.Parser.Term.matchAltExpr| | _, _ => none))
   let body <- `(term| match ($ref).base, ($ref).steps with $alts:matchAlt*)
   `(term|
-    ((fun $ref:ident $evm:ident => $body) :
+    ((fun $ref:ident => $body) :
       StorageLayout))
 
 private def elaborateLayout (structsStx declsStx : Term) : TermElabM Term := do

@@ -10,6 +10,10 @@ Solidity, given a locator produced by either `genSolidityLayout` or `solidityLay
 The recursive behavior is driven by the supplied `StorageType`: elementary leaves use the locator,
 structs and arrays recurse over their components, mappings are non-enumerable, and bytes/string use
 Solidity's short/long representation in this module.
+
+The locator is state-independent. The only state-dependent addressing in Solidity — where the
+`i`-th byte of a bytes/string lives, which depends on its short/long encoding — is resolved here,
+from the symbolic `StorageAddr.byte` the locator returns.
 -/
 
 namespace Solm
@@ -37,6 +41,43 @@ def clearSolidityBytesDataWordsFrom (evm : EVM.State) (baseSlot : EVM.Word)
         (solidityBytesDataSlot baseSlot idx) ⟨0⟩
       clearSolidityBytesDataWordsFrom evm1 baseSlot (idx + 1) n
 
+/-- The whole-word location of a header slot, read as the length of a dynamic array. -/
+def solidityAnchorWordLoc (slot : EVM.Word) : StorageLoc :=
+  { slot := slot, offset := 0, size := 32, bitOffset := none,
+    type := .int (.uint ⟨256, by decide⟩), hbound := by decide }
+
+/-- The location of the `index`-th byte of the bytes/string whose header is at `header`.
+    Short values are stored left-aligned in the header slot; long values left-aligned in the data
+    words starting at `keccak256(header)`. A short value has at most 31 bytes. -/
+def solidityByteLoc? (evm : EVM.State) (header : EVM.Word) (index : Nat) : Option StorageLoc :=
+  if checkBytesPacked header evm then
+    if index < 31 then
+      some { slot := header, offset := Fin.ofNat 32 (31 - index), size := 1, bitOffset := none,
+             type := .int (.uint ⟨8, by decide⟩), hbound := by simp only [Fin.val_ofNat]; omega }
+    else none
+  else
+    some { slot := solidityBytesDataSlot header (index / 32), offset := Fin.ofNat 32 (31 - index % 32),
+           size := 1, bitOffset := none, type := .int (.uint ⟨8, by decide⟩),
+           hbound := by simp only [Fin.val_ofNat]; omega }
+
+/-- Resolve the physical location of a primitive value. -/
+def solidityLeafLoc? (layout : StorageLayout) (er : EvaledStorageRef) (evm : EVM.State) :
+    Option StorageLoc :=
+  match layout er with
+  | some (.leaf loc) => some loc
+  | some (.byte header index) => solidityByteLoc? evm header index
+  | _ => none
+
+/-- The header slot of a dynamically-sized value. -/
+def solidityAnchor? (layout : StorageLayout) (er : EvaledStorageRef) : Option EVM.Word :=
+  match layout er with
+  | some (.anchor slot) => some slot
+  | _ => none
+
+/-- The length location of a dynamic array. -/
+def solidityLengthLoc? (layout : StorageLayout) (er : EvaledStorageRef) : Option StorageLoc :=
+  (solidityAnchor? layout er).map solidityAnchorWordLoc
+
 def solidityDecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat :=
   let flag := Ethereum.UInt256.land header ⟨1⟩
   let rawLen := Ethereum.UInt256.div header ⟨2⟩
@@ -49,10 +90,10 @@ def solidityDecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat 
 def solidityBytesBaseSlotAndLength?
     (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult (EVM.Word × Nat) :=
-  match layout er evm with
-  | some lenLoc =>
-      match solidityDecodeBytesLengthHeader (EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot) with
-      | .ok len => .ok (lenLoc.slot, len)
+  match solidityAnchor? layout er with
+  | some baseSlot =>
+      match solidityDecodeBytesLengthHeader (EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot) with
+      | .ok len => .ok (baseSlot, len)
       | .revert => .revert
       | .error => .error
   | none => .error
@@ -60,8 +101,8 @@ def solidityBytesBaseSlotAndLength?
 def solidityReadBytesLength?
     (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : Option (StorageReadResult Nat) := do
-  let lenLoc <- layout er evm
-  let header := EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot
+  let baseSlot <- solidityAnchor? layout er
+  let header := EVM.storageLoad evm evm.executionEnv.codeOwner baseSlot
   some (solidityDecodeBytesLengthHeader header)
 
 def solidityBytesHeaderWord (len : Nat) : EVM.Word :=
@@ -196,7 +237,7 @@ def solidityValueResultToEval : StorageReadResult Value -> EvalResult Value
 
 def solidityDynamicLength? (layout : StorageLayout) (evm : EVM.State)
     (er : EvaledStorageRef) : EvalResult Nat := do
-  let lenLoc <- EvalResult.ofOption .storageError (layout er evm)
+  let lenLoc <- EvalResult.ofOption .storageError (solidityLengthLoc? layout er)
   match storageLocLoad evm lenLoc with
   | .int len =>
       if len < 0 then .error .storageError else .ok len.toNat
@@ -209,7 +250,7 @@ Mappings are deliberately skipped because their keys cannot be enumerated. -/
 def solidityClearStorage? (layout : StorageLayout) (evm : EVM.State)
     (er : EvaledStorageRef) : StorageType -> EvalResult EVM.State
   | .elem _ | .contract _ => do
-      let loc <- EvalResult.ofOption .storageError (layout er evm)
+      let loc <- EvalResult.ofOption .storageError (solidityLeafLoc? layout er evm)
       EvalResult.ofOption .storageError (storageLocStore evm loc (.int 0))
   | .mapping _ _ => .ok evm
   | .struct _ fields => solidityClearFields? layout evm er fields
@@ -218,7 +259,7 @@ def solidityClearStorage? (layout : StorageLayout) (evm : EVM.State)
   | .dynamicArray elem => do
       let length <- solidityDynamicLength? layout evm er
       let evm' <- solidityClearArray? layout evm er elem length
-      let lenLoc <- EvalResult.ofOption .storageError (layout er evm')
+      let lenLoc <- EvalResult.ofOption .storageError (solidityLengthLoc? layout er)
       EvalResult.ofOption .storageError (storageLocStore evm' lenLoc (.int 0))
   | .bytes | .string =>
       solidityStateResultToEval (solidityPrepareBytesWrite? layout er 0 evm)
@@ -260,7 +301,7 @@ def solidityWriteStorage? (layout : StorageLayout) (evm : EVM.State)
     (er : EvaledStorageRef) : StorageType -> Value -> EvalResult EVM.State
   | .elem _, value
   | .contract _, value => do
-      let loc <- EvalResult.ofOption .storageError (layout er evm)
+      let loc <- EvalResult.ofOption .storageError (solidityLeafLoc? layout er evm)
       EvalResult.ofOption .storageError (storageLocStore evm loc value)
   | .struct expected fields, .struct actual values =>
       if expected = actual then solidityWriteFields? layout evm er fields values
@@ -273,7 +314,7 @@ def solidityWriteStorage? (layout : StorageLayout) (evm : EVM.State)
       -- Clear first so assigning a shorter array cannot leave reachable stale elements.
       let evm' <- solidityClearStorage? layout evm er (.dynamicArray elem)
       let evm'' <- solidityWriteArray? layout evm' er elem 0 values
-      let lenLoc <- EvalResult.ofOption .storageError (layout er evm'')
+      let lenLoc <- EvalResult.ofOption .storageError (solidityLengthLoc? layout er)
       EvalResult.ofOption .storageError (storageLocStore evm'' lenLoc (.int values.length))
   | .bytes, .bytes bytes
   | .string, .bytes bytes =>
@@ -323,7 +364,7 @@ mutual
 def solidityReadStorage? (layout : StorageLayout) (evm : EVM.State)
     (er : EvaledStorageRef) : StorageType -> EvalResult Value
   | .elem _ | .contract _ => do
-      let loc <- EvalResult.ofOption .storageError (layout er evm)
+      let loc <- EvalResult.ofOption .storageError (solidityLeafLoc? layout er evm)
       pure (storageLocLoad evm loc)
   | .mapping _ _ => .error .typeError
   | .struct name fields => do
@@ -397,7 +438,7 @@ def solidityPushStorage? (layout : StorageLayout) (er : EvaledStorageRef)
   match ty with
   | .dynamicArray elem => do
       let length <- solidityDynamicLength? layout evm er
-      let lenLoc <- EvalResult.ofOption .storageError (layout er evm)
+      let lenLoc <- EvalResult.ofOption .storageError (solidityLengthLoc? layout er)
       let evm' <- EvalResult.ofOption .storageError
         (storageLocStore evm lenLoc (.int (length + 1)))
       match value with
@@ -430,7 +471,7 @@ def solidityPopStorage? (layout : StorageLayout) (er : EvaledStorageRef)
         let newLength := length - 1
         let evm' <- solidityClearStorage? layout evm
           { er with steps := er.steps ++ [.aindex (.int newLength)] } elem
-        let lenLoc <- EvalResult.ofOption .storageError (layout er evm')
+        let lenLoc <- EvalResult.ofOption .storageError (solidityLengthLoc? layout er)
         EvalResult.ofOption .storageError (storageLocStore evm' lenLoc (.int newLength))
   | .bytes | .string => do
       let stored <- solidityReadStorage? layout evm er ty
@@ -456,20 +497,29 @@ def solidityStorageBackend (layout : StorageLayout) : StorageBackend :=
 @[simp] theorem solidityStorageBackend_locate (layout : StorageLayout) :
     (solidityStorageBackend layout).locate? = layout := rfl
 
+@[simp] theorem solidityLeafLoc?_of_leaf {layout : StorageLayout} {er : EvaledStorageRef}
+    {loc : StorageLoc} (hloc : layout er = some (.leaf loc)) (evm : EVM.State) :
+    solidityLeafLoc? layout er evm = some loc := by
+  simp [solidityLeafLoc?, hloc]
+
+@[simp] theorem solidityAnchor?_of_anchor {layout : StorageLayout} {er : EvaledStorageRef}
+    {slot : EVM.Word} (hloc : layout er = some (.anchor slot)) :
+    solidityAnchor? layout er = some slot := by
+  simp [solidityAnchor?, hloc]
+
 @[simp] theorem solidityStorageBackend_read_elem (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : ElemType) (evm : EVM.State) (loc : StorageLoc)
-    (hloc : layout er evm = some loc) :
+    (hloc : layout er = some (.leaf loc)) :
     (solidityStorageBackend layout).read er (.elem ty) evm = .ok (storageLocLoad evm loc) := by
-  simp only [solidityStorageBackend, solidityReadStorage?]
-  rw [hloc]
+  simp only [solidityStorageBackend, solidityReadStorage?, solidityLeafLoc?_of_leaf hloc]
   rfl
 
 @[simp] theorem solidityStorageBackend_write_elem (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : ElemType) (value : Value) (evm evm' : EVM.State)
-    (loc : StorageLoc) (hloc : layout er evm = some loc)
+    (loc : StorageLoc) (hloc : layout er = some (.leaf loc))
     (hstore : storageLocStore evm loc value = some evm') :
     (solidityStorageBackend layout).write er (.elem ty) value evm = .ok evm' := by
-  simp [solidityStorageBackend, solidityWriteStorage?, hloc, hstore,
+  simp [solidityStorageBackend, solidityWriteStorage?, solidityLeafLoc?_of_leaf hloc, hstore,
     EvalResult.ofOption, EvalResult.bind, bind]
 
 end Solm

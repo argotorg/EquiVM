@@ -140,9 +140,21 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
-/-- Locate a physical storage leaf. Representation-sensitive operations, including Solidity
+/-- Where a storage reference lives. This is a pure function of the reference: anything whose
+    physical position depends on the current state (the short/long encoding of Solidity bytes)
+    is left symbolic here and resolved by the backend. -/
+inductive StorageAddr where
+  /-- A primitive value at fixed bits of a fixed slot. -/
+  | leaf : StorageLoc -> StorageAddr
+  /-- The header slot of a dynamically-sized value (dynamic array length, bytes/string header). -/
+  | anchor : EVM.Word -> StorageAddr
+  /-- The `index`-th byte of the bytes/string value whose header is at slot `header`. -/
+  | byte : (header : EVM.Word) -> (index : Nat) -> StorageAddr
+  deriving Repr
+
+/-- Locate a storage reference. Representation-sensitive operations, including Solidity
     bytes and strings, belong to `StorageBackend` rather than this locator. -/
-abbrev StorageLayout := EvaledStorageRef -> EVM.State -> Option StorageLoc
+abbrev StorageLayout := EvaledStorageRef -> Option StorageAddr
 
 /-- Storage operations selected by a configuration. `locate?` is for proofs and diagnostics;
     execution uses the operations themselves. -/
@@ -153,7 +165,7 @@ structure StorageBackend where
   length : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Nat
   push : EvaledStorageRef -> StorageType -> Option Value -> EVM.State -> EvalResult EVM.State
   pop : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
-  locate? : StorageLayout := fun _ _ => none
+  locate? : StorageLayout := fun _ => none
 
 
 def intTypeSize (t : IntType) : Fin 33 :=

@@ -28,10 +28,13 @@ structure IntermediateStorageLoc where
 -- Schema of a particular instance of a solidity layout
 inductive StorageNode where
   | atomic : ElemType -> StorageNode
-  | indexed : (EVM.Word -> KeyValue -> EVM.State /- for packed reprs -/ -> IntermediateStorageLoc)
-              -> Option (EVM.Word -> EVM.State -> StorageLoc) /- length storage location -/
+  | indexed : (EVM.Word -> KeyValue -> IntermediateStorageLoc)
+              -> (anchored : Bool) /- the bare reference locates a header slot (dynamic arrays) -/
               -> StorageNode
               -> StorageNode
+  /-- Solidity bytes/string. Only the header slot is fixed; the position of individual bytes
+      depends on the short/long encoding, so it is resolved by the backend. -/
+  | bytesLike : StorageNode
   | fields : (Ident -> Option (IntermediateStorageLoc × StorageNode))
              -> StorageNode
   | tuples : (Nat -> Option (IntermediateStorageLoc × StorageNode))
@@ -49,14 +52,6 @@ def elemTypeSoliditySize (t : ElemType) : Fin 33 :=
 def checkBytesPacked (slot : EVM.Word) (state : EVM.State) : Bool :=
   let slot := EVM.storageLoad state state.executionEnv.codeOwner slot
   (slot.val % 2) == 0
-
-def bytesLikeLengthLoc (baseSlot : EVM.Word) (evm : EVM.State) : StorageLoc :=
-  if checkBytesPacked baseSlot evm then
-    { slot := baseSlot, offset := 0, size := 1, hbound := by decide,
-      bitOffset := some 1, type := .int (.uint ⟨256, by decide⟩) }
-  else
-    { slot := baseSlot, offset := 0, size := 32, hbound := by decide,
-      bitOffset := some 1, type := .int (.uint ⟨256, by decide⟩) }
 
 def solidityBytesDataBaseSlot (baseSlot : EVM.Word) : EVM.Word :=
   Ethereum.uInt256OfByteArray (Ethereum.KEC baseSlot.toByteArray)
@@ -81,7 +76,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
         let size := arrayWords*32
         pure (size,
           .indexed
-            (λ word idxVal _ ↦
+            (λ word idxVal ↦
                 let idxWord := keyValueToWord idxVal
                 -- TODO: maybe go directly to nat?
                 let idxNat := idxWord.toNat
@@ -89,14 +84,14 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                   offset := .ofNat 32 (idxNat%elemsPerWord * elemSize)
                   size := elemSize
                   bitOffset := .none
-                }) .none node)
+                }) false node)
       else
         let wordsPerElem := (elemSize + 32 - 1) / 32
         let arrayWords := n * wordsPerElem
         let size := arrayWords*32
         pure (size,
           .indexed
-            (λ word idxVal _ ↦
+            (λ word idxVal ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -104,22 +99,22 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                 offset := 0 -- am I sure?
                 size := elemSize
                 bitOffset := .none
-              }) .none node)
+              }) false node)
     | .mapping _ t => do
       let (size, node) <- slotTypeSolidityStorageNode structs t
-      pure (32, .indexed (λ word idxVal _ ↦
+      pure (32, .indexed (λ word idxVal ↦
         { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC ((keyValueToWord idxVal).toByteArray ++ word.toByteArray))
           offset := 0
           size := size
           bitOffset := .none
-        }) .none node)
+        }) false node)
     | .dynamicArray t => do
       let (elemSize, node) <- slotTypeSolidityStorageNode structs t
       if elemSize <= 32 then
         let elemsPerWord := 32 / elemSize
         pure (32,
           .indexed
-            (λ word idxVal _ ↦
+            (λ word idxVal ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -128,21 +123,13 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                 size := elemSize
                 bitOffset := .none
               })
-            (.some (λ word _ ↦
-              { slot := word
-                offset := 0
-                size := 32
-                bitOffset := .none
-                type := .int (.uint ⟨256, (by simp), (by simp)⟩)
-                hbound := (by simp)
-                : StorageLoc
-              }))
+            true
             node)
       else
         let wordsPerElem := (elemSize + 32 - 1) / 32
         pure (32,
           .indexed
-            (λ word idxVal _ ↦
+            (λ word idxVal ↦
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
@@ -151,68 +138,9 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
                 size := elemSize
                 bitOffset := .none
               })
-            (.some (λ word _ ↦
-              { slot := word
-                offset := 0
-                size := 32
-                bitOffset := .none
-                type := .int (.uint ⟨256, (by simp), (by simp)⟩)
-                hbound := (by simp)
-                : StorageLoc
-              }))
+            true
             node)
-    | .bytes | .string => do
-      let (elemSize, node) := (1, StorageNode.atomic (.int (.uint ⟨8, (by simp), (by simp)⟩)))
-      let elemsPerWord := 32
-      pure (32, .indexed
-        (λ word idxVal evm ↦
-          let packed := checkBytesPacked word evm
-          if packed then
-            let idxWord := keyValueToWord idxVal
-            -- TODO: maybe go directly to nat?
-            let idxNat := idxWord.toNat
-            if hidx : idxNat < 31 then
-              { slot := word
-                offset := ⟨31 - idxNat, by omega⟩
-                size := elemSize
-                bitOffset := .none
-              }
-            else
-              { slot := word
-                offset := 0
-                size := 33
-                bitOffset := .none
-              }
-          else
-            let idxWord := keyValueToWord idxVal
-            -- TODO: maybe go directly to nat?
-            let idxNat := idxWord.toNat
-            { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
-              offset := .ofNat 32 (idxNat%elemsPerWord * elemSize)
-              size := elemSize
-              bitOffset := .none
-            }
-        )
-        (.some (λ word evm ↦
-          if checkBytesPacked word evm then
-            { slot := word
-              offset := 0
-              size := 1
-              bitOffset := .some 1
-              type := .int (.uint ⟨256, (by simp), (by simp)⟩)
-              hbound := (by simp)
-              : StorageLoc
-            }
-          else
-            { slot := word
-              offset := 0
-              size := 32
-              bitOffset := .some 1
-              type := .int (.uint ⟨256, (by simp), (by simp)⟩)
-              hbound := (by simp)
-              : StorageLoc
-            }))
-        node)
+    | .bytes | .string => pure (32, .bytesLike)
     | .tuple sts => do
       -- Solidity does not have tuples in storage, so this assumes same layout as structs
       let (size, indirector) <- solidityTupleLayout structs sts 0 ⟨0⟩ 0
@@ -273,31 +201,35 @@ def interToLoc (iloc : IntermediateStorageLoc) (t : ElemType) (h : iloc.offset.v
     type := t
     hbound := h }
 
-def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List EvaledStorageRefStep) (node : StorageNode) : Option StorageLoc :=
+def followSteps (loc : IntermediateStorageLoc) (steps : List EvaledStorageRefStep) (node : StorageNode) : Option StorageAddr :=
   match steps with
   | step :: steps' =>
     match node, step with
     | .atomic _, _ => .none
-    | .indexed indirector _ node' , .mindex v => do
-      let iloc <- indirector loc.slot v evm
-      followSteps evm iloc steps' node'
-    | .indexed _ (.some length) _ , .length => length loc.slot evm
-    | .indexed indirector _ node' , .aindex v => do
-      let iloc <- indirector loc.slot v evm
-      followSteps evm iloc steps' node'
+    | .indexed indirector _ node' , .mindex v =>
+      followSteps (indirector loc.slot v) steps' node'
+    | .indexed _ true _ , .length => some (.anchor loc.slot)
+    | .indexed indirector _ node' , .aindex v =>
+      followSteps (indirector loc.slot v) steps' node'
+    | .bytesLike, .length => some (.anchor loc.slot)
+    | .bytesLike, .aindex v =>
+      match steps' with
+      | [] => some (.byte loc.slot (keyValueToWord v).toNat)
+      | _ => none
     | .tuples indirector, .tupleElem n => do
       let (iloc', node') <- indirector n
       let iloc := { slot := iloc'.slot  + loc.slot, offset := iloc'.offset, size := iloc'.size, bitOffset := iloc'.bitOffset }
-      followSteps evm iloc steps' node'
+      followSteps iloc steps' node'
     | .fields indirector, .field name => do
       let (iloc', node') <- indirector name
       let iloc := { slot := iloc'.slot  + loc.slot, offset := iloc'.offset, size := iloc'.size, bitOffset := iloc'.bitOffset }
-      followSteps evm iloc steps' node'
+      followSteps iloc steps' node'
     | _, _ => none
   | [] =>
     match node with
-    | .atomic t => if h : loc.offset.val + loc.size - 1 < 32 then pure (interToLoc loc t h) else .none
-    | .indexed _ (.some length) _ => length loc.slot evm
+    | .atomic t => if h : loc.offset.val + loc.size - 1 < 32 then pure (.leaf (interToLoc loc t h)) else .none
+    | .indexed _ true _ => some (.anchor loc.slot)
+    | .bytesLike => some (.anchor loc.slot)
     | _ => .none
 
 
@@ -305,9 +237,9 @@ def followSteps (evm : EVM.State) (loc : IntermediateStorageLoc) (steps : List E
 def genSolidityLayout (structs : List StructDecl) (decls : List StorageDecl) : Option StorageLayout :=
   do
   let (_, indirector) <- solidityStructLayout structs (decls.map (λ f ↦ (f.1, f.2))) ⟨0⟩ 0
-  pure $ λ evaledStorageRef evm ↦ do
+  pure $ λ evaledStorageRef ↦ do
     let (iloc, node') <- indirector evaledStorageRef.base
-    followSteps evm iloc evaledStorageRef.steps node'
+    followSteps iloc evaledStorageRef.steps node'
 
 -- TODO Maybe move this, or make the file be for general solidity specific components
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
