@@ -320,6 +320,22 @@ theorem uniswapSkimX_lockEntered {σ σ₀ A I} {g : Sat256} {sel toWord : UInt2
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd5161⟩
 
+/-- In a static call, `skim(address)` halts at the lock-entry `SSTORE`. -/
+theorem uniswapSkimX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel toWord : UInt256}
+    (hperm : I.perm = false)
+    (hunlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨5080⟩ [toWord, ⟨570⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd5080⟩ := hdecoded
+  exact RD.uniswapLockEnterOkStatic
+    (pc := ⟨5080⟩) (okPc := ⟨5155⟩) (R := [toWord, ⟨570⟩, sel])
+    rd5080 uniswap_lock_enter_ok_wf hperm hunlocked (by jump_dest)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+
 /-- Runtime-only `skim(address)` slice from decoded external-wrapper entry through successful lock
 entry. -/
 theorem uniswapSkimRuntimeLockEntered

@@ -41,6 +41,22 @@ theorem uniswapSyncX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd6097⟩
 
+/-- In a static call, `sync()` halts at the lock-entry `SSTORE`. -/
+theorem uniswapSyncX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hunlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd6016⟩ := uniswapSyncX_decoded (g := g) hreach
+  exact RD.uniswapLockEnterOkStatic
+    (pc := ⟨6016⟩) (okPc := ⟨6091⟩) (R := [⟨570⟩, sel])
+    rd6016 uniswap_lock_enter_ok_wf hperm hunlocked (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+
 /-- Runtime-only `sync()` slice from selector dispatch through successful lock entry. -/
 theorem uniswapSyncRuntimeLockEntered
     {σ σ₀ A I} {g : UInt256}
