@@ -1,3 +1,5 @@
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Examples.UniswapV2Pair.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -45,41 +47,10 @@ theorem uniswapMaskedAddress_eq_source_of_word_eq {w : UInt256} {I : ExecutionEn
 
 /-! ## Shared scalar storage and return helpers -/
 
-theorem uniswapStorageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (addrLoc slot) =
-      .address (AccountAddress.ofNat
-        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
-          solcAddrMask).toNat) := by
-  simpa [addrLoc, addressOffset0Loc] using storageLocLoad_address_offset0 evm slot
-
-theorem uniswapStorageLocStore_address_offset0 (evm : EVM.State)
-    (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
-    storageLocStore evm (addrLoc slot)
-        (.address (AccountAddress.ofNat addr.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
-        (setAddressOffset0Word
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) addr)) := by
-  simpa [addrLoc, addressOffset0Loc] using
-    storageLocStore_address_offset0 evm slot addr hcanon
-
-theorem uniswapStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (wordLoc slot) =
-      .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
 abbrev uniswapUint256Value (w : UInt256) : Value :=
   uint256Value w
 
-theorem uniswapStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
-    storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
-  simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
-
-theorem uniswapStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (bytes32Loc slot) =
-      .fixedBytes ⟨31, by decide⟩
-        (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [bytes32Loc, Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
 
 /-! ## Shared reentrancy-lock source helpers -/
 
@@ -108,7 +79,7 @@ theorem evalExpr_uniswap_unlocked (evm : EVM.State) (locals : Store)
     (her := evalStorageRef_uniswap_unlocked evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨12⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨12⟩)
 
 theorem evalExpr_uniswap_unlocked_eq_one_true (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "unlocked" = none)
@@ -154,7 +125,7 @@ theorem uniswapAssignUnlocked (evm : EVM.State) (locals : Store) (val : UInt256)
       (her := evalStorageRef_uniswap_unlocked evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [uniswapUnlockedState] using uniswapStorageLocStore_uint256 evm ⟨12⟩ val
+  simpa [uniswapUnlockedState] using storageLocStore_uint256 evm ⟨12⟩ val
 
 theorem uniswapAssignUnlockedZero (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "unlocked" = none) :
@@ -411,54 +382,6 @@ theorem uniswapUint112Masked_toNat (w : UInt256) :
     exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 112))
       (by norm_num [UInt256.size]))
 
--- LIBRARY CANDIDATE: generalizes a packed storage field clear for a middle byte range.
-set_option maxHeartbeats 1000000 in
-theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
-    Nat.land n ((2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224) =
-      n % 2 ^ 112 + (n / 2 ^ 224) * 2 ^ 224 := by
-  have hlowLt : n % 2 ^ 112 < 2 ^ 224 := by
-    exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 112)) (by norm_num)
-  have hmaskLowLt : 2 ^ 112 - 1 < 2 ^ 224 := by norm_num
-  have hmaskEq :
-      Nat.lor (2 ^ 112 - 1) ((2 ^ 32 - 1) * 2 ^ 224) =
-        (2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224 := by
-    rw [nat_lor_shift_add (2 ^ 112 - 1) (2 ^ 32 - 1) 224 hmaskLowLt]
-  have hrhsEq :
-      Nat.lor (n % 2 ^ 112) ((n / 2 ^ 224) * 2 ^ 224) =
-        n % 2 ^ 112 + (n / 2 ^ 224) * 2 ^ 224 := by
-    rw [nat_lor_shift_add (n % 2 ^ 112) (n / 2 ^ 224) 224 hlowLt]
-  rw [← hmaskEq, ← hrhsEq]
-  apply Nat.eq_of_testBit_eq
-  intro i
-  change (n &&& ((2 ^ 112 - 1) ||| ((2 ^ 32 - 1) * 2 ^ 224))).testBit i =
-    ((n % 2 ^ 112) ||| (n / 2 ^ 224 * 2 ^ 224)).testBit i
-  rw [Nat.testBit_and, Nat.testBit_or, Nat.testBit_or]
-  rw [Nat.testBit_two_pow_sub_one, Nat.testBit_mod_two_pow]
-  rw [show (2 ^ 32 - 1) * 2 ^ 224 = (2 ^ 32 - 1) <<< 224 by
-    rw [Nat.shiftLeft_eq]]
-  rw [show n / 2 ^ 224 * 2 ^ 224 = (n / 2 ^ 224) <<< 224 by
-    rw [Nat.shiftLeft_eq]]
-  rw [testBit_shiftLeft, testBit_shiftLeft]
-  by_cases hi112 : i < 112
-  · have hi224 : i < 224 := by omega
-    simp [hi112, hi224]
-  · by_cases hi224 : i < 224
-    · simp [hi112, hi224]
-    · have h224le : 224 ≤ i := Nat.le_of_not_gt hi224
-      rw [Nat.testBit_two_pow_sub_one]
-      by_cases hi256 : i < 256
-      · have hsub32 : i - 224 < 32 := by omega
-        rw [show decide (i - 224 < 32) = true by simp [hsub32]]
-        rw [divPow_testBit n 224 i h224le]
-        simp [hi112, hi224]
-      · have hsub32 : ¬ (i - 224 < 32) := by omega
-        rw [show decide (i - 224 < 32) = false by simp [hsub32]]
-        have hnfalse : n.testBit i = false := by
-          have hpow : n < 2 ^ i :=
-            lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) (by omega))
-          exact Nat.testBit_lt_two_pow hpow
-        rw [divPow_testBit n 224 i h224le, hnfalse]
-        simp [hi112, hi224]
 
 theorem uint112Offset14MiddleClear_toNat (old : UInt256) :
     (UInt256.land (UInt256.lnot (UInt256.shiftLeft reserve112Mask ⟨112⟩)) old).toNat =
@@ -486,30 +409,6 @@ theorem uint112Offset14MiddleClear_toNat (old : UInt256) :
     omega
   rw [Nat.mod_eq_of_lt hlt, uniswapUint112Masked_toNat]
 
--- LIBRARY CANDIDATE: disjoint `lor` recomposition for low/middle/high packed fields.
-theorem natLorLowMiddleHigh112_224 (low mid high : Nat)
-    (hlow : low < 2 ^ 112) (hmid : mid < 2 ^ 112) :
-    Nat.lor (mid * 2 ^ 112) (low + high * 2 ^ 224) =
-      low + mid * 2 ^ 112 + high * 2 ^ 224 := by
-  have hlow224 : low < 2 ^ 224 := lt_trans hlow (by norm_num)
-  have hlowHigh : Nat.lor low (high * 2 ^ 224) = low + high * 2 ^ 224 := by
-    exact nat_lor_shift_add low high 224 hlow224
-  rw [← hlowHigh]
-  rw [nat_lor_comm (mid * 2 ^ 112) (Nat.lor low (high * 2 ^ 224))]
-  rw [show Nat.lor (Nat.lor low (high * 2 ^ 224)) (mid * 2 ^ 112) =
-      Nat.lor low (Nat.lor (high * 2 ^ 224) (mid * 2 ^ 112)) from
-    Nat.lor_assoc low (high * 2 ^ 224) (mid * 2 ^ 112)]
-  rw [nat_lor_comm (high * 2 ^ 224) (mid * 2 ^ 112)]
-  have hmidShift : mid * 2 ^ 112 < 2 ^ 224 := by
-    calc
-      mid * 2 ^ 112 < 2 ^ 112 * 2 ^ 112 :=
-        Nat.mul_lt_mul_of_pos_right hmid (by positivity)
-      _ = 2 ^ 224 := by rw [← Nat.pow_add]
-  rw [nat_lor_shift_add (mid * 2 ^ 112) high 224 hmidShift]
-  rw [show mid * 2 ^ 112 + high * 2 ^ 224 =
-      (mid + high * 2 ^ 112) * 2 ^ 112 by ring]
-  rw [nat_lor_shift_add low (mid + high * 2 ^ 112) 112 hlow]
-  ring
 
 theorem setUint112Offset0Word_toNat (old val : UInt256) :
     (setUint112Offset0Word old val).toNat =
@@ -824,11 +723,6 @@ theorem uniswapAssignBlockTimestampLastOfStore (evm evm' : EVM.State) (locals : 
     simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
-def uniswapSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
-
-abbrev uniswapAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (uniswapSlotWord slot σ I) solcAddrMask
 
 abbrev uniswapAddressAtSlot (evm : EVM.State) (slot : UInt256) : AccountAddress :=
   AccountAddress.ofNat
@@ -843,7 +737,7 @@ theorem evalExpr_uniswap_storage_address (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.address (uniswapAddressAtSlot evm slot)) := by
   exact evalExpr_storage_scalar_value hbase her hty hloc
-    (uniswapStorageLocLoad_address_offset0 evm slot)
+    (storageLocLoad_address_offset0 evm slot)
 
 theorem evalExpr_uniswap_this (evm : EVM.State) (locals : Store) :
     evalExpr? config { contract := contract, locals := locals } evm this =
@@ -1324,7 +1218,7 @@ theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -1340,7 +1234,7 @@ theorem uniswapUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -1357,7 +1251,7 @@ theorem uniswapBytes32GetterBodyReturns (evm : EVM.State) (locals : Store)
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
       rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_bytes32 evm slot))
+      exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm slot))
 
 theorem uniswapIntLiteralBodyReturns (evm : EVM.State) (locals : Store) (n : Int)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -1386,22 +1280,5 @@ theorem uniswapSubRet32_toNat :
     (UInt256.sub uniswapRetEnd ⟨128⟩).toNat = 32 := by
   decide
 
-theorem uniswapDecodeLenCheckOk_4_32_lt {sz : ℕ}
-    (hsz36 : 36 ≤ sz) (hsize : sz < UInt256.size) :
-    UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
-  exact solcDecodeLenCheckOkUnsigned
-    (head := (⟨4⟩ : UInt256)) (need := (⟨32⟩ : UInt256)) (by simpa using hsz36) hsize
-
-theorem uniswapDecodeLenCheckOk_4_64_lt {sz : ℕ}
-    (hsz68 : 68 ≤ sz) (hsize : sz < UInt256.size) :
-    UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨64⟩ = ⟨0⟩ := by
-  exact solcDecodeLenCheckOkUnsigned
-    (head := (⟨4⟩ : UInt256)) (need := (⟨64⟩ : UInt256)) (by simpa using hsz68) hsize
-
-theorem uniswapDecodeLenCheckOk_4_96_lt {sz : ℕ}
-    (hsz100 : 100 ≤ sz) (hsize : sz < UInt256.size) :
-    UInt256.lt (UInt256.sub (UInt256.ofNat sz) ⟨4⟩) ⟨96⟩ = ⟨0⟩ := by
-  exact solcDecodeLenCheckOkUnsigned
-    (head := (⟨4⟩ : UInt256)) (need := (⟨96⟩ : UInt256)) (by simpa using hsz100) hsize
 
 end UniswapV2Pair

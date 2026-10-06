@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `cure()` getter -/
 
 def cureWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endAddressReturnWord ⟨7⟩ σ I
+  solcAddressSlotWord ⟨7⟩ σ I
 
 theorem endDecode_cure {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (cureTransition.params.map Param.name)
@@ -79,7 +79,7 @@ theorem endCureBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (cureWord σ I).toNat))])) := by
-    simpa [cureTransition, cureWord, endAddressReturnWord, endSlotWord, initState,
+    simpa [cureTransition, cureWord, solcAddressSlotWord, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       endAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

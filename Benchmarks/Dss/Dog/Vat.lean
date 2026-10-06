@@ -170,7 +170,8 @@ theorem dogVatPatchWord {v : DogImmutables} {code : ByteArray}
   let post : List (Nat × ByteArray) := [(2890, value), (3170, value), (3965, value)]
   have hpatch' : patchRuntime dogBytecode ((1405, value) :: post) = some code := by
     dsimp [post, value]
-    simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, List.lookup,
+    simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+      List.lookup,
       toByteArray_eq_toBytesBE] using hpatch
   have hpost : ∀ p ∈ post, 1405 + 32 ≤ p.1 ∨ p.1 + 32 ≤ 1405 := by
     intro p hp
@@ -284,7 +285,7 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
     simpa [vatTransition, vatExpr, nonpayable] using
       nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v)
         (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (locals := (∅ : Store)) (expr := addrLit v.vat)
+        (locals := (∅ : Store)) (expr := Reasoning.Theory.addressLiteral v.vat)
         (value := Value.address (AccountAddress.ofNat v.vat.toNat))
         (by simp only [initState]; exact _hwv)
         (by
@@ -333,6 +334,6 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
     exact returnEquiv_of_encode
       (solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat v.vat.toNat))
   exact hret.reEquivExecutionTransport _hcode (dogDispatchVat _hsel)
-    (dogDecode_vat (v := v) hsz) hbody (dogAddressValueTransport v.vat) henc
+    (dogDecode_vat (v := v) hsz) hbody (addressValueTransport v.vat) henc
 
 end Benchmarks.Dss.Dog

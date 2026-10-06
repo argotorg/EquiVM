@@ -11,7 +11,7 @@ def constructorStoredAccountMap (σ : AccountMap) (I : ExecutionEnv) (domainHash
     AccountMap :=
   let σD := sstoreAccountMap I.codeOwner σ ⟨3⟩ domainHash
   sstoreAccountMap I.codeOwner σD ⟨5⟩
-    (setAddressOffset0Word (uniswapSlotWord ⟨5⟩ σD I) (uniswapSourceWord I))
+    (setAddressOffset0Word (solcSlotWordAt ⟨5⟩ σD I) (uniswapSourceWord I))
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorStoreAndReturn {g : Sat256} {s0 : State} {I : ExecutionEnv}
@@ -33,12 +33,12 @@ theorem RD.uniswapConstructorStoreAndReturn {g : Sat256} {s0 : State} {I : Execu
   rw [hmask] at rd246
   have hstored : UInt256.lor (uniswapSourceWord I)
       (UInt256.land (UInt256.lnot solcAddrMask)
-        (uniswapSlotWord ⟨5⟩ (sstoreAccountMap I.codeOwner σ ⟨3⟩ domainHash) I)) =
-      setAddressOffset0Word (uniswapSlotWord ⟨5⟩ (sstoreAccountMap I.codeOwner σ ⟨3⟩ domainHash) I)
+        (solcSlotWordAt ⟨5⟩ (sstoreAccountMap I.codeOwner σ ⟨3⟩ domainHash) I)) =
+      setAddressOffset0Word (solcSlotWordAt ⟨5⟩ (sstoreAccountMap I.codeOwner σ ⟨3⟩ domainHash) I)
         (uniswapSourceWord I) := by
     rw [setAddressOffset0Word, solcAddrMask_clean (uniswapSourceWord_canonical I),
       u256_lor_comm, u256_land_comm]
-  dsimp only [uniswapSourceWord, solcSourceWord, uniswapSlotWord] at hstored
+  dsimp only [uniswapSourceWord, solcSourceWord, solcSlotWordAt, solcSlotWord] at hstored
   rw [hstored] at rd246
   obtain ⟨_, _, rd247⟩ := rd246.sstore hperm (by native_decide) (by evm_ov)
   have rd256 := evm_run rd247 with [push2 ⟨8833⟩, dup1, push2 ⟨261⟩, push1 ⟨0⟩]

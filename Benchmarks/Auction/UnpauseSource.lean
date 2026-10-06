@@ -13,10 +13,10 @@ def unpauseState (evm : EVM.State) : EVM.State :=
 
 theorem SourceState.unpause {s0 I σ evm} (hs : SourceState s0 I σ evm) :
     SourceState s0 I
-      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (unpauseWord (storedWord σ I ⟨51⟩)))
+      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (unpauseWord (solcSlotWord σ I ⟨51⟩)))
       (unpauseState evm) := by
   have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨51⟩ =
-      storedWord σ I ⟨51⟩ := by
+      solcSlotWord σ I ⟨51⟩ := by
     exact hs.storageRead _
   unfold unpauseState
   rw [hw, hs.env]

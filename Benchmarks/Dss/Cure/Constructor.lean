@@ -196,7 +196,7 @@ theorem cureCtorSuccessRDret
     (op := .PUSH32) (width := 32) (by decide) (by ctor_decode) (by evm_ov)
   have rdLogPrefix := evm_run rdTopic with [
     raw swap2 (by ctor_decode) (by evm_ov)]
-  have rd82 := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
+  have rd82 := RD.log2 0 (UInt256.ofNat 3) rdLogPrefix
     (by ctor_decode) hperm mem_cost (by native_decide) (by evm_ov)
   exact evm_run rd82 with [
     raw push2 ⟨3875⟩ (by ctor_decode) (by evm_ov),

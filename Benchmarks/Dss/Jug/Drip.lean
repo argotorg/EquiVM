@@ -22,11 +22,11 @@ theorem jugDripBody {σ σ₀ A I} {g : UInt256}
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hnow :
         (UInt256.ofNat I.header.timestamp).toNat <
-          (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat
     · exact jugDripBodyCoreInvalidNow hcode hsize hwv hsz36 hnow hdispatch
         (jugDecode_drip_ok hsz36) hreach
     · have hle :
-          (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
+          (solcSlotWordAt (fileDutyRhoSlotFor I) σ I).toNat ≤
             (UInt256.ofNat I.header.timestamp).toNat := by
         omega
       by_cases hvatCode :
@@ -57,8 +57,8 @@ theorem jugDripBody {σ σ₀ A I} {g : UInt256}
               obtain ⟨_, _, _rd1465⟩ := RD.jugDripLoadBaseDuty _rd1446 hsz36 hlo hout
               obtain ⟨_, _, _rd2131⟩ := RD.jugDripToAddRoutine _rd1465
               by_cases haddOverflow :
-                  UInt256.size ≤ (jugSlotWord ⟨4⟩ σ' I).toNat +
-                    (jugSlotWord (fileDutyDutySlotFor I) σ' I).toNat
+                  UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ' I).toNat +
+                    (solcSlotWordAt (fileDutyDutySlotFor I) σ' I).toNat
               · exact jugDripBodyCoreVatIlksAddOverflow
                   (σ' := σ') (Ain := Ain) (callGas := callGas)
                   (out := out)

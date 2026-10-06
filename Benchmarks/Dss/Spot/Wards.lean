@@ -86,8 +86,8 @@ theorem spotWardsBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (spotSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
-    simpa [wardsTransition, wardsMappingSlotFor, spotSlotWord, initState,
+          (some [(.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat))])) := by
+    simpa [wardsTransition, wardsMappingSlotFor, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals, key] using
       spotUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -123,37 +123,37 @@ theorem spotWardsBodyCoreOk
   have hret :
       RDret spotBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (spotSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨336⟩) (val := spotSlotWord slot σ I) (ret := ⟨336⟩) (R := [sel])
+      (pc := ⟨336⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨336⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (spotSlotWord slot σ I))
-      (by simpa [slot, spotSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (spotSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (spotSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
-    simpa [slot, spotSlotWord] using hret'
-  have hword : spotSlotWord slot σ I = spotSlotWord slot σ I := rfl
+    simpa [slot, solcSlotWordAt] using hret'
+  have hword : solcSlotWordAt slot σ I = solcSlotWordAt slot σ I := rfl
   have hval :
-      some [Value.int (Int.ofNat (spotSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (spotSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot, hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (spotSlotWord slot σ I))
-        (some [(.int (Int.ofNat (spotSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (spotSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem spotWardsBodyCoreDecodeFailed_short

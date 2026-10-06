@@ -148,7 +148,7 @@ theorem delegateAssignTailVoted_general (evm : EVM.State) (I : ExecutionEnv)
     "voted" (.elem .bool) (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateSenderFieldRef, delegateSenderPackedSlot,
     delegateSenderSlot]
-  rw [voteStorageLocStore_bool_true_offset0]
+  rw [storageLocStore_bool_true_offset0']
   simp [delegateAfterVotedState, delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent,
     delegateSenderPackedSlot, delegateSenderSlot]
 
@@ -173,7 +173,7 @@ theorem delegateAssignTailDelegate_general (evm : EVM.State) (I : ExecutionEnv)
   unfold delegateTailAfterSenderState delegateAfterVotedState delegateTailSenderPackedStoreCurrent
     delegateSenderVotedStoreCurrent delegateSenderPackedCurrent delegateCurrentToValue
   unfold delegateSenderPackedSlot delegateSenderSlot
-  rw [ballotStorageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
+  rw [storageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
     (hcanon := hcanon)]
 
 theorem evalExpr_delegate_tail_delegate_weight_general (evm : EVM.State)
@@ -188,7 +188,7 @@ theorem evalExpr_delegate_tail_delegate_weight_general (evm : EVM.State)
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateTailVoterWeightCurrent, delegateVoterSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -232,7 +232,7 @@ theorem evalExpr_delegate_tail_delegate_voted_false_general (evm : EVM.State)
     change EvalResult.ok (storageLocLoad evm
         { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool false)
-    rw [delegateStorageLocLoad_bool_offset0_false]
+    erw [storageLocLoad_bool_offset0_false]
     simpa [delegateTailVoterVotedByteCurrent, delegateTailVoterPackedCurrent, u256_land_comm]
       using hzero
   rw [evalExpr?]
@@ -252,7 +252,7 @@ theorem evalExpr_delegate_tail_delegate_voted_true_general (evm : EVM.State)
     change EvalResult.ok (storageLocLoad evm
         { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool }) =
       EvalResult.ok (Value.bool true)
-    rw [delegateStorageLocLoad_bool_offset0_true]
+    erw [storageLocLoad_bool_offset0_true]
     simpa [delegateTailVoterVotedByteCurrent, delegateTailVoterPackedCurrent, u256_land_comm]
       using hnz
   rw [evalExpr?]
@@ -270,7 +270,7 @@ theorem evalExpr_delegate_tail_sender_weight_afterDelegate_general (evm : EVM.St
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateSenderWeightCurrent evm I).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateSenderWeightCurrent, delegateSenderSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -358,7 +358,7 @@ theorem delegateAssignTailVoterWeight_general (evm : EVM.State) (I : ExecutionEn
     (delegateTailAfterSenderState evm I w) I w L "weight" (.elem (.int uint256Int)) (by rfl),
     bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateCurrentVoterFieldRef, delegateVoterSlot]
-  rw [voteStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [delegateTailFalseSuccessState, delegateTailUpdatedVoterWeightCurrent, delegateVoterSlot]
 
 theorem evalExpr_delegate_tail_delegate_vote_general (evm : EVM.State)
@@ -373,7 +373,7 @@ theorem evalExpr_delegate_tail_delegate_vote_general (evm : EVM.State)
           (.elem (.int uint256Int)) =
         .ok (.int (Int.ofNat (delegateTailVoterVoteCurrent evm w).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    rw [ballotStorageLocLoad_uint256]
+    erw [storageLocLoad_uint256]
     simp [delegateTailVoterVoteCurrent, delegateVoterVoteSlot, delegateVoterSlot]
   rw [evalExpr?]
   simp only [hresolve, hread, bind, EvalResult.bind]
@@ -457,7 +457,7 @@ theorem evalExpr_delegate_tail_proposal_count_general (evm : EVM.State)
       .int (Int.ofNat (Solm.EVM.storageLoad (delegateTailAfterSenderState evm I w)
         (delegateTailAfterSenderState evm I w).executionEnv.codeOwner
         (delegateTailProposalCountSlotCurrent evm I w)).toNat)
-    exact ballotStorageLocLoad_uint256 (delegateTailAfterSenderState evm I w)
+    exact storageLocLoad_uint256 (delegateTailAfterSenderState evm I w)
       (delegateTailProposalCountSlotCurrent evm I w)
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_delegate_tail_proposalCount_general evm I w L hbound)
@@ -600,7 +600,7 @@ theorem delegateAssignTailProposalCount_general (evm : EVM.State)
         funext evm'
         simp [delegateTailProposalCountEvaledRef, ballotConfig, ballotStorageLayout,
           delegateTailProposalCountSlotCurrent_spec, u256_add_comm])
-  rw [voteStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [delegateTailTrueSuccessState, delegateTailUpdatedProposalCountCurrent]
 
 theorem ballotDelegateBodyReverts_tailDelegateWeight_general (evm : EVM.State)

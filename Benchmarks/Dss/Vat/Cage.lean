@@ -114,7 +114,7 @@ theorem vatCageBodyCore : VatBodyTheoremAnyPerm 1 := by
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
   let callerSlot := vatCallerWardsSlot I
-  by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   ·
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨10⟩ ⟨0⟩
@@ -133,7 +133,7 @@ theorem vatCageBodyCore : VatBodyTheoremAnyPerm 1 := by
           EvalResult.bind, pure, bind]
       have hstore :
           storageLocStore evm0 (wordLoc ⟨10⟩) (.int 0) = some evm1 := by
-        simpa [evm1] using vatStorageLocStore_uint256 evm0 ⟨10⟩ ⟨0⟩
+        simpa [evm1] using storageLocStore_uint256 evm0 ⟨10⟩ ⟨0⟩
       exact assignStorageRef_storage_scalar
         (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩)
         (hbase := by simp [liveRef])
@@ -161,7 +161,7 @@ theorem vatCageBodyCore : VatBodyTheoremAnyPerm 1 := by
         ExecFuncBody.execBlockOK (hpre _ (ExecBlock.consNormal
           (ExecStmt.assign (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
       (code := vatBytecode) (pc := ⟨2868⟩) (okPc := ⟨2950⟩) (key := ⟨524⟩)
       (ret := vatSelWord I) (R := [])
@@ -218,7 +218,7 @@ theorem vatCageBodyCore : VatBodyTheoremAnyPerm 1 := by
       simpa [ExecTransitionBody, cageTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
+      simpa [callerSlot, vatCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.vatAuthCheckRevert
       (pc := ⟨2868⟩) (okPc := ⟨2950⟩) (key := ⟨524⟩)
       (ret := vatSelWord I) (R := [])

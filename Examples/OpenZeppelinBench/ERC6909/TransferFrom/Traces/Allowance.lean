@@ -241,39 +241,39 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
         transferFromSenderWord I, ⟨637⟩, transferFromCallerWord I, ⟨0⟩,
         transferFromAmountWord I, transferFromIdWord I, transferFromReceiverWord I,
         transferFromSenderWord I, ⟨193⟩, sel]
-      (approveTwoWordHashMem (transferFromIdWord I)
+      (twoWordHashMem (transferFromIdWord I)
         (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
-        (approveTwoWordHashMem (transferFromCallerWord I)
+        (twoWordHashMem (transferFromCallerWord I)
           (approveOwnerSlot (transferFromSenderWord I))
-          (approveTwoWordHashMem (transferFromSenderWord I) ⟨2⟩ base)))
+          (twoWordHashMem (transferFromSenderWord I) ⟨2⟩ base)))
       (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  let ownerMem := approveTwoWordHashMem (transferFromSenderWord I) ⟨2⟩ base
-  let ownerKeyMem := approveWordAt0Mem (transferFromSenderWord I) base
-  let spenderMem := approveTwoWordHashMem (transferFromCallerWord I)
+  let ownerMem := twoWordHashMem (transferFromSenderWord I) ⟨2⟩ base
+  let ownerKeyMem := wordAt0Mem (transferFromSenderWord I) base
+  let spenderMem := twoWordHashMem (transferFromCallerWord I)
     (approveOwnerSlot (transferFromSenderWord I)) ownerMem
-  let spenderKeyMem := approveWordAt0Mem (transferFromCallerWord I) ownerMem
-  let idMem := approveTwoWordHashMem (transferFromIdWord I)
+  let spenderKeyMem := wordAt0Mem (transferFromCallerWord I) ownerMem
+  let idMem := twoWordHashMem (transferFromIdWord I)
     (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I)) spenderMem
-  let idKeyMem := approveWordAt0Mem (transferFromIdWord I) spenderMem
+  let idKeyMem := wordAt0Mem (transferFromIdWord I) spenderMem
   have hownerMemSize : ownerMem.size = 96 := by
     dsimp [ownerMem]
-    exact approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase
+    exact twoWordHashMem_size_96 (transferFromSenderWord I) ⟨2⟩ hbase
   have hownerMemRead64 :
       ownerMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [ownerMem]
-    exact approveTwoWordHashMem_read64 (transferFromSenderWord I) ⟨2⟩ hbase hread64
+    exact twoWordHashMem_read64 (transferFromSenderWord I) ⟨2⟩ hbase hread64
   have hspenderMemSize : spenderMem.size = 96 := by
     dsimp [spenderMem]
-    exact approveTwoWordHashMem_size (transferFromCallerWord I)
+    exact twoWordHashMem_size_96 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I)) hownerMemSize
   have hspenderMemRead64 :
       spenderMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [spenderMem]
-    exact approveTwoWordHashMem_read64 (transferFromCallerWord I)
+    exact twoWordHashMem_read64 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I)) hownerMemSize hownerMemRead64
   have hidMemSize : idMem.size = 96 := by
     dsimp [idMem]
-    exact approveTwoWordHashMem_size (transferFromIdWord I)
+    exact twoWordHashMem_size_96 (transferFromIdWord I)
       (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
       hspenderMemSize
   have hslot := transferFromAllowanceKeccakSlot I hcanonSender
@@ -304,7 +304,7 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
         rw [show ownerMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromSenderWord I) ++ UInt256.toByteArray ⟨2⟩ by
           dsimp [ownerMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨2⟩ hbase]
+          exact twoWordHashMem_read0_64 (transferFromSenderWord I) ⟨2⟩ hbase]
         rw [approveOwnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1191 := evm_run rd1175 with [
@@ -335,7 +335,7 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
             UInt256.toByteArray (transferFromCallerWord I) ++
               UInt256.toByteArray (approveOwnerSlot (transferFromSenderWord I)) by
           dsimp [spenderMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromCallerWord I)
+          exact twoWordHashMem_read0_64 (transferFromCallerWord I)
             (approveOwnerSlot (transferFromSenderWord I)) hownerMemSize]
         rw [approveSpenderHashMem_read0_64])
       (by decide) (by evm_ov),
@@ -356,7 +356,7 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
               UInt256.toByteArray
                 (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I)) by
           dsimp [idMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromIdWord I)
+          exact twoWordHashMem_read0_64 (transferFromIdWord I)
             (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
             hspenderMemSize]
         rw [← approveIdHashMem_read0_64 (transferFromSenderWord I) (transferFromCallerWord I)
@@ -372,21 +372,21 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
 
 def transferFromAllowanceScratchMem (base : ByteArray)
     (I : ExecutionEnv) : ByteArray :=
-  approveTwoWordHashMem (transferFromIdWord I)
+  twoWordHashMem (transferFromIdWord I)
     (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
-    (approveTwoWordHashMem (transferFromCallerWord I)
+    (twoWordHashMem (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I))
-      (approveTwoWordHashMem (transferFromSenderWord I) ⟨2⟩ base))
+      (twoWordHashMem (transferFromSenderWord I) ⟨2⟩ base))
 
 theorem transferFromAllowanceScratchMem_size {base : ByteArray} (I : ExecutionEnv)
     (hbase : base.size = 96) :
     (transferFromAllowanceScratchMem base I).size = 96 := by
   unfold transferFromAllowanceScratchMem
-  exact approveTwoWordHashMem_size (transferFromIdWord I)
+  exact twoWordHashMem_size_96 (transferFromIdWord I)
     (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
-    (approveTwoWordHashMem_size (transferFromCallerWord I)
+    (twoWordHashMem_size_96 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I))
-      (approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase))
+      (twoWordHashMem_size_96 (transferFromSenderWord I) ⟨2⟩ hbase))
 
 theorem transferFromAllowanceScratchMem_read64 {base : ByteArray} (I : ExecutionEnv)
     (hbase : base.size = 96)
@@ -394,15 +394,15 @@ theorem transferFromAllowanceScratchMem_read64 {base : ByteArray} (I : Execution
     (transferFromAllowanceScratchMem base I).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold transferFromAllowanceScratchMem
-  exact approveTwoWordHashMem_read64 (transferFromIdWord I)
+  exact twoWordHashMem_read64 (transferFromIdWord I)
     (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
-    (approveTwoWordHashMem_size (transferFromCallerWord I)
+    (twoWordHashMem_size_96 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I))
-      (approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase))
-    (approveTwoWordHashMem_read64 (transferFromCallerWord I)
+      (twoWordHashMem_size_96 (transferFromSenderWord I) ⟨2⟩ hbase))
+    (twoWordHashMem_read64 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I))
-      (approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase)
-      (approveTwoWordHashMem_read64 (transferFromSenderWord I) ⟨2⟩ hbase hread64))
+      (twoWordHashMem_size_96 (transferFromSenderWord I) ⟨2⟩ hbase)
+      (twoWordHashMem_read64 (transferFromSenderWord I) ⟨2⟩ hbase hread64))
 
 def transferFromOperatorAllowanceScratchMem (I : ExecutionEnv) : ByteArray :=
   transferFromAllowanceScratchMem
@@ -703,19 +703,19 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
       (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
         (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C)
     ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
-  let ownerMem := approveTwoWordHashMem (transferFromSenderWord I) ⟨2⟩ base
-  let ownerKeyMem := approveWordAt0Mem (transferFromSenderWord I) base
-  let spenderMem := approveTwoWordHashMem (transferFromCallerWord I)
+  let ownerMem := twoWordHashMem (transferFromSenderWord I) ⟨2⟩ base
+  let ownerKeyMem := wordAt0Mem (transferFromSenderWord I) base
+  let spenderMem := twoWordHashMem (transferFromCallerWord I)
     (approveOwnerSlot (transferFromSenderWord I)) ownerMem
-  let spenderKeyMem := approveWordAt0Mem (transferFromCallerWord I) ownerMem
+  let spenderKeyMem := wordAt0Mem (transferFromCallerWord I) ownerMem
   let idMem := transferFromAllowanceScratchMem base I
-  let idKeyMem := approveWordAt0Mem (transferFromIdWord I) spenderMem
+  let idKeyMem := wordAt0Mem (transferFromIdWord I) spenderMem
   have hownerMemSize : ownerMem.size = 96 := by
     dsimp [ownerMem]
-    exact approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase
+    exact twoWordHashMem_size_96 (transferFromSenderWord I) ⟨2⟩ hbase
   have hspenderMemSize : spenderMem.size = 96 := by
     dsimp [spenderMem]
-    exact approveTwoWordHashMem_size (transferFromCallerWord I)
+    exact twoWordHashMem_size_96 (transferFromCallerWord I)
       (approveOwnerSlot (transferFromSenderWord I)) hownerMemSize
   have hmaxToNat :
       (UInt256.ofNat (UInt256.size - 1)).toNat = UInt256.size - 1 := by
@@ -766,7 +766,7 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
         rw [show ownerMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromSenderWord I) ++ UInt256.toByteArray ⟨2⟩ by
           dsimp [ownerMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨2⟩ hbase]
+          exact twoWordHashMem_read0_64 (transferFromSenderWord I) ⟨2⟩ hbase]
         rw [approveOwnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1295 := evm_run rd1294 with [swap4]
@@ -799,7 +799,7 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
             UInt256.toByteArray (transferFromCallerWord I) ++
               UInt256.toByteArray (approveOwnerSlot (transferFromSenderWord I)) by
           dsimp [spenderMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromCallerWord I)
+          exact twoWordHashMem_read0_64 (transferFromCallerWord I)
             (approveOwnerSlot (transferFromSenderWord I)) hownerMemSize]
         rw [approveSpenderHashMem_read0_64])
       (by decide) (by evm_ov),
@@ -823,7 +823,7 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
               UInt256.toByteArray
                 (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I)) by
           dsimp [idMem, transferFromAllowanceScratchMem]
-          exact approveTwoWordHashMem_read0_64 (transferFromIdWord I)
+          exact twoWordHashMem_read0_64 (transferFromIdWord I)
             (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
             hspenderMemSize]
         rw [← approveIdHashMem_read0_64 (transferFromSenderWord I) (transferFromCallerWord I)

@@ -179,7 +179,7 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw dup3 (by clipper_runtime_decode) (by evm_ov),
     raw add (by clipper_runtime_decode) (by evm_ov)]
-  have rdLotPre1 := RD.clipperRedoDup12 rdLotPre0 (by clipper_runtime_decode)
+  have rdLotPre1 := RD.dup12 rdLotPre0 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdLotPre := evm_run rdLotPre1 with [
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
@@ -224,7 +224,7 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
     raw and (by clipper_runtime_decode) (by evm_ov),
     raw swap3 (by clipper_runtime_decode) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
-  have rdTopicPre1 := RD.clipperRedoDup12 rdTopicPre0 (by clipper_runtime_decode)
+  have rdTopicPre1 := RD.dup12 rdTopicPre0 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdTopicPre := evm_run rdTopicPre1 with [
     raw and (by clipper_runtime_decode) (by evm_ov),
@@ -327,7 +327,7 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw dup3 (by clipper_runtime_decode) (by evm_ov),
     raw add (by clipper_runtime_decode) (by evm_ov)]
-  have rdLotPre1 := RD.clipperRedoDup12 rdLotPre0 (by clipper_runtime_decode)
+  have rdLotPre1 := RD.dup12 rdLotPre0 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdLotPre := rdLotPre1.swap1 (by clipper_runtime_decode) (by evm_ov)
   have rdLot := rdLotPre.mstore 3 (clipperRedoEventMem2 mem top tab lot)
@@ -369,7 +369,7 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
     raw and (by clipper_runtime_decode) (by evm_ov),
     raw swap3 (by clipper_runtime_decode) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
-  have rdTopicPre1 := RD.clipperRedoDup12 rdTopicPre0 (by clipper_runtime_decode)
+  have rdTopicPre1 := RD.dup12 rdTopicPre0 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rdTopicPre := evm_run rdTopicPre1 with [
     raw and (by clipper_runtime_decode) (by evm_ov),

@@ -19,7 +19,7 @@ segment lemmas, fire the matching revert primitive to get `RDrev`, and bridge to
 
 Template: `catBiteShort` (BiteConnect.lean). Revert primitives: `RD.catBiteCheckedMulRevert`,
 `RD.solcErrorStringRevertTailGrown`, `RD.solcCheckedSubStringRevertGrown`,
-`RD.reachInvalidHalt`, and `RD.catBite{Grab,Fess,Kick}CallFailed`.
+`RD.invalidError`, and `RD.catBite{Grab,Fess,Kick}CallFailed`.
 
 **Reach-cursor convention.** The entry→divergence reach assembler `catBiteBody` (Bite.lean) is not
 yet completed (the inter-call return-data→memory threading is still open). Exactly as the success
@@ -93,7 +93,7 @@ theorem catBiteArtRateOverflowLeaf {σ σ₀ A I} {g : UInt256}
       typedCallViaEVM config evmIlk (EVM.address (biteVatAddr evmIlk))
         "urns" 0 [biteIlkVal I, biteUrnVal I] (true, evmUrn, urnsOut) false)
     (hUrnsDec : config.externalABI.decode? "urns" urnsOut = some [bw ink, bw art])
-    (hlive : catSlotWord ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨2⟩ evmUrn.accountMap evmUrn.executionEnv = ⟨1⟩)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size) (hspotPos : 0 < iSpot.toNat)
     (hover : UInt256.size ≤ art.toNat * iRate.toNat) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

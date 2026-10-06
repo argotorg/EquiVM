@@ -57,7 +57,7 @@ theorem evalExpr_cage_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using potStorageLocLoad_uint256 evm (relyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (relyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -85,7 +85,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact potStorageLocLoad_uint256 evm (relyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (relyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -93,7 +93,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact uint256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -131,7 +131,7 @@ theorem cageLiveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (her := evalStorageRef_cage_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa using potStorageLocStore_uint256 evm ⟨8⟩ ⟨0⟩
+  simpa using storageLocStore_uint256 evm ⟨8⟩ ⟨0⟩
 
 theorem cageDsrAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := (∅ : Store) } evm
@@ -146,7 +146,7 @@ theorem cageDsrAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   rw [one_eq_potRay_toNat]
-  exact potStorageLocStore_uint256 evm ⟨3⟩ potRay
+  exact storageLocStore_uint256 evm ⟨3⟩ potRay
 
 theorem potCageBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -283,7 +283,7 @@ theorem potCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1507 : RD potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
   have rd1510pre := evm_run rd1507 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -331,7 +331,7 @@ theorem potCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1507 : RD potBytecode I g s0 ⟨1507⟩
       (relyAuthWord σ I :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1507 C1507 := by
-    simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1507raw
   have rd1510pre := evm_run rd1507 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -452,7 +452,7 @@ theorem potCageBodyCoreOk
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := (∅ : Store) } (cagePostState evmSolm) none) := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potCageBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -484,7 +484,7 @@ theorem potCageBodyCoreStatic
   have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .staticViolation := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potCageBodyStatic evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -511,7 +511,7 @@ theorem potCageBodyCoreUnauthorized
   have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potCageBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

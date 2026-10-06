@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.StairstepExponentialDecrease
 /-! ## `step()` getter -/
 
 def stepWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  stairstepSlotWord ⟨1⟩ σ I
+  solcSlotWordAt ⟨1⟩ σ I
 
 theorem stairstepDecode_step {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (stepTransition.params.map Param.name)
@@ -65,7 +65,7 @@ theorem stairstepStepBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (stepWord σ I).toNat))])) := by
-    simpa [stepTransition, stepWord, stairstepSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [stepTransition, stepWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       stairstepUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

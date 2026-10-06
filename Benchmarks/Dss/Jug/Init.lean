@@ -53,13 +53,13 @@ theorem evalExpr_initStorageDuty (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := initLocals I } evm
       (.storage (ilksF (.var "ilk") "duty")) =
         .ok (.int (Int.ofNat
-          (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+          (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := initLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "duty") (er := fileDutyDutyEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyDutySlotFor I))
     (value := .int (Int.ofNat
-      (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
+      (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
     (initLocals_get_ilks I)
     (by
       have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -72,18 +72,18 @@ theorem evalExpr_initStorageDuty (evm : EVM.State) (I : ExecutionEnv)
       simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, uint256St])
     (by rfl)
-    (by simpa [jugSlotWord] using jugStorageLocLoad_uint256 evm (fileDutyDutySlotFor I))
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (fileDutyDutySlotFor I))
 
 theorem evalExpr_initDutyEqZero_true {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv = ⟨0⟩) :
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := initLocals I } evm
       (.binary .eq (.storage (ilksF (.var "ilk") "duty")) (.intLit 0)) =
         .ok (.bool true) := by
   have hd := evalExpr_initStorageDuty evm I hsz36
   have hval :
       (Value.int (Int.ofNat
-          (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat) ==
+          (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat) ==
         Value.int 0) = true := by
     rw [hduty]
     rfl
@@ -91,14 +91,14 @@ theorem evalExpr_initDutyEqZero_true {evm : EVM.State} {I : ExecutionEnv}
 
 theorem evalExpr_initDutyEqZero_false {evm : EVM.State} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := initLocals I } evm
       (.binary .eq (.storage (ilksF (.var "ilk") "duty")) (.intLit 0)) =
         .ok (.bool false) := by
   have hd := evalExpr_initStorageDuty evm I hsz36
   have hval :
       (Value.int (Int.ofNat
-          (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat) ==
+          (solcSlotWordAt (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat) ==
         Value.int 0) = false := by
     rw [beq_eq_false_iff_ne]
     intro hbad
@@ -136,7 +136,7 @@ theorem assign_initDutyStorage (evm : EVM.State) (I : ExecutionEnv)
         simp [fileDutyIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           IlkStructTy, uint256St])
       (hloc := by rfl)
-  simpa [evm'] using jugStorageLocStore_uint256 evm (fileDutyDutySlotFor I) initOne
+  simpa [evm'] using storageLocStore_uint256 evm (fileDutyDutySlotFor I) initOne
 
 theorem assign_initRhoStorage (evm : EVM.State) (I : ExecutionEnv)
     (hsz36 : 36 ≤ I.calldata.size) :
@@ -164,13 +164,13 @@ theorem assign_initRhoStorage (evm : EVM.State) (I : ExecutionEnv)
           IlkStructTy, uint256St])
       (hloc := by rfl)
   simpa [evm', initTimestampWord] using
-    jugStorageLocStore_uint256 evm (fileDutyRhoSlotFor I) (initTimestampWord I)
+    storageLocStore_uint256 evm (fileDutyRhoSlotFor I) (initTimestampWord I)
 
 theorem jugInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩) :
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) initOne
@@ -188,15 +188,15 @@ theorem jugInitSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using initLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hdutyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (ilksF (.var "ilk") "duty")) (.intLit 0)) =
           .ok (.bool true) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_initDutyEqZero_true (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hduty))
+        simpa [evm0, initState, solcSlotWordAt] using hduty))
   have hone :
       evalExpr? config { contract := contract, locals := locals } evm0 (.intLit one) =
         .ok (.int (Int.ofNat initOne.toNat)) := by
@@ -247,7 +247,7 @@ theorem jugInitSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩) :
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileDutyDutySlotFor I) initOne
@@ -261,7 +261,7 @@ theorem jugInitSourceBodyStatic {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩)
     (hperm : I.perm = false) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -283,7 +283,7 @@ theorem jugInitSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using initLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [initTransition, nonpayable, auth] using
@@ -302,7 +302,7 @@ theorem jugInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩) :
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩) :
     let locals := initLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
@@ -314,15 +314,15 @@ theorem jugInitSourceBodyAlreadyInit {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using initLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hdutyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (ilksF (.var "ilk") "duty")) (.intLit 0)) =
           .ok (.bool false) := by
-    simpa [locals, evm0, initState, jugSlotWord] using
+    simpa [locals, evm0, initState, solcSlotWordAt] using
       (evalExpr_initDutyEqZero_false (evm := evm0) (I := I) hsz36 (by
-        simpa [evm0, initState, jugSlotWord] using hduty))
+        simpa [evm0, initState, solcSlotWordAt] using hduty))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 initTransition.body
         .reverted := by
@@ -440,7 +440,7 @@ theorem jugInitX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1049 C1049 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
   have rd1052pre := evm_run rd1049 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -488,7 +488,7 @@ theorem jugInitX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1049 C1049 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
   have rd1052pre := evm_run rd1049 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -518,7 +518,7 @@ theorem jugInitX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩)
     (h : RD jugBytecode I g s0 ⟨1121⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -551,10 +551,10 @@ theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
   have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1138 C1138 := by
-    simpa [jugSlotWord, fileDutyDutySlotFor_eq hsz36] using rd1138raw
+    simpa [solcSlotWordAt, fileDutyDutySlotFor_eq hsz36] using rd1138raw
   have rd1139 := rd1138.iszero (by native_decide) (by evm_ov)
   rw [hduty, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1139
   have rd1142 := rd1139.pushConst (⟨1210⟩ : UInt256)
@@ -565,7 +565,7 @@ theorem jugInitX_dutyZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 theorem jugInitX_alreadyInit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩)
     (h : RD jugBytecode I g s0 ⟨1121⟩
       [fileDutyIlkWord I, ⟨226⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -596,12 +596,12 @@ theorem jugInitX_alreadyInit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
   have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
-      (jugSlotWord (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
+      (solcSlotWordAt (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1138 C1138 := by
-    simpa [jugSlotWord, fileDutyDutySlotFor_eq hsz36] using rd1138raw
+    simpa [solcSlotWordAt, fileDutyDutySlotFor_eq hsz36] using rd1138raw
   have rd1139 := rd1138.iszero (by native_decide) (by evm_ov)
-  have hzero : UInt256.isZero (jugSlotWord (fileDutyDutySlotFor I) σ I) = ⟨0⟩ := by
+  have hzero : UInt256.isZero (solcSlotWordAt (fileDutyDutySlotFor I) σ I) = ⟨0⟩ := by
     exact isZero_eq_zero_of_ne hduty
   rw [hzero] at rd1139
   have rd1142 := rd1139.pushConst (⟨1210⟩ : UInt256)
@@ -697,7 +697,7 @@ theorem jugInitBodyCoreOk
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (initTransition.params.map Param.name)
@@ -714,7 +714,7 @@ theorem jugInitBodyCoreOk
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner dutySlot initOne
   let evm2 := Solm.EVM.storageStore evm1 I.codeOwner rhoSlot timestamp
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hdutySolm : jugSlotWord dutySlot σ I = ⟨0⟩ := by
+  have hdutySolm : solcSlotWordAt dutySlot σ I = ⟨0⟩ := by
     simpa [dutySlot] using hduty
   have hbody :
       ExecTransitionBody config contract evm0 locals initTransition.body
@@ -745,7 +745,7 @@ theorem jugInitBodyCoreStatic
     (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (initTransition.params.map Param.name)
@@ -796,7 +796,7 @@ theorem jugInitBodyCoreAlreadyInit
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hduty : jugSlotWord (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩)
+    (hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (initTransition.params.map Param.name)
@@ -808,7 +808,7 @@ theorem jugInitBodyCoreAlreadyInit
   let locals := initLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
-  have hdutySolm : jugSlotWord (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩ := hduty
+  have hdutySolm : solcSlotWordAt (fileDutyDutySlotFor I) σ I ≠ ⟨0⟩ := hduty
   have hbody :
       ExecTransitionBody config contract evm0 locals initTransition.body .reverted := by
     simpa [evm0, locals] using
@@ -848,7 +848,7 @@ theorem jugInitBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · by_cases hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩
+    · by_cases hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩
       · exact jugInitBodyCoreOk hcode hsize hperm hwv hsz36 hauth hduty hdispatch
           (jugDecode_init_ok hsz36) hreach
       · exact jugInitBodyCoreAlreadyInit hcode hsize hwv hsz36 hauth hduty hdispatch
@@ -877,7 +877,7 @@ theorem jugInitBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
-    · by_cases hduty : jugSlotWord (fileDutyDutySlotFor I) σ I = ⟨0⟩
+    · by_cases hduty : solcSlotWordAt (fileDutyDutySlotFor I) σ I = ⟨0⟩
       · exact jugInitBodyCoreStatic hcode hsize hperm hwv hsz36 hauth hduty hdispatch
           (jugDecode_init_ok hsz36) hreach
       · exact jugInitBodyCoreAlreadyInit hcode hsize hwv hsz36 hauth hduty hdispatch

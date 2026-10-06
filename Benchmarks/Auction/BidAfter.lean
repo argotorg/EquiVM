@@ -30,7 +30,7 @@ theorem bidAfterRoutine {I g s0 s noun ret R mem aw rdata σ k C evm locals}
       rd1715, _, hsmR, _, _⟩ | ⟨hrefund, hr⟩
   · have hstores := bidStoresSource (evm := evmR) (hvR.storage _ (by decide))
     obtain ⟨_, _, rd1738⟩ := bidStoresRuntime rd1715 hperm (by omega)
-    rcases bidExtensionRoutine rd1738 hsR.bidStores hperm hsmR hvR ht (by omega) with
+    rcases bidExtensionRoutine rd1738 (SourceState.bidStores hsR) hperm hsmR hvR ht (by omega) with
       ⟨evmE, σE, localsE, extended, memE, awE, _, _, hextend, hvE, hsE, rd1792⟩ |
         ⟨hextend, hr⟩
     · obtain ⟨mem', aw', _, _, rd1923⟩ := bidEvents rd1792 hperm (by omega)
@@ -40,7 +40,7 @@ theorem bidAfterRoutine {I g s0 s noun ret R mem aw rdata σ k C evm locals}
       exact Or.inl ⟨statusState evmE ⟨1⟩, _, localsE, mem', aw', outR, _, _,
         execBlock_append hrefund (execBlock_append hstores
           (execBlock_append hextend (ExecBlock.consNormal hexit ExecBlock.nil))),
-        hsE.status ⟨1⟩, rdret⟩
+        (SourceState.status hsE) ⟨1⟩, rdret⟩
     · exact Or.inr ⟨execBlock_append hrefund (execBlock_append hstores
         (execBlock_append_term hextend (by simp))), hr⟩
   · exact Or.inr ⟨execBlock_append_term hrefund (by simp), hr⟩

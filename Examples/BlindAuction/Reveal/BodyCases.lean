@@ -216,7 +216,7 @@ theorem scratch_revealLoopBody_decoded_inBounds_fromLoopStart {I} {g : Sat256}
         hsecretLookup
     · have hfakeNorm :
           normalizeRawBoolWord? (rawBoolWordValue word) = .revert := by
-        exact scratch_normalizeRawBoolWord_revert_of_u256
+        exact normalizeRawBoolWord_revert_of_u256
           hfakeWordSmall
           (by simpa [hfakeWordEq] using hfakeZero)
           (by simpa [hfakeWordEq] using hfakeOne)

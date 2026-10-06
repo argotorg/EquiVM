@@ -1,3 +1,6 @@
+import Reasoning.Memory
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Examples.BlindAuction.Storage
 import Examples.BlindAuction.Bids
 import Examples.BlindAuction.BiddingEnd
@@ -218,30 +221,6 @@ theorem bidElemBaseMem_read0 (I : ExecutionEnv) (lenSlot : UInt256) :
   rw [show (UInt256.toByteArray lenSlot).data.size =
     (UInt256.toByteArray lenSlot).size from rfl, toByteArray_size]
 
-theorem bid_toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (off : ℕ)
-    (hgap : off - mem.size < USize.size) :
-    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding off 32 =
-      UInt256.toByteArray b := by
-  by_cases hle : off ≤ mem.size
-  · rw [write32_read_back _ _ off (by rw [toByteArray_size]) hle]
-    rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
-    exact byteArray_extract_self _
-  · have hge : mem.size ≤ off := by omega
-    rw [toByteArray_write_eq _ _ off hge hgap]
-    rw [readWithPadding_eq_extract _ off (by
-      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
-      omega)]
-    rw [extract_append_right_window
-      (mem ++ ByteArray.zeroes (off - mem.size))
-      (UInt256.toByteArray b) off (off + 32) (by
-        rw [ByteArray.size_append, ByteArray_zeroes_size]
-        omega)]
-    rw [ByteArray.size_append, ByteArray_zeroes_size]
-    rw [show off - (mem.size + (off - mem.size)) = 0 by omega,
-      show off + 32 - (mem.size + (off - mem.size)) = 32 by omega]
-    rw [show (UInt256.toByteArray b).extract 0 32 = UInt256.toByteArray b from by
-      rw [show 32 = (UInt256.toByteArray b).size by rw [toByteArray_size]]
-      exact byteArray_extract_self _]
 
 theorem bidSourceMem_size (I : ExecutionEnv) : (bidSourceMem I).size = 96 := by
   unfold bidSourceMem
@@ -370,7 +349,7 @@ theorem bidElemBaseMemExec_read0 (I : ExecutionEnv) (lenSlot : UInt256) :
 theorem bidBlindedMem_read128 (I : ExecutionEnv) :
     (bidBlindedMem I).readWithPadding 128 32 = UInt256.toByteArray (bidBlindedWord I) := by
   unfold bidBlindedMem
-  exact bid_toByteArray_write_read_back_of_gap (bidBlindedWord I) (bidAllocMem I) 128
+  exact toByteArray_write_read_back_of_gap (bidBlindedWord I) (bidAllocMem I) 128
     (by rw [bidAllocMem_size]; exact lt_usize _ (by norm_num))
 
 theorem bidStructMem_read128 (I : ExecutionEnv) :
@@ -500,37 +479,12 @@ theorem bidBlindedValue_toWord (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.siz
     readBytes_at_toList I.calldata 4 (by omega) (by decide)]
   rw [byteArray_toList_eq]
 
-theorem bidWordOfInt_succ (w : UInt256) :
-    EVM.wordOfInt (Int.ofNat w.toNat + 1) = w + ⟨1⟩ := by
-  have hn : ¬ Int.ofNat w.toNat + 1 < 0 := by
-    exact not_lt_of_ge
-      (Int.add_nonneg (Int.natCast_nonneg (w.toNat)) (show (0 : Int) ≤ 1 by decide))
-  rw [EVM.wordOfInt, if_neg hn]
-  apply u256_inj
-  show ((Fin.ofNat UInt256.size (Int.toNat (Int.ofNat w.toNat + 1))).val : Nat) =
-    ((w + ⟨1⟩ : UInt256).val.val : Nat)
-  have hto : (Int.ofNat w.toNat + 1).toNat = w.toNat + 1 := by
-    have hcast : (((Int.ofNat w.toNat + 1).toNat : Nat) : Int) = (w.toNat + 1 : Nat) := by
-      rw [Int.toNat_of_nonneg (not_lt.mp hn)]
-      norm_num
-    omega
-  rw [hto, Fin.val_ofNat]
-  change (w.toNat + 1) % UInt256.size = (w + ⟨1⟩).toNat
-  rw [uadd_toNat]
-  rw [show ({ val := 1 } : UInt256).toNat = 1 by rfl]
-
-theorem blindAuctionStorageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Value)
-    (hval : valueToWord v = some word) :
-    storageLocStore evm (blindAuctionBytes32Loc slot) v =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
-  simpa [blindAuctionBytes32Loc, Reasoning.Theory.bytes32Loc] using
-    storageLocStore_bytes32 evm slot word v hval
 
 theorem bidStorageLocStore_uint256_succ (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (blindAuctionUint256Loc slot) (.int (Int.ofNat val.toNat + 1)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (val + ⟨1⟩)) := by
   unfold storageLocStore storageLocWriteWord blindAuctionUint256Loc
-  simp only [valueToWord, bidWordOfInt_succ, bind, Option.bind, pure]
+  simp only [valueToWord, wordOfInt_natCast_succ, bind, Option.bind, pure]
   have hslen := (EVM.Word.toBytesLEWithSizeProof
     (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (val + ⟨1⟩)).2
@@ -554,7 +508,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
     bidDepositSlot bidElementSlot bidLengthSlot bidSenderKey bidStructValue bidCallValue
   simp [bidStore, evalExpr?, envValue, List.nil_append, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
-  rw [blindAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [EvalResult.bind, bind]
   rw [bidStorageLocStore_uint256_succ]
   simp only [Option.bind, EvalResult.bind, bind, pure]
@@ -565,7 +519,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
   rw [writeStorage?.eq_def]
   simp only [bytes32St]
   simp only [List.cons_append, List.nil_append]
-  rw [blindAuctionStorageLocStore_bytes32
+  erw [storageLocStore_bytes32
     (word := bidBlindedWord evm.executionEnv)
     (hval := bidBlindedValue_toWord evm.executionEnv hsz36)]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
@@ -577,6 +531,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
   rw [blindAuctionStorageLocStore_uint256_natCast]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
   rw [writeFields?.eq_def]
+  simp only [storageStore_executionEnv]
   rfl
 
 theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
@@ -596,7 +551,7 @@ theorem evalExpr_bid_biddingEnd (evm : EVM.State) :
   rw [evalExpr_storage_scalar (t := .int uint256Int)
     (hbase := by simp [bidStore, biddingEndRef])
     (her := her) (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
-  rw [blindAuctionStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
 
 theorem evalExpr_bid_time_true (evm : EVM.State)
     (htime :

@@ -118,7 +118,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
                        storageTypeStep?])
       (hloc := vyperERC20Config_storage_allowance (.address evm.executionEnv.source)
           (.address (AccountAddress.ofNat (approveSpenderWord I).toNat)))
-  rw [vyperERC20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 
 theorem erc20Decode_approve_ok {I : ExecutionEnv}

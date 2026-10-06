@@ -65,13 +65,13 @@ theorem erc6909TransferFromBodyCore
                 AccountAddress.ofNat (transferFromSenderWord I).toNat = zeroAccountAddress := by
             intro hz
             simpa [zeroAccountAddress] using
-              (approveAccountAddress_ofNat_zero_iff hcanonSender).mpr hz
+              (accountAddress_ofNat_zero_iff hcanonSender).mpr hz
           have hsenderNZAddr :
               transferFromSenderWord I ≠ ⟨0⟩ →
                 AccountAddress.ofNat (transferFromSenderWord I).toNat ≠
                   zeroAccountAddress := by
             intro hnz hz
-            exact hnz ((approveAccountAddress_ofNat_zero_iff hcanonSender).mp
+            exact hnz ((accountAddress_ofNat_zero_iff hcanonSender).mp
               (by simpa [zeroAccountAddress] using hz))
           have hreceiverZeroAddr :
               transferFromReceiverWord I = ⟨0⟩ →
@@ -79,13 +79,13 @@ theorem erc6909TransferFromBodyCore
                   zeroAccountAddress := by
             intro hz
             simpa [zeroAccountAddress] using
-              (approveAccountAddress_ofNat_zero_iff hcanonReceiver).mpr hz
+              (accountAddress_ofNat_zero_iff hcanonReceiver).mpr hz
           have hreceiverNZAddr :
               transferFromReceiverWord I ≠ ⟨0⟩ →
                 AccountAddress.ofNat (transferFromReceiverWord I).toNat ≠
                   zeroAccountAddress := by
             intro hnz hz
-            exact hnz ((approveAccountAddress_ofNat_zero_iff hcanonReceiver).mp
+            exact hnz ((accountAddress_ofNat_zero_iff hcanonReceiver).mp
               (by simpa [zeroAccountAddress] using hz))
           by_cases hsenderCaller : transferFromSenderWord I = transferFromCallerWord I
           · have hgate :=

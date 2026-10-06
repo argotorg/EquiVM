@@ -1,3 +1,5 @@
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.TakeCallback
 import Benchmarks.Dss.Clipper.TakeDogDigs
 
@@ -6,49 +8,6 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
-theorem clipperDup16_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP16, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-        nn :: oo :: pp :: t)
-    (hov : t.length + 17 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk ::
-            ll :: mm :: nn :: oo :: pp :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP16, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup16 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll ::
-          mm :: nn :: oo :: pp :: t).length - 16 + 17 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem RD.clipperDup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-        nn :: oo :: pp :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP16, .none))
-    (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll ::
-        mm :: nn :: oo :: pp :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs => clipperDup16_xstep hc hp hdec hs hov)
 
 abbrev clipperTakeEventMem0 (mem : ByteArray) (max : UInt256) : ByteArray :=
   (UInt256.toByteArray max).write 0 mem 128 32
@@ -240,7 +199,7 @@ theorem RD.clipperTakeEventTailSuccess {code : ByteArray} (v : ClipperImmutables
     raw dup9 (by clipper_runtime_decode) (by evm_ov),
     raw and (by clipper_runtime_decode) (by evm_ov),
     raw swap2 (by clipper_runtime_decode) (by evm_ov)]
-  have rd5299pre0 := RD.clipperDup16 rd5298pre
+  have rd5299pre0 := RD.dup16 rd5298pre
     (by clipper_runtime_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5299pre := evm_run rd5299pre0 with [

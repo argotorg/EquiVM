@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.SimpleAuction.Bid
 import Examples.SimpleAuction.Withdraw
 import Examples.SimpleAuction.AuctionEnd
@@ -8,6 +9,7 @@ import Examples.SimpleAuction.HighestBid
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
+import Reasoning.SolmArithmetic
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -305,16 +307,6 @@ theorem simpleAuctionBiddingArg_extract (biddingTime : UInt256)
     simpleAuctionInitcode_size.symm
     (by rw [simpleAuctionInitcode_size, word_toBytesBE_toByteArray_size])
 
-theorem simpleAuction_write0_size_ge_32 (src base : ByteArray) (srcAddr : ℕ)
-    (hsrc : srcAddr + 32 ≤ src.size) :
-    32 ≤ (src.write srcAddr base 0 32).size := by
-  show 32 ≤ (src.write srcAddr base 0 32).data.size
-  rw [write0_data_from src base srcAddr 32 (by decide) hsrc, Array.size_append]
-  have hpart : (src.data.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [Array.size_extract]
-    have : src.data.size = src.size := rfl
-    omega
-  omega
 
 theorem simpleAuctionBeneficiaryMem_read (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
@@ -348,7 +340,7 @@ theorem simpleAuctionBeneficiaryMem_mload (biddingTime : UInt256)
     (mem := simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
     (by
       unfold simpleAuctionBeneficiaryMem
-      have hsz := simpleAuction_write0_size_ge_32
+      have hsz := write0_size_ge_32
           (simpleAuctionCtorCode biddingTime beneficiaryAddress) ByteArray.empty 1194
         (by simp [simpleAuctionCtorCode_size])
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
@@ -366,7 +358,7 @@ theorem simpleAuctionBiddingMem_mload (biddingTime : UInt256)
     (mem := simpleAuctionBiddingMem biddingTime beneficiaryAddress) (off := ⟨0⟩) (v := biddingTime)
     (by
       unfold simpleAuctionBiddingMem
-      have hsz := simpleAuction_write0_size_ge_32
+      have hsz := write0_size_ge_32
         (simpleAuctionCtorCode biddingTime beneficiaryAddress)
           (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) 1162
         (by simp [simpleAuctionCtorCode_size])
@@ -375,15 +367,6 @@ theorem simpleAuctionBiddingMem_mload (biddingTime : UInt256)
       omega)
     (simpleAuctionBiddingMem_read biddingTime beneficiaryAddress)
 
-theorem simpleAuctionCtorCheckedAddOverflowLt (timestamp biddingTime : UInt256)
-    (hover : UInt256.size ≤ timestamp.toNat + biddingTime.toNat) :
-    UInt256.lt (biddingTime + timestamp) timestamp = ⟨1⟩ :=
-  constructorCheckedAddOverflowLt timestamp biddingTime hover
-
-theorem simpleAuctionCtorCheckedAddNoOverflowLt (timestamp biddingTime : UInt256)
-    (hno : ¬ UInt256.size ≤ timestamp.toNat + biddingTime.toNat) :
-    UInt256.lt (biddingTime + timestamp) timestamp = ⟨0⟩ :=
-  constructorCheckedAddNoOverflowLt timestamp biddingTime hno
 
 def simpleAuctionReturnMem (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
@@ -479,8 +462,8 @@ theorem simpleAuctionInitcodeOverflowRevert
     have hpacked :
         UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
             (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
-          simpleAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress) := by
-      unfold simpleAuctionSetAddressWord
+          setAddressOffset0Word oldBeneficiarySlot (EVM.word beneficiaryAddress) := by
+      unfold setAddressOffset0Word
       rw [u256_land_comm (UInt256.lnot solcAddrMask) oldBeneficiarySlot,
         u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
     rw [hpacked] at rdBeforeStore
@@ -500,7 +483,7 @@ theorem simpleAuctionInitcodeOverflowRevert
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
-    have hlt := simpleAuctionCtorCheckedAddOverflowLt (UInt256.ofNat I.header.timestamp)
+    have hlt := ctorCheckedAddOverflowLt (UInt256.ofNat I.header.timestamp)
       biddingTime hover
     have rdBeforeJump := rdBeforeLt
     rw [hlt] at rdBeforeJump
@@ -525,7 +508,7 @@ theorem simpleAuctionInitcodeSuccess
       (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨0⟩
-            (simpleAuctionSetAddressWord
+            (setAddressOffset0Word
               (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
               (EVM.word beneficiaryAddress)))
           ⟨1⟩ (biddingTime + UInt256.ofNat I.header.timestamp))
@@ -538,7 +521,7 @@ theorem simpleAuctionInitcodeSuccess
   let oldBeneficiarySlot : UInt256 :=
     (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWord : UInt256 :=
-    simpleAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress)
+    setAddressOffset0Word oldBeneficiarySlot (EVM.word beneficiaryAddress)
   have rdBeforeSload := simple_ctor_run rd0 with [
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by simple_ctor_jd),
@@ -563,7 +546,7 @@ theorem simpleAuctionInitcodeSuccess
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
         beneficiaryStoreWord := by
-    unfold beneficiaryStoreWord simpleAuctionSetAddressWord
+    unfold beneficiaryStoreWord setAddressOffset0Word
     rw [u256_land_comm (UInt256.lnot solcAddrMask) oldBeneficiarySlot,
       u256_land_comm solcAddrMask (EVM.word beneficiaryAddress)]
   rw [hpacked] at rdBeforeStore
@@ -583,7 +566,7 @@ theorem simpleAuctionInitcodeSuccess
       (simpleAuctionBiddingMem_mload biddingTime beneficiaryAddress)
       (by decide) (by evm_ov),
     timestamp, dup1, dup3, add, lt]
-  have hlt := simpleAuctionCtorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
+  have hlt := ctorCheckedAddNoOverflowLt (UInt256.ofNat I.header.timestamp)
     biddingTime hno
   have rdBeforeJump := rdBeforeLt
   rw [hlt] at rdBeforeJump
@@ -618,28 +601,6 @@ def simpleAuctionCtorLocals (biddingTime : Int) (beneficiaryAddress : AccountAdd
     (List.zip (simpleAuctionContract.ctor.params.map Param.name)
       [.int biddingTime, .address beneficiaryAddress])
 
-theorem simpleAuctionBeneficiaryWord_toNat (beneficiaryAddress : AccountAddress) :
-    (EVM.word beneficiaryAddress).toNat = beneficiaryAddress.val := by
-  exact ulit_toNat' _ (lt_of_lt_of_le beneficiaryAddress.isLt
-    (show AccountAddress.size ≤ UInt256.size from by decide))
-
-theorem simpleAuctionBeneficiary_ofNat (beneficiaryAddress : AccountAddress) :
-    AccountAddress.ofNat (EVM.word beneficiaryAddress).toNat = beneficiaryAddress := by
-  apply Fin.ext
-  unfold AccountAddress.ofNat
-  rw [simpleAuctionBeneficiaryWord_toNat, Fin.val_ofNat]
-  exact Nat.mod_eq_of_lt beneficiaryAddress.isLt
-
-theorem simpleAuctionBeneficiaryWord_canonical (beneficiaryAddress : AccountAddress) :
-    (EVM.word beneficiaryAddress).toNat < EVM.addressModulus := by
-  rw [simpleAuctionBeneficiaryWord_toNat]
-  simp [EVM.addressModulus, EVM.twoPow, AccountAddress.size]
-
-theorem simpleAuctionBiddingWord_toNat (biddingTime : Int)
-    (h0 : 0 ≤ biddingTime)
-    (hlt : biddingTime < Int.ofNat (EVM.twoPow 256)) :
-    (EVM.word biddingTime.toNat).toNat = biddingTime.toNat :=
-  constructorUInt256Word_toNat biddingTime h0 hlt
 
 theorem simpleAuctionCtorLocals_get_biddingTime (biddingTime : Int)
     (beneficiaryAddress : AccountAddress) :
@@ -671,21 +632,11 @@ theorem simpleAuctionCtorLocals_get_beneficiaryAddress (biddingTime : Int)
         "beneficiaryAddress" (Value.address beneficiaryAddress)) from rfl]
   rw [store_get_self]
 
-theorem simpleAuctionCtorAuctionEndWord_eq (evm : EVM.State) (biddingTime : Int)
-    (h0 : 0 ≤ biddingTime)
-    (hlt : biddingTime < Int.ofNat (EVM.twoPow 256))
-    (hno : ¬ UInt256.size ≤
-      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
-        (EVM.word biddingTime.toNat).toNat) :
-    EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat) =
-      EVM.word biddingTime.toNat + UInt256.ofNat evm.executionEnv.header.timestamp :=
-  constructorCheckedAddIntWord_eq
-    (UInt256.ofNat evm.executionEnv.header.timestamp) biddingTime h0 hlt hno
 
 def simpleAuctionCtorAfterBeneficiaryState
     (evm : EVM.State) (beneficiaryAddress : AccountAddress) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-    (simpleAuctionSetAddressWord
+    (setAddressOffset0Word
       (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
       (EVM.word beneficiaryAddress))
 
@@ -708,9 +659,9 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
         decide)
       (hloc := simpleAuctionConfig_storage_beneficiary)
       (hscalar := by trivial)
-  simpa [simpleAuctionCtorAfterBeneficiaryState, simpleAuctionBeneficiary_ofNat] using
-    simpleAuctionStorageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (simpleAuctionBeneficiaryWord_canonical beneficiaryAddress)
+  simpa [simpleAuctionCtorAfterBeneficiaryState, accountAddress_of_addressWord_toNat] using
+    storageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
+      (addressWord_canonical_of_address beneficiaryAddress)
 
 theorem simpleAuctionCtorAuctionEndExprReverts
     (evm : EVM.State) (biddingTime : Int) (beneficiaryAddress : AccountAddress)
@@ -777,7 +728,7 @@ theorem simpleAuctionCtorAuctionEndExprOK
         .ok (.int (Int.ofNat
           (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
             biddingTime.toNat)).toNat)) := by
-  have hword := simpleAuctionBiddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hsumlt :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat <
         UInt256.size := by
@@ -847,7 +798,7 @@ theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : I
       (hty := by
         simp [storageTypeAt?, simpleAuctionContract, storageDecls, uint256St])
       (hloc := simpleAuctionConfig_storage_auctionEndTime)
-  exact simpleAuctionStorageLocStore_uint256 evm ⟨1⟩
+  exact storageLocStore_uint256 evm ⟨1⟩
     (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat))
 
 theorem simpleAuctionSolmCtorExecReverts_overflow
@@ -1142,7 +1093,7 @@ theorem simpleAuctionConstructorEquiv_success
       rw [← hcodeCtor] at hX
       simpa [Sat256.ofUInt256] using hX)
     let beneficiaryStoreWordEvm : UInt256 :=
-      simpleAuctionSetAddressWord
+      setAddressOffset0Word
         (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
         (EVM.word beneficiaryAddress)
     let auctionEndWordEvm : UInt256 :=
@@ -1162,7 +1113,7 @@ theorem simpleAuctionConstructorEquiv_success
           EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) =
             auctionEndWordEvm := by
         unfold auctionEndWordEvm
-        exact simpleAuctionCtorAuctionEndWord_eq
+        exact timestamp_add_duration_word_eq
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           biddingTime h0 hlt (by simpa [initState] using hno)
       simp only [storageStore_accountMap, initState, simpleAuctionCtorAfterBeneficiaryState]

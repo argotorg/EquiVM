@@ -51,7 +51,7 @@ theorem transferOwnershipNonzeroX {I g s0 value ret R rdata σ k C}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 14 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
       rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
-        (setAddressOffset0Word (storedWord σ I ⟨151⟩) value)) k' C' := by
+        (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' := by
   have rd2841 := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
     push2 ⟨2841⟩, jumpiT (by

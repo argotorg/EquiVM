@@ -31,7 +31,7 @@ abbrev dentAfterDecreaseTailStmts : List Stmt :=
 abbrev dentAfterRefundMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (bidPackedSlotOfWord (dentId I))
     (setAddressOffset0Word
-      (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)
+      (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)
       (solcSourceWord I))
 
 abbrev dentAfterLotMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
@@ -61,7 +61,7 @@ abbrev dentFluxArgValsOf (evm : EVM.State) (I : ExecutionEnv) : List Value :=
         (dentLot I)).toNat)]
 
 abbrev dentFluxArgValsMap (σ : AccountMap) (I : ExecutionEnv) : List Value :=
-  [.fixedBytes bytes32Width (EVM.Word.toBytesBE (flipperSlotWord ⟨3⟩ σ I)),
+  [.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt ⟨3⟩ σ I)),
     .address I.codeOwner,
     .address (AccountAddress.ofNat (bidUsrWord (dentId I) σ I).toNat),
     .int (Int.ofNat (UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I)).toNat)]
@@ -76,7 +76,7 @@ abbrev dentVatFluxCallMem (mem : ByteArray) (σ : AccountMap)
     (I : ExecutionEnv) : ByteArray :=
   writeCascade (dentVatHashMem mem I)
     [(128, dentVatFluxSelectorWord),
-     (132, flipperSlotWord ⟨3⟩ σ I),
+     (132, solcSlotWordAt ⟨3⟩ σ I),
      (164, EVM.word I.codeOwner.val),
      (196, bidUsrWord (dentId I) σ I),
      (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))]
@@ -111,7 +111,7 @@ theorem dentVatFluxCallMem_eq_cascade (mem : ByteArray) (σ : AccountMap)
     dentVatFluxCallMem mem σ I =
       writeCascade (dentVatHashMem mem I)
         [(128, dentVatFluxSelectorWord),
-         (132, flipperSlotWord ⟨3⟩ σ I),
+         (132, solcSlotWordAt ⟨3⟩ σ I),
          (164, EVM.word I.codeOwner.val),
          (196, bidUsrWord (dentId I) σ I),
          (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))] := by
@@ -123,7 +123,7 @@ theorem dentVatFluxCallMem_size {mem : ByteArray} {σ : AccountMap} {I : Executi
   rw [dentVatFluxCallMem_eq_cascade]
   exact writeCascade_size_of_base (dentVatHashMem mem I)
     [(128, dentVatFluxSelectorWord),
-     (132, flipperSlotWord ⟨3⟩ σ I),
+     (132, solcSlotWordAt ⟨3⟩ σ I),
      (164, EVM.word I.codeOwner.val),
      (196, bidUsrWord (dentId I) σ I),
      (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))]
@@ -139,7 +139,7 @@ theorem dentVatFluxCallMem_read64 {mem : ByteArray} {σ : AccountMap} {I : Execu
   rw [dentVatFluxCallMem_eq_cascade]
   rw [writeCascade_read_preserved_of_base (dentVatHashMem mem I)
     [(128, dentVatFluxSelectorWord),
-     (132, flipperSlotWord ⟨3⟩ σ I),
+     (132, solcSlotWordAt ⟨3⟩ σ I),
      (164, EVM.word I.codeOwner.val),
      (196, bidUsrWord (dentId I) σ I),
      (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))]
@@ -153,7 +153,7 @@ theorem dentVatFluxCallMem_read128_4 {mem : ByteArray} {σ : AccountMap}
   rw [dentVatFluxCallMem_eq_cascade]
   rw [writeCascade_read_window_of_head (dentVatHashMem mem I) 128 0 4
     dentVatFluxSelectorWord
-    [(132, flipperSlotWord ⟨3⟩ σ I),
+    [(132, solcSlotWordAt ⟨3⟩ σ I),
      (164, EVM.word I.codeOwner.val),
      (196, bidUsrWord (dentId I) σ I),
      (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))]
@@ -165,7 +165,7 @@ theorem dentVatFluxCallMem_read128_4 {mem : ByteArray} {σ : AccountMap}
 theorem dentVatFluxCallMem_read132 {mem : ByteArray} {σ : AccountMap}
     {I : ExecutionEnv} (hmemSize : mem.size = 96) :
     (dentVatFluxCallMem mem σ I).readWithPadding 132 32 =
-      UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I) := by
+      UInt256.toByteArray (solcSlotWordAt ⟨3⟩ σ I) := by
   rw [dentVatFluxCallMem_eq_cascade, writeCascade_cons]
   have hbase :
       (writeWord (dentVatHashMem mem I) 128 dentVatFluxSelectorWord).size = 160 := by
@@ -174,7 +174,7 @@ theorem dentVatFluxCallMem_read132 {mem : ByteArray} {σ : AccountMap}
     · rw [dentVatHashMem_size hmemSize]; native_decide
   exact writeCascade_read_word_of_head_of_base
     (writeWord (dentVatHashMem mem I) 128 dentVatFluxSelectorWord)
-    (base := 160) (off := 132) (word := flipperSlotWord ⟨3⟩ σ I)
+    (base := 160) (off := 132) (word := solcSlotWordAt ⟨3⟩ σ I)
     (rest := [(164, EVM.word I.codeOwner.val),
       (196, bidUsrWord (dentId I) σ I),
       (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))])
@@ -193,12 +193,12 @@ theorem dentVatFluxCallMem_read164 {mem : ByteArray} {σ : AccountMap}
     · rw [dentVatHashMem_size hmemSize]; native_decide
     · rw [dentVatHashMem_size hmemSize]; native_decide
   have hbase :
-      (writeWord mem1 132 (flipperSlotWord ⟨3⟩ σ I)).size = 164 := by
+      (writeWord mem1 132 (solcSlotWordAt ⟨3⟩ σ I)).size = 164 := by
     rw [writeWord_size]
     · rw [hmem1]; native_decide
     · rw [hmem1]; native_decide
   exact writeCascade_read_word_of_head_of_base
-    (writeWord mem1 132 (flipperSlotWord ⟨3⟩ σ I))
+    (writeWord mem1 132 (solcSlotWordAt ⟨3⟩ σ I))
     (base := 164) (off := 164) (word := EVM.word I.codeOwner.val)
     (rest := [(196, bidUsrWord (dentId I) σ I),
       (228, UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I))])
@@ -212,7 +212,7 @@ theorem dentVatFluxCallMem_read196 {mem : ByteArray} {σ : AccountMap}
   rw [dentVatFluxCallMem_eq_cascade, writeCascade_cons, writeCascade_cons,
     writeCascade_cons]
   let mem1 := writeWord (dentVatHashMem mem I) 128 dentVatFluxSelectorWord
-  let mem2 := writeWord mem1 132 (flipperSlotWord ⟨3⟩ σ I)
+  let mem2 := writeWord mem1 132 (solcSlotWordAt ⟨3⟩ σ I)
   have hmem1 : mem1.size = 160 := by
     dsimp [mem1]
     rw [writeWord_size]
@@ -241,7 +241,7 @@ theorem dentVatFluxCallMem_read228 {mem : ByteArray} {σ : AccountMap}
   rw [dentVatFluxCallMem_eq_cascade, writeCascade_cons, writeCascade_cons,
     writeCascade_cons, writeCascade_cons]
   let mem1 := writeWord (dentVatHashMem mem I) 128 dentVatFluxSelectorWord
-  let mem2 := writeWord mem1 132 (flipperSlotWord ⟨3⟩ σ I)
+  let mem2 := writeWord mem1 132 (solcSlotWordAt ⟨3⟩ σ I)
   let mem3 := writeWord mem2 164 (EVM.word I.codeOwner.val)
   have hmem1 : mem1.size = 160 := by
     dsimp [mem1]
@@ -274,7 +274,7 @@ theorem dentVatFluxCallMem_read {mem : ByteArray} {σ : AccountMap} {I : Executi
     (hmemSize : mem.size = 96) :
     (dentVatFluxCallMem mem σ I).readWithPadding 128 132 =
       vatFluxSelector ++
-      UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I) ++
+      UInt256.toByteArray (solcSlotWordAt ⟨3⟩ σ I) ++
       UInt256.toByteArray (EVM.word I.codeOwner.val) ++
       UInt256.toByteArray (bidUsrWord (dentId I) σ I) ++
       UInt256.toByteArray (UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I)) := by
@@ -308,15 +308,15 @@ theorem dentVatFluxCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Execu
       encodeABIValue? addr
           (.address (AccountAddress.ofNat (bidUsrWord (dentId I) σ I).toNat)) =
         some (UInt256.toByteArray (bidUsrWord (dentId I) σ I)).toList := by
-    simpa [bidUsrWord, flipperAddressReturnWord] using
-      yankEncodeABIValue_address_word (flipperSlotWord (bidSlotOfWord (dentId I) ⟨3⟩) σ I)
+    simpa [bidUsrWord, solcAddressSlotWord] using
+      encodeABIValue_address_word (solcSlotWordAt (bidSlotOfWord (dentId I) ⟨3⟩) σ I)
   have hpayload :
       encodeABIValues? [bytes32, addr, addr, uint256]
-        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (flipperSlotWord ⟨3⟩ σ I)),
+        [.fixedBytes bytes32Width (EVM.Word.toBytesBE (solcSlotWordAt ⟨3⟩ σ I)),
           .address I.codeOwner,
           .address (AccountAddress.ofNat (bidUsrWord (dentId I) σ I).toNat),
           .int (Int.ofNat (UInt256.sub (bidLotWord (dentId I) σ I) (dentLot I)).toNat)] =
-          some (UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I) ++
+          some (UInt256.toByteArray (solcSlotWordAt ⟨3⟩ σ I) ++
             UInt256.toByteArray (EVM.word I.codeOwner.val) ++
             UInt256.toByteArray (bidUsrWord (dentId I) σ I) ++
             UInt256.toByteArray
@@ -324,8 +324,8 @@ theorem dentVatFluxCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Execu
     unfold encodeABIValues?
     rw [show abiTupleHeadSize? [bytes32, addr, addr, uint256] = some 128 by native_decide]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
-    rw [yankEncodeABIValue_bytes32_word, yankEncodeABIValue_this_address, husr,
-      yankEncodeABIValue_uint256_word]
+    erw [encodeABIValue_bytes32_word, encodeABIValue_this_address, husr,
+      encodeABIValue_uint256_word]
     simp [show isDynamicABIType bytes32 = false by native_decide,
       show isDynamicABIType addr = false by native_decide,
       show isDynamicABIType uint256 = false by native_decide,
@@ -484,7 +484,7 @@ theorem evalExpr_dentIlk_ofLocals {evm : EVM.State} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
-  exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm ⟨3⟩)
+  exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm ⟨3⟩)
 
 theorem evalExpr_bidUsr_of_get_id_evm {evm : EVM.State} {locals : Store}
     {id : UInt256}
@@ -512,7 +512,7 @@ theorem evalExpr_bidUsr_of_get_id_evm {evm : EVM.State} {locals : Store}
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_address_offset0 evm (bidSlotOfWord id ⟨3⟩))
+    (storageLocLoad_address_offset0 evm (bidSlotOfWord id ⟨3⟩))
 
 theorem evalExpr_dentLotDelta {evm : EVM.State} {locals : Store}
     {id : UInt256}
@@ -1280,7 +1280,7 @@ theorem flipperDentX_skipRefund {σ I} {g : Sat256} {s0 : State}
           bidPackedSlotOfWord (dentId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (dentId I)))
-    simpa [bidPackedWord, flipperSlotWord, hslotAdd] using rd4752raw
+    simpa [bidPackedWord, solcSlotWordAt, hslotAdd] using rd4752raw
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
@@ -1301,7 +1301,7 @@ theorem flipperDentX_skipRefund {σ I} {g : Sat256} {s0 : State}
         (twoWordHashMem (dentId I) ⟨1⟩ mem)
         (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
-      simpa [bidGuyWord, bidPackedWord, flipperAddressReturnWord, hmask160, u256_land_comm]
+      simpa [bidGuyWord, bidPackedWord, solcAddressSlotWord, hmask160, u256_land_comm]
         using rd4763raw⟩
   have heq : UInt256.eq (solcSourceWord I) (bidGuyWord (dentId I) σ I) = ⟨1⟩ := by
     rw [hcaller]
@@ -1328,10 +1328,10 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (dentVatFluxCallMem mem σ I) (UInt256.ofNat 9) rdata σ k' C' := by
-  let rawVat := flipperSlotWord ⟨2⟩ σ I
-  let rawIlk := flipperSlotWord ⟨3⟩ σ I
-  let rawUsr := flipperSlotWord (bidSlotOfWord (dentId I) ⟨3⟩) σ I
-  let rawLot := flipperSlotWord (bidSlotOfWord (dentId I) ⟨1⟩) σ I
+  let rawVat := solcSlotWordAt ⟨2⟩ σ I
+  let rawIlk := solcSlotWordAt ⟨3⟩ σ I
+  let rawUsr := solcSlotWordAt (bidSlotOfWord (dentId I) ⟨3⟩) σ I
+  let rawLot := solcSlotWordAt (bidSlotOfWord (dentId I) ⟨1⟩) σ I
   let base := solcMappingSlot ⟨1⟩ (dentId I)
   let memHash := dentVatHashMem mem I
   let memSel := writeWord memHash 128 dentVatFluxSelectorWord
@@ -1343,10 +1343,10 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
         solcAddrMask := by
     native_decide
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σ I := by
-    simp [rawVat, flipperVatTargetWord, flipperAddressReturnWord]
+    simp [rawVat, flipperVatTargetWord, solcAddressSlotWord]
   have husrCleanLeft :
       UInt256.land solcAddrMask rawUsr = bidUsrWord (dentId I) σ I := by
-    simpa [rawUsr, bidUsrWord, flipperAddressReturnWord] using
+    simpa [rawUsr, bidUsrWord, solcAddressSlotWord] using
       (u256_land_comm solcAddrMask rawUsr)
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (dentVatHashMem mem I).size then ⟨0⟩
@@ -1371,7 +1371,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
   have rd4931 : RD flipperBytecode I g s0 ⟨4931⟩
       [rawVat, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k4931 C4931 := by
-    simpa [rawVat, flipperSlotWord, solcSlotWord] using rd4931raw
+    simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd4931raw
   have rd4934 := evm_run rd4931 with [
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
@@ -1379,7 +1379,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
   have rd4935 : RD flipperBytecode I g s0 ⟨4935⟩
       [rawIlk, ⟨3⟩, rawVat, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) rdata σ k4935 C4935 := by
-    simpa [rawIlk, flipperSlotWord, solcSlotWord] using rd4935raw
+    simpa [rawIlk, solcSlotWordAt, solcSlotWord] using rd4935raw
   have rd4954 := evm_run rd4935 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup7 (by native_decide) (by evm_ov),
@@ -1409,7 +1409,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
       memHash (UInt256.ofNat 3) rdata σ k4956 C4956 := by
     have hslotAdd : base + (⟨3⟩ : UInt256) = bidSlotOfWord (dentId I) ⟨3⟩ := by
       simp [base, bidSlotOfWord, bidBaseOfWord]
-    simpa [rawUsr, flipperSlotWord, hslotAdd] using rd4956raw
+    simpa [rawUsr, solcSlotWordAt, hslotAdd] using rd4956raw
   have rd4959 := evm_run rd4956 with [
     raw swap5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -1424,7 +1424,7 @@ theorem flipperDentX_toFluxExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
         (⟨1⟩ : UInt256) + base = bidSlotOfWord (dentId I) ⟨1⟩ := by
       simpa [base, bidSlotOfWord, bidBaseOfWord] using
         (u256_add_comm (⟨1⟩ : UInt256) (solcMappingSlot ⟨1⟩ (dentId I)))
-    simpa [rawLot, flipperSlotWord, hslotAdd] using rd4961raw
+    simpa [rawLot, solcSlotWordAt, hslotAdd] using rd4961raw
   have rd4972 := evm_run rd4961 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -1625,9 +1625,9 @@ theorem flipperDentX_fluxPostCall
         exact absurd hdepth (by rw [hEq]; decide))
       (by rfl)
       ?_ ?_
-    · simpa [dentFluxArgValsOf, dentFluxArgValsMap, initState, flipperSlotWord,
+    · simpa [dentFluxArgValsOf, dentFluxArgValsMap, initState, solcSlotWordAt,
         solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-        bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, flipperAddressReturnWord]
+        bidUsrWord, bidLotWord, bidSlotOfWord, bidBaseOfWord, solcAddressSlotWord]
         using dentVatFluxCallMem_encode (σ := σ) (I := I) hmemSize
     · simpa [initState, hperm] using hΘ
 
@@ -1736,7 +1736,7 @@ theorem flipperDentX_storeLotToAdd48 {σ I} {g : Sat256} {s0 : State}
       (by native_decide) mem_cost
       (by
         simpa [mem2, bidBaseOfWord] using
-          tendTwoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (dentId I) hmemSize)
+          twoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (dentId I) hmemSize)
       (by decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
@@ -1751,10 +1751,10 @@ theorem flipperDentX_storeLotToAdd48 {σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k5098, C5098, rd5098raw⟩ := rd5097.sload (by native_decide) (by evm_ov)
   have rd5098 : RD flipperBytecode I g s0 ⟨5098⟩
-      [flipperSlotWord ⟨5⟩ (dentAfterLotMap σ I) I,
+      [solcSlotWordAt ⟨5⟩ (dentAfterLotMap σ I) I,
         dentBid I, dentLot I, dentId I, ret, sel]
       mem2 (UInt256.ofNat 9) out (dentAfterLotMap σ I) k5098 C5098 := by
-    simpa [flipperSlotWord, solcSlotWord] using rd5098raw
+    simpa [solcSlotWordAt, solcSlotWord] using rd5098raw
   have rd5115 := evm_run rd5098 with [
     raw push2 ⟨3859⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -1767,7 +1767,7 @@ theorem flipperDentX_storeLotToAdd48 {σ I} {g : Sat256} {s0 : State}
     raw and (by native_decide) (by evm_ov),
     raw push2 ⟨6272⟩ (by native_decide) (by evm_ov)]
   have httlRaw :
-      UInt256.land uint48Mask (flipperSlotWord ⟨5⟩ (dentAfterLotMap σ I) I) =
+      UInt256.land uint48Mask (solcSlotWordAt ⟨5⟩ (dentAfterLotMap σ I) I) =
         tendTtlWord (dentAfterLotMap σ I) I := by
     simpa [tendTtlWord, flipperUint48Offset0Word, u256_land_comm]
   rw [httlRaw] at rd5115
@@ -1886,14 +1886,14 @@ theorem flipperDentX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
       (by native_decide) mem_cost
       (by
         simpa [mem2, bidBaseOfWord] using
-          tendTwoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (dentId I) hmemSize)
+          twoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (dentId I) hmemSize)
       (by decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k3880, C3880, rd3880raw⟩ := rd3878.sload (by native_decide) (by evm_ov)
   have rd3880 : RD flipperBytecode I g s0 ⟨3880⟩
-      [flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I,
+      [solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I,
         bidPackedSlotOfWord (dentId I), dentBid I, dentLot I,
         tendNow I + tendTtlWord σ I, ⟨323⟩, sel]
       mem2 (UInt256.ofNat 9) out σ k3880 C3880 := by
@@ -1901,7 +1901,7 @@ theorem flipperDentX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
         ⟨2⟩ + bidBaseOfWord (dentId I) = bidPackedSlotOfWord (dentId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (dentId I)))
-    simpa [mem2, bidPackedSlotOfWord, flipperSlotWord, hslotAdd] using rd3880raw
+    simpa [mem2, bidPackedSlotOfWord, solcSlotWordAt, hslotAdd] using rd3880raw
   have rd3917 := evm_run rd3880 with [
     raw pushConst uint48Mask
       (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
@@ -1933,7 +1933,7 @@ theorem flipperDentX_storeTicReturn {σ I} {g : Sat256} {s0 : State}
     raw swap3 (by native_decide) (by evm_ov)]
   have hstoredRaw :
       UInt256.lor
-          (UInt256.land (flipperSlotWord (bidPackedSlotOfWord (dentId I)) σ I)
+          (UInt256.land (solcSlotWordAt (bidPackedSlotOfWord (dentId I)) σ I)
             (UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨160⟩)))
           (UInt256.mul
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩)

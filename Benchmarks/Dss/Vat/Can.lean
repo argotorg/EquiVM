@@ -126,8 +126,8 @@ theorem vatCanBodyCoreOk
         canTransition.body
         (.returned { contract := contract, locals := canStore I }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (canStorageSlot I) σ I).toNat))])) := by
-    simpa [canTransition, canStorageSlot, vatSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (canStorageSlot I) σ I).toNat))])) := by
+    simpa [canTransition, canStorageSlot, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
@@ -168,13 +168,13 @@ theorem vatCanBodyCoreOk
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨465⟩) (val := vatSlotWord slot σ I) (ret := ⟨465⟩) (R := [sel])
+      (pc := ⟨465⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨465⟩) (R := [sel])
       (memout := solcScratchReturnMem
         (solcNestedMappingHashMem ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
-        (vatSlotWord slot σ I))
-      (by simpa [slot, vatSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
@@ -183,22 +183,22 @@ theorem vatCanBodyCoreOk
           solcNestedMappingHashMem_mload64 ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
           (solcNestedMappingHashMem_read64 ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I)))
       (by
-        exact solcScratchReturnMem_read128 (vatSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I)))
       (by simp)
-    simpa [slot, vatSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         canTransition.returnType := by
     rw [show canTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatCanBodyCoreDecodeFailed_short

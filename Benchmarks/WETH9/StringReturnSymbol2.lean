@@ -91,20 +91,20 @@ the partial case. -/
 /-- The trailing data word as returned: masked (`~(2^(8·(32-31&len))-1) & data`) when `len` is not a
     multiple of 32, else the full last data word (the mask store is skipped by the runtime). -/
 def weth9SymLongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
+  if UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
     weth9SymLongDataWordAt σ I (weth9SymLongWC σ I)
   else
     UInt256.land
       (UInt256.lnot (UInt256.sub
         (UInt256.exp ⟨256⟩ (UInt256.sub ⟨32⟩
-          (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))))) ⟨1⟩))
+          (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩))))) ⟨1⟩))
       (weth9SymLongDataWordAt σ I (weth9SymLongWC σ I))
 
 /-- The ABI encoding a long-string getter returns: `offset 0x20 ‖ len ‖ (wc-1) data words ‖ masked
     last word`. -/
 def weth9SymLongStringAbi (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   UInt256.toByteArray ⟨32⟩ ++
-    (UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ++
+    (UInt256.toByteArray (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ++
       (wordConcat (weth9SymLongDataWordAt σ I) 0 (weth9SymLongWC σ I) ++
         UInt256.toByteArray (weth9SymLongMaskWord σ I)))
 
@@ -115,15 +115,15 @@ size.  The active words after the copy loop are `6 + (wc-1)`. -/
 
 /-- `len ≥ 32` (from the long-branch hypothesis). -/
 theorem weth9SymLongLen_ge32 {σ : AccountMap} {I : ExecutionEnv}
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩) :
-    31 < (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩) :
+    31 < (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
   simpa [show (⟨31⟩ : UInt256).toNat = 31 from by decide] using ult_ne_zero_toNat_lt hge31
 
 /-- Word count as `Nat`: `(weth9StringWC H).toNat = wc-1 + 1`. -/
 theorem weth9SymStringWC_toNat {σ : AccountMap} {I : ExecutionEnv}
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat) :
-    (weth9StringWC (weth9StringSlotWord σ I ⟨1⟩)).toNat = weth9SymLongWC σ I + 1 := by
-  set H := weth9StringSlotWord σ I ⟨1⟩ with hH
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat) :
+    (weth9StringWC (solcSlotWord σ I ⟨1⟩)).toNat = weth9SymLongWC σ I + 1 := by
+  set H := solcSlotWord σ I ⟨1⟩ with hH
   have hlt := weth9StringLen_toNat_lt_sign H
   rw [weth9StringWC, udiv_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
     uadd_toNat, show (⟨31⟩ : UInt256).toNat = 31 from by decide,
@@ -133,9 +133,9 @@ theorem weth9SymStringWC_toNat {σ : AccountMap} {I : ExecutionEnv}
 
 /-- `newFp.toNat = 0xc0 + 32·(wc-1) = 0xa0 + 32·wc`, equal to the copied memory's size. -/
 theorem weth9SymStringNewFp_toNat_long {σ : AccountMap} {I : ExecutionEnv}
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat) :
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I := by
-  set H := weth9StringSlotWord σ I ⟨1⟩ with hH
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat) :
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I := by
+  set H := solcSlotWord σ I ⟨1⟩ with hH
   have hwc := weth9SymStringWC_toNat (σ := σ) (I := I) hpos
   have hbnd := weth9SymLongWC_size_bound σ I
   have hmul : (UInt256.mul ⟨32⟩ (weth9StringWC H)).toNat = 32 * (weth9SymLongWC σ I + 1) := by
@@ -187,8 +187,8 @@ theorem weth9SymLongFinalAw_toNat (σ : AccountMap) (I : ExecutionEnv) :
 
 /-- The copied memory's size equals the free pointer `newFp` (the object fills `[0, newFp)`). -/
 theorem weth9SymLongFinalMem_size_eq_newFp {σ : AccountMap} {I : ExecutionEnv}
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat) :
-    (weth9SymLongFinalMem σ I).size = (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat) :
+    (weth9SymLongFinalMem σ I).size = (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat := by
   rw [weth9SymLongFinalMem_size', weth9SymStringNewFp_toNat_long hpos]
 
 /-! ## Encoder memory states (pc 187 → loop head)
@@ -199,13 +199,13 @@ word (`0x80`), and the source data region `[0xa0, newFp)` all survive. -/
 
 /-- Object memory with the ABI offset word `0x20` at `newFp`. -/
 def weth9SymLongEncMemA (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  writeWord (weth9SymLongFinalMem σ I) (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat ⟨32⟩
+  writeWord (weth9SymLongFinalMem σ I) (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat ⟨32⟩
 
 /-- `MemA` plus the ABI length word at `newFp+0x20`. -/
 def weth9SymLongEncMemB (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWord (weth9SymLongEncMemA σ I)
-    ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32)
-    (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))
+    ((weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32)
+    (weth9StringLen (solcSlotWord σ I ⟨1⟩))
 
 /-- Loop-2 memory after `j` mem→mem copies: `MemB` with data words `0..j-1` written into the ABI
     data region at `newFp+0x40 + 32·k = 0x100 + 32·(wc-1) + 32·k`. -/
@@ -225,28 +225,28 @@ theorem weth9SymLong2Mem_succ (σ : AccountMap) (I : ExecutionEnv) (j : Nat) :
 
 section EncMem
 variable {σ : AccountMap} {I : ExecutionEnv}
-  (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
+  (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
 include hpos
 
 theorem weth9SymLongEncMemA_size : (weth9SymLongEncMemA σ I).size =
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 := by
   rw [weth9SymLongEncMemA, writeWord_size _ _ _
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos]; exact lt_usize _ (by norm_num)),
     weth9SymLongFinalMem_size_eq_newFp hpos]; omega
 
 theorem weth9SymLongEncMemA_read64 : (weth9SymLongEncMemA σ I).readWithPadding 64 32 =
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLongEncMemA]
-  exact weth9EncLowRead (weth9SymLongFinalMem_read64 σ I)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongFinalMem_read64 σ I)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos])
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos]; exact lt_usize _ (by norm_num))
     (by rw [weth9SymStringNewFp_toNat_long hpos]; omega)
 
 theorem weth9SymLongEncMemA_read128 : (weth9SymLongEncMemA σ I).readWithPadding 128 32 =
-    (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLongEncMemA]
-  exact weth9EncLowRead (weth9SymLongFinalMem_read128 σ I)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongFinalMem_read128 σ I)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos])
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos]; exact lt_usize _ (by norm_num))
@@ -256,37 +256,37 @@ theorem weth9SymLongEncMemA_readData (k : Nat) (hk : k ≤ weth9SymLongWC σ I) 
     (weth9SymLongEncMemA σ I).readWithPadding (160 + 32 * k) 32 =
       (weth9SymLongDataWordAt σ I k).toByteArray := by
   rw [weth9SymLongEncMemA]
-  exact weth9EncLowRead (weth9SymLongFinalMem_readData k hk)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongFinalMem_readData k hk)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos])
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos]; exact lt_usize _ (by norm_num))
     (by rw [weth9SymStringNewFp_toNat_long hpos]; omega)
 
 theorem weth9SymLongEncMemA_readOffset : (weth9SymLongEncMemA σ I).readWithPadding
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
   rw [weth9SymLongEncMemA]
   exact writeWord_read_back _ _ _
     (by rw [weth9SymLongFinalMem_size_eq_newFp hpos]; exact lt_usize _ (by norm_num))
 
 theorem weth9SymLongEncMemB_size : (weth9SymLongEncMemB σ I).size =
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 64 := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 64 := by
   rw [weth9SymLongEncMemB, writeWord_size _ _ _
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num)),
     weth9SymLongEncMemA_size hpos]; omega
 
 theorem weth9SymLongEncMemB_read64 : (weth9SymLongEncMemB σ I).readWithPadding 64 32 =
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLongEncMemB]
-  exact weth9EncLowRead (weth9SymLongEncMemA_read64 hpos)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongEncMemA_read64 hpos)
     (by rw [weth9SymLongEncMemA_size hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongEncMemA_size hpos])
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num))
     (by rw [weth9SymStringNewFp_toNat_long hpos]; omega)
 
 theorem weth9SymLongEncMemB_read128 : (weth9SymLongEncMemB σ I).readWithPadding 128 32 =
-    (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLongEncMemB]
-  exact weth9EncLowRead (weth9SymLongEncMemA_read128 hpos)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongEncMemA_read128 hpos)
     (by rw [weth9SymLongEncMemA_size hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongEncMemA_size hpos])
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num))
@@ -296,24 +296,24 @@ theorem weth9SymLongEncMemB_readData (k : Nat) (hk : k ≤ weth9SymLongWC σ I) 
     (weth9SymLongEncMemB σ I).readWithPadding (160 + 32 * k) 32 =
       (weth9SymLongDataWordAt σ I k).toByteArray := by
   rw [weth9SymLongEncMemB]
-  exact weth9EncLowRead (weth9SymLongEncMemA_readData hpos k hk)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongEncMemA_readData hpos k hk)
     (by rw [weth9SymLongEncMemA_size hpos, weth9SymStringNewFp_toNat_long hpos]; omega)
     (by rw [weth9SymLongEncMemA_size hpos])
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num))
     (by rw [weth9SymStringNewFp_toNat_long hpos]; omega)
 
 theorem weth9SymLongEncMemB_readOffset : (weth9SymLongEncMemB σ I).readWithPadding
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
   rw [weth9SymLongEncMemB]
-  exact weth9EncLowRead (weth9SymLongEncMemA_readOffset hpos)
+  exact writeWord_read_preserved_below_of_read (weth9SymLongEncMemA_readOffset hpos)
     (by rw [weth9SymLongEncMemA_size hpos])
     (by rw [weth9SymLongEncMemA_size hpos])
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num))
     (le_refl _)
 
 theorem weth9SymLongEncMemB_readLen : (weth9SymLongEncMemB σ I).readWithPadding
-    ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
-      (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    ((weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
+      (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLongEncMemB]
   exact writeWord_read_back _ _ _
     (by rw [weth9SymLongEncMemA_size hpos]; exact lt_usize _ (by norm_num))
@@ -341,19 +341,19 @@ theorem weth9SymLong2Mem_read_low (r : Nat) (hr : r + 32 ≤ 256 + 32 * weth9Sym
 
 theorem weth9SymLong2Mem_read64 (j : Nat) :
     (weth9SymLong2Mem σ I j).readWithPadding 64 32 =
-      (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+      (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLong2Mem_read_low hpos 64 (by omega) j, weth9SymLongEncMemB_read64 hpos]
 
 theorem weth9SymLong2Mem_readOffset (j : Nat) :
-    (weth9SymLong2Mem σ I j).readWithPadding (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat 32 =
+    (weth9SymLong2Mem σ I j).readWithPadding (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat 32 =
       UInt256.toByteArray ⟨32⟩ := by
   rw [weth9SymLong2Mem_read_low hpos _ (by rw [weth9SymStringNewFp_toNat_long hpos]; omega) j,
     weth9SymLongEncMemB_readOffset hpos]
 
 theorem weth9SymLong2Mem_readLen (j : Nat) :
     (weth9SymLong2Mem σ I j).readWithPadding
-      ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
-      (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+      ((weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
+      (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   rw [weth9SymLong2Mem_read_low hpos _ (by rw [weth9SymStringNewFp_toNat_long hpos]; omega) j,
     weth9SymLongEncMemB_readLen hpos]
 
@@ -383,10 +383,10 @@ end EncMem
 
 /-- The Loop-2 head/exit stack at counter `i` (offset into the ABI data region). -/
 def weth9SymLong2LoopStack (σ : AccountMap) (I : ExecutionEnv) (i : UInt256) : List UInt256 :=
-  [i, (⟨128⟩ : UInt256) + ⟨32⟩, weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩,
-   weth9StringLen (weth9StringSlotWord σ I ⟨1⟩), weth9StringLen (weth9StringSlotWord σ I ⟨1⟩),
-   (⟨128⟩ : UInt256) + ⟨32⟩, weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩,
-   weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩), weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩),
+  [i, (⟨128⟩ : UInt256) + ⟨32⟩, weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩,
+   weth9StringLen (solcSlotWord σ I ⟨1⟩), weth9StringLen (solcSlotWord σ I ⟨1⟩),
+   (⟨128⟩ : UInt256) + ⟨32⟩, weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩,
+   weth9StringNewFp (solcSlotWord σ I ⟨1⟩), weth9StringNewFp (solcSlotWord σ I ⟨1⟩),
    ⟨128⟩, ⟨187⟩, weth9SelWord I]
 
 set_option maxHeartbeats 8000000 in
@@ -395,26 +395,26 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
     ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
       (weth9SymLong2Mem σ I 0) (UInt256.ofNat (8 + weth9SymLongWC σ I)) ByteArray.empty σ k C := by
-  have hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
+  have hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
     have := weth9SymLongLen_ge32 hge31; omega
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
   have hbig : 288 + 64 * weth9SymLongWC σ I < UInt256.size := by omega
-  have hfpN : (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I :=
+  have hfpN : (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I :=
     weth9SymStringNewFp_toNat_long hpos
-  have haddr32 : ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)) + ⟨32⟩).toNat =
-      (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 := by
+  have haddr32 : ((weth9StringNewFp (solcSlotWord σ I ⟨1⟩)) + ⟨32⟩).toNat =
+      (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 := by
     rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by rw [hfpN]; omega)]
   obtain ⟨_, _, h187⟩ := weth9SymNameLongReach187 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   have h221 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat (6 + weth9SymLongWC σ I))
+    raw mload _ (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)) (UInt256.ofNat (6 + weth9SymLongWC σ I))
       (by native_decide) (by rfl)
       (mloadWordValue_of_readWithPadding
         (by rw [weth9SymLongFinalMem_size', show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
@@ -429,7 +429,7 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
         show (192 + 32 * weth9SymLongWC σ I : Nat) = 32 * (6 + weth9SymLongWC σ I) from by ring,
         machineState_M_endWrite]; congr 1; omega) (by evm_ov),
     dup4,
-    raw mload _ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat (7 + weth9SymLongWC σ I))
+    raw mload _ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) (UInt256.ofNat (7 + weth9SymLongWC σ I))
       (by native_decide) (by rfl)
       (mloadWordValue_of_readWithPadding
         (by rw [weth9SymLongEncMemA_size hpos, hfpN, show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
@@ -445,7 +445,7 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
         show (192 + 32 * weth9SymLongWC σ I + 32 : Nat) = 32 * (7 + weth9SymLongWC σ I) from by ring,
         machineState_M_endWrite]; congr 1; omega) (by evm_ov),
     dup4,
-    raw mload _ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat (8 + weth9SymLongWC σ I))
+    raw mload _ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) (UInt256.ofNat (8 + weth9SymLongWC σ I))
       (by native_decide) (by rfl)
       (mloadWordValue_of_readWithPadding
         (by rw [weth9SymLongEncMemB_size hpos, hfpN, show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
@@ -461,7 +461,7 @@ theorem weth9SymNameLong2ReachLoopHead {σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 8000000 in
 /-- One Loop-2 iteration (pc 221 → 221): copy `mem[0xa0+i] → mem[newFp+0x40+i]`, `i += 32`. -/
 theorem weth9SymNameLong2Continue {σ σ₀ A I} {g : Sat256} (j : Nat)
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
     (hjlt : j < weth9SymLongWC σ I + 1)
     (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
@@ -475,21 +475,21 @@ theorem weth9SymNameLong2Continue {σ σ₀ A I} {g : Sat256} (j : Nat)
   rw [weth9SymLong2LoopStack] at rd221
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
   have hbig : 288 + 64 * weth9SymLongWC σ I < UInt256.size := by omega
-  have hfpN : (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I :=
+  have hfpN : (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat = 192 + 32 * weth9SymLongWC σ I :=
     weth9SymStringNewFp_toNat_long hpos
   -- length lower bound so the continue guard holds.
-  have hlenGt : 32 * weth9SymLongWC σ I < (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
-    have := Nat.div_mul_le_self ((weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat - 1) 32
+  have hlenGt : 32 * weth9SymLongWC σ I < (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
+    have := Nat.div_mul_le_self ((weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat - 1) 32
     rw [weth9SymLongWC]; omega
   have hi : (UInt256.ofNat (32 * j)).toNat = 32 * j := ulit_toNat' _ (by omega)
-  have haddr64 : (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩).toNat =
+  have haddr64 : (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩).toNat =
       256 + 32 * weth9SymLongWC σ I := by
     rw [uadd_toNat, hfpN, show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
   have hsrc : (UInt256.ofNat (32 * j) + ((⟨128⟩ : UInt256) + ⟨32⟩)).toNat = 160 + 32 * j := by
     rw [uadd_toNat, hi, show ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
-  have hdst : (UInt256.ofNat (32 * j) + (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩)).toNat =
+  have hdst : (UInt256.ofNat (32 * j) + (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩)).toNat =
       256 + 32 * weth9SymLongWC σ I + 32 * j := by
     rw [uadd_toNat, hi, haddr64, Nat.mod_eq_of_lt (by omega)]; omega
   have hincr : (⟨32⟩ : UInt256) + UInt256.ofNat (32 * j) = UInt256.ofNat (32 * (j + 1)) := by
@@ -497,7 +497,7 @@ theorem weth9SymNameLong2Continue {σ σ₀ A I} {g : Sat256} (j : Nat)
     rw [uadd_toNat, hi, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
       Nat.mod_eq_of_lt (by omega), ulit_toNat' _ (by omega)]; ring
   have hcont : UInt256.isZero (UInt256.lt (UInt256.ofNat (32 * j))
-      (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))) = ⟨0⟩ := by
+      (weth9StringLen (solcSlotWord σ I ⟨1⟩))) = ⟨0⟩ := by
     rw [ult_one (by rw [hi]; omega)]; decide
   have rd := evm_run rd221 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiNT hcont,
@@ -525,7 +525,7 @@ set_option maxHeartbeats 8000000 in
 /-- Run the Loop-2 mem→mem copy (pc 221) to exhaustion (`wc` iterations), reaching the exit (pc 245)
     with all data words copied. -/
 theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
-    (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
+    (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
     (h : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨221⟩
       (weth9SymLong2LoopStack σ I ⟨0⟩)
@@ -536,8 +536,8 @@ theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat (8 + weth9SymLongWC σ I + (weth9SymLongWC σ I + 1))) ByteArray.empty σ k C := by
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
   have hbig : 288 + 64 * weth9SymLongWC σ I < UInt256.size := by omega
-  have hdone : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat ≤ 32 * (weth9SymLongWC σ I + 1) := by
-    have := weth9LongFuel_done_nat (show 0 < (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat from by omega)
+  have hdone : (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat ≤ 32 * (weth9SymLongWC σ I + 1) := by
+    have := longFuel_done_nat (show 0 < (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat from by omega)
     rw [weth9SymLongWC]; omega
   -- exit rule
   have hexit : ∀ a : ℕ, a + 0 = weth9SymLongWC σ I + 1 → ∀ k C,
@@ -552,7 +552,7 @@ theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
     subst ha
     rw [weth9SymLong2LoopStack] at hrd
     have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat (32 * (weth9SymLongWC σ I + 1)))
-        (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))) ≠ ⟨0⟩ := by
+        (weth9StringLen (solcSlotWord σ I ⟨1⟩))) ≠ ⟨0⟩ := by
       rw [ult_zero (by rw [ulit_toNat' _ (by omega)]; omega)]; decide
     have rd := evm_run hrd with [
       jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiT hcond (by jump_dest)]
@@ -589,7 +589,7 @@ theorem weth9SymNameLong2CopyLoop {σ σ₀ A I} {g : Sat256}
 /-- Memory at the RETURN: the Loop-2 output, with the trailing data word replaced by its masked value
     (the mask store is skipped when `len` is a multiple of 32, in which case the last word is full). -/
 def weth9SymLong2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
-  if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
+  if UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
     weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1)
   else
     writeWord (weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1)) (256 + 64 * weth9SymLongWC σ I)
@@ -597,7 +597,7 @@ def weth9SymLong2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
 
 section FinalMem
 variable {σ : AccountMap} {I : ExecutionEnv}
-  (hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat)
+  (hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat)
   (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64)
 include hpos hfit
 
@@ -611,7 +611,7 @@ theorem weth9SymLong2FinalMem_size : (weth9SymLong2FinalMem σ I).size = 288 + 6
   · rw [writeWord_size _ _ _ (by rw [hmem]; exact lt_usize _ (by omega)), hmem]; omega
 
 theorem weth9SymLong2FinalMem_read64 : (weth9SymLong2FinalMem σ I).readWithPadding 64 32 =
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   have hfpN := weth9SymStringNewFp_toNat_long hpos
   unfold weth9SymLong2FinalMem
   split
@@ -622,7 +622,7 @@ theorem weth9SymLong2FinalMem_read64 : (weth9SymLong2FinalMem σ I).readWithPadd
     exact weth9SymLong2Mem_read64 hpos _
 
 theorem weth9SymLong2FinalMem_readOffset : (weth9SymLong2FinalMem σ I).readWithPadding
-    (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
+    (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat 32 = UInt256.toByteArray ⟨32⟩ := by
   have hfpN := weth9SymStringNewFp_toNat_long hpos
   unfold weth9SymLong2FinalMem
   split
@@ -633,8 +633,8 @@ theorem weth9SymLong2FinalMem_readOffset : (weth9SymLong2FinalMem σ I).readWith
     exact weth9SymLong2Mem_readOffset hpos _
 
 theorem weth9SymLong2FinalMem_readLen : (weth9SymLong2FinalMem σ I).readWithPadding
-    ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
-      (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toByteArray := by
+    ((weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32) 32 =
+      (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toByteArray := by
   have hfpN := weth9SymStringNewFp_toNat_long hpos
   unfold weth9SymLong2FinalMem
   split
@@ -670,7 +670,7 @@ theorem weth9SymLong2FinalMem_readLast :
 
 /-- The `RETURN(newFp, 0x40 + 32·wc)` window over the finished memory is exactly `weth9SymLongStringAbi`. -/
 theorem weth9SymLong2FinalMem_readAbi :
-    (weth9SymLong2FinalMem σ I).readWithPadding (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat
+    (weth9SymLong2FinalMem σ I).readWithPadding (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat
       (64 + 32 * (weth9SymLongWC σ I + 1)) = weth9SymLongStringAbi σ I := by
   have hfpN := weth9SymStringNewFp_toNat_long hpos
   have hsz := weth9SymLong2FinalMem_size hpos
@@ -711,20 +711,20 @@ theorem weth9SymLong2FinalMem_readAbi :
       (by omega) (by norm_num) (by omega) (by omega) (by rw [hsz, hfpN]; omega),
     weth9SymLong2FinalMem_readOffset hpos hfit]
   congr 1
-  rw [show (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 =
-      (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 from rfl,
+  rw [show (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 =
+      (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 from rfl,
     weth9SymLong2FinalMem_readLen hpos hfit]
   congr 1
-  rw [show (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32 + 32 =
+  rw [show (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)).toNat + 32 + 32 =
       256 + 32 * weth9SymLongWC σ I from by rw [hfpN]; ring, hdata, hconcat]
 
 end FinalMem
 
 /-- When `len` is not a multiple of 32, `32·(wc-1) + (len % 32) = len` (`wc-1 = weth9SymLongWC`). -/
 theorem weth9SymLong2Len_sub_mod {σ : AccountMap} {I : ExecutionEnv}
-    (hr : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat % 32 ≠ 0) :
-    32 * weth9SymLongWC σ I + (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat % 32 =
-      (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
+    (hr : (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat % 32 ≠ 0) :
+    32 * weth9SymLongWC σ I + (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat % 32 =
+      (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
   rw [weth9SymLongWC]; omega
 
 set_option maxHeartbeats 8000000 in
@@ -737,16 +737,16 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9SymLongWC σ I < 2 ^ 64) :
     RDret weth9Bytecode g (initState σ σ₀ g A I) σ (weth9SymLongStringAbi σ I) := by
-  have hpos : 1 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat := by
+  have hpos : 1 ≤ (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat := by
     have := weth9SymLongLen_ge32 hge31; omega
   have h66 : (2 : Nat) ^ 66 < UInt256.size := by norm_num [UInt256.size]
   have hbig : 288 + 64 * weth9SymLongWC σ I < UInt256.size := by omega
   have hfpN := weth9SymStringNewFp_toNat_long hpos
-  have hlandN := weth9Long2Land31_toNat (weth9StringSlotWord σ I ⟨1⟩)
-  have haddr64 : (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩).toNat =
+  have hlandN := weth9Long2Land31_toNat (solcSlotWord σ I ⟨1⟩)
+  have haddr64 : (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩).toNat =
       256 + 32 * weth9SymLongWC σ I := by
     rw [uadd_toNat, hfpN, show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       Nat.mod_eq_of_lt (by omega)]; omega
@@ -760,17 +760,17 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
   have hpre := evm_run h245 with [
     jumpdest, pop, pop, pop, pop, swap1, pop, swap1, dup2, add, swap1,
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨290⟩]
-  by_cases hmask : UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩
+  by_cases hmask : UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)) = ⟨0⟩
   · -- len is a multiple of 32: skip the mask; last word is full.
-    have hlen32 : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat = 32 * (weth9SymLongWC σ I + 1) := by
-      have hz : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat % 32 = 0 := by
+    have hlen32 : (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat = 32 * (weth9SymLongWC σ I + 1) := by
+      have hz : (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat % 32 = 0 := by
         have := congrArg UInt256.toNat hmask; rw [hlandN] at this; simpa using this
       rw [weth9SymLongWC]; omega
-    have hcond : UInt256.isZero (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))) ≠ ⟨0⟩ := by
+    have hcond : UInt256.isZero (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩))) ≠ ⟨0⟩ := by
       rw [hmask]; decide
-    have hretlen : (UInt256.sub (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) +
-        (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩))
-        (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩))).toNat = 64 + 32 * (weth9SymLongWC σ I + 1) := by
+    have hretlen : (UInt256.sub (weth9StringLen (solcSlotWord σ I ⟨1⟩) +
+        (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩))
+        (weth9StringNewFp (solcSlotWord σ I ⟨1⟩))).toNat = 64 + 32 * (weth9SymLongWC σ I + 1) := by
       rw [usub_toNat (by rw [uadd_toNat, haddr64, Nat.mod_eq_of_lt (by omega), hfpN]; omega),
         uadd_toNat, haddr64, Nat.mod_eq_of_lt (by omega), hfpN, hlen32]; omega
     have hmem : weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1) = weth9SymLong2FinalMem σ I := by
@@ -778,7 +778,7 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
     exact evm_run hpre with [
       jumpiT hcond (by jump_dest),
       jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-      raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat (9 + 2 * weth9SymLongWC σ I))
+      raw mload _ (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)) (UInt256.ofNat (9 + 2 * weth9SymLongWC σ I))
         (by native_decide) (by rfl)
         (mloadWordValue_of_readWithPadding
           (by rw [weth9SymLong2Mem_size hpos, show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
@@ -789,30 +789,30 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
       raw ret _ (weth9SymLongStringAbi σ I) (by native_decide) (by rfl)
         (by rw [hmem, hretlen]; exact weth9SymLong2FinalMem_readAbi hpos hfit) (by evm_ov)]
   · -- len not a multiple of 32: apply the trailing-word mask.
-    have hcond : UInt256.isZero (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))) = ⟨0⟩ :=
+    have hcond : UInt256.isZero (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩))) = ⟨0⟩ :=
       isZero_eq_zero_of_ne hmask
-    have hr : (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat % 32 ≠ 0 := by
+    have hr : (weth9StringLen (solcSlotWord σ I ⟨1⟩)).toNat % 32 ≠ 0 := by
       intro hz
       apply hmask; apply u256_inj; rw [hlandN, hz]; decide
     have hsubmod := weth9SymLong2Len_sub_mod (σ := σ) (I := I) hr
-    have hmaskAddr : (UInt256.sub (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) +
-        (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩))
-        (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)))).toNat =
+    have hmaskAddr : (UInt256.sub (weth9StringLen (solcSlotWord σ I ⟨1⟩) +
+        (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩))
+        (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩)))).toNat =
         256 + 64 * weth9SymLongWC σ I := by
       rw [usub_toNat (by rw [uadd_toNat, haddr64, Nat.mod_eq_of_lt (by omega), hlandN]; omega),
         uadd_toNat, haddr64, Nat.mod_eq_of_lt (by omega), hlandN]; omega
     have hmaskVal : UInt256.land
         (UInt256.lnot (UInt256.sub (UInt256.exp ⟨256⟩ (UInt256.sub ⟨32⟩
-          (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))))) ⟨1⟩))
+          (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩))))) ⟨1⟩))
         (weth9SymLongDataWordAt σ I (weth9SymLongWC σ I)) = weth9SymLongMaskWord σ I := by
       rw [weth9SymLongMaskWord, if_neg hmask]
     have hmemMask : writeWord (weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1)) (256 + 64 * weth9SymLongWC σ I)
         (weth9SymLongMaskWord σ I) = weth9SymLong2FinalMem σ I := by
       rw [weth9SymLong2FinalMem, if_neg hmask]
-    have hretlen : (UInt256.sub ((⟨32⟩ : UInt256) + UInt256.sub (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) +
-        (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩) + ⟨64⟩))
-        (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))))
-        (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩))).toNat = 64 + 32 * (weth9SymLongWC σ I + 1) := by
+    have hretlen : (UInt256.sub ((⟨32⟩ : UInt256) + UInt256.sub (weth9StringLen (solcSlotWord σ I ⟨1⟩) +
+        (weth9StringNewFp (solcSlotWord σ I ⟨1⟩) + ⟨64⟩))
+        (UInt256.land ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨1⟩))))
+        (weth9StringNewFp (solcSlotWord σ I ⟨1⟩))).toNat = 64 + 32 * (weth9SymLongWC σ I + 1) := by
       rw [usub_toNat (by rw [uadd_toNat, hmaskAddr, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
           Nat.mod_eq_of_lt (by omega), hfpN]; omega),
         uadd_toNat, hmaskAddr, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
@@ -839,7 +839,7 @@ theorem weth9SymbolStringLongReturns {σ σ₀ A I} {g : Sat256}
         (by evm_ov),
       push1 ⟨32⟩, add, swap2, pop,
       jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-      raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat (9 + 2 * weth9SymLongWC σ I))
+      raw mload _ (weth9StringNewFp (solcSlotWord σ I ⟨1⟩)) (UInt256.ofNat (9 + 2 * weth9SymLongWC σ I))
         (by native_decide) (by rfl)
         (mloadWordValue_of_readWithPadding
           (by rw [weth9SymLong2FinalMem_size hpos, show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)

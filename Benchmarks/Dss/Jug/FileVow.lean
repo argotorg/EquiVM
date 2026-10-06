@@ -72,92 +72,6 @@ theorem fileVowData_value_masked (I : ExecutionEnv) :
   simpa [fileVowData, fileVowDataMaskedWord, fileVowDataWord] using
     (solcAddressValue_masked (calldataWord I.calldata 36))
 
--- LIBRARY CANDIDATE: legacy solc05 decoding for `(bytes32,address)`.
-theorem decodeABIValues_bytes32_address_legacy_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      some ([.fixedBytes abiBytes32Width (bytes.take 32),
-        .address (AccountAddress.ofNat
-          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
-  simp [readWord?, readBytes?, decodeABIWord?, UInt256.toNat, hlen32]
-
--- LIBRARY CANDIDATE: legacy solc05 short-calldata rejection for `(bytes32,address)`.
-theorem decodeABIValues_bytes32_address_legacy_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.legacySolc05 =
-      none := by
-  simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
-    Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
-  by_cases h32 : bytes.length < 32
-  · have htake0n : ¬ (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have hnot : ¬ 32 ≤ bytes.length := by omega
-    simp [decodeABIValue?, readBytes?, hnot]
-  · have htake0 : (bytes.take 32).length = 32 := by
-      rw [List.length_take]
-      omega
-    have htake32n : ¬ ((bytes.drop 32).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop]
-      omega
-    simp [decodeABIValue?, readBytes?, htake0]
-    have hnot : ¬ 32 ≤ bytes.length - 32 := by
-      rw [List.length_take, List.length_drop] at htake32n
-      omega
-    simp [readWord?, readBytes?, hnot]
-
-theorem decodeCalldata_legacyBytes32_address_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiAddress] cd =
-      some (((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega : ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36]
-
-theorem decodeCalldata_legacyBytes32_address_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiAddress] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [decodeABIValues_bytes32_address_legacy_none_short (bytes := cd.toList.drop 4) (by
-      rw [List.length_drop, htlen]
-      omega)]
 
 theorem jugDecode_fileVow_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileVowTransition.params.map Param.name)
@@ -287,7 +201,7 @@ theorem jugFileVowSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileVowLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -359,7 +273,7 @@ theorem jugFileVowSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileVowLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [fileVowTransition, nonpayable, auth] using
@@ -388,7 +302,7 @@ theorem jugFileVowSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
       (by simpa [locals] using fileVowLocals_get_wards I)
       (by simp [evm0, initState])
       (by
-        simpa [evm0, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+        simpa [evm0, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using hauth)
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -537,7 +451,7 @@ theorem jugFileVowX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthWord σ I :: fileVowDataMaskedWord I :: calldataWord I.calldata 4 ::
         ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1988 C1988 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1988raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1988raw
   have rd1991pre := evm_run rd1988 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -586,7 +500,7 @@ theorem jugFileVowX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthWord σ I :: fileVowDataMaskedWord I :: calldataWord I.calldata 4 ::
         ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1988 C1988 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1988raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1988raw
   have rd1991pre := evm_run rd1988 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]

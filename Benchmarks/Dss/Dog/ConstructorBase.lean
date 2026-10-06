@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Dog.Common
 import Reasoning.MemCascade
 
@@ -9,6 +10,80 @@ Shared bytecode, memory, immutable-patching, and storage-slot facts for the Dog 
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Dog
+
+theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt0Mem word mem).size = 192 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt32Mem word mem).size = 192 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read0_192 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read32_192 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.Dog
+
+end
 
 namespace Benchmarks.Dss.Dog
 
@@ -170,45 +245,6 @@ theorem dogCtorFreePtrMem_mload64 :
     exact writeWord_read_back ByteArray.empty 64 (⟨160⟩ : UInt256)
       (by exact lt_usize _ (by norm_num))
 
-private theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hge : base.size ≤ destAddr)
-    (_hgap : destAddr - base.size < USize.size) :
-    src.write srcAddr base destAddr len =
-      base ++ ByteArray.zeroes (destAddr - base.size) ++
-        src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ srcAddr ≥ src.size from by omega)]
-  have hcopy : min len (src.size - srcAddr) = len := by omega
-  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
-  simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract]
-  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
-      destAddr - base.size := by
-    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
-      ByteArray_zeroes_size]
-  have hDsz :
-      (base.data ++
-        (ByteArray.zeroes (destAddr - base.size)).data).size =
-        destAddr := by
-    rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
-    omega
-  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
-    rw [zeroes_zero (n := 0) (by rfl)]
-    rfl]
-  simp only [Array.append_empty, Nat.add_zero]
-  rw [show min len (src.data.size - srcAddr) = len by
-    have : src.data.size = src.size := rfl
-    omega]
-  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show (base.data ++
-        (ByteArray.zeroes (destAddr - base.size)).data).extract
-          (destAddr + len) = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [hDsz]
-    omega]
-  simp [Array.append_assoc]
 
 theorem dogCtorArg_codecopy_mem (vat : AccountAddress) :
     (dogCtorCode vat).write 4927 dogCtorFreePtrMem 160 32 =
@@ -286,72 +322,6 @@ theorem dogCtorArgFreeMem_mload160 (vat : AccountAddress) :
   · simpa [show (⟨160⟩ : UInt256).toNat = 160 from by decide] using
       dogCtorArgFreeMem_read160 vat
 
-theorem dogVatWord_canonical (vat : AccountAddress) :
-    (EVM.word vat.val).toNat < EVM.addressModulus := by
-  change (UInt256.ofNat vat.val).toNat < EVM.addressModulus
-  rw [UInt256.toNat_ofNat_of_lt]
-  · exact vat.isLt
-  · exact lt_of_lt_of_le vat.isLt (by decide)
-
-theorem dogVatWord_clean (vat : AccountAddress) :
-    UInt256.land (EVM.word vat.val) solcAddrMask = EVM.word vat.val :=
-  solcAddrMask_clean (dogVatWord_canonical vat)
-
-private theorem shiftLeft96_toNat_of_lt_160 (w : UInt256)
-    (hw : w.toNat < 2 ^ (160 : Nat)) :
-    (UInt256.shiftLeft w ⟨96⟩).toNat = w.toNat * 2 ^ (96 : Nat) := by
-  have hprod : w.toNat * 2 ^ (96 : Nat) < UInt256.size := by
-    change w.toNat * 2 ^ (96 : Nat) < 2 ^ (256 : Nat)
-    nlinarith [hw,
-      show (2 : Nat) ^ (256 : Nat) = 2 ^ (160 : Nat) * 2 ^ (96 : Nat) by
-        norm_num [← Nat.pow_add]]
-  unfold UInt256.shiftLeft
-  rw [if_neg (by decide : ¬ (⟨96⟩ : UInt256).val ≥ 256)]
-  unfold UInt256.toNat
-  rw [Fin.shiftLeft_val]
-  rw [show (⟨96⟩ : UInt256).val.val = 96 by decide]
-  rw [Nat.shiftLeft_eq]
-  exact Nat.mod_eq_of_lt hprod
-
-set_option maxHeartbeats 1000000 in
-theorem dogVatWord_high_shift_decode (vat : AccountAddress) :
-    UInt256.shiftRight (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩) ⟨96⟩ =
-      EVM.word vat.val := by
-  apply u256_inj
-  have hvat : (EVM.word vat.val).toNat = vat.val := by
-    change (UInt256.ofNat vat.val).toNat = vat.val
-    rw [UInt256.toNat_ofNat_of_lt]
-    exact lt_of_lt_of_le vat.isLt (by decide)
-  have hlt160 : (EVM.word vat.val).toNat < 2 ^ (160 : Nat) := by
-    rw [hvat]
-    exact vat.isLt
-  have hshift := shiftLeft96_toNat_of_lt_160 (EVM.word vat.val) hlt160
-  unfold UInt256.shiftRight
-  rw [if_neg (by decide : ¬ ((⟨96⟩ : UInt256).val ≥ 256))]
-  unfold UInt256.toNat
-  rw [Fin.shiftRight_val]
-  change (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩).toNat >>> (96 : Nat) =
-    (EVM.word vat.val).toNat
-  rw [Nat.shiftRight_eq_div_pow, hshift]
-  rw [Nat.mul_comm]
-  exact Nat.mul_div_right (EVM.word vat.val).toNat (by norm_num : 0 < 2 ^ 96)
-
-theorem dogVatPackedHighMask (vat : AccountAddress) :
-    UInt256.land (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
-        (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)) =
-      UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩ := by
-  rw [show UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩) =
-      UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 96) by native_decide]
-  apply u256_land_high_mask_eq_self (hk := by norm_num)
-  have hlt160 : (EVM.word vat.val).toNat < 2 ^ (160 : Nat) := by
-    have hvat : (EVM.word vat.val).toNat = vat.val := by
-      change (UInt256.ofNat vat.val).toNat = vat.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_of_lt_of_le vat.isLt (by decide)
-    rw [hvat]
-    exact vat.isLt
-  rw [shiftLeft96_toNat_of_lt_160 (EVM.word vat.val) hlt160]
-  exact Nat.mod_eq_zero_of_dvd (Nat.dvd_mul_left (2 ^ 96) (EVM.word vat.val).toNat)
 
 theorem dogCtorVatMem_read128 (vat : AccountAddress) :
     (dogCtorVatMem vat).readWithPadding 128 32 =
@@ -374,7 +344,7 @@ theorem dogCtorVatMem_mload128_shr96 (vat : AccountAddress) :
       (by rw [dogCtorVatMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorVatMem_read128 vat)]
-  exact dogVatWord_high_shift_decode vat
+  exact addressWord_shiftLeft96_shiftRight96 vat
 
 abbrev dogCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
@@ -382,17 +352,6 @@ abbrev dogCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
 def dogCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (dogCtorVatMem vat)
 
-private theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt0Mem word mem).size = 192 := by
-  unfold wordAt0Mem
-  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
-
-private theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
-    (wordAt32Mem word mem).size = 192 := by
-  unfold wordAt32Mem
-  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
-    (by rw [hmem]; omega) (by omega)
 
 theorem dogCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress) :
     (dogCtorWardsHashMem I vat).size = 192 := by
@@ -400,56 +359,6 @@ theorem dogCtorWardsHashMem_size (I : ExecutionEnv) (vat : AccountAddress) :
   exact wordAt32Mem_size_192 ⟨0⟩
     (wordAt0Mem_size_192 (solcSourceWord I) (dogCtorVatMem_size vat))
 
-private theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
-  exact wordAt0Mem_read0 key mem
-
-private theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold twoWordHashMem wordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
-  exact toByteArray_extract_all slot
-
-private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 192) :
-    (twoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem)]
-  have hleft :
-      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read0_192 key slot hmem]
-  have hright :
-      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32 (by
-        unfold twoWordHashMem
-        rw [wordAt32Mem_size_192]
-        · omega
-        · exact wordAt0Mem_size_192 key hmem),
-      twoWordHashMem_read32_192 key slot hmem]
-  rw [show (twoWordHashMem key slot mem).extract 0 64 =
-      (twoWordHashMem key slot mem).extract 0 32 ++
-        (twoWordHashMem key slot mem).extract 32 64 by
-    rw [ByteArray.extract_append_extract]
-    norm_num]
-  rw [hleft, hright]
 
 theorem dogCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
@@ -491,7 +400,7 @@ theorem dogCtorWardsHashMem_mload128_shr96 (I : ExecutionEnv) (vat : AccountAddr
       (by rw [dogCtorWardsHashMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorWardsHashMem_read128 I vat)]
-  exact dogVatWord_high_shift_decode vat
+  exact addressWord_shiftLeft96_shiftRight96 vat
 
 theorem dogCtorVatMem_read64 (vat : AccountAddress) :
     (dogCtorVatMem vat).readWithPadding 64 32 =
@@ -542,16 +451,6 @@ theorem dogCtorWardsHashMem_mload64 (I : ExecutionEnv) (vat : AccountAddress) :
   · simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       dogCtorWardsHashMem_read64 I vat
 
-private theorem write0_eq_extract_from_of_base_le (src base : ByteArray) (srcAddr len : Nat)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hbase : base.size ≤ len) :
-    src.write srcAddr base 0 len = src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  rw [write0_data_from src base srcAddr len hlen hsrc]
-  rw [show base.data.extract len base.data.size = (#[] : Array UInt8) from by
-    apply Array.extract_eq_empty_of_le
-    rw [show base.data.size = base.size from rfl]
-    simpa using hbase]
-  simp
 
 theorem dogCtorRuntime_codecopy_mem (I : ExecutionEnv) (vat : AccountAddress) :
     (dogCtorCode vat).write 182 (dogCtorWardsHashMem I vat) 0 4745 =
@@ -564,19 +463,12 @@ theorem dogCtorRuntime_codecopy_mem (I : ExecutionEnv) (vat : AccountAddress) :
   · rw [dogCtorWardsHashMem_size]
     norm_num
 
-private theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat)
-    (w : UInt256) (h : off + 32 ≤ mem.size) :
-    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
-  unfold spliceBytes? Reasoning.Theory.writeWord
-  rw [toByteArray_size, if_pos h]
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  rw [toByteArray_extract_all]
 
 theorem dogPatchRuntime_eq_ctorPatchedRuntime (vat : AccountAddress) :
     patchRuntime dogBytecode (patches { vat := vat }) =
       some (dogCtorPatchedRuntime vat) := by
   simp [dogCtorPatchedRuntime, patchRuntime, patches, patchesFrom, offsets, immValues,
-    wordBytes?, valueToWord, List.lookup_cons, dogRuntimeWrites, writeCascade]
+    Reasoning.Theory.wordBytes?, valueToWord, List.lookup_cons, dogRuntimeWrites, writeCascade]
   rw [← toByteArray_eq_toBytesBE (EVM.Word.ofNat vat.val)]
   rw [spliceBytes_toByteArray_eq_writeWord dogBytecode 1405]
   · simp

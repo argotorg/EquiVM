@@ -61,7 +61,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
+    simpa [recoveredValue] using recoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
     simpa [recoveredValue] using permitRecoveredAddress_eq_owner_of_mask_eq ho32 hmatch
   have hrest :
@@ -182,7 +182,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
+    simpa [recoveredValue] using recoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
     simpa [recoveredValue] using permitRecoveredPaddedAddress_eq_owner_of_mask_eq hmatch
   have hrest :
@@ -362,7 +362,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredAddress_eq_zero_of_mask_eq_zero ho32 hzero
+    simpa [recoveredValue] using recoveredAddress_eq_zero_of_mask_eq_zero ho32 hzero
   have hrest :
       ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore evmS I }
         evmNonceS permitAfterNonceBody .reverted := by
@@ -438,7 +438,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce
     simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
-      permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
+      recoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
   have hnzAddr : recoveredAddr ≠ AccountAddress.ofNat 0 := by
     intro haddr
     apply hnzValue
@@ -519,7 +519,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce_short
   have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
     simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
-    simpa [recoveredValue] using permitRecoveredPaddedAddress_eq_zero_of_mask_eq_zero hzero
+    simpa [recoveredValue] using recoveredPaddedAddress_eq_zero_of_mask_eq_zero hzero
   have hrest :
       ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore evmS I }
         evmNonceS permitAfterNonceBody .reverted := by
@@ -597,7 +597,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce_short
     simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
-      permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
+      recoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
   have hnzAddr : recoveredAddr ≠ AccountAddress.ofNat 0 := by
     intro haddr
     apply hnzValue

@@ -23,7 +23,7 @@ theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
       rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
-        (setAddressOffset0Word (storedWord σ I ⟨151⟩) value)) k' C' := by
+        (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' := by
   have rd3578 := evm_run h with [jumpdest, push1 ⟨151⟩, dup1]
   obtain ⟨_, _, rd3579⟩ := rd3578.sload (by native_decide) (by evm_ov)
   have rd3590 := evm_run rd3579 with [
@@ -47,7 +47,7 @@ theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
   change RD _ _ _ _ _ _ _ _ _
     (sstoreAccountMap I.codeOwner σ ⟨151⟩
       (UInt256.lor (UInt256.land solcAddrMask value)
-        (UInt256.land (storedWord σ I ⟨151⟩) (UInt256.lnot solcAddrMask)))) _ _ at rdRet
+        (UInt256.land (solcSlotWord σ I ⟨151⟩) (UInt256.lnot solcAddrMask)))) _ _ at rdRet
   rw [u256_land_comm solcAddrMask value, u256_lor_comm (UInt256.land value solcAddrMask)]
     at rdRet
   exact ⟨_, _, rdRet⟩

@@ -105,9 +105,9 @@ theorem uniswapSwapBody
                     (by simp only [List.length_cons, List.length_nil]; omega)
                   have htokenSource := uniswapSwapTokenPrefix evmS I hreserveGuardSource
                   have ht1clean : UInt256.land
-                      (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                      (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask =
-                      UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                      UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                         (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I) :=
                     solcAddrMask_clean (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _)
                   have hvalidIff := swapRecipientValid_iff_runtime hpost heL
@@ -124,28 +124,28 @@ theorem uniswapSwapBody
                     obtain ⟨ht0, ht1, hto, ha0, ha1⟩ := swapTokenStore_transferGets evmL I
                     have htarget0 : EVM.address (uniswapAddressAtSlot evmL ⟨6⟩) =
                         AccountAddress.ofUInt256 (UInt256.land
-                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩
+                          (UInt256.land solcAddrMask (solcSlotWordAt ⟨6⟩
                             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost heL]
+                      rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost heL]
                       exact congrArg AccountAddress.ofUInt256
-                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                        ((u256_land_comm _ solcAddrMask).trans (solcAddrMask_idem_left_left _)).symm
                     have htarget1 : EVM.address (uniswapAddressAtSlot evmL ⟨7⟩) =
                         AccountAddress.ofUInt256 (UInt256.land
-                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                          (UInt256.land solcAddrMask (solcSlotWordAt ⟨7⟩
                             (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
-                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost heL]
+                      rw [address_of_val, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost heL]
                       exact congrArg AccountAddress.ofUInt256
-                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                        ((u256_land_comm _ solcAddrMask).trans (solcAddrMask_idem_left_left _)).symm
                     have hrecipient : UInt256.ofNat (AccountAddress.ofNat (swapToWord I).toNat).val =
                         UInt256.land solcAddrMask (swapToMaskedWord I) := by
-                      rw [swapToMaskedWord, u256_land_solcAddrMask_idem_left]
+                      rw [swapToMaskedWord, solcAddrMask_idem_left_left]
                       exact (keyValueToWord_address _).symm.trans
                         (keyValueToWord_address_ofNat_mask (swapToWord I))
                     rcases uniswapSwapTransfersAnyDepthCases evmL (uniswapAddressAtSlot evmL ⟨6⟩)
                         (uniswapAddressAtSlot evmL ⟨7⟩) (AccountAddress.ofNat (swapToWord I).toNat)
                         rd1870 hpost heL
                         (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
-                          balanceCallStorageStore_sigma0, evmS, initState])
+                          storageStore_σ0, evmS, initState])
                         (caller := { contract := contract, locals := swapTokenStore evmL I })
                         rfl ht0 ht1 hto ha0 ha1 htarget0 htarget1 hrecipient hperm
                         safeTransferMemoryReady_initial (by native_decide)
@@ -160,7 +160,7 @@ theorem uniswapSwapBody
                       rw [swapDataValue, swapDataBytes_eq_runtimeExtract hoff] at hbytesT
                       have htargetCb : EVM.address (AccountAddress.ofNat (swapToWord I).toNat) =
                           AccountAddress.ofUInt256 (UInt256.land solcAddrMask (swapToMaskedWord I)) := by
-                        rw [← hrecipient, accountAddress_roundtrip, uniswapAddress_self]
+                        rw [← hrecipient, accountAddress_roundtrip, address_of_val]
                       have hlenB : swapDataSize I ≤ 4294967296 := by
                         simpa only [solcLegacyMaxU32] using Nat.le_of_not_gt hlenHuge
                       have hcallbackData : (swapRuntimePayloadPtr I).toNat + (swapDataSizeWord I).toNat ≤ I.calldata.size := by

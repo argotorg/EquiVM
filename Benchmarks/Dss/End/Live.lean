@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `live()` getter -/
 
 def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 theorem endDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
@@ -80,7 +80,7 @@ theorem endLiveBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
-    simpa [liveTransition, liveWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, liveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

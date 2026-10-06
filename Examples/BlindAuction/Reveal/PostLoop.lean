@@ -99,13 +99,13 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
       (sel := blindAuctionSelWord I) (freePtr := aDone.fp)
       (by simpa using rd1331)
       aDone.hfpLoad
-      (scratch_reveal_aw_mload64_of_ge3 aDone.haw)
+      (activeWords_mload64_of_ge3 aDone.haw)
   have hawCall : UInt256.ofNat
       (MachineState.M
         (MachineState.M aDone.aw.toNat aDone.fp.toNat
           (⟨0⟩ : UInt256).toNat)
         aDone.fp.toNat (⟨0⟩ : UInt256).toNat) = aDone.aw :=
-    scratch_reveal_aw_call_empty aDone.aw aDone.fp
+    activeWords_call_empty aDone.aw aDone.fp
   by_cases hpv : I.perm = true ∨ aDone.refund = ⟨0⟩
   swap
   · have hpf : I.perm = false := by simpa using (not_or.mp hpv).1

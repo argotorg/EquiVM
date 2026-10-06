@@ -1,16 +1,10 @@
+import Reasoning.SolmBody
 import Examples.UniswapV2Pair.SwapInvariantSource
 import Examples.UniswapV2Pair.UpdateCallSource
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000
 
--- LIBRARY CANDIDATE: express a frame with known contract using its locals.
-theorem frame_eq_of_contract {caller : Frame} {decl : ContractDecl} (h : caller.contract = decl) :
-    caller = { contract := decl, locals := caller.locals } := by
-  cases caller
-  dsimp only at h ⊢
-  cases h
-  rfl
 
 abbrev swapBeforeUpdateFrame (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 amount0In amount1In : UInt256) : Frame :=

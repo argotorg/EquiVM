@@ -8,7 +8,7 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Cat
 
 /-- `live()` reads storage slot 2. -/
-def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := catSlotWord ⟨2⟩ σ I
+def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨2⟩ σ I
 
 theorem catDispatch_live {I : ExecutionEnv} (hsel : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩) :
     dispatchMsg contract I.calldata = some liveTransition := by
@@ -74,8 +74,8 @@ theorem catLiveBody {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord ⟨2⟩ σ I).toNat))])) := by
-    simpa [liveTransition, catSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨2⟩ σ I).toNat))])) := by
+    simpa [liveTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount,
       solcSlotWord] using
       catUint256GetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef)) (slot := ⟨2⟩)
@@ -87,6 +87,6 @@ theorem catLiveBody {σ σ₀ A I} {g : UInt256}
     (catReachLiveBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
-    (by jump_dest) (by rfl) (by simpa [catSlotWord] using hbody)
+    (by jump_dest) (by rfl) (by simpa [solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Cat

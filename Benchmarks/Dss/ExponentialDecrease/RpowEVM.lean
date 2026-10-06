@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.ExponentialDecrease.RpowSource
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -6,59 +7,6 @@ set_option maxRecDepth 2000000
 
 namespace Benchmarks.Dss.ExponentialDecrease
 
-theorem rpowShiftRight128_toNat (x : UInt256) :
-    (UInt256.shiftRight x (⟨128⟩ : UInt256)).toNat = x.toNat / 2 ^ 128 := by
-  unfold UInt256.shiftRight UInt256.toNat
-  rw [if_neg]
-  · change (x.val >>> (⟨128⟩ : UInt256).val).val = x.val.val / 2 ^ 128
-    rw [Fin.shiftRight_val]
-    rw [Nat.shiftRight_eq_div_pow]
-    norm_num [UInt256.size]
-  · decide
-
-theorem rpowShiftRight128_zero_of_square_fit (x : UInt256)
-    (hfit : x.toNat * x.toNat < UInt256.size) :
-    UInt256.shiftRight x (⟨128⟩ : UInt256) = ⟨0⟩ := by
-  have hxlt : x.toNat < 2 ^ 128 := by
-    by_contra hnot
-    have hxge : 2 ^ 128 ≤ x.toNat := Nat.le_of_not_lt hnot
-    have hsize : UInt256.size = 2 ^ 256 := by native_decide
-    have hsqge : 2 ^ 256 ≤ x.toNat * x.toNat := by
-      nlinarith [hxge]
-    omega
-  apply u256_inj
-  change (UInt256.shiftRight x (⟨128⟩ : UInt256)).toNat = (⟨0⟩ : UInt256).toNat
-  rw [rpowShiftRight128_toNat]
-  change x.toNat / 2 ^ 128 = 0
-  exact Nat.div_eq_of_lt hxlt
-
-theorem rpowShiftRight128_ne_zero_of_square_overflow (x : UInt256)
-    (hover : UInt256.size ≤ x.toNat * x.toNat) :
-    UInt256.shiftRight x (⟨128⟩ : UInt256) ≠ ⟨0⟩ := by
-  intro hzero
-  have hnat := congrArg UInt256.toNat hzero
-  rw [rpowShiftRight128_toNat] at hnat
-  change x.toNat / 2 ^ 128 = 0 at hnat
-  have hxlt : x.toNat < 2 ^ 128 :=
-    Nat.lt_of_div_eq_zero (by norm_num : 0 < 2 ^ 128) hnat
-  have hsize : UInt256.size = 2 ^ 256 := by native_decide
-  have hsq : x.toNat * x.toNat < UInt256.size := by
-    rw [hsize]
-    nlinarith [hxlt]
-  omega
-
-theorem uInt256_land_one_eq_zero_of_even {n : UInt256} (heven : n.toNat % 2 = 0) :
-    UInt256.land n ⟨1⟩ = ⟨0⟩ := by
-  apply u256_inj
-  rw [uInt256_land_one_toNat, heven]
-  native_decide
-
-theorem uInt256_land_one_eq_one_of_odd {n : UInt256} (hodd : n.toNat % 2 ≠ 0) :
-    UInt256.land n ⟨1⟩ = ⟨1⟩ := by
-  apply u256_inj
-  rw [uInt256_land_one_toNat, rpowUInt256One_toNat]
-  have hlt : n.toNat % 2 < 2 := Nat.mod_lt _ (by decide)
-  omega
 
 set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowXZeroNNonzeroReturns

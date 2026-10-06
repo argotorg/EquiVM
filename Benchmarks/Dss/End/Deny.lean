@@ -40,7 +40,7 @@ theorem endDenyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [endDenyPostState] using
-    endStorageLocStore_uint256 evm (endRelyUsrStorageSlot I) ⟨0⟩
+    storageLocStore_uint256 evm (endRelyUsrStorageSlot I) ⟨0⟩
 
 theorem endDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -189,7 +189,7 @@ theorem endDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   simpa [endRelyAuthHashMem] using
     RD.endAuthCheckOk
@@ -209,7 +209,7 @@ theorem endDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev endBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   exact RD.endAuthCheckRevert
     (code := endBytecode) (pc := endDenyAuthPc) (okPc := endDenyStorePc)
@@ -370,7 +370,7 @@ theorem endDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := endRelyStore I }
           (endDenyPostState evmSolm I) none) := by
-    simpa [evmSolm, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -404,7 +404,7 @@ theorem endDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (endRelyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Jug
 /-! ## `vow()` getter -/
 
 def vowWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  jugAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem jugDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vowTransition.params.map Param.name)
@@ -58,7 +58,7 @@ theorem jugVowBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vowWord σ I).toNat))])) := by
-    simpa [vowTransition, vowWord, jugAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [vowTransition, vowWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

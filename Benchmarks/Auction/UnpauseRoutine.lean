@@ -23,7 +23,7 @@ theorem unpauseRoutineOk {I g s0 ret R mem aw rdata σ k C}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
       (addressEventWords mem aw (solcSourceWord I)) rdata
-      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (unpauseWord (storedWord σ I ⟨51⟩))) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨51⟩ (unpauseWord (solcSlotWord σ I ⟨51⟩))) k' C' := by
   obtain ⟨_, _, rd2863⟩ := unpausePrefix h (by evm_ov)
   have rd2930 := evm_run rd2863 with [jumpiT hp (by jump_dest), jumpdest, push1 ⟨51⟩, dup1]
   obtain ⟨_, _, rd2931⟩ := rd2930.sload (by native_decide) (by evm_ov)

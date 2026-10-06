@@ -8,14 +8,14 @@ namespace Benchmarks.Dss.Cure
 
 theorem cureLoadSourceBodyStillLiveRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I ≠ ⟨0⟩) :
+    (hlive : solcSlotWordAt ⟨1⟩ σ I ≠ ⟨0⟩) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hguard := evalExpr_loadLiveEqZero_false evm0 I hliveLoad
   have hblock := nonpayableSecondRequireReverts
     (cfg := config) (solm := { contract := contract, locals := loadLocals I })
@@ -41,18 +41,18 @@ theorem cureLoadSourceBodyStillLiveRevert {σ σ₀ A I} {g : UInt256}
 
 theorem cureLoadSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I = ⟨0⟩) :
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I = ⟨0⟩) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_false evm0 I hposLoad
   have hblock :
@@ -81,8 +81,8 @@ theorem cureLoadSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
 
 theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     ExecTransitionBody config contract
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
@@ -90,10 +90,10 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -168,8 +168,8 @@ theorem cureLoadSourceBodyNoCodeRevert {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -182,10 +182,10 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -263,8 +263,8 @@ theorem cureLoadSourceBodyCallFailureRevert {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -278,10 +278,10 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -361,8 +361,8 @@ theorem cureLoadSourceBodyReturnDecodeRevert {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray} {newAmt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -386,10 +386,10 @@ theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -581,8 +581,8 @@ theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray} {newAmt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -616,10 +616,10 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -860,8 +860,8 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray} {newAmt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -909,10 +909,10 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     sayNew localsSay evmSay hloaded
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I
@@ -1192,8 +1192,8 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
 theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     {evmCall : EVM.State} {out : ByteArray} {newAmt : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
-    (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨0⟩)
+    (hpos : solcSlotWordAt (loadPosSlotFor I) σ I ≠ ⟨0⟩)
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
@@ -1246,10 +1246,10 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     sayNew localsSay evmSay evmLoaded count evmCount hloaded
   have hliveLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨1⟩ = ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hlive
+    simpa [evm0, solcSlotWordAt] using hlive
   have hposLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩ := by
-    simpa [evm0, cureSlotWord] using hpos
+    simpa [evm0, solcSlotWordAt] using hpos
   have hguardLive := evalExpr_loadLiveEqZero_true evm0 I hliveLoad
   have hguardPos := evalExpr_loadPosGtZero_true evm0 I hposLoad
   have holdAmt := evalExpr_loadAmtStorage evm0 I

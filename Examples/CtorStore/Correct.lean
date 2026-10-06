@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Examples.CtorStore.Bytecode
 import Reasoning.Memory
 import Reasoning.Solc
@@ -298,17 +299,8 @@ theorem ctorStoreLocStore (evm : EVM.State) (i : Int) (h0 : 0 ≤ i) :
         { slot := ⟨0⟩, offset := 0, size := 32, hbound := by decide,
           type := .int (.uint ⟨256, by decide⟩) } (.int i)
       = some (EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩ (EVM.word i.toNat)) := by
-  unfold storageLocStore storageLocWriteWord
-  simp only [valueToWord, wordOfInt_nonneg i h0, bind, Option.bind, pure]
-  have hslen := (EVM.Word.toBytesLEWithSizeProof (EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).2
-  have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.word i.toNat)).2
-  congr 2
-  apply u256_inj
-  show fromBytes' (List.take (0:Fin 32).val _ ++ List.take (32:Fin 33).val _
-        ++ List.drop ((0:Fin 32).val + (32:Fin 33).val) _) = (EVM.word i.toNat).toNat
-  rw [show (0:Fin 32).val = 0 from rfl, show (32:Fin 33).val = 32 from rfl,
-      List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by omega), List.append_nil,
-      List.take_of_length_le (by omega), fromBytes'_toBytesLEWithSizeProof]
+  simpa only [wordOfInt_nonneg i h0] using
+    (storageLocStore_uint256_int evm (⟨0⟩ : UInt256) i)
 
 theorem ctorStoreAssign (evm : EVM.State) (L : Store) (i : Int)
     (h0 : 0 ≤ i) (hbase : L.get? "stored" = none) :

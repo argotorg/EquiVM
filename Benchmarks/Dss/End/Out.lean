@@ -50,7 +50,7 @@ theorem endDecode_out_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
   simpa [config, outTransition, endOutLocals, endBytes32ArgValue, endBytes32ArgBytes,
     endOutUsr, endOutUsrWord, bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width,
     abiAddress] using
-    (endDecode_legacyBytes32_address_ok (cd := I.calldata) (x := "arg0")
+    (decode_legacyBytes32_address_ok (cd := I.calldata) (x := "arg0")
       (y := "arg1") hsz68)
 
 theorem endDecode_out_none_short {I : ExecutionEnv}
@@ -59,7 +59,7 @@ theorem endDecode_out_none_short {I : ExecutionEnv}
       (transitionSignature outTransition).paramTypes I.calldata = none := by
   simpa [config, outTransition, bytes32, bytes32Width, addr, abiBytes32, abiBytes32Width,
     abiAddress] using
-    (endDecode_legacyBytes32_address_none_short (cd := I.calldata) (x := "arg0")
+    (decode_legacyBytes32_address_none_short (cd := I.calldata) (x := "arg0")
       (y := "arg1") hsz4 hshort)
 
 set_option maxHeartbeats 1000000 in
@@ -124,8 +124,8 @@ theorem endOutBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals outTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (endSlotWord (endOutSlotFor I) σ I).toNat))])) := by
-    simpa [outTransition, endOutSlotFor, endSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.int (Int.ofNat (solcSlotWordAt (endOutSlotFor I) σ I).toNat))])) := by
+    simpa [outTransition, endOutSlotFor, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, endOutLocals, owner, spender] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -195,39 +195,39 @@ theorem endOutBodyCoreOk
   have hret :
       RDret endBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (endSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := endWordReturnPc) (val := endSlotWord slot σ I) (ret := endWordReturnPc)
+      (pc := endWordReturnPc) (val := solcSlotWordAt slot σ I) (ret := endWordReturnPc)
       (R := [sel])
       (memout := solcScratchReturnMem (solcNestedMappingHashMem ⟨17⟩ owner spender)
-        (endSlotWord slot σ I))
-      (by simpa [slot, endSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcNestedMappingHashMem_mload64 ⟨17⟩ owner spender)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (endSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨17⟩ owner spender)
           (solcNestedMappingHashMem_read64 ⟨17⟩ owner spender))
       (by
-        exact solcScratchReturnMem_read128 (endSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcNestedMappingHashMem_size ⟨17⟩ owner spender))
       (by simp)
-    simpa [slot, endSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   have hval :
-      some [Value.int (Int.ofNat (endSlotWord (endOutSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWordAt (endOutSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWordAt slot σ I).toNat)] := by
     rw [hslot]
   rw [hval] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
-        (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         outTransition.returnType := by
     rw [show outTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem endOutBodyCoreDecodeFailed_short

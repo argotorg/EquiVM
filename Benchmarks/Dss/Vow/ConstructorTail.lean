@@ -1,3 +1,5 @@
+import Reasoning.Storage
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vow.Constructor
 import Reasoning.ExternalCall
 import Reasoning.Initcode
@@ -196,101 +198,6 @@ theorem vowCtorHopeEncode_eq (flapper : AccountAddress) {mem : ByteArray}
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, addr, vatHopeSelector, selectorBytes,
     word_toBytesBE_toByteArray_eq_toByteArray]
 
-private theorem evmAddress_accountAddress_tail (a : AccountAddress) :
-    EVM.address a = a := by
-  apply Fin.ext
-  simp [EVM.address, EVM.uintN]
-  exact Nat.mod_eq_of_lt (by simpa [EVM.twoPow, AccountAddress.size] using a.isLt)
-
-private theorem setAddressOffset0Word_low_address_tail (old : UInt256) (a : AccountAddress) :
-    UInt256.land solcAddrMask (setAddressOffset0Word old (EVM.word a.val)) = EVM.word a.val := by
-  apply u256_inj
-  rw [u256_land_toNat, setAddressOffset0Word_toNat]
-  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
-    rw [nat_land_comm]
-    rw [nat_land_mask_eq_mod]
-    have ha : (EVM.word a.val).toNat = a.val := by
-      change (UInt256.ofNat a.val).toNat = a.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size)
-    rw [ha]
-    have hmod : (a.val + old.toNat / 2 ^ 160 * 2 ^ 160) % 2 ^ 160 = a.val := by
-      rw [Nat.mul_comm (old.toNat / 2 ^ 160) (2 ^ 160)]
-      rw [Nat.add_mul_mod_self_left]
-      exact Nat.mod_eq_of_lt (by simpa [AccountAddress.size, EVM.addressModulus, EVM.twoPow] using a.isLt)
-    rw [hmod]
-    exact Nat.mod_eq_of_lt (lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size))
-  · have ha : (EVM.word a.val).toNat = a.val := by
-      change (UInt256.ofNat a.val).toNat = a.val
-      rw [UInt256.toNat_ofNat_of_lt]
-      exact lt_trans a.isLt (by decide : AccountAddress.size < UInt256.size)
-    rw [ha]
-    exact a.isLt
-
-private theorem accountAddress_of_word_val_tail (a : AccountAddress) :
-    AccountAddress.ofUInt256 (EVM.word a.val) = a := by
-  exact accountAddress_roundtrip a
-
-private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      exfalso
-      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
-  | some acc =>
-      have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
-        intro hzero
-        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
-      have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
-        intro hzeroNat
-        apply hwordNe
-        cases hword : UInt256.ofNat acc.code.size with
-        | mk val =>
-            cases val using Fin.cases
-            · rfl
-            · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
-
-private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
-    {addr : AccountAddress}
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat
-      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
-  subst addr
-  unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
-  | none =>
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
-  | some acc =>
-      have hword := congrArg UInt256.toNat hzero
-      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
-
-theorem RDret.xiResultAcc {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
-    {g : Sat256} {code o : ByteArray}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I =
-          .ok (.success (σ', g', A') o) := by
-  rcases h with hoog | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hoog
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hσ : s.accountMap = σ' := hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hσ] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
 
 theorem vowCtorHopeCallDepthLimit
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
@@ -396,11 +303,6 @@ theorem vowCtorPrefixAccountMapEquiv
     storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot] using hmap
 
-private theorem vowCtorStorageStore_sigma0 (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  cases h : evm.accountMap.get? addr <;>
-    simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageStore, State.lookupAccount, h, Option.option, State.setAccount]
 
 set_option maxHeartbeats 0 in
 theorem vowConstructorCorrect :
@@ -443,7 +345,7 @@ theorem vowConstructorCorrect :
     let targetWord := UInt256.land solcAddrMask vatStored
     have htargetWord : targetWord = EVM.word vat.val := by
       simpa [targetWord, vatStored] using
-        setAddressOffset0Word_low_address_tail (solcSlotWord σWards I ⟨1⟩) vat
+        ctorSetAddressOffset0Word_low_address (solcSlotWord σWards I ⟨1⟩) vat
     let evm0s :=
       initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1s := vowCtorAfterWardsState evm0s
@@ -471,7 +373,7 @@ theorem vowConstructorCorrect :
             (UInt256.ofNat ((evm4s.lookupAccount vat).option 0 (fun acc => acc.code.size))).toNat =
               0 := by
           simpa [evm4s, State.lookupAccount] using
-            ctorExtCodeSize_zero_lookup_code_zero (σ := evm4s.accountMap)
+            extCodeSizeWord_zero_lookup_code_zero (σ := evm4s.accountMap)
               (target := targetWord) (addr := vat) haddr hcodeSizeSolm
         refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (vowCtorSolmExecReverts_noCode
@@ -487,7 +389,7 @@ theorem vowConstructorCorrect :
           0 < (UInt256.ofNat ((evm4s.lookupAccount vat).option 0
             (fun acc => acc.code.size))).toNat := by
         simpa [evm4s, State.lookupAccount] using
-          ctorExtCodeSize_ne_zero_lookup_code_pos (σ := evm4s.accountMap)
+          extCodeSizeWord_ne_zero_lookup_code_pos (σ := evm4s.accountMap)
             (target := targetWord) (addr := vat) haddr hcodeSizeSolmNe
       obtain ⟨gasWord, _, _, rd216⟩ := vowCtorHopeCallReady vat flapper flopper vatStored
         (by simpa [σFlopper, targetWord] using rd201) (by simpa [targetWord] using hcodeSize)
@@ -511,13 +413,13 @@ theorem vowConstructorCorrect :
             evm4e.σ₀ = (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ := by
           simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
             vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
-            vowCtorStorageStore_sigma0, initState]
+            storageStore_σ₀, initState]
         have hEnv4 : evm4e.executionEnv = I := by
           simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
             vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
             storageStore_executionEnv, initState]
         have htgt : EVM.address vat = AccountAddress.ofUInt256 targetWord := by
-          rw [htargetWord, accountAddress_of_word_val_tail, evmAddress_accountAddress_tail]
+          rw [htargetWord, accountAddress_of_word_val_tail, eVM_address_id]
         have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
           vowCtorCallerWardsSlot_eq I
         obtain ⟨gTheta, ATheta, hTheta⟩ := hΘ
@@ -602,7 +504,7 @@ theorem vowConstructorCorrect :
         · obtain ⟨_, _, rd246⟩ :=
             vowCtorHopeCallSuccessToReturnStart vat flapper flopper (by simpa using rd217) hperm
           have hret := vowCtorReturnRuntime vat flapper flopper rd246
-          rcases RDret.xiResultAcc hcodeTail hret with hOOG | ⟨g', A', hSuccess⟩
+          rcases RDretXiResultAccountMapReordered hcodeTail hret with hOOG | ⟨g', A', hSuccess⟩
           · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
           · have hAccountsLive :
                 Eq (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)

@@ -148,7 +148,7 @@ theorem spotCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1596 : RD spotBytecode I g s0 ⟨1596⟩
       (relyAuthWord σ I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1596 C1596 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
   have rd1599pre := evm_run rd1596 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -195,7 +195,7 @@ theorem spotCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1596 : RD spotBytecode I g s0 ⟨1596⟩
       (relyAuthWord σ I :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1596 C1596 := by
-    simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
   have rd1599pre := evm_run rd1596 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -266,7 +266,7 @@ theorem spotCageBodyCoreOk
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := ∅ } (cagePostState evmSolm) none) := by
-    simpa [evmSolm, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotCageBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -297,7 +297,7 @@ theorem spotCageBodyCoreUnauthorized
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, spotSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       spotCageBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

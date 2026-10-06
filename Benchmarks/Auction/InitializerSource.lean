@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Auction.InitializerStorage
 import Benchmarks.Auction.SetterSource
 
@@ -8,17 +9,6 @@ namespace Auction
 def initializeTop (evm : EVM.State) : Bool :=
   decide (initializingWord evm.accountMap evm.executionEnv = ⟨0⟩)
 
--- LIBRARY CANDIDATE: bool loads accept every nonzero storage byte.
-theorem wordToElemBool (word : UInt256) :
-    wordToElem .bool word = .bool (!decide (word = ⟨0⟩)) := by
-  by_cases hw : word = ⟨0⟩
-  · subst word; rfl
-  · have hv : (word.val == 0) = false := by
-      rw [beq_eq_false_iff_ne]
-      intro he
-      apply hw
-      exact u256_inj (congrArg Fin.val he)
-    simp [wordToElem, hw, hv]
 
 theorem readInitializing (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_initializing" = none) :
@@ -72,7 +62,7 @@ theorem evalInitializerGuardFalse (evm : EVM.State) (locals : Store)
 
 def setInitializingState (evm : EVM.State) (value : Bool) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
-    (setInitializingWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) value)
+    (setBoolOffset1Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩) value)
 
 def setInitializedState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨0⟩
@@ -88,7 +78,7 @@ theorem assignInitializing (evm : EVM.State) (locals : Store) (value : Bool)
       .storage initializingRef (.bool value) =
       .ok ({ contract := auctionContract, locals := locals }, setInitializingState evm value) :=
   scalarWrite evm _ locals "_initializing" (.elem .bool) (auctionBoolLocAt ⟨0⟩ 1) _
-    hbase (by native_decide) rfl (by trivial) (storageLocStore_initializing evm ⟨0⟩ value)
+    hbase (by native_decide) rfl (by trivial) (storageLocStore_bool_offset1 evm ⟨0⟩ value)
 
 theorem assignInitialized (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_initialized" = none) :

@@ -37,7 +37,7 @@ theorem nopeAssign (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         hopeSourceKey, hopeUsrKey, uint256St])
       (hloc := by rfl)
-  simpa [nopePostState] using vatStorageLocStore_uint256 evm (hopeStorageSlot I) ⟨0⟩
+  simpa [nopePostState] using storageLocStore_uint256 evm (hopeStorageSlot I) ⟨0⟩
 
 theorem vatNopeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

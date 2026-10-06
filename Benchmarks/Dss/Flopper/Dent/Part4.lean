@@ -744,14 +744,14 @@ theorem dentRuntimeTtlWord_source_eq
     dentRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
-  have h := congrArg (fun accounts => flopperUint48Offset0Word ⟨6⟩ accounts I) hAfter
+  have h := congrArg (fun accounts => uint48Offset0Word ⟨6⟩ accounts I) hAfter
   simpa [evmSolm, dentRuntimeTtlWord, dentTtlWord, dentAfterLotStore_executionEnv,
     initState] using h
 
 theorem dentRuntimeTailSuccessAccountMap_eq_postState
     {σ σ₀ A I} {g : UInt256}
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
         (dentRuntimeTtlWord I.codeOwner σ I).toNat < 2 ^ 48) :
     Eq (dentRuntimeTailSuccessAccountMap I.codeOwner σ I)
       (dentPostState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -773,9 +773,9 @@ theorem dentRuntimeTailSuccessAccountMap_eq_postState
           (dentTtlWord (dentAfterLotStore evmSolm I)).toNat < 2 ^ 48 := by
     simpa [evmSolm, dentNow48Word, dentTimestampWord, initState, httl] using haddFit
   have hmaskedRuntime :
-      UInt256.land runtimeAdd flopperUint48Mask = dentTicPostWord evmSolm I := by
+      UInt256.land runtimeAdd uint48Mask = dentTicPostWord evmSolm I := by
     apply u256_inj
-    change (UInt256.land (dentRuntimeTicAddWord I.codeOwner σ I) flopperUint48Mask).toNat =
+    change (UInt256.land (dentRuntimeTicAddWord I.codeOwner σ I) uint48Mask).toNat =
       (dentTicPostWord evmSolm I).toNat
     rw [dentRuntimeTicAddWord]
     rw [uint48Mask_add_no_wrap_toNat (UInt256.ofNat I.header.timestamp)
@@ -783,9 +783,9 @@ theorem dentRuntimeTailSuccessAccountMap_eq_postState
     rw [dentTicPostWord_toNat evmSolm I haddFitSolm]
     simpa [evmSolm, dentNow48Word, dentTimestampWord, initState, httl]
   have hsourceClean :
-      UInt256.land (dentTicPostWord evmSolm I) flopperUint48Mask =
+      UInt256.land (dentTicPostWord evmSolm I) uint48Mask =
         dentTicPostWord evmSolm I := by
-    apply flopperUint48Mask_clean_of_canonical
+    apply uint48Mask_clean_of_canonical
     have hticNat := dentTicPostWord_toNat evmSolm I haddFitSolm
     rw [hticNat]
     simpa [EVM.twoPow] using haddFitSolm
@@ -793,8 +793,8 @@ theorem dentRuntimeTailSuccessAccountMap_eq_postState
       runtimeOld =
         Solm.EVM.storageLoad (dentAfterLotStore evmSolm I)
           (dentAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot := by
-    have hslot := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfter
-    simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord, evmSolm,
+    have hslot := congrArg (fun accounts => solcSlotWordAt packedSlot accounts I) hAfter
+    simpa [runtimeOld, packedSlot, solcSlotWordAt, solcSlotWord, evmSolm,
       initState, dentAfterLotStore_executionEnv] using hslot
   have hstored :
       dentRuntimeTicStoredWord I.codeOwner σ I = dentTicStoredWord evmSolm I := by
@@ -803,12 +803,12 @@ theorem dentRuntimeTailSuccessAccountMap_eq_postState
     rw [setUint48Offset20Word_toNat, setUint48Offset20Word_toNat]
     change
       runtimeOld.toNat % 2 ^ 160 +
-            (UInt256.land runtimeAdd flopperUint48Mask).toNat * 2 ^ 160 +
+            (UInt256.land runtimeAdd uint48Mask).toNat * 2 ^ 160 +
           runtimeOld.toNat / 2 ^ 208 * 2 ^ 208 =
         (Solm.EVM.storageLoad (dentAfterLotStore evmSolm I)
               (dentAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot).toNat %
             2 ^ 160 +
-          (UInt256.land (dentTicPostWord evmSolm I) flopperUint48Mask).toNat *
+          (UInt256.land (dentTicPostWord evmSolm I) uint48Mask).toNat *
             2 ^ 160 +
         (Solm.EVM.storageLoad (dentAfterLotStore evmSolm I)
               (dentAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot).toNat /
@@ -831,8 +831,8 @@ theorem dentRuntimeAfterGuyMap_eq_afterGuyStore
   have hold :
       solcSlotWord σ I packedSlot =
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner packedSlot := by
-    have hword := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAccounts
-    simpa [flopperSlotWord, solcSlotWord, hEnv] using hword
+    have hword := congrArg (fun accounts => solcSlotWordAt packedSlot accounts I) hAccounts
+    simpa [solcSlotWordAt, solcSlotWord, hEnv] using hword
   have hstored :
       setAddressOffset0Word (solcSlotWord σ I packedSlot) (UInt256.ofNat I.source.val) =
         setAddressOffset0Word
@@ -862,7 +862,7 @@ theorem dentRuntimeTtlWord_afterGuy_eq
       dentAfterGuyStore, storageStore_executionEnv, hEnv] using
       congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
         (auctionLotSlot (dentIdWord I)) (dentLotWord I)) hAfterGuy
-  have h := congrArg (fun accounts => flopperUint48Offset0Word ⟨6⟩ accounts I) hAfterLot
+  have h := congrArg (fun accounts => uint48Offset0Word ⟨6⟩ accounts I) hAfterLot
   simpa [dentRuntimeTtlWord, dentTtlWord, dentAfterLotStore_executionEnv,
     dentAfterGuyStore, storageStore_executionEnv, hEnv] using h
 
@@ -873,7 +873,7 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
         (dentAfterGuyStore evmSolm I).accountMap)
     (hEnv : evmSolm.executionEnv = I)
     (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
+      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
           (dentRuntimeTtlWord I.codeOwner (dentRuntimeAfterGuyMap I.codeOwner σ I) I).toNat <
         2 ^ 48) :
     Eq
@@ -903,10 +903,10 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
     simpa [σGuy, evmGuy, dentNow48Word, dentTimestampWord, dentAfterGuyStore,
       storageStore_executionEnv, hEnv, httl] using haddFit
   have hmaskedRuntime :
-      UInt256.land runtimeAdd flopperUint48Mask = dentTicPostWord evmGuy I := by
+      UInt256.land runtimeAdd uint48Mask = dentTicPostWord evmGuy I := by
     apply u256_inj
     change
-      (UInt256.land (dentRuntimeTicAddWord I.codeOwner σGuy I) flopperUint48Mask).toNat =
+      (UInt256.land (dentRuntimeTicAddWord I.codeOwner σGuy I) uint48Mask).toNat =
         (dentTicPostWord evmGuy I).toNat
     rw [dentRuntimeTicAddWord]
     rw [uint48Mask_add_no_wrap_toNat (UInt256.ofNat I.header.timestamp)
@@ -915,9 +915,9 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
     simpa [σGuy, evmGuy, dentNow48Word, dentTimestampWord, dentAfterGuyStore,
       storageStore_executionEnv, hEnv, httl]
   have hsourceClean :
-      UInt256.land (dentTicPostWord evmGuy I) flopperUint48Mask =
+      UInt256.land (dentTicPostWord evmGuy I) uint48Mask =
         dentTicPostWord evmGuy I := by
-    apply flopperUint48Mask_clean_of_canonical
+    apply uint48Mask_clean_of_canonical
     have hticNat := dentTicPostWord_toNat evmGuy I haddFitSolm
     rw [hticNat]
     simpa [EVM.twoPow] using haddFitSolm
@@ -925,8 +925,8 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
       runtimeOld =
         Solm.EVM.storageLoad (dentAfterLotStore evmGuy I)
           (dentAfterLotStore evmGuy I).executionEnv.codeOwner packedSlot := by
-    have hslot := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfterLot
-    simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord,
+    have hslot := congrArg (fun accounts => solcSlotWordAt packedSlot accounts I) hAfterLot
+    simpa [runtimeOld, packedSlot, solcSlotWordAt, solcSlotWord,
       dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv,
       hEnv] using hslot
   have hstored :
@@ -936,12 +936,12 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
     rw [setUint48Offset20Word_toNat, setUint48Offset20Word_toNat]
     change
       runtimeOld.toNat % 2 ^ 160 +
-            (UInt256.land runtimeAdd flopperUint48Mask).toNat * 2 ^ 160 +
+            (UInt256.land runtimeAdd uint48Mask).toNat * 2 ^ 160 +
           runtimeOld.toNat / 2 ^ 208 * 2 ^ 208 =
         (Solm.EVM.storageLoad (dentAfterLotStore evmGuy I)
               (dentAfterLotStore evmGuy I).executionEnv.codeOwner packedSlot).toNat %
             2 ^ 160 +
-          (UInt256.land (dentTicPostWord evmGuy I) flopperUint48Mask).toNat *
+          (UInt256.land (dentTicPostWord evmGuy I) uint48Mask).toNat *
             2 ^ 160 +
         (Solm.EVM.storageLoad (dentAfterLotStore evmGuy I)
               (dentAfterLotStore evmGuy I).executionEnv.codeOwner packedSlot).toNat /
@@ -1122,7 +1122,7 @@ theorem flopperDentX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1135,15 +1135,15 @@ theorem flopperDentX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨k1638, C1638, rd1638raw⟩ := rd1637.sload (by native_decide) (by evm_ov)
   have rd1638 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1638⟩
-      (flopperSlotWord ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
+      (solcSlotWordAt ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1638 C1638 := by
-    simpa [flopperSlotWord] using rd1638raw
+    simpa [solcSlotWordAt] using rd1638raw
   have rd1644 := evm_run rd1638 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov),
     raw push2 ⟨1708⟩ (by native_decide) (by evm_ov)]
-  have hcond : UInt256.eq (⟨1⟩ : UInt256) (flopperSlotWord ⟨8⟩ σ I) = ⟨0⟩ := by
+  have hcond : UInt256.eq (⟨1⟩ : UInt256) (solcSlotWordAt ⟨8⟩ σ I) = ⟨0⟩ := by
     apply u256_eq_of_ne
     intro hbad
     exact hlive hbad.symm
@@ -1167,7 +1167,7 @@ theorem flopperDentX_notLive {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp)
 
 theorem flopperDentX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1182,15 +1182,15 @@ theorem flopperDentX_liveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨k1638, C1638, rd1638raw⟩ := rd1637.sload (by native_decide) (by evm_ov)
   have rd1638 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1638⟩
-      (flopperSlotWord ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
+      (solcSlotWordAt ⟨8⟩ σ I :: dentBidWord I :: dentLotWord I :: dentIdWord I ::
         ⟨334⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1638 C1638 := by
-    simpa [flopperSlotWord] using rd1638raw
+    simpa [solcSlotWordAt] using rd1638raw
   have rd1644 := evm_run rd1638 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov),
     raw push2 ⟨1708⟩ (by native_decide) (by evm_ov)]
-  have hcond : UInt256.eq (⟨1⟩ : UInt256) (flopperSlotWord ⟨8⟩ σ I) ≠ ⟨0⟩ := by
+  have hcond : UInt256.eq (⟨1⟩ : UInt256) (solcSlotWordAt ⟨8⟩ σ I) ≠ ⟨0⟩ := by
     rw [hlive, u256_eq_refl]
     exact one_ne_zero_uint
   exact ⟨_, _, rd1644.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)⟩
@@ -1204,7 +1204,7 @@ theorem flopperDentX_toGuyGuard
     let id := dentIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1736⟩
-      [flopperAddressReturnWord (auctionPackedSlot id) σ I, dentBidWord I,
+      [solcAddressSlotWord (auctionPackedSlot id) σ I, dentBidWord I,
         dentLotWord I, id, ⟨334⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memMap
@@ -1259,10 +1259,10 @@ theorem flopperDentX_toGuyGuard
   obtain ⟨k1727, C1727, rd1727raw⟩ := rd1726pre.sload (by native_decide) (by evm_ov)
   have rd1727 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1727⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memMap (UInt256.ofNat 3) ByteArray.empty σ k1727 C1727 := by
-    simpa [flopperSlotWord] using rd1727raw
+    simpa [solcSlotWordAt] using rd1727raw
   have rd1736raw := evm_run rd1727 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1273,8 +1273,8 @@ theorem flopperDentX_toGuyGuard
   have hmask :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-        (flopperSlotWord (auctionPackedSlot id) σ I) =
-      flopperAddressReturnWord (auctionPackedSlot id) σ I := by
+        (solcSlotWordAt (auctionPackedSlot id) σ I) =
+      solcAddressSlotWord (auctionPackedSlot id) σ I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     rw [u256_land_comm]
@@ -1282,8 +1282,8 @@ theorem flopperDentX_toGuyGuard
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1320,8 +1320,8 @@ theorem flopperDentX_guyNotSet {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_guyOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1346,7 +1346,7 @@ theorem flopperDentX_toTicGtGuard
     let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
     let memTic := twoWordHashMem id ⟨1⟩ memGuy
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1843⟩
-      [UInt256.gt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      [UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memGuy memTic
@@ -1401,10 +1401,10 @@ theorem flopperDentX_toTicGtGuard
   obtain ⟨k1825, C1825, rd1825raw⟩ := rd1824pre.sload (by native_decide) (by evm_ov)
   have rd1825 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1825⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 3) ByteArray.empty σ k1825 C1825 := by
-    simpa [flopperSlotWord] using rd1825raw
+    simpa [solcSlotWordAt] using rd1825raw
   have rd1834 := evm_run rd1825 with [
     raw timestamp (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1413,25 +1413,25 @@ theorem flopperDentX_toTicGtGuard
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd1841 := rd1834.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd1841 := rd1834.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
   have rd1842 := rd1841.and (by native_decide) (by evm_ov)
   have rd1843 := rd1842.gt (by native_decide) (by evm_ov)
   exact ⟨_, _, by
-    simpa [id, flopperUint48Offset20Word,
+    simpa [id, uint48Offset20Word,
       show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
         from by native_decide]
       using rd1843⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
-    (hticNe : flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hticNe : uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticLe :
-      (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
+      (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
@@ -1445,7 +1445,7 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1806⟩ := flopperDentX_guyOk (g := g) hlive hguy h
   obtain ⟨_, _, rd1843⟩ := flopperDentX_toTicGtGuard rd1806
   have hgt :
-      UInt256.gt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨0⟩ := by
     apply ugt_zero
@@ -1505,24 +1505,24 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨k1867, C1867, rd1867raw⟩ := rd1866pre.sload (by native_decide) (by evm_ov)
   have rd1867 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1867⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memTicZero (UInt256.ofNat 3) ByteArray.empty σ k1867 C1867 := by
-    simpa [flopperSlotWord] using rd1867raw
+    simpa [solcSlotWordAt] using rd1867raw
   have rd1882 := evm_run rd1867 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
     raw shl (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd1881 := rd1882.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd1881 := rd1882.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
   have rd1882' := rd1881.and (by native_decide) (by evm_ov)
   have rd1883pre := rd1882'.iszero (by native_decide) (by evm_ov)
   have hticZero :
-      UInt256.isZero (flopperUint48Offset20Word (auctionPackedSlot id) σ I) = ⟨0⟩ :=
+      UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne (by simpa [id] using hticNe)
   have hpc1883 :
       (⟨1867⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
@@ -1531,16 +1531,16 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     native_decide
   rw [hpc1883] at rd1883pre
   have hticRaw :
-      UInt256.land flopperUint48Mask
-          (UInt256.div (flopperSlotWord (auctionPackedSlot id) σ I)
+      UInt256.land uint48Mask
+          (UInt256.div (solcSlotWordAt (auctionPackedSlot id) σ I)
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩)) =
-        flopperUint48Offset20Word (auctionPackedSlot id) σ I := by
+        uint48Offset20Word (auctionPackedSlot id) σ I := by
     rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
       from by native_decide]
     rfl
   have rd1883 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1883⟩
-      [UInt256.isZero (flopperUint48Offset20Word (auctionPackedSlot id) σ I),
+      [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memTicZero (UInt256.ofNat 3) ByteArray.empty σ
       (k1867 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
@@ -1582,11 +1582,11 @@ theorem flopperDentX_ticFinished {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_ticGtOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
     (hticGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+        (uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1600,7 +1600,7 @@ theorem flopperDentX_ticGtOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1806⟩ := flopperDentX_guyOk (g := g) hlive hguy h
   obtain ⟨_, _, rd1843⟩ := flopperDentX_toTicGtGuard rd1806
   have hgt :
-      UInt256.gt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨1⟩ := by
     apply ugt_one

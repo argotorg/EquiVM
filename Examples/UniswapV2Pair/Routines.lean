@@ -435,7 +435,7 @@ theorem RD.addressAddressUint256ExternalLenOk {σ σ₀ A I} {g : Sat256}
       _hd44, _hd45, _hd46, _hd48, _hd49, _hd50, _hd53⟩
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
-    UniswapV2Pair.uniswapDecodeLenCheckOk_4_96_lt hsz100 hsize
+    Reasoning.Theory.decodeLenCheckOk_4_96_lt hsz100 hsize
   exact RD.solcExternalStaticArgsLenOk hreach hd0 hd1 hd4 hd6 hd7 hd8 hd9 hd11 hd12
     hd13 hd14 hd17 hdecoded hlt
 

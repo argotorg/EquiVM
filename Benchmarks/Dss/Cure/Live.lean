@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `live()` -/
 
 def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨1⟩ σ I
+  solcSlotWordAt ⟨1⟩ σ I
 
 theorem cureDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 8)) :
@@ -43,7 +43,7 @@ theorem cureLiveBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
-    simpa [liveTransition, liveWord, cureSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, liveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

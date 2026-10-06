@@ -1,3 +1,4 @@
+import Reasoning.PackedStorage
 import Benchmarks.Auction.Storage
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -5,16 +6,11 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 def initializingWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (UInt256.div (storedWord σ I ⟨0⟩) ⟨256⟩) ⟨255⟩
+  UInt256.land (UInt256.div (solcSlotWord σ I ⟨0⟩) ⟨256⟩) ⟨255⟩
 
 def initializedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (storedWord σ I ⟨0⟩) ⟨255⟩
+  UInt256.land (solcSlotWord σ I ⟨0⟩) ⟨255⟩
 
-def initializerBeginWord (old : UInt256) : UInt256 :=
-  UInt256.lor (UInt256.land old (UInt256.lnot ⟨65535⟩)) ⟨257⟩
-
-def initializerEndWord (old : UInt256) : UInt256 :=
-  UInt256.land old (UInt256.lnot ⟨65280⟩)
 
 def InitializerReady (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   initializingWord σ I ≠ ⟨0⟩ ∨ σ.get? I.codeOwner = none
@@ -23,22 +19,13 @@ def InitializerReady (σ : AccountMap) (I : ExecutionEnv) : Prop :=
 def InitializerNestedFlag (σ : AccountMap) (I : ExecutionEnv) (top : UInt256) : Prop :=
   top = ⟨0⟩ ∨ σ.get? I.codeOwner = none
 
-theorem storedWord_absent {σ : AccountMap} {I : ExecutionEnv}
-    (ha : σ.get? I.codeOwner = none) (slot : UInt256) : storedWord σ I slot = ⟨0⟩ := by
-  simp [-Std.ExtTreeMap.get?_eq_getElem?, storedWord, ha, Option.option]
-
-theorem storedWord_sstore_ne (σ : AccountMap) (I : ExecutionEnv)
-    (readSlot writeSlot value : UInt256) (hne : readSlot ≠ writeSlot) :
-    storedWord (sstoreAccountMap I.codeOwner σ writeSlot value) I readSlot =
-      storedWord σ I readSlot :=
-  sstoreAccountMap_storage_getD_ne σ I.codeOwner readSlot writeSlot value hne
 
 theorem initializerReady_sstore {σ : AccountMap} {I : ExecutionEnv}
     (hr : InitializerReady σ I) (slot value : UInt256) (hs : (⟨0⟩ : UInt256) ≠ slot) :
     InitializerReady (sstoreAccountMap I.codeOwner σ slot value) I := by
   rcases hr with hi | ha
   · left
-    simpa only [initializingWord, storedWord_sstore_ne σ I ⟨0⟩ slot value hs] using hi
+    simpa only [initializingWord, solcSlotWord_sstore_ne σ I ⟨0⟩ slot value hs] using hi
   · rw [sstoreAccountMap_absent_same ha]
     exact Or.inr ha
 

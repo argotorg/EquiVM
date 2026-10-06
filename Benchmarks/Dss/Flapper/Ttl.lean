@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flapper
 /-! ## `ttl()` getter -/
 
 def ttlWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flapperUint48Offset0Word ⟨5⟩ σ I
+  uint48Offset0Word ⟨5⟩ σ I
 
 theorem flapperDecode_ttl {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (ttlTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flapperTtlBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (ttlWord σ I).toNat))])) := by
-    simpa [ttlTransition, ttlWord, flapperUint48Offset0Word, initState,
+    simpa [ttlTransition, ttlWord, uint48Offset0Word, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flapperUint48GetterBodyReturns_offset0
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -87,12 +87,12 @@ theorem flapperTtlBodyCore {σ σ₀ A I} {g : UInt256}
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
     (by
-      unfold flapperUint48Offset0SlotGetterWf
+      unfold solcUint48Offset0SlotGetterWf
       repeat' first | apply And.intro | native_decide)
     (by jump_dest)
     (by jump_dest)
     (by
-      unfold flapperReturnUint48FromMemWf
+      unfold solcReturnUint48FromMemWf
       repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [ttlWord] using hbody)
 

@@ -13,10 +13,6 @@ namespace Benchmarks.Dss.Cat
 `bytesToWord ((o.drop 32·i).take 32)` per-word form (matching the STATICCALL/CALL return-copy that
 `Seg2b`/`Seg3`/`Seg8b1` read from memory). -/
 
-private theorem oTake_len {o : ByteArray} {start : Nat} (h : start + 32 ≤ o.size) :
-    ((o.toList.drop start).take 32).length = 32 := by
-  have hlen : o.toList.length = o.size := by rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [List.length_take, List.length_drop, hlen]; omega
 
 /-- `urns` returns `(uint256 ink, uint256 art)`. -/
 theorem catBiteUrnsDecode_ok {o : ByteArray} (ho64 : 64 ≤ o.size) :
@@ -32,10 +28,10 @@ theorem catBiteUrnsDecode_ok {o : ByteArray} (ho64 : 64 ≤ o.size) :
     (total := 32 * [abiUInt256, abiUInt256].length) (by decide) (by simp)]
   simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 0) (oTake_len (by omega))]
+    (start := 0) (byteArray_toList_take32_length (by omega))]
   simp only [bind, Option.bind]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 32) (oTake_len (by omega))]
+    (start := 32) (byteArray_toList_take32_length (by omega))]
 
 /-- `ilks` returns `(uint256 Art, uint256 rate, uint256 spot, uint256 line, uint256 dust)`. -/
 theorem catBiteIlksDecode_ok {o : ByteArray} (ho160 : 160 ≤ o.size) :
@@ -58,19 +54,19 @@ theorem catBiteIlksDecode_ok {o : ByteArray} (ho160 : 160 ≤ o.size) :
     (by decide) (by simp)]
   simp only [decodeScalarWordsWithMode?]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 0) (oTake_len (by omega))]
+    (start := 0) (byteArray_toList_take32_length (by omega))]
   simp only [bind, Option.bind]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 32) (oTake_len (by omega))]
+    (start := 32) (byteArray_toList_take32_length (by omega))]
   simp only [bind, Option.bind]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 64) (oTake_len (by omega))]
+    (start := 64) (byteArray_toList_take32_length (by omega))]
   simp only [bind, Option.bind]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 96) (oTake_len (by omega))]
+    (start := 96) (byteArray_toList_take32_length (by omega))]
   simp only [bind, Option.bind]
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05) (bytes := o.toList)
-    (start := 128) (oTake_len (by omega))]
+    (start := 128) (byteArray_toList_take32_length (by omega))]
 
 /-- `kick` returns `(uint256 id)`. -/
 theorem catBiteKickDecode_ok {o : ByteArray} (ho32 : 32 ≤ o.size) :

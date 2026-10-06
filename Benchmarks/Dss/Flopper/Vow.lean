@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `vow()` getter -/
 
 def vowWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperAddressReturnWord ⟨9⟩ σ I
+  solcAddressSlotWord ⟨9⟩ σ I
 
 theorem flopperDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (vowTransition.params.map Param.name)
@@ -72,7 +72,7 @@ theorem flopperVowBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (vowWord σ I).toNat))])) := by
-    simpa [vowTransition, vowWord, flopperAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [vowTransition, vowWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

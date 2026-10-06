@@ -1,95 +1,75 @@
+import Reasoning.WordArithmetic
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.TakeVatMoveSource
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakePaddedSizeWord (dataLen : UInt256)
+    (hlenMax : dataLen.toNat ≤ 4294967296) :
+    UInt256.land (dataLen + ⟨31⟩) (UInt256.lnot ⟨31⟩) =
+      UInt256.ofNat (ABI.paddedSize dataLen.toNat) := by
+  apply u256_inj
+  have hsum : dataLen.toNat + 31 < 2 ^ 256 := by
+    omega
+  have hpad : ABI.paddedSize dataLen.toNat < UInt256.size := by
+    have hle := paddedSize_le_add31 dataLen.toNat
+    change ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  rw [uland_toNat, lnot31_toNat, uadd_toNat,
+    show (⟨31⟩ : UInt256).toNat = 31 by decide,
+    show UInt256.size = 2 ^ 256 by decide, Nat.mod_eq_of_lt hsum,
+    nat_land_mask _ hsum, ulit_toNat' _ hpad]
+  rfl
+
+theorem clipperTakeCallbackInputSizeWord (dataLen : UInt256)
+    (hlenMax : dataLen.toNat ≤ 4294967296) :
+    UInt256.sub (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ⟨128⟩ =
+      UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) := by
+  apply u256_inj
+  have hpadLe : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
+    paddedSize_le_add31 _
+  have hpadLt : ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hsumLt : 292 + ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change 292 + ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hrhsLt : 164 + ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change 164 + ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hsub : (⟨128⟩ : UInt256).toNat ≤
+      (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)).toNat := by
+    rw [uadd_toNat, show (⟨292⟩ : UInt256).toNat = 292 by decide,
+      ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt]
+    change 128 ≤ 292 + ABI.paddedSize dataLen.toNat
+    omega
+  rw [usub_toNat hsub, uadd_toNat,
+    show (⟨292⟩ : UInt256).toNat = 292 by decide,
+    show (⟨128⟩ : UInt256).toNat = 128 by decide,
+    ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt,
+    ulit_toNat' _ hrhsLt]
+  omega
+
+end Benchmarks.Dss.Clipper
+
+end
+
 namespace Reasoning.Theory
 
--- LIBRARY CANDIDATE: `DUP12`/`DUP16` stepping primitives, analogous to the existing
--- `DUP13`--`DUP15` helpers in `Reasoning.Stepping`.
-theorem clipperDup12_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP12, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-    (hov : t.length + 13 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP12, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup12 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t).length -
-          12 + 13 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-theorem clipperDup16_xstep {s : State} {code : ByteArray}
-    {pcv a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.DUP16, .none))
-    (hstk : s.machineState.stack =
-      a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-    (hov : t.length + 17 ≤ 1024) :
-    Xstep (D_J code 0) s =
-      (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-       else .ok
-        (stSwap s
-          (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll ::
-            mm :: nn :: oo :: pp :: t),
-          .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.DUP16, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_dup16 s hd, hstk]
-  have hov' :
-      ¬ ((a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-          nn :: oo :: pp :: t).length - 16 + 17 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  simp only [if_neg hov', GasConstants.Gverylow, stSwap]
 
 end Reasoning.Theory
 
 namespace Reasoning.Reach
 
-theorem RD.clipperDup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP12, .none)) (hov : t.length + 13 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (ll :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs =>
-    Reasoning.Theory.clipperDup12_xstep hc hp hdec hs hov)
-
-theorem RD.clipperDup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
-    (h : RD code ee g s0 pc
-      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
-        oo :: pp :: t)
-      mem aw rdata acc k C)
-    (hdec : decode code pc = some (.DUP16, .none)) (hov : t.length + 17 ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩)
-      (pp :: a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm ::
-        nn :: oo :: pp :: t)
-      mem aw rdata acc (k + 1) (C + 3) :=
-  h.stepSwap (fun _ hc hp hs =>
-    Reasoning.Theory.clipperDup16_xstep hc hp hdec hs hov)
 
 end Reasoning.Reach
 
@@ -339,7 +319,8 @@ theorem clipperTakeVatPatchPayload4441 (v : ClipperImmutables) {code : ByteArray
         (8747, ilkBytes)])
     (off := 4441) (value := vatBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk, hlen,
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -1141,61 +1122,6 @@ theorem clipperTakeCallbackLengthMem_read128_164 (I : ExecutionEnv)
     clipperTakeCallbackLengthMem_read260_32 I owe slice dataLen hmem]
   simp [ByteArray.append_assoc]
 
-theorem clipperTake_le_paddedSize (n : Nat) : n ≤ ABI.paddedSize n := by
-  have hdecomp := Nat.div_add_mod (n + 31) 32
-  have hmod := Nat.mod_lt (n + 31) (by norm_num : 0 < 32)
-  unfold ABI.paddedSize
-  omega
-
-theorem clipperTake_paddedSize_le (n : Nat) : ABI.paddedSize n ≤ n + 31 := by
-  unfold ABI.paddedSize
-  exact Nat.mul_div_le (n + 31) 32
-
-theorem clipperTakePaddedSizeWord (dataLen : UInt256)
-    (hlenMax : dataLen.toNat ≤ 4294967296) :
-    UInt256.land (dataLen + ⟨31⟩) (UInt256.lnot ⟨31⟩) =
-      UInt256.ofNat (ABI.paddedSize dataLen.toNat) := by
-  apply u256_inj
-  have hsum : dataLen.toNat + 31 < 2 ^ 256 := by
-    omega
-  have hpad : ABI.paddedSize dataLen.toNat < UInt256.size := by
-    have hle := clipperTake_paddedSize_le dataLen.toNat
-    change ABI.paddedSize dataLen.toNat < 2 ^ 256
-    omega
-  rw [uland_toNat, lnot31_toNat, uadd_toNat,
-    show (⟨31⟩ : UInt256).toNat = 31 by decide,
-    show UInt256.size = 2 ^ 256 by decide, Nat.mod_eq_of_lt hsum,
-    nat_land_mask _ hsum, ulit_toNat' _ hpad]
-  rfl
-
-theorem clipperTakeCallbackInputSizeWord (dataLen : UInt256)
-    (hlenMax : dataLen.toNat ≤ 4294967296) :
-    UInt256.sub (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ⟨128⟩ =
-      UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) := by
-  apply u256_inj
-  have hpadLe : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
-    clipperTake_paddedSize_le _
-  have hpadLt : ABI.paddedSize dataLen.toNat < UInt256.size := by
-    change ABI.paddedSize dataLen.toNat < 2 ^ 256
-    omega
-  have hsumLt : 292 + ABI.paddedSize dataLen.toNat < UInt256.size := by
-    change 292 + ABI.paddedSize dataLen.toNat < 2 ^ 256
-    omega
-  have hrhsLt : 164 + ABI.paddedSize dataLen.toNat < UInt256.size := by
-    change 164 + ABI.paddedSize dataLen.toNat < 2 ^ 256
-    omega
-  have hsub : (⟨128⟩ : UInt256).toNat ≤
-      (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)).toNat := by
-    rw [uadd_toNat, show (⟨292⟩ : UInt256).toNat = 292 by decide,
-      ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt]
-    change 128 ≤ 292 + ABI.paddedSize dataLen.toNat
-    omega
-  rw [usub_toNat hsub, uadd_toNat,
-    show (⟨292⟩ : UInt256).toNat = 292 by decide,
-    show (⟨128⟩ : UInt256).toNat = 128 by decide,
-    ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt,
-    ulit_toNat' _ hrhsLt]
-  omega
 
 theorem clipperTakeCallbackCalldataMem_read128 (I : ExecutionEnv)
     (owe slice dataLen dataStart : UInt256) {mem : ByteArray}
@@ -1228,9 +1154,9 @@ theorem clipperTakeCallbackCalldataMem_read128 (I : ExecutionEnv)
     simpa [hdataLenEq] using hpayload
   have hZSize : Z.size = 32 := by simp [Z, toByteArray_size]
   have hpaddedLo : dataLen.toNat ≤ ABI.paddedSize dataLen.toNat :=
-    clipperTake_le_paddedSize _
+    nat_le_paddedSize _
   have hpaddedHi : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
-    clipperTake_paddedSize_le _
+    paddedSize_le_add31 _
   rw [clipperTakeCallbackCalldataMem_eq I owe slice dataLen dataStart hmem hdataLen
     hdataLenEq hdataStartEq hpayload]
   change (H ++ D ++ Z).readWithPadding 128
@@ -1259,21 +1185,6 @@ theorem clipperTakeCallbackCalldataMem_read128 (I : ExecutionEnv)
     exact byteArray_extract_self D]
   simp [H, D, Z, ByteArray.append_assoc]
 
-theorem clipperTakeZeroBytes_toByteArray (n : Nat) (hn : n ≤ 32) :
-    (ABI.zeroBytes n).toByteArray =
-      (UInt256.toByteArray ⟨0⟩).extract 0 n := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop,
-    toByteArray_eq_toBytesBE]
-  have hz : EVM.Word.toBytesBE (⟨0⟩ : UInt256) = List.replicate 32 0 := by
-    native_decide
-  rw [show ((EVM.Word.toBytesBE (⟨0⟩ : UInt256)).toArray).toList =
-      EVM.Word.toBytesBE (⟨0⟩ : UInt256) by simp, hz]
-  rw [List.toList_data_toByteArray]
-  simp only [ABI.zeroBytes, Nat.sub_zero, List.drop_zero]
-  change List.replicate n 0 = (List.replicate 32 0).take n
-  rw [List.take_replicate, Nat.min_eq_left hn]
 
 theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (owe slice dataLen dataStart : UInt256) {mem : ByteArray}
@@ -1309,9 +1220,9 @@ theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     simp only [ByteArray.size, List.size_toArray]
     simpa [hdataLenEq] using hpayload
   have hpadLo : dataLen.toNat ≤ ABI.paddedSize dataLen.toNat :=
-    clipperTake_le_paddedSize _
+    nat_le_paddedSize _
   have hpadHi : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
-    clipperTake_paddedSize_le _
+    paddedSize_le_add31 _
   have hpadCount : ABI.paddedSize dataLen.toNat - dataLen.toNat ≤ 32 := by omega
   have hdataBytes :
       (ByteArray.mk (clipperTakeDataBytes I).toArray).toList =
@@ -1338,7 +1249,7 @@ theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     hsliceLt, howeWord, hsliceWord, hsource, hdataSize, hdataBytes,
     hdataListLen, h128Bytes, hlenBytes,
     ABI.padRightToWord, word_toBytesBE_toByteArray_eq_toByteArray,
-    List.toByteArray_append, clipperTakeZeroBytes_toByteArray _ hpadCount,
+    List.toByteArray_append, zeroBytes_toByteArray _ hpadCount,
     ByteArray.append_assoc]
 
 set_option maxHeartbeats 1000000 in
@@ -1380,7 +1291,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
         ⟨128⟩ :=
     mloadFreePtrValue (mem := mem)
       (by rw [hmem]; norm_num) hread64
-  have rd4531 := RD.clipperDup12 rd (by clipper_runtime_decode)
+  have rd4531 := RD.dup12 rd (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rd4548 := evm_run rd4531 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -1393,9 +1304,9 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     raw caller (by clipper_runtime_decode) (by evm_ov),
     raw dup6 (by clipper_runtime_decode) (by evm_ov),
     raw dup6 (by clipper_runtime_decode) (by evm_ov)]
-  have rd4549 := RD.clipperDup16 rd4548 (by clipper_runtime_decode)
+  have rd4549 := RD.dup16 rd4548 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
-  have rd4550 := RD.clipperDup16 rd4549 (by clipper_runtime_decode)
+  have rd4550 := RD.dup16 rd4549 (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rd4552pre := evm_run rd4550 with [
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov)]

@@ -1,3 +1,6 @@
+import Reasoning.SolmArithmetic
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Benchmarks.Dss.DaiJoin.Calls
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -20,45 +23,13 @@ theorem daiJoinONE_eq_ONEWord_toNat :
     ONE = Int.ofNat daiJoinONEWord.toNat := by
   simp [ONE, daiJoinONEWord_toNat]
 
-abbrev daiJoinUintBinaryLocals (x y : UInt256) : Store :=
-  (((∅ : Store).insert "y" (.int (Int.ofNat y.toNat))).insert "x"
-    (.int (Int.ofNat x.toNat)))
-
-abbrev daiJoinUintBinaryLocalsZ (x y z : UInt256) : Store :=
-  (daiJoinUintBinaryLocals x y).insert "z" (.int (Int.ofNat z.toNat))
-
-theorem daiJoinUintBinaryLocals_get_x (x y : UInt256) :
-    (daiJoinUintBinaryLocals x y).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [daiJoinUintBinaryLocals, store_get_self]
-
-theorem daiJoinUintBinaryLocals_get_y (x y : UInt256) :
-    (daiJoinUintBinaryLocals x y).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [daiJoinUintBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
-
-theorem daiJoinUintBinaryLocalsZ_get_x (x y z : UInt256) :
-    (daiJoinUintBinaryLocalsZ x y z).get? "x" = some (.int (Int.ofNat x.toNat)) := by
-  rw [daiJoinUintBinaryLocalsZ, store_get_ne _ _ (by decide),
-    daiJoinUintBinaryLocals_get_x]
-
-theorem daiJoinUintBinaryLocalsZ_get_y (x y z : UInt256) :
-    (daiJoinUintBinaryLocalsZ x y z).get? "y" = some (.int (Int.ofNat y.toNat)) := by
-  rw [daiJoinUintBinaryLocalsZ, store_get_ne _ _ (by decide),
-    daiJoinUintBinaryLocals_get_y]
-
-theorem daiJoinUintBinaryLocalsZ_get_z (x y z : UInt256) :
-    (daiJoinUintBinaryLocalsZ x y z).get? "z" = some (.int (Int.ofNat z.toNat)) := by
-  rw [daiJoinUintBinaryLocalsZ, store_get_self]
 
 theorem evalExpr_daiJoin_varUInt256 {evm : EVM.State} {locals : Store}
     {name : Ident} {value : UInt256}
     (h : locals.get? name = some (.int (Int.ofNat value.toNat))) :
     evalExpr? config { contract := contract, locals := locals } evm (.var name) =
-      .ok (.int (Int.ofNat value.toNat)) := by
-  rw [evalExpr?]
-  change EvalResult.ofOption EvalError.unboundVariable (locals.get? name) =
-    .ok (.int (Int.ofNat value.toNat))
-  rw [h]
-  rfl
+      .ok (.int (Int.ofNat value.toNat)) :=
+  Reasoning.Theory.evalExpr_varUInt256 (cfg := config) (contract := contract) h
 
 theorem evalExpr_daiJoin_mul256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : UInt256}
@@ -69,19 +40,8 @@ theorem evalExpr_daiJoin_mul256_ok {evm : EVM.State} {locals : Store}
     (hprod : prod = a * b)
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
-      .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hword : prod.toNat = a.toNat * b.toNat := by
-    rw [hprod, umul_toNat a b hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+      .ok (.int (Int.ofNat prod.toNat)) :=
+  Reasoning.Theory.evalExpr_mul256_ok (cfg := config) (contract := contract) hx hy hprod hfit
 
 theorem evalExpr_daiJoin_mul256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -91,10 +51,8 @@ theorem evalExpr_daiJoin_mul256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
-      .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+      .revert :=
+  Reasoning.Theory.evalExpr_mul256_revert (cfg := config) (contract := contract) hx hy hover
 
 theorem evalExpr_daiJoin_div_uint256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b q : UInt256}
@@ -105,13 +63,8 @@ theorem evalExpr_daiJoin_div_uint256_ok {evm : EVM.State} {locals : Store}
     (hb : b ≠ ⟨0⟩)
     (hq : q = UInt256.div a b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
-      .ok (.int (Int.ofNat q.toNat)) := by
-  have hbNat : ¬ b.toNat = 0 := by
-    intro hzero
-    exact hb (uint256_toNat_eq_zero hzero)
-  have hqNat : q.toNat = a.toNat / b.toNat := by
-    rw [hq, udiv_toNat]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+      .ok (.int (Int.ofNat q.toNat)) :=
+  Reasoning.Theory.evalExpr_div_uint256_ok (cfg := config) (contract := contract) hx hy hb hq
 
 theorem evalExpr_daiJoin_eq_int_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -119,9 +72,8 @@ theorem evalExpr_daiJoin_eq_int_true {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a = b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .eq lhs rhs) =
-      .ok (.bool true) := by
-  subst h
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_eq_int_true (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_daiJoin_eq_int_false {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : Int}
@@ -129,16 +81,16 @@ theorem evalExpr_daiJoin_eq_int_false {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
     (h : a ≠ b) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .eq lhs rhs) =
-      .ok (.bool false) := by
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, h]
+      .ok (.bool false) :=
+  Reasoning.Theory.evalExpr_eq_int_false (cfg := config) (contract := contract) hlhs hrhs h
 
 theorem evalExpr_daiJoin_or_true_left {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr}
     (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs =
       .ok (.bool true)) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .or lhs rhs) =
-      .ok (.bool true) := by
-  simp [evalExpr?, EvalResult.bind, bind, pure, hlhs]
+      .ok (.bool true) :=
+  Reasoning.Theory.evalExpr_or_true_left (cfg := config) (contract := contract) hlhs
 
 theorem evalExpr_daiJoin_or_false_right {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {b : Bool}
@@ -147,73 +99,28 @@ theorem evalExpr_daiJoin_or_false_right {evm : EVM.State} {locals : Store}
     (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs =
       .ok (.bool b)) :
     evalExpr? config { contract := contract, locals := locals } evm (.binary .or lhs rhs) =
-      .ok (.bool b) := by
-  simp [evalExpr?, EvalResult.bind, bind, pure, hlhs, hrhs]
+      .ok (.bool b) :=
+  Reasoning.Theory.evalExpr_or_false_right (cfg := config) (contract := contract) hlhs hrhs
 
-theorem daiJoinMulGuard_of_fit {x y : UInt256}
-    (hy : y ≠ ⟨0⟩) (hfit : x.toNat * y.toNat < UInt256.size) :
-    UInt256.div (UInt256.mul x y) y = x := by
-  apply u256_inj
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hzero
-    exact hy (uint256_toNat_eq_zero hzero)
-  rw [udiv_toNat, u256_mul_toNat, Nat.mod_eq_of_lt hfit]
-  simpa [Nat.mul_comm] using
-    Nat.mul_div_right x.toNat (Nat.pos_of_ne_zero hyNatNe)
-
-theorem daiJoinMulOverflow_of_guard_fail {x y : UInt256}
-    (hy : y ≠ ⟨0⟩)
-    (hguard : UInt256.div (UInt256.mul x y) y ≠ x) :
-    UInt256.size ≤ x.toNat * y.toNat := by
-  by_contra hnot
-  exact hguard (daiJoinMulGuard_of_fit hy (Nat.lt_of_not_ge hnot))
-
-theorem daiJoinMulGuard_ne_of_overflow (x y : UInt256)
-    (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    UInt256.div (UInt256.mul x y) y ≠ x := by
-  intro hEq
-  have hyNatNe : y.toNat ≠ 0 := by
-    intro hy0
-    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
-    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  have hnat := congrArg UInt256.toNat hEq
-  rw [udiv_toNat, u256_mul_toNat] at hnat
-  have hremLt : x.toNat * y.toNat % UInt256.size < x.toNat * y.toNat := by
-    have hmodLt : x.toNat * y.toNat % UInt256.size < UInt256.size :=
-      Nat.mod_lt _ (by norm_num [UInt256.size])
-    omega
-  have hle0 :=
-    Nat.mul_div_le (x.toNat * y.toNat % UInt256.size) y.toNat
-  rw [hnat] at hle0
-  have hle : x.toNat * y.toNat ≤ x.toNat * y.toNat % UInt256.size := by
-    simpa [Nat.mul_comm] using hle0
-  omega
-
-theorem daiJoinMulFit_of_guard {x y : UInt256}
-    (hguard : UInt256.div (UInt256.mul x y) y = x) :
-    x.toNat * y.toNat < UInt256.size := by
-  by_contra hnot
-  exact (daiJoinMulGuard_ne_of_overflow x y (Nat.le_of_not_gt hnot)) hguard
 
 theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody config { contract := contract, locals := daiJoinUintBinaryLocals x y } evm
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
       mulFunction.body
-      (.returned { contract := contract, locals := daiJoinUintBinaryLocalsZ x y prod } evm
+      (.returned { contract := contract, locals := uintBinaryLocalsZ x y prod } evm
         (some [.int (Int.ofNat prod.toNat)])) := by
-  let locals := daiJoinUintBinaryLocals x y
-  let localsZ := daiJoinUintBinaryLocalsZ x y prod
+  let locals := uintBinaryLocals x y
+  let localsZ := uintBinaryLocalsZ x y prod
   have hx :
       evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [locals] using evalExpr_daiJoin_varUInt256 (evm := evm)
-      (locals := locals) (name := "x") (value := x) (daiJoinUintBinaryLocals_get_x x y)
+      (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
   have hy :
       evalExpr? config { contract := contract, locals := locals } evm (.var "y") =
         .ok (.int (Int.ofNat y.toNat)) := by
     simpa [locals] using evalExpr_daiJoin_varUInt256 (evm := evm)
-      (locals := locals) (name := "y") (value := y) (daiJoinUintBinaryLocals_get_y x y)
+      (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
   have hMul :
       evalExpr? config { contract := contract, locals := locals } evm
         (mul256 (.var "x") (.var "y")) = .ok (.int (Int.ofNat prod.toNat)) :=
@@ -223,19 +130,19 @@ theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [localsZ] using evalExpr_daiJoin_varUInt256 (evm := evm)
       (locals := localsZ) (name := "x") (value := x)
-      (daiJoinUintBinaryLocalsZ_get_x x y prod)
+      (uintBinaryLocalsZ_get_x x y prod)
   have hyZ :
       evalExpr? config { contract := contract, locals := localsZ } evm (.var "y") =
         .ok (.int (Int.ofNat y.toNat)) := by
     simpa [localsZ] using evalExpr_daiJoin_varUInt256 (evm := evm)
       (locals := localsZ) (name := "y") (value := y)
-      (daiJoinUintBinaryLocalsZ_get_y x y prod)
+      (uintBinaryLocalsZ_get_y x y prod)
   have hzZ :
       evalExpr? config { contract := contract, locals := localsZ } evm (.var "z") =
         .ok (.int (Int.ofNat prod.toNat)) := by
     simpa [localsZ] using evalExpr_daiJoin_varUInt256 (evm := evm)
       (locals := localsZ) (name := "z") (value := prod)
-      (daiJoinUintBinaryLocalsZ_get_z x y prod)
+      (uintBinaryLocalsZ_get_z x y prod)
   have hZeroLit :
       evalExpr? config { contract := contract, locals := localsZ } evm (.intLit 0) =
         .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -261,7 +168,7 @@ theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
         exact hy0 (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
       have hdivWord : UInt256.div prod y = x := by
         rw [hprod]
-        exact daiJoinMulGuard_of_fit hy0 hfit
+        exact mulGuard_of_fit hy0 hfit
       have hDivY :
           evalExpr? config { contract := contract, locals := localsZ } evm
             (.binary .div (.var "z") (.var "y")) = .ok (.int (Int.ofNat x.toNat)) := by
@@ -290,19 +197,19 @@ theorem execDaiJoinMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
 
 theorem execDaiJoinMulFunctionRevert (evm : EVM.State) {x y : UInt256}
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody config { contract := contract, locals := daiJoinUintBinaryLocals x y } evm
+    ExecFuncBody config { contract := contract, locals := uintBinaryLocals x y } evm
       mulFunction.body .reverted := by
-  let locals := daiJoinUintBinaryLocals x y
+  let locals := uintBinaryLocals x y
   have hx :
       evalExpr? config { contract := contract, locals := locals } evm (.var "x") =
         .ok (.int (Int.ofNat x.toNat)) := by
     simpa [locals] using evalExpr_daiJoin_varUInt256 (evm := evm)
-      (locals := locals) (name := "x") (value := x) (daiJoinUintBinaryLocals_get_x x y)
+      (locals := locals) (name := "x") (value := x) (uintBinaryLocals_get_x x y)
   have hy :
       evalExpr? config { contract := contract, locals := locals } evm (.var "y") =
         .ok (.int (Int.ofNat y.toNat)) := by
     simpa [locals] using evalExpr_daiJoin_varUInt256 (evm := evm)
-      (locals := locals) (name := "y") (value := y) (daiJoinUintBinaryLocals_get_y x y)
+      (locals := locals) (name := "y") (value := y) (uintBinaryLocals_get_y x y)
   have hMulRev :
       evalExpr? config { contract := contract, locals := locals } evm
         (mul256 (.var "x") (.var "y")) = .revert :=

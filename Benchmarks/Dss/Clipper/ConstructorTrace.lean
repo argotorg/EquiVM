@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.ConstructorBase
 
 /-!
@@ -14,37 +15,6 @@ set_option maxHeartbeats 2000000
 abbrev clipperCtorRelyLogTopic : UInt256 :=
   ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩
 
-
-/-- Lift a return trace whose final account map may differ from the initial map to `Ξ`. -/
-theorem clipperRDretXiResultAccountMap {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : AccountMap} (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
-      ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
-  rcases h with hOOG | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hOOG
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hOOG))
-  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hacc] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
-
-theorem clipperCtorSetAddressWord_eq (old data : UInt256) :
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-      setAddressOffset0Word old data := by
-  calc
-    UInt256.lor (UInt256.land data solcAddrMask)
-        (UInt256.land (UInt256.lnot solcAddrMask) old) =
-        UInt256.lor (UInt256.land data solcAddrMask)
-          (UInt256.land old (UInt256.lnot solcAddrMask)) := by
-            rw [u256_land_comm (UInt256.lnot solcAddrMask) old]
-    _ = UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask))
-          (UInt256.land data solcAddrMask) := u256_lor_comm _ _
-    _ = setAddressOffset0Word old data := rfl
 
 theorem clipperCtorStoppedReach
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
@@ -226,7 +196,7 @@ theorem clipperCtorSpotterStoreReach
   obtain ⟨k', C', rd129raw⟩ := rdBeforeStore.sstore hperm
     (by clipper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [clipperCtorSetAddressWord_eq,
+    simpa [ctorSetAddressWord_eq,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask by decide] using rd129raw⟩
 
@@ -263,7 +233,7 @@ theorem clipperCtorDogStoreReach
   obtain ⟨k', C', rd145raw⟩ := rdBeforeStore.sstore hperm
     (by clipper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [clipperCtorSetAddressWord_eq] using rd145raw⟩
+    simpa [ctorSetAddressWord_eq] using rd145raw⟩
 
 theorem clipperCtorBufWardsReach
     {σ σDog σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
@@ -422,7 +392,7 @@ theorem clipperCtorReturnTrace
       (by clipper_ctor_decode) mem_cost hvatload (by decide) (by evm_ov),
     push1 ⟨96⟩, shr]
   have rdVat := by
-    simpa [clipperCtorAddressHighShiftDecode vat] using rdVatRaw
+    simpa [ctorAddressHighShiftDecode vat] using rdVatRaw
   have hcopy : (clipperCtorCode vat spotter dog ilk).write 347
       (clipperCtorWardsHashMem I vat spotter dog ilk) 0 9360 = clipperBytecode :=
     clipperCtorRuntime_codecopy_mem I vat spotter dog ilk hilk

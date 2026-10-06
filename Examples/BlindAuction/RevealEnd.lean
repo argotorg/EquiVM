@@ -29,7 +29,7 @@ theorem blindAuctionRevealEndBodyReturns (evm : EVM.State) (locals : Store)
         decide
       rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
-      rw [blindAuctionStorageLocLoad_uint256])
+      erw [storageLocLoad_uint256])
 
 theorem blindAuctionX_revealEnd {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)

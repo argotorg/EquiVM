@@ -79,8 +79,8 @@ theorem evalExpr_transferOwnership_owner (evm : EVM.State) (I : ExecutionEnv) :
   have hty : storageTypeAt? contract.storage
       ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := transferOwnershipStore_owner I)
-    (her := her) (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0]
+  erw [evalExpr_storage_scalar (t := .address) (hbase := transferOwnershipStore_owner I)
+    (her := her) (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0]
 
 theorem evalExpr_transferOwnership_sender (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferOwnershipStore I } evm sender =
@@ -140,7 +140,7 @@ theorem transferOwnershipAssignPending (evm : EVM.State) (I : ExecutionEnv)
       storageLocStore evm (addrLoc ⟨1⟩) (transferOwnershipNewOwnerValue I) =
         some (transferOwnershipAfterPendingState evm I) := by
     simpa [transferOwnershipAfterPendingState, transferOwnershipNewOwnerValue] using
-      ownable2StepStorageLocStore_address_offset0 evm ⟨1⟩
+      storageLocStore_address_offset0 evm ⟨1⟩
         (transferOwnershipNewOwnerWord I) hcanon
   exact assignStorageRef_storage_scalar_value (cfg := config)
     (solm := { contract := contract, locals := transferOwnershipStore I })

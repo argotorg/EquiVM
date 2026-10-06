@@ -31,7 +31,7 @@ theorem dogConstructorBodyCore (v : DogImmutables) :
   · have hrd := dogInitcodeSuccess
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
-    rcases RDret.xiResultAcc hcodeCtor hrd with hOOG | ⟨g', A', hsuccess⟩
+    rcases RDretXiResultAccountMap hcodeCtor hrd with hOOG | ⟨g', A', hsuccess⟩
     · exact constructorEquivalenceForWith.outOfGas
         (by simpa [Sat256.ofUInt256] using hOOG)
     · let σLive := sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩

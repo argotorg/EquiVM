@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.End
 /-! ## `when()` getter -/
 
 def whenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  endSlotWord ⟨9⟩ σ I
+  solcSlotWordAt ⟨9⟩ σ I
 
 theorem endDecode_when {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (whenTransition.params.map Param.name)
@@ -80,7 +80,7 @@ theorem endWhenBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (whenWord σ I).toNat))])) := by
-    simpa [whenTransition, whenWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [whenTransition, whenWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       endUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

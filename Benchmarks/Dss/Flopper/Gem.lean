@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Flopper
 /-! ## `gem()` getter -/
 
 def gemWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  flopperAddressReturnWord ⟨3⟩ σ I
+  solcAddressSlotWord ⟨3⟩ σ I
 
 theorem flopperDecode_gem {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (gemTransition.params.map Param.name)
@@ -70,7 +70,7 @@ theorem flopperGemBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat (gemWord σ I).toNat))])) := by
-    simpa [gemTransition, gemWord, flopperAddressReturnWord, initState, Solm.EVM.storageLoad,
+    simpa [gemTransition, gemWord, solcAddressSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       flopperAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

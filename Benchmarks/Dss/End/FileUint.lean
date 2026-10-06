@@ -58,57 +58,6 @@ theorem endFileUintWhatWord_ne_of_bytes_ne {I : ExecutionEnv} {bs : List UInt8}
   intro hword
   exact hneq (endFileUintWhat_eq_of_word_eq hsz36 hword hbsLen)
 
-theorem endDecodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
-    (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      some (((∅ : Solm.Store).insert x
-        (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have htake36 : ((cd.toList.drop 36).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]
-    omega
-  have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
-    decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  rw [endDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
-    (by simpa using htake4)
-    (by simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using htake36)]
-  rw [if_neg (by rw [List.length_drop, htlen]; omega :
-    ¬ (cd.toList.drop 4).length < 64)]
-  simp [decodeCalldata.insertValues]
-  rw [hword36]
-
-theorem endDecodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
-    {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
-      none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
-  simp only [bind, Option.bind]
-  by_cases hbytes : (cd.toList.drop 4).length < 64
-  · rw [if_pos hbytes]
-  · rw [if_neg hbytes]
-    rw [endDecodeABIValues_bytes32_uint256_legacy_none_short
-      (bytes := cd.toList.drop 4) (by
-        rw [List.length_drop, htlen]
-        omega)]
 
 theorem endDecode_fileUint_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (fileUintTransition.params.map Param.name)
@@ -117,7 +66,7 @@ theorem endDecode_fileUint_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size
   simpa [config, fileUintTransition, bytes32, bytes32Width, uint256, uint256Int,
     endFileUintLocals, endFileUintWhat, endFileUintData, abiBytes32, abiBytes32Width,
     abiUInt256] using
-    (endDecodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata) (x := "what")
+    (decodeCalldata_legacyBytes32_uint256_ok (cd := I.calldata) (x := "what")
       (y := "data") hsz68)
 
 theorem endDecode_fileUint_none_short {I : ExecutionEnv}
@@ -126,7 +75,7 @@ theorem endDecode_fileUint_none_short {I : ExecutionEnv}
       (transitionSignature fileUintTransition).paramTypes I.calldata = none := by
   simpa [config, fileUintTransition, bytes32, bytes32Width, uint256, uint256Int,
     abiBytes32, abiBytes32Width, abiUInt256] using
-    (endDecodeCalldata_legacyBytes32_uint256_none_short (cd := I.calldata) (x := "what")
+    (decodeCalldata_legacyBytes32_uint256_none_short (cd := I.calldata) (x := "what")
       (y := "data") hsz4 hshort)
 
 theorem endFileUintLocals_get_what (I : ExecutionEnv) :
@@ -233,7 +182,7 @@ theorem evalExpr_endFileUint_auth_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using endStorageLocLoad_uint256 evm (endRelyAuthStorageSlot I))]
+        simpa [hload] using storageLocLoad_uint256 evm (endRelyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -261,7 +210,7 @@ theorem evalExpr_endFileUint_auth_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileUint_auth evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm (endRelyAuthStorageSlot I))
+      (hload := by exact storageLocLoad_uint256 evm (endRelyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -269,7 +218,7 @@ theorem evalExpr_endFileUint_auth_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact endUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -312,7 +261,7 @@ theorem evalExpr_endFileUint_live_true (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileUint_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by simpa [hload] using endStorageLocLoad_uint256 evm ⟨8⟩)]
+      (hload := by simpa [hload] using storageLocLoad_uint256 evm ⟨8⟩)]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
 
@@ -336,7 +285,7 @@ theorem evalExpr_endFileUint_live_false (evm : EVM.State) (I : ExecutionEnv)
       (her := evalStorageRef_endFileUint_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-      (hload := by exact endStorageLocLoad_uint256 evm ⟨8⟩)
+      (hload := by exact storageLocLoad_uint256 evm ⟨8⟩)
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ≠
@@ -344,7 +293,7 @@ theorem evalExpr_endFileUint_live_false (evm : EVM.State) (I : ExecutionEnv)
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact endUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat) ==
@@ -375,12 +324,12 @@ theorem endFileUintAssignWait (evm : EVM.State) (I : ExecutionEnv) :
         pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
-  simpa [endFileUintPostState] using endStorageLocStore_uint256 evm ⟨10⟩ (endFileUintData I)
+  simpa [endFileUintPostState] using storageLocStore_uint256 evm ⟨10⟩ (endFileUintData I)
 
 theorem endFileUintSourceWaitOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hwhat : endFileUintWhat I = endFileUintWaitBytes) :
     let locals := endFileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -391,13 +340,13 @@ theorem endFileUintSourceWaitOk {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileUint_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileUint_live_true evm0 I hlive
   have hcond :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -442,7 +391,7 @@ theorem endFileUintSourceAuthReverts {σ σ₀ A I} {g : UInt256}
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileUint_auth_false evm0 I (by simp [evm0, initState]) hauth
   refine ExecFuncBody.execBlockRevert ?_
@@ -464,7 +413,7 @@ theorem endFileUintSourceAuthReverts {σ σ₀ A I} {g : UInt256}
 theorem endFileUintSourceLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩) :
     let locals := endFileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
@@ -472,13 +421,13 @@ theorem endFileUintSourceLiveReverts {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileUint_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileUint_live_false evm0 I hlive
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
@@ -493,7 +442,7 @@ theorem endFileUintSourceLiveReverts {σ σ₀ A I} {g : UInt256}
 theorem endFileUintSourceUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hnotWait : endFileUintWhat I ≠ endFileUintWaitBytes) :
     let locals := endFileUintLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -502,13 +451,13 @@ theorem endFileUintSourceUnrecognizedReverts {σ σ₀ A I} {g : UInt256}
   have hguardAuth :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endRelyAuthWord, endSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [locals, evm0, endRelyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_endFileUint_auth_true evm0 I (by simp [evm0, initState]) hauth
   have hguardLive :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
-    simpa [locals, evm0, endSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
+    simpa [locals, evm0, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount]
       using evalExpr_endFileUint_live_true evm0 I hlive
   have hwait :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -773,7 +722,7 @@ theorem endFileUintX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   simpa [endRelyAuthHashMem] using
     RD.endAuthCheckOk
@@ -794,7 +743,7 @@ theorem endFileUintX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev endBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-    simpa [endRelyAuthWord, endSlotWord, endRelyAuthStorageSlot_eq_mapSlot_source I,
+    simpa [endRelyAuthWord, solcSlotWordAt, endRelyAuthStorageSlot_eq_mapSlot_source I,
       mapSlot] using hauth
   exact RD.endAuthCheckRevert
     (code := endBytecode) (pc := endFileUintAuthPc) (okPc := endFileUintLivePc)
@@ -810,7 +759,7 @@ theorem endFileUintX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     hauthSolc (by simp)
 
 theorem endFileUintX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩)
+    {sel : UInt256} (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (h : RD endBytecode I g s0 endFileUintLivePc
       [endFileUintData I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -818,7 +767,7 @@ theorem endFileUintX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [endFileUintData I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ = ⟨1⟩ := by
-    simpa [endSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   exact RD.endLiveGuardOk
     (code := endBytecode) (pc := endFileUintLivePc) (okPc := endFileUintSwitchPc)
     (key := endFileUintData I) (ret := calldataWord I.calldata 4)
@@ -830,13 +779,13 @@ theorem endFileUintX_live {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     hliveSolc (by jump_dest) (by simp)
 
 theorem endFileUintX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hlive : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩)
+    {sel : UInt256} (hlive : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩)
     (h : RD endBytecode I g s0 endFileUintLivePc
       [endFileUintData I, calldataWord I.calldata 4, endRelyReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev endBytecode g s0 := by
   have hliveSolc : solcSlotWord σ I ⟨8⟩ ≠ ⟨1⟩ := by
-    simpa [endSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   exact RD.endLiveGuardRevert
     (code := endBytecode) (pc := endFileUintLivePc) (okPc := endFileUintSwitchPc)
     (key := endFileUintData I) (ret := calldataWord I.calldata 4)
@@ -1073,8 +1022,8 @@ theorem endFileUintBody {σ σ₀ A I} {g : UInt256}
     by_cases hauth : endRelyAuthWord σ I = ⟨1⟩
     · have hauthSolm : endRelyAuthWord σ I = ⟨1⟩ := hauth
       obtain ⟨_, _, hauthPc⟩ := endFileUintX_authorized (I := I) hauth hdecoded
-      by_cases hlive : endSlotWord ⟨8⟩ σ I = ⟨1⟩
-      · have hliveSolm : endSlotWord ⟨8⟩ σ I = ⟨1⟩ := hlive
+      by_cases hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩
+      · have hliveSolm : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩ := hlive
         obtain ⟨_, _, hswitch⟩ := endFileUintX_live (I := I) hlive hauthPc
         have hsz36 : 36 ≤ I.calldata.size := by omega
         by_cases hwait : endFileUintWhat I = endFileUintWaitBytes
@@ -1109,7 +1058,7 @@ theorem endFileUintBody {σ σ₀ A I} {g : UInt256}
                 (A := A) (I := I) (g := g) hwv hauthSolm hliveSolm hwait
           exact (endFileUintX_unrecognized hnotWaitWord hswitch)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hliveSolm : endSlotWord ⟨8⟩ σ I ≠ ⟨1⟩ := by
+      · have hliveSolm : solcSlotWordAt ⟨8⟩ σ I ≠ ⟨1⟩ := by
           intro hbad
           exact hlive hbad
         have hbody :

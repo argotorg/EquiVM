@@ -1,3 +1,4 @@
+import Reasoning.Memory
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Reasoning.SolmBody
 
@@ -168,169 +169,58 @@ theorem renounceRoleCallerAddress_eq_source_of_word {I : ExecutionEnv}
     AccountAddress.ofNat (renounceRoleCallerWord I).toNat = I.source := by
   rw [hword, renounceRoleSource_ofNat]
 
--- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
-def renounceRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 0 32
-
-def renounceRoleWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  (UInt256.toByteArray word).write 0 mem 32 32
-
-def renounceRoleTwoWordHashMem (key slot : UInt256) (mem : ByteArray) :
-    ByteArray :=
-  renounceRoleWordAt32Mem slot (renounceRoleWordAt0Mem key mem)
-
-theorem renounceRoleWordAt0Mem_size {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleWordAt0Mem word mem).size = 96 := by
-  unfold renounceRoleWordAt0Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem renounceRoleWordAt32Mem_size {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleWordAt32Mem word mem).size = 96 := by
-  unfold renounceRoleWordAt32Mem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
-    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
-  omega
-
-theorem renounceRoleTwoWordHashMem_size {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleTwoWordHashMem key slot mem).size = 96 := by
-  unfold renounceRoleTwoWordHashMem
-  exact renounceRoleWordAt32Mem_size slot (renounceRoleWordAt0Mem_size key hmem)
-
-theorem renounceRoleWordAt0Mem_read0 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleWordAt0Mem word mem).readWithPadding 0 32 = UInt256.toByteArray word := by
-  unfold renounceRoleWordAt0Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray word).size ≤ 32
-    rw [toByteArray_size])
-
-theorem renounceRoleWordAt0Mem_read64 {mem : ByteArray} (word : UInt256)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (renounceRoleWordAt0Mem word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold renounceRoleWordAt0Mem
-  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
-      (by rw [hmem]; omega) (by omega) (by rw [hmem])]
-  exact hread64
-
-theorem renounceRoleTwoWordHashMem_read0 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleTwoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  unfold renounceRoleTwoWordHashMem renounceRoleWordAt32Mem
-  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
-      (by rw [renounceRoleWordAt0Mem_size key hmem]; omega) (by omega),
-    renounceRoleWordAt0Mem_read0 key hmem]
-
-theorem renounceRoleTwoWordHashMem_read32 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleTwoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  unfold renounceRoleTwoWordHashMem renounceRoleWordAt32Mem
-  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
-      (by rw [renounceRoleWordAt0Mem_size key hmem]; omega)]
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray slot).size ≤ 32
-    rw [toByteArray_size])
-
-theorem renounceRoleTwoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (renounceRoleTwoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold renounceRoleTwoWordHashMem renounceRoleWordAt32Mem
-  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
-      (by rw [renounceRoleWordAt0Mem_size key hmem]; omega) (by omega)
-      (by rw [renounceRoleWordAt0Mem_size key hmem])]
-  exact renounceRoleWordAt0Mem_read64 key hmem hread64
-
-theorem renounceRoleTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (renounceRoleTwoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
-      (by rw [renounceRoleTwoWordHashMem_size key slot hmem]; omega)]
-  have hleft :
-      (renounceRoleTwoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
-    rw [← readWithPadding_eq_extract _ 0
-        (by rw [renounceRoleTwoWordHashMem_size key slot hmem]; omega),
-      renounceRoleTwoWordHashMem_read0 key slot hmem]
-  have hright :
-      (renounceRoleTwoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
-    rw [← readWithPadding_eq_extract _ 32
-        (by rw [renounceRoleTwoWordHashMem_size key slot hmem]; omega),
-      renounceRoleTwoWordHashMem_read32 key slot hmem]
-  rw [show (renounceRoleTwoWordHashMem key slot mem).extract 0 64 =
-      (renounceRoleTwoWordHashMem key slot mem).extract 0 32 ++
-        (renounceRoleTwoWordHashMem key slot mem).extract 32 64 by
-      rw [ByteArray.extract_append_extract]
-      norm_num]
-  rw [hleft, hright]
 
 def renounceRoleBaseHashMem (role : UInt256) : ByteArray :=
-  renounceRoleTwoWordHashMem role ⟨0⟩ solcFreePtrMem
+  twoWordHashMem role ⟨0⟩ solcFreePtrMem
 
 def renounceRoleBaseSlotFromWord (role : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((renounceRoleBaseHashMem role).readWithPadding 0 64)))
 
 def renounceRoleAccountMem (role account : UInt256) : ByteArray :=
-  renounceRoleWordAt0Mem account (renounceRoleBaseHashMem role)
+  wordAt0Mem account (renounceRoleBaseHashMem role)
 
 def renounceRoleSlotHashMem (role account : UInt256) : ByteArray :=
-  renounceRoleWordAt32Mem (renounceRoleBaseSlotFromWord role)
+  wordAt32Mem (renounceRoleBaseSlotFromWord role)
     (renounceRoleAccountMem role account)
 
 theorem renounceRoleBaseHashMem_size (role : UInt256) :
     (renounceRoleBaseHashMem role).size = 96 := by
   unfold renounceRoleBaseHashMem
-  exact renounceRoleTwoWordHashMem_size role ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_size_96 role ⟨0⟩ solcFreePtrMem_size
 
 theorem renounceRoleSlotHashMem_size (role account : UInt256) :
     (renounceRoleSlotHashMem role account).size = 96 := by
   unfold renounceRoleSlotHashMem
-  apply renounceRoleWordAt32Mem_size
+  apply wordAt32Mem_size_96
   unfold renounceRoleAccountMem
-  exact renounceRoleWordAt0Mem_size account (renounceRoleBaseHashMem_size role)
+  exact wordAt0Mem_size_96 account (renounceRoleBaseHashMem_size role)
 
 theorem renounceRoleBaseHashMem_read0_64 (role : UInt256) :
     (renounceRoleBaseHashMem role).readWithPadding 0 64 =
       UInt256.toByteArray role ++ UInt256.toByteArray (⟨0⟩ : UInt256) := by
   unfold renounceRoleBaseHashMem
-  exact renounceRoleTwoWordHashMem_read0_64 role ⟨0⟩ solcFreePtrMem_size
+  exact twoWordHashMem_read0_64 role ⟨0⟩ solcFreePtrMem_size
 
 theorem renounceRoleSlotHashMem_read0_64 (role account : UInt256) :
     (renounceRoleSlotHashMem role account).readWithPadding 0 64 =
       UInt256.toByteArray account ++ UInt256.toByteArray (renounceRoleBaseSlotFromWord role) := by
-  change (renounceRoleTwoWordHashMem account (renounceRoleBaseSlotFromWord role)
+  change (twoWordHashMem account (renounceRoleBaseSlotFromWord role)
       (renounceRoleBaseHashMem role)).readWithPadding 0 64 =
     UInt256.toByteArray account ++ UInt256.toByteArray (renounceRoleBaseSlotFromWord role)
-  exact renounceRoleTwoWordHashMem_read0_64 account (renounceRoleBaseSlotFromWord role)
+  exact twoWordHashMem_read0_64 account (renounceRoleBaseSlotFromWord role)
     (renounceRoleBaseHashMem_size role)
 
 theorem renounceRoleSlotHashMem_read64 (role account : UInt256) :
     (renounceRoleSlotHashMem role account).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  change (renounceRoleTwoWordHashMem account (renounceRoleBaseSlotFromWord role)
+  change (twoWordHashMem account (renounceRoleBaseSlotFromWord role)
       (renounceRoleBaseHashMem role)).readWithPadding 64 32 =
     UInt256.toByteArray ⟨128⟩
-  apply renounceRoleTwoWordHashMem_read64
+  apply twoWordHashMem_read64
   · exact renounceRoleBaseHashMem_size role
   · unfold renounceRoleBaseHashMem
-    exact renounceRoleTwoWordHashMem_read64 role ⟨0⟩ solcFreePtrMem_size
+    exact twoWordHashMem_read64 role ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
 
 theorem renounceRoleSlotHashMem_mload64 (role account : UInt256) :
@@ -475,8 +365,9 @@ theorem evalStorageRef_renounceRole_target (evm : EVM.State) (I : ExecutionEnv)
   simp [evalStorageRef, evalStorageRefStep, evalStorageRefSteps, roleHasRoleRef,
     evalExpr_renounceRole_role, evalExpr_renounceRole_callerConfirmation,
     renounceRoleTargetEvaledRef, renounceRoleRoleValue, renounceRoleCallerValue,
-    renounceRoleCallerKey, accessControlValueToKey_bytes32_of_length hlen,
-    accessControlValueToKey_address, EvalResult.seqList, EvalResult.bind,
+    renounceRoleCallerKey, show bytes32Width = abiBytes32Width from rfl,
+      valueToKey_bytes32_of_length hlen,
+    valueToKey_address, EvalResult.seqList, EvalResult.bind,
     EvalResult.ofOption, bind, pure]
 
 theorem evalExpr_renounceRole_target_true (evm : EVM.State) (I : ExecutionEnv)
@@ -496,7 +387,7 @@ theorem evalExpr_renounceRole_target_true (evm : EVM.State) (I : ExecutionEnv)
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_true evm _ hnz]
+  erw [storageLocLoad_bool_offset0_true evm _ hnz]
 
 theorem evalExpr_renounceRole_target_false (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -515,7 +406,7 @@ theorem evalExpr_renounceRole_target_false (evm : EVM.State) (I : ExecutionEnv)
         boolSt, storageTypeStep?])
     (hloc := by
       rfl)]
-  rw [accessControlStorageLocLoad_bool_offset0_false evm _ hzero]
+  erw [storageLocLoad_bool_offset0_false evm _ hzero]
 
 theorem renounceRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
@@ -922,7 +813,7 @@ theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     jumpdest, iszero, push2 ⟨676⟩, jumpiNT (isZero_eq_zero_of_ne htarget) ]
   have rd713pre := evm_run rd700 with [
     push0, dup4, dup2,
-    raw mstore 0 (revokeRoleWordAt0Mem (renounceRoleRoleWord I) memTarget)
+    raw mstore 0 (wordAt0Mem (renounceRoleRoleWord I) memTarget)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup2, dup2,
     raw mstore 0 (revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)

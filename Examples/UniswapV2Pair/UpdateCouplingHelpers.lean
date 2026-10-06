@@ -39,25 +39,28 @@ theorem RD.uniswapUpdateConditionFalseSkipsCumulatives
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hskip :
-      UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩ ∨
+      UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩ ∨
       UInt256.land reserve0 reserve112Mask = ⟨0⟩ ∨
       UInt256.land reserve1 reserve112Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7241⟩
-      (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee ::
+      (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ ee) ee ::
         uniswapUpdateTimestampWord ee :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata σ k' C' := by
   by_cases ht : UInt256.land
-      (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩
-  · simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using
+      (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩
+  · simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+      solcSlotWord] using
       (RD.uniswapUpdateElapsedZeroSkipsCumulatives
         (reserve0 := reserve0) (reserve1 := reserve1) (R := R) rd ht hov)
   by_cases hr0 : UInt256.land reserve0 reserve112Mask = ⟨0⟩
-  · simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using
+  · simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+      solcSlotWord] using
       (RD.uniswapUpdateReserve0ZeroSkipsCumulatives
         (reserve0 := reserve0) (reserve1 := reserve1) (R := R) rd ht hr0 hov)
   have hr1 : UInt256.land reserve1 reserve112Mask = ⟨0⟩ := by tauto
-  simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using
+  simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, solcSlotWordAt,
+    solcSlotWord] using
     (RD.uniswapUpdateReserve1ZeroSkipsCumulatives
       (reserve0 := reserve0) (reserve1 := reserve1) (R := R) rd ht hr0 hr1 hov)
 

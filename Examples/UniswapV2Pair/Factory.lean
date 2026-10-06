@@ -10,10 +10,10 @@ namespace UniswapV2Pair
 /-! ## `factory()` getter -/
 
 def factoryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨5⟩ σ I
+  solcSlotWordAt ⟨5⟩ σ I
 
 abbrev factoryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapAddressReturnWord ⟨5⟩ σ I
+  solcAddressSlotWord ⟨5⟩ σ I
 
 /-- The Solm `factory()` body returns the address stored in slot 5. -/
 theorem uniswapFactoryBodyReturns (evm : EVM.State) (locals : Store)

@@ -20,10 +20,11 @@ theorem constructorStoredAccountMap_eq {σ : AccountMap} {evm : EVM.State} {I : 
         (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val))) ha
   have heD : (constructorDomainState evm).executionEnv = I := by
     simp only [constructorDomainState, storageStore_executionEnv, he]
-  have hslot : uniswapSlotWord ⟨5⟩ σD I =
+  have hslot : solcSlotWordAt ⟨5⟩ σD I =
       Solm.EVM.storageLoad (constructorDomainState evm) I.codeOwner ⟨5⟩ := by
-    simpa only [uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using congrArg (fun accounts => uniswapSlotWord ⟨5⟩ accounts I) haD
+    simpa only [solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage]
+      using congrArg (fun accounts => solcSlotWordAt ⟨5⟩ accounts I) haD
   unfold constructorStoredAccountMap constructorFactoryState
   rw [storageStore_accountMap, heD]
   change Eq (sstoreAccountMap I.codeOwner σD ⟨5⟩ _)

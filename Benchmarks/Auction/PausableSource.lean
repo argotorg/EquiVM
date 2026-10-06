@@ -5,7 +5,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 def pausedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (storedWord σ I ⟨51⟩) ⟨255⟩
+  UInt256.land (solcSlotWord σ I ⟨51⟩) ⟨255⟩
 
 def pauseWord (old : UInt256) : UInt256 :=
   UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩

@@ -1,33 +1,11 @@
+import Reasoning.WordArithmetic
+import Reasoning.EVMWord
 import Benchmarks.Auction.CheckedAdd
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
--- LIBRARY CANDIDATE: the division check used by checked uint256 multiplication.
-theorem checkedMul_div_eq {a b : UInt256} (ha : a ≠ ⟨0⟩)
-    (hb : b.toNat * a.toNat < UInt256.size) : UInt256.div (UInt256.mul b a) a = b := by
-  have hp : 0 < a.toNat := by
-    by_contra hn
-    exact ha (uint256_toNat_eq_zero (by omega))
-  apply u256_inj
-  rw [udiv_toNat, u256_mul_toNat, Nat.mod_eq_of_lt hb, Nat.mul_div_cancel _ hp]
-
-theorem checkedMul_div_ne {a b : UInt256} (hb : UInt256.size ≤ b.toNat * a.toNat) :
-    UInt256.div (UInt256.mul b a) a ≠ b := by
-  have hp : 0 < a.toNat := by
-    by_contra hn
-    have hz : a.toNat = 0 := by omega
-    rw [hz, Nat.mul_zero] at hb
-    exact (by decide : ¬ UInt256.size ≤ 0) hb
-  have hm : b.toNat * a.toNat % UInt256.size < b.toNat * a.toNat :=
-    lt_of_lt_of_le (Nat.mod_lt _ (by decide)) hb
-  have hd : b.toNat * a.toNat % UInt256.size / a.toNat < b.toNat :=
-    (Nat.div_lt_iff_lt_mul hp).mpr hm
-  intro he
-  have hn := congrArg UInt256.toNat he
-  rw [udiv_toNat, u256_mul_toNat] at hn
-  omega
 
 def checkedMulCondition (a b : UInt256) : UInt256 :=
   UInt256.lor (UInt256.eq b (UInt256.div (UInt256.mul b a) a)) (UInt256.isZero a)

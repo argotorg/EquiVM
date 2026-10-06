@@ -29,7 +29,7 @@ theorem tinyBodyReverts_nonPayable (v : TinyImmutables) (t : TransitionDecl)
 theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
     (v : TinyImmutables) (hcode : I.code = patchedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
-  exact (tinyX_callvalue_ne (g := Sat256.ofUInt256 g) v hcode hwv).reEquivElim hcode
+  exact (tinyBlocksX_callvalue_ne (g := Sat256.ofUInt256 g) v hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg (contract v) I.calldata = none
       · exact reEquiv_noDispatch hdisp hrev
@@ -47,15 +47,12 @@ theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem tinyImmutableCorrect (v : TinyImmutables) {code : ByteArray}
-    (hcode : patchRuntime tinyImmutableBytecode (patches v) = some code) :
-    runtimeEquivalenceAnyPerm (config v) code (contract v) := by
-  have hcode' := code_eq_patchedRuntime_of_patch (v := v) hcode
-  subst code
+theorem tinyImmutableCorrect (v : TinyImmutables) :
+    runtimeEquivalenceAnyPerm (config v) (patchedRuntime v) (contract v) := by
   refine ⟨fun σ σ₀ g A I hIcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4
-    · exact (tinyX_short (g := Sat256.ofUInt256 g) v hIcode hwv hshort)
+    · exact (tinyBlocksX_short (g := Sat256.ofUInt256 g) v hIcode hwv hshort)
         |>.reEquivNoDispatch hIcode (tinyDispatch_none_short v hshort)
     · have hsz4 : 4 ≤ I.calldata.size := by omega
       by_cases howner : (ownerSelBytes == I.calldata.extract 0 4) = true
@@ -70,17 +67,16 @@ theorem tinyImmutableCorrect (v : TinyImmutables) {code : ByteArray}
           · exact tinyScaleBodyCore v hIcode hsize hwv hownerF hquoteF hscale
           · have hscaleF : (scaleSelBytes == I.calldata.extract 0 4) = false :=
               Bool.eq_false_of_not_eq_true hscale
-            exact (tinyX_noMatch (g := Sat256.ofUInt256 g) v hIcode hwv hsz4 hsize
+            exact (tinyBlocksX_noMatch (g := Sat256.ofUInt256 g) v hIcode hwv hsz4 hsize
                 hownerF hquoteF hscaleF)
               |>.reEquivNoDispatch hIcode
                 (tinyDispatch_none_nomatch v hownerF hquoteF hscaleF)
   · exact tinyNonPayable v hIcode hwv
 
-theorem tinyImmutableContractCorrect (v : TinyImmutables) {code : ByteArray}
-    (hcode : patchRuntime tinyImmutableBytecode (patches v) = some code) :
-    contractEquivalenceWithAnyPerm (config v) tinyImmutableCreationBytecode code (contract v)
-      (runtimeCodeOf tinyImmutableBytecode) :=
+theorem tinyImmutableContractCorrect (v : TinyImmutables) :
+    contractEquivalenceWithAnyPerm (config v) tinyImmutableCreationBytecode (patchedRuntime v)
+      (contract v) (runtimeCodeOf tinyImmutableBytecode) :=
   contractEquivalenceWithAnyPerm.intro (tinyImmutableConstructorCorrect v)
-    (tinyImmutableCorrect v hcode)
+    (tinyImmutableCorrect v)
 
 end TinyImmutable

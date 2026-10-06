@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.TransferFromBody
 
 /-!
@@ -32,15 +33,6 @@ abbrev tfStore (I : ExecutionEnv) : Store :=
 
 /-! ## Wrapping subtraction on store -/
 
-/-- `wordOfInt (a − b) = a ⊖ b` (the wrapping `-=` truncation on store, valid when `b ≤ a`). -/
-theorem wordOfInt_sub_words {a b : UInt256} (h : b.toNat ≤ a.toNat) :
-    EVM.wordOfInt (Int.ofNat a.toNat - Int.ofNat b.toNat) = UInt256.sub a b := by
-  have hcast : (Int.ofNat a.toNat - Int.ofNat b.toNat) = Int.ofNat (a.toNat - b.toNat) :=
-    (Int.ofNat_sub h).symm
-  rw [hcast, wordOfInt_ofNat_toNat_gen]
-  apply u256_inj
-  rw [usub_toNat h]
-  exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) a.val.isLt)
 
 /-! ## Canonicity of masked words -/
 

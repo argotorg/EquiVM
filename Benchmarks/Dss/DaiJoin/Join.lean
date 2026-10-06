@@ -139,11 +139,11 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
   have hbindMul :
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
-        some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+        some (uintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
+    simp [mulFunction, uint256, bindParams?, uintBinaryLocals, joinWadValue]
   have hover :
       UInt256.size ≤ daiJoinONEWord.toNat * (joinWadWord I).toNat :=
-    daiJoinMulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
+    mulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
   have hmulStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.internalCall "mul" [.intLit ONE, .var "wad"] "rad") .reverted :=
@@ -154,7 +154,7 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I])
       (callee := mulFunction)
-      (locals := daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I))
+      (locals := uintBinaryLocals daiJoinONEWord (joinWadWord I))
       (evalExprs_daiJoinJoinMulArgs evm I) hlookupMul hbindMul
       (execDaiJoinMulFunctionRevert evm (x := daiJoinONEWord) (y := joinWadWord I) hover)
   have hblock :
@@ -178,8 +178,8 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
   have hbindMul :
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
-        some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+        some (uintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
+    simp [mulFunction, uint256, bindParams?, uintBinaryLocals, joinWadValue]
   have hbody :=
     execDaiJoinMulFunctionReturn evm
       (x := daiJoinONEWord) (y := joinWadWord I)
@@ -193,10 +193,10 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I])
       (callee := mulFunction)
-      (locals := daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I))
+      (locals := uintBinaryLocals daiJoinONEWord (joinWadWord I))
       (calleeSolm :=
         { contract := contract,
-          locals := daiJoinUintBinaryLocalsZ daiJoinONEWord (joinWadWord I)
+          locals := uintBinaryLocalsZ daiJoinONEWord (joinWadWord I)
             (daiJoinRadWord (joinWadWord I)) })
       (value := some [.int (Int.ofNat (daiJoinRadWord (joinWadWord I)).toNat)])
       (evalExprs_daiJoinJoinMulArgs evm I) hlookupMul hbindMul hbody
@@ -275,9 +275,9 @@ theorem evalExpr_daiJoinVatStorage {evm : EVM.State} {locals : Store}
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [daiJoinVatAddress, daiJoinVatTargetWord, daiJoinAddressReturnWord,
-        daiJoinSlotWord] using
-        daiJoinStorageLocLoad_address_offset0 evm ⟨1⟩)
+      simpa [daiJoinVatAddress, daiJoinVatTargetWord, solcAddressSlotWord,
+        solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨1⟩)
 
 theorem evalExpr_daiJoinVatCodeGuard_false {evm : EVM.State} {locals : Store}
     (hvat :
@@ -353,9 +353,9 @@ theorem evalExpr_daiJoinDaiStorage {evm : EVM.State} {locals : Store}
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by rfl)
     (by
-      simpa [daiJoinDaiAddress, daiJoinDaiTargetWord, daiJoinAddressReturnWord,
-        daiJoinSlotWord] using
-        daiJoinStorageLocLoad_address_offset0 evm ⟨2⟩)
+      simpa [daiJoinDaiAddress, daiJoinDaiTargetWord, solcAddressSlotWord,
+        solcSlotWordAt] using
+        storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem evalExpr_daiJoinDaiCodeGuard_false {evm : EVM.State} {locals : Store}
     (hdai :
@@ -1382,7 +1382,7 @@ theorem daiJoinJoinBodyCore {σ σ₀ A I} {g : UInt256}
           Or.inr hguard
         obtain ⟨_, _, rd490⟩ := daiJoinJoinMulSuccess hmulOk rd449
         have hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size :=
-          daiJoinMulFit_of_guard hguard
+          mulFit_of_guard hguard
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ
               (daiJoinVatTargetWord σ I) = ⟨0⟩

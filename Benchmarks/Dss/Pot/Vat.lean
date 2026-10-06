@@ -51,8 +51,8 @@ theorem potVatBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (potAddressReturnWord ⟨5⟩ σ I).toNat))])) := by
-    simpa [vatTransition, potAddressReturnWord, potSlotWord, initState, Solm.EVM.storageLoad,
+          (some [(.address (AccountAddress.ofNat (solcAddressSlotWord ⟨5⟩ σ I).toNat))])) := by
+    simpa [vatTransition, solcAddressSlotWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potAddressGetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

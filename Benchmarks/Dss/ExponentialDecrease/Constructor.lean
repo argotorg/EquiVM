@@ -97,7 +97,7 @@ theorem assign_stairstepCtorWardsCaller (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc (wardsSlot (.address evm.executionEnv.source))) (.int 1) =
         some (stairstepCtorAfterWardsState evm) := by
     simpa [stairstepCtorAfterWardsState] using
-      stairstepStorageLocStore_uint256 evm
+      storageLocStore_uint256 evm
         (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
   exact assignStorageRef_storage_scalar
     (ty := .elem (.int uint256Int))

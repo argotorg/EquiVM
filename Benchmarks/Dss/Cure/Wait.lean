@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `wait()` -/
 
 def waitWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨3⟩ σ I
+  solcSlotWordAt ⟨3⟩ σ I
 
 theorem cureDispatchWait {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 17)) :
@@ -46,7 +46,7 @@ theorem cureWaitBodyCore {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (waitWord σ I).toNat))])) := by
-    simpa [waitTransition, waitWord, cureSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [waitTransition, waitWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

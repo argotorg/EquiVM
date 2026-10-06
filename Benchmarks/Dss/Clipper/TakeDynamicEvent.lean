@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Clipper
 theorem clipperTakeMemoryWF_mstore_aw_event (mem : ByteArray) (aw off : UInt256)
     (hmem : clipperTakeMemoryWF mem aw) (hoff : off.toNat + 32 ≤ 288) :
     UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw := by
-  apply clipperTakeM_same_of_cover
+  apply UInt256_M_same_of_cover_len
   have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
   omega
 
@@ -18,22 +18,22 @@ theorem clipperTakeEventMemoryWF (mem : ByteArray) (aw : UInt256)
     clipperTakeMemoryWF (clipperTakeEventMem mem max price owe tabNew lotNew) aw := by
   rcases hmem with ⟨hsize, hread64, hcover, hawSmall⟩
   have h0size : (clipperTakeEventMem0 mem max).size = mem.size := by
-    exact clipperTakeWrite32_size_of_end_le mem max 128 (by omega)
+    exact write32_size_of_end_le mem max 128 (by omega)
   have h1size : (clipperTakeEventMem1 mem max price).size = mem.size := by
     unfold clipperTakeEventMem1
-    rw [clipperTakeWrite32_size_of_end_le]
+    rw [write32_size_of_end_le]
     · exact h0size
     · rw [h0size]
       omega
   have h2size : (clipperTakeEventMem2 mem max price owe).size = mem.size := by
     unfold clipperTakeEventMem2
-    rw [clipperTakeWrite32_size_of_end_le]
+    rw [write32_size_of_end_le]
     · exact h1size
     · rw [h1size]
       omega
   have h3size : (clipperTakeEventMem3 mem max price owe tabNew).size = mem.size := by
     unfold clipperTakeEventMem3
-    rw [clipperTakeWrite32_size_of_end_le]
+    rw [write32_size_of_end_le]
     · exact h2size
     · rw [h2size]
       omega
@@ -102,12 +102,12 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   have rd5255 := rd5254pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64) hmload64 haw64 (by evm_ov)
+    (by clipper_runtime_decode) (mloadCostZero haw64) hmload64 haw64 (by evm_ov)
   have rd5257pre := evm_run rd5255 with [
     raw dup13 (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov)]
   have rd5258 := rd5257pre.mstore 0 (clipperTakeEventMem0 mem max) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw128) (by rfl) haw128
+    (by clipper_runtime_decode) (mloadCostZero haw128) (by rfl) haw128
     (by evm_ov)
   have rd5264pre := evm_run rd5258 with [
     raw push1 ⟨32⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -117,7 +117,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ from by native_decide] at rd5264pre
   have rd5265 := rd5264pre.mstore 0 (clipperTakeEventMem1 mem max price) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw160) (by rfl) haw160
+    (by clipper_runtime_decode) (mloadCostZero haw160) (by rfl) haw160
     (by evm_ov)
   have rd5270pre := evm_run rd5265 with [
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
@@ -127,7 +127,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨64⟩ : UInt256) + ⟨128⟩ = ⟨192⟩ from by native_decide] at rd5270pre
   have rd5271 := rd5270pre.mstore 0 (clipperTakeEventMem2 mem max price owe) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw192) (by rfl) haw192
+    (by clipper_runtime_decode) (mloadCostZero haw192) (by rfl) haw192
     (by evm_ov)
   have rd5277pre := evm_run rd5271 with [
     raw push1 ⟨96⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -137,7 +137,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   rw [show (⟨128⟩ : UInt256) + ⟨96⟩ = ⟨224⟩ from by native_decide] at rd5277pre
   have rd5278 := rd5277pre.mstore 0 (clipperTakeEventMem3 mem max price owe tabNew) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw224) (by rfl) haw224
+    (by clipper_runtime_decode) (mloadCostZero haw224) (by rfl) haw224
     (by evm_ov)
   have rd5284pre := evm_run rd5278 with [
     raw push1 ⟨128⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -148,7 +148,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
   rw [show (⟨128⟩ : UInt256) + ⟨128⟩ = ⟨256⟩ from by native_decide] at rd5284pre
   have rd5285 := rd5284pre.mstore 0
     (clipperTakeEventMem mem max price owe tabNew lotNew) aw
-    (by clipper_runtime_decode) (clipperTakeMstoreCostZero haw256) (by rfl) haw256
+    (by clipper_runtime_decode) (mloadCostZero haw256) (by rfl) haw256
     (by evm_ov)
   have hEventWF := clipperTakeEventMemoryWF mem aw max price owe tabNew lotNew hmem
   have hmloadEvent64 := clipperTakeMemoryWF_mload64
@@ -156,7 +156,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
   have rd5287pre := evm_run rd5285 with [
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have rd5288 := rd5287pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (clipperTakeMloadCostZero haw64) hmloadEvent64 haw64
+    (by clipper_runtime_decode) (mloadCostZero haw64) hmloadEvent64 haw64
     (by evm_ov)
   have rd5298pre := evm_run rd5288 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -167,7 +167,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw dup9 (by clipper_runtime_decode) (by evm_ov),
     raw and (by clipper_runtime_decode) (by evm_ov),
     raw swap2 (by clipper_runtime_decode) (by evm_ov)]
-  have rd5299pre0 := RD.clipperDup16 rd5298pre
+  have rd5299pre0 := RD.dup16 rd5298pre
     (by clipper_runtime_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5299pre := evm_run rd5299pre0 with [
@@ -189,7 +189,7 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
     raw add (by clipper_runtime_decode) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have hawLog : UInt256.ofNat (MachineState.M aw.toNat 128 160) = aw := by
-    simpa using clipperTakeM_same_of_cover aw (⟨128⟩ : UInt256) 160 (by
+    simpa using UInt256_M_same_of_cover_len aw (⟨128⟩ : UInt256) 160 (by
       change 128 + 160 ≤ aw.toNat * 32
       have hawGe := clipperTakeMemoryWF_aw_ge mem aw hmem
       omega)

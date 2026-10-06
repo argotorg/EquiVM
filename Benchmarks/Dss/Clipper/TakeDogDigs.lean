@@ -5,6 +5,25 @@ import Benchmarks.Dss.Clipper.YankVatEVM
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakeVatMovePostCallAw_eq :
+    UInt256.ofNat
+      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
+        (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
+        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
+      UInt256.ofNat 9 := by
+  decide
+
+end Benchmarks.Dss.Clipper
+
+end
+
 namespace Benchmarks.Dss.Clipper
 
 theorem clipperTakeDogDigsSelectorMem_size {mem : ByteArray}
@@ -179,7 +198,7 @@ theorem clipperTakeJumpDest4915 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -193,7 +212,7 @@ theorem clipperTakeJumpDest4911 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -207,7 +226,7 @@ theorem clipperTakeJumpDest4976 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -221,7 +240,7 @@ theorem clipperTakeJumpDest4996 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 5000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -235,7 +254,7 @@ theorem clipperTakeJumpDest5020 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -249,7 +268,7 @@ theorem clipperTakeJumpDest5025 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -263,7 +282,7 @@ theorem clipperTakeJumpDest5222 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -277,7 +296,7 @@ theorem clipperTakeJumpDest5250 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -315,7 +334,8 @@ theorem clipperTakeIlkPatchPayload4866 (v : ClipperImmutables) {code : ByteArray
     (post := [(5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)])
     (off := 4866) (value := ilkBytes)
     (by
-      simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk,
+      simpa [patches, patchesFrom, offsets, immValues, Reasoning.Theory.wordBytes?, valueToWord,
+        hilk,
         hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
@@ -888,7 +908,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    clipperYankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -1099,7 +1119,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee
-    rw [clipperYankTwoWordHashMem_read0_64_of_ge
+    rw [twoWordHashMem_read0_64_of_ge
       (clipperYankArgWord ee) (⟨12⟩ : UInt256) hactiveMemSize]
     rw [clipperYankSalesBaseSlot_eq ee]
     exact mappingSlot_single (clipperYankArgWord ee) ⟨12⟩
@@ -1193,21 +1213,12 @@ theorem RD.clipperTakeRemoveReturnToEventTail {code : ByteArray}
   exact ⟨_, _, rd5024.jump (by clipper_runtime_decode)
     (clipperTakeJumpDest5250 v hpatch) (by evm_ov)⟩
 
-theorem clipperTakeZeroReturndataWrite_eq (out mem : ByteArray) :
-    out.write 0 mem 128 (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = mem := by
-  have hmin :
-      (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
-    have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat out.size := by
-      show (0 : Nat) ≤ (UInt256.ofNat out.size).val.val
-      exact Nat.zero_le _
-    simp [min, hle]
-  simp [hmin, byteArray_write_len_zero]
 
 theorem clipperTakeVatMovePostCallMem_size (σ : AccountMap) (I : ExecutionEnv)
     (owe : UInt256) {baseMem out : ByteArray} (hbaseMem : baseMem.size = 260) :
     (out.write 0 (clipperTakeVatMoveCalldataMem σ I owe baseMem)
       128 (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat).size = 260 := by
-  rw [clipperTakeZeroReturndataWrite_eq]
+  rw [zeroReturndataWrite_eq]
   exact clipperTakeVatMoveCalldataMem_size σ I owe hbaseMem
 
 theorem clipperTakeVatMovePostCallMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -1216,16 +1227,9 @@ theorem clipperTakeVatMovePostCallMem_read64 (σ : AccountMap) (I : ExecutionEnv
     (out.write 0 (clipperTakeVatMoveCalldataMem σ I owe baseMem)
       128 (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  rw [clipperTakeZeroReturndataWrite_eq]
+  rw [zeroReturndataWrite_eq]
   exact clipperTakeVatMoveCalldataMem_read64 σ I owe hbaseMem hread64
 
-theorem clipperTakeVatMovePostCallAw_eq :
-    UInt256.ofNat
-      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
-        (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
-        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
-      UInt256.ofNat 9 := by
-  native_decide
 
 abbrev clipperTakeLocalsDigsAmt (evmLoc evmRead evmVat : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) : Store :=

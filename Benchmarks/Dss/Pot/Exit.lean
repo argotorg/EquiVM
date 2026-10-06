@@ -1,3 +1,4 @@
+import Reasoning.ABIComposite
 import Benchmarks.Dss.Pot.Dispatch
 import Benchmarks.Dss.Pot.Join
 import Reasoning.ExternalCall
@@ -584,56 +585,20 @@ theorem potExitX_mulOverflowReverts {σ'' I} {g : Sat256} {s0 : State} {k C : �
 
 /-! ### `exit(uint256)` calldata decode -/
 
-private theorem decodeExitUint256_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd =
-      some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake4 : ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 :=
-    decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-    (bytes := cd.toList.drop 4) (start := 0) htake4]
-  change decodeCalldata.insertValues [x]
-      [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
-    some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat)))
-  rw [hword4]
-  simp [decodeCalldata.insertValues]
-
-private theorem decodeExitUint256_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [abiUInt256] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [abiUInt256]) (cd := cd)
-    (by decide)]
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  simp only [decodeScalarWordsWithMode?]
-  have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, htlen]; omega
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05) (start := 0)
-    (by simpa using htake0n)]
-  simp only [Option.bind, bind]
 
 theorem potDecode_exit_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (exitTransition.params.map Param.name)
       (transitionSignature exitTransition).paramTypes I.calldata =
         some ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))) := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 ["wad"] [abiUInt256] I.calldata = _
-  simpa [joinWadWord] using decodeExitUint256_ok (cd := I.calldata) (x := "wad") hsz36
+  simpa [joinWadWord] using decodeCalldata_legacyUInt256_ok (cd := I.calldata) (x := "wad") hsz36
 
 theorem potDecode_exit_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
     decodeCalldataWithMode config.abiDecodeMode (exitTransition.params.map Param.name)
       (transitionSignature exitTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 ["wad"] [abiUInt256] I.calldata = _
-  exact decodeExitUint256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
+  exact decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "wad") hsz4 hshort
 
 /-! ## `exit(uint256)` — post-store state abbreviations -/
 
@@ -688,7 +653,7 @@ theorem exitPreCallAccounts {σ σ₀ A I} {g : Sat256} :
     exitSigma'' σ I = (exitSolmEvm2 σ σ₀ g A I).accountMap := by
   rw [exitSigma'', exitSigma', exitSolmEvm2, exitSolmEvm1,
     storageStore_accountMap, storageStore_accountMap]
-  simp [joinStorageLoad_eq, storageStore_accountMap, initState, joinPieSlot_eq]
+  simp [storageLoad_eq_solcSlotWord, storageStore_accountMap, initState, joinPieSlot_eq]
 
 /-- The pre-`CALL` account-map equality in abbreviation form. -/
 theorem exitAccPre {σ σ₀ A I} {g : Sat256} :
@@ -698,12 +663,12 @@ theorem exitAccPre {σ σ₀ A I} {g : Sat256} :
 theorem exitChiReadB {σ σ₀ A I} {g : Sat256} :
     Solm.EVM.storageLoad (exitSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨4⟩
       = joinChi (exitSigma'' σ I) I := by
-  rw [joinStorageLoad_eq, exitAccPre]
+  rw [storageLoad_eq_solcSlotWord, exitAccPre]
 
 theorem exitVatReadB {σ σ₀ A I} {g : Sat256} :
     joinVatRaw (exitSigma'' σ I) I
       = Solm.EVM.storageLoad (exitSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨5⟩ := by
-  rw [joinStorageLoad_eq, exitAccPre]
+  rw [storageLoad_eq_solcSlotWord, exitAccPre]
 
 /-! ## `exit(uint256)` — Solm-side statement drivers -/
 
@@ -1031,9 +996,9 @@ theorem potExitCallBridge {σ₀ I} {A : Substate} {g : Sat256}
         (z, { evm2_solm with accountMap := σ'_solm, substate := A'_solm }, o)
         I.perm ∧ σ_final = σ'_solm := by
   have hChi : joinChi σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩ := by
-    rw [joinStorageLoad_eq, hAccountsPre]
+    rw [storageLoad_eq_solcSlotWord, hAccountsPre]
   have hVat : joinVatRaw σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩ := by
-    rw [joinStorageLoad_eq, hAccountsPre]
+    rw [storageLoad_eq_solcSlotWord, hAccountsPre]
   have htgt : EVM.address (AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat) =
       AccountAddress.ofUInt256 (joinVatMasked σ'' I) := by
@@ -1143,7 +1108,7 @@ theorem potExitBody {σ σ₀ A I} {g : UInt256}
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   have hpieB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ I := by
-    rw [joinStorageLoad_eq, joinPieSlot_eq]
+    rw [storageLoad_eq_solcSlotWord, joinPieSlot_eq]
     change solcSlotWord σ I (joinPieSlot I) = joinPie0 σ I
     rfl
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -1160,7 +1125,7 @@ theorem potExitBody {σ σ₀ A I} {g : UInt256}
             I.codeOwner (pieSlot (.address I.source))) (joinWadWord I))) I.codeOwner ⟨2⟩
           = solcSlotWord (sstoreAccountMap I.codeOwner σ (joinPieSlot I)
             (UInt256.sub (joinPie0 σ I) (joinWadWord I))) I ⟨2⟩ := by
-        rw [joinStorageLoad_eq, storageStore_accountMap, joinStorageLoad_eq,
+        rw [storageLoad_eq_solcSlotWord, storageStore_accountMap, storageLoad_eq_solcSlotWord,
           joinPieSlot_eq]
         rfl
       by_cases hPieUf : (solcSlotWord (sstoreAccountMap I.codeOwner σ
@@ -1288,7 +1253,7 @@ theorem potExitBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   have hpieB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ I := by
-    rw [joinStorageLoad_eq, joinPieSlot_eq]
+    rw [storageLoad_eq_solcSlotWord, joinPieSlot_eq]
     change solcSlotWord σ I (joinPieSlot I) = joinPie0 σ I
     rfl
   by_cases hsz36 : 36 ≤ I.calldata.size

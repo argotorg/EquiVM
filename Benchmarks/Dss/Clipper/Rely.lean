@@ -1,3 +1,8 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
+import Reasoning.BytecodePatching
+import Reasoning.Stepping
+import Reasoning.Reach
 import Benchmarks.Dss.Clipper.Fallback
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -104,9 +109,6 @@ theorem evalStorageRef_clipperRely_auth (v : ClipperImmutables) (evm : EVM.State
     clipperRelyAuthEvaledRef, clipperRelyAuthKey, hsrc, valueToKey?, EvalResult.bind,
     EvalResult.ofOption, bind, pure, evalExpr?]
 
-theorem clipperUInt256_toNat_eq_one {a : UInt256} (h : a.toNat = 1) : a = ⟨1⟩ := by
-  apply u256_inj
-  simpa using h
 
 theorem evalExpr_clipperRely_auth_true (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (hsrc : evm.executionEnv.source = I.source)
@@ -131,7 +133,7 @@ theorem evalExpr_clipperRely_auth_true (v : ClipperImmutables) (evm : EVM.State)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        simpa [hload] using clipperStorageLocLoad_uint256 evm
+        simpa [hload] using storageLocLoad_uint256 evm
           (clipperRelyAuthStorageSlot I))]
   simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
   rfl
@@ -161,7 +163,7 @@ theorem evalExpr_clipperRely_auth_false (v : ClipperImmutables) (evm : EVM.State
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by
-        exact clipperStorageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
+        exact storageLocLoad_uint256 evm (clipperRelyAuthStorageSlot I))
   have hne :
       Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -169,7 +171,7 @@ theorem evalExpr_clipperRely_auth_false (v : ClipperImmutables) (evm : EVM.State
     intro hbad
     rw [Value.int.injEq] at hbad
     apply hload
-    exact clipperUInt256_toNat_eq_one (Int.ofNat.inj hbad)
+    exact uInt256_toNat_eq_one (Int.ofNat.inj hbad)
   have hbeq :
       (Value.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -245,100 +247,13 @@ theorem clipperRelyBodyReverts (v : ClipperImmutables) (evm : EVM.State)
 
 /-! ## Local LOG2 step helper -/
 
--- LIBRARY CANDIDATE: `Reasoning.Reach` has `RD.log1`, `RD.log3`, and `RD.log4`; this
--- is the missing arity-2 variant.
-def stLog2 (s : State) (a b c d : UInt256) (t : List UInt256) : State :=
-  {s with
-    substate.logSeries := s.substate.logSeries.push
-      ⟨s.executionEnv.codeOwner, #[c, d], s.machineState.memory.readWithPadding a.toNat b.toNat⟩
-    machineState.stack := t
-    machineState.activeWords :=
-      UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat)
-    machineState.gasAvailable :=
-      (s.machineState.gasAvailable.subNat (memoryExpansionCost s .LOG2)).subNat
-        (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-            + 2 * GasConstants.Glogtopic)
-    machineState.pc := s.machineState.pc + ⟨1⟩
-    machineState.execLength := s.machineState.execLength + 1 }
-
--- LIBRARY CANDIDATE: `Reasoning.Reach` has xstep lemmas for `LOG1/3/4`; this is the
--- same statement for `LOG2`.
-theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.LOG2, .none)) (hperm : s.executionEnv.perm = true)
-    (hstk : s.machineState.stack = a :: b :: c :: d :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat
-            < memoryExpansionCost s .LOG2
-              + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic)
-         then .error .OutOfGass else .ok (stLog2 s a b c d t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.LOG2, .none) := by
-    rw [hcode, hpc]
-    exact hdec
-  rw [← hcode, step_log2 s hd, hstk]
-  have hov' : ¬ ((a :: b :: c :: d :: t).length - 4 + 0 > 1024) := by
-    simp only [List.length_cons]
-    omega
-  have hpermF : (¬ s.executionEnv.perm = true) = False := eq_false (by simp [hperm])
-  simp only [collapse_two_stage, if_neg hov', hpermF, if_false, stLog2]
-
--- LIBRARY CANDIDATE: `Reasoning.Reach.RD` has `log1`, `log3`, and `log4`; this is the
--- missing arity-2 variant.
-theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : AccountMap} {k C : ℕ}
-    {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
-    (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
-    (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: t →
-        memoryExpansionCost s .LOG2 = mcost)
-    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
-    (hov : t.length ≤ 1024) :
-    RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
-      (C + (mcost + (GasConstants.Glog + GasConstants.Glogdata * b.toNat
-        + 2 * GasConstants.Glogtopic))) := by
-  unfold RD at h ⊢
-  rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
-  · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
-    have hperms : s.executionEnv.perm = true := by
-      rw [hee]
-      exact hperm
-    have st := log2_xstep hcode hpc hdec hperms hstk hov
-    rw [hmcS] at st
-    by_cases gg : g.toNat < C + (mcost
-        + (GasConstants.Glog + GasConstants.Glogdata * b.toNat + 2 * GasConstants.Glogtopic))
-    · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stLog2 s a b c d t,
-        hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
-          (by have : 1 ≤ GasConstants.Glog := (by decide); omega), by omega,
-          ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stLog2]
-        exact hcode
-      · simp only [stLog2]
-        rw [hpc]
-      · simp only [stLog2]
-      · simp only [stLog2, hmcS]
-        rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stLog2]
-        exact hmem
-      · simp only [stLog2]
-        rw [haw, hawout]
-      · simp only [stLog2]
-        exact hrdata
-      · simp only [stLog2]
-        exact hacc
-      · simp only [stLog2]
-        exact hee
-      · exact hworld
 
 theorem clipperRelyPatchesWindowDisjointMid (v : ClipperImmutables) (lo hi : Nat)
     (hlo : 3177 ≤ lo) (hhi : hi ≤ 4239) :
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -449,7 +364,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
   obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperRelySelectorWord hsz hsel
-  have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
+  have h260 := RD.selectorSplitTakenPush2 (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
     (tgt := (⟨260⟩ : UInt256)) h32
     (by change decode code (⟨32⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -468,7 +383,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
     (by simp)
-  have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
+  have h272 := RD.selectorSplitNotTakenPush2 (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
     (tgt := (⟨369⟩ : UInt256))
     (h260.jumpdest
@@ -491,7 +406,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
+  have h283 := RD.selectorSplitNotTakenPush2 (pc := (⟨272⟩ : UInt256))
     (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
     (tgt := (⟨331⟩ : UInt256)) h272
     (by change decode code (⟨272⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -511,7 +426,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256))
+  have h294 := RD.selectorArmNotTakenPush2 (pc := (⟨283⟩ : UInt256))
     (next := (⟨294⟩ : UInt256)) (sel := clipperSelNat 6)
     (tgt := (⟨752⟩ : UInt256)) h283
     (by change decode code (⟨283⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -531,7 +446,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h305 := clipperArmNotTaken (pc := (⟨294⟩ : UInt256))
+  have h305 := RD.selectorArmNotTakenPush2 (pc := (⟨294⟩ : UInt256))
     (next := (⟨305⟩ : UInt256)) (sel := clipperSelNat 11)
     (tgt := (⟨760⟩ : UInt256)) h294
     (by change decode code (⟨294⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -551,7 +466,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h316 := clipperArmNotTaken (pc := (⟨305⟩ : UInt256))
+  have h316 := RD.selectorArmNotTakenPush2 (pc := (⟨305⟩ : UInt256))
     (next := (⟨316⟩ : UInt256)) (sel := clipperSelNat 26)
     (tgt := (⟨829⟩ : UInt256)) h305
     (by change decode code (⟨305⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
@@ -571,7 +486,7 @@ theorem clipperReachRelyBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     (by rw [hword]; native_decide)
     (by native_decide)
     (by simp)
-  have h837 := clipperArmTaken (pc := (⟨316⟩ : UInt256)) (sel := clipperSelNat 17)
+  have h837 := RD.selectorArmTakenPush2 (pc := (⟨316⟩ : UInt256)) (sel := clipperSelNat 17)
     (tgt := (⟨837⟩ : UInt256)) h316
     (by change decode code (⟨316⟩ : UInt256) = some (.DUP1, .none); clipper_decode)
     (by
@@ -630,7 +545,7 @@ theorem clipperJumpDest3340 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide
@@ -814,41 +729,6 @@ theorem clipperRelyNotAuthorizedWord :
       ⟨0x08c379a000000000000000000000000000000000000000000000000000000000⟩ := by
   native_decide
 
--- LIBRARY CANDIDATE: `spliceBytes?` preserves bytecode length when it succeeds.
-theorem spliceBytes_size_eq {template value out : ByteArray} {off : Nat}
-    (hsp : spliceBytes? template off value = some out) :
-    out.size = template.size := by
-  unfold spliceBytes? at hsp
-  split at hsp
-  · rename_i hle
-    cases hsp
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract]
-    omega
-  · cases hsp
-
--- LIBRARY CANDIDATE: 32-byte immutable patching preserves runtime bytecode length.
-theorem patchRuntime_size_eq {template out : ByteArray} {ps : List (Nat × ByteArray)}
-    (hpatch : patchRuntime template ps = some out) :
-    out.size = template.size := by
-  induction ps generalizing template with
-  | nil =>
-      simp [patchRuntime] at hpatch
-      cases hpatch
-      rfl
-  | cons p ps ih =>
-      unfold patchRuntime at hpatch
-      simp only [List.foldlM_cons, Option.bind_eq_bind] at hpatch
-      by_cases hsz : p.2.size = 32
-      · rw [if_pos hsz] at hpatch
-        cases hsp : spliceBytes? template p.1 p.2 with
-        | none =>
-            simp [hsp] at hpatch
-        | some mid =>
-            simp [hsp] at hpatch
-            rw [ih hpatch, spliceBytes_size_eq hsp]
-      · rw [if_neg hsz] at hpatch
-        simp at hpatch
 
 theorem clipperPatchedBytecode_size (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -866,7 +746,7 @@ theorem clipperRelyPatchesWindowDisjointAfterLast (v : ClipperImmutables) (lo hi
     PatchesWindowDisjoint32 lo hi (patches v) := by
   unfold PatchesWindowDisjoint32 PatchWindowDisjoint32 patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       try omega
@@ -885,55 +765,6 @@ theorem clipperRelyNotAuthorizedExtract_toByteArray :
       UInt256.toByteArray clipperRelyNotAuthorizedStringWord := by
   native_decide
 
--- LIBRARY CANDIDATE: destination-zero `CODECOPY` leaves at least the copied length in memory.
-theorem write0_from_size_ge_len (src base : ByteArray) (srcAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
-    len ≤ (src.write srcAddr base 0 len).size := by
-  show len ≤ (src.write srcAddr base 0 len).data.size
-  rw [write0_data_from src base srcAddr len hlen hsrc]
-  rw [Array.size_append]
-  have hleft : (src.data.extract srcAddr (srcAddr + len)).size = len := by
-      rw [Array.size_extract]
-      have : src.data.size = src.size := rfl
-      omega
-  omega
-
--- LIBRARY CANDIDATE: destination-zero `write` preserves destination size when the copied
--- source window fits inside the existing destination.
-theorem write0_from_size_eq_of_len_le_base (src base : ByteArray) (srcAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hbase : len ≤ base.size) :
-    (src.write srcAddr base 0 len).size = base.size := by
-  rw [write_eq_gen_from src base srcAddr 0 len hlen hsrc (by simpa using hbase)]
-  simp [ByteArray.size_append, ByteArray.size_extract]
-  omega
-
--- LIBRARY CANDIDATE: a destination-zero write from an arbitrary source offset preserves
--- a 32-byte read above the written window.
-theorem write0_from_read32_above (src base : ByteArray) (srcAddr readAddr : ℕ)
-    (hsrc : srcAddr + 32 ≤ src.size) (hbase : 32 ≤ base.size)
-    (habove : 32 ≤ readAddr) (hread : readAddr + 32 ≤ base.size) :
-    (src.write srcAddr base 0 32).readWithPadding readAddr 32 =
-      base.readWithPadding readAddr 32 := by
-  have hprefix : (base.extract 0 0).size = 0 := by
-    rw [ByteArray.size_extract]
-    omega
-  have hsrcsz : (src.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [ByteArray.size_extract]
-    omega
-  have htail : (base.extract 32 base.size).size = base.size - 32 := by
-    rw [ByteArray.size_extract]
-    omega
-  have habsz : (base.extract 0 0 ++ src.extract srcAddr (srcAddr + 32)).size = 32 := by
-    rw [ByteArray.size_append, hprefix, hsrcsz]
-  rw [write_eq_gen_from src base srcAddr 0 32 (by decide) hsrc (by omega),
-    readWithPadding_eq_extract _ readAddr (by
-      rw [ByteArray.size_append, habsz, htail]
-      omega),
-    readWithPadding_eq_extract _ readAddr hread,
-    extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz,
-    extract_extract_BA,
-    show 32 + (readAddr - 32) = readAddr from by omega,
-    show min (32 + (readAddr + 32 - 32)) base.size = readAddr + 32 from by omega]
 
 theorem clipperRelyCodecopyRead0 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) (I : ExecutionEnv) :
@@ -1050,7 +881,7 @@ theorem clipperJumpDest3422 (v : ClipperImmutables) {code : ByteArray}
   apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 4000) hpatch
   unfold patches patchesFrom offsets immValues
   simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
-  cases hIlk : wordBytes? v.ilk with
+  cases hIlk : Reasoning.Theory.wordBytes? v.ilk with
   | none =>
       simp [hIlk]
       native_decide

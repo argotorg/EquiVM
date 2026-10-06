@@ -1,19 +1,10 @@
+import Reasoning.Memory
 import Examples.UniswapV2Pair.MintInternalMintRuntime
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
--- LIBRARY CANDIDATE: mapping-hash scratch writes preserve all word reads above byte 64.
-theorem twoWordHashMem_read_above64 (key slot : UInt256) {mem : ByteArray} (offset : Nat)
-    (hlo : 64 ≤ offset) (hin : offset + 32 ≤ mem.size) :
-    (twoWordHashMem key slot mem).readWithPadding offset 32 = mem.readWithPadding offset 32 := by
-  unfold twoWordHashMem wordAt32Mem wordAt0Mem
-  have hsize : (key.toByteArray.write 0 mem 0 32).size = mem.size :=
-    toByteArray_write32_size_of_le mem key 0 mem.size mem.size rfl (by omega) (by omega)
-  rw [write32_read_above _ _ 32 offset (by rw [toByteArray_size])
-    (by rw [hsize]; omega) (by omega) (by rw [hsize]; omega),
-    write32_read_above _ _ 0 offset (by rw [toByteArray_size]) (by omega) (by omega) hin]
 
 theorem uniswapInternalMintBalanceHashMem_read96 (holder : UInt256) {mem : ByteArray}
     (hin : 128 ≤ mem.size) :

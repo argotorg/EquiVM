@@ -1,3 +1,4 @@
+import Reasoning.Storage
 import Benchmarks.Dss.Flipper.TendSameCaller
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -11,7 +12,7 @@ namespace Benchmarks.Dss.Flipper
 abbrev tendAfterRefundMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (bidPackedSlotOfWord (tendId I))
     (setAddressOffset0Word
-      (flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I)
+      (solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I)
       (solcSourceWord I))
 
 abbrev tendRefundMoveArgValsOf (evm : EVM.State) (I : ExecutionEnv) : List Value :=
@@ -36,31 +37,6 @@ abbrev tendLocalsAfterRefundWithTicFrom (σpre σtic : AccountMap) (I : Executio
   (tendLocalsAfterRefundPay σpre I).insert "tic_"
     (.int (Int.ofNat (tendTicNewWord σtic I).toNat))
 
-theorem tend_storageStore_sigma0 (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem tend_storageStore_totalGasUsedInBlock (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).totalGasUsedInBlock =
-      evm.totalGasUsedInBlock := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem tend_storageStore_transactionReceipts (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).transactionReceipts =
-      evm.transactionReceipts := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-theorem tend_storageStore_machineState (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).machineState = evm.machineState := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem evalExpr_tendCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I) :
@@ -88,10 +64,10 @@ theorem evalExpr_tendCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     have hclean :
         UInt256.land solcAddrMask (bidGuyWord (tendId I) σ I) =
           bidGuyWord (tendId I) σ I := by
-      simpa [bidGuyWord, flipperAddressReturnWord, u256_land_comm] using
+      simpa [bidGuyWord, solcAddressSlotWord, u256_land_comm] using
         (solcAddrMask_clean
           (solcAddrMask_result_canonical
-            (flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I)))
+            (solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I)))
     exact hcaller (by simpa [hclean] using hmask)
   simp [evalExpr?, EvalResult.bind, bind, hsender, hguy, evalBinaryOp?, haddr]
 
@@ -1463,7 +1439,7 @@ theorem flipperTendX_takeRefundBranch {σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let memHash := twoWordHashMem (tendId I) ⟨1⟩ mem
-  let rawPacked := flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I
+  let rawPacked := solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1497,7 +1473,7 @@ theorem flipperTendX_takeRefundBranch {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [rawPacked, flipperSlotWord, hslotAdd] using rd3505raw
+    simpa [rawPacked, solcSlotWordAt, hslotAdd] using rd3505raw
   have rd3516raw := evm_run rd3505 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1513,7 +1489,7 @@ theorem flipperTendX_takeRefundBranch {σ I} {g : Sat256} {s0 : State}
           tendLot I, tendId I, ret, sel]
         memHash (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
-      simpa [rawPacked, bidGuyWord, flipperAddressReturnWord, hmask160, u256_land_comm]
+      simpa [rawPacked, bidGuyWord, solcAddressSlotWord, hmask160, u256_land_comm]
         using rd3516raw⟩
   have heq : UInt256.eq (solcSourceWord I) (bidGuyWord (tendId I) σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne hcaller
@@ -1530,12 +1506,12 @@ theorem flipperTendX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
       [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3587⟩
-      (⟨128⟩ :: ⟨64⟩ :: ⟨0⟩ :: flipperSlotWord ⟨2⟩ σ I :: solcAddrMask ::
+      (⟨128⟩ :: ⟨64⟩ :: ⟨0⟩ :: solcSlotWordAt ⟨2⟩ σ I :: solcAddrMask ::
         tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatRefundCallMem mem σ I) (UInt256.ofNat 8) ByteArray.empty
       σ k' C' := by
-  let rawVat := flipperSlotWord ⟨2⟩ σ I
-  let rawPacked := flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I
+  let rawVat := solcSlotWordAt ⟨2⟩ σ I
+  let rawPacked := solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I
   let rawBid := bidBidWord (tendId I) σ I
   let memHash := tendPayHashMem mem I
   let base := solcMappingSlot ⟨1⟩ (tendId I)
@@ -1550,7 +1526,7 @@ theorem flipperTendX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
     native_decide
   have hguyCleanLeft :
       UInt256.land solcAddrMask rawPacked = bidGuyWord (tendId I) σ I := by
-    simpa [rawPacked, bidGuyWord, flipperAddressReturnWord] using
+    simpa [rawPacked, bidGuyWord, solcAddressSlotWord] using
       (u256_land_comm solcAddrMask rawPacked)
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
@@ -1566,7 +1542,7 @@ theorem flipperTendX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
   have rd3524 : RD flipperBytecode I g s0 ⟨3524⟩
       [rawVat, ⟨2⟩, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k3524 C3524 := by
-    simpa [rawVat, flipperSlotWord, solcSlotWord] using rd3524raw
+    simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd3524raw
   have rd3542pre := evm_run rd3524 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1598,14 +1574,14 @@ theorem flipperTendX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
     have hslotAdd :
         base + (⟨2⟩ : UInt256) = bidPackedSlotOfWord (tendId I) := by
       simp [base, bidPackedSlotOfWord, bidBaseOfWord]
-    simpa [rawPacked, flipperSlotWord, hslotAdd] using rd3543raw
+    simpa [rawPacked, solcSlotWordAt, hslotAdd] using rd3543raw
   have rd3544pre := rd3543.swap4 (by native_decide) (by evm_ov)
   obtain ⟨k3545, C3545, rd3545raw⟩ := rd3544pre.sload (by native_decide) (by evm_ov)
   have rd3545 : RD flipperBytecode I g s0 ⟨3545⟩
       (rawBid :: ⟨64⟩ :: ⟨0⟩ :: rawVat :: rawPacked :: tendBid I ::
         tendLot I :: tendId I :: ret :: sel :: [])
       memHash (UInt256.ofNat 3) ByteArray.empty σ k3545 C3545 := by
-    simpa [rawBid, bidBidWord, bidBaseOfWord, flipperSlotWord, base] using rd3545raw
+    simpa [rawBid, bidBidWord, bidBaseOfWord, solcSlotWordAt, base] using rd3545raw
   let mem1 := writeWord memHash 128 yankVatMoveSelectorWord
   let mem2 := writeWord mem1 132 (solcSourceWord I)
   let mem3 := writeWord mem2 164 (bidGuyWord (tendId I) σ I)
@@ -1680,18 +1656,18 @@ theorem flipperTendX_toRefundExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
   have hhashRead64 : memHash.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     dsimp [memHash]
     exact twoWordHashMem_read64 (tendId I) ⟨1⟩ hmemSize hmemRead64
-  let rawVat := flipperSlotWord ⟨2⟩ σ I
-  let rawPacked := flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I
+  let rawVat := solcSlotWordAt ⟨2⟩ σ I
+  let rawPacked := solcSlotWordAt (bidPackedSlotOfWord (tendId I)) σ I
   let rawBid := bidBidWord (tendId I) σ I
   let base := solcMappingSlot ⟨1⟩ (tendId I)
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σ I := by
-    simp [rawVat, flipperVatTargetWord, flipperAddressReturnWord]
+    simp [rawVat, flipperVatTargetWord, solcAddressSlotWord]
   have hguyCleanLeft :
       UInt256.land solcAddrMask rawPacked = bidGuyWord (tendId I) σ I := by
-    simpa [rawPacked, bidGuyWord, flipperAddressReturnWord] using
+    simpa [rawPacked, bidGuyWord, solcAddressSlotWord] using
       (u256_land_comm solcAddrMask rawPacked)
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
@@ -1745,7 +1721,7 @@ theorem flipperTendX_toRefundExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
   have hadd : (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ := by
     native_decide
   have hvatClean' :
-      UInt256.land (flipperSlotWord ⟨2⟩ σ I) solcAddrMask =
+      UInt256.land (solcSlotWordAt ⟨2⟩ σ I) solcAddrMask =
         flipperVatTargetWord σ I := by
     simpa [rawVat] using hvatClean
   rw [hsubAdd, hadd, hvatClean'] at rd3616
@@ -1906,10 +1882,10 @@ theorem flipperTendX_refundPostCall
     · have hhashSize :
           (twoWordHashMem (tendId I) ⟨1⟩ mem).size = 96 :=
         twoWordHashMem_size_96 (tendId I) ⟨1⟩ hmemSize
-      simpa [tendRefundMoveArgValsOf, initState, flipperSlotWord, solcSlotWord,
+      simpa [tendRefundMoveArgValsOf, initState, solcSlotWordAt, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         bidGuyWord, bidPackedSlotOfWord, bidBidWord, bidBaseOfWord,
-        flipperAddressReturnWord]
+        solcAddressSlotWord]
         using tendVatRefundCallMem_encode σ I hhashSize
     · simpa [initState, hperm] using hΘ
 
@@ -1961,7 +1937,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
   let mem1 := wordAt0Mem (tendId I) mem
   let mem2 := twoWordHashMem (tendId I) ⟨1⟩ mem
   let slot := bidPackedSlotOfWord (tendId I)
-  let old := flipperSlotWord slot σ I
+  let old := solcSlotWordAt slot σ I
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1999,7 +1975,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
       (by native_decide) mem_cost
       (by
         simpa [mem2, bidBaseOfWord] using
-          tendTwoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (tendId I) hmemSize)
+          twoWordHashMem_solcMappingSlot_of_size_ge ⟨1⟩ (tendId I) hmemSize)
       (by decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -2012,7 +1988,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = slot := by
       simpa [slot, bidPackedSlotOfWord] using
         (u256_add_comm (⟨2⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [old, slot, flipperSlotWord, solcSlotWord, hslotAdd] using rd3671raw
+    simpa [old, slot, solcSlotWordAt, solcSlotWord, hslotAdd] using rd3671raw
   have rd3684 := evm_run rd3671 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -2029,7 +2005,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
   have rd3685 : RD flipperBytecode I g s0 ⟨3685⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem2 (UInt256.ofNat 8) out (tendAfterRefundMap σ I) k3685 C3685 := by
-    simpa [tendAfterRefundMap, old, slot, flipperSlotWord] using rd3685raw
+    simpa [tendAfterRefundMap, old, slot, solcSlotWordAt] using rd3685raw
   exact ⟨_, _, evm_run rd3685 with [
     raw pop (by native_decide) (by evm_ov)]⟩
 
@@ -2218,8 +2194,8 @@ theorem tendVatPayCallMem_encode_228 {mem : ByteArray} (σ : AccountMap) (I : Ex
       encodeABIValue? addr
           (.address (AccountAddress.ofNat (bidGalWord (tendId I) σ I).toNat)) =
         some (UInt256.toByteArray (bidGalWord (tendId I) σ I)).toList := by
-    simpa [bidGalWord, flipperAddressReturnWord] using
-      yankEncodeABIValue_address_word (flipperSlotWord (bidSlotOfWord (tendId I) ⟨4⟩) σ I)
+    simpa [bidGalWord, solcAddressSlotWord] using
+      encodeABIValue_address_word (solcSlotWordAt (bidSlotOfWord (tendId I) ⟨4⟩) σ I)
   have hpayload :
       encodeABIValues? [addr, addr, uint256]
         [.address I.source,
@@ -2232,7 +2208,7 @@ theorem tendVatPayCallMem_encode_228 {mem : ByteArray} (σ : AccountMap) (I : Ex
     unfold encodeABIValues?
     rw [show abiTupleHeadSize? [addr, addr, uint256] = some 96 by native_decide]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
-    rw [yankEncodeABIValue_source_address, hgal, yankEncodeABIValue_uint256_word]
+    erw [encodeABIValue_source_address, hgal, encodeABIValue_uint256_word]
     simp [show isDynamicABIType addr = false by native_decide,
       show isDynamicABIType uint256 = false by native_decide,
       ByteArray.append_assoc, byteArray_toList_eq]
@@ -2252,17 +2228,17 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) rdata σ k' C' := by
-  let rawVat := flipperSlotWord ⟨2⟩ σ I
-  let rawGal := flipperSlotWord (bidSlotOfWord (tendId I) ⟨4⟩) σ I
+  let rawVat := solcSlotWordAt ⟨2⟩ σ I
+  let rawGal := solcSlotWordAt (bidSlotOfWord (tendId I) ⟨4⟩) σ I
   let base := solcMappingSlot ⟨1⟩ (tendId I)
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σ I := by
-    simp [rawVat, flipperVatTargetWord, flipperAddressReturnWord]
+    simp [rawVat, flipperVatTargetWord, solcAddressSlotWord]
   have hgalCleanLeft :
       UInt256.land solcAddrMask rawGal = bidGalWord (tendId I) σ I := by
-    simpa [rawGal, bidGalWord, flipperAddressReturnWord] using
+    simpa [rawGal, bidGalWord, solcAddressSlotWord] using
       (u256_land_comm solcAddrMask rawGal)
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (tendPayHashMem mem I).size then ⟨0⟩
@@ -2288,7 +2264,7 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
   have rd3690 : RD flipperBytecode I g s0 ⟨3690⟩
       [rawVat, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) rdata σ k3690 C3690 := by
-    simpa [rawVat, flipperSlotWord, solcSlotWord] using rd3690raw
+    simpa [rawVat, solcSlotWordAt, solcSlotWord] using rd3690raw
   have rd3709pre := evm_run rd3690 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov),
@@ -2311,7 +2287,7 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
           rw [hmemSize]
           norm_num
         simpa [base, tendPayHashMem, bidBaseOfWord] using
-          (tendTwoWordHashMem_solcMappingSlot_of_size_ge (mem := mem) ⟨1⟩
+          (twoWordHashMem_solcMappingSlot_of_size_ge (mem := mem) ⟨1⟩
             (tendId I) hmemGe))
       (by decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -2327,14 +2303,14 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
         (⟨4⟩ : UInt256) + base = bidSlotOfWord (tendId I) ⟨4⟩ := by
       simpa [base, bidSlotOfWord, bidBaseOfWord] using
         (u256_add_comm (⟨4⟩ : UInt256) (bidBaseOfWord (tendId I)))
-    simpa [rawGal, flipperSlotWord, hslotAdd] using rd3711raw
+    simpa [rawGal, solcSlotWordAt, hslotAdd] using rd3711raw
   have rd3712pre := rd3711.swap2 (by native_decide) (by evm_ov)
   obtain ⟨k3713, C3713, rd3713raw⟩ := rd3712pre.sload (by native_decide) (by evm_ov)
   have rd3713 : RD flipperBytecode I g s0 ⟨3713⟩
       (bidBidWord (tendId I) σ I :: ⟨4⟩ :: rawGal :: ⟨64⟩ :: ⟨0⟩ ::
         rawVat :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendPayHashMem mem I) (UInt256.ofNat 8) rdata σ k3713 C3713 := by
-    simpa [bidBidWord, bidBaseOfWord, flipperSlotWord, base] using rd3713raw
+    simpa [bidBidWord, bidBaseOfWord, solcSlotWordAt, base] using rd3713raw
   let mem1 := writeWord (tendPayHashMem mem I) 128 yankVatMoveSelectorWord
   let mem2 := writeWord mem1 132 (solcSourceWord I)
   let mem3 := writeWord mem2 164 (bidGalWord (tendId I) σ I)
@@ -2561,10 +2537,10 @@ theorem flipperTendX_payPostCallAw8
         exact absurd hdepth (by rw [hEq]; decide))
       (by rfl)
       ?_ ?_
-    · simpa [tendPayMoveArgValsOf, initState, flipperSlotWord, solcSlotWord,
+    · simpa [tendPayMoveArgValsOf, initState, solcSlotWordAt, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         bidGalWord, bidSlotOfWord, bidBidWord, bidBaseOfWord,
-        flipperAddressReturnWord]
+        solcAddressSlotWord]
         using tendVatPayCallMem_encode_228 σ I hmemSize
     · simpa [initState, hperm] using hΘ
 
@@ -2673,10 +2649,10 @@ theorem flipperTendBodyFrom3486Refund
       have hrefundEncode :
           config.externalABI.encode? "move" (tendRefundMoveArgValsOf evm0Solm I) =
             some ((tendVatRefundCallMem memHash σ I).readWithPadding 128 100) := by
-        simpa [evm0Solm, tendRefundMoveArgValsOf, initState, flipperSlotWord,
+        simpa [evm0Solm, tendRefundMoveArgValsOf, initState, solcSlotWordAt,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           bidGuyWord, bidPackedSlotOfWord, bidBidWord, bidBaseOfWord,
-          flipperAddressReturnWord]
+          solcAddressSlotWord]
           using tendVatRefundCallMem_encode σ I hhashSize
       have hcallRefundSolm :
           typedCallViaEVM config evm0Solm
@@ -2835,7 +2811,7 @@ theorem flipperTendBodyFrom3486Refund
         have hmapGuyEvm : evmGuyEvm.accountMap = tendAfterRefundMap σ_ref I := by
           simpa [evmGuyEvm, evmRefundEvm, evm0Evm, tendAfterRefundMap,
             storageStore_accountMap, initState, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage, flipperSlotWord, solcSlotWord]
+            Account.lookupStorage, solcSlotWordAt, solcSlotWord]
         let memPay := twoWordHashMem (tendId I) ⟨1⟩ (tendVatRefundCallMem memHash σ I)
         have hmemPaySize : memPay.size = 228 := by
           dsimp [memPay]
@@ -2843,7 +2819,7 @@ theorem flipperTendBodyFrom3486Refund
             (twoWordHashMem (tendId I) ⟨1⟩
                 (tendVatRefundCallMem memHash σ I)).size =
                 (tendVatRefundCallMem memHash σ I).size :=
-              tendTwoWordHashMem_size_of_size_ge (tendId I) ⟨1⟩ (by
+              twoWordHashMem_size_of_size_ge (tendId I) ⟨1⟩ (by
                 rw [hrefundMemSize]
                 norm_num)
             _ = 228 := hrefundMemSize
@@ -2876,7 +2852,7 @@ theorem flipperTendBodyFrom3486Refund
                   0 (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_extCodeSizeWord_zero_lookup_code_zero
+              extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -2911,7 +2887,7 @@ theorem flipperTendBodyFrom3486Refund
                     0 (fun acc => acc.code.size))).toNat := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_extCodeSizeWord_pos_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -2946,7 +2922,7 @@ theorem flipperTendBodyFrom3486Refund
             typedCallViaEVM_sameInputs_stateEquiv
               (evm_solm := evmGuySolm) hcallPayEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_sigma0, initState])
+                storageStore_σ₀, initState])
               hGuyCallStateEquiv.executionEnv
           let evmPaySolm : EVM.State :=
             { evmGuySolm with
@@ -3068,7 +3044,7 @@ theorem flipperTendBodyFrom3486Refund
                   64 ≤
                     (twoWordHashMem (tendId I) ⟨1⟩
                       (tendVatPayCallMem memPay (tendAfterRefundMap σ_ref I) I)).size := by
-                rw [tendTwoWordHashMem_size_of_size_ge]
+                rw [twoWordHashMem_size_of_size_ge]
                 · exact hpayMemGe
                 · exact hpayMemGe
               have hret := flipperTendX_storeTicReturn hperm hticMemGe rd3859
@@ -3143,7 +3119,7 @@ theorem flipperTendBodyFrom3486Refund
                   simp [evmBidEvm, evmPayEvm, evmGuyCallEvm, evm0Evm,
                     storageStore_executionEnv, initState]
                 simpa [evmTicEvm, hmapBidEvm, hownerBid, tendStoreTicMap,
-                  tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
+                  tendStoredTicWord, solcSlotWordAt, solcSlotWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, storageStore_accountMap] using rfl
               have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
                 rw [show tendTransition.returnType = [] by rfl]

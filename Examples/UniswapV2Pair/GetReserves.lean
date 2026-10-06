@@ -1,16 +1,33 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SolmBody
+
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem getReservesRetLen_toNat :
+    ((⟨96⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 96 := by
+  decide
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 
 /-! ## `getReserves()` getter -/
 
 abbrev getReservesSlotWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  uniswapSlotWord ⟨8⟩ σ I
+  solcSlotWordAt ⟨8⟩ σ I
 
 abbrev reserve0Word (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (getReservesSlotWord σ I) reserve112Mask
@@ -312,9 +329,6 @@ theorem getReservesReturnMem_read128_96 (r0 r1 ts : UInt256) :
           change (UInt256.toByteArray ts).size ≤ 32
           rw [toByteArray_size])]
 
-theorem getReservesRetLen_toNat :
-    ((⟨96⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 96 := by
-  decide
 
 end UniswapV2Pair
 
@@ -348,7 +362,7 @@ theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEn
   rw [u256_land_comm UniswapV2Pair.reserve112Mask] at rdRet
   exact ⟨_, _, by simpa [UniswapV2Pair.blockTimestampLastWord,
     UniswapV2Pair.reserve1Word, UniswapV2Pair.reserve0Word,
-    UniswapV2Pair.getReservesSlotWord, UniswapV2Pair.uniswapSlotWord] using rdRet⟩
+    UniswapV2Pair.getReservesSlotWord, Reasoning.Reach.solcSlotWordAt] using rdRet⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : ExecutionEnv}

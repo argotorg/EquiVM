@@ -70,8 +70,8 @@ theorem catLitterBody {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ litterTransition.body
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (catSlotWord ⟨6⟩ σ I).toNat))])) := by
-    simpa [litterTransition, catSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨6⟩ σ I).toNat))])) := by
+    simpa [litterTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad, State.lookupAccount,
       solcSlotWord] using
       catUint256GetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := litterRef) (er := ({ base := "litter", steps := [] } : EvaledStorageRef))
@@ -84,6 +84,6 @@ theorem catLitterBody {σ σ₀ A I} {g : UInt256}
     (catReachLitterBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
-    (by jump_dest) (by rfl) (by simpa [catSlotWord] using hbody)
+    (by jump_dest) (by rfl) (by simpa [solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Cat

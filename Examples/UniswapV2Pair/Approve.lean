@@ -100,7 +100,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [approvePostState, approveStorageSlot]
 
 theorem uniswapDecode_approve_ok {I : ExecutionEnv}

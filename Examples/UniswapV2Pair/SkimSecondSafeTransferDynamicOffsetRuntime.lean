@@ -1,22 +1,11 @@
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetMemory
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-theorem MachineState_M_same_of_cover_len (s f l : Nat) (hcover : f + l ≤ s * 32) :
-    MachineState.M s f l = s := by
-  unfold MachineState.M
-  cases l with
-  | zero => rfl
-  | succ l =>
-      change max s ((f + (l + 1) + 31) / 32) = s
-      rw [Nat.max_eq_left]
-      have hdivlt : (f + (l + 1) + 31) / 32 < s + 1 := by
-        rw [Nat.div_lt_iff_lt_mul (by norm_num : 0 < 32)]
-        omega
-      omega
 
 theorem skimSecondSafeTransferDynamicWordsCall0_cover_base128 (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
@@ -131,7 +120,7 @@ theorem skimSecondSafeTransferDynamicWordsCall2_callOutputSame (out : ByteArray)
       MachineState.M (skimSecondSafeTransferDynamicWordsCall2 out).toNat
           (skimSecondSafeTransferDynamicCallPtr out).toNat 68 =
         (skimSecondSafeTransferDynamicWordsCall2 out).toNat := by
-    exact MachineState_M_same_of_cover_len _ _ _
+    exact machineState_M_same_of_cover_len _ _ _
       (skimSecondSafeTransferDynamicWordsCall2_cover_callPtr68 out houtSize)
   rw [hinner]
   simpa [MachineState.M] using u256_ofNat_toNat (skimSecondSafeTransferDynamicWordsCall2 out)

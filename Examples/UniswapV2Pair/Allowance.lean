@@ -124,7 +124,7 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             allowanceOwnerValue, allowanceSpenderValue, allowanceOwnerKey, allowanceSpenderKey])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (allowanceStorageSlot I)))
+      exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (allowanceStorageSlot I)))
 
 /-! ## EVM trace -/
 

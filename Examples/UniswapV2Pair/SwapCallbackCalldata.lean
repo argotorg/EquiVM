@@ -1,3 +1,4 @@
+import Reasoning.ABI
 import Examples.UniswapV2Pair.SwapCallbackCopyMemory
 import Examples.UniswapV2Pair.SwapCallbackHeadMemory
 import Examples.UniswapV2Pair.SwapCallbackABI
@@ -5,13 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
--- LIBRARY CANDIDATE: the ABI byte-list padding agrees with bytearray zero padding.
-theorem padRightToWord_toByteArray (data : ByteArray) :
-    (ABI.padRightToWord data.toList).toByteArray =
-      data ++ ByteArray.zeroes (ABI.paddedSize data.size - data.size) := by
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  simp [ABI.padRightToWord, ABI.zeroBytes, byteArray_zeroes_toList, byteArray_toList_eq]
 
 set_option maxHeartbeats 1000000 in
 theorem swapCallbackPaddedMem_calldata {calldata mem : ByteArray} (ptr dataPtr dataLen : UInt256)

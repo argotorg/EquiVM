@@ -111,7 +111,7 @@ theorem clipperEvalYankRemoveSalesPos_moveStore (v : ClipperImmutables)
       storageDecls, SaleStructTy, uint256St])
     (by rfl)
     (by simpa [clipperYankSalesPosSlot, clipperYankSalesBaseSlot, wordLoc, uint256Loc] using
-      clipperStorageLocLoad_uint256 evm (clipperYankSalesPosSlot I))
+      storageLocLoad_uint256 evm (clipperYankSalesPosSlot I))
 
 theorem clipperEvalYankRemoveMove_indexStore (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) (lastIndex move idx : UInt256) :
@@ -153,8 +153,9 @@ theorem clipperYankRemoveAssignActiveRevert (v : ClipperImmutables) (evm : EVM.S
     clipperEvalYankRemoveIndex_indexStore v evm I lastIndex move idx
   unfold assignStorageRef? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
   simp only [hidxEval, EvalResult.ofOption, EvalResult.bind, bind, pure, valueToKey?, activeElemRef]
-  simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, storageTypeAt?, contract,
-    storageDecls, clipperStorageLocLoad_uint256, hnot]
+  simp [show wordLoc = uint256Loc from rfl, config, storageLayout, solidityStorageLayout,
+    storageLayoutRaw, storageTypeAt?, contract,
+    storageDecls, storageLocLoad_uint256, hnot]
 
 theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store)
@@ -179,7 +180,7 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
     rfl
   have hlenLoad :
       storageLocLoad evm (wordLoc ⟨11⟩) = .int 0 := by
-    simpa [hlen] using clipperStorageLocLoad_uint256 evm ⟨11⟩
+    simpa [hlen] using storageLocLoad_uint256 evm ⟨11⟩
   have hlenLoc :
       (config v).storage.layout ({ base := "active", steps := [.length] } :
         EvaledStorageRef) evm = some (wordLoc ⟨11⟩) := by

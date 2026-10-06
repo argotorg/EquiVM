@@ -158,7 +158,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
       simp)
     (her := her) (hty := hty) (hloc := hloc)]
   congr 1
-  exact erc6909StorageLocLoad_uint256 evm (allowanceSlotOf I)
+  exact storageLocLoad_uint256 evm (allowanceSlotOf I)
 
 theorem erc6909AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -412,13 +412,6 @@ theorem erc6909AllowanceX_noncanon_spender {σ σ₀ A I} {g : Sat256}
 
 /-! ## EVM scratch memory for the three-level `_allowances` mapping access -/
 
-theorem toByteArray_extract0_32 (w : UInt256) :
-    (UInt256.toByteArray w).extract 0 32 = UInt256.toByteArray w := by
-  apply ByteArray.ext
-  rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by
-    change (UInt256.toByteArray w).size ≤ 32
-    rw [toByteArray_size])
 
 /-- Memory after storing the `owner` key at scratch offset `0x00`. -/
 def allowanceOwnerMem (owner : UInt256) : ByteArray :=

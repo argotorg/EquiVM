@@ -1,4 +1,4 @@
-import Examples.TinyImmutable.Common
+import Examples.TinyImmutable.BlocksProof
 import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -30,16 +30,18 @@ theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray v.scale) := by
-  obtain ⟨_, _, rd181⟩ := hreach
-  have rd185 := evm_run rd181 with [
-    raw jumpdest (by tiny_decode_at v, ⟨181⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push2 ⟨167⟩ (by tiny_decode_at v, ⟨182⟩, 0x61, (.Push .PUSH2)) (by evm_ov)]
-  have rd218 := rd185.pushConst (EVM.wordOfInt (Int.ofNat v.scale.toNat)) (width := 32)
-    (op := .PUSH32) (by decide) (tinyDecodeScaleWord1 v) (by evm_ov)
-  have rd167 := evm_run rd218 with [
-    raw dup2 (by tiny_decode_at v, ⟨218⟩, 0x81, .DUP2) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨219⟩, 0x56, .JUMP) (tinyContains167 v) (by evm_ov)]
-  have hret := RD.tinyReturnWord167 (v := v) (R := [⟨167⟩, solcSelectorWord I]) rd167
+  obtain ⟨k, C, rd181⟩ := hreach
+  have rd167 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
+      [EVM.wordOfInt (Int.ofNat v.scale.toNat), ⟨167⟩, solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
+    have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+        (UInt256.ofNat 167) = true := by
+      exact tinyContains167 v
+    have h := tinyImmutableBlocks.tinyImmutable_block_181 (immWords := immutableWords v)
+      (by simp) hvalid rd181
+    simpa [tinyImmutableBlocks.tinyImmutable_block_181_stack, immutableWords,
+      patchedRuntime] using h
+  have hret := RD.tinyBlocksReturnWord167 (v := v) (R := [⟨167⟩, solcSelectorWord I]) rd167
     (by simp)
   rw [wordOfInt_ofNat_toNat] at hret
   exact hret
@@ -54,7 +56,7 @@ theorem tinyScaleBodyCore
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz := tinyScaleSelector_size hsel
   have hd := tinyDispatch_scale v howner hquote hsel
-  have hreach := tinyReachScaleBody (σ := σ)
+  have hreach := tinyBlocksReachScaleBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz hsize
     howner hquote hsel
   have hdec := tinyScaleDecode_empty (v := v) (I := I) hsz

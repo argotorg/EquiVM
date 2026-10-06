@@ -102,7 +102,7 @@ theorem hopeAssign (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
         hopeSourceKey, hopeUsrKey, uint256St])
       (hloc := by rfl)
-  simpa [hopePostState] using vatStorageLocStore_uint256 evm (hopeStorageSlot I) ⟨1⟩
+  simpa [hopePostState] using storageLocStore_uint256 evm (hopeStorageSlot I) ⟨1⟩
 
 theorem vatHopeBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

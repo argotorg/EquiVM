@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Benchmarks.Dss.Vow.Deny
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -31,13 +32,13 @@ theorem relySlotFor_eq (I : ExecutionEnv) :
 
 theorem vowLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
   have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       ⟨12⟩ = ⟨1⟩ := by
-    simpa [vowSlotWord] using hlive
+    simpa [solcSlotWordAt] using hlive
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok liveEvaledRef := by
@@ -53,7 +54,7 @@ theorem vowLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, liveEvaledRef])]
-  rw [vowStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -61,14 +62,14 @@ theorem vowLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
 
 theorem vowLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
-    (hlive : vowSlotWord ⟨12⟩ σ I ≠ ⟨1⟩) :
+    (hlive : solcSlotWordAt ⟨12⟩ σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
   let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨12⟩
   have hload : w ≠ ⟨1⟩ := by
     intro hw
-    exact hlive (by simpa [w, vowSlotWord] using hw)
+    exact hlive (by simpa [w, solcSlotWordAt] using hw)
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) liveRef = .ok liveEvaledRef := by
@@ -84,7 +85,7 @@ theorem vowLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hloc := by
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, liveEvaledRef])]
-  rw [vowStorageLocLoad_uint256]
+  erw [storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -180,112 +181,6 @@ theorem RD.vowLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
   exact RD.solcErrorStringRevertTail (by simpa [vowLiveGuardTailPc] using rdTail₀) htail
     (by decide) (by rfl) hmem hread64 (by simpa only [List.length_cons] using hov)
 
-@[reducible] def vowRelyStoreOneWf (code : ByteArray) (pc : UInt256) : Prop :=
-  let p1 := pc + ⟨1⟩
-  let p3 := p1 + UInt256.ofNat 2
-  let p5 := p3 + UInt256.ofNat 2
-  let p7 := p5 + UInt256.ofNat 2
-  let p8 := p7 + ⟨1⟩
-  let p9 := p8 + ⟨1⟩
-  let p10 := p9 + ⟨1⟩
-  let p12 := p10 + UInt256.ofNat 2
-  let p13 := p12 + ⟨1⟩
-  let p14 := p13 + ⟨1⟩
-  let p15 := p14 + ⟨1⟩
-  let p17 := p15 + UInt256.ofNat 2
-  let p18 := p17 + ⟨1⟩
-  let p19 := p18 + ⟨1⟩
-  let p20 := p19 + ⟨1⟩
-  let p22 := p20 + UInt256.ofNat 2
-  let p23 := p22 + ⟨1⟩
-  let p24 := p23 + ⟨1⟩
-  let p26 := p24 + UInt256.ofNat 2
-  let p27 := p26 + ⟨1⟩
-  let p28 := p27 + ⟨1⟩
-  decode code pc = some (.JUMPDEST, .none)
-  ∧ decode code p1 = some (.Push .PUSH1, some (⟨1⟩, 1))
-  ∧ decode code p3 = some (.Push .PUSH1, some (⟨1⟩, 1))
-  ∧ decode code p5 = some (.Push .PUSH1, some (⟨160⟩, 1))
-  ∧ decode code p7 = some (.SHL, .none)
-  ∧ decode code p8 = some (.SUB, .none)
-  ∧ decode code p9 = some (.AND, .none)
-  ∧ decode code p10 = some (.Push .PUSH1, some (⟨0⟩, 1))
-  ∧ decode code p12 = some (.SWAP1, .none)
-  ∧ decode code p13 = some (.DUP2, .none)
-  ∧ decode code p14 = some (.MSTORE, .none)
-  ∧ decode code p15 = some (.Push .PUSH1, some (⟨32⟩, 1))
-  ∧ decode code p17 = some (.DUP2, .none)
-  ∧ decode code p18 = some (.SWAP1, .none)
-  ∧ decode code p19 = some (.MSTORE, .none)
-  ∧ decode code p20 = some (.Push .PUSH1, some (⟨64⟩, 1))
-  ∧ decode code p22 = some (.SWAP1, .none)
-  ∧ decode code p23 = some (.KECCAK256, .none)
-  ∧ decode code p24 = some (.Push .PUSH1, some (⟨1⟩, 1))
-  ∧ decode code p26 = some (.SWAP1, .none)
-  ∧ decode code p27 = some (.SSTORE, .none)
-  ∧ decode code p28 = some (.JUMP, .none)
-
-theorem RD.vowRelyStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : vowRelyStoreOneWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hmem : mem.size = 96)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 6 ≤ 1024) :
-    (ee.perm = true ∧
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C') ∨
-      (ee.perm = false ∧ RDstatic code g s0) := by
-  rcases hwf with
-    ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
-      hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd26, hd27, hd28⟩
-  have hmask : UInt256.land solcAddrMask key = key :=
-    solcAddrMask_clean_left hcanonKey
-  have hmaskLiteral :
-      UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) key =
-        key := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact hmask
-  have rdMasked := evm_run h with [
-    raw jumpdest hd0 (by evm_ov),
-    raw push1 ⟨1⟩ hd1 (by evm_ov),
-    raw push1 ⟨1⟩ hd3 (by evm_ov),
-    raw push1 ⟨160⟩ hd5 (by evm_ov),
-    raw shl hd7 (by evm_ov),
-    raw sub hd8 (by evm_ov),
-    raw and hd9 (by evm_ov)]
-  rw [hmaskLiteral] at rdMasked
-  have rdMstore0Prefix := evm_run rdMasked with [
-    raw push1 ⟨0⟩ hd10 (by evm_ov),
-    raw swap1 hd12 (by evm_ov),
-    raw dup2 hd13 (by evm_ov)]
-  have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdMstoreSlotPrefix := evm_run rdAfterKey with [
-    raw push1 ⟨32⟩ hd15 (by evm_ov),
-    raw dup2 hd17 (by evm_ov),
-    raw swap1 hd18 (by evm_ov)]
-  have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ hd20 (by evm_ov),
-    raw swap1 hd22 (by evm_ov)]
-  have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
-  have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
-  have rdBeforeStore := evm_run rdSlot with [
-    raw push1 ⟨1⟩ hd24 (by evm_ov),
-    raw swap1 hd26 (by evm_ov)]
-  by_cases hperm : ee.perm = true
-  swap
-  · exact Or.inr ⟨by simpa using hperm,
-      rdBeforeStore.sstoreStatic (by simpa using hperm) hd27 (by evm_ov)⟩
-  refine Or.inl ⟨hperm, ?_⟩
-  obtain ⟨_, _, rdOut⟩ := rdBeforeStore.sstore hperm hd27 (by evm_ov)
-  exact ⟨_, _, rdOut.jump hd28 hret (by evm_ov)⟩
 
 /-! ### Dispatch, ABI, reachability, and body proof -/
 
@@ -379,8 +274,8 @@ theorem vowRelyBodyCore
   let locals : Store := (∅ : Store).insert "usr" (.address (relyUsr I))
   have hslot : relySlotFor I = slot := by
     simp [slot, key, relySlotFor_eq]
-  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I := rfl
-  have hliveWord : vowSlotWord ⟨12⟩ σ I = vowSlotWord ⟨12⟩ σ I := rfl
+  have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I := rfl
+  have hliveWord : solcSlotWordAt ⟨12⟩ σ I = solcSlotWordAt ⟨12⟩ σ I := rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨517⟩) (ret := ⟨412⟩)
     (decoded := ⟨539⟩) hreach
@@ -394,22 +289,22 @@ theorem vowRelyBodyCore
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : vowSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : vowSlotWord callerSlot σ I = ⟨1⟩ := by
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+  · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
       rw [← hcallerWord]
       exact hauthEvm
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
-    obtain ⟨_, _, hafterAuth⟩ := RD.vowAuthCheckOk
+      simpa [callerSlot, vowCallerWardsSlot, solcSlotWordAt] using hauthEvm
+    obtain ⟨_, _, hafterAuth⟩ := RD.solcAuthCheckOk
       (code := vowBytecode) (pc := ⟨2294⟩) (okPc := ⟨2383⟩) (key := key)
       (ret := ⟨412⟩) (R := [sel])
       (by simpa [key, relyKey] using hroutine)
       (by
-        unfold vowAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
-    by_cases hliveEvm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩
-    · have hliveSolm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩ := by
+    by_cases hliveEvm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩
+    · have hliveSolm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ := by
         rw [← hliveWord]
         exact hliveEvm
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -465,7 +360,7 @@ theorem vowRelyBodyCore
           ExecFuncBody.execBlockOK (hpre _ (ExecBlock.consNormal
             (ExecStmt.assign (by simp [evalExpr?, pure]) hassign) ExecBlock.nil))
       have hliveSolc : solcSlotWord σ I ⟨12⟩ = ⟨1⟩ := by
-        simpa [vowSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       obtain ⟨_, _, hstorePc⟩ := RD.vowLiveGuardOk
         (code := vowBytecode) (pc := ⟨2383⟩) (okPc := ⟨2453⟩) (key := key)
         (ret := ⟨412⟩) (R := [sel]) hafterAuth
@@ -480,11 +375,11 @@ theorem vowRelyBodyCore
         dsimp [key, relyKey]
         rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
         exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-      have hstore := RD.vowRelyStoreOneSplit
+      have hstore := RD.solcMapping0StoreOneSplit
         (code := vowBytecode) (pc := ⟨2453⟩) (key := key) (ret := ⟨412⟩) (R := [sel])
         hstorePc
         (by
-          unfold vowRelyStoreOneWf
+          unfold solcMapping0StoreOneWf
           repeat' first | apply And.intro | native_decide)
         (by jump_dest) hmemAuth hcanonKey (by simp)
       by_cases hperm : I.perm = true
@@ -511,7 +406,7 @@ theorem vowRelyBodyCore
         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
       exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
-    · have hliveSolm : vowSlotWord ⟨12⟩ σ I ≠ ⟨1⟩ := by
+    · have hliveSolm : solcSlotWordAt ⟨12⟩ σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hliveEvm (by rw [hliveWord, hsolm])
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -538,7 +433,7 @@ theorem vowRelyBodyCore
         simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
           ExecFuncBody.execBlockRevert hblock
       have hliveSolc : solcSlotWord σ I ⟨12⟩ ≠ ⟨1⟩ := by
-        simpa [vowSlotWord] using hliveEvm
+        simpa [solcSlotWordAt] using hliveEvm
       have hmemAuth :
           (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
         twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -558,7 +453,7 @@ theorem vowRelyBodyCore
           repeat' first | apply And.intro | native_decide)
         hliveSolc hmemAuth hread64 (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : vowSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+  · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -579,16 +474,16 @@ theorem vowRelyBodyCore
       simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
+      simpa [callerSlot, vowCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.vowAuthCheckRevert
       (code := vowBytecode) (pc := ⟨2294⟩) (okPc := ⟨2383⟩) (key := key)
       (ret := ⟨412⟩) (R := [sel])
       (by simpa [key, relyKey] using hroutine)
       (by
-        unfold vowAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       (by
-        unfold solcErrorStringRevertTailWf vowAuthTailPc vowNotAuthorizedRawWord
+        unfold solcErrorStringRevertTailWf solcAuthTailPc vowNotAuthorizedRawWord
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

@@ -1,3 +1,6 @@
+import Reasoning.SolmBody
+import Reasoning.Reach
+import Reasoning.Storage
 import Examples.BlindAuction.Reveal.PlaceBid
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -7,46 +10,9 @@ set_option maxHeartbeats 800000
 namespace BlindAuction
 
 -- Compatibility wrapper around `Reasoning.Reach.RD.whileLoopCarryFull`.
-theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
-    {s0 : State} {rdata : ByteArray} {α : Type}
-    (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256)
-    (mem : α → ByteArray) (aw : α → UInt256)
-    (acc : α → AccountMap)
-    (exitStk : α → List UInt256)
-    (hexit : ∀ a, Inv 0 a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-        ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
-    (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,
-        RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-        ∃ a' k' C',
-          Inv v a' ∧
-            RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
-    ∀ v a, Inv v a → ∀ k C,
-      RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
-      ∃ a' k' C',
-        Inv 0 a' ∧ RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C' := by
-  exact Reasoning.Reach.RD.whileLoopCarryFull header exit Inv stk mem aw acc exitStk hexit hbody
+
 
 -- Compatibility wrapper around `Reasoning.Theory.execFor_var_state_continue`.
-theorem scratch_execFor_varEVM {cfg : Config} {C : ContractDecl}
-    {condExpr : Expr} {post body : List Stmt}
-    (P : ℕ → Solm.Store → EVM.State → Prop)
-    (hfalse : ∀ L evm, P 0 L evm →
-        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool false))
-    (htrue : ∀ v L evm, P (v + 1) L evm →
-        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool true))
-    (hstep : ∀ v L evm, P (v + 1) L evm →
-        ∃ L1 evm1, ExecBlock cfg { contract := C, locals := L } evm body
-              (.ok { contract := C, locals := L1 } evm1) ∧
-            ∃ L2 evm2, ExecBlock cfg { contract := C, locals := L1 } evm1 post
-              (.ok { contract := C, locals := L2 } evm2) ∧ P v L2 evm2) :
-    ∀ v L evm, P v L evm → ∃ L' evm',
-      ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
-        (.ok { contract := C, locals := L' } evm') ∧ P 0 L' evm' := by
-  exact Reasoning.Theory.execFor_var_state_continue P hfalse htrue
-    (fun v L evm hP => by
-      obtain ⟨L1, evm1, hbody, L2, evm2, hpost, hP1⟩ := hstep v L evm hP
-      exact ⟨L1, evm1, Or.inl hbody, L2, evm2, hpost, hP1⟩)
 
 
 theorem scratch_blindAuctionRevealX_loop_from_body {I} {g : Sat256} {s0 : State}
@@ -80,7 +46,7 @@ theorem scratch_blindAuctionRevealX_loop_from_body {I} {g : Sat256} {s0 : State}
           (scratch_revealEvmLoopStack (idx a') (refund a') len revealEnd biddingEnd
             secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
           (mem a') (aw a') rdata (acc a') k' C' := by
-  refine scratch_RD_whileLoopCarryAcc (code := blindAuctionBytecode) (ee := I) (g := g)
+  refine RD.whileLoopCarryFull (code := blindAuctionBytecode) (ee := I) (g := g)
     (s0 := s0) (rdata := rdata) (header := ⟨1014⟩) (exit := ⟨1331⟩)
     (Inv := Inv)
     (stk := fun a =>
@@ -420,9 +386,10 @@ theorem scratch_revealBid_arrayIndexInBounds_ok (evm : EVM.State) (i len : UInt2
     (hbound : i.toNat < len.toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .ok () := by
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
+  simp [show blindAuctionUint256Loc = uint256Loc from rfl, arrayIndexInBounds?, storageTypeAt?,
+    storageTypeStep?, blindAuctionConfig,
     blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, blindAuctionStorageLocLoad_uint256, hlen, hbound]
+    bytes32St, storageLocLoad_uint256, hlen, hbound]
 
 theorem scratch_evalStorageRef_reveal_bid_ok (evm : EVM.State) (callargs : Store)
     (len refund i : UInt256)
@@ -633,7 +600,7 @@ theorem scratch_evalExpr_reveal_bid_blinded (evm : EVM.State) (locals : Store)
     (t := .bytes ⟨31, by decide⟩)
     (loc := blindAuctionBytes32Loc (scratch_revealBidBlindedSlot evm i))
     (scratch_revealBid_blinded_layout evm i)]
-  rw [blindAuctionStorageLocLoad_bytes32, hblinded]
+  erw [storageLocLoad_bytes32, hblinded]
 
 theorem scratch_evalExpr_reveal_hash_guard_true (evm : EVM.State) (locals : Store)
     (i blinded : UInt256) (hashBytes : List UInt8)
@@ -1161,7 +1128,7 @@ theorem scratch_evalExpr_reveal_bid_deposit (evm : EVM.State) (locals : Store)
     (t := .int uint256Int)
     (loc := blindAuctionUint256Loc (scratch_revealBidDepositSlot evm i))
     (scratch_revealBid_deposit_layout evm i)]
-  rw [blindAuctionStorageLocLoad_uint256, hdeposit]
+  erw [storageLocLoad_uint256, hdeposit]
 
 theorem scratch_evalExpr_reveal_placeBid_cond_true (evm : EVM.State) (locals : Store)
     (i value deposit : UInt256)
@@ -1230,13 +1197,6 @@ theorem scratch_evalExpr_reveal_placeBid_cond_false_deposit (evm : EVM.State) (l
   simp [evalBinaryOp?]
   omega
 
-theorem scratch_blindAuctionStorageLocStore_bytes32 (evm : EVM.State)
-    (slot word : UInt256) (v : Value)
-    (hval : valueToWord v = some word) :
-    storageLocStore evm (blindAuctionBytes32Loc slot) v =
-      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
-  simpa [blindAuctionBytes32Loc, Reasoning.Theory.bytes32Loc] using
-    storageLocStore_bytes32 evm slot word v hval
 
 def scratch_revealZeroBlindedState (evm : EVM.State) (i : UInt256) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner
@@ -1273,7 +1233,7 @@ theorem scratch_assign_reveal_blinded_zero (evm : EVM.State) (locals : Store)
     EvalResult.bind, bind]
   have hloc := scratch_revealBid_blinded_layout evm i
   simp only [hloc, EvalResult.ofOption, Option.bind]
-  rw [scratch_blindAuctionStorageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
+  erw [storageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
   · rfl
   · native_decide
 

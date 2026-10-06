@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.StringStoreLite.Getters
 
 /-!
@@ -11,6 +12,27 @@ remaining storage-copy loop does not force that module to re-elaborate.
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace StringStoreLite
+
+theorem currentLength_endp_toNat_of_len_lt_sign {len : UInt256}
+    (hlen : len.toNat < 2 ^ 255) :
+    (((⟨160⟩ : UInt256) + len).toNat = 160 + len.toNat) := by
+  rw [uadd_toNat, show (⟨160⟩ : UInt256).toNat = 160 from by decide]
+  rw [Nat.add_comm 160 len.toNat]
+  exact Nat.mod_eq_of_lt (by
+    have hsize : (2 : Nat) ^ 255 + 160 < UInt256.size := by
+      norm_num [UInt256.size]
+    nlinarith)
+
+end StringStoreLite
+
+end
 
 namespace StringStoreLite
 
@@ -257,35 +279,6 @@ theorem currentLengthCopyMem_size_ge_mem {mem : ByteArray} {ptr word : UInt256}
     rw [ByteArray.size_append, ByteArray.size_append, hhead, hword, htail]
     omega
 
-theorem writeWord_size_ge_mem {mem : ByteArray} {off : Nat} {word : UInt256}
-    (hin : off ≤ mem.size) :
-    mem.size ≤ (word.toByteArray.write 0 mem off 32).size := by
-  rw [write32_eq (UInt256.toByteArray word) mem off
-      (by rw [toByteArray_size]) hin]
-  have hhead : (mem.extract 0 off).size = off := by
-    rw [ByteArray.size_extract]
-    omega
-  have hword : ((UInt256.toByteArray word).extract 0 32).size = 32 := by
-    rw [ByteArray.size_extract, toByteArray_size]
-    omega
-  by_cases htailIn : off + 32 ≤ mem.size
-  · have htail :
-        (mem.extract (off + 32) mem.size).size =
-          mem.size - (off + 32) := by
-      rw [ByteArray.size_extract]
-      omega
-    rw [ByteArray.size_append, ByteArray.size_append, hhead, hword, htail]
-    omega
-  · have htail : (mem.extract (off + 32) mem.size).size = 0 := by
-      rw [ByteArray.size_extract]
-      omega
-    rw [ByteArray.size_append, ByteArray.size_append, hhead, hword, htail]
-    omega
-
-theorem writeWord_size_gt64_of_mem {mem : ByteArray} {off : Nat} {word : UInt256}
-    (hmem : 64 < mem.size) (hin : off ≤ mem.size) :
-    64 < (word.toByteArray.write 0 mem off 32).size :=
-  lt_of_lt_of_le hmem (writeWord_size_ge_mem (mem := mem) (off := off) (word := word) hin)
 
 theorem currentLengthCopyMem_size_gt128 {mem : ByteArray} {ptr word : UInt256}
     (hptr : 160 ≤ ptr.toNat) (hin : ptr.toNat ≤ mem.size) :
@@ -378,61 +371,6 @@ theorem currentLengthCopyMem_preserves_read64 {mem : ByteArray} {ptr word freePt
       UInt256.toByteArray freePtr := by
   rw [currentLengthCopyMem_read64 hptr hin, hread]
 
-theorem currentLengthReturnWrite_preserves_read64 {mem : ByteArray} {len freePtr : UInt256}
-    (hptr : 96 ≤ freePtr.toNat) (hin : freePtr.toNat ≤ mem.size)
-    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray freePtr) :
-    (len.toByteArray.write 0 mem freePtr.toNat 32).readWithPadding 64 32 =
-      UInt256.toByteArray freePtr := by
-  rw [write32_read_below (UInt256.toByteArray len) mem freePtr.toNat 64
-    (by rw [toByteArray_size]) hin (by
-      rw [show 64 + 32 = 96 from rfl]
-      exact hptr)]
-  exact hread
-
-theorem currentLengthReturnWrite_readBack {mem : ByteArray} {len freePtr : UInt256}
-    (hin : freePtr.toNat ≤ mem.size) :
-    (len.toByteArray.write 0 mem freePtr.toNat 32).readWithPadding freePtr.toNat 32 =
-      UInt256.toByteArray len := by
-  rw [write32_read_back (UInt256.toByteArray len) mem freePtr.toNat
-    (by rw [toByteArray_size]) hin]
-  rw [toByteArray_extract_all]
-
-theorem currentLength_add_zero_toNat (w : UInt256) :
-    ((w + ⟨0⟩ : UInt256).toNat) = w.toNat := by
-  rw [uadd_toNat]
-  simp only [UInt256.toNat]
-  exact Nat.mod_eq_of_lt w.val.isLt
-
-theorem currentLengthReturnWrite_preserves_read64_zero {mem : ByteArray} {len freePtr : UInt256}
-    (hptr : 96 ≤ freePtr.toNat) (hin : freePtr.toNat ≤ mem.size)
-    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray freePtr) :
-    (len.toByteArray.write 0 mem (freePtr + ⟨0⟩).toNat 32).readWithPadding 64 32 =
-      UInt256.toByteArray freePtr := by
-  simpa [currentLength_add_zero_toNat] using
-    currentLengthReturnWrite_preserves_read64
-      (mem := mem) (len := len) (freePtr := freePtr) hptr hin hread
-
-theorem currentLengthReturnWrite_retBytes {mem : ByteArray} {len freePtr : UInt256}
-    (hin : freePtr.toNat ≤ mem.size)
-    (hretLen : (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat = 32) :
-    (len.toByteArray.write 0 mem (freePtr + ⟨0⟩).toNat 32).readWithPadding
-        freePtr.toNat (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat =
-      UInt256.toByteArray len := by
-  rw [hretLen]
-  simpa [currentLength_add_zero_toNat] using
-    currentLengthReturnWrite_readBack (mem := mem) (len := len) (freePtr := freePtr) hin
-
-theorem currentLength_mload64_of_read64 {mem : ByteArray} {freePtr : UInt256}
-    (hmem : 64 < mem.size)
-    (hread : mem.readWithPadding 64 32 = UInt256.toByteArray freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
-      else UInt256.ofNat
-        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
-      freePtr := by
-  exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (v := freePtr)
-    (by simpa using hmem)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread)
 
 theorem currentLengthLoopState_preserves_read64 {σ : AccountMap} {I : ExecutionEnv}
     {endp len freePtr : UInt256} (fuel : Nat) (st : Nat → CurrentLengthLoopState)
@@ -710,85 +648,6 @@ theorem currentLengthGeneratedLoopState_ptr_ge160 {σ : AccountMap} {I : Executi
       rw [hptrNext]
       omega
 
-theorem machineState_M_32_lt_u256_size {s f : ℕ}
-    (hs : s < UInt256.size) (hf : f < UInt256.size) :
-    MachineState.M s f 32 < UInt256.size := by
-  simp only [MachineState.M]
-  apply max_lt hs
-  apply Nat.div_lt_of_lt_mul
-  have hsize : 64 ≤ UInt256.size := by
-    norm_num [UInt256.size]
-  nlinarith
-
-theorem machineState_M_mul32_lt_of_bounds {s f l : ℕ}
-    (hs : s * 32 < UInt256.size)
-    (hfl : f + l + 31 < UInt256.size) :
-    MachineState.M s f l * 32 < UInt256.size := by
-  by_cases hl : l = 0
-  · simp [MachineState.M, hl, hs]
-  · simp only [MachineState.M]
-    let c := (f + l + 31) / 32
-    have hceil : ((f + l + 31) / 32) * 32 ≤ f + l + 31 := by
-      exact Nat.div_mul_le_self (f + l + 31) 32
-    have hc : c * 32 < UInt256.size := by
-      exact lt_of_le_of_lt hceil hfl
-    by_cases hsc : s ≤ c
-    · rw [max_eq_right hsc]
-      exact hc
-    · have hcs : c ≤ s := Nat.le_of_not_ge hsc
-      rw [max_eq_left hcs]
-      exact hs
-
-theorem machineState_M_word_mul32_lt_of_bounds {aw off len : UInt256}
-    (haw : aw.toNat * 32 < UInt256.size)
-    (hoff : off.toNat + len.toNat + 31 < UInt256.size) :
-    (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)).toNat * 32 <
-      UInt256.size := by
-  have hM := machineState_M_mul32_lt_of_bounds
-    (s := aw.toNat) (f := off.toNat) (l := len.toNat) haw hoff
-  have hMSize : MachineState.M aw.toNat off.toNat len.toNat < UInt256.size := by
-    have hle : MachineState.M aw.toNat off.toNat len.toNat ≤
-        MachineState.M aw.toNat off.toNat len.toNat * 32 := by
-      simpa using Nat.mul_le_mul_left
-        (MachineState.M aw.toNat off.toNat len.toNat) (by decide : 1 ≤ 32)
-    exact lt_of_le_of_lt hle hM
-  rw [ulit_toNat' _ hMSize]
-  exact hM
-
-theorem machineState_M_ge_left {s f l : Nat} : s ≤ MachineState.M s f l := by
-  by_cases hl : l = 0
-  · simp [MachineState.M, hl]
-  · simp [MachineState.M]
-
-theorem machineState_M_word_ge_aw {aw off len : UInt256}
-    (hMSize : MachineState.M aw.toNat off.toNat len.toNat < UInt256.size) :
-    aw.toNat ≤ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)).toNat := by
-  rw [ulit_toNat' _ hMSize]
-  exact machineState_M_ge_left
-
-theorem activeWordsMload64_eq_self {aw : UInt256} (hge : 3 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32 = aw.toNat := by
-    simp only [MachineState.M]
-    have hceil : ((⟨64⟩ : UInt256).toNat + 32 + 31) / 32 = 3 := by
-      decide
-    rw [hceil]
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
-
-theorem activeWordsMload128_eq_self {aw : UInt256} (hge : 5 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat 32 = aw.toNat := by
-    simp only [MachineState.M]
-    have hceil : ((⟨128⟩ : UInt256).toNat + 32 + 31) / 32 = 5 := by
-      decide
-    rw [hceil]
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
 
 theorem currentLengthGeneratedLoopState_aw_ge5 {σ : AccountMap} {I : ExecutionEnv}
     {len : UInt256} :
@@ -1479,31 +1338,6 @@ theorem currentLengthGeneratedFinalCopy_aw128_of_mNoWrap
   change 128 ≥ m * 32 at h128
   nlinarith
 
-theorem wordMul32_not_le64_of_ge3 {aw : UInt256}
-    (hge : 3 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
-    ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ := by
-  have hmul :
-      (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
-    simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-      umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hNoWrap
-  intro hgeWord
-  have h64 : (⟨64⟩ : UInt256).toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hgeWord
-  rw [hmul] at h64
-  change 64 ≥ aw.toNat * 32 at h64
-  nlinarith
-
-theorem wordMul32_not_le128_of_ge5 {aw : UInt256}
-    (hge : 5 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
-    ¬ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ := by
-  have hmul :
-      (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
-    simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-      umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hNoWrap
-  intro hgeWord
-  have h128 : (⟨128⟩ : UInt256).toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hgeWord
-  rw [hmul] at h128
-  change 128 ≥ aw.toNat * 32 at h128
-  nlinarith
 
 theorem currentLengthGeneratedFinalCopy_aw64_of_mNoWrap
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
@@ -1630,118 +1464,6 @@ theorem currentLengthGeneratedLoopState_add32_of_fuelBound
   exact uadd_lit32_toNat
     (a := (currentLengthGeneratedLoopState σ I len i).ptr) (by rw [hptr]; nlinarith)
 
-theorem currentLengthFuel_continue_nat {n i : Nat}
-    (hn : 0 < n) (hi : i < (n - 1) / 32) :
-    32 * i + 32 < n := by
-  have hiSucc : i + 1 ≤ (n - 1) / 32 := Nat.succ_le_of_lt hi
-  have hmul : 32 * (i + 1) ≤ 32 * ((n - 1) / 32) :=
-    Nat.mul_le_mul_left 32 hiSucc
-  have hdiv : 32 * ((n - 1) / 32) ≤ n - 1 := by
-    simpa [Nat.mul_comm] using Nat.div_mul_le_self (n - 1) 32
-  have hle : 32 * (i + 1) ≤ n - 1 := le_trans hmul hdiv
-  have hlt : 32 * (i + 1) < n := by omega
-  omega
-
-theorem currentLengthFuel_done_nat {n : Nat} (hn : 0 < n) :
-    n ≤ 32 * ((n - 1) / 32) + 32 := by
-  have hdecomp :
-      n - 1 = (n - 1) / 32 * 32 + (n - 1) % 32 := by
-    simpa [Nat.mul_comm] using (Nat.div_add_mod (n - 1) 32).symm
-  have hmod : (n - 1) % 32 < 32 := Nat.mod_lt _ (by decide)
-  omega
-
-theorem currentLengthFuel_bound {n : Nat}
-    (hn : n < 2 ^ 255) :
-    160 + 32 * ((n - 1) / 32) + 32 < UInt256.size := by
-  have hdiv : 32 * ((n - 1) / 32) ≤ n - 1 := by
-    simpa [Nat.mul_comm] using Nat.div_mul_le_self (n - 1) 32
-  have hsize : (2 : Nat) ^ 255 + 191 < UInt256.size := by
-    norm_num [UInt256.size]
-  by_cases hzero : n = 0
-  · subst hzero
-    norm_num [UInt256.size]
-  · have hnpos : 0 < n := Nat.pos_of_ne_zero hzero
-    have hnm1 : n - 1 + 192 = n + 191 := by omega
-    nlinarith
-
-theorem currentLength_len_toNat_lt_sign_of_div2 {header len : UInt256}
-    (hlen : len = UInt256.div header ⟨2⟩) :
-    len.toNat < 2 ^ 255 := by
-  have hlenNat : len.toNat = header.toNat / 2 := by
-    rw [hlen, udiv_toNat]
-    rw [show (⟨2⟩ : UInt256).toNat = 2 from by decide]
-  rw [hlenNat]
-  apply Nat.div_lt_of_lt_mul
-  have hheader : header.toNat < UInt256.size := header.val.isLt
-  norm_num [UInt256.size] at hheader ⊢
-  exact hheader
-
-theorem land_one_eq_one_of_ne_zero {w : UInt256}
-    (h : UInt256.land w ⟨1⟩ ≠ ⟨0⟩) :
-    UInt256.land w ⟨1⟩ = ⟨1⟩ := by
-  apply u256_inj
-  change (UInt256.land w ⟨1⟩).toNat = 1
-  have hbit := uInt256_land_one_toNat w
-  have hlt : (UInt256.land w ⟨1⟩).toNat < 2 := by
-    rw [hbit]
-    exact Nat.mod_lt _ (by decide)
-  have hne : (UInt256.land w ⟨1⟩).toNat ≠ 0 := by
-    intro hz
-    exact h (uint256_toNat_eq_zero hz)
-  omega
-
-theorem ult_eq_one_of_ne_zero {a b : UInt256}
-    (h : UInt256.lt a b ≠ ⟨0⟩) :
-    UInt256.lt a b = ⟨1⟩ := by
-  have hlt := ult_ne_zero_toNat_lt h
-  exact ult_one hlt
-
-theorem currentLengthLongValid_gt31 {header len : UInt256}
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
-    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩)
-        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    UInt256.lt ⟨31⟩ len ≠ ⟨0⟩ := by
-  have hland : UInt256.land header ⟨1⟩ = ⟨1⟩ :=
-    land_one_eq_one_of_ne_zero hflag
-  have hnotLt32 : UInt256.lt len ⟨32⟩ = ⟨0⟩ := by
-    by_contra hltNotZero
-    have hltOne : UInt256.lt len ⟨32⟩ = ⟨1⟩ :=
-      ult_eq_one_of_ne_zero hltNotZero
-    exact hvalid (by simp [hland, hltOne, UInt256.sub])
-  have hge32 : 32 ≤ len.toNat := by
-    by_contra hlt
-    have hltOne : UInt256.lt len ⟨32⟩ = ⟨1⟩ :=
-      ult_one (by simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using Nat.lt_of_not_ge hlt)
-    rw [hltOne] at hnotLt32
-    contradiction
-  rw [show UInt256.lt ⟨31⟩ len = ⟨1⟩ from
-    ult_one (by
-      rw [show (⟨31⟩ : UInt256).toNat = 31 from by decide]
-      omega)]
-  decide
-
-theorem currentLengthLongValid_nonzero {header len : UInt256}
-    (hflag : UInt256.land header ⟨1⟩ ≠ ⟨0⟩)
-    (hvalid : UInt256.sub (UInt256.land header ⟨1⟩)
-        (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
-    len ≠ ⟨0⟩ := by
-  have hgt := currentLengthLongValid_gt31 (header := header) (len := len) hflag hvalid
-  have hgtNat : 31 < len.toNat := by
-    simpa [show (⟨31⟩ : UInt256).toNat = 31 from by decide] using
-      ult_ne_zero_toNat_lt hgt
-  intro hzero
-  rw [hzero] at hgtNat
-  contradiction
-
-theorem currentLength_endp_toNat_of_len_lt_sign {len : UInt256}
-    (hlen : len.toNat < 2 ^ 255) :
-    (((⟨160⟩ : UInt256) + len).toNat = 160 + len.toNat) := by
-  rw [uadd_toNat, show (⟨160⟩ : UInt256).toNat = 160 from by decide]
-  rw [Nat.add_comm 160 len.toNat]
-  exact Nat.mod_eq_of_lt (by
-    have hsize : (2 : Nat) ^ 255 + 160 < UInt256.size := by
-      norm_num [UInt256.size]
-    nlinarith)
 
 theorem currentLengthConcreteFuel_add32
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -1751,7 +1473,7 @@ theorem currentLengthConcreteFuel_add32
         (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32) :=
   currentLengthGeneratedLoopState_add32_of_fuelBound
     (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32)
-    (currentLengthFuel_bound hlenLt)
+    (longFuel_bound hlenLt)
 
 theorem currentLengthConcreteFuel_continue
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -1773,7 +1495,7 @@ theorem currentLengthConcreteFuel_continue
       exact currentLengthConcreteFuel_add32
         (σ := σ) (I := I) (len := len) hlenLt j
         (Nat.le_trans hj (Nat.le_of_lt hi)))
-    (currentLengthFuel_continue_nat (by omega : 0 < len.toNat) hi)
+    (longFuel_continue_nat (by omega : 0 < len.toNat) hi)
 
 theorem currentLengthConcreteFuel_done
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -1790,7 +1512,7 @@ theorem currentLengthConcreteFuel_done
     (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32)
     (currentLength_endp_toNat_of_len_lt_sign hlenLt)
     (currentLengthConcreteFuel_add32 (σ := σ) (I := I) (len := len) hlenLt)
-    (currentLengthFuel_done_nat (by omega : 0 < len.toNat))
+    (longFuel_done_nat (by omega : 0 < len.toNat))
 
 theorem currentLengthConcreteFuel_finalMload128
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256}
@@ -1818,9 +1540,6 @@ theorem currentLengthConcreteFuel_finalMload128
     (currentLengthGeneratedFinalCopy_size_gt128_of_add32
       (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32) hadd32)
 
-theorem currentLengthCeilWords_eq {n : Nat} (hn : 0 < n) :
-    (31 + n) / 32 = (n - 1) / 32 + 1 := by
-  omega
 
 theorem currentLengthFreePtr_toNat_of_len_lt_sign_pos {len : UInt256}
     (hlenLt : len.toNat < 2 ^ 255) (hpos : 0 < len.toNat) :
@@ -1838,11 +1557,11 @@ theorem currentLengthFreePtr_toNat_of_len_lt_sign_pos {len : UInt256}
       (((⟨31⟩ : UInt256) + len) / ⟨32⟩).toNat = q + 1 := by
     change (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat = q + 1
     rw [udiv_toNat, h31, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-    exact currentLengthCeilWords_eq hpos
+    exact ceil32_eq_pred_div_add_one hpos
   have hmulBound : (q + 1) * 32 < UInt256.size := by
     have hle : ((31 + len.toNat) / 32) * 32 ≤ 31 + len.toNat := by
       exact Nat.div_mul_le_self (31 + len.toNat) 32
-    rw [currentLengthCeilWords_eq hpos] at hle
+    rw [ceil32_eq_pred_div_add_one hpos] at hle
     have hsize : (2 : Nat) ^ 255 + 31 < UInt256.size := by
       norm_num [UInt256.size]
     change (((len.toNat - 1) / 32 + 1) * 32 < UInt256.size)
@@ -1858,7 +1577,7 @@ theorem currentLengthFreePtr_toNat_of_len_lt_sign_pos {len : UInt256}
     have hadd := uadd_lit32_toNat
       (a := ((((⟨31⟩ : UInt256) + len) / ⟨32⟩) * ⟨32⟩)) (by
         rw [hmulNat]
-        have hfuel := currentLengthFuel_bound hlenLt
+        have hfuel := longFuel_bound hlenLt
         dsimp [q] at hfuel ⊢
         omega)
     rw [hadd, hmulNat]
@@ -1869,7 +1588,7 @@ theorem currentLengthFreePtr_toNat_of_len_lt_sign_pos {len : UInt256}
       (128 + (32 + (q + 1) * 32)) % UInt256.size =
         128 + (32 + (q + 1) * 32) :=
     Nat.mod_eq_of_lt (by
-      have hfuel := currentLengthFuel_bound hlenLt
+      have hfuel := longFuel_bound hlenLt
       change 128 + (32 + ((len.toNat - 1) / 32 + 1) * 32) < UInt256.size
       omega)
   rw [hmod]
@@ -1901,7 +1620,7 @@ theorem currentLengthConcreteFuel_finalCopy_size_eq_freePtr
     currentLengthGeneratedLoopState_ptr_toNat_eq_of_bound
       (σ := σ) (I := I) (len := len) ((len.toNat - 1) / 32)
       (by
-        have hfuel := currentLengthFuel_bound hlenLt
+        have hfuel := longFuel_bound hlenLt
         omega)
   rw [hsize, hptr, currentLengthFreePtr_toNat_of_len_lt_sign_pos hlenLt (by omega)]
 
@@ -1967,7 +1686,7 @@ theorem currentLengthConcreteWrapperStore_aw_mul32_lt
         UInt256.size :=
     currentLengthGeneratedFinalCopy_ptrBound_of_fuelBound
       (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32)
-      hadd32 (currentLengthFuel_bound hlenLt)
+      hadd32 (longFuel_bound hlenLt)
   have hawStoreNoWrap :
       MachineState.M
           (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).aw.toNat
@@ -2034,7 +1753,7 @@ theorem currentLengthConcreteWrapperStore_aw_ge3
         UInt256.size :=
     currentLengthGeneratedFinalCopy_ptrBound_of_fuelBound
       (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32)
-      hadd32 (currentLengthFuel_bound hlenLt)
+      hadd32 (longFuel_bound hlenLt)
   have hawStoreNoWrap :
       MachineState.M
           (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).aw.toNat
@@ -2456,24 +2175,24 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
         (fuel := fuel) (finalMloadCost := finalMloadCost) (awLoad := awLoad)
         (currentLengthConcreteFuel_done
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
         (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen))
         (by rfl)).memout
       (currentLengthGeneratedLoopFinal
         (σ := σ) (I := I) (endp := (⟨160⟩ : UInt256) + len) (len := len)
         (fuel := fuel) (finalMloadCost := finalMloadCost) (awLoad := awLoad)
         (currentLengthConcreteFuel_done
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
         (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen))
         (by rfl)).awLoad
       ByteArray.empty σ k C := by
   dsimp only
@@ -2486,7 +2205,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
       Cₘ awStore
   let awLoad := UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcontinue : ∀ i, i < fuel →
       UInt256.gt ((⟨160⟩ : UInt256) + len)
@@ -2594,16 +2313,6 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
   exact rd172.ret retCost (UInt256.toByteArray len)
     (by native_decide) hretCost hretBytes (by evm_ov)
 
-theorem activeWordsMstore0_eq_self {aw : UInt256} (hge : 1 ≤ aw.toNat) :
-    UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := by
-  apply u256_inj
-  have hM : MachineState.M aw.toNat 0 32 = aw.toNat := by
-    simp only [MachineState.M]
-    have hceil : (0 + 32 + 31) / 32 = 1 := by decide
-    rw [hceil]
-    exact max_eq_left hge
-  rw [hM]
-  exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
 
 theorem clearCurrentBaseAw_eq_self_of_ge1 {aw : UInt256} (hge : 1 ≤ aw.toNat) :
     clearCurrentBaseAw aw = aw := by
@@ -2668,7 +2377,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
   let copyAwLoad := UInt256.ofNat
     (MachineState.M copyAwStore.toNat (⟨128⟩ : UInt256).toNat 32)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcontinue : ∀ i, i < fuel →
       UInt256.gt ((⟨160⟩ : UInt256) + len)
@@ -2730,7 +2439,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     simpa [fuel] using
       currentLengthGeneratedFinalCopy_ptrBound_of_fuelBound
         (σ := σ) (I := I) (len := len) (fuel := fuel)
-        hadd32 (by simpa [fuel] using currentLengthFuel_bound hlenLt)
+        hadd32 (by simpa [fuel] using longFuel_bound hlenLt)
   have hMNoWrap :
       MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
           (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32 * 32 <
@@ -2809,23 +2518,23 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
   have hmstoreCost : Cₘ (M deleteAw (freePtr + ⟨0⟩) ⟨32⟩) - Cₘ deleteAw =
       wrapperMstoreCost := by
     simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-      wrapperMstoreCost, wrapperAwStore, currentLength_add_zero_toNat]
+      wrapperMstoreCost, wrapperAwStore, setAddZero_toNat]
   have hwrapperAwStore :
       UInt256.ofNat (MachineState.M deleteAw.toNat (freePtr + ⟨0⟩).toNat 32) =
         wrapperAwStore := by
-    simp [wrapperAwStore, currentLength_add_zero_toNat]
+    simp [wrapperAwStore, setAddZero_toNat]
   have hfreePtrLeMem : freePtr.toNat ≤ deleteMem.size := by
     rw [hdeleteSize, hcopySize]
   have hreturnRead64 : returnMem.readWithPadding 64 32 = UInt256.toByteArray freePtr := by
     simpa [returnMem] using
-      currentLengthReturnWrite_preserves_read64_zero
+      wordReturnWrite_preserves_read64_zero
         (mem := deleteMem) (len := len) (freePtr := freePtr)
         hfreeGe96 hfreePtrLeMem hdeleteRead64
   have hreturnSizeGe64 : 64 < returnMem.size := by
     have hge := writeWord_size_gt64_of_mem
       (mem := deleteMem) (off := (freePtr + ⟨0⟩).toNat) (word := len)
       (by rw [hdeleteSize, hcopySize]; omega)
-      (by simpa [currentLength_add_zero_toNat] using hfreePtrLeMem)
+      (by simpa [setAddZero_toNat] using hfreePtrLeMem)
     simpa [returnMem] using hge
   have hwrapperAwStoreNoWrap :
       wrapperAwStore.toNat * 32 < UInt256.size := by
@@ -2865,7 +2574,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
         (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat =
           UInt256.toByteArray len := by
     simpa [returnMem] using
-      currentLengthReturnWrite_retBytes
+      wordReturnWrite_retBytes
         (mem := deleteMem) (len := len) (freePtr := freePtr)
         hfreePtrLeMem hretLen
   let wrapperRetCost :=

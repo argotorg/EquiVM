@@ -1,4 +1,7 @@
+import Reasoning.SolmBody
+import Reasoning.BytecodePatching
 import Solm
+import Reasoning.Immutables
 
 /-!
 # MakerDAO/Sky DSS Dog immutable values, offset table, and `runtimeCodeOf`
@@ -19,26 +22,26 @@ namespace Benchmarks.Dss.Dog.Immutables
 structure DogImmutables where
   vat : EVM.Address
 
-def addrLit (a : EVM.Address) : Expr :=
-  .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
 
 variable (v : DogImmutables)
 
-def vatExpr : Expr := addrLit v.vat
+def vatExpr : Expr := Reasoning.Theory.addressLiteral v.vat
 
 def offsets : List (Ident × List Nat) :=
   [("imm_vat", [1405, 2890, 3170, 3965])]
 
+/-- The constructor's immutable offsets as a layout for generated runtime summaries. -/
+def immutableLayout : Reasoning.Immutables.Layout :=
+  ⟨offsets.flatMap fun (key, sites) => sites.map fun off => (off, 32, key)⟩
+
 def immValues (v : DogImmutables) : List (Ident × Value) :=
   [("imm_vat", .address v.vat)]
 
-def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do
     let x ← get p.1
-    let bytes ← wordBytes? x
+    let bytes ← Reasoning.Theory.wordBytes? x
     pure (p.2.map (fun o => (o, bytes)) ++ acc)) []
 
 def patches (v : DogImmutables) : List (Nat × ByteArray) :=

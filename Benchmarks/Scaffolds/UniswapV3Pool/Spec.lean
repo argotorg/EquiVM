@@ -1,3 +1,4 @@
+import Reasoning.SolmBody
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Scaffolds.UniswapV3Pool.Immutables
@@ -73,8 +74,6 @@ def uint160ArrayTy : ABIType := .dynamicArray uint160
 
 def zeroAddr : Expr := .cast (.intLit 0) addrSt
 
-/-- An address value as an `Expr` literal (cast a `uint160` literal to `address`). -/
-def addrLit (a : EVM.Address) : Expr := .cast (.intLit (Int.ofNat a.toNat)) addrSt
 
 /-! ## External ABI surface used by high-level and low-level calls -/
 
@@ -420,7 +419,7 @@ def blockTimestamp32 : Expr :=
   uint32Wrap (.env .timestamp)
 
 def noDelegateCall (v : PoolImmutables) : List Stmt :=
-  [ .require (eqE (.env .this) (addrLit v.original)) ]
+  [ .require (eqE (.env .this) (Reasoning.Theory.addressLiteral v.original)) ]
 
 def lockPrefix : List Stmt :=
   [ .require (.storage (slot0F "unlocked")),
@@ -430,8 +429,9 @@ def lockSuffix : List Stmt :=
   [ .assign .storage (slot0F "unlocked") (.boolLit true) ]
 
 def onlyFactoryOwner (v : PoolImmutables) : List Stmt :=
-  [ .require (.binary .gt (.extCodeSize (addrLit v.factory)) (.intLit 0)),
-    .externalCall (addrLit v.factory) "owner" (.intLit 0) [] "_factoryOwner" (perm := false),
+  [ .require (.binary .gt (.extCodeSize (Reasoning.Theory.addressLiteral v.factory)) (.intLit 0)),
+    .externalCall (Reasoning.Theory.addressLiteral v.factory) "owner" (.intLit 0) []
+      "_factoryOwner" (perm := false),
     .require (eqE (.env .caller) (.var "_factoryOwner")) ]
 
 def safeTransfer (token recipient amount : Expr) (tag : Ident) : List Stmt :=
@@ -1663,12 +1663,14 @@ def collectTransition (v : PoolImmutables) : TransitionDecl :=
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed0")
               (subE (.storage (positionsF (.var "positionKey") "tokensOwed0")) (.var "amount0")) ] ++
-            safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collect0")
+            safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient")
+              (.var "amount0") "collect0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed1")
               (subE (.storage (positionsF (.var "positionKey") "tokensOwed1")) (.var "amount1")) ] ++
-            safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collect1")
+            safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient")
+              (.var "amount1") "collect1")
           [] ] ++
       lockSuffix ++
       [ .return [(.var "amount0"), (.var "amount1")] ] }
@@ -1692,7 +1694,8 @@ def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
               [],
             .assign .storage (protocolFeesF "token0")
               (subE (.storage (protocolFeesF "token0")) (.var "amount0")) ] ++
-            safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collectProtocol0")
+            safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient")
+              (.var "amount0") "collectProtocol0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ Stmt.ite (eqE (.var "amount1") (.storage (protocolFeesF "token1")))
@@ -1700,7 +1703,8 @@ def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
               [],
             .assign .storage (protocolFeesF "token1")
               (subE (.storage (protocolFeesF "token1")) (.var "amount1")) ] ++
-            safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collectProtocol1")
+            safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient")
+              (.var "amount1") "collectProtocol1")
           [] ] ++
       lockSuffix ++
       [ .return [(.var "amount0"), (.var "amount1")] ] }
@@ -1709,7 +1713,7 @@ def factoryTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "factory"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.factory] ] }
+    body := nonpayable ++ [ .return [Reasoning.Theory.addressLiteral v.factory] ] }
 
 def feeTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "fee"
@@ -1738,18 +1742,24 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
         .require (gtE (.var "_liquidity") (.intLit 0)) ] ++
       mulDivRoundingUpLet "fee0" (.var "amount0") (.intLit v.fee) feeDenominator ++
       mulDivRoundingUpLet "fee1" (.var "amount1") (.intLit v.fee) feeDenominator ++
-      balanceOfInto (addrLit v.token0) "balance0Before" "flashBalance0Before" ++
-      balanceOfInto (addrLit v.token1) "balance1Before" "flashBalance1Before" ++
+      balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
+        "flashBalance0Before" ++
+      balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
+        "flashBalance1Before" ++
       [ Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "flashTransfer0")
+          (safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient")
+            (.var "amount0") "flashTransfer0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "flashTransfer1")
+          (safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient")
+            (.var "amount1") "flashTransfer1")
           [],
         .externalCall (.env .caller) "uniswapV3FlashCallback" (.intLit 0)
           [.var "fee0", .var "fee1", .var "data"] "_flashCallback" ] ++
-      balanceOfInto (addrLit v.token0) "balance0After" "flashBalance0After" ++
-      balanceOfInto (addrLit v.token1) "balance1After" "flashBalance1After" ++
+      balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After" "flashBalance0After"
+        ++
+      balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After" "flashBalance1After"
+        ++
       checkedWordAddLe (.var "balance0Before") (.var "fee0") (.var "balance0After") ++
       checkedWordAddLe (.var "balance1Before") (.var "fee1") (.var "balance1After") ++
       [ .letDecl "paid0" (some uint256)
@@ -1862,19 +1872,23 @@ def mintTransition (v : PoolImmutables) : TransitionDecl :=
         .letDecl "amount0" (some uint256) (uint256Wrap (tuple1 (.var "modified"))),
         .letDecl "amount1" (some uint256) (uint256Wrap (tuple2 (.var "modified"))),
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (balanceOfInto (addrLit v.token0) "balance0Before" "mintBalance0Before")
+          (balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
+            "mintBalance0Before")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (balanceOfInto (addrLit v.token1) "balance1Before" "mintBalance1Before")
+          (balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
+            "mintBalance1Before")
           [],
         .externalCall (.env .caller) "uniswapV3MintCallback" (.intLit 0)
           [.var "amount0", .var "amount1", .var "data"] "_mintCallback",
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
-          (balanceOfInto (addrLit v.token0) "balance0After" "mintBalance0After" ++
+          (balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After"
+            "mintBalance0After" ++
             checkedWordAddLe (.var "balance0Before") (.var "amount0") (.var "balance0After"))
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
-          (balanceOfInto (addrLit v.token1) "balance1After" "mintBalance1After" ++
+          (balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After"
+            "mintBalance1After" ++
             checkedWordAddLe (.var "balance1Before") (.var "amount1") (.var "balance1After"))
           [] ] ++
       lockSuffix ++
@@ -2180,23 +2194,27 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
                 (subE (.var "amountSpecified") (.var "stateAmountSpecifiedRemaining"))) ],
         Stmt.ite (.var "zeroForOne")
           ([ Stmt.ite (ltE (.var "amount1") (.intLit 0))
-              (safeTransfer (addrLit v.token1) (.var "recipient")
+              (safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient")
                 (uint256Wrap (subE (.intLit 0) (.var "amount1"))) "swapTransfer1")
               [] ] ++
-            balanceOfInto (addrLit v.token0) "balance0Before" "swapBalance0Before" ++
+            balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
+              "swapBalance0Before" ++
             [ .externalCall (.env .caller) "uniswapV3SwapCallback" (.intLit 0)
                 [.var "amount0", .var "amount1", .var "data"] "_swapCallback" ] ++
-            balanceOfInto (addrLit v.token0) "balance0After" "swapBalance0After" ++
+            balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After"
+              "swapBalance0After" ++
             checkedWordAddLe (.var "balance0Before") (uint256Wrap (.var "amount0"))
               (.var "balance0After"))
           ([ Stmt.ite (ltE (.var "amount0") (.intLit 0))
-              (safeTransfer (addrLit v.token0) (.var "recipient")
+              (safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient")
                 (uint256Wrap (subE (.intLit 0) (.var "amount0"))) "swapTransfer0")
               [] ] ++
-            balanceOfInto (addrLit v.token1) "balance1Before" "swapBalance1Before" ++
+            balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
+              "swapBalance1Before" ++
             [ .externalCall (.env .caller) "uniswapV3SwapCallback" (.intLit 0)
                 [.var "amount0", .var "amount1", .var "data"] "_swapCallback" ] ++
-            balanceOfInto (addrLit v.token1) "balance1After" "swapBalance1After" ++
+            balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After"
+              "swapBalance1After" ++
             checkedWordAddLe (.var "balance1Before") (uint256Wrap (.var "amount1"))
               (.var "balance1After")) ] ++
       lockSuffix ++
@@ -2224,13 +2242,13 @@ def token0Transition (v : PoolImmutables) : TransitionDecl :=
   { name := "token0"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.token0] ] }
+    body := nonpayable ++ [ .return [Reasoning.Theory.addressLiteral v.token0] ] }
 
 def token1Transition (v : PoolImmutables) : TransitionDecl :=
   { name := "token1"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [addrLit v.token1] ] }
+    body := nonpayable ++ [ .return [Reasoning.Theory.addressLiteral v.token1] ] }
 
 def transitions (v : PoolImmutables) : List TransitionDecl :=
   [

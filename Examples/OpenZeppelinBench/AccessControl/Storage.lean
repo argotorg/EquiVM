@@ -1,3 +1,4 @@
+import Reasoning.ABIViews
 import Examples.OpenZeppelinBench.AccessControl.Common
 import Reasoning.Storage
 
@@ -13,52 +14,12 @@ namespace OpenZeppelinBench.AccessControl
 Helpers for the `_roles` nested mapping layout and full-slot/low-byte storage load-store facts.
 -/
 
-theorem accessControlStorageLocLoad_bytes32_raw (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm
-        { slot := slot, offset := 0, size := 32, hbound := by decide,
-          type := .bytes ⟨31, by decide⟩ }
-      = .fixedBytes ⟨31, by decide⟩
-          (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [Reasoning.Theory.bytes32Loc] using storageLocLoad_bytes32 evm slot
 
 theorem accessControlStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (bytes32Loc slot)
       = .fixedBytes ⟨31, by decide⟩
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)) := by
-  simpa [bytes32Loc] using accessControlStorageLocLoad_bytes32_raw evm slot
+  simpa [bytes32Loc] using storageLocLoad_bytes32 evm slot
 
-theorem accessControlStorageLocLoad_bool_offset0 (evm : EVM.State) (slot : UInt256) :
-    storageLocLoad evm (boolLoc slot)
-      = wordToElem .bool
-          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩) := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm slot
-
-theorem accessControlStorageLocLoad_bool_offset0_false (evm : EVM.State) (slot : UInt256)
-    (hzero : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ =
-      ⟨0⟩) :
-    storageLocLoad evm (boolLoc slot) = .bool false := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0_false evm slot hzero
-
-theorem accessControlStorageLocLoad_bool_offset0_true (evm : EVM.State) (slot : UInt256)
-    (hnz : UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩ ≠
-      ⟨0⟩) :
-    storageLocLoad evm (boolLoc slot) = .bool true := by
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0_true evm slot hnz
-
-theorem accessControlValueToKey_bytes32_of_length {bs : List UInt8}
-    (hlen : bs.length = 32) :
-    valueToKey? (.fixedBytes bytes32Width bs) = some (.fixedBytes bytes32Width bs) := by
-  simpa [valueToKey?, bytes32Width, hlen]
-
-theorem accessControlValueToKey_bytes32_toBytesBE (w : UInt256) :
-    valueToKey? (.fixedBytes bytes32Width (EVM.Word.toBytesBE w)) =
-      some (.fixedBytes bytes32Width (EVM.Word.toBytesBE w)) := by
-  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
-    simpa using word_toBytesBE_toByteArray_size w
-  exact accessControlValueToKey_bytes32_of_length hlen
-
-theorem accessControlValueToKey_address (a : AccountAddress) :
-    valueToKey? (.address a) = some (.address a) := by
-  rfl
 
 end OpenZeppelinBench.AccessControl

@@ -1,3 +1,4 @@
+import Reasoning.SolcRoutines
 import Examples.UniswapV2Pair.TransferRoutines
 import Examples.UniswapV2Pair.ErrorStringCopyCore
 
@@ -5,8 +6,6 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
--- LIBRARY CANDIDATE: a legacy solc Error(string) block copying a 40-byte literal,
--- parameterized by bytecode, entry PC, literal offset, and caller stack.
 structure SolcErrorString40CopyWf (code : ByteArray) (pc source : UInt256) : Prop where
   d0 : decode code pc = some (.PUSH1, some (⟨64⟩, 1))
   d2 : decode code (pc + ⟨2⟩) = some (.MLOAD, .none)

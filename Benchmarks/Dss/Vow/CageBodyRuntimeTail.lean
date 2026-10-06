@@ -15,8 +15,8 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
     {mem outDai outFlap outFlop outDai2 : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -125,8 +125,8 @@ theorem vowCageBodyToMinHeal
            false) →
         config.externalABI.decode? "dai" outDai =
           some [.int (Int.ofNat flapperDai.toNat)] →
-        vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ →
-        vowSlotWord ⟨12⟩ σ I = ⟨1⟩ →
+        solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩ →
+        solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩ →
         0 < (UInt256.ofNat
           ((evmDai.lookupAccount (flapFlapperAddressOf evmDai)).option 0
             (fun acc => acc.code.size))).toNat →
@@ -243,7 +243,7 @@ theorem vowCageBodyToMinHeal
         (out := outSin) (slot := ⟨1⟩) (default := ⟨0⟩)
         (by simp [evmSinEvmIn])
         hcallSinEvm
-    simpa [kissDaiTargetWord, vowSlotWord, evmSinEvmIn, evmSinEvmOut, initState] using
+    simpa [kissDaiTargetWord, solcSlotWordAt, evmSinEvmIn, evmSinEvmOut, initState] using
       congrArg (fun word => UInt256.land word solcAddrMask) hslot
   have hVatAddrMap : kissVatAddress σ_dai2 I = kissVatAddress evmDai2.accountMap I :=
     congrArg (fun accounts => kissVatAddress accounts I) hAccountsDai2
@@ -307,7 +307,7 @@ theorem vowCageBodyToMinHeal
         UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32))
       have hmin :
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = 32 :=
-        kissDaiMin32_toNat_of_ge ho32Sin houtSinSize
+        ctorMin32_toNat_of_ge ho32Sin houtSinSize
       have rd3193Write := rd3193True
       rw [hmin] at rd3193Write
       obtain ⟨_, _, rd3211⟩ :=

@@ -1063,7 +1063,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
     have hMap : permitAfterNonceAccountMap σ I = evmNonceS.accountMap := by
       simpa [evmE] using hStateAccounts
     have hOriginal : evmNonceS.σ₀ = σ₀ := by
-      simp [evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
+      simp [evmNonceS, evmS, permitAfterNonceState, storageStore_σ0,
         initState]
     have hEnv : evmNonceS.executionEnv = I := by
       simp [evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
@@ -1088,7 +1088,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
     simpa [evmCallS] using hcallS
   · simp [evmCallS]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState,
-      permitStorageStore_sigma0, initState]
+      storageStore_σ0, initState]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
       initState]
 

@@ -72,8 +72,8 @@ theorem catVowBody {σ σ₀ A I} {g : UInt256}
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (catAddressReturnWord ⟨4⟩ σ I).toNat))])) := by
-    simpa [vowTransition, catAddressReturnWord, catSlotWord, initState, Solm.EVM.storageLoad,
+            (solcAddressSlotWord ⟨4⟩ σ I).toNat))])) := by
+    simpa [vowTransition, solcAddressSlotWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount, solcSlotWord] using
       catAddressGetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef)) (slot := ⟨4⟩)
@@ -85,6 +85,6 @@ theorem catVowBody {σ σ₀ A I} {g : UInt256}
     (catReachVowBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcAddressSlotGetterWf; repeat' first | apply And.intro | native_decide)
-    (by jump_dest) (by rfl) (by simpa [catAddressReturnWord, catSlotWord] using hbody)
+    (by jump_dest) (by rfl) (by simpa [solcAddressSlotWord, solcSlotWordAt] using hbody)
 
 end Benchmarks.Dss.Cat

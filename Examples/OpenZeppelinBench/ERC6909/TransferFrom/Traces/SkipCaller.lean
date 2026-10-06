@@ -345,7 +345,7 @@ theorem erc6909TransferFromX_skipCaller_afterLoad {σ σ₀ A I}
       exact isZero_eq_zero_of_ne hsenderNZ) ]
   have rd1372 := evm_run rd1340 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (transferFromSenderWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -360,7 +360,7 @@ theorem erc6909TransferFromX_skipCaller_afterLoad {σ σ₀ A I}
     raw keccak256 0 (transferInnerSlot (transferFromSenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
+    raw mstore 0 (wordAt0Mem (transferFromIdWord I)
         (transferInnerHashMem (transferFromSenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
@@ -538,7 +538,7 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
   have rd1451 := evm_run rd1437 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup7, and,
     push0, swap1, dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromSenderWord I)
+    raw mstore 0 (wordAt0Mem (transferFromSenderWord I)
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -549,7 +549,7 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
       (by decide) (by evm_ov) ]
   have rd1456 := evm_run rd1451 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+    raw mstore 0 (twoWordHashMem (transferFromSenderWord I) ⟨0⟩
         (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1461 := evm_run rd1456 with [
@@ -561,20 +561,20 @@ theorem erc6909TransferFromX_skipCaller_afterDebit {σ σ₀ A I}
         change UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC
-                ((approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+                ((twoWordHashMem (transferFromSenderWord I) ⟨0⟩
                     (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
-        rw [approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩
+        rw [twoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩
           (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I)),
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1468 := evm_run rd1461 with [
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
-        (approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
+    raw mstore 0 (wordAt0Mem (transferFromIdWord I)
+        (twoWordHashMem (transferFromSenderWord I) ⟨0⟩
           (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
@@ -688,7 +688,7 @@ theorem erc6909TransferFromX_skipCaller_toCheckedAdd {σ σ₀ A I}
   have rd1505 := evm_run rd1492 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and, push0, swap1,
     dup2,
-    raw mstore 0 (approveWordAt0Mem (transferFromReceiverWord I) debitMem)
+    raw mstore 0 (wordAt0Mem (transferFromReceiverWord I) debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -698,7 +698,7 @@ theorem erc6909TransferFromX_skipCaller_toCheckedAdd {σ σ₀ A I}
       (by decide) (by evm_ov) ]
   have rd1510 := evm_run rd1505 with [
     push1 ⟨32⟩, dup2, dup2,
-    raw mstore 0 (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
+    raw mstore 0 (twoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem)
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov) ]
   have rd1515 := evm_run rd1510 with [
     push1 ⟨64⟩, dup1, dup4,
@@ -709,19 +709,19 @@ theorem erc6909TransferFromX_skipCaller_toCheckedAdd {σ σ₀ A I}
         change UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC
-                ((approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem
+                ((twoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
               (KEC
                 ((transferInnerHashMem (transferFromReceiverWord I)).readWithPadding 0 64)))
-        rw [approveTwoWordHashMem_read0_64 (transferFromReceiverWord I) ⟨0⟩
+        rw [twoWordHashMem_read0_64 (transferFromReceiverWord I) ⟨0⟩
           hdebitMemSize, transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
   have rd1522 := evm_run rd1515 with [
     dup7, dup5,
-    raw mstore 0 (approveWordAt0Mem (transferFromIdWord I)
-        (approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem))
+    raw mstore 0 (wordAt0Mem (transferFromIdWord I)
+        (twoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1, swap2,
     raw mstore 0 (transferMapScratchMem debitMem (transferFromReceiverWord I)

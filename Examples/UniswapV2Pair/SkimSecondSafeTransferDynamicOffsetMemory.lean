@@ -155,7 +155,6 @@ def skimSecondSafeTransferDynamicWordsCall2 (out1 : ByteArray) : UInt256 :=
     (skimSecondSafeTransferDynamicBasePtr out1 + ⟨228⟩).toNat 32)
 
 
-
 theorem skimSecondSafeTransferDynamicBasePtr_window_lt (out : ByteArray)
     (n len : Nat) (houtSize : out.size < 2 ^ 255) (hn : n ≤ 512)
     (hlen : len ≤ 512) :
@@ -165,10 +164,6 @@ theorem skimSecondSafeTransferDynamicBasePtr_window_lt (out : ByteArray)
   have hptr := skimSecondSafeTransferDynamicBasePtr_toNat_le out houtSize
   have hcap : 2 ^ 255 + 1410 < UInt256.size := by norm_num [UInt256.size]
   omega
-
-
-
-
 
 
 theorem skimSecondBalanceDynamicStaticcallWords_mload64_ptr_same (out : ByteArray)
@@ -347,72 +342,6 @@ theorem skimSafeTransferReturnDataMem_size_le_ptr_add32
   · rw [hptr]
     omega
 
-private theorem byteArray_zeroes_size_le (n : Nat) :
-    (ByteArray.zeroes n).size ≤ n :=
-  (ByteArray_zeroes_size n).le
-
-private theorem byteArray_copySlice_size_le
-    (source destination : ByteArray) (sourceOffset destinationOffset length : Nat) :
-    (source.copySlice sourceOffset destination destinationOffset length).size ≤
-      max destination.size (destinationOffset + length) := by
-  rw [ByteArray.copySlice_eq_append, ByteArray.size_append, ByteArray.size_append,
-    ByteArray.size_extract, ByteArray.size_extract, ByteArray.size_extract]
-  rw [show source.data.size = source.size from rfl,
-    show destination.data.size = destination.size from rfl]
-  omega
-
-theorem byteArray_write_size_le
-    (source destination : ByteArray) (sourceOffset destinationOffset length : Nat) :
-    (source.write sourceOffset destination destinationOffset length).size ≤
-      max destination.size (destinationOffset + length) := by
-  unfold ByteArray.write
-  by_cases hlen : length = 0
-  · simp [hlen]
-  · simp [hlen]
-    by_cases hsrc : sourceOffset ≥ source.size
-    · simp [hsrc]
-      have hcopy := byteArray_copySlice_size_le
-        (ByteArray.zeroes
-          (min length (destination.size - destinationOffset)))
-        destination 0 (min destinationOffset destination.size)
-        (min length (destination.size - destinationOffset))
-      have hbound :
-          max destination.size
-              (min destinationOffset destination.size +
-                min length (destination.size - destinationOffset)) ≤
-            max destination.size (destinationOffset + length) := by
-        omega
-      exact le_max_iff.mp (le_trans hcopy hbound)
-    · simp [hsrc]
-      have hpad :
-          (ByteArray.zeroes
-              (destinationOffset - destination.size)).size ≤
-            destinationOffset - destination.size :=
-        byteArray_zeroes_size_le _
-      have hdest :
-          (destination ++ ByteArray.zeroes
-              (destinationOffset - destination.size)).size ≤
-            max destination.size (destinationOffset + length) := by
-        rw [ByteArray.size_append]
-        omega
-      have hcopy := byteArray_copySlice_size_le
-        (source ++ ByteArray.zeroes
-          (min destination.size (destinationOffset + length) -
-            (destinationOffset + min length (source.size - sourceOffset))))
-        (destination ++ ByteArray.zeroes
-          (destinationOffset - destination.size))
-        sourceOffset destinationOffset
-        (min length (source.size - sourceOffset) +
-          (min destination.size (destinationOffset + length) -
-            (destinationOffset + min length (source.size - sourceOffset))))
-      have hwriteEnd :
-          destinationOffset +
-              (min length (source.size - sourceOffset) +
-                (min destination.size (destinationOffset + length) -
-                  (destinationOffset + min length (source.size - sourceOffset)))) ≤
-            max destination.size (destinationOffset + length) := by
-        omega
-      exact le_max_iff.mp (le_trans hcopy (max_le hdest hwriteEnd))
 
 theorem skimSecondSafeTransferDynamicWords0_mul32_lt (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :

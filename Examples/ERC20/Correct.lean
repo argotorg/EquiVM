@@ -596,7 +596,7 @@ theorem erc20CtorKeccakSlot (caller : AccountAddress) (initialSupply : UInt256) 
   unfold erc20CtorHashMem erc20BalanceOfSlot erc20MappingSlot
   rw [twoWordHashMem_read0_64 (UInt256.ofNat caller.val) ⟨0⟩
     (erc20CtorArgMem_size initialSupply)]
-  rw [approveSource_keyValueToWord caller]
+  rw [keyValueToWord_address caller]
   exact mappingSlot_single (UInt256.ofNat caller.val) ⟨0⟩
 
 theorem erc20CtorRuntime_codecopy_mem (caller : AccountAddress) (initialSupply : UInt256) :
@@ -776,7 +776,7 @@ theorem erc20CtorAssignBalance (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   rfl
 
 theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
@@ -804,7 +804,7 @@ theorem erc20CtorAssignTotalSupply (evm : EVM.State) (initialSupply : Int)
       _ = initialSupply := by
         exact Int.toNat_of_nonneg h0
   conv_lhs => rw [← hint]
-  rw [erc20StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
 
 theorem erc20SolmCtorExecReverts_nonpayable
     {σ : AccountMap}

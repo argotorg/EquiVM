@@ -422,7 +422,7 @@ theorem vatFoldRadMulOk (evm : EVM.State) (I : ExecutionEnv)
     (hradHi : rad < (2 : Int) ^ 255)
     (hguardMax :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
-        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)) =
+        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit Reasoning.Theory.maxInt256)) =
         .ok (.bool true))
     (hguardMul :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
@@ -457,7 +457,8 @@ theorem vatFoldRadMulOk (evm : EVM.State) (I : ExecutionEnv)
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
-      .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
+      .require (.binary .le (.storage (ilksF (.var "i") "Art"))
+        (.intLit Reasoning.Theory.maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
           (.binary .eq (.binary .div (.var "rad") (.var "rate"))
@@ -488,14 +489,14 @@ theorem vatFoldRadMulOk_zero_art (evm : EVM.State) (I : ExecutionEnv)
     rw [hload]
   have hguardMax :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew 0 } evm
-        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)) =
+        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit Reasoning.Theory.maxInt256)) =
       .ok (.bool true) := by
     have hmaxLit :
         evalExpr? config { contract := contract, locals := foldStoreRad I rateNew 0 } evm
-          (.intLit maxInt256) = .ok (.int maxInt256) := by
+          (.intLit Reasoning.Theory.maxInt256) = .ok (.int Reasoning.Theory.maxInt256) := by
       simp [evalExpr?, pure]
-    have hle : Int.ofNat artOld.toNat ≤ maxInt256 := by
-      simp [hartZero, maxInt256]
+    have hle : Int.ofNat artOld.toNat ≤ Reasoning.Theory.maxInt256 := by
+      simp [hartZero, Reasoning.Theory.maxInt256]
     exact vatEvalExpr_le_int_true hart hmaxLit hle
   have hguardMul :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew 0 } evm
@@ -511,7 +512,7 @@ theorem vatFoldRadMulOk_zero_art (evm : EVM.State) (I : ExecutionEnv)
 theorem vatFoldRadMulRevertMax (evm : EVM.State) (I : ExecutionEnv)
     {rateNew artOld : UInt256} (hsz100 : 100 ≤ I.calldata.size)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (foldArtSlot I) = artOld)
-    (hgt : maxInt256 < Int.ofNat artOld.toNat) :
+    (hgt : Reasoning.Theory.maxInt256 < Int.ofNat artOld.toNat) :
     ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
       (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
       .reverted := by
@@ -535,7 +536,8 @@ theorem vatFoldRadMulRevertMax (evm : EVM.State) (I : ExecutionEnv)
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
         (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
-      .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
+      .require (.binary .le (.storage (ilksF (.var "i") "Art"))
+        (.intLit Reasoning.Theory.maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
           (.binary .eq (.binary .div (.var "rad") (.var "rate"))
@@ -739,7 +741,7 @@ theorem vatFoldSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
     (hMulGuardMax :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (foldRateSlot I) rateNew)
-        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)) =
+        (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit Reasoning.Theory.maxInt256)) =
         .ok (.bool true))
     (hMulGuard :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad }

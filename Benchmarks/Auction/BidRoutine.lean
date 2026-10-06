@@ -28,7 +28,7 @@ theorem bidRoutine {I g s0 noun ret R mem aw rdata σ k C evm}
       createBidTransition.body .reverted ∧ RDrev auctionBytecode g s0) := by
   rw [bidBody_eq]
   have hstatus := statusGuardSource (locals := bidParams noun) hs (by simp [bidParams])
-  by_cases hentered : storedWord σ I ⟨101⟩ = ⟨2⟩
+  by_cases hentered : solcSlotWord σ I ⟨101⟩ = ⟨2⟩
   · rw [decide_eq_false (not_not_intro hentered)] at hstatus
     exact Or.inr ⟨ExecBlock.consRevert (ExecStmt.requireFalse hstatus),
       reentrancyDenied 0 h hentered (by evm_ov)⟩
@@ -36,7 +36,7 @@ theorem bidRoutine {I g s0 noun ret R mem aw rdata σ k C evm}
     obtain ⟨_, _, rd1199⟩ := reentrancyAllowed 0 h hentered (by evm_ov)
     have rd1204 := evm_run rd1199 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
     obtain ⟨_, _, rd1205⟩ := rd1204.sstore hperm (by native_decide) (by evm_ov)
-    have hs2 := hs.status ⟨2⟩
+    have hs2 := (SourceState.status hs) ⟨2⟩
     let σ2 := sstoreAccountMap I.codeOwner σ ⟨101⟩ ⟨2⟩
     let s := snapshotOf σ2 I
     let locals2 := (bidParams noun).insert "_auction" s.value

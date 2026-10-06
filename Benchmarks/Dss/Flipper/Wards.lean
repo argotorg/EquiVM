@@ -94,8 +94,8 @@ theorem flipperWardsBodyCoreOk
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (flipperSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
-    simpa [wardsTransition, wardsMappingSlotFor, flipperSlotWord, initState,
+            (solcSlotWordAt (wardsMappingSlotFor I) σ I).toNat))])) := by
+    simpa [wardsTransition, wardsMappingSlotFor, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals, key] using
       flipperUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -131,33 +131,33 @@ theorem flipperWardsBodyCoreOk
   have hret :
       RDret flipperBytecode (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-        (UInt256.toByteArray (flipperSlotWord slot σ I)) := by
+        (UInt256.toByteArray (solcSlotWordAt slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨426⟩) (val := flipperSlotWord slot σ I) (ret := ⟨426⟩) (R := [sel])
+      (pc := ⟨426⟩) (val := solcSlotWordAt slot σ I) (ret := ⟨426⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (flipperSlotWord slot σ I))
-      (by simpa [slot, flipperSlotWord] using hretPc)
+        (solcSlotWordAt slot σ I))
+      (by simpa [slot, solcSlotWordAt] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
         repeat' first | apply And.intro | native_decide)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (flipperSlotWord slot σ I)
+        exact solcScratchReturnMem_mload64 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (flipperSlotWord slot σ I)
+        exact solcScratchReturnMem_read128 (solcSlotWordAt slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
-    simpa [slot, flipperSlotWord] using hret'
+    simpa [slot, solcSlotWordAt] using hret'
   rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (flipperSlotWord slot σ I))
-        (some [(.int (Int.ofNat (flipperSlotWord slot σ I).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
+        (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (flipperSlotWord slot σ I))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWordAt slot σ I))
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flipperWardsBodyCoreDecodeFailed_short

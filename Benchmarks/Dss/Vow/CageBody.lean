@@ -836,12 +836,12 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
         kissDaiTargetWord acc ee :: R)
       (vatDaiCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   let target := kissDaiTargetWord acc ee
-  let rawTarget := vowSlotWord ⟨1⟩ acc ee
+  let rawTarget := solcSlotWordAt ⟨1⟩ acc ee
   have rd2985 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2986, C2986, rd2986Raw⟩ := rd2985.sload (by native_decide) (by evm_ov)
   have rd2986 : RD vowBytecode ee g s0 ⟨2986⟩
       (rawTarget :: d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k2986 C2986 := by
-    simpa [rawTarget, vowSlotWord, solcSlotWord] using rd2986Raw
+    simpa [rawTarget, solcSlotWordAt, solcSlotWord] using rd2986Raw
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -930,7 +930,7 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
   rw [hpc3058] at rd3058
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, kissDaiSelectorShifted,
-      vatDaiSelectorMem, vatDaiCalldataMem, vowSlotWord, solcSlotWord, solcAddrMask,
+      vatDaiSelectorMem, vatDaiCalldataMem, solcSlotWordAt, solcSlotWord, solcAddrMask,
       u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
@@ -1136,13 +1136,13 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
         kissDaiTargetWord acc ee :: R)
       (healSinCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   let target := kissDaiTargetWord acc ee
-  let rawTarget := vowSlotWord ⟨1⟩ acc ee
+  let rawTarget := solcSlotWordAt ⟨1⟩ acc ee
   have rd3117 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3118, C3118, rd3118Raw⟩ := rd3117.sload (by native_decide) (by evm_ov)
   have rd3118 : RD vowBytecode ee g s0 ⟨3118⟩
       (rawTarget :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: target :: R)
       mem (UInt256.ofNat 6) rdata acc k3118 C3118 := by
-    simpa [target, rawTarget, vowSlotWord, solcSlotWord] using rd3118Raw
+    simpa [target, rawTarget, solcSlotWordAt, solcSlotWord] using rd3118Raw
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1223,7 +1223,7 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, healSinSelectorShifted,
       healSinSelector, healSinSelectorMem, healSinCalldataMem, healSinOutPtr,
-      healSinInSize, healSinEndPtr, vowSlotWord, solcSlotWord, solcAddrMask,
+      healSinInSize, healSinEndPtr, solcSlotWordAt, solcSlotWord, solcAddrMask,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩ = ⟨36⟩
         from by native_decide,
       show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide]

@@ -336,7 +336,7 @@ theorem dogDenyBodyCoreOk
   let locals := denyLocals I
   have hslot : denySlotFor I = slot := by
     simp [slot, key, denySlotFor_eq]
-  have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
+  have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
     rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨466⟩) (ret := ⟨313⟩)
@@ -369,8 +369,8 @@ theorem dogDenyBodyCoreOk
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
-  by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := by
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
+  · have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
       rw [← hcallerWord]
       exact hauthEvm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -416,13 +416,13 @@ theorem dogDenyBodyCoreOk
         ExecFuncBody.execBlockOK hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
-    obtain ⟨_, _, hokPc⟩ := RD.dogAuthCheckOk
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
+    obtain ⟨_, _, hokPc⟩ := RD.solcAuthCheckOk
       (code := code) (pc := ⟨1755⟩) (okPc := ⟨1844⟩) (key := key)
       (ret := ⟨313⟩) (R := [sel])
       (by simpa [key, denyKey] using hroutine)
       (by
-        unfold dogAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first
           | apply And.intro
           | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -473,7 +473,7 @@ theorem dogDenyBodyCoreOk
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
     exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
       haccounts henc
-  · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+  · have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -493,19 +493,19 @@ theorem dogDenyBodyCoreOk
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
+      simpa [callerSlot, dogCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hrev := RD.dogAuthCheckRevert
       (code := code) (pc := ⟨1755⟩) (okPc := ⟨1844⟩) (key := key)
       (ret := ⟨313⟩) (R := [sel])
       (by simpa [key, denyKey] using hroutine)
       (by
-        unfold dogAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first
           | apply And.intro
           | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
             native_decide)
       (by
-        unfold solcErrorStringRevertTailWf dogAuthTailPc dogNotAuthorizedRawWord
+        unfold solcErrorStringRevertTailWf solcAuthTailPc dogNotAuthorizedRawWord
         repeat' first
           | apply And.intro
           | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]

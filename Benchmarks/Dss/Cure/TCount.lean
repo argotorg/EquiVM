@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Cure
 /-! ## `tCount()` -/
 
 def tCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  cureSlotWord ⟨2⟩ σ I
+  solcSlotWordAt ⟨2⟩ σ I
 
 theorem cureDispatchTCount {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 15)) :
@@ -49,7 +49,7 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     apply nonpayableReturnExprBodyReturns
     · simp only [initState]
       exact hwv
-    · simp [evalExpr?, tCountWord, cureSlotWord, initState, config, contract,
+    · simp [evalExpr?, tCountWord, solcSlotWordAt, initState, config, contract,
         srcsRef, storageDecls, storageLayout, solidityStorageLayout, storageLayoutRaw,
         readStorageArrayLength?, resolveStorageRef?, storageTypeAt?, evalStorageRef, evalStorageRefSteps,
         wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
@@ -58,9 +58,9 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) (wordLoc ⟨2⟩) with
         | Value.int n => EvalResult.ok (Value.int n)
         | _ => EvalResult.error EvalError.storageError) =
-          EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ I).toNat)
-      rw [cureStorageLocLoad_uint256]
-      simp [cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
+          EvalResult.ok (Value.int ↑(solcSlotWordAt ⟨2⟩ σ I).toNat)
+      erw [storageLocLoad_uint256]
+      simp [solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
         Account.lookupStorage]
   have hreach := cureReachTCountBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -85,7 +85,7 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     have hret' := RD.solcReturnWordFromMem
       (pc := ⟨343⟩) (val := tCountWord σ I) (ret := cureSelWord I) (R := [])
       (memout := solcReturnMem (tCountWord σ I))
-      (by simpa [tCountWord, cureSlotWord] using hretPc)
+      (by simpa [tCountWord, solcSlotWordAt] using hretPc)
       hretmem
       solcFreePtrMem_mload64
       (by rfl)

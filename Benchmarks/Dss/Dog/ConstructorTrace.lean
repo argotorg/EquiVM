@@ -36,23 +36,6 @@ theorem dogInitcodeNonpayableRevert
     push1 ⟨0⟩, dup1,
     raw rev 0 (by dog_ctor_decode) mem_cost (by evm_ov)]
 
-theorem RDret.xiResultAcc {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : AccountMap}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o) :
-    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
-    ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc, g', A') o) := by
-  rcases h with hOOG | ⟨s, hX, hacc⟩
-  · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hOOG
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hOOG))
-  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
-      rw [← hcode] at hX
-      simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hacc] at hxi
-    exact Or.inr ⟨_, _, hxi⟩
 
 set_option maxHeartbeats 1000000 in
 theorem dogCtorArgsReach
@@ -140,7 +123,7 @@ theorem dogCtorVatDecodeReach
     raw mstore 0 (dogCtorVatMem vat) (UInt256.ofNat 6)
       (by dog_ctor_decode) mem_cost
       (by
-        rw [dogVatPackedHighMask vat]
+        rw [addressWord_shiftLeft96_high_mask vat]
         unfold dogCtorVatMem Reasoning.Theory.writeWord
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide])
       (by decide) (by evm_ov)]
@@ -248,7 +231,7 @@ theorem dogCtorReturnTrace
       (by decide) (by evm_ov),
     push1 ⟨96⟩, shr]
   have rdVat := by
-    simpa [dogVatWord_high_shift_decode vat] using rdVatRaw
+    simpa [addressWord_shiftLeft96_shiftRight96 vat] using rdVatRaw
   have rdBeforeReturn := dog_ctor_run rdVat with [
     push2 ⟨4745⟩, push2 ⟨182⟩, push1 ⟨0⟩,
     raw codecopy

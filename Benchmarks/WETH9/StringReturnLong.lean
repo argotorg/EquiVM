@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Benchmarks.WETH9.StringReturn
 
 /-!
@@ -59,11 +60,11 @@ theorem weth9NameLongReachLoop {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
     ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
-      [⟨160⟩, weth9LongDataBase, weth9LongEnd (weth9StringSlotWord σ I ⟨0⟩),
-       weth9StringLen (weth9StringSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
-      (weth9LongScratchMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
+      [⟨160⟩, weth9LongDataBase, weth9LongEnd (solcSlotWord σ I ⟨0⟩),
+       weth9StringLen (solcSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
+      (weth9LongScratchMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       ByteArray.empty σ k C := by
   obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
@@ -72,7 +73,7 @@ theorem weth9NameLongReachLoop {σ σ₀ A I} {g : Sat256}
     dup1, push1 ⟨31⟩, lt, push2 ⟨930⟩, jumpiT hge31 (by jump_dest)]
   have h942 := evm_run h910 with [
     jumpdest, dup3, add, swap2, swap1, push1 ⟨0⟩,
-    raw mstore 0 (weth9LongScratchMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
+    raw mstore 0 (weth9LongScratchMem (solcSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨0⟩]
   have h943 := h942.keccak256 0 weth9LongDataBase (UInt256.ofNat 5) (by native_decide)
@@ -173,7 +174,7 @@ def weth9LongGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv) :
   | 0 =>
       { ptr := ⟨160⟩
         slot := weth9LongDataBase
-        mem := weth9LongScratchMem (weth9StringSlotWord σ I ⟨0⟩)
+        mem := weth9LongScratchMem (solcSlotWord σ I ⟨0⟩)
         aw := UInt256.ofNat 5 }
   | n + 1 =>
       let s := weth9LongGeneratedLoopState σ I n
@@ -185,7 +186,7 @@ def weth9LongGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv) :
 theorem weth9LongGeneratedLoopState_zero (σ : AccountMap) (I : ExecutionEnv) :
     weth9LongGeneratedLoopState σ I 0 =
       { ptr := ⟨160⟩, slot := weth9LongDataBase,
-        mem := weth9LongScratchMem (weth9StringSlotWord σ I ⟨0⟩), aw := UInt256.ofNat 5 } := rfl
+        mem := weth9LongScratchMem (solcSlotWord σ I ⟨0⟩), aw := UInt256.ofNat 5 } := rfl
 
 theorem weth9LongGeneratedLoopState_succ (σ : AccountMap) (I : ExecutionEnv) (n : Nat) :
     weth9LongGeneratedLoopState σ I (n + 1) =
@@ -344,37 +345,17 @@ theorem weth9LongAdd32_of_fuelBound {σ : AccountMap} {I : ExecutionEnv} {fuel :
     weth9LongPtr_toNat_of_bound (σ := σ) (I := I) i (by nlinarith)
   exact uadd_lit32_toNat _ (by rw [hptr]; nlinarith)
 
-theorem weth9LongFuel_continue_nat {n i : Nat} (hn : 0 < n) (hi : i < (n - 1) / 32) :
-    32 * i + 32 < n := by
-  have hiSucc : i + 1 ≤ (n - 1) / 32 := Nat.succ_le_of_lt hi
-  have hmul : 32 * (i + 1) ≤ 32 * ((n - 1) / 32) := Nat.mul_le_mul_left 32 hiSucc
-  have hdiv : 32 * ((n - 1) / 32) ≤ n - 1 := by
-    simpa [Nat.mul_comm] using Nat.div_mul_le_self (n - 1) 32
-  omega
-
-theorem weth9LongFuel_done_nat {n : Nat} (hn : 0 < n) : n ≤ 32 * ((n - 1) / 32) + 32 := by
-  have hdecomp : n - 1 = (n - 1) / 32 * 32 + (n - 1) % 32 := by
-    simpa [Nat.mul_comm] using (Nat.div_add_mod (n - 1) 32).symm
-  have hmod : (n - 1) % 32 < 32 := Nat.mod_lt _ (by decide)
-  omega
-
-theorem weth9LongFuel_bound {n : Nat} (hn : n < 2 ^ 255) :
-    160 + 32 * ((n - 1) / 32) + 32 < UInt256.size := by
-  have hdiv : 32 * ((n - 1) / 32) ≤ n - 1 := by
-    simpa [Nat.mul_comm] using Nat.div_mul_le_self (n - 1) 32
-  have hsize : (2 : Nat) ^ 255 + 191 < UInt256.size := by norm_num [UInt256.size]
-  omega
 
 /-- Continue condition at iteration `i < wc-1`. -/
 theorem weth9LongContinue {σ : AccountMap} {I : ExecutionEnv} {i : Nat}
-    (hi : i < ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 1) / 32) :
-    UInt256.gt (weth9LongEnd (weth9StringSlotWord σ I ⟨0⟩))
+    (hi : i < ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 1) / 32) :
+    UInt256.gt (weth9LongEnd (solcSlotWord σ I ⟨0⟩))
       ((⟨32⟩ : UInt256) + (weth9LongGeneratedLoopState σ I i).ptr) ≠ ⟨0⟩ := by
-  set H := weth9StringSlotWord σ I ⟨0⟩ with hH
+  set H := solcSlotWord σ I ⟨0⟩ with hH
   have hlt := weth9StringLen_toNat_lt_sign H
   have hsize : (2 : Nat) ^ 255 + 192 < UInt256.size := by norm_num [UInt256.size]
   have hcontNat : 32 * i + 32 < (weth9StringLen H).toNat :=
-    weth9LongFuel_continue_nat (by omega : 0 < (weth9StringLen H).toNat) hi
+    longFuel_continue_nat (by omega : 0 < (weth9StringLen H).toNat) hi
   have hptr : (weth9LongGeneratedLoopState σ I i).ptr.toNat = 160 + 32 * i :=
     weth9LongPtr_toNat_of_bound (σ := σ) (I := I) i (by omega)
   have hrhs : ((⟨32⟩ : UInt256) + (weth9LongGeneratedLoopState σ I i).ptr).toNat =
@@ -383,17 +364,17 @@ theorem weth9LongContinue {σ : AccountMap} {I : ExecutionEnv} {i : Nat}
 
 /-- Done condition at `fuel = wc-1` (the exit iteration performs the `wc`-th copy). -/
 theorem weth9LongDone {σ : AccountMap} {I : ExecutionEnv}
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
-    UInt256.gt (weth9LongEnd (weth9StringSlotWord σ I ⟨0⟩))
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
+    UInt256.gt (weth9LongEnd (solcSlotWord σ I ⟨0⟩))
       ((⟨32⟩ : UInt256) + (weth9LongGeneratedLoopState σ I
-        (((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 1) / 32)).ptr) = ⟨0⟩ := by
-  set H := weth9StringSlotWord σ I ⟨0⟩ with hH
+        (((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 1) / 32)).ptr) = ⟨0⟩ := by
+  set H := solcSlotWord σ I ⟨0⟩ with hH
   have hlt := weth9StringLen_toNat_lt_sign H
   have hgtNat : 31 < (weth9StringLen H).toNat := by
     simpa [show (⟨31⟩ : UInt256).toNat = 31 from by decide] using ult_ne_zero_toNat_lt hge31
-  have hfb := weth9LongFuel_bound hlt (n := (weth9StringLen H).toNat)
+  have hfb := longFuel_bound hlt (n := (weth9StringLen H).toNat)
   have hdoneNat : (weth9StringLen H).toNat ≤ 32 * (((weth9StringLen H).toNat - 1) / 32) + 32 :=
-    weth9LongFuel_done_nat (by omega)
+    longFuel_done_nat (by omega)
   have hptr : (weth9LongGeneratedLoopState σ I (((weth9StringLen H).toNat - 1) / 32)).ptr.toNat =
       160 + 32 * (((weth9StringLen H).toNat - 1) / 32) :=
     weth9LongPtr_toNat_of_bound (σ := σ) (I := I) _ (by omega)
@@ -407,7 +388,7 @@ theorem weth9LongDone {σ : AccountMap} {I : ExecutionEnv}
 
 /-- Word count `wc = ⌈len/32⌉` as a `Nat`. -/
 def weth9LongWC (σ : AccountMap) (I : ExecutionEnv) : Nat :=
-  ((weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat - 1) / 32
+  ((weth9StringLen (solcSlotWord σ I ⟨0⟩)).toNat - 1) / 32
 
 /-- The memory after the storage→memory copy loop finishes (all `wc` data words copied). -/
 def weth9LongFinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
@@ -425,7 +406,7 @@ theorem weth9NameLongReach187 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
-    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
+    (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (solcSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩) :
     ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] (weth9LongFinalMem σ I) (weth9LongFinalAw σ I)
       ByteArray.empty σ k C := by
@@ -433,9 +414,9 @@ theorem weth9NameLongReach187 {σ σ₀ A I} {g : Sat256}
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   exact weth9NameLongCopySchedule (weth9LongWC σ I) (weth9LongGeneratedLoopState σ I)
     (fun i hi => weth9LongGeneratedLoopStep
-      (len := weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) (weth9LongContinue hi))
+      (len := weth9StringLen (solcSlotWord σ I ⟨0⟩)) (weth9LongContinue hi))
     (weth9LongGeneratedLoopFinal
-      (len := weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) (weth9LongDone hge31))
+      (len := weth9StringLen (solcSlotWord σ I ⟨0⟩)) (weth9LongDone hge31))
     ⟨_, _, by simpa [weth9LongGeneratedLoopState_zero, Weth9LongLoopState.stack, weth9LongEnd]
       using hloop⟩
 
@@ -451,8 +432,8 @@ theorem weth9RoutineMem_writeWord (H : UInt256) :
 
 theorem weth9RoutineMem_size (H : UInt256) : (weth9RoutineMem H).size = 160 := by
   rw [weth9RoutineMem_writeWord,
-    writeWord_size _ 128 _ (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num)),
-    weth9ShortL1_size]; omega
+    writeWord_size _ 128 _ (by rw [shortL1_size]; exact lt_usize _ (by norm_num)),
+    shortL1_size]; omega
 
 theorem weth9LongScratchMem_size (H : UInt256) : (weth9LongScratchMem H).size = 160 := by
   rw [weth9LongScratchMem, writeWord_size _ 0 _ (by rw [weth9RoutineMem_size]; exact lt_usize _ (by norm_num)),
@@ -461,15 +442,15 @@ theorem weth9LongScratchMem_size (H : UInt256) : (weth9LongScratchMem H).size = 
 theorem weth9RoutineMem_read64 (H : UInt256) :
     (weth9RoutineMem H).readWithPadding 64 32 = UInt256.toByteArray (weth9StringNewFp H) := by
   rw [weth9RoutineMem_writeWord,
-    writeWord_read_preserved _ 128 64 _ (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num))
-      (Or.inl ⟨by decide, by rw [weth9ShortL1_size]⟩)]
+    writeWord_read_preserved _ 128 64 _ (by rw [shortL1_size]; exact lt_usize _ (by norm_num))
+      (Or.inl ⟨by decide, by rw [shortL1_size]⟩)]
   exact writeWord_read_back _ 64 _ (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))
 
 theorem weth9RoutineMem_read128 (H : UInt256) :
     (weth9RoutineMem H).readWithPadding 128 32 = UInt256.toByteArray (weth9StringLen H) := by
   rw [weth9RoutineMem_writeWord]
   exact writeWord_read_back _ 128 _
-    (by rw [weth9ShortL1_size]; exact lt_usize _ (by norm_num))
+    (by rw [shortL1_size]; exact lt_usize _ (by norm_num))
 
 theorem weth9LongScratchMem_read64 (H : UInt256) :
     (weth9LongScratchMem H).readWithPadding 64 32 = UInt256.toByteArray (weth9StringNewFp H) := by
@@ -505,7 +486,7 @@ theorem weth9LongMem_size_of_bound {σ : AccountMap} {I : ExecutionEnv} :
 theorem weth9LongMem_read64_of_bound {σ : AccountMap} {I : ExecutionEnv} :
     ∀ i : Nat, 160 + 32 * i < UInt256.size →
       (weth9LongGeneratedLoopState σ I i).mem.readWithPadding 64 32 =
-        UInt256.toByteArray (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩))
+        UInt256.toByteArray (weth9StringNewFp (solcSlotWord σ I ⟨0⟩))
   | 0, _ => by rw [weth9LongGeneratedLoopState_zero]; exact weth9LongScratchMem_read64 _
   | i + 1, hbound => by
       have hprevPtr : (weth9LongGeneratedLoopState σ I i).ptr.toNat = 160 + 32 * i :=
@@ -524,7 +505,7 @@ theorem weth9LongMem_read64_of_bound {σ : AccountMap} {I : ExecutionEnv} :
 theorem weth9LongMem_read128_of_bound {σ : AccountMap} {I : ExecutionEnv} :
     ∀ i : Nat, 160 + 32 * i < UInt256.size →
       (weth9LongGeneratedLoopState σ I i).mem.readWithPadding 128 32 =
-        UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩))
+        UInt256.toByteArray (weth9StringLen (solcSlotWord σ I ⟨0⟩))
   | 0, _ => by rw [weth9LongGeneratedLoopState_zero]; exact weth9LongScratchMem_read128 _
   | i + 1, hbound => by
       have hprevPtr : (weth9LongGeneratedLoopState σ I i).ptr.toNat = 160 + 32 * i :=
@@ -542,7 +523,7 @@ theorem weth9LongMem_read128_of_bound {σ : AccountMap} {I : ExecutionEnv} :
 /-- Sign bound on `wc`: `160 + 32·wc < UInt256.size`. -/
 theorem weth9LongWC_size_bound (σ : AccountMap) (I : ExecutionEnv) :
     160 + 32 * weth9LongWC σ I + 32 < UInt256.size :=
-  weth9LongFuel_bound (weth9StringLen_toNat_lt_sign (weth9StringSlotWord σ I ⟨0⟩))
+  longFuel_bound (weth9StringLen_toNat_lt_sign (solcSlotWord σ I ⟨0⟩))
 
 theorem weth9LongFinalMem_size (σ : AccountMap) (I : ExecutionEnv) :
     (weth9LongFinalMem σ I).size = 160 + 32 * (weth9LongWC σ I + 1) := by
@@ -556,7 +537,7 @@ theorem weth9LongFinalMem_size (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem weth9LongFinalMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     (weth9LongFinalMem σ I).readWithPadding 64 32 =
-      UInt256.toByteArray (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)) := by
+      UInt256.toByteArray (weth9StringNewFp (solcSlotWord σ I ⟨0⟩)) := by
   have hbnd := weth9LongWC_size_bound σ I
   have hptr : (weth9LongGeneratedLoopState σ I (weth9LongWC σ I)).ptr.toNat =
       160 + 32 * weth9LongWC σ I := weth9LongPtr_toNat_of_bound _ (by omega)
@@ -569,7 +550,7 @@ theorem weth9LongFinalMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem weth9LongFinalMem_read128 (σ : AccountMap) (I : ExecutionEnv) :
     (weth9LongFinalMem σ I).readWithPadding 128 32 =
-      UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) := by
+      UInt256.toByteArray (weth9StringLen (solcSlotWord σ I ⟨0⟩)) := by
   have hbnd := weth9LongWC_size_bound σ I
   have hptr : (weth9LongGeneratedLoopState σ I (weth9LongWC σ I)).ptr.toNat =
       160 + 32 * weth9LongWC σ I := weth9LongPtr_toNat_of_bound _ (by omega)

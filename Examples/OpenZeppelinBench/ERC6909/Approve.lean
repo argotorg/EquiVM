@@ -1,3 +1,6 @@
+import Reasoning.WordArithmetic
+import Reasoning.Memory
+import Reasoning.ABIComposite
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Reasoning.SolmBody
 
@@ -52,60 +55,6 @@ def approvePostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (approveSlot evm I)
     (approveAmountWord I)
 
-theorem decodeScalarWords_addr_uint256_uint256_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hlen64 : ((bytes.drop 64).take 32).length = 32)
-    (hcanon : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 =
-      some [.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat)] := by
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_ok
-    hlen0 hlen32 hlen64 hcanon
-
-theorem decodeScalarWords_addr_uint256_uint256_none_noncanon {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none := by
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_noncanon0
-    hlen0 hnc
-
-theorem decodeScalarWords_addr_uint256_uint256_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 96) :
-    decodeScalarWords? [.elem .address, abiUInt256, abiUInt256] bytes 0 = none := by
-  exact Reasoning.Theory.decodeScalarWords_address_uint256_uint256_none_short hshort
-
-theorem decodeCalldata_addr_uint256_uint256_ok {cd : ByteArray} {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hcanon : (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd =
-      some ((((∅ : Solm.Store).insert x
-        (.address (Ethereum.AccountAddress.ofNat (calldataWord cd 4).toNat))).insert y
-        (.int (Int.ofNat (calldataWord cd 36).toNat))).insert z
-        (.int (Int.ofNat (calldataWord cd 68).toNat))) := by
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_ok
-    hsz100 hbig hcanon
-
-theorem decodeCalldata_addr_uint256_uint256_none_noncanon {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hsz100 : 100 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
-    (hnc : ¬ (calldataWord cd 4).toNat < EVM.addressModulus) :
-    decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_noncanon0
-    hsz100 hbig hnc
-
-theorem decodeCalldata_addr_uint256_uint256_none_short {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 100) :
-    decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_short hsz4 hshort
-
-theorem decodeCalldata_addr_uint256_uint256_none_huge {cd : ByteArray}
-    {x y z : Solm.Ident}
-    (hbig : 2 ^ 255 + 4 ≤ cd.size) :
-    decodeCalldata [x, y, z] [.elem .address, abiUInt256, abiUInt256] cd = none := by
-  exact Reasoning.Theory.decodeCalldata_address_uint256_uint256_none_huge hbig
 
 theorem erc6909Decode_approve_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
@@ -244,7 +193,7 @@ theorem approveAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hloc := by
         funext x
         simp [config, storageLayout, approveEvaledRef, approveSlot])
-  rw [erc6909StorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [approvePostState, approveSlot, approveEvaledRef]
 
 theorem evalExpr_approve_sender_ne_zero_true (evm : EVM.State) (hsource : evm.executionEnv.source ≠
@@ -375,22 +324,6 @@ theorem erc6909Dispatch_approve {cd : ByteArray}
 
 /-! ## Local scratch-memory facts for the three-level `_allowances` write -/
 
-theorem approveAccountAddress_ofNat_zero_iff {w : UInt256}
-    (hcanon : w.toNat < EVM.addressModulus) :
-    AccountAddress.ofNat w.toNat = AccountAddress.ofNat 0 ↔ w = ⟨0⟩ := by
-  constructor
-  · intro h
-    have hv := congrArg Fin.val h
-    unfold AccountAddress.ofNat at hv
-    simp only [Fin.val_ofNat] at hv
-    have hwmod : w.toNat % AccountAddress.size = w.toNat := by
-      exact Nat.mod_eq_of_lt (by
-        simpa [EVM.addressModulus, EVM.twoPow, AccountAddress.size] using hcanon)
-    rw [hwmod] at hv
-    exact uint256_toNat_eq_zero hv
-  · intro h
-    rw [h]
-    rfl
 
 theorem approveSource_zero_iff (I : ExecutionEnv) :
     I.source = AccountAddress.ofNat 0 ↔ approveOwnerWord I = ⟨0⟩ := by
@@ -403,80 +336,23 @@ theorem approveSource_zero_iff (I : ExecutionEnv) :
     rw [← approveOwner_ofNat I, h]
     rfl
 
-theorem approveMasked_ne_zero_of_ne_zero {w : UInt256}
-    (hcanon : w.toNat < EVM.addressModulus) (hnz : w ≠ ⟨0⟩) :
-    UInt256.land solcAddrMask w ≠ ⟨0⟩ := by
-  rw [solcAddrMask_clean_left hcanon]
-  exact hnz
-
-theorem approveMasked_eq_zero_of_zero {w : UInt256} (hzero : w = ⟨0⟩) :
-    UInt256.land solcAddrMask w = ⟨0⟩ := by
-  rw [hzero]
-  decide
-
-def approveWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  wordAt0Mem word mem
-
-def approveWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
-  wordAt32Mem word mem
-
-def approveTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
-  twoWordHashMem key slot mem
-
-theorem approveWordAt0Mem_size {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
-    (approveWordAt0Mem word mem).size = 96 := by
-  exact wordAt0Mem_size_96 word hmem
-
-theorem approveWordAt32Mem_size {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
-    (approveWordAt32Mem word mem).size = 96 := by
-  exact wordAt32Mem_size_96 word hmem
-
-theorem approveTwoWordHashMem_size {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (approveTwoWordHashMem key slot mem).size = 96 := by
-  exact twoWordHashMem_size_96 key slot hmem
-
-theorem approveTwoWordHashMem_read0 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (approveTwoWordHashMem key slot mem).readWithPadding 0 32 =
-      UInt256.toByteArray key := by
-  exact twoWordHashMem_read0 key slot hmem
-
-theorem approveTwoWordHashMem_read32 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (approveTwoWordHashMem key slot mem).readWithPadding 32 32 =
-      UInt256.toByteArray slot := by
-  exact twoWordHashMem_read32 key slot hmem
-
-theorem approveTwoWordHashMem_read64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (approveTwoWordHashMem key slot mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  exact twoWordHashMem_read64 key slot hmem hread64
-
-theorem approveTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
-    (hmem : mem.size = 96) :
-    (approveTwoWordHashMem key slot mem).readWithPadding 0 64 =
-      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
-  exact twoWordHashMem_read0_64 key slot hmem
 
 def approveOwnerHashMem (owner : UInt256) : ByteArray :=
-  approveTwoWordHashMem owner ⟨2⟩ solcFreePtrMem
+  twoWordHashMem owner ⟨2⟩ solcFreePtrMem
 
 def approveOwnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((approveOwnerHashMem owner).readWithPadding 0 64)))
 
 def approveSpenderHashMem (owner spender : UInt256) : ByteArray :=
-  approveTwoWordHashMem spender (approveOwnerSlot owner) (approveOwnerHashMem owner)
+  twoWordHashMem spender (approveOwnerSlot owner) (approveOwnerHashMem owner)
 
 def approveSpenderSlot (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     (KEC ((approveSpenderHashMem owner spender).readWithPadding 0 64)))
 
 def approveIdHashMem (owner spender id : UInt256) : ByteArray :=
-  approveTwoWordHashMem id (approveSpenderSlot owner spender)
+  twoWordHashMem id (approveSpenderSlot owner spender)
     (approveSpenderHashMem owner spender)
 
 def approveEventMem (owner spender id amount : UInt256) : ByteArray :=
@@ -489,50 +365,50 @@ def approveReturnMem (owner spender id amount : UInt256) : ByteArray :=
 theorem approveOwnerHashMem_size (owner : UInt256) :
     (approveOwnerHashMem owner).size = 96 := by
   unfold approveOwnerHashMem
-  exact approveTwoWordHashMem_size owner ⟨2⟩ solcFreePtrMem_size
+  exact twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size
 
 theorem approveSpenderHashMem_size (owner spender : UInt256) :
     (approveSpenderHashMem owner spender).size = 96 := by
   unfold approveSpenderHashMem
-  exact approveTwoWordHashMem_size spender (approveOwnerSlot owner)
+  exact twoWordHashMem_size_96 spender (approveOwnerSlot owner)
     (approveOwnerHashMem_size owner)
 
 theorem approveIdHashMem_size (owner spender id : UInt256) :
     (approveIdHashMem owner spender id).size = 96 := by
   unfold approveIdHashMem
-  exact approveTwoWordHashMem_size id (approveSpenderSlot owner spender)
+  exact twoWordHashMem_size_96 id (approveSpenderSlot owner spender)
     (approveSpenderHashMem_size owner spender)
 
 theorem approveOwnerHashMem_read0_64 (owner : UInt256) :
     (approveOwnerHashMem owner).readWithPadding 0 64 =
       UInt256.toByteArray owner ++ UInt256.toByteArray (⟨2⟩ : UInt256) := by
   unfold approveOwnerHashMem
-  exact approveTwoWordHashMem_read0_64 owner ⟨2⟩ solcFreePtrMem_size
+  exact twoWordHashMem_read0_64 owner ⟨2⟩ solcFreePtrMem_size
 
 theorem approveSpenderHashMem_read0_64 (owner spender : UInt256) :
     (approveSpenderHashMem owner spender).readWithPadding 0 64 =
       UInt256.toByteArray spender ++ UInt256.toByteArray (approveOwnerSlot owner) := by
   unfold approveSpenderHashMem
-  exact approveTwoWordHashMem_read0_64 spender (approveOwnerSlot owner)
+  exact twoWordHashMem_read0_64 spender (approveOwnerSlot owner)
     (approveOwnerHashMem_size owner)
 
 theorem approveIdHashMem_read0_64 (owner spender id : UInt256) :
     (approveIdHashMem owner spender id).readWithPadding 0 64 =
       UInt256.toByteArray id ++ UInt256.toByteArray (approveSpenderSlot owner spender) := by
   unfold approveIdHashMem
-  exact approveTwoWordHashMem_read0_64 id (approveSpenderSlot owner spender)
+  exact twoWordHashMem_read0_64 id (approveSpenderSlot owner spender)
     (approveSpenderHashMem_size owner spender)
 
 theorem approveIdHashMem_read64 (owner spender id : UInt256) :
     (approveIdHashMem owner spender id).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold approveIdHashMem approveSpenderHashMem approveOwnerHashMem
-  apply approveTwoWordHashMem_read64
-  · exact approveTwoWordHashMem_size spender (approveOwnerSlot owner)
-      (approveTwoWordHashMem_size owner ⟨2⟩ solcFreePtrMem_size)
-  · apply approveTwoWordHashMem_read64
-    · exact approveTwoWordHashMem_size owner ⟨2⟩ solcFreePtrMem_size
-    · exact approveTwoWordHashMem_read64 owner ⟨2⟩ solcFreePtrMem_size
+  apply twoWordHashMem_read64
+  · exact twoWordHashMem_size_96 spender (approveOwnerSlot owner)
+      (twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size)
+  · apply twoWordHashMem_read64
+    · exact twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size
+    · exact twoWordHashMem_read64 owner ⟨2⟩ solcFreePtrMem_size
         solcFreePtrMem_read64
 
 theorem approveIdHashMem_mload64 (owner spender id : UInt256) :
@@ -854,7 +730,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     exact hsource ((approveSource_zero_iff I).mpr hzero)
   have hspenderWordNZ : approveSpenderWord I ≠ ⟨0⟩ := by
     intro hzero
-    exact hspender ((approveAccountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
+    exact hspender ((accountAddress_ofNat_zero_iff hcanonSpender).mpr hzero)
   have rd848 := evm_run rd766 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
     push2 ⟨807⟩,
@@ -876,7 +752,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd876₀ := evm_run rd848 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, dup2, and,
     push0, dup2, dup2,
-    raw mstore 0 (approveWordAt0Mem (approveOwnerWord I) solcFreePtrMem)
+    raw mstore 0 (wordAt0Mem (approveOwnerWord I) solcFreePtrMem)
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -894,7 +770,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd878 := RD.dup9 rd877 (by decide) (by evm_ov)
   have rd882₀ := evm_run rd878 with [
     and, dup1, dup5,
-    raw mstore 0 (approveWordAt0Mem (approveSpenderWord I)
+    raw mstore 0 (wordAt0Mem (approveSpenderWord I)
         (approveOwnerHashMem (approveOwnerWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
@@ -913,7 +789,7 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw keccak256 0 (approveSpenderSlot (approveOwnerWord I) (approveSpenderWord I))
       (UInt256.ofNat 3) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup8, dup5,
-    raw mstore 0 (approveWordAt0Mem (approveIdWord I)
+    raw mstore 0 (wordAt0Mem (approveIdWord I)
         (approveSpenderHashMem (approveOwnerWord I) (approveSpenderWord I)))
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
@@ -990,7 +866,7 @@ theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt25
     intro hzero
     exact hsource ((approveSource_zero_iff I).mpr hzero)
   have hspenderZeroWord : approveSpenderWord I = ⟨0⟩ :=
-    (approveAccountAddress_ofNat_zero_iff hcanonSpender).mp hspender
+    (accountAddress_ofNat_zero_iff hcanonSpender).mp hspender
   have rd822 := evm_run rd766 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and,
     push2 ⟨807⟩,

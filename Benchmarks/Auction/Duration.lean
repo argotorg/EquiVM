@@ -21,7 +21,7 @@ theorem durationX {σ σ₀ A I} {g : UInt256}
     (hreach : EntryReached 0 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
-      (UInt256.toByteArray (storedWord σ I ⟨206⟩)) := by
+      (UInt256.toByteArray (solcSlotWord σ I ⟨206⟩)) := by
   obtain ⟨_, _, rd287⟩ := hreach
   obtain ⟨_, _, rd300⟩ := entryGuardZero 0 (by decide) rd287 hwv
   have rd305 := evm_run rd300 with [push2 ⟨308⟩, push1 ⟨206⟩]
@@ -45,12 +45,12 @@ theorem durationBodyCore {σ σ₀ A I} {g : UInt256}
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ durationGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [.int (Int.ofNat (storedWord σ I ⟨206⟩).toNat)])) := by
-      simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
+          (some [.int (Int.ofNat (solcSlotWord σ I ⟨206⟩).toNat)])) := by
+      simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         durationBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
     exact (durationX hreach hwv).reEquivExecution hcode hd hdec hbody
-      (returnEquiv_of_encode (uint256ReturnEncoding (storedWord σ I ⟨206⟩)))
+      (returnEquiv_of_encode (uint256ReturnEncoding (solcSlotWord σ I ⟨206⟩)))
   · exact entryNonpayableRevert 0 (by decide) hcode hsel hreach hwv
 
 end Auction

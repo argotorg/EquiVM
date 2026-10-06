@@ -1,3 +1,5 @@
+import Reasoning.ABIViews
+import Reasoning.ABI
 import Benchmarks.Dss.Vat.Init
 import Reasoning.MemCascade
 
@@ -65,14 +67,6 @@ theorem ilksArgBytes_len {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   simp [bytes32Width]
   omega
 
-theorem ilksArgBytes_len_min {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
-    min 32 (I.calldata.toList.length - 4) = bytes32Width.val + 1 := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  rw [htlen]
-  simp [bytes32Width]
-  omega
 
 theorem keyValueToWord_ilksArgKey {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     keyValueToWord (ilksArgKey I) = ilksArgWord I := by
@@ -114,7 +108,7 @@ theorem vatDecode_ilks_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
       (transitionSignature ilksTransition).paramTypes I.calldata = some (ilksStore I) := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [bytes32] I.calldata = _
   simpa [config, ilksStore, ilksArgValue, ilksArgBytes, bytes32] using
-    decodeCalldata_legacyBytes32_ok (cd := I.calldata) (x := "arg0") hsz36
+    decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "arg0") hsz36
 
 theorem vatDecode_ilks_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -122,7 +116,7 @@ theorem vatDecode_ilks_none_short {I : ExecutionEnv}
       (transitionSignature ilksTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode config.abiDecodeMode ["arg0"] [bytes32] I.calldata = none
   simpa [config, bytes32] using
-    decodeCalldata_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
+    decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
 
 theorem vatDispatchIlks {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 16)) :
@@ -710,63 +704,6 @@ theorem RD.solcFiveWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
         simpa [mem5] using solcScratchReturn5Mem_read128_160 art rate spot line dust hscratch)
       (by evm_ov)]
 
-private theorem encodeABIValue_uint256_word (v : UInt256) :
-    encodeABIValue? uint256 (.int (Int.ofNat v.toNat)) =
-      some (EVM.Word.toBytesBE v) := by
-  have hword : EVM.word v.toNat = v := by
-    show UInt256.ofNat v.toNat = v
-    exact u256_ofNat_toNat v
-  have hlt : v.toNat < EVM.twoPow 256 := by
-    change v.val.val < EVM.twoPow 256
-    exact v.val.isLt
-  simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-
-theorem uint256FiveReturnEncoding (art rate spot line dust : UInt256) :
-    encodeReturnValues? [uint256, uint256, uint256, uint256, uint256]
-      [.int (Int.ofNat art.toNat), .int (Int.ofNat rate.toNat),
-        .int (Int.ofNat spot.toNat), .int (Int.ofNat line.toNat),
-        .int (Int.ofNat dust.toNat)] =
-        some (UInt256.toByteArray art ++ UInt256.toByteArray rate ++ UInt256.toByteArray spot ++
-          UInt256.toByteArray line ++ UInt256.toByteArray dust) := by
-  rw [show UInt256.toByteArray art = (EVM.Word.toBytesBE art).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray art).symm]
-  rw [show UInt256.toByteArray rate = (EVM.Word.toBytesBE rate).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray rate).symm]
-  rw [show UInt256.toByteArray spot = (EVM.Word.toBytesBE spot).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray spot).symm]
-  rw [show UInt256.toByteArray line = (EVM.Word.toBytesBE line).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray line).symm]
-  rw [show UInt256.toByteArray dust = (EVM.Word.toBytesBE dust).toByteArray by
-    exact (word_toBytesBE_toByteArray_eq_toByteArray dust).symm]
-  unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [uint256, uint256, uint256, uint256, uint256] = some 160
-    by native_decide]
-  simp only [bind, Option.bind]
-  unfold encodeABIValuesFrom?
-  rw [encodeABIValue_uint256_word art]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [encodeABIValue_uint256_word rate]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [encodeABIValue_uint256_word spot]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [encodeABIValue_uint256_word line]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  rw [encodeABIValue_uint256_word dust]
-  simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
-  unfold encodeABIValuesFrom?
-  simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
-  apply congrArg some
-  apply ByteArray.ext
-  simp [ByteArray.data_append]
 
 private theorem evalIlksField
     {I : ExecutionEnv} (evm : EVM.State)
@@ -778,17 +715,17 @@ private theorem evalIlksField
     (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
     evalExpr? config { contract := contract, locals := ilksStore I } evm
         (.storage (ilksF (.var "arg0") field)) =
-      .ok (.int (Int.ofNat (vatSlotWord slot evm.accountMap evm.executionEnv).toNat)) := by
+      .ok (.int (Int.ofNat (solcSlotWordAt slot evm.accountMap evm.executionEnv).toNat)) := by
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := ilksStore I }) (evm := evm)
     (slot := ilksF (.var "arg0") field) (er := er)
     (t := .int uint256Int) (loc := wordLoc slot)
-    (value := .int (Int.ofNat (vatSlotWord slot evm.accountMap evm.executionEnv).toNat))
+    (value := .int (Int.ofNat (solcSlotWordAt slot evm.accountMap evm.executionEnv).toNat))
     (by simp [ilksStore, ilksF])
     her
     hty
     hloc
-    (by simpa [vatSlotWord] using vatStorageLocLoad_uint256 evm slot)
+    (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm slot)
 
 theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (evm : EVM.State) (locals : Store)
@@ -797,22 +734,23 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     ExecTransitionBody config contract evm locals ilksTransition.body
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
-          (vatSlotWord (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (vatSlotWord (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (vatSlotWord (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (vatSlotWord (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat)),
+          (solcSlotWordAt (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat
-          (vatSlotWord (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
+          (solcSlotWordAt (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract, locals := ilksStore I }
   have hArt :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "Art")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+          (solcSlotWordAt (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+    change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "Art" (ilksArtSlotFor I) (ilksArtEvaledRef I)
       (by
         simp [ilksStore, ilksArtEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -825,8 +763,9 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   have hRate :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "rate")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+          (solcSlotWordAt (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+    change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "rate" (ilksRateSlotFor I) (ilksRateEvaledRef I)
       (by
         simp [ilksStore, ilksRateEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -839,8 +778,9 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   have hSpot :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "spot")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+          (solcSlotWordAt (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+    change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "spot" (ilksSpotSlotFor I) (ilksSpotEvaledRef I)
       (by
         simp [ilksStore, ilksSpotEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -853,8 +793,9 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   have hLine :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "line")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+          (solcSlotWordAt (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+    change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "line" (ilksLineSlotFor I) (ilksLineEvaledRef I)
       (by
         simp [ilksStore, ilksLineEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -867,8 +808,9 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   have hDust :
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "dust")) =
         .ok (.int (Int.ofNat
-          (vatSlotWord (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := ilksArgBytes_len_min (I := I) hsz36
+          (solcSlotWordAt (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
+    change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "dust" (ilksDustSlotFor I) (ilksDustEvaledRef I)
       (by
         simp [ilksStore, ilksDustEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
@@ -885,15 +827,15 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
           .storage (ilksF (.var "arg0") "dust")] =
           .ok
             [ .int (Int.ofNat
-                (vatSlotWord (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (vatSlotWord (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (vatSlotWord (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (vatSlotWord (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat),
+                (solcSlotWordAt (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat),
               .int (Int.ofNat
-                (vatSlotWord (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
+                (solcSlotWordAt (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat) ] := by
     simp [evalExprs?, hArt, hRate, hSpot, hLine, hDust, EvalResult.bind, bind, pure]
   simpa [ilksTransition, nonpayable, frame] using
     (ExecFuncBody.execBlockRet <|
@@ -918,11 +860,11 @@ theorem vatIlksBodyCoreOk
   let spotSlot := artSlot + ⟨2⟩
   let lineSlot := artSlot + ⟨3⟩
   let dustSlot := artSlot + ⟨4⟩
-  let artWord := vatSlotWord artSlot σ I
-  let rateWord := vatSlotWord rateSlot σ I
-  let spotWord := vatSlotWord spotSlot σ I
-  let lineWord := vatSlotWord lineSlot σ I
-  let dustWord := vatSlotWord dustSlot σ I
+  let artWord := solcSlotWordAt artSlot σ I
+  let rateWord := solcSlotWordAt rateSlot σ I
+  let spotWord := solcSlotWordAt spotSlot σ I
+  let lineWord := solcSlotWordAt lineSlot σ I
+  let dustWord := solcSlotWordAt dustSlot σ I
   let locals : Store := ilksStore I
   have hArtSlot : ilksArtSlotFor I = artSlot := by
     simp [artSlot, ilksArtSlotFor_eq hsz36]
@@ -939,11 +881,11 @@ theorem vatIlksBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (ilksArtSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksRateSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksSpotSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksLineSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksDustSlotFor I) σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWordAt (ilksArtSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksRateSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksSpotSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksLineSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (solcSlotWordAt (ilksDustSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       vatIlksBodyReturns hsz36
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -982,7 +924,7 @@ theorem vatIlksBodyCoreOk
       (R := [sel]) (mem := solcMappingHashMem ⟨2⟩ (ilksArgWord I))
       (by
         simpa [artWord, rateWord, spotWord, lineWord, dustWord, artSlot, rateSlot,
-          spotSlot, lineSlot, dustSlot, vatSlotWord] using hretPc)
+          spotSlot, lineSlot, dustSlot, solcSlotWordAt] using hretPc)
       (by
         unfold solcFiveWordReturnFromMemWf
         repeat' first | apply And.intro | native_decide)

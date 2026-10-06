@@ -198,7 +198,7 @@ theorem clipperTakeFromFluxEquiv
       AccountAddress.ofNat who.toNat ≠ v.vat := by
     intro haddr
     apply hne
-    have hmasked := clipperMaskedAddress_injective (a := who)
+    have hmasked := maskedAddress_injective (a := who)
       (b := clipperTakeVatTarget v) (by
         rw [hwhoClean, hvatTargetClean]
         exact haddr.trans hvatTargetAddress.symm)
@@ -209,7 +209,7 @@ theorem clipperTakeFromFluxEquiv
       AccountAddress.ofNat who.toNat ≠ AccountAddress.ofNat dog.toNat := by
     intro haddr
     apply hne
-    have hmasked := clipperMaskedAddress_injective (a := who) (b := dog) (by
+    have hmasked := maskedAddress_injective (a := who) (b := dog) (by
       rw [hwhoClean, hdogClean]
       exact haddr)
     simpa [hdogClean] using hmasked
@@ -218,7 +218,7 @@ theorem clipperTakeFromFluxEquiv
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (clipperTakeVatTargetAddress v).symm
         (by simpa only [← hAccountsPost] using hne)
   have syncFlux {σVat : AccountMap} {AVat : Substate} {zVat : Bool} {outVat : ByteArray}
@@ -230,7 +230,7 @@ theorem clipperTakeFromFluxEquiv
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σVat, substate := AVat },
           outVat) true) :=
-    clipperTypedCallSyncFromState hAccountsPost
+    typedCallViaEVM_syncFromState hAccountsPost
       (by simp [evmPriceEvm, initState, hevmPriceSigma0])
 
 
@@ -251,7 +251,7 @@ theorem clipperTakeFromFluxEquiv
     have hnoCodeSolm : (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccountsPost] using hnoCode)
     exact closeRevert hrev (hsourceVatNoCode hnoCodeSolm)
@@ -370,7 +370,7 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount, hwhoClean] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (target := solcAddrMask.land who)
           (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,
@@ -424,7 +424,7 @@ theorem clipperTakeFromFluxEquiv
       _,
       _,
       _⟩ :=
-      clipperTypedCallSyncFromState (evmEvm := evmVatEvm) (evmSolm := evmVat)
+      typedCallViaEVM_syncFromState (evmEvm := evmVatEvm) (evmSolm := evmVat)
         (evmEvm' := evmCbEvm) hAccountsVat
         (by simp [evmVatEvm, hevmVatSigma0])
 
@@ -487,7 +487,7 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (target := solcAddrMask.land who)
           (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,
@@ -520,7 +520,7 @@ theorem clipperTakeFromFluxEquiv
       hAccountsCb,
       hevmCbSigma0,
       hevmCbEnv⟩ :=
-      clipperTypedCallSyncFromState (evmEvm := evmVatEvm) (evmSolm := evmVat)
+      typedCallViaEVM_syncFromState (evmEvm := evmVatEvm) (evmSolm := evmVat)
         (evmEvm' := evmCbEvm) hAccountsVat
         (by simp [evmVatEvm, hevmVatSigma0])
 
@@ -584,7 +584,7 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        extCodeSizeWord_ne_zero_lookup_code_pos
           (target := solcAddrMask.land who)
           (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,

@@ -53,16 +53,16 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
       obtain ⟨_, _, rd7060⟩ := RD.uniswapUpdateOverflowGuardOk rd6959 hb0 hb1
         (by simp only [List.length_cons]; omega)
       have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
-          uniswapSlotWord ⟨8⟩ σ I := by
-        have h := congrArg (fun accounts => uniswapSlotWord ⟨8⟩ accounts I) hAccounts
+          solcSlotWordAt ⟨8⟩ σ I := by
+        have h := congrArg (fun accounts => solcSlotWordAt ⟨8⟩ accounts I) hAccounts
         simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-          uniswapSlotWord, henv] using h.symm
+          solcSlotWordAt, solcSlotWord, henv] using h.symm
       have htime : syncTimeElapsedInt evm = Int.ofNat
-          (UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ I) I)
+          (UInt256.land (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ I) I)
             reserve32Mask).toNat := by
         rw [syncTimeElapsedInt_eq_updateElapsedWord_toNat, hslot8, henv]
       by_cases hskip : UInt256.land
-          (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ I) I) reserve32Mask = ⟨0⟩ ∨
+          (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ I) I) reserve32Mask = ⟨0⟩ ∨
           UInt256.land reserve0 reserve112Mask = ⟨0⟩ ∨
           UInt256.land reserve1 reserve112Mask = ⟨0⟩
       · have hskipS : syncTimeElapsedInt evm = 0 ∨ reserve0 = ⟨0⟩ ∨ reserve1 = ⟨0⟩ := by
@@ -85,7 +85,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         · exact (pairDynamicMem_sizes ptr _ _ hgap (by omega)).2
         · exact (pairDynamicMem_read_below ptr _ _ 64 hin hlo hgap (by omega)).trans hmem64
       · have ht : UInt256.land
-            (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ I) I) reserve32Mask ≠ ⟨0⟩ :=
+            (uniswapUpdateElapsedWord (solcSlotWordAt ⟨8⟩ σ I) I) reserve32Mask ≠ ⟨0⟩ :=
           fun h ↦ hskip (Or.inl h)
         have hr0 : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩ :=
           fun h ↦ hskip (Or.inr (Or.inl h))
@@ -119,7 +119,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         · simpa only [uniswapUpdateCumulativePackedMapWith, uniswapUpdateCumulativePackedWordWith,
             uniswapUpdatePrice1CumulativeMapWith, uniswapUpdatePrice0CumulativeMapWith,
             uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
-            uniswapSlotWord] using rdRet
+            solcSlotWordAt, solcSlotWord] using rdRet
         · exact (pairDynamicMem_sizes ptr _ _ hgap (by omega)).2
         · exact (pairDynamicMem_read_below ptr _ _ 64 hin hlo hgap (by omega)).trans hmem64
     · exact Or.inl ⟨uniswapUpdateCallRevertsSecondBound evm balance0 balance1

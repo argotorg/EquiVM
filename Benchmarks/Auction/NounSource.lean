@@ -12,7 +12,7 @@ theorem nounsSourceRead {s0 I σ evm locals}
       .ok (.address (AccountAddress.ofUInt256 (nounsWord σ I))) := by
   rw [nounsRef, scalarRead evm locals "nouns" .address (auctionAddrLoc ⟨201⟩)
     hb (by native_decide) rfl, loadAddress]
-  have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨201⟩ = storedWord σ I ⟨201⟩ := by
+  have hw : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨201⟩ = solcSlotWord σ I ⟨201⟩ := by
     exact hs.storageRead _
   rw [hw, addressOfWord_eq]
   rfl

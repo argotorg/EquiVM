@@ -6,7 +6,7 @@ namespace Benchmarks.Dss.Pot
 
 /-! ## `live()` public getter (active flag, slot 8). Group @114 arm 3. -/
 
-def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := potSlotWord ⟨8⟩ σ I
+def liveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWordAt ⟨8⟩ σ I
 
 theorem potDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
@@ -54,7 +54,7 @@ theorem potLiveBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
-    simpa [liveTransition, liveWord, potSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [liveTransition, liveWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅

@@ -1,3 +1,4 @@
+import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.Bytecode
 import Examples.UniswapV2Pair.ErrorDynamicRuntime
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -8,35 +9,6 @@ def uniswapSafeMathMulOverflowStringWord : UInt256 :=
   UInt256.shiftLeft
     (⟨573467620053399432674451404801797420674347462519⟩ : UInt256) ⟨96⟩
 
-theorem uint256_mul_div_eq_zero_of_overflow {a b : UInt256}
-    (hover : UInt256.size ≤ a.toNat * b.toNat) :
-    UInt256.eq (UInt256.div (UInt256.mul a b) b) a = ⟨0⟩ := by
-  have hbNat : b.toNat ≠ 0 := by
-    intro hb
-    have hprod : a.toNat * b.toNat = 0 := by simp [hb]
-    have hpos : 0 < UInt256.size := by norm_num [UInt256.size]
-    omega
-  apply u256_eq_of_ne
-  intro heq
-  have hnat := congrArg UInt256.toNat heq
-  have hdivNat : (UInt256.div (UInt256.mul a b) b).toNat =
-      ((a.toNat * b.toNat) % UInt256.size) / b.toNat := by
-    unfold UInt256.div UInt256.toNat
-    simp only
-    change (UInt256.mul a b).toNat / b.toNat =
-      (a.toNat * b.toNat) % UInt256.size / b.toNat
-    rw [u256_mul_toNat]
-  have hdivEq : ((a.toNat * b.toNat) % UInt256.size) / b.toNat = a.toNat := by
-    simpa [hdivNat] using hnat
-  have hle : a.toNat * b.toNat ≤ (a.toNat * b.toNat) % UInt256.size := by
-    calc
-      a.toNat * b.toNat =
-          (((a.toNat * b.toNat) % UInt256.size) / b.toNat) * b.toNat := by
-        rw [hdivEq]
-      _ ≤ (a.toNat * b.toNat) % UInt256.size := Nat.div_mul_le_self _ _
-  have hmodLt : (a.toNat * b.toNat) % UInt256.size < a.toNat * b.toNat := by
-    exact lt_of_lt_of_le (Nat.mod_lt _ (by norm_num [UInt256.size])) hover
-  omega
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathMulOverflow_dynamic

@@ -10,9 +10,9 @@ set_option linter.unusedTactic false
 namespace Benchmarks.Dss.Flopper
 set_option maxHeartbeats 1000000 in
 theorem flopperDentX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hlive : flopperSlotWord ⟨8⟩ σ I = ⟨1⟩)
-    (hguy : flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
-    (htic : flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
+    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
+    (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)
+    (htic : uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I = ⟨0⟩)
     (h : ∃ k C, RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1634⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -30,12 +30,12 @@ theorem flopperDentX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1806⟩ := flopperDentX_guyOk (g := g) hlive hguy h
   obtain ⟨_, _, rd1843⟩ := flopperDentX_toTicGtGuard rd1806
   have hle :
-      (flopperUint48Offset20Word (auctionPackedSlot id) σ I).toNat ≤
+      (uint48Offset20Word (auctionPackedSlot id) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat := by
     rw [htic]
     exact Nat.zero_le _
   have hgt :
-      UInt256.gt (flopperUint48Offset20Word (auctionPackedSlot id) σ I)
+      UInt256.gt (uint48Offset20Word (auctionPackedSlot id) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨0⟩ := by
     apply ugt_zero
@@ -95,17 +95,17 @@ theorem flopperDentX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨k1867, C1867, rd1867raw⟩ := rd1866pre.sload (by native_decide) (by evm_ov)
   have rd1867 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1867⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memTicZero (UInt256.ofNat 3) ByteArray.empty σ k1867 C1867 := by
-    simpa [flopperSlotWord] using rd1867raw
+    simpa [solcSlotWordAt] using rd1867raw
   have rd1882 := evm_run rd1867 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
     raw shl (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd1881 := rd1882.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd1881 := rd1882.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -118,23 +118,23 @@ theorem flopperDentX_ticZeroOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     native_decide
   rw [hpc1883] at rd1883pre
   have hticRaw :
-      UInt256.land flopperUint48Mask
-          (UInt256.div (flopperSlotWord (auctionPackedSlot id) σ I)
+      UInt256.land uint48Mask
+          (UInt256.div (solcSlotWordAt (auctionPackedSlot id) σ I)
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩)) =
-        flopperUint48Offset20Word (auctionPackedSlot id) σ I := by
+        uint48Offset20Word (auctionPackedSlot id) σ I := by
     rw [show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20)
       from by native_decide]
     rfl
   have rd1883 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1883⟩
-      [UInt256.isZero (flopperUint48Offset20Word (auctionPackedSlot id) σ I),
+      [UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memTicZero (UInt256.ofNat 3) ByteArray.empty σ
       (k1867 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
       (C1867 + 3 + 3 + 3 + 3 + 5 + 3 + 3 + 3) := by
     simpa [id, hticRaw] using rd1883pre
   have hzeroGuard :
-      UInt256.isZero (flopperUint48Offset20Word (auctionPackedSlot id) σ I) ≠
+      UInt256.isZero (uint48Offset20Word (auctionPackedSlot id) σ I) ≠
         ⟨0⟩ := by
     rw [htic]
     native_decide
@@ -154,7 +154,7 @@ theorem flopperDentX_toEndGtGuard
     let id := dentIdWord I
     let memEnd := twoWordHashMem id ⟨1⟩ memStart
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2001⟩
-      [UInt256.gt (flopperUint48Offset26Word (auctionPackedSlot id) σ I)
+      [UInt256.gt (uint48Offset26Word (auctionPackedSlot id) σ I)
         (UInt256.ofNat I.header.timestamp), dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memEnd
@@ -209,10 +209,10 @@ theorem flopperDentX_toEndGtGuard
   obtain ⟨k1983, C1983, rd1983raw⟩ := rd1982pre.sload (by native_decide) (by evm_ov)
   have rd1983 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨1983⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k1983 C1983 := by
-    simpa [flopperSlotWord] using rd1983raw
+    simpa [solcSlotWordAt] using rd1983raw
   have rd1992 := evm_run rd1983 with [
     raw timestamp (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -221,14 +221,14 @@ theorem flopperDentX_toEndGtGuard
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd1999 := rd1992.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd1999 := rd1992.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
   have rd2000 := rd1999.and (by native_decide) (by evm_ov)
   have rd2001 := rd2000.gt (by native_decide) (by evm_ov)
   exact ⟨_, _, by
-    simpa [id, flopperUint48Offset26Word,
+    simpa [id, uint48Offset26Word,
       show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩ = UInt256.ofNat (256 ^ 26)
       from by native_decide]
       using rd2001⟩
@@ -236,18 +236,18 @@ theorem flopperDentX_toEndGtGuard
 theorem flopperDentX_endFinishedFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memEnd : ByteArray} {k C : ℕ}
     (hendLe :
-      (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
+      (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (hmemSize : memEnd.size = 96)
     (hread64 : memEnd.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd2001 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2001⟩
-      [UInt256.gt (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
+      [UInt256.gt (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
         (UInt256.ofNat I.header.timestamp),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   have hgt :
-      UInt256.gt (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
+      UInt256.gt (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨0⟩ := by
     apply ugt_zero
@@ -271,9 +271,9 @@ theorem flopperDentX_endOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memEnd : ByteArray} {k C : ℕ}
     (hendGt :
       (UInt256.ofNat I.header.timestamp).toNat <
-        (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
+        (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I).toNat)
     (rd2001 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2001⟩
-      [UInt256.gt (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
+      [UInt256.gt (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
         (UInt256.ofNat I.header.timestamp),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -281,7 +281,7 @@ theorem flopperDentX_endOkFromGuard {σ σ₀ A I}
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memEnd (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hgt :
-      UInt256.gt (flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
+      UInt256.gt (uint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I)
           (UInt256.ofNat I.header.timestamp) =
         ⟨1⟩ := by
     apply ugt_one
@@ -302,7 +302,7 @@ theorem flopperDentX_toBidEqGuard
     let id := dentIdWord I
     let memBid := twoWordHashMem id ⟨1⟩ memStart
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
-      [UInt256.eq (dentBidWord I) (flopperSlotWord (auctionBidSlot id) σ I),
+      [UInt256.eq (dentBidWord I) (solcSlotWordAt (auctionBidSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memBid
@@ -353,10 +353,10 @@ theorem flopperDentX_toBidEqGuard
   obtain ⟨k2097, C2097, rd2097raw⟩ := rd2096pre.sload (by native_decide) (by evm_ov)
   have rd2097 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨2097⟩
-      [flopperSlotWord (auctionBidSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
+      [solcSlotWordAt (auctionBidSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
         sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k2097 C2097 := by
-    simpa [flopperSlotWord] using rd2097raw
+    simpa [solcSlotWordAt] using rd2097raw
   have rd2099 := evm_run rd2097 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -364,16 +364,16 @@ theorem flopperDentX_toBidEqGuard
 
 theorem flopperDentX_bidMismatchFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memBid : ByteArray} {k C : ℕ}
-    (hbid : dentBidWord I ≠ flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+    (hbid : dentBidWord I ≠ solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (hmemSize : memBid.size = 96)
     (hread64 : memBid.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd2099 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
-      [UInt256.eq (dentBidWord I) (flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I),
+      [UInt256.eq (dentBidWord I) (solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   have heq :
-      UInt256.eq (dentBidWord I) (flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I) =
+      UInt256.eq (dentBidWord I) (solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I) =
         ⟨0⟩ := by
     apply u256_eq_of_ne
     exact hbid
@@ -393,16 +393,16 @@ theorem flopperDentX_bidMismatchFromGuard {σ σ₀ A I}
 
 theorem flopperDentX_bidOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memBid : ByteArray} {k C : ℕ}
-    (hbid : dentBidWord I = flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I)
+    (hbid : dentBidWord I = solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I)
     (rd2099 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2099⟩
-      [UInt256.eq (dentBidWord I) (flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I),
+      [UInt256.eq (dentBidWord I) (solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2179⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memBid (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
-      UInt256.eq (dentBidWord I) (flopperSlotWord (auctionBidSlot (dentIdWord I)) σ I) ≠
+      UInt256.eq (dentBidWord I) (solcSlotWordAt (auctionBidSlot (dentIdWord I)) σ I) ≠
         ⟨0⟩ := by
     rw [hbid, u256_eq_refl]
     exact one_ne_zero_uint
@@ -419,7 +419,7 @@ theorem flopperDentX_toLotLtGuard
     let id := dentIdWord I
     let memLot := twoWordHashMem id ⟨1⟩ memStart
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2201⟩
-      [UInt256.lt (dentLotWord I) (flopperSlotWord (auctionLotSlot id) σ I),
+      [UInt256.lt (dentLotWord I) (solcSlotWordAt (auctionLotSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memLot
@@ -474,10 +474,10 @@ theorem flopperDentX_toLotLtGuard
   obtain ⟨k2199, C2199, rd2199raw⟩ := rd2198pre.sload (by native_decide) (by evm_ov)
   have rd2199 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨2199⟩
-      [flopperSlotWord (auctionLotSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
+      [solcSlotWordAt (auctionLotSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
         sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k2199 C2199 := by
-    simpa [flopperSlotWord] using rd2199raw
+    simpa [solcSlotWordAt] using rd2199raw
   have rd2201 := evm_run rd2199 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov)]
@@ -486,17 +486,17 @@ theorem flopperDentX_toLotLtGuard
 theorem flopperDentX_lotNotLowerFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memLot : ByteArray} {k C : ℕ}
     (hlotLe :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat ≤
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat ≤
         (dentLotWord I).toNat)
     (hmemSize : memLot.size = 96)
     (hread64 : memLot.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd2201 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2201⟩
-      [UInt256.lt (dentLotWord I) (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I),
+      [UInt256.lt (dentLotWord I) (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flopperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
-      UInt256.lt (dentLotWord I) (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I) =
+      UInt256.lt (dentLotWord I) (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I) =
         ⟨0⟩ := by
     apply ult_zero
     exact hlotLe
@@ -524,16 +524,16 @@ theorem flopperDentX_lotLowerOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memLot : ByteArray} {k C : ℕ}
     (hlotLt :
       (dentLotWord I).toNat <
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat)
     (rd2201 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2201⟩
-      [UInt256.lt (dentLotWord I) (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I),
+      [UInt256.lt (dentLotWord I) (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2273⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLot (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hlt :
-      UInt256.lt (dentLotWord I) (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I) ≠
+      UInt256.lt (dentLotWord I) (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I) ≠
         ⟨0⟩ := by
     rw [ult_one hlotLt]
     exact one_ne_zero_uint
@@ -550,7 +550,7 @@ theorem flopperDentX_toLotOneMulStart
     let id := dentIdWord I
     let memLotOne := twoWordHashMem id ⟨1⟩ memStart
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4674⟩
-      [dentOneWord, flopperSlotWord (auctionLotSlot id) σ I, ⟨2310⟩,
+      [dentOneWord, solcSlotWordAt (auctionLotSlot id) σ I, ⟨2310⟩,
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memLotOne (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memLotOne
@@ -605,10 +605,10 @@ theorem flopperDentX_toLotOneMulStart
   obtain ⟨k2293, C2293, rd2293raw⟩ := rd2293pre.sload (by native_decide) (by evm_ov)
   have rd2293 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨2293⟩
-      [flopperSlotWord (auctionLotSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
+      [solcSlotWordAt (auctionLotSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
         sel]
       memLotOne (UInt256.ofNat 3) ByteArray.empty σ k2293 C2293 := by
-    simpa [flopperSlotWord, id] using rd2293raw
+    simpa [solcSlotWordAt, id] using rd2293raw
   have rd2297 := evm_run rd2293 with [
     raw push2 ⟨2310⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
@@ -623,7 +623,7 @@ theorem flopperDentX_lotOneOverflow {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memStart : ByteArray} {k C : ℕ}
     (hover :
       UInt256.size ≤
-        (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat * dentOneWord.toNat)
+        (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat * dentOneWord.toNat)
     (rd2273 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2273⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memStart (UInt256.ofNat 3) ByteArray.empty σ k C) :
@@ -638,7 +638,7 @@ theorem flopperDentX_lotOneOverflow {σ σ₀ A I}
 theorem flopperDentX_lotOneOk {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memStart : ByteArray} {k C : ℕ}
     (hfit :
-      (flopperSlotWord (auctionLotSlot (dentIdWord I)) σ I).toNat * dentOneWord.toNat <
+      (solcSlotWordAt (auctionLotSlot (dentIdWord I)) σ I).toNat * dentOneWord.toNat <
         UInt256.size)
     (rd2273 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2273⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -658,8 +658,8 @@ theorem flopperDentX_lotOneOk {σ σ₀ A I}
     (hfit := by simpa [id, dentOneWord] using hfit)
     rd4674
   exact ⟨_, _, by
-    simpa [dentLotOneWord, dentLotStoredWord, flopperSlotWord, initState, id, dentOneWord,
-      u256_mul_comm dentOneWord (flopperSlotWord (auctionLotSlot id) σ I)]
+    simpa [dentLotOneWord, dentLotStoredWord, solcSlotWordAt, initState, id, dentOneWord,
+      u256_mul_comm dentOneWord (solcSlotWordAt (auctionLotSlot id) σ I)]
       using rd2310⟩
 
 set_option maxHeartbeats 1000000 in
@@ -671,7 +671,7 @@ theorem flopperDentX_toBegLotMulStart
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLotOne (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4674⟩
-      [dentLotWord I, flopperSlotWord ⟨4⟩ σ I, ⟨2322⟩,
+      [dentLotWord I, solcSlotWordAt ⟨4⟩ σ I, ⟨2322⟩,
         dentLotOneWord (initState σ σ₀ g A I) I,
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLotOne (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
@@ -682,11 +682,11 @@ theorem flopperDentX_toBegLotMulStart
   obtain ⟨k2317, C2317, rd2317raw⟩ := rd2316pre.sload (by native_decide) (by evm_ov)
   have rd2317 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨2317⟩
-      [flopperSlotWord ⟨4⟩ σ I, ⟨2322⟩,
+      [solcSlotWordAt ⟨4⟩ σ I, ⟨2322⟩,
         dentLotOneWord (initState σ σ₀ g A I) I,
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memLotOne (UInt256.ofNat 3) ByteArray.empty σ k2317 C2317 := by
-    simpa [flopperSlotWord] using rd2317raw
+    simpa [solcSlotWordAt] using rd2317raw
   have rd2321 := evm_run rd2317 with [
     raw dup5 (by native_decide) (by evm_ov),
     raw push2 ⟨4674⟩ (by native_decide) (by evm_ov)]
@@ -694,7 +694,7 @@ theorem flopperDentX_toBegLotMulStart
 
 theorem flopperDentX_begLotOverflow {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memLotOne : ByteArray} {k C : ℕ}
-    (hover : UInt256.size ≤ (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat)
+    (hover : UInt256.size ≤ (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat)
     (rd2310 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2310⟩
       [dentLotOneWord (initState σ σ₀ g A I) I,
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -710,7 +710,7 @@ theorem flopperDentX_begLotOverflow {σ σ₀ A I}
 
 theorem flopperDentX_begLotOk {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memLotOne : ByteArray} {k C : ℕ}
-    (hfit : (flopperSlotWord ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
+    (hfit : (solcSlotWordAt ⟨4⟩ σ I).toNat * (dentLotWord I).toNat < UInt256.size)
     (rd2310 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2310⟩
       [dentLotOneWord (initState σ σ₀ g A I) I,
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -729,7 +729,7 @@ theorem flopperDentX_begLotOk {σ σ₀ A I}
     (hfit := by simpa using hfit)
     rd4674
   exact ⟨_, _, by
-    simpa [dentBegLotWord, dentBegWord, flopperSlotWord, initState]
+    simpa [dentBegLotWord, dentBegWord, solcSlotWordAt, initState]
       using rd2322⟩
 
 theorem flopperDentX_insufficientDecreaseFromGuard {σ σ₀ A I}
@@ -820,7 +820,7 @@ theorem flopperDentX_toCallerEqGuard
     let memCaller := twoWordHashMem id ⟨1⟩ memStart
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2435⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
-        (flopperAddressReturnWord (auctionPackedSlot id) σ I),
+        (solcAddressSlotWord (auctionPackedSlot id) σ I),
         dentBidWord I, dentLotWord I, id, ⟨334⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   intro id memCaller
@@ -875,10 +875,10 @@ theorem flopperDentX_toCallerEqGuard
   obtain ⟨k2424, C2424, rd2424raw⟩ := rd2423pre.sload (by native_decide) (by evm_ov)
   have rd2424 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨2424⟩
-      [flopperSlotWord (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
+      [solcSlotWordAt (auctionPackedSlot id) σ I, dentBidWord I, dentLotWord I, id, ⟨334⟩,
         sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k2424 C2424 := by
-    simpa [flopperSlotWord] using rd2424raw
+    simpa [solcSlotWordAt] using rd2424raw
   have rd2435raw := evm_run rd2424 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -891,8 +891,8 @@ theorem flopperDentX_toCallerEqGuard
   have hmask :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-        (flopperSlotWord (auctionPackedSlot id) σ I) =
-      flopperAddressReturnWord (auctionPackedSlot id) σ I := by
+        (solcSlotWordAt (auctionPackedSlot id) σ I) =
+      solcAddressSlotWord (auctionPackedSlot id) σ I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     rw [u256_land_comm]
@@ -902,10 +902,10 @@ theorem flopperDentX_callerEqOkFromGuard {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memCaller : ByteArray} {k C : ℕ}
     (hcaller :
       UInt256.ofNat I.source.val =
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (rd2435 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2435⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I),
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2889⟩
@@ -913,7 +913,7 @@ theorem flopperDentX_callerEqOkFromGuard {σ σ₀ A I}
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
       UInt256.eq (UInt256.ofNat I.source.val)
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I) ≠
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I) ≠
         ⟨0⟩ := by
     rw [hcaller, u256_eq_refl]
     exact one_ne_zero_uint
@@ -924,10 +924,10 @@ theorem flopperDentX_callerNeToMove {σ σ₀ A I}
     {g : Sat256} {sel : UInt256} {memCaller : ByteArray} {k C : ℕ}
     (hcaller :
       UInt256.ofNat I.source.val ≠
-        flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I)
+        solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I)
     (rd2435 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2435⟩
       [UInt256.eq (UInt256.ofNat I.source.val)
-        (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I),
+        (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I),
         dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2439⟩
@@ -935,7 +935,7 @@ theorem flopperDentX_callerNeToMove {σ σ₀ A I}
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq :
       UInt256.eq (UInt256.ofNat I.source.val)
-          (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ I) =
+          (solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I) =
         ⟨0⟩ := by
     apply u256_eq_of_ne
     exact hcaller
@@ -954,8 +954,8 @@ theorem flopperDentX_toMoveExtcodesizeGuard
     let id := dentIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ memCaller
     let src := UInt256.ofNat I.source.val
-    let vat := flopperAddressReturnWord ⟨2⟩ σ I
-    let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
+    let vat := solcAddressSlotWord ⟨2⟩ σ I
+    let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2529⟩
       (vat :: vat :: dentMoveOutSize :: dentMoveOutPtr :: dentMoveInSize ::
         dentMoveOutPtr :: dentMoveOutSize :: dentMoveEndPtr :: dentMoveSelectorWord ::
@@ -995,10 +995,10 @@ theorem flopperDentX_toMoveExtcodesizeGuard
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨k2443, C2443, rd2443raw⟩ := rd2441pre.sload (by native_decide) (by evm_ov)
   have rd2443 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2443⟩
-      (flopperSlotWord ⟨2⟩ σ I :: ⟨2⟩ :: dentBidWord I :: dentLotWord I ::
+      (solcSlotWordAt ⟨2⟩ σ I :: ⟨2⟩ :: dentBidWord I :: dentLotWord I ::
         id :: ⟨334⟩ :: sel :: [])
       memCaller (UInt256.ofNat 3) ByteArray.empty σ k2443 C2443 := by
-    simpa [id, flopperSlotWord] using rd2443raw
+    simpa [id, solcSlotWordAt] using rd2443raw
   have rd2446pre := evm_run rd2443 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1048,11 +1048,11 @@ theorem flopperDentX_toMoveExtcodesizeGuard
   rw [hpacked] at rd2460pre
   obtain ⟨k2462, C2462, rd2462raw⟩ := rd2460pre.sload (by native_decide) (by evm_ov)
   have rd2462 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2462⟩
-      (flopperSlotWord (auctionPackedSlot id) σ I :: ⟨0⟩ ::
-        flopperSlotWord ⟨2⟩ σ I :: ⟨64⟩ :: dentBidWord I :: dentLotWord I ::
+      (solcSlotWordAt (auctionPackedSlot id) σ I :: ⟨0⟩ ::
+        solcSlotWordAt ⟨2⟩ σ I :: ⟨64⟩ :: dentBidWord I :: dentLotWord I ::
         id :: ⟨334⟩ :: sel :: [])
       memMap (UInt256.ofNat 3) ByteArray.empty σ k2462 C2462 := by
-    simpa [flopperSlotWord] using rd2462raw
+    simpa [solcSlotWordAt] using rd2462raw
   have rd2528 := evm_run rd2462 with [
     raw dup4 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -1136,7 +1136,7 @@ theorem flopperDentX_toMoveExtcodesizeGuard
   exact ⟨_, _, by
     simpa [vat, guy, src, dentMoveSelectorMem, dentMoveSrcMem, dentMoveGuyMem,
       dentMoveCalldataMem, dentMoveSelectorShifted, dentMoveOutPtr, dentMoveOutSize,
-      dentMoveInSize, dentMoveEndPtr, flopperAddressReturnWord, flopperSlotWord,
+      dentMoveInSize, dentMoveEndPtr, solcAddressSlotWord, solcSlotWordAt,
       solcAddrMask, u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
@@ -1154,7 +1154,7 @@ theorem flopperDentX_moveNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hnoCode :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) =
         ⟨0⟩)
     (rd2439 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2439⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1173,7 +1173,7 @@ theorem flopperDentX_moveCall
     {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
@@ -1184,8 +1184,8 @@ theorem flopperDentX_moveCall
     let id := dentIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ memCaller
     let src := UInt256.ofNat I.source.val
-    let vat := flopperAddressReturnWord ⟨2⟩ σ I
-    let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
+    let vat := solcAddressSlotWord ⟨2⟩ σ I
+    let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
@@ -1207,8 +1207,8 @@ theorem flopperDentX_moveCall
   have hsrcCanon : src.toNat < EVM.addressModulus := by
     simpa [src, solcSourceWord] using solcSourceWord_canonical I
   have hguyCanon : guy.toNat < EVM.addressModulus := by
-    simpa [guy, flopperAddressReturnWord] using
-      solcAddrMask_result_canonical (flopperSlotWord (auctionPackedSlot id) σ I)
+    simpa [guy, solcAddressSlotWord] using
+      solcAddrMask_result_canonical (solcSlotWordAt (auctionPackedSlot id) σ I)
   obtain ⟨_, _, rd2529⟩ :=
     flopperDentX_toMoveExtcodesizeGuard hmemCaller hread64Caller rd2439
   obtain ⟨gasWord, _, _, rd2544⟩ :=
@@ -1245,7 +1245,7 @@ theorem flopperDentX_moveCall
       (mem := dentMoveCalldataMem src guy (dentBidWord I) memMap)
       (inOff := dentMoveOutPtr) (inSize := dentMoveInSize)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      flopperAddressWord_address_eq_target
+      addressWord_address_eq_target
       (dentMoveEncode_eq src guy (dentBidWord I) hmemMap hsrcCanon hguyCanon) ?_
     simpa [initState, hperm] using hΘ
 
@@ -1253,7 +1253,7 @@ theorem flopperDentX_moveCallDepthLimit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (solcAddressSlotWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
@@ -1264,8 +1264,8 @@ theorem flopperDentX_moveCallDepthLimit
     let id := dentIdWord I
     let memMap := twoWordHashMem id ⟨1⟩ memCaller
     let src := UInt256.ofNat I.source.val
-    let vat := flopperAddressReturnWord ⟨2⟩ σ I
-    let guy := flopperAddressReturnWord (auctionPackedSlot id) σ I
+    let vat := solcAddressSlotWord ⟨2⟩ σ I
+    let guy := solcAddressSlotWord (auctionPackedSlot id) σ I
     ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
       (⟨0⟩ :: dentMoveEndPtr :: dentMoveSelectorWord :: vat ::
         dentBidWord I :: dentLotWord I :: id :: ⟨334⟩ :: sel :: [])
@@ -1302,7 +1302,7 @@ theorem flopperDentX_moveCallFailure
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd2545 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
       (⟨0⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-        flopperAddressReturnWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
+        solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem aw out σ' k C)
     (houtSize : out.size < UInt256.size) :
@@ -1321,10 +1321,10 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     {mem out : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hticNe :
-      flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
+      uint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I ≠ ⟨0⟩)
     (rd2545 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
-        flopperAddressReturnWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
+        solcAddressSlotWord ⟨2⟩ σ I :: dentBidWord I :: dentLotWord I ::
         dentIdWord I :: ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out σ' k C) :
     ∃ (memGuy : ByteArray) (k' C' : ℕ),
@@ -1398,7 +1398,7 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
   rw [hpacked] at rd2582pre
   obtain ⟨k2583, C2583, rd2583raw⟩ := rd2582pre.sload (by native_decide) (by evm_ov)
   have rd2583 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2583⟩
-      [oldPacked, flopperAddressReturnWord ⟨2⟩ σ I, dentBidWord I, dentLotWord I,
+      [oldPacked, solcAddressSlotWord ⟨2⟩ σ I, dentBidWord I, dentLotWord I,
         id, ⟨334⟩, sel]
       memTic (UInt256.ofNat 8) out σ' k2583 C2583 := by
     simpa [oldPacked, packedSlot, solcSlotWord] using rd2583raw
@@ -1408,7 +1408,7 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     raw shl (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
-  have rd2598 := rd2602pre.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
+  have rd2598 := rd2602pre.pushConst uint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by native_decide)
     (by simp)
@@ -1419,14 +1419,14 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     raw swap1 (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov)]
   have hticRaw :
-      UInt256.land flopperUint48Mask
+      UInt256.land uint48Mask
           (UInt256.div oldPacked (UInt256.ofNat (256 ^ 20))) =
-        flopperUint48Offset20Word packedSlot σ' I := by
+        uint48Offset20Word packedSlot σ' I := by
     rfl
   have hcond :
       UInt256.isZero
           (UInt256.isZero
-            (UInt256.land flopperUint48Mask
+            (UInt256.land uint48Mask
               (UInt256.div oldPacked (UInt256.ofNat (256 ^ 20))))) ≠
         ⟨0⟩ := by
     rw [hticRaw, isZero_eq_zero_of_ne hticNe]

@@ -226,7 +226,7 @@ theorem catClawBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let callerSlot := catCallerWardsSlot I
-  have hcallerWord : catSlotWord callerSlot σ I = catSlotWord callerSlot σ I :=
+  have hcallerWord : solcSlotWordAt callerSlot σ I = solcSlotWordAt callerSlot σ I :=
     rfl
   have hword : solcSlotWord σ I ⟨6⟩ = solcSlotWord σ I ⟨6⟩ :=
     rfl
@@ -241,18 +241,18 @@ theorem catClawBodyCore
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.catClawDecodeToRoutine
     (code := catBytecode) (ret := ⟨302⟩) (R := [sel]) hdecoded rfl (by jump_dest) (by simp)
-  by_cases hauthEvm : catSlotWord callerSlot σ I = ⟨1⟩
+  by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · -- AUTH OK.
-    have hauthSolm : catSlotWord callerSlot σ I = ⟨1⟩ := by
+    have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := by
       exact hauthEvm
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
-    obtain ⟨_, _, hokPc⟩ := RD.catAuthCheckOk
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
+    obtain ⟨_, _, hokPc⟩ := RD.solcAuthCheckOk
       (code := catBytecode) (pc := ⟨3259⟩) (okPc := ⟨3348⟩) (key := clawRad I)
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [clawRad] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
     -- Shared Solm-side prologue facts.
@@ -276,7 +276,7 @@ theorem catClawBodyCore
         (hloc := by
           funext evm
           simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-      rw [catStorageLocLoad_uint256]
+      erw [storageLocLoad_uint256]
       simp [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord]
     have hradExpr :
@@ -416,11 +416,11 @@ theorem catClawBodyCore
           ExecFuncBody.execBlockRevert hblock
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · -- AUTH FAIL.
-    have hauthSolm : catSlotWord callerSlot σ I ≠ ⟨1⟩ := by
+    have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
     have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
-      simpa [callerSlot, catCallerWardsSlot, catSlotWord] using hauthEvm
+      simpa [callerSlot, catCallerWardsSlot, solcSlotWordAt] using hauthEvm
     have hbody :
         ExecTransitionBody config contract evm0 (clawLocals I) clawTransition.body .reverted := by
       have hguard := catAuthGuardEval_false
@@ -442,10 +442,10 @@ theorem catClawBodyCore
       (ret := ⟨302⟩) (R := [sel])
       (by simpa [clawRad] using hroutine)
       (by
-        unfold catAuthCheckWf
+        unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       (by
-        unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
+        unfold solcErrorStringRevertTailWf solcAuthTailPc catNotAuthorizedRawWord
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

@@ -36,7 +36,7 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
       (hloc := by rfl)
   simpa [denyPostState] using
-    jugStorageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
+    storageLocStore_uint256 evm (relyUsrStorageSlot I) ⟨0⟩
 
 theorem jugDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -213,7 +213,7 @@ theorem jugDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1855 : RD jugBytecode I g s0 ⟨1855⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -261,7 +261,7 @@ theorem jugDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1855 : RD jugBytecode I g s0 ⟨1855⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1855 C1855 := by
-    simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
+    simpa [relyAuthWord, solcSlotWordAt, relyAuthStorageSlot_eq_mapSlot_source I] using rd1855raw
   have rd1858pre := evm_run rd1855 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
@@ -425,7 +425,7 @@ theorem jugDenyBodyCoreOk
         denyTransition.body
         (.returned { contract := contract, locals := relyStore I }
           (denyPostState evmSolm I) none) := by
-    simpa [evmSolm, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugDenyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -461,7 +461,7 @@ theorem jugDenyBodyCoreStatic
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body
         .staticViolation := by
-    simpa [evmSolm, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugDenyBodyStatic evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
@@ -490,7 +490,7 @@ theorem jugDenyBodyCoreUnauthorized
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         denyTransition.body .reverted := by
-    simpa [evmSolm, relyAuthWord, jugSlotWord, initState, Solm.EVM.storageLoad,
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       jugDenyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)

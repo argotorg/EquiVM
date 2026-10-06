@@ -1,37 +1,10 @@
+import Reasoning.SolmBody
 import Benchmarks.Auction.ErrorSourceDecode
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
--- LIBRARY CANDIDATE: arithmetic and comparison of natural-valued source expressions.
-theorem naturalAddSource {cfg frame evm lhs rhs} {a b : Nat}
-    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
-    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
-    evalExpr? cfg frame evm (.binary .add lhs rhs) = .ok (.int (Int.ofNat (a + b))) := by
-  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
-  rfl
-
-theorem naturalLeSource {cfg frame evm lhs rhs} {a b : Nat}
-    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
-    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
-    evalExpr? cfg frame evm (.binary .le lhs rhs) = .ok (.bool (decide (a ≤ b))) := by
-  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast,
-    Nat.cast_le]
-
-theorem naturalGeSource {cfg frame evm lhs rhs} {a b : Nat}
-    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
-    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
-    evalExpr? cfg frame evm (.binary .ge lhs rhs) = .ok (.bool (decide (b ≤ a))) := by
-  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast,
-    Nat.cast_le]
-
-theorem localNatSource {cfg : Config} {contract : ContractDecl} {evm : EVM.State}
-    {locals : Store} {name : Ident} {n : Nat}
-    (hn : locals.get? name = some (.int (Int.ofNat n))) :
-    evalExpr? cfg { contract := contract, locals := locals } evm (.var name) =
-      .ok (.int (Int.ofNat n)) := by
-  simp only [evalExpr?, hn, EvalResult.ofOption]
 
 theorem errorLongSource {evm : EVM.State} {locals : Store} {name : Ident} {out : ByteArray}
     (hd : locals.get? name = some (.bytes out)) :

@@ -222,7 +222,8 @@ theorem evalExpr_transfer_sender_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [transferSenderSlot, transferFromBalanceWord, uniswapStorageLocLoad_uint256]
+  simp [show wordLoc = uint256Loc from rfl, transferSenderSlot, transferFromBalanceWord,
+    storageLocLoad_uint256]
 
 def transferToEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "balanceOf", steps := [.mindex (transferToKey I)] }
@@ -293,7 +294,7 @@ theorem transferAssignSender (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [storageTypeAt?, transferSenderEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
       (hloc := by rfl)
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferSenderSlot]
 
 theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
@@ -306,7 +307,8 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
     (hty := by simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls,
       uint256St, storageTypeStep?])
     (hloc := by rfl)]
-  simp [transferToSlot, transferToBalanceWord, uniswapStorageLocLoad_uint256,
+  simp [show wordLoc = uint256Loc from rfl, transferToSlot, transferToBalanceWord,
+    storageLocLoad_uint256,
     transferAfterDebit_codeOwner]
 
 theorem evalExpr_transfer_newToBalance (evm : EVM.State) (I : ExecutionEnv)
@@ -355,7 +357,7 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
         uint256St, storageTypeStep?])
       (hloc := by rfl)
   rw [← transferNewToWord_toNat evm I hfit]
-  rw [uniswapStorageLocStore_uint256]
+  erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]
 
 theorem uniswapTransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
