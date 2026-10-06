@@ -1,6 +1,4 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Cat.BiteBodyReach
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

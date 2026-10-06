@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.SolcRoutines
 import Benchmarks.Dss.Pot.Bytecode
 import Reasoning.ABI

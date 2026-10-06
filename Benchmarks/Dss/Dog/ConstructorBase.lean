@@ -1,9 +1,6 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Dog.Common
 import Reasoning.MemCascade
-
 
 /-!
 # MakerDAO/Sky DSS Dog constructor shared helpers

@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Cat.BiteConnect
 import Benchmarks.Dss.Cat.BiteTrace
 import Benchmarks.Dss.Cat.BiteEVM

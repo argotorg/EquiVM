@@ -1,12 +1,10 @@
 import Reasoning.SolcRoutines
 import Reasoning.Storage
-import Reasoning.SolcMemory
 import Reasoning.ABIComposite
 import Benchmarks.Dss.End.Dispatch
 import Benchmarks.Dss.End.Flow
 import Benchmarks.Dss.End.Free
 import Benchmarks.Dss.End.Snip
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

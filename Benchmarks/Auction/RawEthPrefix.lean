@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.EmptyBytes
 import Benchmarks.Auction.CallBridge
 

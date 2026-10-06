@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.Memory
 import Benchmarks.WETH9.StringReturnBound

@@ -1,8 +1,5 @@
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.End.Dispatch
 import Reasoning.ExternalCall
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

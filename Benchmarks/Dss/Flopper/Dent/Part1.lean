@@ -1,6 +1,4 @@
 import Reasoning.ExternalCall
-import Reasoning.MemoryArithmetic
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Flopper.AuctionCommon
 import Benchmarks.Dss.Flopper.Tick

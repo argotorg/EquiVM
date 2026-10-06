@@ -1,6 +1,4 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Clipper.KickFeedPriceEntry
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

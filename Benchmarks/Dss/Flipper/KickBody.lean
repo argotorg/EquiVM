@@ -1,5 +1,4 @@
 import Reasoning.Storage
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.KickTail
 

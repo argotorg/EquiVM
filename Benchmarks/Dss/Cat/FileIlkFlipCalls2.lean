@@ -1,6 +1,4 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Cat.FileIlkFlipCalls
 import Benchmarks.Dss.Cat.FileAddress
 

@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Flipper.Common
 import Reasoning.ExternalCall

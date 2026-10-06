@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.ABIComposite
 import Reasoning.WordArithmetic
 import Reasoning.EVMWord

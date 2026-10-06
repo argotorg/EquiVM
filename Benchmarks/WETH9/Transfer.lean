@@ -1,4 +1,3 @@
-import Reasoning.MemoryShapes
 import Benchmarks.WETH9.TransferFrom
 
 /-!

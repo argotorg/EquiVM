@@ -1,7 +1,5 @@
-import Reasoning.StateFacts
 import Reasoning.BytecodePatching
 import Reasoning.SolcRoutines
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Dog.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping
@@ -13,7 +11,6 @@ import Reasoning.Dispatch
 import Reasoning.Initcode
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
-
 
 /-!
 # MakerDAO/Sky DSS Dog shared proof foundation

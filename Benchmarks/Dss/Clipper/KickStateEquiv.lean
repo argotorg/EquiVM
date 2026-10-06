@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.KickSourceFinish
 import Benchmarks.Dss.Clipper.KickTailEVM

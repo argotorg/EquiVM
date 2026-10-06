@@ -1,13 +1,10 @@
 import Reasoning.Reach
-import Reasoning.StateFacts
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.Memory
 import Benchmarks.Dss.End.Dispatch
 import Benchmarks.Dss.End.Cage
 import Benchmarks.Dss.End.Flow
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

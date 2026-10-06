@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Dss.Clipper.TakeGenericContinuationSource
 import Benchmarks.Dss.Clipper.TakeCallbackSource
 

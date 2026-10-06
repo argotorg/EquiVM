@@ -1,12 +1,7 @@
 import Reasoning.SolcRoutines
-import Reasoning.MemoryArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.ABIComposite
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Dog.FileIlkUint
 import Reasoning.ExternalCall
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables

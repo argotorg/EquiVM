@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.ReturnReserve
 import Benchmarks.Auction.BoolDecoder
 import Benchmarks.Auction.DepositPrefix

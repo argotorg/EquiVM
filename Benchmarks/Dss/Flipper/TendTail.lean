@@ -1,5 +1,3 @@
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Flipper.TendIncreaseGuard
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.YankCalls

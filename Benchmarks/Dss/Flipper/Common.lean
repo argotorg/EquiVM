@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Flipper.Bytecode

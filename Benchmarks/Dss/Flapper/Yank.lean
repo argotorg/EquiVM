@@ -1,6 +1,5 @@
 import Reasoning.PackedStorage
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Bids
 import Benchmarks.Dss.Flapper.Cage

@@ -1,5 +1,5 @@
-import Reasoning.ABILegacy
 import Benchmarks.Dss.ExponentialDecrease.Rely
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

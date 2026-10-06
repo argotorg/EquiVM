@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.MemoryArithmetic
 import Reasoning.Solc
 import Benchmarks.WETH9.StringLayout
 import Benchmarks.WETH9.Routines

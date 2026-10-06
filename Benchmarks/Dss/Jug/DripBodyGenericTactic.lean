@@ -1,4 +1,3 @@
-import Reasoning.SolmRpow
 import Benchmarks.Dss.Jug.DripBodyCore
 import Benchmarks.Dss.Jug.DripSourceGenericFold
 import Benchmarks.Dss.Jug.DripSourceGenericRpow

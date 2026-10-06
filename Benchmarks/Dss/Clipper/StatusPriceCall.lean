@@ -1,7 +1,5 @@
 import Benchmarks.Dss.Clipper.GetFeedPrice
-import Reasoning.SolcMemory
 import Benchmarks.Dss.Clipper.GetStatusEVMReverts
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

@@ -1,11 +1,7 @@
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Spot.Ilks
 import Reasoning.ExternalCall
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

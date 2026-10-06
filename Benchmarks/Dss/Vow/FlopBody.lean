@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Dss.Vow.FlopKick
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

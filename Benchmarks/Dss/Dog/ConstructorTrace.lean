@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Dss.Dog.ConstructorBase
 import Benchmarks.Dss.Dog.Rely
 

@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Flapper.Deny
 import Benchmarks.Dss.Flopper.Dent.Part1

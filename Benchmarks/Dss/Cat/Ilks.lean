@@ -1,5 +1,4 @@
 import Reasoning.ABIViews
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Cat.Common
 import Solm.Equiv
 

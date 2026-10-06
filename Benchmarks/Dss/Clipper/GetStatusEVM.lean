@@ -1,6 +1,4 @@
 import Reasoning.ABIViews
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.GetStatusBody

@@ -1,5 +1,4 @@
 import Reasoning.Storage
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.Common
 import Benchmarks.Dss.End.FileUint

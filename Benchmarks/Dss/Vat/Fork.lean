@@ -1,10 +1,7 @@
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.Signed
-
 
 section
 set_option maxRecDepth 2000000

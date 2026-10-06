@@ -1,4 +1,3 @@
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Vat.Rely
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

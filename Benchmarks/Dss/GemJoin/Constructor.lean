@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.Storage
 import Reasoning.ExternalCall
 import Reasoning.WordArithmetic

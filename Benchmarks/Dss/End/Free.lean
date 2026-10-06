@@ -1,10 +1,8 @@
 import Reasoning.SolcRoutines
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
 import Benchmarks.Dss.End.Pack
 import Reasoning.MemCascade
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

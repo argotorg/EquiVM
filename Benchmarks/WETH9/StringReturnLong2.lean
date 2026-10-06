@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.StringReturnLong
 

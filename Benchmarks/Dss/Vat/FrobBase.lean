@@ -1,8 +1,6 @@
 import Reasoning.SolcRoutines
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Reasoning.Storage
 import Reasoning.Stepping
@@ -11,7 +9,6 @@ import Benchmarks.Dss.Vat.Fork
 import Benchmarks.Dss.Vat.Grab
 import Benchmarks.Dss.Vat.Signed
 import Mathlib.Tactic.SuppressCompilation
-
 
 open Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

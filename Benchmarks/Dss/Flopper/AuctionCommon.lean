@@ -1,6 +1,4 @@
 import Reasoning.EVMWord
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.PackedStorage
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Flopper.Bids

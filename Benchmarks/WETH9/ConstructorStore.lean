@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.Memory
 

@@ -1,10 +1,7 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Clipper.Rely
 import Reasoning.MemCascade
-
 
 /-!
 # MakerDAO/Sky DSS Clipper constructor shared helpers

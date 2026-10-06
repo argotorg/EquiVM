@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.Memory
 import Benchmarks.Dss.Clipper.TakeCallback
 import Benchmarks.Dss.Clipper.TakeChost
@@ -8,7 +7,6 @@ import Benchmarks.Dss.Clipper.TakeEvent
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.TakePostDogSource
 import Benchmarks.Dss.Clipper.TakeNoAdjustPostDogSource
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

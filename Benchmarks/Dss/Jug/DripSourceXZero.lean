@@ -1,4 +1,3 @@
-import Reasoning.SolmRpow
 import Benchmarks.Dss.Jug.DripSourceNOne
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

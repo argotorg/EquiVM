@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Benchmarks.WETH9.StringLayout
 import Reasoning.Storage

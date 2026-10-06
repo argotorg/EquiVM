@@ -1,4 +1,3 @@
-import Reasoning.SolmRpow
 import Benchmarks.Dss.Jug.ArithmeticAddDiff
 import Benchmarks.Dss.Jug.ArithmeticRpowLoop
 

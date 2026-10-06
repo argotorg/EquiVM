@@ -1,7 +1,4 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Benchmarks.WETH9.Storage
 
 /-!

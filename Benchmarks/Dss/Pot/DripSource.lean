@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Dss.Pot.DripCommon
 
 /-!

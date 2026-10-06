@@ -1,7 +1,5 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Vow.CageBody
 import Benchmarks.Dss.Vow.FlapBody
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

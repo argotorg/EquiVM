@@ -1,9 +1,6 @@
-import Reasoning.StateFacts
 import Reasoning.PackedStorage
 import Reasoning.Storage
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Cure.Rely
 import Benchmarks.Dss.Cure.Selectors
 

@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.Memory
 import Benchmarks.Dss.Clipper.TakeCallbackSource
 import Benchmarks.Dss.Clipper.TakeDogDigs

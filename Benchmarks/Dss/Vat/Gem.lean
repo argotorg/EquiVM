@@ -1,6 +1,5 @@
 import Reasoning.SolcRoutines
 import Reasoning.ABIViews
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Vat.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

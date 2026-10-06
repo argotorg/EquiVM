@@ -1,6 +1,4 @@
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Dai.Bytecode
 import Benchmarks.Dss.Dai.Storage
 import Benchmarks.Dss.Dai.Selectors
@@ -10,7 +8,6 @@ import Reasoning.Memory
 import Reasoning.SolmBody
 import Reasoning.Stepping
 import Solm.Equiv
-
 
 /-!
 # MakerDAO DSS Dai constructor correctness stub

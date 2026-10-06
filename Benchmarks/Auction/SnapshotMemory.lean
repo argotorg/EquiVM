@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Auction.Snapshot
 import Benchmarks.Auction.SparseMemory
 import Benchmarks.Auction.MemoryGrowth

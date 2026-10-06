@@ -1,4 +1,3 @@
-import Reasoning.SolmRpow
 import Reasoning.SolmArithmetic
 import Benchmarks.Dss.Jug.ArithmeticExpr
 

@@ -1,5 +1,4 @@
 import Reasoning.Storage
-import Reasoning.StateFacts
 import Benchmarks.Dss.Flipper.TendSameCaller
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

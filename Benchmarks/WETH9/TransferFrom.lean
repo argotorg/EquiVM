@@ -1,4 +1,3 @@
-import Reasoning.MemoryShapes
 import Benchmarks.WETH9.TransferFromSolm
 
 /-! # WETH9 `transferFrom(address,address,uint256)` refinement -/

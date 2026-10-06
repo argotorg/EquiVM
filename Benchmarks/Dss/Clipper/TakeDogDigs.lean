@@ -1,8 +1,6 @@
-import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Clipper.TakeVatMoveSource
 import Benchmarks.Dss.Clipper.YankEVM
 import Benchmarks.Dss.Clipper.YankVatEVM
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

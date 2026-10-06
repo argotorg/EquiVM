@@ -1,6 +1,6 @@
 import Reasoning.PackedStorage
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Flopper.Cage
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

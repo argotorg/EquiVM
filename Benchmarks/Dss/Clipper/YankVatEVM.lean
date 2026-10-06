@@ -1,5 +1,4 @@
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Benchmarks.Dss.Clipper.YankEVM
 import Benchmarks.Dss.Clipper.Invalid
 import Reasoning.MemCascade

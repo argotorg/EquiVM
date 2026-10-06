@@ -1969,7 +1969,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (EVM.address
                                               (clipperGetFeedPriceSpotterAddress evmPeekSolm))
                                             "par" 0 [] (zPar, evmParSolm, outPar) true := by
-                                        simpa [evmParSolm, evmPeekSolm, evmIlksSolm,
+                                        simpa only [evmParSolm, evmPeekSolm, evmIlksSolm,
                                           hspotterAddr, initState] using hcallParSolmRaw
                                       have hcodeParSolm :
                                           0 < (UInt256.ofNat ((evmPeekSolm.lookupAccount

@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Dss.Vat.Dispatch
 import Benchmarks.Dss.Vat.HealBase
 import Benchmarks.Dss.Vat.Rely

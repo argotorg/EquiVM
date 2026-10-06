@@ -1,12 +1,9 @@
 import Reasoning.ExternalCall
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Reasoning.Storage
 import Benchmarks.Dss.Cat.FileIlkFlipCalls2
 import Benchmarks.Dss.Cat.BiteSource
 import Solm.Equiv
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

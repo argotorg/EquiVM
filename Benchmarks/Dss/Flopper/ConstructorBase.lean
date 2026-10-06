@@ -1,11 +1,8 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Flopper.Common
 import Reasoning.Initcode
 import Solm.Equiv
-
 
 /-!
 # MakerDAO/Sky DSS Flopper constructor shared helpers

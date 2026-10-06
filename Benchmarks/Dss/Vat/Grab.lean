@@ -1,10 +1,8 @@
-import Reasoning.StateFacts
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vat.Common
 import Benchmarks.Dss.Vat.Signed
 import Benchmarks.Dss.Vat.FoldCommon
-
 
 section
 set_option maxRecDepth 2000000

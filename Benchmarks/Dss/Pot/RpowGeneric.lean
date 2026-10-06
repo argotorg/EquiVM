@@ -1,4 +1,3 @@
-import Reasoning.SolmRpow
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Pot.Rpow
 

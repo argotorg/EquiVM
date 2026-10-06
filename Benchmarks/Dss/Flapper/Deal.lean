@@ -1,4 +1,3 @@
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Flapper.Yank
 

@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Clipper.Rely
 import Benchmarks.Dss.Clipper.FileDecode
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

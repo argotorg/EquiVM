@@ -1,6 +1,6 @@
-import Reasoning.ABILegacy
 import Benchmarks.Dss.Dog.Dispatch
 import Reasoning.MemCascade
+import Reasoning.ABIComposite
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables

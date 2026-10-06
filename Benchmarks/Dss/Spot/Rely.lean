@@ -1,5 +1,4 @@
 import Reasoning.Solc
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Spot.Dispatch
 

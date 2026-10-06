@@ -1,11 +1,9 @@
 import Reasoning.WordArithmetic
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.Cat.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
 import Solm.Equiv
-
 
 /-!
 # MakerDAO/Sky DSS Cat constructor shared helpers

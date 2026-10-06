@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Cat.BiteEVM
@@ -7,7 +6,6 @@ import Benchmarks.Dss.Cat.BiteCallUrns
 import Benchmarks.Dss.Cat.BiteSource
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Cat.BiteCallKick
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

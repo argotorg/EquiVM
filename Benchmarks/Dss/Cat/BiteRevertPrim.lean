@@ -1,10 +1,7 @@
 import Reasoning.SolcRoutines
 import Reasoning.Reach
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
-import Reasoning.SolcMemory
 import Benchmarks.Dss.Cat.BiteTrace
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

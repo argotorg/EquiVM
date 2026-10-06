@@ -1,4 +1,3 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Vow.Common
 import Reasoning.ExternalCall

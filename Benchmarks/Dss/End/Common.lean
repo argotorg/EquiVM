@@ -1,7 +1,6 @@
 import Reasoning.ABIViews
 import Reasoning.EVMWord
 import Reasoning.SolcRoutines
-import Reasoning.ABILegacy
 import Benchmarks.Dss.End.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping

@@ -1,5 +1,3 @@
-import Reasoning.StateFacts
-import Reasoning.SolmRpow
 import Reasoning.EVMWord
 import Reasoning.Storage
 import Benchmarks.Dss.Pot.DripSuckBase

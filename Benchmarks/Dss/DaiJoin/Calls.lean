@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.WordArithmetic
 import Reasoning.EVMWord
 import Benchmarks.Dss.DaiJoin.Dispatch

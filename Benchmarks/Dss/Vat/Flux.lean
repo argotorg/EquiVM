@@ -1,4 +1,3 @@
-import Reasoning.SolcMemory
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.Gem
 import Benchmarks.Dss.Vat.HealBase

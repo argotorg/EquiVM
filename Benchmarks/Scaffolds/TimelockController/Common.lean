@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Benchmarks.Scaffolds.TimelockController.Bytecode
 import Reasoning.ABI
 import Reasoning.Stepping

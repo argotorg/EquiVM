@@ -1,12 +1,10 @@
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Arithmetic
 import Benchmarks.Dss.Clipper.Dog
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.Vat
 import Reasoning.ExternalCall
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

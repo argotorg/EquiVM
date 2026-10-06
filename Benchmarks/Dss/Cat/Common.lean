@@ -1,4 +1,3 @@
-import Reasoning.StateFacts
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Cat.Selectors
 import Reasoning.ABI

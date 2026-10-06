@@ -1,10 +1,7 @@
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
-import Reasoning.SolcMemory
 import Benchmarks.Dss.Clipper.Arithmetic
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.GetStatusEVM
-
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables

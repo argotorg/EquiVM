@@ -1,7 +1,5 @@
-import Reasoning.MemoryShapes
 import Reasoning.Memory
 import Benchmarks.Dss.DaiJoin.ConstructorSource
-
 
 /-!
 # MakerDAO/Sky DSS DaiJoin constructor EVM trace base

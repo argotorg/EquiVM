@@ -1,4 +1,3 @@
-import Reasoning.SolcMemory
 import Benchmarks.Dss.Vat.Dispatch
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

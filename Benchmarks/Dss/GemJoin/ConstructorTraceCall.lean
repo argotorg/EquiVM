@@ -1,7 +1,5 @@
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorTraceStores
-
 
 /-!
 # MakerDAO/Sky DSS GemJoin constructor decimals staticcall trace

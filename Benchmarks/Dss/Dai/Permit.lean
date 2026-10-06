@@ -1,11 +1,7 @@
 import Reasoning.SolmBody
-import Reasoning.StateFacts
 import Reasoning.ABIViews
-import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Reasoning.Memory
-import Reasoning.SolcMemory
-import Reasoning.MemoryShapes
 import Reasoning.ABIComposite
 import Reasoning.Stepping
 import Reasoning.Reach
