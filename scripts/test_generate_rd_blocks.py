@@ -39,6 +39,16 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("σ.get? ee.codeOwner", rendered)
         self.assertIn("ac.storage.getD", rendered)
 
+    def test_new_local_opcodes_and_transient_storage(self) -> None:
+        rendered = units("600160025d60015c434445600360020553")
+        for step in (".tstore", ".tload", ".number", ".prevrandao",
+                     ".gaslimit", ".sdiv", "RD.genMstore8"):
+            self.assertIn(step, rendered)
+        self.assertIn("tstoreAccountMap ee.codeOwner", rendered)
+        self.assertIn("ac.tstorage.getD", rendered)
+        self.assertIn("(hperm : ee.perm = true)", rendered)
+        self.assertNotIn("Unsupported instruction boundary", rendered)
+
     def test_full_copy_variants_discharge_guard(self) -> None:
         variants = (
             "3d5f5f3e", "3d5f803e", "3d5f60003e", "3d60005f3e",

@@ -363,6 +363,72 @@ theorem timestamp_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : L
   rw [← hcode, step_timestamp s hd, if_neg hov']
   simp only [GasConstants.Gbase, stTimestamp]
 
+/-! ### NUMBER (cost 2, pc += 1, pushes block number) -/
+
+def stNumber (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat s.executionEnv.header.number :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem number_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.NUMBER, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stNumber s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.NUMBER, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_number s hd, if_neg hov']
+  simp only [GasConstants.Gbase, stNumber]
+
+/-! ### PREVRANDAO (cost 2, pc += 1, pushes block prevrandao) -/
+
+def stPrevrandao (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := s.executionEnv.header.prevRandao :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem prevrandao_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.PREVRANDAO, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stPrevrandao s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.PREVRANDAO, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_prevrandao s hd, if_neg hov']
+  simp only [GasConstants.Gbase, stPrevrandao]
+
+/-! ### GASLIMIT (cost 2, pc += 1, pushes block gaslimit) -/
+
+def stGaslimit (s : State) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := UInt256.ofNat s.executionEnv.header.gasLimit :: s.machineState.stack,
+      execLength := s.machineState.execLength + 1,
+      gasAvailable := s.machineState.gasAvailable.subNat 2 } }
+
+theorem gaslimit_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.GASLIMIT, .none))
+    (hstk : s.machineState.stack = rest) (hov : rest.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 2 then .error .OutOfGass
+         else .ok (stGaslimit s, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.GASLIMIT, .none) := by
+    rw [hcode, hpc]; exact hdec
+  have hov' : ¬ (s.machineState.stack.length - 0 + 1 > 1024) := by rw [hstk]; omega
+  rw [← hcode, step_gaslimit s hd, if_neg hov']
+  simp only [GasConstants.Gbase, stGaslimit]
+
 /-! ### CHAINID (cost 2, pc += 1, pushes the configured chain id) -/
 
 def stChainid (s : State) : State :=
@@ -456,6 +522,34 @@ theorem mstore_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : Lis
   simp only [if_neg hov']
   rw [collapse_two_stage]
   simp only [GasConstants.Gverylow, stMStore]
+
+/-! ### MSTORE8 (two-stage cost `memExp + 3`, pc += 1, pops 2) -/
+
+def stMStore8 (s : State) (a b : UInt256) (t : List UInt256) : State :=
+  { s with machineState := { s.machineState with
+      pc := s.machineState.pc + ⟨1⟩,
+      stack := t,
+      memory := (⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0 s.machineState.memory a.toNat 1,
+      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat 1),
+      execLength := s.machineState.execLength + 1,
+      gasAvailable :=
+        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .MSTORE8)).subNat 3 } }
+
+theorem mstore8_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.MSTORE8, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .MSTORE8 + 3
+         then .error .OutOfGass else .ok (stMStore8 s a b t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.MSTORE8, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_mstore8 s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 0 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov']
+  rw [collapse_two_stage]
+  simp only [GasConstants.Gverylow, stMStore8]
 
 /-! ### JUMPI not-taken (condition `⟨0⟩` ⇒ no jump, cost 10, pc += 1, pops 2) -/
 
@@ -768,6 +862,19 @@ theorem div_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List U
          else .ok (stBinop5 s (UInt256.div a b) t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.DIV, .none) := by rw [hcode, hpc]; exact hdec
   rw [← hcode, step_div s hd, hstk]
+  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
+  simp only [if_neg hov', GasConstants.Glow, stBinop5]
+
+theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
+    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.SDIV, .none))
+    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s
+      = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
+         else .ok (stBinop5 s (UInt256.sdiv a b) t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.SDIV, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_sdiv s hd, hstk]
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Glow, stBinop5]
 
@@ -2000,6 +2107,63 @@ theorem sload_xstep {s : State} {code : ByteArray} {pcv a : UInt256} {t : List U
   have hov' : ¬ ((a :: t).length - 1 + 1 > 1024) := by
     simp only [List.length_cons]; omega
   simp only [if_neg hov', stSload]
+
+/-! ### Transient storage -/
+
+def tstoreAccountMap (owner : AccountAddress) (σ : AccountMap)
+    (slot val : UInt256) : AccountMap :=
+  σ.get? owner |>.option σ (fun ac =>
+    σ.insert owner (if val == default then
+      {ac with tstorage := ac.tstorage.erase slot}
+    else {ac with tstorage := ac.tstorage.insert slot val}))
+
+def stTLoad (s : State) (slot : UInt256) (t : List UInt256) : State :=
+  {s with
+    machineState.stack :=
+      (s.accountMap.get? s.executionEnv.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.tstorage.getD slot ⟨0⟩)) :: t
+    machineState.gasAvailable := s.machineState.gasAvailable.subNat Ctload
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+theorem tload_xstep {s : State} {code : ByteArray} {pcv slot : UInt256}
+    {t : List UInt256} (hcode : s.executionEnv.code = code)
+    (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.TLOAD, .none))
+    (hstk : s.machineState.stack = slot :: t) (hov : t.length + 1 ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < Ctload then .error .OutOfGass
+       else .ok (stTLoad s slot t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.TLOAD, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_tload s hd, hstk]
+  have hov' : ¬ ((slot :: t).length - 1 + 1 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', stTLoad]
+
+def stTStore (s : State) (slot val : UInt256) (t : List UInt256) : State :=
+  {s with
+    accountMap := tstoreAccountMap s.executionEnv.codeOwner s.accountMap slot val
+    machineState.stack := t
+    machineState.gasAvailable := s.machineState.gasAvailable.subNat Ctstore
+    machineState.pc := s.machineState.pc + ⟨1⟩
+    machineState.execLength := s.machineState.execLength + 1}
+
+theorem tstore_xstep {s : State} {code : ByteArray} {pcv slot val : UInt256}
+    {t : List UInt256} (hcode : s.executionEnv.code = code)
+    (hpc : s.machineState.pc = pcv)
+    (hdec : decode code pcv = some (.TSTORE, .none))
+    (hperm : s.executionEnv.perm = true)
+    (hstk : s.machineState.stack = slot :: val :: t) (hov : t.length ≤ 1024) :
+    Xstep (D_J code 0) s =
+      (if s.machineState.gasAvailable.toNat < Ctstore then .error .OutOfGass
+       else .ok (stTStore s slot val t, .none)) := by
+  have hd : decode s.executionEnv.code s.machineState.pc = some (.TSTORE, .none) := by
+    rw [hcode, hpc]; exact hdec
+  rw [← hcode, step_tstore s hd, hstk]
+  have hov' : ¬ ((slot :: val :: t).length - 2 + 0 > 1024) := by
+    simp only [List.length_cons]; omega
+  simp only [if_neg hov', hperm, not_true_eq_false, if_false, stTStore, tstoreAccountMap]
 
 /-! ### LOG1/LOG2/LOG3/LOG4 (two-stage cost `memExp + logCost`, appends a log; needs `perm`) -/
 
