@@ -1,4 +1,4 @@
-import Examples.TinyImmutable.Common
+import Examples.TinyImmutable.BlocksProof
 import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -111,15 +111,15 @@ theorem tinyQuoteX_toDecoder {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       (initState σ σ₀ g A I) ⟨396⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨162⟩, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
-  obtain ⟨_, _, rd148⟩ := hreach
-  exact ⟨_, _, evm_run rd148 with [
-    raw jumpdest (by tiny_decode_at v, ⟨148⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push2 ⟨167⟩ (by tiny_decode_at v, ⟨149⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw push2 ⟨162⟩ (by tiny_decode_at v, ⟨152⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw calldatasize (by tiny_decode_at v, ⟨155⟩, 0x36, .CALLDATASIZE) (by evm_ov),
-    raw push1 ⟨4⟩ (by tiny_decode_at v, ⟨156⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw push2 ⟨396⟩ (by tiny_decode_at v, ⟨158⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨161⟩, 0x56, .JUMP) (tinyContains396 v) (by evm_ov)]⟩
+  obtain ⟨k, C, rd148⟩ := hreach
+  have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 396) = true := by
+    exact tinyContains396 v
+  have h := tinyImmutableBlocks.tinyImmutable_block_148 (immWords := immutableWords v)
+    (by simp) hvalid rd148
+  exact ⟨k + 7, C + 23, by
+    simpa [tinyImmutableBlocks.tinyImmutable_block_148_stack,
+      patchedRuntime] using h⟩
 
 theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -135,31 +135,32 @@ theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
-  have rd162 := evm_run rd396 with [
-    raw jumpdest (by tiny_decode_at v, ⟨396⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push0 (by tiny_decode_at v, ⟨397⟩, 0x5f, .PUSH0) (by evm_ov),
-    raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨398⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw dup3 (by tiny_decode_at v, ⟨400⟩, 0x82, .DUP3) (by evm_ov),
-    raw dup5 (by tiny_decode_at v, ⟨401⟩, 0x84, .DUP5) (by evm_ov),
-    raw sub (by tiny_decode_at v, ⟨402⟩, 0x03, .SUB) (by evm_ov),
-    raw slt (by tiny_decode_at v, ⟨403⟩, 0x12, .SLT) (by evm_ov),
-    raw iszero (by tiny_decode_at v, ⟨404⟩, 0x15, .ISZERO) (by evm_ov),
-    raw push2 ⟨412⟩ (by tiny_decode_at v, ⟨405⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jumpiT (by tiny_decode_at v, ⟨408⟩, 0x57, .JUMPI)
-      (by rw [hslt]; decide) (tinyContains412 v) (by evm_ov),
-    raw jumpdest (by tiny_decode_at v, ⟨412⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw pop (by tiny_decode_at v, ⟨413⟩, 0x50, .POP) (by evm_ov),
-    raw calldataload (by tiny_decode_at v, ⟨414⟩, 0x35, .CALLDATALOAD) (by evm_ov),
-    raw swap2 (by tiny_decode_at v, ⟨415⟩, 0x91, .SWAP2) (by evm_ov),
-    raw swap1 (by tiny_decode_at v, ⟨416⟩, 0x90, .SWAP1) (by evm_ov),
-    raw pop (by tiny_decode_at v, ⟨417⟩, 0x50, .POP) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨418⟩, 0x56, .JUMP) (tinyContains162 v) (by evm_ov)]
-  have rd220 := evm_run rd162 with [
-    raw jumpdest (by tiny_decode_at v, ⟨162⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push2 ⟨220⟩ (by tiny_decode_at v, ⟨163⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨166⟩, 0x56, .JUMP) (tinyContains220 v) (by evm_ov)]
+  have hvalid412 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 412) = true := by
+    exact tinyContains412 v
+  have hvalid162 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 162) = true := by
+    exact tinyContains162 v
+  have hvalid220 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 220) = true := by
+    exact tinyContains220 v
+  have rd412 := tinyImmutableBlocks.tinyImmutable_block_396_taken
+    (immWords := immutableWords v) (by simp) (by
+      change UInt256.isZero (UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size)
+        ⟨4⟩) ⟨32⟩) ≠ ⟨0⟩
+      rw [hslt]
+      decide) hvalid412 rd396
+  have rd162 := tinyImmutableBlocks.tinyImmutable_block_412
+    (immWords := immutableWords v)
+    (by simp [tinyImmutableBlocks.tinyImmutable_block_396_taken_stack])
+    hvalid162 rd412
+  have rd220 := tinyImmutableBlocks.tinyImmutable_block_162
+    (immWords := immutableWords v)
+    (by simp [tinyImmutableBlocks.tinyImmutable_block_412_stack]) hvalid220 rd162
   exact ⟨_, _, by
-    simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd220⟩
+    simpa [tinyImmutableBlocks.tinyImmutable_block_396_taken_stack,
+      tinyImmutableBlocks.tinyImmutable_block_412_stack, calldataWord,
+      patchedRuntime] using rd220⟩
 
 theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
@@ -169,21 +170,16 @@ theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
-  exact evm_run rd396 with [
-    raw jumpdest (by tiny_decode_at v, ⟨396⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push0 (by tiny_decode_at v, ⟨397⟩, 0x5f, .PUSH0) (by evm_ov),
-    raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨398⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw dup3 (by tiny_decode_at v, ⟨400⟩, 0x82, .DUP3) (by evm_ov),
-    raw dup5 (by tiny_decode_at v, ⟨401⟩, 0x84, .DUP5) (by evm_ov),
-    raw sub (by tiny_decode_at v, ⟨402⟩, 0x03, .SUB) (by evm_ov),
-    raw slt (by tiny_decode_at v, ⟨403⟩, 0x12, .SLT) (by evm_ov),
-    raw iszero (by tiny_decode_at v, ⟨404⟩, 0x15, .ISZERO) (by evm_ov),
-    raw push2 ⟨412⟩ (by tiny_decode_at v, ⟨405⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jumpiNT (by tiny_decode_at v, ⟨408⟩, 0x57, .JUMPI)
-      (by rw [hslt]; decide) (by evm_ov),
-    raw revertStub (by tiny_decode_at v, ⟨409⟩, 0x5f, .PUSH0)
-      (by tiny_decode_at v, ⟨410⟩, 0x5f, .PUSH0)
-      (by tiny_decode_at v, ⟨411⟩, 0xfd, .REVERT) (by evm_ov)]
+  have rd409 := tinyImmutableBlocks.tinyImmutable_block_396_fallthrough
+    (immWords := immutableWords v) (by simp)
+    (by
+      change UInt256.isZero (UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size)
+        ⟨4⟩) ⟨32⟩) = ⟨0⟩
+      rw [hslt]
+      decide) rd396
+  have hrev := tinyImmutableBlocks.tinyImmutable_block_409 (immWords := immutableWords v)
+    (by simp [tinyImmutableBlocks.tinyImmutable_block_396_fallthrough_stack]) rd409
+  simpa using hrev
 
 theorem tinyQuoteX_shortarg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -218,62 +214,40 @@ theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.mul (calldataWord I.calldata 4) v.scale)) := by
-  obtain ⟨_, _, rd220⟩ := hreach
+  obtain ⟨k, C, rd220⟩ := hreach
   have heq : UInt256.eq
       (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
       (solcSourceWord I) = ⟨1⟩ := by
     rw [tinyOwnerWord_eq_source_of_caller hcaller]
     exact u256_eq_refl (solcSourceWord I)
-  have rd244 := evm_run rd220 with [
-    raw jumpdest (by tiny_decode_at v, ⟨220⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push0 (by tiny_decode_at v, ⟨221⟩, 0x5f, .PUSH0) (by evm_ov),
-    raw caller (by tiny_decode_at v, ⟨222⟩, 0x33, .CALLER) (by evm_ov),
-    raw push20 solcAddrMask (by tiny_decode_at v, ⟨223⟩, 0x73, (.Push .PUSH20))
-      (by evm_ov)]
-  have rd277 := rd244.pushConst (EVM.Word.ofNat (↑v.owner : Nat)) (width := 32)
-    (op := .PUSH32) (by decide) (tinyDecodeOwnerWord2 v) (by evm_ov)
-  have rd358 := evm_run rd277 with [
-    raw and (by tiny_decode_at v, ⟨277⟩, 0x16, .AND) (by evm_ov),
-    raw eq (by tiny_decode_at v, ⟨278⟩, 0x14, .EQ) (by evm_ov),
-    raw push2 ⟨358⟩ (by tiny_decode_at v, ⟨279⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jumpiT (by tiny_decode_at v, ⟨282⟩, 0x57, .JUMPI)
-      (by rw [heq]; decide) (tinyContains358 v) (by evm_ov)]
-  have rd360 := evm_run rd358 with [
-    raw jumpdest (by tiny_decode_at v, ⟨358⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw pop (by tiny_decode_at v, ⟨359⟩, 0x50, .POP) (by evm_ov)]
-  have rd393 := rd360.pushConst (EVM.wordOfInt (Int.ofNat v.scale.toNat)) (width := 32)
-    (op := .PUSH32) (by decide) (tinyDecodeScaleWord2 v) (by evm_ov)
-  have rd167 := evm_run rd393 with [
-    raw mul (by tiny_decode_at v, ⟨393⟩, 0x02, .MUL) (by evm_ov),
-    raw swap1 (by tiny_decode_at v, ⟨394⟩, 0x90, .SWAP1) (by evm_ov),
-    raw jump (by tiny_decode_at v, ⟨395⟩, 0x56, .JUMP) (tinyContains167 v) (by evm_ov)]
-  have hret := RD.tinyReturnWord167 (v := v) (R := [solcSelectorWord I]) rd167
+  have hvalid358 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 358) = true := by
+    exact tinyContains358 v
+  have rd358 := tinyImmutableBlocks.tinyImmutable_block_220_taken
+    (immWords := immutableWords v) (by simp) (by
+      change UInt256.eq (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
+        (solcSourceWord I) ≠ ⟨0⟩
+      rw [heq]
+      decide) hvalid358 rd220
+  have hvalid167 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+      (UInt256.ofNat 167) = true := by
+    exact tinyContains167 v
+  have rd167' := tinyImmutableBlocks.tinyImmutable_block_358 (immWords := immutableWords v)
+    (by simp) hvalid167 rd358
+  have rd167 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
+      [EVM.wordOfInt (Int.ofNat v.scale.toNat) * calldataWord I.calldata 4,
+        solcSelectorWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 9 + 6) (C + 30 + 22) := by
+    simpa [tinyImmutableBlocks.tinyImmutable_block_358_stack,
+      tinyImmutableBlocks.tinyImmutable_block_220_taken_stack, immutableWords,
+      patchedRuntime] using rd167'
+  have hret := RD.tinyBlocksReturnWord167 (v := v) (R := [solcSelectorWord I]) rd167
     (by simp)
-  rw [wordOfInt_ofNat_toNat, u256_mul_comm v.scale (calldataWord I.calldata 4)] at hret
+  rw [wordOfInt_ofNat_toNat] at hret
+  change RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
+    (UInt256.toByteArray (UInt256.mul v.scale (calldataWord I.calldata 4))) at hret
+  rw [u256_mul_comm v.scale (calldataWord I.calldata 4)] at hret
   exact hret
-
-def tinyQuoteErrorSelector : UInt256 :=
-  UInt256.shiftLeft (⟨0x461bcd⟩ : UInt256) ⟨229⟩
-
-def tinyQuoteOwnerErrorMem1 : ByteArray :=
-  UInt256.toByteArray tinyQuoteErrorSelector |>.write 0 solcFreePtrMem 128 32
-
-def tinyQuoteOwnerErrorMem2 : ByteArray :=
-  UInt256.toByteArray (⟨32⟩ : UInt256) |>.write 0 tinyQuoteOwnerErrorMem1 132 32
-
-def tinyQuoteOwnerErrorMem3 : ByteArray :=
-  UInt256.toByteArray (⟨5⟩ : UInt256) |>.write 0 tinyQuoteOwnerErrorMem2 164 32
-
-def tinyQuoteOwnerErrorMem : ByteArray :=
-  UInt256.toByteArray
-      (⟨50417742920509558439106150551775209266858149941038353264781520106005609840640⟩ :
-        UInt256) |>.write 0 tinyQuoteOwnerErrorMem3 196 32
-
-theorem tinyQuoteOwnerErrorMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ tinyQuoteOwnerErrorMem.size then ⟨0⟩
-      else uInt256OfByteArray (tinyQuoteOwnerErrorMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)) =
-      ⟨128⟩ := by
-  native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
@@ -288,70 +262,14 @@ theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
       (solcSourceWord I) = ⟨0⟩ := by
     exact u256_eq_of_ne (tinyOwnerWord_ne_source_of_caller_ne hcaller)
-  have rd244 := evm_run rd220 with [
-    raw jumpdest (by tiny_decode_at v, ⟨220⟩, 0x5b, .JUMPDEST) (by evm_ov),
-    raw push0 (by tiny_decode_at v, ⟨221⟩, 0x5f, .PUSH0) (by evm_ov),
-    raw caller (by tiny_decode_at v, ⟨222⟩, 0x33, .CALLER) (by evm_ov),
-    raw push20 solcAddrMask (by tiny_decode_at v, ⟨223⟩, 0x73, (.Push .PUSH20))
-      (by evm_ov)]
-  have rd277 := rd244.pushConst (EVM.Word.ofNat (↑v.owner : Nat)) (width := 32)
-    (op := .PUSH32) (by decide) (tinyDecodeOwnerWord2 v) (by evm_ov)
-  have rd283 := evm_run rd277 with [
-    raw and (by tiny_decode_at v, ⟨277⟩, 0x16, .AND) (by evm_ov),
-    raw eq (by tiny_decode_at v, ⟨278⟩, 0x14, .EQ) (by evm_ov),
-    raw push2 ⟨358⟩ (by tiny_decode_at v, ⟨279⟩, 0x61, (.Push .PUSH2)) (by evm_ov),
-    raw jumpiNT (by tiny_decode_at v, ⟨282⟩, 0x57, .JUMPI)
-      heq (by evm_ov)]
-  have rd286 := evm_run rd283 with [
-    raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨283⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by tiny_decode_at v, ⟨285⟩, 0x51, .MLOAD)
-      mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
-  have rd290 := rd286.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by tiny_decode_at v, ⟨286⟩, 0x62, (.Push .PUSH3)) (by evm_ov)
-  have rd309 := evm_run rd290 with [
-    raw push1 ⟨229⟩ (by tiny_decode_at v, ⟨290⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw shl (by tiny_decode_at v, ⟨292⟩, 0x1b, .SHL) (by evm_ov),
-    raw dup2 (by tiny_decode_at v, ⟨293⟩, 0x81, .DUP2) (by evm_ov),
-    raw mstore 6 tinyQuoteOwnerErrorMem1 (UInt256.ofNat 5)
-      (by tiny_decode_at v, ⟨294⟩, 0x52, .MSTORE)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by tiny_decode_at v, ⟨295⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw push1 ⟨4⟩ (by tiny_decode_at v, ⟨297⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw dup3 (by tiny_decode_at v, ⟨299⟩, 0x82, .DUP3) (by evm_ov),
-    raw add (by tiny_decode_at v, ⟨300⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem2 (UInt256.ofNat 6)
-      (by tiny_decode_at v, ⟨301⟩, 0x52, .MSTORE)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by tiny_decode_at v, ⟨302⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw push1 ⟨36⟩ (by tiny_decode_at v, ⟨304⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw dup3 (by tiny_decode_at v, ⟨306⟩, 0x82, .DUP3) (by evm_ov),
-    raw add (by tiny_decode_at v, ⟨307⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem3 (UInt256.ofNat 7)
-      (by tiny_decode_at v, ⟨308⟩, 0x52, .MSTORE)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
-  have rd342 := rd309.pushConst
-    (⟨50417742920509558439106150551775209266858149941038353264781520106005609840640⟩ :
-      UInt256) (width := 32) (op := .PUSH32) (by decide)
-    (by tiny_decode_at v, ⟨309⟩, 0x7f, (.Push .PUSH32)) (by evm_ov)
-  have rd350 := evm_run rd342 with [
-    raw push1 ⟨68⟩ (by tiny_decode_at v, ⟨342⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw dup3 (by tiny_decode_at v, ⟨344⟩, 0x82, .DUP3) (by evm_ov),
-    raw add (by tiny_decode_at v, ⟨345⟩, 0x01, .ADD) (by evm_ov),
-    raw mstore 3 tinyQuoteOwnerErrorMem (UInt256.ofNat 8)
-      (by tiny_decode_at v, ⟨346⟩, 0x52, .MSTORE)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by tiny_decode_at v, ⟨347⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw add (by tiny_decode_at v, ⟨349⟩, 0x01, .ADD) (by evm_ov)]
-  have rd357 := evm_run rd350 with [
-    raw push1 ⟨64⟩ (by tiny_decode_at v, ⟨350⟩, 0x60, (.Push .PUSH1)) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by tiny_decode_at v, ⟨352⟩, 0x51, .MLOAD)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
-    raw dup1 (by tiny_decode_at v, ⟨353⟩, 0x80, .DUP1) (by evm_ov),
-    raw swap2 (by tiny_decode_at v, ⟨354⟩, 0x91, .SWAP2) (by evm_ov),
-    raw sub (by tiny_decode_at v, ⟨355⟩, 0x03, .SUB) (by evm_ov),
-    raw swap1 (by tiny_decode_at v, ⟨356⟩, 0x90, .SWAP1) (by evm_ov)]
-  exact rd357.rev 0 (by tiny_decode_at v, ⟨357⟩, 0xfd, .REVERT)
-    mem_cost (by evm_ov)
+  have rd283 := tinyImmutableBlocks.tinyImmutable_block_220_fallthrough
+    (immWords := immutableWords v) (by simp) (by
+      change UInt256.eq (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
+        (solcSourceWord I) = ⟨0⟩
+      exact heq) rd220
+  have hrev := tinyImmutableBlocks.tinyImmutable_block_283 (immWords := immutableWords v)
+    (by simp [tinyImmutableBlocks.tinyImmutable_block_220_fallthrough_stack]) rd283
+  simpa using hrev
 
 theorem tinyQuoteBodyCore
     {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
@@ -362,7 +280,7 @@ theorem tinyQuoteBodyCore
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 := tinyQuoteSelector_size hsel
   have hd := tinyDispatch_quote v howner hsel
-  have hreach := tinyReachQuoteBody (σ := σ)
+  have hreach := tinyBlocksReachQuoteBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hcode hwv hsz4 hsize
     howner hsel
   by_cases hshort : I.calldata.size < 36
