@@ -776,7 +776,7 @@ theorem skimSecondSafeTransferCallMem2_read96_zero
           ho32 hoSize hout32 houtSize]
         omega)]
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout32 houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout32 houtSize]
   rw [write_read_below_gen out2 (skimSecondBalanceCalldataMem self o toWord prevValue)
       292 32 96 (by decide) hout32
       (by rw [skimSecondBalanceCalldataMem_size self toWord prevValue ho32 hoSize]; omega)

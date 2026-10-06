@@ -68,7 +68,7 @@ theorem erc20X_totalSupply {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by
         unfold totalSupplyWord
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          subRet32_toNat, solcReturnMem_read128])
+          erc20SubRet32_toNat, solcReturnMem_read128])
       (by evm_ov) ]
 
 theorem erc20TotalSupplySelector_size {I : ExecutionEnv}

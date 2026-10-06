@@ -1463,7 +1463,7 @@ theorem ballotVoteX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   let weight := voteSenderWeightWord (voteAfterVoteMap σ I) I
   have rd1842 := evm_run rd1835 with [jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero]
   have hgt : UInt256.gt count (weight + count) = ⟨1⟩ := by
-    exact voteOverflowGt count weight (by simpa [count, weight] using hover)
+    exact u256_gt_add_right_of_overflow' count weight (by simpa [count, weight] using hover)
   have rd1842' := rd1842
   rw [show voteProposalCountWord (voteAfterVoteMap σ I) I = count from rfl,
       show voteSenderWeightWord (voteAfterVoteMap σ I) I = weight from rfl, hgt,

@@ -387,7 +387,7 @@ theorem uniswapSwapX_payloadShort {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
   have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
   have rd550 := rd550₀
-  rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_right _)] at rd550
+  rw [isZero_eq_zero_of_ne (u256_lor_one_right_ne_zero _)] at rd550
   have rd553 := rd550.push2 ⟨559⟩ (by native_decide) (by evm_ov)
   have rd554 := rd553.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)

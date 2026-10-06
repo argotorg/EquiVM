@@ -3,9 +3,25 @@ import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Reasoning.SolmBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Ballot
+
+theorem votersSubRet128_toNat :
+    (UInt256.sub ((⟨128⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 128 := by
+  decide
+
+end Ballot
+
+end
 
 namespace Ballot
 
@@ -766,7 +782,7 @@ theorem ballotX_voters_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
             192 32 =
           votersReturnDelegateMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
             (votersDelegateWord σ I)
-        rw [votersDelegateWord_doubleMask]
+        rw [addressMask_div256_doubleMask]
         rfl)
       (by decide) (by evm_ov)]
   have rd411 := evm_run rd406 with [push1 ⟨96⟩, dup3, add]

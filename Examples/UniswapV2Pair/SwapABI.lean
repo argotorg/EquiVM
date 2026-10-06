@@ -104,7 +104,7 @@ theorem swapDecodeABIValue_bytes_ok {I : ExecutionEnv}
     decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
         DecodeMode.legacySolc05 =
       some (swapDataValue I, swapDataOffset I + 32 + paddedSize (swapDataSize I)) := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
+  have hreadLen := readNat_drop4_eq_calldataWord_add (I := I)
     (headOff := swapDataOffset I) hlenWord
   have hpayloadRead :
       readBytes? (I.calldata.toList.drop 4) (swapDataOffset I + 32) (swapDataSize I) =
@@ -161,7 +161,7 @@ theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.s
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
+      readNat_drop4_eq_calldataWord_add (I := I) (headOff := 96) (by omega)
   have hdecData := swapDecodeABIValue_bytes_ok (I := I) hlenWord hlenMax hpayload
   have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) =
       swapAmount0OutWord I := by
@@ -309,7 +309,7 @@ theorem swapDecodeABIValues_none_offset_huge {I : ExecutionEnv}
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
+      readNat_drop4_eq_calldataWord_add (I := I) (headOff := 96) (by omega)
   have hoff' : ABI.solcMaxLen DecodeMode.legacySolc05 < swapDataOffset I := by
     simpa [solcMaxLen_legacySolc05] using hoff
   have hdec0r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
@@ -351,7 +351,7 @@ theorem swapDecodeABIValue_bytes_none_length_huge {I : ExecutionEnv}
     (hlenHuge : solcLegacyMaxU32 < swapDataSize I) :
     decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
       DecodeMode.legacySolc05 = none := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
+  have hreadLen := readNat_drop4_eq_calldataWord_add (I := I)
     (headOff := swapDataOffset I) hlenWord
   have hlenHuge' :
       ABI.solcMaxLen DecodeMode.legacySolc05 <
@@ -367,7 +367,7 @@ theorem swapDecodeABIValue_bytes_none_payload_short {I : ExecutionEnv}
       (swapDataSize I)).length ≠ swapDataSize I) :
     decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
       DecodeMode.legacySolc05 = none := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
+  have hreadLen := readNat_drop4_eq_calldataWord_add (I := I)
     (headOff := swapDataOffset I) hlenWord
   have hpayloadRead :
       readBytes? (I.calldata.toList.drop 4) (swapDataOffset I + 32) (swapDataSize I) =
@@ -418,7 +418,7 @@ theorem swapDecodeABIValues_none_data {I : ExecutionEnv} (hsz132 : 132 ≤ I.cal
       (start := 64) htake64
   have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
     simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
+      readNat_drop4_eq_calldataWord_add (I := I) (headOff := 96) (by omega)
   have hdec0r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
       (I.calldata.toList.drop 4) 0 DecodeMode.legacySolc05 =
       some (.int (Int.ofNat (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat),

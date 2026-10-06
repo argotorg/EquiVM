@@ -2,6 +2,7 @@ import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Examples.StringStoreLite.Getters
 
+
 /-!
 # StringStoreLite — `currentLength()` long-string branch work
 
@@ -13,6 +14,27 @@ remaining storage-copy loop does not force that module to re-elaborate.
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace StringStoreLite
+
+theorem currentLength_endp_toNat_of_len_lt_sign {len : UInt256}
+    (hlen : len.toNat < 2 ^ 255) :
+    (((⟨160⟩ : UInt256) + len).toNat = 160 + len.toNat) := by
+  rw [uadd_toNat, show (⟨160⟩ : UInt256).toNat = 160 from by decide]
+  rw [Nat.add_comm 160 len.toNat]
+  exact Nat.mod_eq_of_lt (by
+    have hsize : (2 : Nat) ^ 255 + 160 < UInt256.size := by
+      norm_num [UInt256.size]
+    nlinarith)
+
+end StringStoreLite
+
+end
 
 namespace StringStoreLite
 
@@ -1537,11 +1559,11 @@ theorem currentLengthFreePtr_toNat_of_len_lt_sign_pos {len : UInt256}
       (((⟨31⟩ : UInt256) + len) / ⟨32⟩).toNat = q + 1 := by
     change (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat = q + 1
     rw [udiv_toNat, h31, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-    exact currentLengthCeilWords_eq hpos
+    exact ceil32_eq_pred_div_add_one hpos
   have hmulBound : (q + 1) * 32 < UInt256.size := by
     have hle : ((31 + len.toNat) / 32) * 32 ≤ 31 + len.toNat := by
       exact Nat.div_mul_le_self (31 + len.toNat) 32
-    rw [currentLengthCeilWords_eq hpos] at hle
+    rw [ceil32_eq_pred_div_add_one hpos] at hle
     have hsize : (2 : Nat) ^ 255 + 31 < UInt256.size := by
       norm_num [UInt256.size]
     change (((len.toNat - 1) / 32 + 1) * 32 < UInt256.size)
@@ -2155,24 +2177,24 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
         (fuel := fuel) (finalMloadCost := finalMloadCost) (awLoad := awLoad)
         (currentLengthConcreteFuel_done
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
         (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen))
         (by rfl)).memout
       (currentLengthGeneratedLoopFinal
         (σ := σ) (I := I) (endp := (⟨160⟩ : UInt256) + len) (len := len)
         (fuel := fuel) (finalMloadCost := finalMloadCost) (awLoad := awLoad)
         (currentLengthConcreteFuel_done
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
         (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
-          (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
+          (u256_div2_toNat_lt_sign (header := currentLengthHeaderWord σ I) hlen))
         (by rfl)).awLoad
       ByteArray.empty σ k C := by
   dsimp only
@@ -2185,7 +2207,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
       Cₘ awStore
   let awLoad := UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcontinue : ∀ i, i < fuel →
       UInt256.gt ((⟨160⟩ : UInt256) + len)
@@ -2356,7 +2378,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
   let copyAwLoad := UInt256.ofNat
     (MachineState.M copyAwStore.toNat (⟨128⟩ : UInt256).toNat 32)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcontinue : ∀ i, i < fuel →
       UInt256.gt ((⟨160⟩ : UInt256) + len)
@@ -2506,7 +2528,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
     rw [hdeleteSize, hcopySize]
   have hreturnRead64 : returnMem.readWithPadding 64 32 = UInt256.toByteArray freePtr := by
     simpa [returnMem] using
-      currentLengthReturnWrite_preserves_read64_zero
+      wordReturnWrite_preserves_read64_zero
         (mem := deleteMem) (len := len) (freePtr := freePtr)
         hfreeGe96 hfreePtrLeMem hdeleteRead64
   have hreturnSizeGe64 : 64 < returnMem.size := by
@@ -2553,7 +2575,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {σ σ₀ A I}
         (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat =
           UInt256.toByteArray len := by
     simpa [returnMem] using
-      currentLengthReturnWrite_retBytes
+      wordReturnWrite_retBytes
         (mem := deleteMem) (len := len) (freePtr := freePtr)
         hfreePtrLeMem hretLen
   let wrapperRetCost :=

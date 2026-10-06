@@ -590,9 +590,9 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
       (by decide)
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [reveal_aw_mstore0_of_ge3 haw]
+        rw [activeWords_mstore0_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore0_of_ge3 haw) (by evm_ov),
+      (by rfl) (activeWords_mstore0_of_ge3 haw) (by evm_ov),
     push1 ⟨0x32⟩, push1 ⟨4⟩]
   have rd1984 := evm_run rd1978 with [
     raw mstore 0 (scratch_revealPanicMem ⟨0x32⟩ mem) aw
@@ -600,9 +600,9 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [show (⟨4⟩ : UInt256).toNat = 4 by native_decide]
-        rw [reveal_aw_mstore4_of_ge3 haw]
+        rw [activeWords_mstore4_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore4_of_ge3 haw) (by evm_ov),
+      (by rfl) (activeWords_mstore4_of_ge3 haw) (by evm_ov),
     push1 ⟨0x24⟩, push0]
   exact rd1984.rev 0 (by decide)
     (by
@@ -634,9 +634,9 @@ theorem RD.blindAuctionPanic11Revert2025 {g : Sat256} {s0 : State} {ee : Executi
       (by decide)
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [reveal_aw_mstore0_of_ge3 haw]
+        rw [activeWords_mstore0_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore0_of_ge3 haw) (by evm_ov),
+      (by rfl) (activeWords_mstore0_of_ge3 haw) (by evm_ov),
     push1 ⟨0x11⟩, push1 ⟨4⟩]
   have rd2042 := evm_run rd2036 with [
     raw mstore 0 (scratch_revealPanicMem ⟨0x11⟩ mem) aw
@@ -644,9 +644,9 @@ theorem RD.blindAuctionPanic11Revert2025 {g : Sat256} {s0 : State} {ee : Executi
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [show (⟨4⟩ : UInt256).toNat = 4 by native_decide]
-        rw [reveal_aw_mstore4_of_ge3 haw]
+        rw [activeWords_mstore4_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore4_of_ge3 haw) (by evm_ov),
+      (by rfl) (activeWords_mstore4_of_ge3 haw) (by evm_ov),
     push1 ⟨0x24⟩, push0]
   exact rd2042.rev 0 (by decide)
     (by
@@ -892,26 +892,26 @@ theorem scratch_blindAuctionRevealX_loopBody_bounds_revert {I} {g : Sat256}
     raw mstore 0 mem1 aw (by decide)
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [reveal_aw_mstore0_of_ge3 haw]
+        rw [activeWords_mstore0_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore0_of_ge3 haw) (by evm_ov)]
+      (by rfl) (activeWords_mstore0_of_ge3 haw) (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
       (by
         simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        rw [reveal_aw_mstore32_of_ge3 haw]
+        rw [activeWords_mstore32_of_ge3 haw]
         simp)
-      (by rfl) (reveal_aw_mstore32_of_ge3 haw) (by evm_ov),
+      (by rfl) (activeWords_mstore32_of_ge3 haw) (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
       (by
         simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
-        rw [reveal_aw_keccak64_of_ge3 haw]
+        rw [activeWords_keccak64_of_ge3 haw]
         simp)
       (by simpa [mem2, mem1, revealScratchSenderWord] using hbaseHash)
-      (reveal_aw_keccak64_of_ge3 haw)
+      (activeWords_keccak64_of_ge3 haw)
       (by evm_ov),
     dup1]
   obtain ⟨_, _, rd1039₀⟩ := rd1033.sload (by decide) (by evm_ov)
@@ -1042,9 +1042,9 @@ theorem scratch_revealLoopBody_fakeInvalid_pair {I} {g : Sat256} {s0 : State}
       (biddingEnd := biddingEnd) (secretsLen := secretsLen) (secretsEnd := secretsEnd)
       (fakesLen := fakesLen) (fakesEnd := fakesEnd) (valuesLen := valuesLen)
       (valuesEnd := valuesEnd) (sel := sel) rd
-      (reveal_aw_mstore0_of_ge3 haw)
-      (reveal_aw_mstore32_of_ge3 haw)
-      (reveal_aw_keccak64_of_ge3 haw)
+      (activeWords_mstore0_of_ge3 haw)
+      (activeWords_mstore32_of_ge3 haw)
+      (activeWords_keccak64_of_ge3 haw)
       hbaseHash hlenLoad hboundBids hdataHash
   obtain ⟨k2, C2, rd1987⟩ :=
     scratch_blindAuctionRevealX_loopBody_loads_toFakeDecoder
@@ -1531,9 +1531,9 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
   let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
   let memP1 := packedUint256BoolBytes32ValueMem mem base value
   let awP2 := UInt256.ofNat (MachineState.M awP1.toNat base.toNat 32)
-  let memP2 := packedUint256BoolBytes32FakeMem memP1 fakeBase fakeWord
+  let memP2 := packedUint256BoolBytes32BoolMem memP1 fakeBase fakeWord
   let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
-  let memP3 := packedUint256BoolBytes32SecretMem memP2 secretBase secret
+  let memP3 := packedUint256BoolBytes32Bytes32Mem memP2 secretBase secret
   let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
   let memP4 := packedUint256BoolBytes32LenMem memP3 fp packedLen
   let awS1 := UInt256.ofNat (MachineState.M awP4.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -1742,8 +1742,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
       let fakeBase := base + ⟨32⟩
       let secretBase := base + ⟨33⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
@@ -1755,8 +1755,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
       let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
       (if fp.toNat ≥ mem5.size
@@ -1823,9 +1823,9 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
   let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
   let mem1 := packedUint256BoolBytes32ValueMem mem base value
   let awP2 := UInt256.ofNat (MachineState.M awP1.toNat base.toNat 32)
-  let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
+  let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
   let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
-  let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+  let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
   let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
   obtain ⟨k1, C1, rd1207⟩ :=
     scratch_blindAuctionRevealX_loopBody_packed_prefix
@@ -1902,8 +1902,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
       let fakeBase := base + ⟨32⟩
       let secretBase := base + ⟨33⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
@@ -1915,8 +1915,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
       let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
       (if fp.toNat ≥ mem5.size
@@ -2039,8 +2039,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
       let fakeBase := base + ⟨32⟩
       let secretBase := base + ⟨33⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
@@ -2052,8 +2052,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
       let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
       (if fp.toNat ≥ mem5.size
@@ -2215,8 +2215,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
       let fakeBase := base + ⟨32⟩
       let secretBase := base + ⟨33⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       (if (⟨64⟩ : UInt256).toNat ≥ mem3.size
        then ⟨0⟩
        else UInt256.ofNat
@@ -2228,8 +2228,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       let mem4 := packedUint256BoolBytes32LenMem mem3 fp packedLen
       let mem5 := packedUint256BoolBytes32FreePtrMem mem4 newFree
       (if fp.toNat ≥ mem5.size

@@ -655,7 +655,7 @@ theorem skimSecondSafeTransferDynamicWordsMem2_mload64_same (out : ByteArray)
     UInt256.ofNat (MachineState.M (skimSecondSafeTransferDynamicWordsMem2 out).toNat
       (⟨64⟩ : UInt256).toNat 32) =
       skimSecondSafeTransferDynamicWordsMem2 out :=
-  uInt256_mload64_same_of_toNat_ge13 _
+  UInt256_mload64_same_of_toNat_ge13 _
     (skimSecondSafeTransferDynamicWordsMem2_toNat_ge13 out houtSize)
 
 theorem skimSecondSafeTransferDynamicMem2_mload64
@@ -817,7 +817,7 @@ theorem skimSecondSafeTransferDynamicWordsMem4_mload64_same (out : ByteArray)
     UInt256.ofNat (MachineState.M (skimSecondSafeTransferDynamicWordsMem4 out).toNat
       (⟨64⟩ : UInt256).toNat 32) =
       skimSecondSafeTransferDynamicWordsMem4 out :=
-  uInt256_mload64_same_of_toNat_ge13 _
+  UInt256_mload64_same_of_toNat_ge13 _
     (skimSecondSafeTransferDynamicWordsMem4_toNat_ge13 out houtSize)
 
 theorem skimSecondSafeTransferDynamicMem4_mload64

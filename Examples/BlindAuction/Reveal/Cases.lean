@@ -252,9 +252,9 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
   let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
   let memP1 := packedUint256BoolBytes32ValueMem mem base value
   let awP2 := UInt256.ofNat (MachineState.M awP1.toNat base.toNat 32)
-  let memP2 := packedUint256BoolBytes32FakeMem memP1 fakeBase fakeWord
+  let memP2 := packedUint256BoolBytes32BoolMem memP1 fakeBase fakeWord
   let awP3 := UInt256.ofNat (MachineState.M awP2.toNat fakeBase.toNat 32)
-  let memP3 := packedUint256BoolBytes32SecretMem memP2 secretBase secret
+  let memP3 := packedUint256BoolBytes32Bytes32Mem memP2 secretBase secret
   let awP4 := UInt256.ofNat (MachineState.M awP3.toNat secretBase.toNat 32)
   let memP4 := packedUint256BoolBytes32LenMem memP3 fp packedLen
   let awS1 := UInt256.ofNat (MachineState.M awP4.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -639,7 +639,7 @@ theorem scratch_blindAuctionDecode_reveal_fakes_slt {I : ExecutionEnv} {callargs
   have hstart :
       start.toNat = 4 + ((revealFakesOffsetWord I).toNat + 32 + 32 * i.toNat) := by
     dsimp [start]
-    exact revealArrayElemAddr_toNat (off := revealFakesOffsetWord I) (i := i)
+    exact calldataArrayElemAddr_toNat (off := revealFakesOffsetWord I) (i := i)
       (lim := I.calldata.size) hbound hsize
   have hplus : (start + ⟨32⟩).toNat = start.toNat + 32 := by
     rw [uadd_toNat]

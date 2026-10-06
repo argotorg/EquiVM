@@ -100,7 +100,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_read96_zero
           omega)]
     exact hselector
   unfold skimSecondBalanceDynamicStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out2 hout2_32 hout2Size]
   rw [write_read_below_gen out2
       (skimSecondBalanceDynamicCalldataMem self o toWord value out1)
       (skimSafeTransferReturnDataPtr out1).toNat 32 96 (by decide) hout2_32
@@ -1148,7 +1148,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
   have hawLoad64 : awLoad64 = aw0 := by
     simpa [awLoad64, aw0] using
-      uInt256_mload64_same_of_toNat_ge13 (skimSecondSafeTransferDynamicWordsCall2 out1)
+      UInt256_mload64_same_of_toNat_ge13 (skimSecondSafeTransferDynamicWordsCall2 out1)
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size)
   have rd6611₀ := RD.mload
     (Cₘ awLoad64 - Cₘ aw0) (skimSecondSafeTransferDynamicCallPtr out1) awLoad64

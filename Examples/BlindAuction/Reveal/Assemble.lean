@@ -272,9 +272,9 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
       (revealEnd := revealEnd) (biddingEnd := biddingEnd) (secretsLen := secretsLen)
       (secretsEnd := secretsEnd) (fakesLen := fakesLen) (fakesEnd := fakesEnd)
       (valuesLen := valuesLen) (valuesEnd := valuesEnd) (sel := sel)
-      rd1023 (reveal_aw_mstore0_of_ge3 a.haw)
-      (reveal_aw_mstore32_of_ge3 a.haw)
-      (reveal_aw_keccak64_of_ge3 a.haw)
+      rd1023 (activeWords_mstore0_of_ge3 a.haw)
+      (activeWords_mstore32_of_ge3 a.haw)
+      (activeWords_keccak64_of_ge3 a.haw)
       hbaseHash hlenLoad hboundBids hdataHash
   have hslotRead : memSlot3.readWithPadding 64 32 = UInt256.toByteArray a.fp :=
     hslotMemFacts.1
@@ -690,11 +690,11 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
   let awPB3 : UInt256 :=
     UInt256.ofNat (MachineState.M awPB2.toNat (⟨0⟩ : UInt256).toNat 64)
   have hawPB1Eq : awPB1 = awNext := by
-    simpa [awPB1] using reveal_aw_mstore0_of_ge3 hawNext
+    simpa [awPB1] using activeWords_mstore0_of_ge3 hawNext
   have hawPB2Eq : awPB2 = awNext := by
-    simpa [awPB2, hawPB1Eq] using reveal_aw_mstore32_of_ge3 hawNext
+    simpa [awPB2, hawPB1Eq] using activeWords_mstore32_of_ge3 hawNext
   have hawPB3Eq : awPB3 = awNext := by
-    simpa [awPB3, hawPB2Eq] using reveal_aw_keccak64_of_ge3 hawNext
+    simpa [awPB3, hawPB2Eq] using activeWords_keccak64_of_ge3 hawNext
   have hawPB3 : 3 ≤ awPB3.toNat := by
     simpa [hawPB3Eq] using hawNext
   have hawPB3Small : awPB3.toNat * 32 < UInt256.size := by
@@ -986,15 +986,15 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨0⟩ : UInt256).toNat 64)
   have haw1 : 3 ≤ aw1.toNat := by
     simpa [aw1] using
-      reveal_aw_M_ge3 (aw := aw) (off := (⟨0⟩ : UInt256))
+      activeWords_expand_ge3 (aw := aw) (off := (⟨0⟩ : UInt256))
         (len := (⟨32⟩ : UInt256)) haw
   have haw2 : 3 ≤ aw2.toNat := by
     simpa [aw2] using
-      reveal_aw_M_ge3 (aw := aw1) (off := (⟨32⟩ : UInt256))
+      activeWords_expand_ge3 (aw := aw1) (off := (⟨32⟩ : UInt256))
         (len := (⟨32⟩ : UInt256)) haw1
   have haw3 : 3 ≤ aw3.toNat := by
     simpa [aw3] using
-      reveal_aw_M_ge3 (aw := aw2) (off := (⟨0⟩ : UInt256))
+      activeWords_expand_ge3 (aw := aw2) (off := (⟨0⟩ : UInt256))
         (len := (⟨64⟩ : UInt256)) haw2
   have rd1538 := evm_run rd with [jumpdest, push0, push1 ⟨6⟩]
   obtain ⟨_, _, rd1539₀⟩ := rd1538.sload (by decide) (by evm_ov)

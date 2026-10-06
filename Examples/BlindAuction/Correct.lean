@@ -1089,9 +1089,9 @@ theorem blindAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime revealT
         decide)
       (hloc := blindAuctionConfig_storage_beneficiary)
       (hscalar := by trivial)
-  simpa [blindAuctionCtorAfterBeneficiaryState, beneficiary_ofNat] using
+  simpa [blindAuctionCtorAfterBeneficiaryState, accountAddress_of_addressWord_toNat] using
     storageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (beneficiaryWord_canonical beneficiaryAddress)
+      (addressWord_canonical_of_address beneficiaryAddress)
 
 theorem blindAuctionCtorBiddingEndExprReverts
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1104,7 +1104,7 @@ theorem blindAuctionCtorBiddingEndExprReverts
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
       evm (u256 (.binary .add now (.var "biddingTime"))) = .revert := by
-  have hword := biddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hge :
       Int.ofNat ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat)
         ≥ (2 : Int) ^ 256 := by
@@ -1139,7 +1139,7 @@ theorem blindAuctionCtorBiddingEndExprOK
       evm (u256 (.binary .add now (.var "biddingTime"))) =
         .ok (.int (Int.ofNat
           (blindAuctionCtorBiddingEndSolmWord evm biddingTime).toNat)) := by
-  have hword := biddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hsumlt :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat <
         UInt256.size := by
@@ -1222,7 +1222,7 @@ theorem blindAuctionCtorRevealEndExprReverts
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
       evm (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) = .revert := by
-  have hword := revealWord_toNat revealTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat' revealTime h0 hlt
   have hstorage :
       evalExpr? blindAuctionConfig
         { contract := blindAuctionContract,
@@ -1282,7 +1282,7 @@ theorem blindAuctionCtorRevealEndExprOK
         .ok (.int (Int.ofNat
           (EVM.word ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
             revealTime.toNat)).toNat)) := by
-  have hword := revealWord_toNat revealTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat' revealTime h0 hlt
   have hstorage :
       evalExpr? blindAuctionConfig
         { contract := blindAuctionContract,
@@ -1838,7 +1838,7 @@ theorem blindAuctionConstructorCorrect :
               unfold revealEndWordEvm revealEndWordSolm
               rw [hRevealBase]
               unfold blindAuctionCtorRevealEndSolmWord
-              rw [← revealWord_toNat revealTime h0Reveal hltReveal]
+              rw [← uint256Word_of_nonneg_int_toNat' revealTime h0Reveal hltReveal]
               exact (constructorCheckedAddWord_eq
                 (blindAuctionCtorRevealBaseWord
                   (initState σ σ₀

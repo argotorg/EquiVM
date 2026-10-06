@@ -6,9 +6,26 @@ import Reasoning.Dispatch
 import Reasoning.Solc
 import Reasoning.SolmBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace ERC20
+
+/-- The shared solc return wrapper computes the fixed one-word return length. -/
+theorem erc20SubRet32_toNat :
+    (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
+  decide
+
+end ERC20
+
+end
 
 namespace ERC20
 

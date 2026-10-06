@@ -3177,9 +3177,9 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_prefix {I} {g : Sat256}
       let newFree := (⟨65⟩ : UInt256) + base
       let mem1 := packedUint256BoolBytes32ValueMem mem base value
       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat base.toNat 32)
-      let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
+      let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat fakeBase.toNat 32)
-      let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+      let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
       let aw4 := UInt256.ofNat (MachineState.M aw3.toNat secretBase.toNat 32)
       RD blindAuctionBytecode I g s0 ⟨1207⟩
         [newFree, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
@@ -3192,9 +3192,9 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_prefix {I} {g : Sat256}
   let newFree := (⟨65⟩ : UInt256) + base
   let mem1 := packedUint256BoolBytes32ValueMem mem base value
   let aw2 := UInt256.ofNat (MachineState.M aw1.toNat base.toNat 32)
-  let mem2 := packedUint256BoolBytes32FakeMem mem1 fakeBase fakeWord
+  let mem2 := packedUint256BoolBytes32BoolMem mem1 fakeBase fakeWord
   let aw3 := UInt256.ofNat (MachineState.M aw2.toNat fakeBase.toNat 32)
-  let mem3 := packedUint256BoolBytes32SecretMem mem2 secretBase secret
+  let mem3 := packedUint256BoolBytes32Bytes32Mem mem2 secretBase secret
   let aw4 := UInt256.ofNat (MachineState.M aw3.toNat secretBase.toNat 32)
   have rd1185 := evm_run rd with [
     dup3, dup3, dup3, push1 ⟨64⟩,

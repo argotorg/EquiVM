@@ -593,7 +593,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
   have hreturnRead64 :
       returnMem.readWithPadding 64 32 = UInt256.toByteArray (currentLengthFreePtr len) := by
     simpa [returnMem] using
-      currentLengthReturnWrite_preserves_read64_zero
+      wordReturnWrite_preserves_read64_zero
         (mem := setPaddedMem I.calldata len payloadStart) (len := len)
         (freePtr := currentLengthFreePtr len) hfreeGe96 hfreeLeMem
         (setPaddedMem_read64 I.calldata len payloadStart hnz hsrc
@@ -639,7 +639,7 @@ theorem stringStoreLiteX_setLongReturnFromWrite
         (UInt256.sub (currentLengthFreePtr len + ⟨32⟩) (currentLengthFreePtr len)).toNat =
         UInt256.toByteArray len := by
     simpa [returnMem] using
-      currentLengthReturnWrite_retBytes
+      wordReturnWrite_retBytes
         (mem := setPaddedMem I.calldata len payloadStart) (len := len)
         (freePtr := currentLengthFreePtr len) hfreeLeMem hretLen
   exact evm_run rd106 with [
@@ -757,7 +757,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
   have hreturnRead64 :
       returnMem.readWithPadding 64 32 = UInt256.toByteArray (currentLengthFreePtr len) := by
     simpa [returnMem] using
-      currentLengthReturnWrite_preserves_read64_zero
+      wordReturnWrite_preserves_read64_zero
         (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
         (len := len) (freePtr := currentLengthFreePtr len) hfreeGe96 hfreeLeMem
         (by
@@ -811,7 +811,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
         (UInt256.sub (currentLengthFreePtr len + ⟨32⟩) (currentLengthFreePtr len)).toNat =
         UInt256.toByteArray len := by
     simpa [returnMem] using
-      currentLengthReturnWrite_retBytes
+      wordReturnWrite_retBytes
         (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
         (len := len) (freePtr := currentLengthFreePtr len) hfreeLeMem hretLen
   exact evm_run rd106 with [
@@ -2823,7 +2823,7 @@ theorem stringStoreLiteX_setShortValidWriteLongReach1405
     simpa [hflag] using hvalid
   have holdLt32 : oldLen.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have holdNotGt31 : UInt256.lt ⟨31⟩ oldLen = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 holdLt32
+    u256_gt31_eq_zero_of_lt32 holdLt32
   have rd1200 := evm_run rd1394 with [
     jumpdest, push2 ⟨1405⟩, dup3, dup3, dup6, push2 ⟨1200⟩, jump (by jump_dest)]
   have rd1405 := evm_run rd1200 with [
@@ -2903,7 +2903,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValidToClearLoop {σ σ₀ A I}
         currentLengthZeroReturnMem (UInt256.ofNat 6) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [← hlen] using rd1394₀⟩
   have hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := len)
+    solidityBytesLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := len)
       hflag hvalid
   have hgt31One : UInt256.lt ⟨31⟩ len = ⟨1⟩ :=
     ult_eq_one_of_ne_zero hgt31
@@ -3161,7 +3161,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
         ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [← holdLen] using rd1394₀⟩
   have hgt31 : UInt256.lt ⟨31⟩ oldLen ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
+    solidityBytesLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
       hflag hvalid
   have hgt31One : UInt256.lt ⟨31⟩ oldLen = ⟨1⟩ :=
     ult_eq_one_of_ne_zero hgt31
@@ -3327,7 +3327,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
         ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [← holdLen] using rd1394₀⟩
   have hgt31 : UInt256.lt ⟨31⟩ oldLen ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
+    solidityBytesLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
       hflag hvalid
   have hgt31One : UInt256.lt ⟨31⟩ oldLen = ⟨1⟩ :=
     ult_eq_one_of_ne_zero hgt31
@@ -3477,7 +3477,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidNoClearTo1405
         ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [← holdLen] using rd1394₀⟩
   have hgt31 : UInt256.lt ⟨31⟩ oldLen ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
+    solidityBytesLongValid_gt31 (header := currentLengthHeaderWord σ I) (len := oldLen)
       hflag hvalid
   have hgt31One : UInt256.lt ⟨31⟩ oldLen = ⟨1⟩ :=
     ult_eq_one_of_ne_zero hgt31
@@ -3655,7 +3655,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
         (sstoreAccountMap I.codeOwner τ ⟨0⟩
           (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C' := by
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hshort
+    u256_gt31_eq_zero_of_lt32 hshort
   have hnonzero : len ≠ ⟨0⟩ := by
     intro hzero
     exact hnz (by rw [hzero]; rfl)
@@ -4306,7 +4306,7 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     setShortPackedHeader_eq_solidityShortBytesWord (I := I) (len := len)
       (payloadStart := payloadStart) hlenAbi rfl hoffMax hnz hshort hsrc hpayload
   have holdLenLt : oldLen.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hdivNat :
       (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩).toNat =
@@ -4367,7 +4367,7 @@ theorem stringStoreLiteSetEmptyLongValidRuntime {σ σ₀ A I}
   let payloadStart : UInt256 :=
     (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hdivNat :
       (UInt256.div (len + ⟨31⟩) ⟨32⟩).toNat = (len.toNat + 31) / 32 := by

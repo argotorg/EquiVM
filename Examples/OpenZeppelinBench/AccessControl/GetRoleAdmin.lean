@@ -74,7 +74,7 @@ theorem getRoleAdminSlot_evm (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size)
     getRoleAdminSlot I = getRoleAdminBaseSlot I + ⟨1⟩ := by
   unfold getRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot getRoleAdminRoleKey
   rw [getRoleAdminKeyValueToWord hsz36]
-  rw [revokeRoleAddSlot_eq]
+  rw [word_ofNat_add_one_eq]
   rfl
 
 theorem accessControlGetRoleAdminSelector_size {I : ExecutionEnv}

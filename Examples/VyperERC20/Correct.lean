@@ -19,6 +19,7 @@ import Reasoning.Memory
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
+
 /-!
 # Vyper ERC20 — correctness entrypoints
 
@@ -35,6 +36,31 @@ open ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace VyperERC20
+
+theorem vyperDispatchIndexWord {sel : UInt256} {m : Nat}
+    (hmod : sel.toNat % 7 = m) :
+    UInt256.mod sel ⟨7⟩ = UInt256.ofNat m := by
+  apply u256_inj
+  unfold UInt256.mod
+  rw [if_neg (by decide : ¬ ((⟨7⟩ : UInt256).val == 0))]
+  show sel.toNat % 7 = (UInt256.ofNat m).toNat
+  rw [hmod]
+  have hm7 : m < 7 := by
+    rw [← hmod]
+    exact Nat.mod_lt _ (by decide)
+  have hmlt : m < UInt256.size := lt_trans hm7 (by decide)
+  exact (ulit_toNat' m hmlt).symm
+
+end VyperERC20
+
+end
 
 namespace VyperERC20
 

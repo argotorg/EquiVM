@@ -163,7 +163,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
   let oldFuel := (oldLen.toNat + 31) / 32
   let clearFuel := ((setDecodedValueBytes I).size + 31) / 32
   have holdLenLt : oldLen.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hsolmMap :
       evmSolm1.accountMap =
@@ -537,7 +537,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
   let oldFuel := (oldLen.toNat + 31) / 32
   let clearFuel := ((setDecodedValueBytes I).size + 31) / 32
   have holdLenLt : oldLen.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) rfl
   have hsolmMap :
       evmSolm1.accountMap =

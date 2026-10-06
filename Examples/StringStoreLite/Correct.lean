@@ -30,13 +30,13 @@ theorem stringStoreLiteClearCurrentLongValid
   let len := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
   have hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩ := rfl
   have hgt31 : UInt256.lt ⟨31⟩ len ≠ ⟨0⟩ :=
-    clearCurrentLongValid_gt31
+    solidityBytesLongValid_gt31
       (header := currentLengthHeaderWord σ I) (len := len) hflag (by simpa [len] using hvalid)
   have hnonzero : len ≠ ⟨0⟩ :=
-    currentLengthLongValid_nonzero
+    solidityBytesLongValid_nonzero
       (header := currentLengthHeaderWord σ I) (len := len) hflag (by simpa [len] using hvalid)
   have hlenLt : len.toNat < 2 ^ 255 :=
-    clearCurrent_len_toNat_lt_sign_of_div2
+    u256_div2_toNat_lt_sign
       (header := currentLengthHeaderWord σ I) hlen
   have hcountNat :
       (UInt256.div ((⟨31⟩ : UInt256) + len) ⟨32⟩).toNat =

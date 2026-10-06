@@ -724,7 +724,7 @@ theorem revokeRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.si
     revokeRoleAdminSlot I = revokeRoleBaseSlot (revokeRoleRoleWord I) + ⟨1⟩ := by
   unfold revokeRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
   rw [revokeRoleRoleKeyValueToWord hsz68]
-  rw [revokeRoleAddSlot_eq]
+  rw [word_ofNat_add_one_eq]
   unfold revokeRoleBaseSlot
   rw [revokeRoleBaseHashMem_read0_64]
   rw [uInt256OfByteArray_eq]

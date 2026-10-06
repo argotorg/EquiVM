@@ -1078,7 +1078,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     · by_cases ho32 : 32 ≤ o.size
       · -- success: `32 ≤ |o| < 2^255`
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
-            callerL_succ o.size ho32 hosize] at rd144
+            u256_min32_ofNat_toNat_of_ge32 o.size ho32 hosize] at rd144
         have hmsz : 160 ≤ (o.write 0 (callerCalldataMem I) 128 32).size := by
           have := callerWrite_size I o 32 (by omega) ho32; omega
         have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size then ⟨0⟩
@@ -1107,7 +1107,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
       · -- `|o| < 32`: decode reverts
         rw [not_le] at ho32
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
-            callerL_rev o.size ho32] at rd144
+            u256_min32_ofNat_toNat_of_lt32 o.size ho32] at rd144
         have hfp2 : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 o.size).size then ⟨0⟩
               else UInt256.ofNat (fromByteArrayBigEndian
                 ((o.write 0 (callerCalldataMem I) 128 o.size).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
@@ -1126,7 +1126,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
       have hhi : 2 ^ 255 ≤ o.size := by omega
       have ho32 : 32 ≤ o.size := by omega
       rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
-          callerL_succ o.size ho32 hosize] at rd144
+          u256_min32_ofNat_toNat_of_ge32 o.size ho32 hosize] at rd144
       have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size then ⟨0⟩
             else UInt256.ofNat (fromByteArrayBigEndian
               ((o.write 0 (callerCalldataMem I) 128 32).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by

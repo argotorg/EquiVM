@@ -3002,7 +3002,7 @@ theorem setShortPackedHeader_eq_solidityShortBytesWord {I : ExecutionEnv}
       ((setDecodedValueBytes I).size * 2) % UInt256.size
     rw [hsize, Nat.mul_comm]
   rw [setShortPackedHeader, solidityShortBytesWord, hpayloadWord,
-    setShortPackedHeader_mask_of_short hshort]
+    shortPackedHeader_mask_of_short hshort]
   rw [u256_land_high_mask_eq_self (w :=
     uInt256OfByteArray ((setDecodedValueBytes I).readWithPadding 0 32))
     (k := 256 - 8 * len.toNat) (by omega) hlow]
@@ -3244,7 +3244,7 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {σ σ₀ A I} {g : Sat256}
           (⟨160⟩ : UInt256).toNat by native_decide])
     (by
       simpa using
-        stringStoreLite_write_len_zero I.calldata currentLengthZeroMem payloadStart.toNat 160)
+        byteArray_write_zero_length I.calldata currentLengthZeroMem payloadStart.toNat 160)
     hawCopy
     (by evm_ov)
   have rd224 := evm_run rd220 with [push0, dup2, dup5, add]
@@ -3444,7 +3444,7 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {σ σ₀ A I} {g : Sat256}
     simpa [hflag] using hvalid
   have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd1200 := evm_run rd1394 with [
     jumpdest, push2 ⟨1405⟩, dup3, dup3, dup6, push2 ⟨1200⟩, jump (by jump_dest)]
   have rd1405 := evm_run rd1200 with [
@@ -3548,7 +3548,7 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {σinit σ₀ A I}
         (setPaddedMem I.calldata len payloadStart) (setHelperPayloadAw len)
         ByteArray.empty τ k' C' := by
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hshort
+    u256_gt31_eq_zero_of_lt32 hshort
   have hnonzero : len ≠ ⟨0⟩ := by
     intro hzero
     exact hnz (by rw [hzero]; rfl)
@@ -3695,7 +3695,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {σ σ₀ A I} {g : Sat256}
     simpa [hflag] using hvalid
   have holdLt32 : oldLen.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have holdNotGt31 : UInt256.lt ⟨31⟩ oldLen = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 holdLt32
+    u256_gt31_eq_zero_of_lt32 holdLt32
   have rd1200 := evm_run rd1394 with [
     jumpdest, push2 ⟨1405⟩, dup3, dup3, dup6, push2 ⟨1200⟩, jump (by jump_dest)]
   have rd1405 := evm_run rd1200 with [
@@ -4544,7 +4544,7 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {σ σ₀ A I}
   have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotZero : UInt256.isZero len = ⟨0⟩ := isZero_eq_zero_of_ne hnonzero
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd357 := evm_run rd351 with [jumpdest, dup1, iszero, push2 ⟨426⟩]
   have rd358 := rd357.jumpiNT (by decide) hnotZero (by evm_ov)
   have rd385 := evm_run rd358 with [dup1, push1 ⟨31⟩, lt, push2 ⟨385⟩]
@@ -4643,7 +4643,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {σ σ₀ A I}
     simpa [hflag] using hvalid
   have hlt32 : len.toNat < 32 := solidityShortBytesValid_lt32 hvalid0
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
-    currentLength_notGt31_of_lt32 hlt32
+    u256_gt31_eq_zero_of_lt32 hlt32
   have rd476 := evm_run rd469 with [dup1, push1 ⟨31⟩, lt, push2 ⟨483⟩]
   have rd477 := rd476.jumpiNT (by native_decide) hnotGt31
     (by simp only [List.length_cons, List.length_nil]; omega)

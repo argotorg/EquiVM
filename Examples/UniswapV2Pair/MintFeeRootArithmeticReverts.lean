@@ -28,7 +28,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     RDrev uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
-    mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
+    wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   obtain ⟨_, _, rd6879⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail (hov := hov) rd7899 hrootGt
   obtain ⟨_, _, rd6780⟩ :=
@@ -74,7 +74,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
     RDrev uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
-    mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
+    wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   obtain ⟨_, _, rd6879⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail (hov := hov) rd7899 hrootGt
   obtain ⟨_, _, rd6780Num⟩ :=
@@ -124,7 +124,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
     RDrev uniswapV2PairBytecode g
       s0 := by
   have hrootGt :=
-    mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
+    wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   obtain ⟨_, _, rd6879⟩ :=
     uniswapMintFeeRuntimeAfterRootsPositiveSubEntryOfTail (hov := hov) rd7899 hrootGt
   obtain ⟨_, _, rd6780Num⟩ :=

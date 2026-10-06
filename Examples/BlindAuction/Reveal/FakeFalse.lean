@@ -175,9 +175,9 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         (valuesEnd := valuesEnd)
         (sel := sel)
         rd1023
-        (reveal_aw_mstore0_of_ge3 a.haw)
-        (reveal_aw_mstore32_of_ge3 a.haw)
-        (reveal_aw_keccak64_of_ge3 a.haw)
+        (activeWords_mstore0_of_ge3 a.haw)
+        (activeWords_mstore32_of_ge3 a.haw)
+        (activeWords_keccak64_of_ge3 a.haw)
         hbaseHash hlenLoad hboundBids hdataHash
     have hslotRead :
         memSlot3.readWithPadding 64 32 =

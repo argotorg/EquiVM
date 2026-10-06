@@ -1094,12 +1094,12 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by
         set_option linter.unusedSimpArgs false in
           simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            uInt256_mload64_same_of_toNat_ge13 _
+            UInt256_mload64_same_of_toNat_ge13 _
               (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size)]
         exact Nat.sub_self _)
       (skimSecondSafeTransferDynamicCallMem2_mload64 self toWord prevValue value
         ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
-      (uInt256_mload64_same_of_toNat_ge13 _
+      (UInt256_mload64_same_of_toNat_ge13 _
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size))
       (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]

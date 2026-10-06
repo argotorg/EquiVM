@@ -1446,8 +1446,8 @@ theorem blindAuctionDecode_reveal_values_load {I : ExecutionEnv} {callargs : Sto
         I.calldata.size := by
     rw [List.length_drop, htlen] at hreadLen
     omega
-  exact revealCalldataLoad_of_readNat hread
-    (revealArrayElemAddr_toNat (off := revealValuesOffsetWord I) (i := i)
+  exact calldataLoad_of_readNat_drop4 hread
+    (calldataArrayElemAddr_toNat (off := revealValuesOffsetWord I) (i := i)
       (lim := I.calldata.size) hbound hsize)
 
 theorem blindAuctionDecode_reveal_fakes_load {I : ExecutionEnv} {callargs : Store}
@@ -1502,8 +1502,8 @@ theorem blindAuctionDecode_reveal_fakes_load {I : ExecutionEnv} {callargs : Stor
         ((revealFakesOffsetWord I).toNat + 32 + 32 * i.toNat) =
           some (UInt256.ofNat word).toNat := by
     simpa [hwordSmall] using hread
-  exact revealCalldataLoad_of_readNat hreadWord
-    (revealArrayElemAddr_toNat (off := revealFakesOffsetWord I) (i := i)
+  exact calldataLoad_of_readNat_drop4 hreadWord
+    (calldataArrayElemAddr_toNat (off := revealFakesOffsetWord I) (i := i)
       (lim := I.calldata.size) hbound hsize)
 
 theorem blindAuctionDecode_reveal_secrets_load {I : ExecutionEnv} {callargs : Store}
@@ -1537,8 +1537,8 @@ theorem blindAuctionDecode_reveal_secrets_load {I : ExecutionEnv} {callargs : St
         I.calldata.size := by
     rw [List.length_drop, htlen] at hreadLen
     omega
-  exact revealCalldataLoad_of_readNat hread
-    (revealArrayElemAddr_toNat (off := revealSecretsOffsetWord I) (i := i)
+  exact calldataLoad_of_readNat_drop4 hread
+    (calldataArrayElemAddr_toNat (off := revealSecretsOffsetWord I) (i := i)
       (lim := I.calldata.size) hbound hsize)
 
 end BlindAuction

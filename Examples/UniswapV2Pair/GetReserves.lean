@@ -2,9 +2,25 @@ import Reasoning.WordArithmetic
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.SolmBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem getReservesRetLen_toNat :
+    ((⟨96⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 96 := by
+  decide
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 
@@ -402,7 +418,7 @@ theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : Execution
       (by decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          Reasoning.Theory.getReservesRetLen_toNat]
+          UniswapV2Pair.getReservesRetLen_toNat]
         exact UniswapV2Pair.getReservesReturnMem_read128_96 r0' r1' ts')
       (by evm_ov)]
 

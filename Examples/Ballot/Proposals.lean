@@ -2,9 +2,25 @@ import Reasoning.WordArithmetic
 import Examples.Ballot.Common
 import Reasoning.SolmBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Ballot
+
+theorem proposalsSubRet64_toNat :
+    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
+  decide
+
+end Ballot
+
+end
 
 namespace Ballot
 
@@ -521,7 +537,7 @@ theorem ballotX_proposals_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-          bidsSubRet64_toNat]
+          proposalsSubRet64_toNat]
         exact proposalsReturnMem_read128_64 (proposalNameWord σ I) (proposalCountWord σ I))
       (by evm_ov) ]
 
@@ -622,7 +638,7 @@ theorem ballotProposalsBodyCore
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv.returned rfl
-              (proposalReturnEncoding (proposalNameWord σ I)
+              (bytes32Uint256ReturnEncoding (proposalNameWord σ I)
                 (proposalCountWord σ I)))
       · have hbody := ballotProposalsBodyReverts_oob
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I

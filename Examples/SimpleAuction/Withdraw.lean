@@ -4,9 +4,85 @@ import Examples.SimpleAuction.Storage
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace SimpleAuction
+
+theorem withdrawReturnDataActiveWords_M_mul32_lt (o : ByteArray)
+    (hosz : o.size < 2 ^ 255) :
+    MachineState.M (UInt256.ofNat 5).toNat 160 o.size * 32 < UInt256.size := by
+  rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
+  unfold MachineState.M
+  split
+  · norm_num [UInt256.size]
+  · by_cases hle : 5 ≤ (160 + o.size + 31) / 32
+    · rw [Nat.max_eq_right hle]
+      have hdiv : ((160 + o.size + 31) / 32) * 32 ≤ 160 + o.size + 31 :=
+        Nat.div_mul_le_self _ _
+      have hcap : 2 ^ 255 + 191 < UInt256.size := by norm_num [UInt256.size]
+      omega
+    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
+      norm_num [UInt256.size]
+
+theorem withdrawReturnDataHugeCopyMemCost_gt_g (g : Sat256) (o : ByteArray)
+    (hhi : 2 ^ 255 ≤ o.size) (hlo : o.size < UInt256.size) :
+    g.toNat <
+      Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 5).toNat 160 o.size)) -
+        Cₘ (UInt256.ofNat 5) := by
+  let M := MachineState.M (UInt256.ofNat 5).toNat 160 o.size
+  have hMge : 2 ^ 250 ≤ M := by
+    simp only [M]
+    rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
+    unfold MachineState.M
+    split
+    · omega
+    · apply le_trans ?_ (Nat.le_max_right _ _)
+      rw [Nat.le_div_iff_mul_le (by norm_num)]
+      norm_num
+      omega
+  have hMlt : M < UInt256.size := by
+    simp only [M]
+    rw [show (UInt256.ofNat 5).toNat = 5 from by decide]
+    unfold MachineState.M
+    split
+    · norm_num [UInt256.size]
+    · apply max_lt
+      · norm_num [UInt256.size]
+      · rw [Nat.div_lt_iff_lt_mul (by norm_num)]
+        norm_num [UInt256.size] at hlo ⊢
+        omega
+  have hdivLower : 2 ^ 491 ≤ M * M / 512 := by
+    rw [Nat.le_div_iff_mul_le (by norm_num)]
+    have hMM : (2 ^ 250) * (2 ^ 250) ≤ M * M := Nat.mul_le_mul hMge hMge
+    have hpow : (2 ^ 491) * 512 = (2 ^ 250) * (2 ^ 250) := by decide
+    rwa [hpow]
+  have hbig :
+      UInt256.size + Cₘ (UInt256.ofNat 5) <
+        Cₘ (UInt256.ofNat M) := by
+    rw [show Cₘ (UInt256.ofNat 5) = 15 from by
+      decide]
+    rw [Cₘ, UInt256.toNat_ofNat_of_lt hMlt]
+    simp only [GasConstants.Gmemory, Cₘ.QuadraticCeofficient]
+    have hpow : UInt256.size + 15 < 2 ^ 491 := by decide
+    omega
+  have hg : g.toNat < UInt256.size := g.isLt
+  have hcost :
+      UInt256.size <
+        Cₘ (UInt256.ofNat M) - Cₘ (UInt256.ofNat 5) := by
+    omega
+  simpa [M] using lt_trans hg hcost
+
+end SimpleAuction
+
+end
 
 namespace SimpleAuction
 
@@ -2532,7 +2608,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
           have hBalEq :
               (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
                 (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=
-            withdrawAccountMapEquiv_balance hZeroMap I.codeOwner
+            accountMap_balance_eq_of_eq hZeroMap I.codeOwner
           have hcall :
               callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty

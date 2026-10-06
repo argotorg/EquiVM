@@ -1250,11 +1250,11 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                   simp [targetE, hBenefTarget]
                 _ = AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat := by
                   simpa [auctionEndBeneficiaryWordState] using
-                    (auctionEndAddress_ofNat_toNat
+                    (accountAddress_masked_ofNat_toNat
                       (auctionEndBeneficiaryRawWordState evmSAfter)).symm
                 _ = EVM.address
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat) := by
-                  exact (auctionEndAddress_from_toNat
+                  exact (evm_address_of_address_toNat
                     (AccountAddress.ofNat (auctionEndBeneficiaryWordState evmSAfter).toNat)).symm
             have hValueTarget :
                 auctionEndHighestBidWord evmEAfter.accountMap evmEAfter.executionEnv =

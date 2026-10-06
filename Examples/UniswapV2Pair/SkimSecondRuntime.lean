@@ -1,9 +1,33 @@
 import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.SkimSafeTransferRuntime
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem skimSecondBalanceStaticcallWriteLen_of_size_ge (out : ByteArray)
+    (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 32 := by
+  simpa using
+    umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hlo hhi
+
+theorem skimSecondBalanceStaticcallWriteLen_of_size_lt (out : ByteArray)
+    (hshort : out.size < 32) (hhi : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size := by
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hshort hhi
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 
@@ -175,7 +199,7 @@ theorem skimSecondBalanceStaticcallMem_size_of_size_ge
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
     (skimSecondBalanceStaticcallMem self o toWord value out).size = 388 := by
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
   rw [write32_eq _ _ 292 hout32
       (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; omega)]
   rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -190,7 +214,7 @@ theorem skimSecondBalanceStaticcallMem_read64_of_size_ge
     (skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding 64 32 =
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
   rw [write32_read_below _ _ 292 64 hout32
       (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; omega)
       (by omega)]
@@ -222,7 +246,7 @@ theorem skimSecondBalanceStaticcallMem_size_of_size_lt
     (hshort : out.size < 32) (houtSize : out.size < UInt256.size) :
     (skimSecondBalanceStaticcallMem self o toWord value out).size = 388 := by
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_lt out hshort houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_lt out hshort houtSize]
   by_cases hzero : out.size = 0
   · rw [hzero, byteArray_write_len_zero,
       skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]
@@ -240,7 +264,7 @@ theorem skimSecondBalanceStaticcallMem_read64_of_size_lt
     (skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding 64 32 =
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_lt out hshort houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_lt out hshort houtSize]
   by_cases hzero : out.size = 0
   · rw [hzero, byteArray_write_len_zero]
     exact skimSecondBalanceCalldataMem_read64 self toWord value ho32 hoSize
@@ -275,7 +299,7 @@ theorem skimSecondBalanceStaticcallMem_read292_of_size_ge
     (skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding 292 32 =
       out.extract 0 32 := by
   unfold skimSecondBalanceStaticcallMem
-  rw [secondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
+  rw [skimSecondBalanceStaticcallWriteLen_of_size_ge out hout32 houtSize]
   exact write32_read_back _ _ 292 hout32
     (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; omega)
 

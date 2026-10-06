@@ -2,9 +2,33 @@ import Reasoning.MemoryArithmetic
 import Examples.UniswapV2Pair.Dispatch
 import Reasoning.Memory
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem balanceOfThisStaticcallWriteLen_of_size_ge (o : ByteArray)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
+  simpa using
+    umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) hlo hhi
+
+theorem balanceOfThisStaticcallWriteLen_of_size_lt (o : ByteArray)
+    (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size := by
+  simpa using
+    umin_ofNat_right_toNat_of_lt (c := 32) (n := o.size) (by decide) hshort hhi
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 

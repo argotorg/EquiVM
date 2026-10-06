@@ -1253,7 +1253,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
           have hBalEq :
               (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
                 (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=
-            withdrawAccountMapEquiv_balance hZeroMap I.codeOwner
+            accountMap_balance_eq_of_eq hZeroMap I.codeOwner
           have hcall :
               callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty

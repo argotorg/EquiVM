@@ -614,7 +614,7 @@ theorem grantRoleAdminSlot_evm (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.siz
     grantRoleAdminSlot I = revokeRoleBaseSlot (grantRoleRoleWord I) + ⟨1⟩ := by
   unfold grantRoleAdminSlot roleAdminSlot roleDataSlot mapSlot addSlot
   rw [grantRoleRoleKeyValueToWord hsz68]
-  rw [revokeRoleAddSlot_eq]
+  rw [word_ofNat_add_one_eq]
   unfold revokeRoleBaseSlot
   rw [revokeRoleBaseHashMem_read0_64]
   rw [uInt256OfByteArray_eq]

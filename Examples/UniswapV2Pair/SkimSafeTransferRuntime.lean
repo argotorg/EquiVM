@@ -4,9 +4,37 @@ import Examples.UniswapV2Pair.BalanceCallMemory
 import Examples.UniswapV2Pair.SkimRuntime
 import Examples.UniswapV2Pair.StringReturn
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace UniswapV2Pair
+
+theorem skimSafeTransferReturnDataActiveWords_M_mul32_lt (out : ByteArray)
+    (houtSize : out.size < 2 ^ 255) :
+    MachineState.M (UInt256.ofNat 13).toNat 324 out.size * 32 < UInt256.size := by
+  rw [show (UInt256.ofNat 13).toNat = 13 from by decide]
+  unfold MachineState.M
+  split
+  · norm_num [UInt256.size]
+  · by_cases hle : 13 ≤ (324 + out.size + 31) / 32
+    · rw [Nat.max_eq_right hle]
+      have hdiv : ((324 + out.size + 31) / 32) * 32 ≤ 324 + out.size + 31 :=
+        Nat.div_mul_le_self _ _
+      have hcap : 2 ^ 255 + 355 < UInt256.size := by norm_num [UInt256.size]
+      omega
+    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
+      norm_num [UInt256.size]
+
+end UniswapV2Pair
+
+end
 
 namespace UniswapV2Pair
 
@@ -1475,7 +1503,7 @@ theorem skimSafeTransferReturnDataActiveWords_toNat_ge (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
     13 ≤ (skimSafeTransferReturnDataActiveWords out).toNat := by
   unfold skimSafeTransferReturnDataActiveWords
-  have hmul := safeTransferReturnDataActiveWords_M_mul32_lt out houtSize
+  have hmul := skimSafeTransferReturnDataActiveWords_M_mul32_lt out houtSize
   have hMlt : MachineState.M (UInt256.ofNat 13).toNat 324 out.size < UInt256.size := by
     omega
   rw [UInt256.toNat_ofNat_of_lt hMlt]
@@ -1489,7 +1517,7 @@ theorem skimSafeTransferReturnDataActiveWords_mul32_lt (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
     (skimSafeTransferReturnDataActiveWords out).toNat * 32 < UInt256.size := by
   unfold skimSafeTransferReturnDataActiveWords
-  have hmul := safeTransferReturnDataActiveWords_M_mul32_lt out houtSize
+  have hmul := skimSafeTransferReturnDataActiveWords_M_mul32_lt out houtSize
   have hMlt : MachineState.M (UInt256.ofNat 13).toNat 324 out.size < UInt256.size := by
     omega
   rw [UInt256.toNat_ofNat_of_lt hMlt]

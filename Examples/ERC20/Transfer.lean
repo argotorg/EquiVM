@@ -1607,7 +1607,7 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) (by decide)
       mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, subRet32_toNat]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, erc20SubRet32_toNat]
         exact transferReturnMem_read128 (transferToWord I) (transferValueWord I))
       (by evm_ov) ]
 

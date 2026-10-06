@@ -661,9 +661,9 @@ theorem simpleAuctionCtorAssignBeneficiary (evm : EVM.State) (biddingTime : Int)
         decide)
       (hloc := simpleAuctionConfig_storage_beneficiary)
       (hscalar := by trivial)
-  simpa [simpleAuctionCtorAfterBeneficiaryState, beneficiary_ofNat] using
+  simpa [simpleAuctionCtorAfterBeneficiaryState, accountAddress_of_addressWord_toNat] using
     storageLocStore_address_offset0 evm ⟨0⟩ (EVM.word beneficiaryAddress)
-      (beneficiaryWord_canonical beneficiaryAddress)
+      (addressWord_canonical_of_address beneficiaryAddress)
 
 theorem simpleAuctionCtorAuctionEndExprReverts
     (evm : EVM.State) (biddingTime : Int) (beneficiaryAddress : AccountAddress)
@@ -730,7 +730,7 @@ theorem simpleAuctionCtorAuctionEndExprOK
         .ok (.int (Int.ofNat
           (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
             biddingTime.toNat)).toNat)) := by
-  have hword := biddingWord_toNat biddingTime h0 hlt
+  have hword := uint256Word_of_nonneg_int_toNat biddingTime h0 hlt
   have hsumlt :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat <
         UInt256.size := by

@@ -4,9 +4,25 @@ import Reasoning.WordArithmetic
 import Examples.BlindAuction.Storage
 import Reasoning.SolmBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace BlindAuction
+
+theorem bidsSubRet64_toNat :
+    (UInt256.sub ((⟨64⟩ : UInt256) + ⟨128⟩) ⟨128⟩).toNat = 64 := by
+  decide
+
+end BlindAuction
+
+end
 
 namespace BlindAuction
 
@@ -905,7 +921,7 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
               |>.reEquivExecutionGen hcode hd hdec hbody
                 (by rfl)
                 (returnEquiv.returned rfl
-                  (bidsReturnEncoding (bidsBlindedWord σ I)
+                  (bytes32Uint256ReturnEncoding' (bidsBlindedWord σ I)
                     (bidsDepositWord σ I)))
           · have hbody := blindAuctionBidsBodyReverts_oob
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I

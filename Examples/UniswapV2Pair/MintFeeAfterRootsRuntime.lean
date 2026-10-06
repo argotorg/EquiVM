@@ -29,7 +29,7 @@ theorem uniswapMintFeeRuntimeAfterRootsNoMintReturnOfInt
         ⟨861⟩, sel]
       mem aw rdata σFee k' C' := by
   exact uniswapMintFeeRuntimeAfterRootsNoMintReturn rd7899
-    (mintFeeRuntimeRootLe_of_int_not_gt rootK rootKLast hroot hrootKSize hrootKLastSize)
+    (wordOfInt_toNat_le_of_int_not_gt rootK rootKLast hroot hrootKSize hrootKLastSize)
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
@@ -61,7 +61,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveNoLiquidityReturn
         ⟨861⟩, sel]
       mem aw rdata σFee k' C' := by
   have hrootGt :=
-    mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
+    wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   have hnumFitRuntime :
       (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat)
@@ -186,7 +186,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
           (uniswapInternalMintBalanceHashSlot feeTo mem) +
             mintFeeLiquidityWord evmFeeS rootK rootKLast)) k' C' := by
   have hrootGt :=
-    mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg
+    wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg
   have hnumFitRuntime :
       (solcSlotWordAt ⟨0⟩ σFee I).toNat *
           (UInt256.sub (UInt256.ofNat rootK.toNat)

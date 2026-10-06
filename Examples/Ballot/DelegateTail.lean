@@ -1968,7 +1968,7 @@ theorem ballotDelegateX_tailNotVotedOverflowFrom1211 {σ σ₀ A I}
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
   have rd1842 := evm_run rd1835 with [jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero]
   have hgt : UInt256.gt target (addend + target) = ⟨1⟩ := by
-    exact delegateOverflowGt target addend (by simpa [target, addend] using hover)
+    exact u256_gt_add_right_of_overflow target addend (by simpa [target, addend] using hover)
   have rd1842' := rd1842
   rw [show delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w = target from rfl,
       show delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I = addend from rfl,
@@ -2211,7 +2211,7 @@ theorem ballotDelegateX_tailVotedOverflowFrom1211 {σ σ₀ A I}
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
   have rd1842 := evm_run rd1835 with [jumpdest, dup1, dup3, add, dup1, dup3, gt, iszero]
   have hgt : UInt256.gt target (addend + target) = ⟨1⟩ := by
-    exact delegateOverflowGt target addend (by simpa [target, addend] using hover)
+    exact u256_gt_add_right_of_overflow target addend (by simpa [target, addend] using hover)
   have rd1842' := rd1842
   rw [show delegateTailProposalCountWord σ I w = target from rfl,
       show delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I = addend from rfl,

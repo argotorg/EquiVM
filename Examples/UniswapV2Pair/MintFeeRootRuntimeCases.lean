@@ -61,7 +61,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
         hrootKNonneg hrootKSize hrootKLastNonneg hnumFit
       rw [htotalEq] at hnumFitRuntime
       obtain ⟨_, _, rd7982⟩ := uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail (hov := hov)
-        rd7899 (mintFeeRuntimeRootGt_of_int_gt rootK rootKLast hroot hrootKSize hrootKLastNonneg)
+        rd7899 (wordOfInt_toNat_lt_of_int_lt rootK rootKLast hroot hrootKSize hrootKLastNonneg)
         hnumFitRuntime (mintFeeRuntimeRootTimesFiveFit rootK hrootFiveFit)
         (mintFeeRuntimeDenominatorFit rootK rootKLast hrootFiveFit hdenFit)
       obtain ⟨_, _, rd7999Raw⟩ := uniswapMintFeeRuntimePositiveLiquidityEntryOfTail (hov := hov) rd7982
@@ -139,7 +139,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
             rootK rootKLast, hAccounts, henv, rdRet, hmem, hmem64, rfl, hσ0⟩
     · exact Or.inl hrev
   · obtain ⟨_, _, rdRet⟩ := uniswapMintFeeRuntimeAfterRootsNoMintReturnOfTail rd7899
-      (mintFeeRuntimeRootLe_of_int_not_gt rootK rootKLast hroot hrootKSize hrootKLastSize)
+      (wordOfInt_toNat_le_of_int_not_gt rootK rootKLast hroot hrootKSize hrootKLastSize)
       hret hov
     exact Or.inr ⟨_, evmFeeS, σFee, mem, _, _,
       uniswapMintFeeAfterRoots_noMint evmFeeS reserve0 reserve1 feeTo kLast rootK rootKLast hroot,
