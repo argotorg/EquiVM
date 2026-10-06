@@ -260,17 +260,36 @@ theorem Layout.decodeUnchangedOfLayout {layout : Layout} {template : ByteArray}
       (by omega) harghi)
   · exact harghi
 
-/-- Discharge a concrete instruction's layout checks, then decode the template. -/
+/-- Lift one concrete template decode using one bundled check for the byte and windows. -/
+theorem Layout.decodeConcreteOfChecks {layout : Layout} {template : ByteArray}
+    {words : String → UInt256} (pc : UInt256) (byte : UInt8) (instr : Operation)
+    (arg : Option (UInt256 × Nat))
+    (hbound : layout.inBounds template = true)
+    (hsize64 : template.size < 2 ^ 64)
+    (checks : template.get? pc.toNat = some byte ∧
+      parseInstr byte = some instr ∧
+      layout.disjoint pc.toNat (pc.toNat + 1) = true ∧
+      pc.toNat + 1 ≤ template.size ∧
+      layout.disjoint (pc.toNat + 1)
+        (pc.toNat + 1 + argOnNBytesOfInstr instr) = true ∧
+      pc.toNat + 1 + argOnNBytesOfInstr instr ≤ template.size ∧
+      decode template pc = some (instr, arg)) :
+    decode (layout.runtime template words) pc = some (instr, arg) := by
+  rcases checks with ⟨hbyte, hinstr, hopdisj, hophi, hargdisj, harghi, hdecode⟩
+  rw [Layout.decodeUnchangedOfLayout pc byte instr hbound hsize64
+    hbyte hinstr hopdisj hophi hargdisj harghi]
+  exact hdecode
+
+/-- Decode with shared layout bounds and a single native check for a concrete instruction. -/
 macro "immutable_decode" "(" layout:term "," template:term "," words:term ","
-    pc:term "," byte:term "," instr:term ")" : tactic =>
+    pc:term "," byte:term "," instr:term "," arg:term ","
+    hbound:term "," hsize64:term ")" : tactic =>
   `(tactic|
     (conv_lhs => arg 2; change $pc
-     rw [Reasoning.Immutables.Layout.decodeUnchangedOfLayout
+     exact Reasoning.Immutables.Layout.decodeConcreteOfChecks
        (layout := $layout) (template := $template) (words := $words)
        (pc := $pc) (byte := $byte) (instr := $instr)
-       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-       (by native_decide) (by native_decide) (by native_decide) (by native_decide)]
-     native_decide))
+       (arg := $arg) $hbound $hsize64 (by native_decide)))
 
 theorem Layout.readSiteWord {layout : Layout} {template : ByteArray}
     {words : String → UInt256} (off : Nat) (key : String)

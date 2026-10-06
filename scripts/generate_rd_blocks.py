@@ -657,7 +657,8 @@ def simulate(block: list[Instruction], branch: str | None,
                 decode = (
                     "(by immutable_decode(__LAYOUT__, __TEMPLATE__, immWords, "
                     f"(⟨{ins.pc}⟩ : UInt256), UInt8.ofNat {ins.opcode}, "
-                    f"{lean_operation(ins)}))"
+                    f"{lean_operation(ins)}, {lean_decode_arg(ins)}, "
+                    "immutableLayout_inBounds, immutableTemplate_size64))"
                 )
         ov = "(by evm_ov)"
         step_pc = ins.size
@@ -1143,10 +1144,22 @@ def render_immutable_helpers(code: bytes, code_term: str, layout_term: str,
     used_pcs = {pc for unit in units if isinstance(unit, GeneratedUnit)
                 for pc in unit.pcs if pc + 1 in sites}
     instructions = {ins.pc: ins for ins in disassemble(code)}
+    site_entries = ", ".join(
+        f"({off}, 32, {json.dumps(key)})" for off, key in sites.items()
+    )
     output = [
+        "theorem immutableLayout_sites :",
+        f"    {layout_term}.sites = [{site_entries}] := by native_decide",
+        "",
+        "theorem immutableLayout_inBounds :",
+        f"    {layout_term}.inBounds {code_term} = true := by native_decide",
+        "",
+        "theorem immutableTemplate_size64 :",
+        f"    {code_term}.size < 2 ^ 64 := by native_decide",
+        "",
         "theorem immutableRuntime_size (immWords : String → UInt256) :",
         f"    ({layout_term}.runtime {code_term} immWords).size = {code_term}.size := by",
-        "  exact Layout.runtime_size_of_bounds (by native_decide)",
+        "  exact Layout.runtime_size_of_bounds immutableLayout_inBounds",
         "",
     ]
     for pc in sorted(used_pcs):
@@ -1173,14 +1186,14 @@ def render_immutable_helpers(code: bytes, code_term: str, layout_term: str,
                 f"    {off} {json.dumps(key)} {before} {after}",
                 "    (by native_decide) (immutableRuntime_size immWords)",
                 "    (by native_decide) (by native_decide)",
-                f"    (by simp [{layout_term}, Layout.writes, WindowDisjointFromWrites,",
-                "      UInt256.toNat, UInt256.size])",
+                "    (by simp [Layout.writes, immutableLayout_sites, WindowDisjointFromWrites,",
+                "      UInt256.toNat, UInt256.size] <;> native_decide)",
                 "    (by native_decide) (by rfl)",
                 "    (by",
                 "      rw [writeCascade_size]",
-                "      · simp [writeCascadeSize]",
-                "      · simp [WriteGapsOk])",
-                "    (by simp [WindowDisjointFromWrites])",
+                "      · simp [writeCascadeSize] <;> native_decide",
+                "      · simp [WriteGapsOk] <;> native_decide)",
+                "    (by simp [WindowDisjointFromWrites] <;> native_decide)",
                 "",
             ]
     return output

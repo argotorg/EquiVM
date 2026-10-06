@@ -60,6 +60,8 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn('immWords "owner"', rendered)
         self.assertIn("Layout.decodeSite", rendered)
         self.assertIn("immutable_decode(", rendered)
+        self.assertIn("theorem immutableLayout_inBounds", rendered)
+        self.assertIn("theorem immutableTemplate_size64", rendered)
         self.assertIn("theorem immutableDecode_0", rendered)
         self.assertNotIn("theorem immutableDecode_33", rendered)
         self.assertIn("(D_J (Contract.layout.runtime template immWords) 0)", rendered)
