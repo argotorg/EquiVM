@@ -10,7 +10,39 @@ import Benchmarks.Dss.Jug.FileDuty
 import Reasoning.ExternalCall
 import Reasoning.Initcode
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Jug
+
+theorem dripVatIlksPostCallWrite_size_gt64 {base : ByteArray} (out : ByteArray) (L : ℕ)
+    (hbase : base.size = 164) (hLo : L ≤ out.size) :
+    64 < (out.write 0 base 128 L).size := by
+  rcases Nat.eq_zero_or_pos L with hzero | hpos
+  · subst L
+    rw [byteArray_write_len_zero, hbase]
+    norm_num
+  · by_cases hin : 128 + L ≤ base.size
+    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+        ByteArray.size_extract, hbase]
+      omega
+    · have hdest : 128 ≤ base.size := by
+        rw [hbase]
+        omega
+      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
+      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
+      omega
+
+end Benchmarks.Dss.Jug
+
+end
 
 namespace Benchmarks.Dss.Jug
 
@@ -171,7 +203,7 @@ theorem dripVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
       (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size :=
     umin_ofNat_right_toNat_of_lt (c := 64) (n := out.size) (by decide) hshort hout
   rw [hlen]
-  exact vatIlksPostCallWrite_size_gt64 out out.size
+  exact dripVatIlksPostCallWrite_size_gt64 out out.size
     (dripVatIlksCalldataMem_size I (dripIlkHashMem_size I)) le_rfl
 
 theorem dripVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)

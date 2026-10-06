@@ -4,6 +4,7 @@ import Reasoning.SolmBody
 import Reasoning.Constructor
 import Solm.Equiv
 
+
 /-!
 # WETH9 constructor — Solm side
 
@@ -13,6 +14,48 @@ on a nonzero-value call the leading `require(msg.value == 0)` reverts the whole 
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.WETH9
+
+theorem weth9DecimalsStoreWord (w : UInt256) :
+    UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨18⟩ =
+      UInt256.ofNat (18 + 256 * (w.toNat / 256)) := by
+  apply u256_inj
+  unfold UInt256.lor UInt256.land UInt256.toNat Fin.lor Fin.land
+  change (Nat.lor ((Nat.land w.val.val (UInt256.lnot (⟨255⟩ : UInt256)).toNat) % UInt256.size) 18) %
+      UInt256.size = (18 + 256 * (w.toNat / 256)) % UInt256.size
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by decide
+  rw [hlnot]
+  change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 18) % UInt256.size =
+      (18 + 256 * (w.toNat / 256)) % UInt256.size
+  have hwlt : w.toNat < 2 ^ 256 := w.val.isLt
+  have hland_lt : Nat.land w.toNat (2 ^ 256 - 2 ^ 8) < UInt256.size := by
+    rw [natLandClearLow8 w.toNat hwlt]
+    exact lt_of_le_of_lt (Nat.div_mul_le_self _ _) w.val.isLt
+  rw [Nat.mod_eq_of_lt hland_lt, natLandClearLow8 w.toNat hwlt, show (256 : Nat) = 2 ^ 8 by
+    norm_num,
+    nat_lor_comm, nat_lor_shift_add 18 (w.toNat / 2 ^ 8) 8 (by norm_num),
+    Nat.mul_comm (w.toNat / 2 ^ 8) (2 ^ 8)]
+
+theorem weth9DecimalsStoreWord_toNat (w : UInt256) :
+    (UInt256.lor (UInt256.land w (UInt256.lnot ⟨255⟩)) ⟨18⟩).toNat = 18 + 256 * (w.toNat / 256) :=
+      by
+  rw [weth9DecimalsStoreWord]
+  refine ulit_toNat' _ ?_
+  have hlt : w.toNat < 2 ^ 256 := w.val.isLt
+  have hsz : UInt256.size = 2 ^ 256 := rfl
+  have hdiv : w.toNat / 256 < 2 ^ 248 := by
+    apply Nat.div_lt_of_lt_mul; rw [show 256 * 2 ^ 248 = 2 ^ 256 by norm_num]; omega
+  omega
+
+end Benchmarks.WETH9
+
+end
 
 namespace Benchmarks.WETH9
 
@@ -45,7 +88,7 @@ theorem weth9DecimalsStore (evm : EVM.State) :
     native_decide]
   rw [fromBytes'_append, fromBytes'_drop_wordLE]
   simp only [fromBytes']
-  rw [decimalsStoreWord_toNat]
+  rw [weth9DecimalsStoreWord_toNat]
   simp only [List.length_cons, List.length_nil, Nat.zero_add, pow_one, Nat.mul_zero, Nat.add_zero,
     show (8 * 1 : Nat) = 8 from rfl, show (↑(UInt8.toFin 18) : Nat) = 18 from rfl,
     show (2 : Nat) ^ 8 = 256 from rfl]

@@ -3,8 +3,28 @@ import Benchmarks.Dss.Clipper.TakeVatMoveSource
 import Benchmarks.Dss.Clipper.YankEVM
 import Benchmarks.Dss.Clipper.YankVatEVM
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakeVatMovePostCallAw_eq :
+    UInt256.ofNat
+      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
+        (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
+        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
+      UInt256.ofNat 9 := by
+  decide
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Benchmarks.Dss.Clipper
 
@@ -890,7 +910,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by

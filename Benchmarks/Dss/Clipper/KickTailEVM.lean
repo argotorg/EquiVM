@@ -214,7 +214,7 @@ theorem RD.clipperKickTopZeroReverts {code : ByteArray}
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by clipper_runtime_decode)
       mem_cost
-      (errorStringMem3_mload64 ⟨22⟩
+      (clipperKickErrorStringMem3_mload64 ⟨22⟩
         (UInt256.shiftLeft rawWord ⟨80⟩) hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov),

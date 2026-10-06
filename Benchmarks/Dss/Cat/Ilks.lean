@@ -582,7 +582,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
           solcAddrMask).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksFlipEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
@@ -604,7 +604,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksChopEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
@@ -626,7 +626,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcSlotWordAt (ilksDunkSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksDunkEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,

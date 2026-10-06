@@ -399,7 +399,7 @@ theorem catBiteReachGuardRoomSub {σ σ₀ A I} {g : UInt256}
     awInv32 aw (by omega)
   have hMq64 : UInt256.ofNat (MachineState.M aw.toNat (q + ⟨64⟩).toNat 32) = aw :=
     awInv32 aw (by omega)
-  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := catBiteAwMInv64 aw (by omega)
+  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := awInv64 aw (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
     by native_decide
   -- 1620 → 3818 (call the 96-byte allocator)

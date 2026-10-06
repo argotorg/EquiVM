@@ -7,10 +7,272 @@ import Reasoning.ABILegacy
 import Benchmarks.Dss.Dog.FileIlkUint
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Dog
+
+theorem fileIlkClipPostCallWrite_size_gt64 (out base : ByteArray) (L : Nat)
+    (hbase : base.size = 160) (hLo : L ≤ out.size) :
+    64 < (out.write 0 base 128 L).size := by
+  rcases Nat.eq_zero_or_pos L with hzero | hpos
+  · subst L
+    rw [byteArray_write_len_zero, hbase]
+    norm_num
+  · by_cases hin : 128 + L ≤ base.size
+    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+        ByteArray.size_extract, hbase]
+      omega
+    · have hdest : 128 ≤ base.size := by
+        rw [hbase]
+        omega
+      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
+      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
+      omega
+
+theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt0Mem word mem).size = 160 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt32Mem word mem).size = 160 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem solcErrorStringMem0_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem0 mem).size = 160 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
+
+theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_size_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).size = 160 := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_size_160 slot (wordAt0Mem_size_160 key hmem)
+
+theorem twoWordHashMem_read64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)
+      (by rw [wordAt0Mem_size_160 key hmem]; norm_num)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; norm_num)]
+  exact hread64
+
+theorem solcErrorStringMem1_size_of_size160 {mem : ByteArray} (hmem : mem.size = 160) :
+    (solcErrorStringMem1 mem).size = 164 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem0_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read0_160 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read32_160 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+theorem solcErrorStringMem2_size_of_size160 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem1_size_of_size160 hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem1_size_of_size160 hmem,
+    toByteArray_size]
+
+theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    UInt256.ofNat (fromByteArrayBigEndian
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+      solcMappingSlot baseSlot key := by
+  rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
+  unfold solcMappingSlot
+  exact mappingSlot_single key baseSlot
+
+theorem solcErrorStringMem3_size_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem2_size_of_size160 len hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size_of_size160 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size_of_size160 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide)
+    (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
+
+end Benchmarks.Dss.Dog
+
+namespace Benchmarks.Dss.Dog.RD
+
+theorem dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 5) rdata acc k C)
+    (hwf : solcErrorStringRevertTailDirectWf code pc len word op width)
+    (hpush : op ≠ .PUSH0)
+    (hmem : mem.size = 160)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hd68, hdDup3, hdAdd,
+      hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3, hdSub, hd100,
+      hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdWord := rdPrefix.pushConst word (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size160 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.Dog.RD
+
+end
 
 namespace Benchmarks.Dss.Dog
 
@@ -116,7 +378,7 @@ theorem fileIlkClipPostCallMem_size_gt64 {mem out : ByteArray}
       (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size :=
     umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hshort hout
   rw [hlen]
-  exact pokePeekPostCallWrite_size_gt64 out (fileIlkClipCallMem mem) out.size
+  exact fileIlkClipPostCallWrite_size_gt64 out (fileIlkClipCallMem mem) out.size
     (fileIlkClipCallMem_size hmem) le_rfl
 
 theorem fileIlkClipPostCallMem_read64_short {mem out : ByteArray}
@@ -2366,7 +2628,7 @@ theorem RD.dogFileIlkClipMismatchRevert {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.solcErrorStringRevertTailDirectAw5Size160
+  exact Benchmarks.Dss.Dog.RD.dogErrorStringRevertTailDirectAw5Size160
     (pc := ⟨2629⟩) (len := ⟨25⟩) (word := dogFileIlkClipMismatchRawWord)
     (op := .PUSH32) (width := 32) rd2629
     (by

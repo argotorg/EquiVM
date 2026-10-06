@@ -1,10 +1,52 @@
 import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Cat.BiteBodyReach
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cat
+
+/-- The active-words after the kick `CALL` (`aw' = M (M aw p 164) p 32`) still cover `[0, p+164)`:
+memory expansion is `max`-monotone, so the argument-region growth survives. -/
+theorem kickAwBound (aw p : UInt256) (hpsz : p.toNat + 164 < UInt256.size) :
+    p.toNat + 164 ≤
+      (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat * 32
+        := by
+  have hinnerEq : MachineState.M aw.toNat p.toNat 164 = max aw.toNat ((p.toNat + 164 + 31) / 32) :=
+    rfl
+  have houterEq : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 =
+      max (MachineState.M aw.toNat p.toNat 164) ((p.toNat + 32 + 31) / 32) := rfl
+  have hinner_ge : (p.toNat + 164 + 31) / 32 ≤ MachineState.M aw.toNat p.toNat 164 := by
+    rw [hinnerEq]; exact le_max_right _ _
+  have houter_ge : MachineState.M aw.toNat p.toNat 164 ≤
+      MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := by
+    rw [houterEq]; exact le_max_left _ _
+  have hlt : MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 < UInt256.size := by
+    rw [houterEq, hinnerEq]
+    have h1 : aw.toNat < UInt256.size := aw.val.isLt
+    have h2 : (p.toNat + 164 + 31) / 32 < UInt256.size := by omega
+    have h3 : (p.toNat + 32 + 31) / 32 < UInt256.size := by omega
+    omega
+  have hval : (UInt256.ofNat
+    (MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32)).toNat
+      = MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 := ulit_toNat' _ hlt
+  rw [hval]
+  have hceil : p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := by omega
+  calc p.toNat + 164 ≤ (p.toNat + 164 + 31) / 32 * 32 := hceil
+    _ ≤ MachineState.M (MachineState.M aw.toNat p.toNat 164) p.toNat 32 * 32 := by
+        have := le_trans hinner_ge houter_ge; exact Nat.mul_le_mul_right 32 this
+
+end Benchmarks.Dss.Cat
+
+end
 
 namespace Benchmarks.Dss.Cat
 
@@ -428,7 +470,7 @@ theorem catBiteKickSeg8b1P {σ σ₀ A I} {g : UInt256}
 
 The event data is built at `[p, p+160)` (`dink@p, dart@p+32, dtab@p+64, flip@p+96, id@p+128`), then
 `LOG3 Bite()` logs it, and the `@419` encoder writes `id@p` and returns `[p, p+32)`.  These two
-helpers are the `p`-relative analogues of `fiveWordWrite128_size`/`fiveWordWrite128_read64` (which bake `128`),
+helpers are the `p`-relative analogues of `seg8_evMemSize`/`seg8_evMemRead64` (which bake `128`),
 built on the offset-generic `wordWrite_size_of_le`/`wordWrite_read64_of_ge96`. -/
 
 

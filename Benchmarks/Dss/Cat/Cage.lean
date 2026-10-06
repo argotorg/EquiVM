@@ -150,11 +150,11 @@ theorem catCageBodyCore
         unfold solcAuthCheckWf
         repeat' first | apply And.intro | native_decide)
       hauthSolc (by jump_dest) (by simp)
-    obtain ⟨_, _, hretPc⟩ := RD.solcSlot2StoreZero
+    obtain ⟨_, _, hretPc⟩ := Benchmarks.Dss.Cat.RD.catStoreLiveZero
       (code := catBytecode) (pc := ⟨2922⟩) (ret := ⟨302⟩) (R := [sel])
       hokPc
       (by
-        unfold solcSlot2StoreZeroWf
+        unfold catStoreLiveZeroWf
         repeat' first | apply And.intro | native_decide)
       (by jump_dest) hperm (by simp)
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)

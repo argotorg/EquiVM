@@ -102,7 +102,7 @@ theorem weth9TFReqBalanceRev {ee g s0 rdata σ k C} {src dst wad ret : UInt256} 
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup4 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rdMasked
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdMasked
   have rdKey := rdMasked.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -146,7 +146,7 @@ theorem weth9TFBranchSkipSender {ee g s0 rdata σ k C} {src dst wad ret : UInt25
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rdMasked
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdMasked
   have rdEq := rdMasked.caller (by native_decide) (by simp only [List.length_cons]; omega)
     |>.eq (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -200,7 +200,7 @@ theorem weth9TFAllowLoaded {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd1144
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd1144
   have rd1144b := rd1144.caller (by native_decide) (by simp only [List.length_cons]; omega)
     |>.eq (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -218,7 +218,7 @@ theorem weth9TFAllowLoaded {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd1171
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd1171
   have rd1171b := rd1171.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -290,7 +290,7 @@ theorem weth9TFBranchSkipMax {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hallow : solcSlotWord σ ee (wtfAllowSlot ee src) = UInt256.lnot ⟨0⟩ :=
-    u256_inj (by rw [hmax, wtf_lnot0_toNat])
+    u256_inj (by rw [hmax, u256_lnot_zero_toNat])
   exact ⟨_, _, h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.iszero (by native_decide) (by simp only [List.length_cons]; omega)
     |>.pushConst (⟨1282⟩ : UInt256) (op := .PUSH2) (width := 2) (by decide) (by native_decide)
@@ -326,7 +326,7 @@ theorem weth9TFRequireAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt25
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd
   have rd2 := rd.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -392,7 +392,7 @@ theorem weth9TFDecrementAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt
     |>.sub (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.and (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [wtf_maskLiteral hsrc] at rd
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rd
   have rd2 := rd.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
     |>.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
@@ -545,7 +545,7 @@ theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List
   -- pc 1282 → 1293: build the address mask, mask `src`
   have rdA := evm_run h with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup1, dup6, and]
-  rw [wtf_maskLiteral hsrc] at rdA
+  rw [addressMaskLiteral_clean_of_canonical hsrc] at rdA
   -- pc 1294 → 1311: scratch `src ‖ 3`, keccak `balanceOf[src]` slot, DUP1 for the store
   have rdB := evm_run rdA with [
     push1 ⟨0⟩, dup2, dup2,
@@ -564,7 +564,7 @@ theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List
   obtain ⟨_, _, rdC2⟩ := rdC.sstore hperm (by native_decide) (by evm_ov)
   -- pc 1318 → 1320: mask `dst`
   have rdD := evm_run rdC2 with [swap4, dup8, and]
-  rw [wtf_maskLiteral hdst] at rdD
+  rw [addressMaskLiteral_clean_of_canonical hdst] at rdD
   -- pc 1321 → 1328: scratch `dst ‖ 3`, keccak `balanceOf[dst]` slot, DUP1 for the store
   have rdE := evm_run rdD with [
     dup1, dup4,

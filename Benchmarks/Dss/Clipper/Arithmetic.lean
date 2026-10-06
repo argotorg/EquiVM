@@ -2,8 +2,36 @@ import Reasoning.WordArithmetic
 import Benchmarks.Dss.Clipper.Fallback
 import Reasoning.EVMWord
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakeTabDivPrice_le_lot_of_owe_gt {tab price slice lot : UInt256}
+    (hmul : slice.toNat * price.toNat < UInt256.size)
+    (hgt : tab.toNat < (UInt256.mul slice price).toNat)
+    (hsliceLot : slice.toNat ≤ lot.toNat) :
+    (UInt256.div tab price).toNat ≤ lot.toNat := by
+  have hmulNat : (UInt256.mul slice price).toNat = slice.toNat * price.toNat := by
+    rw [u256_mul_toNat]
+    exact Nat.mod_eq_of_lt hmul
+  have hgtNat : tab.toNat < slice.toNat * price.toNat := by
+    simpa [hmulNat] using hgt
+  have hdivLt : tab.toNat / price.toNat < slice.toNat := by
+    apply Nat.div_lt_of_lt_mul
+    simpa [Nat.mul_comm] using hgtNat
+  rw [udiv_toNat]
+  omega
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Benchmarks.Dss.Clipper
 

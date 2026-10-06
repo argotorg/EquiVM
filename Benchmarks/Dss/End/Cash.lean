@@ -3,10 +3,182 @@ import Reasoning.MemoryShapes
 import Benchmarks.Dss.End.Dispatch
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem endWordAt0Mem_size_260 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (wordAt0Mem word mem).size = 260 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 260 260 hmem (by omega) (by omega)
+
+theorem endWordAt32Mem_size_260 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (wordAt32Mem word mem).size = 260 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 260 260 hmem (by omega) (by omega)
+
+theorem endWordAt32Mem_read64_260 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (wordAt32Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+    (by omega) (by rw [hmem]; omega)]
+  exact hread64
+
+theorem endCash_solcErrorStringMem0_size_260 {mem : ByteArray} (hmem : mem.size = 260) :
+    (solcErrorStringMem0 mem).size = 260 := by
+  unfold solcErrorStringMem0
+  exact toByteArray_write32_size_of_le mem solcErrorStringSelector 128 260 260
+    hmem (by omega) (by omega)
+
+theorem endWordAt32Mem_read0_64_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread0 : mem.readWithPadding 0 32 = UInt256.toByteArray key) :
+    (wordAt32Mem slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  have hsize : (wordAt32Mem slot mem).size = 260 :=
+    endWordAt32Mem_size_260 slot hmem
+  rw [show 64 = 32 + 32 from rfl,
+    byteArray_readWithPadding_split (wordAt32Mem slot mem) 0 32 32
+      (by omega) (by omega) (by omega) (by omega) (by omega) (by rw [hsize]; omega)]
+  have hleft :
+      (wordAt32Mem slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
+    unfold wordAt32Mem
+    rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega)]
+    exact hread0
+  have hright :
+      (wordAt32Mem slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
+    unfold wordAt32Mem
+    rw [write32_read_back _ _ 32 (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+    rw [toByteArray_extract_all]
+  rw [hleft, hright]
+
+theorem endTwoWordHashMem_size_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (twoWordHashMem key slot mem).size = 260 := by
+  unfold twoWordHashMem wordAt32Mem
+  exact toByteArray_write32_size_of_le (wordAt0Mem key mem) slot 32 260 260
+    (endWordAt0Mem_size_260 key hmem)
+    (by rw [endWordAt0Mem_size_260 key hmem]; omega) (by omega)
+
+theorem endTwoWordHashMem_read64_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_260 key hmem]; omega) (by omega)
+      (by rw [endWordAt0Mem_size_260 key hmem]; omega)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; omega)]
+  exact hread64
+
+theorem endTwoWordHashMem_read0_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_260 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem endTwoWordHashMem_read32_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_260 key hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray slot).size ≤ 32
+    rw [toByteArray_size])
+
+theorem endCash_solcErrorStringMem1_size_260 {mem : ByteArray} (hmem : mem.size = 260) :
+    (solcErrorStringMem1 mem).size = 260 := by
+  unfold solcErrorStringMem1
+  exact toByteArray_write32_size_of_le (solcErrorStringMem0 mem) ⟨32⟩ 132 260 260
+    (endCash_solcErrorStringMem0_size_260 hmem)
+    (by rw [endCash_solcErrorStringMem0_size_260 hmem]; omega) (by omega)
+
+theorem endTwoWordHashMem_read0_64_260 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [endTwoWordHashMem_size_260 key slot hmem]; omega)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [endTwoWordHashMem_size_260 key slot hmem]; omega),
+      endTwoWordHashMem_read0_260 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [endTwoWordHashMem_size_260 key slot hmem]; omega),
+      endTwoWordHashMem_read32_260 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num]
+  rw [hleft, hright]
+
+theorem endCash_solcErrorStringMem2_size_260 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (solcErrorStringMem2 len mem).size = 260 := by
+  unfold solcErrorStringMem2
+  exact toByteArray_write32_size_of_le (solcErrorStringMem1 mem) len 164 260 260
+    (endCash_solcErrorStringMem1_size_260 hmem)
+    (by rw [endCash_solcErrorStringMem1_size_260 hmem]; omega) (by omega)
+
+theorem endCash_solcErrorStringMem3_size_260 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260) :
+    (solcErrorStringMem3 len word mem).size = 260 := by
+  unfold solcErrorStringMem3
+  exact toByteArray_write32_size_of_le (solcErrorStringMem2 len mem) word 196 260 260
+    (endCash_solcErrorStringMem2_size_260 len hmem)
+    (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; omega) (by omega)
+
+theorem endCash_solcErrorStringMem3_read64_260 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 260)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem2_size_260 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [endCash_solcErrorStringMem1_size_260 hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem1_size_260 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [endCash_solcErrorStringMem0_size_260 hmem]; omega) (by omega)
+      (by rw [endCash_solcErrorStringMem0_size_260 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -330,7 +502,7 @@ theorem endCashOutInnerHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endCashOutInnerHashMem σ I amt out).size = 260 := by
   unfold endCashOutInnerHashMem
-  exact twoWordHashMem_size_260 (endCashIlkWord I) ⟨17⟩
+  exact endTwoWordHashMem_size_260 (endCashIlkWord I) ⟨17⟩
     (endCashFluxPostCallMem_size σ I amt out)
 
 theorem endCashOutInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -338,7 +510,7 @@ theorem endCashOutInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutInnerHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCashOutInnerHashMem
-  exact twoWordHashMem_read64_260 (endCashIlkWord I) ⟨17⟩
+  exact endTwoWordHashMem_read64_260 (endCashIlkWord I) ⟨17⟩
     (endCashFluxPostCallMem_size σ I amt out)
     (endCashFluxPostCallMem_read64 σ I amt out)
 
@@ -348,7 +520,7 @@ theorem endCashOutInnerHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
         (KEC ((endCashOutInnerHashMem σ I amt out).readWithPadding 0 64))) =
       solcMappingSlot ⟨17⟩ (endCashIlkWord I) := by
   unfold endCashOutInnerHashMem
-  rw [twoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
+  rw [endTwoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
     (endCashFluxPostCallMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (endCashIlkWord I) ⟨17⟩
@@ -357,7 +529,7 @@ theorem endCashOutHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endCashOutHashMem σ I amt out).size = 260 := by
   unfold endCashOutHashMem
-  exact twoWordHashMem_size_260 (solcSourceWord I)
+  exact endTwoWordHashMem_size_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutInnerHashMem_size σ I amt out)
 
@@ -366,7 +538,7 @@ theorem endCashOutHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCashOutHashMem
-  exact twoWordHashMem_read64_260 (solcSourceWord I)
+  exact endTwoWordHashMem_read64_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutInnerHashMem_size σ I amt out)
     (endCashOutInnerHashMem_read64 σ I amt out)
@@ -378,7 +550,7 @@ theorem endCashOutHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endCashOutSlot I := by
   rw [endCashOutSlot_eq (I := I) hsz68]
   unfold endCashOutHashMem
-  rw [twoWordHashMem_read0_64_260 (solcSourceWord I)
+  rw [endTwoWordHashMem_read0_64_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutInnerHashMem_size σ I amt out)]
   unfold solcMappingSlot
@@ -411,7 +583,7 @@ theorem endCashOutStoreInnerHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endCashOutStoreInnerHashMem σ I amt out).size = 260 := by
   unfold endCashOutStoreInnerHashMem
-  exact twoWordHashMem_size_260 (endCashIlkWord I) ⟨17⟩
+  exact endTwoWordHashMem_size_260 (endCashIlkWord I) ⟨17⟩
     (endCashOutHashMem_size σ I amt out)
 
 theorem endCashOutStoreInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -419,7 +591,7 @@ theorem endCashOutStoreInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutStoreInnerHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCashOutStoreInnerHashMem
-  exact twoWordHashMem_read64_260 (endCashIlkWord I) ⟨17⟩
+  exact endTwoWordHashMem_read64_260 (endCashIlkWord I) ⟨17⟩
     (endCashOutHashMem_size σ I amt out)
     (endCashOutHashMem_read64 σ I amt out)
 
@@ -429,7 +601,7 @@ theorem endCashOutStoreInnerHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
         (KEC ((endCashOutStoreInnerHashMem σ I amt out).readWithPadding 0 64))) =
       solcMappingSlot ⟨17⟩ (endCashIlkWord I) := by
   unfold endCashOutStoreInnerHashMem
-  rw [twoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
+  rw [endTwoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
     (endCashOutHashMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (endCashIlkWord I) ⟨17⟩
@@ -438,7 +610,7 @@ theorem endCashOutStoreHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endCashOutStoreHashMem σ I amt out).size = 260 := by
   unfold endCashOutStoreHashMem
-  exact twoWordHashMem_size_260 (solcSourceWord I)
+  exact endTwoWordHashMem_size_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutStoreInnerHashMem_size σ I amt out)
 
@@ -447,7 +619,7 @@ theorem endCashOutStoreHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutStoreHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCashOutStoreHashMem
-  exact twoWordHashMem_read64_260 (solcSourceWord I)
+  exact endTwoWordHashMem_read64_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutStoreInnerHashMem_size σ I amt out)
     (endCashOutStoreInnerHashMem_read64 σ I amt out)
@@ -457,7 +629,7 @@ theorem endCashOutStoreHashMem_read0 (σ : AccountMap) (I : ExecutionEnv)
     (endCashOutStoreHashMem σ I amt out).readWithPadding 0 32 =
       UInt256.toByteArray (solcSourceWord I) := by
   unfold endCashOutStoreHashMem
-  exact twoWordHashMem_read0_260 (solcSourceWord I)
+  exact endTwoWordHashMem_read0_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutStoreInnerHashMem_size σ I amt out)
 
@@ -468,7 +640,7 @@ theorem endCashOutStoreHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endCashOutSlot I := by
   rw [endCashOutSlot_eq (I := I) hsz68]
   unfold endCashOutStoreHashMem
-  rw [twoWordHashMem_read0_64_260 (solcSourceWord I)
+  rw [endTwoWordHashMem_read0_64_260 (solcSourceWord I)
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutStoreInnerHashMem_size σ I amt out)]
   unfold solcMappingSlot
@@ -478,7 +650,7 @@ theorem endCashBagHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endCashBagHashMem σ I amt out).size = 260 := by
   unfold endCashBagHashMem
-  exact wordAt32Mem_size_260 ⟨16⟩
+  exact endWordAt32Mem_size_260 ⟨16⟩
     (endCashOutStoreHashMem_size σ I amt out)
 
 theorem endCashBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -486,7 +658,7 @@ theorem endCashBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endCashBagHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCashBagHashMem
-  exact wordAt32Mem_read64_260 ⟨16⟩
+  exact endWordAt32Mem_read64_260 ⟨16⟩
     (endCashOutStoreHashMem_size σ I amt out)
     (endCashOutStoreHashMem_read64 σ I amt out)
 
@@ -497,7 +669,7 @@ theorem endCashBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endCashBagSlot I := by
   rw [endCashBagSlot_eq]
   unfold endCashBagHashMem
-  rw [wordAt32Mem_read0_64_260 (solcSourceWord I) ⟨16⟩
+  rw [endWordAt32Mem_read0_64_260 (solcSourceWord I) ⟨16⟩
     (endCashOutStoreHashMem_size σ I amt out)
     (endCashOutStoreHashMem_read0 σ I amt out)]
   unfold solcMappingSlot
@@ -2229,8 +2401,10 @@ theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : Executio
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
       mem_cost
       (mloadFreePtrValue
-        (by rw [solcErrorStringMem3_size_260 ⟨28⟩ endCashInsufficientBagRawWord hmem]; decide)
-        (solcErrorStringMem3_read64_260 ⟨28⟩ endCashInsufficientBagRawWord
+        (by
+          rw [endCash_solcErrorStringMem3_size_260 ⟨28⟩ endCashInsufficientBagRawWord hmem]
+          decide)
+        (endCash_solcErrorStringMem3_read64_260 ⟨28⟩ endCashInsufficientBagRawWord
           hmem hread64))
       (by decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),

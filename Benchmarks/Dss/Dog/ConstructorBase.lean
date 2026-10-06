@@ -4,6 +4,7 @@ import Reasoning.MemoryShapes
 import Benchmarks.Dss.Dog.Common
 import Reasoning.MemCascade
 
+
 /-!
 # MakerDAO/Sky DSS Dog constructor shared helpers
 
@@ -12,6 +13,80 @@ Shared bytecode, memory, immutable-patching, and storage-slot facts for the Dog 
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Dog
+
+theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt0Mem word mem).size = 192 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
+    (wordAt32Mem word mem).size = 192 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 192 192 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_192 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 192) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read0_192 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_192]
+        · omega
+        · exact wordAt0Mem_size_192 key hmem),
+      twoWordHashMem_read32_192 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.Dog
+
+end
 
 namespace Benchmarks.Dss.Dog
 
@@ -272,7 +347,7 @@ theorem dogCtorVatMem_mload128_shr96 (vat : AccountAddress) :
       (by rw [dogCtorVatMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorVatMem_read128 vat)]
-  exact vatWord_high_shift_decode vat
+  exact addressWord_shiftLeft96_shiftRight96 vat
 
 abbrev dogCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
@@ -328,7 +403,7 @@ theorem dogCtorWardsHashMem_mload128_shr96 (I : ExecutionEnv) (vat : AccountAddr
       (by rw [dogCtorWardsHashMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorWardsHashMem_read128 I vat)]
-  exact vatWord_high_shift_decode vat
+  exact addressWord_shiftLeft96_shiftRight96 vat
 
 theorem dogCtorVatMem_read64 (vat : AccountAddress) :
     (dogCtorVatMem vat).readWithPadding 64 32 =

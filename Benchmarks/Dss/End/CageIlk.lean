@@ -8,10 +8,42 @@ import Benchmarks.Dss.End.Dispatch
 import Benchmarks.Dss.End.Cage
 import Benchmarks.Dss.End.Flow
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem endCageIlkSpotIlksWriteLen_eq {out : ByteArray}
+    (hout : out.size < UInt256.size) :
+    (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 64 out.size := by
+  by_cases hle : 64 ≤ out.size
+  · rw [Nat.min_eq_left hle]
+    exact umin_ofNat_right_toNat_of_ge (c := 64) (n := out.size) (by decide) hle hout
+  · have hlt : out.size < 64 := by omega
+    rw [Nat.min_eq_right (by omega : out.size ≤ 64)]
+    exact umin_ofNat_right_toNat_of_lt (c := 64) (n := out.size) (by decide) hlt hout
+
+theorem endCageIlkNoArgWriteLen_eq {out : ByteArray}
+    (hout : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 32 out.size := by
+  by_cases hle : 32 ≤ out.size
+  · rw [Nat.min_eq_left hle]
+    exact umin_ofNat_right_toNat_of_ge (c := 32) (n := out.size) (by decide) hle hout
+  · have hlt : out.size < 32 := by omega
+    rw [Nat.min_eq_right (by omega : out.size ≤ 32)]
+    exact umin_ofNat_right_toNat_of_lt (c := 32) (n := out.size) (by decide) hlt hout
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -881,8 +913,8 @@ theorem endCageIlkSpotIlksDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
   have htake32 : ((out.toList.drop 32).take 32).length = 32 := by
     rw [List.length_take, List.length_drop, hlen]
     omega
-  have hword0 := endCageIlk_bytesToWord_drop_take32_eq_extract out 0
-  have hword32 := endCageIlk_bytesToWord_drop_take32_eq_extract out 32
+  have hword0 := bytesToWord_drop_take32_eq_extract' out 0
+  have hword32 := bytesToWord_drop_take32_eq_extract' out 32
   change ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [addr, uint256] out =
     some [.address (endCageIlkSpotIlkPipAddr out),
       .int (Int.ofNat (endCageIlkSpotIlkMatWord out).toNat)]
@@ -3305,11 +3337,11 @@ theorem endCageIlkVatIlksDecode_ok_aux {out : ByteArray} (hlo : 160 ≤ out.size
   have htake128 : ((out.toList.drop 128).take 32).length = 32 := by
     rw [List.length_take, List.length_drop, hlen]
     omega
-  have hword0 := endCageIlk_bytesToWord_drop_take32_eq_extract out 0
-  have hword32 := endCageIlk_bytesToWord_drop_take32_eq_extract out 32
-  have hword64 := endCageIlk_bytesToWord_drop_take32_eq_extract out 64
-  have hword96 := endCageIlk_bytesToWord_drop_take32_eq_extract out 96
-  have hword128 := endCageIlk_bytesToWord_drop_take32_eq_extract out 128
+  have hword0 := bytesToWord_drop_take32_eq_extract' out 0
+  have hword32 := bytesToWord_drop_take32_eq_extract' out 32
+  have hword64 := bytesToWord_drop_take32_eq_extract' out 64
+  have hword96 := bytesToWord_drop_take32_eq_extract' out 96
+  have hword128 := bytesToWord_drop_take32_eq_extract' out 128
   unfold ABI.decodeReturnValuesWithMode?
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256]) (by decide)]
@@ -3350,7 +3382,7 @@ theorem endCageIlkVatIlksDecode_ok {out : ByteArray} (hlo : 160 ≤ out.size) :
 
 theorem endCageIlkVatIlksDecode_none_short {out : ByteArray} (hshort : out.size < 160) :
     config.externalABI.decode? "vatIlks" out = none := by
-  have h := vatIlksDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyFiveUint256_none_short (out := out) hshort
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
 theorem endCageIlkSpotIlksDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
@@ -5638,7 +5670,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                     = EVM.address (AccountAddress.ofUInt256 (endPackVatWord σ I)) := by
                       rw [endPackVatAddr_eq_ofUInt256]
                 _ = AccountAddress.ofUInt256 (endPackVatWord σ I) :=
-                      cageIlkAddress_ofUInt256 (endPackVatWord σ I)
+                      address_of_addressOfUInt256 (endPackVatWord σ I)
             obtain ⟨σ_vat_solm, A_vat_solm, hcallSolmRaw, hAccountsVat,
                 hSubstateVat⟩ :=
               callMade_accountMapEq_with_substate
@@ -5829,7 +5861,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                             AccountAddress.ofUInt256
                               (endCageIlkSpotWord evmArtEvm.accountMap
                                 evmArtEvm.executionEnv) :=
-                          cageIlkAddress_ofUInt256
+                          address_of_addressOfUInt256
                             (endCageIlkSpotWord evmArtEvm.accountMap evmArtEvm.executionEnv)
                     obtain ⟨σ_spot_solm, A_spot_solm, hcallSpotSolmRaw,
                         hAccountsSpot, hSubstateSpot⟩ :=
@@ -6092,7 +6124,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                     AccountAddress.ofUInt256
                                       (endCageIlkSpotWord evmSpotEvm.accountMap
                                         evmSpotEvm.executionEnv) :=
-                                  cageIlkAddress_ofUInt256
+                                  address_of_addressOfUInt256
                                     (endCageIlkSpotWord evmSpotEvm.accountMap
                                       evmSpotEvm.executionEnv)
                             obtain ⟨σ_par_solm, A_par_solm, hcallParSolmRaw,
@@ -6490,7 +6522,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                         _ =
                                             AccountAddress.ofUInt256
                                               (endCageIlkPipCallWord spotOut) :=
-                                          cageIlkAddress_ofUInt256
+                                          address_of_addressOfUInt256
                                             (endCageIlkPipCallWord spotOut)
                                     obtain ⟨σ_read_solm, A_read_solm, hcallReadSolmRaw,
                                         hAccountsRead, hSubstateRead⟩ :=

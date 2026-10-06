@@ -244,7 +244,7 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
         ⟨0⟩ :: len :: pos :: key :: ret :: R)
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
   have hlastIndex : UInt256.sub len ⟨1⟩ = dropLastIndex len := by
-    simpa [dropLastIndex] using dropSubOne_eq_pred len hlenPos
+    simpa [dropLastIndex] using u256_sub_one_eq_pred_of_pos len hlenPos
   have hlastLt :
       UInt256.lt (dropLastIndex len) len ≠ ⟨0⟩ := by
     show UInt256.fromBool (decide ((dropLastIndex len).toNat < len.toNat)) ≠ ⟨0⟩
@@ -366,7 +366,7 @@ theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
       (wordAt0Mem ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (dropMoveElemAccountMapFor σ ee pos len) k' C' := by
   have hdstIndex : pos + UInt256.lnot ⟨0⟩ = dropDstIndex pos := by
-    simpa [dropDstIndex] using dropLenAddLnotZero_eq_pred pos hposNat
+    simpa [dropDstIndex] using u256_add_lnot_zero_eq_pred_of_pos pos hposNat
   have hdstLt :
       UInt256.lt (dropDstIndex pos) len ≠ ⟨0⟩ := by
     show UInt256.fromBool (decide ((dropDstIndex pos).toNat < len.toNat)) ≠ ⟨0⟩
@@ -578,7 +578,7 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
       srcsDataSlot + UInt256.ofNat (popLen.toNat - 1) = dropSrcsLastSlot popLen := by
     exact (dropSrcsLastSlot_eq popLen hlenPos).symm
   have hpred : popLen + UInt256.lnot ⟨0⟩ = UInt256.ofNat (popLen.toNat - 1) :=
-    dropLenAddLnotZero_eq_pred popLen hlenPos
+    u256_add_lnot_zero_eq_pred_of_pos popLen hlenPos
   have hlastSlotRaw :
       UInt256.lnot ⟨0⟩ + (popLen + srcsDataSlot) = dropSrcsLastSlot popLen := by
     rw [u256_add_comm (UInt256.lnot ⟨0⟩) (popLen + srcsDataSlot)]

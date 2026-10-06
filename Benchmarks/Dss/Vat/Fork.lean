@@ -5,6 +5,88 @@ import Reasoning.MemoryShapes
 import Reasoning.ABIComposite
 import Benchmarks.Dss.Vat.Signed
 
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Vat
+
+theorem forkIlkBytes_len (I : ExecutionEnv) (hsz164 : 164 ≤ I.calldata.size) :
+    ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [List.length_take, List.length_drop, htlen]
+  simp [abiBytes32Width]
+  omega
+
+theorem forkDustSourceCond_of_evm {art tab dust : UInt256}
+    (h :
+      UInt256.lor
+        (UInt256.eq ⟨0⟩ art)
+        (UInt256.isZero (UInt256.lt tab dust)) ≠ ⟨0⟩) :
+    dust.toNat ≤ tab.toNat ∨ art.toNat = 0 := by
+  by_cases hzero : UInt256.eq ⟨0⟩ art = ⟨0⟩
+  · have hcomm := h
+    rw [u256_lor_comm] at hcomm
+    have hltIsZero : UInt256.isZero (UInt256.lt tab dust) ≠ ⟨0⟩ :=
+      u256_lor_left_ne_zero_of_lor_ne_zero_right_zero hcomm hzero
+    have hlt : UInt256.lt tab dust = ⟨0⟩ :=
+      u256_isZero_ne_zero_to_eq_zero hltIsZero
+    exact Or.inl (ult_eq_zero_to_le hlt)
+  · have heq : (⟨0⟩ : UInt256) = art :=
+      u256_eq_ne_zero_to_eq hzero
+    exact Or.inr (by rw [← heq]; rfl)
+
+theorem forkDustSourceCond_false_of_evm {art tab dust : UInt256}
+    (h :
+      UInt256.lor
+        (UInt256.eq ⟨0⟩ art)
+        (UInt256.isZero (UInt256.lt tab dust)) = ⟨0⟩) :
+    tab.toNat < dust.toNat ∧ 0 < art.toNat := by
+  have heqZero : UInt256.eq ⟨0⟩ art = ⟨0⟩ := by
+    by_contra hne
+    have hart : (⟨0⟩ : UInt256) = art := u256_eq_ne_zero_to_eq hne
+    have hone : UInt256.eq ⟨0⟩ art = ⟨1⟩ := by
+      rw [← hart, u256_eq_refl]
+    exact u256_lor_one_left_ne_zero (UInt256.isZero (UInt256.lt tab dust))
+      (by simpa [hone] using h)
+  have hisZeroZero : UInt256.isZero (UInt256.lt tab dust) = ⟨0⟩ := by
+    by_contra hne
+    have hlor := h
+    rw [u256_lor_comm] at hlor
+    have hltZero : UInt256.lt tab dust = ⟨0⟩ :=
+      u256_isZero_ne_zero_to_eq_zero hne
+    have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
+      rw [hltZero]
+      decide
+    exact u256_lor_one_left_ne_zero (UInt256.eq ⟨0⟩ art)
+      (by simpa [hone] using hlor)
+  have hltNe : UInt256.lt tab dust ≠ ⟨0⟩ := by
+    intro hltZero
+    have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
+      rw [hltZero]
+      decide
+    rw [hone] at hisZeroZero
+    exact one_ne_zero_uint hisZeroZero
+  have hartPos : 0 < art.toNat := by
+    apply Nat.pos_of_ne_zero
+    intro hartNat
+    have hart : (⟨0⟩ : UInt256) = art := by
+      apply u256_inj
+      simpa [hartNat]
+    have hone : UInt256.eq ⟨0⟩ art = ⟨1⟩ := by
+      rw [← hart, u256_eq_refl]
+    rw [hone] at heqZero
+    exact one_ne_zero_uint heqZero
+  exact ⟨ult_ne_zero_toNat_lt hltNe, hartPos⟩
+
+end Benchmarks.Dss.Vat
+
+end
+
 namespace Benchmarks.Dss.Vat
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

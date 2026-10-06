@@ -393,7 +393,7 @@ theorem tfAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
   · unfold tfSrcSt
     rw [show wordLoc (balanceOfSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat)))
         = uint256Loc (balanceOfSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat))) from rfl,
-      storageLocStore_uint256_int, tfBalSrcSlot_eq, tf_wordOfInt_sub]
+      storageLocStore_uint256_int, tfBalSrcSlot_eq, wordOfInt_sub_natCasts]
 
 theorem tfAssignDst (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := tfStore I } evm
@@ -437,7 +437,7 @@ theorem tfAssignAllow (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.execution
           (.address I.source))
         = uint256Loc (allowanceSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat))
           (.address I.source)) from rfl,
-      storageLocStore_uint256_int, tfAllowSlot_eq, tf_wordOfInt_sub]
+      storageLocStore_uint256_int, tfAllowSlot_eq, wordOfInt_sub_natCasts]
 
 /-- Body, case `src == msg.sender`: the `&&` short-circuits, no allowance spend. -/
 theorem weth9TFSolmSkipSender {σ σ₀ A I} {g : Sat256}

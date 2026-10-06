@@ -470,7 +470,7 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
               (Solm.EVM.storageLoad evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩))
               (UInt256.lnot solcAddrMask))
       rw [clipperStorageLocStore_uint96_offset20_zero]
-      rw [hload, yankPackedClearZero]
+      rw [hload, addressMask_land_complement_eq_zero]
     have htop :
         storageLocStore evm3 (wordLoc (base + ⟨4⟩)) (.int 0) =
           some (Solm.EVM.storageStore evm3 evm3.executionEnv.codeOwner (base + ⟨4⟩) ⟨0⟩) := by
@@ -808,7 +808,7 @@ theorem clipperEvalYankSalesUsrNeZero_true (v : ClipperImmutables) (evm : EVM.St
         Value.address (AccountAddress.ofNat 0) := by
     intro hbad
     rw [Value.address.injEq] at hbad
-    exact redoMaskedAddress_ne_zero husr hbad
+    exact maskedAddress_ne_zero_of_mask_ne_zero husr hbad
   have hbeq :
       (Value.address (AccountAddress.ofNat
           (UInt256.land

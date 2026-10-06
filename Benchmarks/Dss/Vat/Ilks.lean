@@ -749,7 +749,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "Art")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksArtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
     change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "Art" (ilksArtSlotFor I) (ilksArtEvaledRef I)
       (by
@@ -764,7 +764,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "rate")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksRateSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
     change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "rate" (ilksRateSlotFor I) (ilksRateEvaledRef I)
       (by
@@ -779,7 +779,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "spot")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksSpotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
     change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "spot" (ilksSpotSlotFor I) (ilksSpotEvaledRef I)
       (by
@@ -794,7 +794,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "line")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksLineSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
     change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "line" (ilksLineSlotFor I) (ilksLineEvaledRef I)
       (by
@@ -809,7 +809,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "dust")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDustSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+    have hkeyLen := calldata_first_word_min_length (I := I) hsz36
     change _ = bytes32Width.val + 1 at hkeyLen
     exact evalIlksField evm "dust" (ilksDustSlotFor I) (ilksDustEvaledRef I)
       (by

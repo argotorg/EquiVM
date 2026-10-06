@@ -5,10 +5,162 @@ import Reasoning.SolcMemory
 import Benchmarks.Dss.End.Pack
 import Reasoning.MemCascade
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem endFree_solcErrorStringMem0_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
+    (solcErrorStringMem0 mem).size = 196 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem]
+
+theorem endFree_solcErrorStringMem1_size_of_size196 {mem : ByteArray} (hmem : mem.size = 196) :
+    (solcErrorStringMem1 mem).size = 196 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem0_size_of_size196 hmem]
+
+theorem endFree_solcErrorStringMem2_size_of_size196 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196) :
+    (solcErrorStringMem2 len mem).size = 196 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem1_size_of_size196 hmem]
+
+theorem endFree_solcErrorStringMem3_size_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem])]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    endFree_solcErrorStringMem2_size_of_size196 len hmem]
+
+theorem endFree_solcErrorStringMem3_read64_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]; omega) (by omega)
+      (by
+        rw [endFree_solcErrorStringMem2_size_of_size196 len hmem]
+        exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; omega) (by omega)
+      (by rw [endFree_solcErrorStringMem1_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; omega) (by omega)
+      (by rw [endFree_solcErrorStringMem0_size_of_size196 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem endFree_solcErrorStringMem3_mload64_of_size196 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [endFree_solcErrorStringMem3_size_of_size196 len word hmem]; decide)
+    (endFree_solcErrorStringMem3_read64_of_size196 len word hmem hread64)
+
+set_option maxHeartbeats 1000000 in
+theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 7) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 7)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 7)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdWord := evm_run rdRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at rdWord
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (endFree_solcErrorStringMem3_mload64_of_size196 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -611,7 +763,7 @@ theorem endFreeGrabEncode_eq (σ : AccountMap) (I : ExecutionEnv) (out : ByteArr
   have hdinkWord :
       EVM.wordOfInt (-(Int.ofNat (endFreeUrnInkWord out).toNat)) =
         endFreeGrabDinkWord out :=
-    freeWordOfInt_neg_ofNat_toNat (endFreeUrnInkWord out) hink
+    wordOfInt_neg_natCast_eq_sub_zero_of_le_sign (endFreeUrnInkWord out) hink
   have hdinkWordCast :
       EVM.wordOfInt (-((endFreeUrnInkWord out).toNat : Int)) =
         endFreeGrabDinkWord out := by
@@ -932,7 +1084,7 @@ theorem endFreeUrnsDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
 
 theorem endFreeUrnsDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
     config.externalABI.decode? "urns" out = none := by
-  have h := freeUrnsDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyUint256Pair_none_short (out := out) hshort
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
 
@@ -2583,7 +2735,7 @@ theorem endFreeX_artNonzero {σ σ₀ A I} {g : Sat256}
         mem (UInt256.ofNat 7) rdata acc (k + 1 + 1 + 1 + 1)
         (C + 3 + 3 + 3 + 10) := by
     convert rd7906 using 1
-  exact RD.solcErrorStringRevertTailAw7Size196
+  exact endFree_solcErrorStringRevertTail_aw7
     (pc := ⟨7906⟩) (len := ⟨16⟩)
     (rawWord := ⟨0x456e642f6172742d6e6f742d7a65726f⟩) (shift := ⟨128⟩)
     (word := UInt256.shiftLeft ⟨0x456e642f6172742d6e6f742d7a65726f⟩ ⟨128⟩)
@@ -2676,7 +2828,7 @@ theorem endFreeX_inkOverflow {σ σ₀ A I} {g : Sat256}
         mem (UInt256.ofNat 7) rdata acc (k + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)
         (C + 1 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 10) := by
     convert rd7982 using 1
-  exact RD.solcErrorStringRevertTailAw7Size196
+  exact endFree_solcErrorStringRevertTail_aw7
     (pc := ⟨7982⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x456e642f6f766572666c6f77⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨0x456e642f6f766572666c6f77⟩ ⟨160⟩)

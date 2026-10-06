@@ -235,7 +235,7 @@ theorem clipperTakeVatMoveEncode_eq (v : ClipperImmutables) (σ : AccountMap)
   have hvowWord :
       EVM.word (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat).val =
         clipperTakeVowTarget σ I := by
-    simpa [hvowClean] using takeWhoAddressWord (clipperTakeVowTarget σ I)
+    simpa [hvowClean] using word_of_addressOfNat_eq_mask' (clipperTakeVowTarget σ I)
   have howeWord : EVM.word owe.toNat = owe := u256_ofNat_toNat owe
   have howeLt : owe.toNat < EVM.twoPow 256 := by
     change owe.val.val < UInt256.size

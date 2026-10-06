@@ -481,7 +481,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact takeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)
   have hnoCodeSolm :
       (UInt256.ofNat
         ((evmVatSolm.lookupAccount
@@ -765,7 +765,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact takeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)
   have hcodeSolm :
       0 < (UInt256.ofNat
         ((evmVatSolm.lookupAccount
@@ -809,7 +809,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         AccountAddress.ofNat (UInt256.land who solcAddrMask).toNat =
           AccountAddress.ofNat (clipperTakeWhoWord I).toNat := by
       rw [hwhoClean, hwho]
-      exact (takeAddressOfWord_eq_masked (clipperTakeWhoWord I)).symm
+      exact (addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)).symm
     rw [htargetAddr] at hcallCbSolmRaw
     simpa only [evmCbSolm, hevmVatEnv, htab] using hcallCbSolmRaw
   have hcallback :=

@@ -11,6 +11,7 @@ import Reasoning.SolmBody
 import Reasoning.Constructor
 import Solm.Equiv
 
+
 /-!
 # WETH9 constructor correctness
 
@@ -23,6 +24,23 @@ is `nonpayable ++ [assign name, assign symbol, assign decimals]`.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.WETH9
+
+theorem weth9DecimalsWordComm (X : UInt256) :
+    UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩) X) =
+      UInt256.lor (UInt256.land X (UInt256.lnot ⟨255⟩)) ⟨18⟩ := by
+  rw [u256_land_comm (UInt256.lnot ⟨255⟩) X, u256_lor_comm ⟨18⟩
+    (UInt256.land X (UInt256.lnot ⟨255⟩))]
+
+end Benchmarks.WETH9
+
+end
 
 namespace Benchmarks.WETH9
 
@@ -382,7 +400,7 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : Accou
     show Solm.EVM.storageLoad (weth9SolmSymbolState evm0) cO ⟨2⟩ =
       ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
         (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) from rfl,
-    ← hload2, decimalsWordComm]
+    ← hload2, weth9DecimalsWordComm]
   rw [← hSym]
 
 /-! ## Final assembly -/

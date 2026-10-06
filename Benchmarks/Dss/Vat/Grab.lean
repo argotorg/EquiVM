@@ -5,6 +5,27 @@ import Benchmarks.Dss.Vat.Common
 import Benchmarks.Dss.Vat.Signed
 import Benchmarks.Dss.Vat.FoldCommon
 
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Vat
+
+theorem grabIBytes_len (I : ExecutionEnv) (hsz196 : 196 ≤ I.calldata.size) :
+    ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [List.length_take, List.length_drop, htlen]
+  simp [abiBytes32Width]
+  omega
+
+end Benchmarks.Dss.Vat
+
+end
+
 namespace Benchmarks.Dss.Vat
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -1915,7 +1936,7 @@ theorem evalStorageRef_grab_urn_ink_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [grabUrnInkEvaledRef, grabIValue, grabUValue, grabIKey, grabUKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hi, hu, frobIBytes_len I hsz196,
+    ← Std.HashMap.get?_eq_getElem?, hi, hu, grabIBytes_len I hsz196,
       show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
@@ -1928,7 +1949,7 @@ theorem evalStorageRef_grab_urn_art_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [grabUrnArtEvaledRef, grabIValue, grabUValue, grabIKey, grabUKey,
     urnsF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hi, hu, frobIBytes_len I hsz196,
+    ← Std.HashMap.get?_eq_getElem?, hi, hu, grabIBytes_len I hsz196,
       show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
@@ -1940,7 +1961,7 @@ theorem evalStorageRef_grab_ilk_art_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [grabIlkArtEvaledRef, grabIValue, grabIKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hi,
-    frobIBytes_len I hsz196, show bytes32Width = abiBytes32Width from rfl]
+    grabIBytes_len I hsz196, show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_grab_ilk_rate_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1951,7 +1972,7 @@ theorem evalStorageRef_grab_ilk_rate_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [grabIlkRateEvaledRef, grabIValue, grabIKey, ilksF, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, bind, pure, ← Std.HashMap.get?_eq_getElem?, hi,
-    frobIBytes_len I hsz196, show bytes32Width = abiBytes32Width from rfl]
+    grabIBytes_len I hsz196, show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
 theorem evalStorageRef_grab_gem_locals (evm : EVM.State) (I : ExecutionEnv)
@@ -1963,7 +1984,7 @@ theorem evalStorageRef_grab_gem_locals (evm : EVM.State) (I : ExecutionEnv)
   simp [grabGemEvaledRef, grabIValue, grabVValue, grabIKey, grabVKey,
     gemRef, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
     valueToKey?, EvalResult.ofOption, EvalResult.bind, bind, pure,
-    ← Std.HashMap.get?_eq_getElem?, hi, hv, frobIBytes_len I hsz196,
+    ← Std.HashMap.get?_eq_getElem?, hi, hv, grabIBytes_len I hsz196,
       show bytes32Width = abiBytes32Width from rfl]
 
 set_option linter.unusedSimpArgs false in
@@ -3835,7 +3856,7 @@ theorem execGrabSinSubCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (by simpa [hnew] using signedSubWrap sinOld dtabWord dtab hdtabMod)
     (by simpa [locals'] using hdtabAfter)
     (by simpa [locals'] using hstorageAfter)
-    (grabDtabSubGuardNegFailCond hdtabLo hdtabHi hdtabMod hfail)
+    (signedSubGuardNegFailCond_of_word hdtabLo hdtabHi hdtabMod hfail)
 
 theorem execGrabSinSubCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (sinOld sinNew dtabWord : UInt256) (dtab : Int)
@@ -3900,7 +3921,7 @@ theorem execGrabSinSubCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
           (.binary .le (.var "sinNew") (.storage (sinRef (.var "w"))))) =
         .ok (.bool true) :=
     evalSignedSubGuardNeg_true hdtabAfter hnewEval hstorageAfter
-      (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod hguardNeg)
+      (signedSubGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hguardNeg)
   exact execCheckedSubSignedRevertGuardPos
     (x := .storage (sinRef (.var "w"))) (y := .var "dtab")
     (name := "sinNew") hstorage hdtabEval
@@ -3908,7 +3929,7 @@ theorem execGrabSinSubCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (by simpa [locals'] using hdtabAfter)
     (by simpa [locals'] using hstorageAfter)
     (by simpa [locals'] using hguardNegEval)
-    (grabDtabSubGuardPosFailCond hdtabLo hdtabHi hdtabMod hfail)
+    (signedSubGuardPosFailCond_of_word hdtabLo hdtabHi hdtabMod hfail)
 
 theorem execGrabViceSubCheckedOk {evm : EVM.State}
     (locals : Store) (viceOld viceNew dtabWord : UInt256) (dtab : Int)
@@ -4034,7 +4055,7 @@ theorem execGrabViceSubCheckedRevertGuardNeg {evm : EVM.State}
     (by simpa [hnew] using signedSubWrap viceOld dtabWord dtab hdtabMod)
     (by simpa [locals'] using hdtabAfter)
     (by simpa [locals'] using hstorageAfter)
-    (grabDtabSubGuardNegFailCond hdtabLo hdtabHi hdtabMod hfail)
+    (signedSubGuardNegFailCond_of_word hdtabLo hdtabHi hdtabMod hfail)
 
 theorem execGrabViceSubCheckedRevertGuardPos {evm : EVM.State}
     (locals : Store) (viceOld viceNew dtabWord : UInt256) (dtab : Int)
@@ -4090,7 +4111,7 @@ theorem execGrabViceSubCheckedRevertGuardPos {evm : EVM.State}
           (.binary .le (.var "viceNew") (.storage viceRef))) =
         .ok (.bool true) :=
     evalSignedSubGuardNeg_true hdtabAfter hnewEval hstorageAfter
-      (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod hguardNeg)
+      (signedSubGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hguardNeg)
   exact execCheckedSubSignedRevertGuardPos
     (x := .storage viceRef) (y := .var "dtab")
     (name := "viceNew") hstorage hdtabEval
@@ -4098,7 +4119,7 @@ theorem execGrabViceSubCheckedRevertGuardPos {evm : EVM.State}
     (by simpa [locals'] using hdtabAfter)
     (by simpa [locals'] using hstorageAfter)
     (by simpa [locals'] using hguardNegEval)
-    (grabDtabSubGuardPosFailCond hdtabLo hdtabHi hdtabMod hfail)
+    (signedSubGuardPosFailCond_of_word hdtabLo hdtabHi hdtabMod hfail)
 
 theorem execGrabUrnArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (urnArtOld urnArtNew : UInt256)
@@ -5207,13 +5228,13 @@ theorem vatGrabSourceBodySuccessFromRuntimeGuards
     (grabDartAddGuardPosCond hIlkArtPos)
     (grabDinkSubGuardNegCond hGemPos)
     (grabDinkSubGuardPosCond hGemNeg)
-    (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod
+    (signedSubGuardNegCond_of_word hdtabLo hdtabHi hdtabMod
       (by simpa [grabSinPosOk, hDtabWord] using hSinPos))
-    (grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod
+    (signedSubGuardPosCond_of_word hdtabLo hdtabHi hdtabMod
       (by simpa [grabSinNegOk, hDtabWord] using hSinNeg))
-    (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod
+    (signedSubGuardNegCond_of_word hdtabLo hdtabHi hdtabMod
       (by simpa [grabVicePosOk, hDtabWord] using hVicePos))
-    (grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod
+    (signedSubGuardPosCond_of_word hdtabLo hdtabHi hdtabMod
       (by simpa [grabViceNegOk, hDtabWord] using hViceNeg))
 
 theorem vatGrabSourceBodyUrnInkRevertGuardNeg
@@ -9042,9 +9063,9 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                                     (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                                     hsz196))
                                               hdtabMod (by simp [grabSinNew, dtabWord])
-                                              (grabDtabSubGuardNegCond hdtabLo hdtabHi
+                                              (signedSubGuardNegCond_of_word hdtabLo hdtabHi
                                                 hdtabMod hSinPosS)
-                                              (grabDtabSubGuardPosCond hdtabLo hdtabHi
+                                              (signedSubGuardPosCond_of_word hdtabLo hdtabHi
                                                 hdtabMod hSinNegS)
                                           have hViceRevert :
                                               ExecBlock config
@@ -9260,9 +9281,9 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                                   (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                                   hsz196))
                                             hdtabMod (by simp [grabSinNew, dtabWord])
-                                            (grabDtabSubGuardNegCond hdtabLo hdtabHi
+                                            (signedSubGuardNegCond_of_word hdtabLo hdtabHi
                                               hdtabMod hSinPosS)
-                                            (grabDtabSubGuardPosCond hdtabLo hdtabHi
+                                            (signedSubGuardPosCond_of_word hdtabLo hdtabHi
                                               hdtabMod hSinNegS)
                                         have hViceRevert :
                                             ExecBlock config

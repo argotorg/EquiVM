@@ -47,7 +47,7 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
     apply hwhoVat
     have hmasked : AccountAddress.ofNat
         (UInt256.land (clipperTakeWhoWord I) solcAddrMask).toNat = v.vat := by
-      rw [← takeAddressOfWord_eq_masked (clipperTakeWhoWord I)]
+      rw [← addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)]
       exact hEq
     rw [← clipperTakeVatTargetAddress v] at hmasked
     rw [accountAddress_ofUInt256_eq_ofNat_toNat] at hmasked
@@ -65,8 +65,8 @@ theorem clipperEvalTakeCallbackGuardTrue (v : ClipperImmutables)
     intro hEq
     apply hwhoDog
     apply maskedAddress_injective
-    rw [← takeAddressOfWord_eq_masked (clipperTakeWhoWord I),
-      ← takeAddressOfWord_eq_masked (clipperTakeDogEVMWord evmVat)]
+    rw [← addressOfNat_eq_of_masked_word (clipperTakeWhoWord I),
+      ← addressOfNat_eq_of_masked_word (clipperTakeDogEVMWord evmVat)]
     exact hEq
   have hlen := clipperEvalTakeDataLength v evmLoc evmRead evmVat I price slice owe0 owe
     slice' tabNew lotNew

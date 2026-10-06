@@ -78,7 +78,7 @@ theorem clipperTakeRemoveEquiv
     have hlastIndexEq : lastIndex = UInt256.sub
         (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
       rw [show lastIndex = solcSlotWord σCont I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-      rw [yankLenAddLnotZero_eq_subOne, hstorage]
+      rw [u256_add_lnot_zero_eq_sub_one, hstorage]
     have hidEqSolm : clipperYankArgWord I =
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
           (clipperYankActiveSlot
@@ -139,7 +139,7 @@ theorem clipperTakeRemoveEquiv
     have hlastIndexEq : lastIndex = UInt256.sub
         (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
       rw [show lastIndex = solcSlotWord σCont I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-      rw [yankLenAddLnotZero_eq_subOne, hstorage]
+      rw [u256_add_lnot_zero_eq_sub_one, hstorage]
     have hidNeSolm : clipperYankArgWord I ≠
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
           (clipperYankActiveSlot
@@ -205,7 +205,7 @@ theorem clipperTakeRemoveEquiv
     have hlastIndexEq : lastIndex = UInt256.sub
         (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
       rw [show lastIndex = solcSlotWord σCont I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-      rw [yankLenAddLnotZero_eq_subOne, hstorage]
+      rw [u256_add_lnot_zero_eq_sub_one, hstorage]
     have hmoveSolm :
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
           (clipperYankActiveSlot
@@ -286,7 +286,7 @@ theorem clipperTakeRemoveEquiv
     have hlastIndexAfterEq : lastIndexAfter = popLastIndex := by
       rw [show lastIndexAfter = solcSlotWord σMove I ⟨11⟩ +
         UInt256.lnot ⟨0⟩ from rfl]
-      rw [yankLenAddLnotZero_eq_subOne, hstorageMove]
+      rw [u256_add_lnot_zero_eq_sub_one, hstorageMove]
     have hAccountsFinal :=
       clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
@@ -309,7 +309,7 @@ theorem clipperTakeRemoveEquiv
     have hlastIndexEq : lastIndex = UInt256.sub
         (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
       rw [show lastIndex = solcSlotWord σCont I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-      rw [yankLenAddLnotZero_eq_subOne, hstorage]
+      rw [u256_add_lnot_zero_eq_sub_one, hstorage]
     have hidNeSolm : clipperYankArgWord I ≠
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner
           (clipperYankActiveSlot

@@ -734,7 +734,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -749,7 +749,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8301 := rd8300.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw1])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw1])
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -765,7 +765,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8306 := rd8305.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw2])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw2])
     hslot (by rfl) (by evm_ov)
   have rd8307pre := evm_run rd8306 with [
     raw add (by clipper_yank_remove_decode) (by evm_ov)]
@@ -903,7 +903,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -1016,7 +1016,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8331pre := rd8330pre.keccak256 (Cₘ aw5 - Cₘ aw4) (clipperYankSalesBaseSlot ee) aw5
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, yankU256_64_toNat, aw5])
+    (by simp [M, MachineState.M, u256_64_toNat, aw5])
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
@@ -1154,7 +1154,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   have rd8378pre := rd8377pre.keccak256 (Cₘ aw10 - Cₘ aw9)
     (clipperYankSalesMovePosSlot move) aw10
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, yankU256_64_toNat, aw10])
+    (by simp [M, MachineState.M, u256_64_toNat, aw10])
     hmoveBase (by rfl) (by evm_ov)
   obtain ⟨k8379, C8379, rd8379raw⟩ :
       ∃ k C, RD code ee g s0 ⟨8379⟩
@@ -1235,7 +1235,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -1250,7 +1250,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8301 := rd8300.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw1])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw1])
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -1266,7 +1266,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8306 := rd8305.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw2])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw2])
     hslot (by rfl) (by evm_ov)
   have rd8307pre := evm_run rd8306 with [
     raw add (by clipper_yank_remove_decode) (by evm_ov)]
@@ -1309,14 +1309,14 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8322 := rd8321pre.mstore (Cₘ aw3 - Cₘ aw2) saleKeyMem aw3
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw3])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw3])
     (by simpa [saleKeyMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have rd8326pre := evm_run rd8322 with [
     raw push1 ⟨12⟩ (by clipper_yank_remove_decode) (by evm_ov),
     raw push1 ⟨32⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8327 := rd8326pre.mstore (Cₘ aw4 - Cₘ aw3) saleHashMem aw4
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw4])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw4])
     (by rfl) (by rfl) (by evm_ov)
   have hsalesBase :
       UInt256.ofNat
@@ -1339,7 +1339,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8331pre := rd8330pre.keccak256 (Cₘ aw5 - Cₘ aw4) (clipperYankSalesBaseSlot ee) aw5
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw5])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw5])
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
@@ -1495,7 +1495,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8396 := rd8395pre.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw1])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw1])
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -1512,7 +1512,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw dup3 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8401 := rd8400pre.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw2])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw2])
     hslot (by rfl) (by evm_ov)
   have rd8411pre := evm_run rd8401 with [
     raw dup4 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1570,7 +1570,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8421 := rd8420pre.mstore (Cₘ aw3 - Cₘ aw2) saleKeyMem aw3
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw3])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw3])
     (by simpa [saleKeyMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have rd8425pre := evm_run rd8421 with [
     raw push1 ⟨12⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1578,7 +1578,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8426 := rd8425pre.mstore (Cₘ aw4 - Cₘ aw3) saleHashMem aw4
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw4])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw4])
     (by rfl) (by rfl) (by evm_ov)
   have hbase :
       UInt256.ofNat
@@ -1601,7 +1601,7 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8431hash := rd8431.keccak256 (Cₘ aw5 - Cₘ aw4) base aw5
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw5])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw5])
     hbase (by rfl) (by evm_ov)
   have rd8433pre := evm_run rd8431hash with [
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1689,20 +1689,20 @@ theorem RD.clipperYankRemoveJoinSuccess
     raw dup1 (by clipper_yank_post_remove_decode) (by evm_ov)]
   have rd2545 := rd2544pre.mload (Cₘ aw6 - Cₘ aw5) freePtr aw6
     (by clipper_yank_post_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw6])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw6])
     (by rfl) (by rfl) (by evm_ov)
   have rd2547pre := evm_run rd2545 with [
     raw dup3 (by clipper_yank_post_remove_decode) (by evm_ov),
     raw dup2 (by clipper_yank_post_remove_decode) (by evm_ov)]
   have rd2548 := rd2547pre.mstore (Cₘ aw7 - Cₘ aw6) eventMem aw7
     (by clipper_yank_post_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw7])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw7])
     (by rfl) (by rfl) (by evm_ov)
   have rd2549pre := evm_run rd2548 with [
     raw swap1 (by clipper_yank_post_remove_decode) (by evm_ov)]
   have rd2550 := rd2549pre.mload (Cₘ aw8 - Cₘ aw7) freePtrBase aw8
     (by clipper_yank_post_remove_decode)
-    (by simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw8])
+    (by simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw8])
     (by rfl) (by rfl) (by evm_ov)
   have rd2583 := rd2550.pushConst yankTopic (width := 32) (op := .PUSH32)
     (by decide)
@@ -1733,7 +1733,7 @@ theorem RD.clipperYankRemoveJoinSuccess
       (RD.log1 (Cₘ aw9 - Cₘ aw8) aw9 rd2591pre
         (by clipper_yank_post_remove_decode) hperm
         (by
-          simp [M, MachineState.M, u256_32_toNat, yankU256_64_toNat, aw9, logSize])
+          simp [M, MachineState.M, u256_32_toNat, u256_64_toNat, aw9, logSize])
         (by simp [aw9, logSize])
         (by evm_ov))
   have rd2597pre := evm_run rd2592 with [

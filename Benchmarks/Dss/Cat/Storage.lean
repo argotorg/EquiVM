@@ -2,10 +2,55 @@ import Reasoning.SolcRoutines
 import Benchmarks.Dss.Cat.Common
 import Solm.Equiv
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cat
+
+@[reducible] def catStoreLiveZeroWf (code : ByteArray) (pc : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p3 := p1 + UInt256.ofNat 2
+  let p5 := p3 + UInt256.ofNat 2
+  let p6 := p5 + ⟨1⟩
+  decode code pc = some (.JUMPDEST, .none)
+  ∧ decode code p1 = some (.Push .PUSH1, some (⟨0⟩, 1))
+  ∧ decode code p3 = some (.Push .PUSH1, some (⟨2⟩, 1))
+  ∧ decode code p5 = some (.SSTORE, .none)
+  ∧ decode code p6 = some (.JUMP, .none)
+
+end Benchmarks.Dss.Cat
+
+namespace Benchmarks.Dss.Cat.RD
+
+theorem catStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : catStoreLiveZeroWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hperm : ee.perm = true)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
+      (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' := by
+  rcases hwf with ⟨hd0, hd1, hd3, hd5, hd6⟩
+  have rdStore := evm_run h with [
+    raw jumpdest hd0 (by evm_ov),
+    raw push1 ⟨0⟩ hd1 (by evm_ov),
+    raw push1 ⟨2⟩ hd3 (by evm_ov)]
+  obtain ⟨_, _, rdOut⟩ := rdStore.sstore hperm hd5 (by evm_ov)
+  exact ⟨_, _, rdOut.jump hd6 hret (by evm_ov)⟩
+
+end Benchmarks.Dss.Cat.RD
+
+end
 
 namespace Benchmarks.Dss.Cat
 

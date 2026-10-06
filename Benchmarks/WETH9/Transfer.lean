@@ -237,7 +237,7 @@ theorem xferCall_assignSrc (evm : EVM.State) (I : ExecutionEnv) :
     (by trivial) ?_
   unfold xferSrcSt
   rw [show wordLoc (callerBalSlot I) = uint256Loc (callerBalSlot I) from rfl,
-    storageLocStore_uint256_int, tf_wordOfInt_sub]
+    storageLocStore_uint256_int, wordOfInt_sub_natCasts]
 theorem xferCall_assignDst (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := transferCallStore I }
       (xferSrcSt evm I) .storage (balanceOfRef (.var "dst"))

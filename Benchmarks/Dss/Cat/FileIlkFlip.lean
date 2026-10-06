@@ -7,10 +7,43 @@ import Benchmarks.Dss.Cat.FileIlkFlipCalls2
 import Benchmarks.Dss.Cat.BiteSource
 import Solm.Equiv
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 400000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cat
+
+theorem fifWordAt0Mem_size_164 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 164) :
+    (wordAt0Mem word mem).size = 164 := by
+  unfold wordAt0Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem fifWordAt32Mem_size_164 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 164) :
+    (wordAt32Mem word mem).size = 164 := by
+  unfold wordAt32Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, hmem, toByteArray_size]
+  omega
+
+theorem fifTwoWordHashMem_size_164 {mem : ByteArray} (key slot : UInt256) (hmem : mem.size = 164) :
+    (twoWordHashMem key slot mem).size = 164 := by
+  unfold twoWordHashMem
+  exact fifWordAt32Mem_size_164 slot (fifWordAt0Mem_size_164 key hmem)
+
+end Benchmarks.Dss.Cat
+
+end
 
 namespace Benchmarks.Dss.Cat
 
@@ -288,7 +321,8 @@ theorem RD.catFileIlkFlipHopePostCallGen {σ σ₀ A I} {g : Sat256} {flip ret s
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       rfl
       (by
-        have h := fifHopeEncode_eq hmem (UInt256.land flip solcAddrMask) (fifHopeArg_canonical flip)
+        have h :=
+          fifHopeEncode_eq hmem (UInt256.land flip solcAddrMask) (maskedWord_address_canonical flip)
         simpa [show (⟨128⟩ : UInt256).toNat = 128 from rfl,
           show (⟨36⟩ : UInt256).toNat = 36 from rfl] using h)
       ?_
@@ -919,7 +953,7 @@ theorem catFileIlkFlipBody {σ σ₀ A I} {g : UInt256}
             have hStoreMem164 :
                 (twoWordHashMem (fileIlkFlipIlkWord I) ⟨1⟩
                   (fifNopeCdMem I (fifNopeArg σ I))).size = 164 :=
-              twoWordHashMem_size_164 _ _ (fifNopeCdMem_size I (fifNopeArg σ I))
+              fifTwoWordHashMem_size_164 _ _ (fifNopeCdMem_size I (fifNopeArg σ I))
             have hStoreRead64 :
                 (twoWordHashMem (fileIlkFlipIlkWord I) ⟨1⟩
                   (fifNopeCdMem I (fifNopeArg σ I))).readWithPadding 64 32 =

@@ -260,8 +260,10 @@ theorem catBiteGrabEncode_eq (p ilk urn thisW vowRaw dink dart : UInt256) {mem :
   have hdartHi2 : -(dart.toNat : ℤ) < (EVM.twoPow 255 : ℤ) := by
     have h2 : (0 : ℤ) ≤ (dart.toNat : ℤ) := Nat.cast_nonneg _
     omega
-  have hdinkW : EVM.wordOfInt (-(dink.toNat : ℤ)) = UInt256.sub ⟨0⟩ dink := grab_neg_int_word dink
-  have hdartW : EVM.wordOfInt (-(dart.toNat : ℤ)) = UInt256.sub ⟨0⟩ dart := grab_neg_int_word dart
+  have hdinkW : EVM.wordOfInt (-(dink.toNat : ℤ)) = UInt256.sub ⟨0⟩ dink :=
+    wordOfInt_neg_natCast_eq_sub_zero dink
+  have hdartW : EVM.wordOfInt (-(dart.toNat : ℤ)) = UInt256.sub ⟨0⟩ dart :=
+    wordOfInt_neg_natCast_eq_sub_zero dart
   simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.abiTupleHeadSize?,
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, bytes32, bytes32Width, addr, int256, int256Int,

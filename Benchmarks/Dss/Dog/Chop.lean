@@ -226,11 +226,11 @@ theorem dogChopBodyCoreOk
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     (dogPatchedJumpDest hpatch (by native_decide))
     (by simp only [List.length_singleton]; omega)
-  obtain ⟨_, _, hretPc⟩ := RD.solcMapping1Offset1Getter
+  obtain ⟨_, _, hretPc⟩ := Benchmarks.Dss.Dog.RD.solcIlksChopGetter
     (code := code) (pc := ⟨2343⟩) (key := key) (ret := ⟨448⟩) (R := [sel])
     (by simpa [key, chopArgWord] using hroutine)
     (by
-      unfold solcMapping1Offset1GetterWf
+      unfold solcIlksChopGetterWf
       repeat' first
         | apply And.intro
         | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]

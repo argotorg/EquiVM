@@ -5,6 +5,7 @@ import Reasoning.Memory
 import Benchmarks.Dss.Clipper.Rely
 import Reasoning.MemCascade
 
+
 /-!
 # MakerDAO/Sky DSS Clipper constructor shared helpers
 
@@ -13,6 +14,80 @@ Deployment-shape, fixed-prefix decoding, constructor memory, storage, and immuta
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem wordAt0Mem_size_320 {mem : ByteArray} (word : UInt256)
+    (hmem : mem.size = 320) : (wordAt0Mem word mem).size = 320 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 320 320 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_320 {mem : ByteArray} (word : UInt256)
+    (hmem : mem.size = 320) : (wordAt32Mem word mem).size = 320 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 320 320 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_64_320 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 320) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by
+    unfold twoWordHashMem
+    rw [wordAt32Mem_size_320]
+    · omega
+    · exact wordAt0Mem_size_320 key hmem)]
+  have hleft : (twoWordHashMem key slot mem).extract 0 32 =
+      UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+      unfold twoWordHashMem
+      rw [wordAt32Mem_size_320]
+      · omega
+      · exact wordAt0Mem_size_320 key hmem)]
+    unfold twoWordHashMem wordAt32Mem
+    rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_320 key hmem]; omega) (by omega)]
+    exact wordAt0Mem_read0 key mem
+  have hright : (twoWordHashMem key slot mem).extract 32 64 =
+      UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+      unfold twoWordHashMem
+      rw [wordAt32Mem_size_320]
+      · omega
+      · exact wordAt0Mem_size_320 key hmem)]
+    unfold twoWordHashMem wordAt32Mem
+    rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_320 key hmem]; omega)]
+    exact toByteArray_extract_all slot
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+      (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+theorem twoWordHashMem_read_preserved_320 {mem : ByteArray}
+    (key slot : UInt256) (read : Nat) (hmem : mem.size = 320) (hread : 64 ≤ read)
+    (hwindow : read + 32 ≤ 320) :
+    (twoWordHashMem key slot mem).readWithPadding read 32 =
+      mem.readWithPadding read 32 := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above (UInt256.toByteArray slot) (wordAt0Mem key mem) 32 read
+    (by rw [toByteArray_size]) (by rw [wordAt0Mem_size_320 key hmem]; omega)
+    (by omega) (by rw [wordAt0Mem_size_320 key hmem]; omega)]
+  unfold wordAt0Mem
+  rw [write32_read_above (UInt256.toByteArray key) mem 0 read
+    (by rw [toByteArray_size]) (by rw [hmem]; omega) (by omega) (by rw [hmem]; omega)]
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Benchmarks.Dss.Clipper
 

@@ -1077,7 +1077,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
   have rd374 := rd373.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd376 := rd374.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd377 := rd376.dup1 (by native_decide) (by evm_ov)
@@ -1086,7 +1086,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     (Cₘ (listReturnOffsetAw aw fmp) - Cₘ (listReturnMload64Aw aw))
     (listReturnOffsetMem fmp mem) (listReturnOffsetAw aw fmp) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd380 := rd379.dup4 (by native_decide) (by evm_ov)
   have rd381 := rd380.mload
@@ -1094,7 +1094,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
       Cₘ (listReturnOffsetAw aw fmp))
     len (listReturnArrayMloadAw aw fmp arrPtr) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
-      listReturnArrayMloadAw, u256_32_toNat, yankU256_64_toNat])
+      listReturnArrayMloadAw, u256_32_toNat, u256_64_toNat])
     hloadArr (by rfl) (by evm_ov)
   have rd382 := rd381.dup2 (by native_decide) (by evm_ov)
   have rd383 := rd382.dup4 (by native_decide) (by evm_ov)
@@ -1106,7 +1106,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
       listReturnArrayMloadAw, listReturnLengthAw, u256_32_toNat,
-      yankU256_64_toNat])
+      u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd386 := rd385.dup4 (by native_decide) (by evm_ov)
   have rd387 := rd386.mload
@@ -1115,7 +1115,7 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     len (listReturnFinalAw aw fmp arrPtr) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
       listReturnArrayMloadAw, listReturnLengthAw, listReturnFinalAw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hloadArrTail (by rfl) (by evm_ov)
   have rd405 := evm_run rd387 with [
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, dup2, add, swap2,
@@ -1155,7 +1155,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
   have rd418 := rd417.mload (Cₘ (listReturnCopyMloadAw aw src i) - Cₘ aw)
     word (listReturnCopyMloadAw aw src i) (by native_decide)
     (by simp [M, MachineState.M, listReturnCopyMloadAw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload (by rfl) (by evm_ov)
   have rd419 := rd418.dup4 (by native_decide) (by evm_ov)
   have rd420 := rd419.dup3 (by native_decide) (by evm_ov)
@@ -1166,7 +1166,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
     (listReturnCopyStepMem word dst i mem)
     (listReturnCopyStepAw aw src dst i) (by native_decide)
     (by simp [M, MachineState.M, listReturnCopyMloadAw, listReturnCopyStepAw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd424 := rd422.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd425 := rd424.add (by native_decide) (by evm_ov)
@@ -1308,7 +1308,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
   have rd444 := rd443.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
     (by simp [M, MachineState.M, listReturnMload64Aw,
-      u256_32_toNat, yankU256_64_toNat])
+      u256_32_toNat, u256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd445 := rd444.dup1 (by native_decide) (by evm_ov)
   have rd446 := rd445.swap2 (by native_decide) (by evm_ov)

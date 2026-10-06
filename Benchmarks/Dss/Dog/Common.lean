@@ -14,6 +14,7 @@ import Reasoning.Initcode
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
+
 /-!
 # MakerDAO/Sky DSS Dog shared proof foundation
 
@@ -24,6 +25,96 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Dog
+
+@[reducible] def solcIlksChopGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
+  let p1 := pc + ⟨1⟩
+  let p3 := p1 + UInt256.ofNat 2
+  let p4 := p3 + ⟨1⟩
+  let p5 := p4 + ⟨1⟩
+  let p6 := p5 + ⟨1⟩
+  let p8 := p6 + UInt256.ofNat 2
+  let p10 := p8 + UInt256.ofNat 2
+  let p11 := p10 + ⟨1⟩
+  let p12 := p11 + ⟨1⟩
+  let p13 := p12 + ⟨1⟩
+  let p15 := p13 + UInt256.ofNat 2
+  let p16 := p15 + ⟨1⟩
+  let p17 := p16 + ⟨1⟩
+  let p18 := p17 + ⟨1⟩
+  let p19 := p18 + ⟨1⟩
+  let p20 := p19 + ⟨1⟩
+  let p21 := p20 + ⟨1⟩
+  decode code pc = some (.JUMPDEST, .none)
+  ∧ decode code p1 = some (.Push .PUSH1, some (⟨0⟩, 1))
+  ∧ decode code p3 = some (.SWAP1, .none)
+  ∧ decode code p4 = some (.DUP2, .none)
+  ∧ decode code p5 = some (.MSTORE, .none)
+  ∧ decode code p6 = some (.Push .PUSH1, some (⟨1⟩, 1))
+  ∧ decode code p8 = some (.Push .PUSH1, some (⟨32⟩, 1))
+  ∧ decode code p10 = some (.DUP2, .none)
+  ∧ decode code p11 = some (.SWAP1, .none)
+  ∧ decode code p12 = some (.MSTORE, .none)
+  ∧ decode code p13 = some (.Push .PUSH1, some (⟨64⟩, 1))
+  ∧ decode code p15 = some (.SWAP1, .none)
+  ∧ decode code p16 = some (.SWAP2, .none)
+  ∧ decode code p17 = some (.KECCAK256, .none)
+  ∧ decode code p18 = some (.ADD, .none)
+  ∧ decode code p19 = some (.SLOAD, .none)
+  ∧ decode code p20 = some (.SWAP1, .none)
+  ∧ decode code p21 = some (.JUMP, .none)
+
+end Benchmarks.Dss.Dog
+
+namespace Benchmarks.Dss.Dog.RD
+
+theorem solcIlksChopGetter {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hwf : solcIlksChopGetterWf code pc)
+    (hret : (D_J code 0).contains ret = true)
+    (hov : R.length + 6 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ret
+      (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) :: R)
+      (twoWordHashMem key ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3) rdata
+      σ k' C' := by
+  rcases hwf with
+    ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
+      hd17, hd18, hd19, hd20, hd21⟩
+  have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
+  have rd3 := rd1.push1 ⟨0⟩ hd1 (by evm_ov)
+  have rd4 := rd3.swap1 hd3 (by evm_ov)
+  have rd5 := rd4.dup2 hd4 (by evm_ov)
+  have rd6 := rd5.mstore 0 (wordAt0Mem key solcFreePtrMem)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by decide) (by evm_ov)
+  have rd8 := rd6.push1 ⟨1⟩ hd6 (by evm_ov)
+  have rd10 := rd8.push1 ⟨32⟩ hd8 (by evm_ov)
+  have rd11 := rd10.dup2 hd10 (by evm_ov)
+  have rd12 := rd11.swap1 hd11 (by evm_ov)
+  have rd13 := rd12.mstore 0 (twoWordHashMem key ⟨1⟩ solcFreePtrMem)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide) (by evm_ov)
+  have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
+  have rd16 := rd15.swap1 hd15 (by evm_ov)
+  have rd17 := rd16.swap2 hd16 (by evm_ov)
+  have hslot := twoWordHashMem_solcMappingSlot ⟨1⟩ key solcFreePtrMem_size
+  have rd18 := rd17.keccak256 0 (solcMappingSlot ⟨1⟩ key)
+    (UInt256.ofNat 3) hd17 mem_cost hslot (by decide) (by evm_ov)
+  have rd19 := rd18.add hd18 (by evm_ov)
+  obtain ⟨_, _, rd20⟩ := rd19.sload hd19 (by evm_ov)
+  have rd21 := rd20.swap1 hd20 (by evm_ov)
+  exact ⟨_, _, by simpa [solcSlotWord] using rd21.jump hd21 hret (by evm_ov)⟩
+
+end Benchmarks.Dss.Dog.RD
+
+end
 
 namespace Benchmarks.Dss.Dog
 

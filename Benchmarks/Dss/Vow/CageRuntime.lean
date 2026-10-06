@@ -2,9 +2,50 @@ import Reasoning.MemoryArithmetic
 import Benchmarks.Dss.Vow.CageBody
 import Benchmarks.Dss.Vow.FlapBody
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Vow
+
+theorem returnWrite_size_164 {base : ByteArray} (o : ByteArray) (L : ℕ)
+    (hbase : base.size = 164) (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 base 128 L).size = 164 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hbase
+  · rw [write_eq_gen o base 128 L (by omega) hLo (by rw [hbase]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, hbase]
+    omega
+
+theorem returnWrite_read64 {base : ByteArray} (o : ByteArray) (L : ℕ)
+    (hbase : base.size = 164)
+    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hL : L ≤ 32) (hLo : L ≤ o.size) :
+    (o.write 0 base 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hread64
+  · rw [write_read_below_gen o base 128 L 64 (by omega) hLo (by rw [hbase]; omega)
+      (by omega), hread64]
+
+theorem returnWrite_read128_32 {base : ByteArray} (o : ByteArray)
+    (hbase : base.size = 164) (ho32 : 32 ≤ o.size) :
+    (o.write 0 base 128 32).readWithPadding 128 32 = o.extract 0 32 :=
+  write32_read_back o base 128 ho32 (by rw [hbase]; omega)
+
+end Benchmarks.Dss.Vow
+
+end
 
 namespace Benchmarks.Dss.Vow
 

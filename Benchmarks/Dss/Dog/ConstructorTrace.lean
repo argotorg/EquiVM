@@ -124,7 +124,7 @@ theorem dogCtorVatDecodeReach
     raw mstore 0 (dogCtorVatMem vat) (UInt256.ofNat 6)
       (by dog_ctor_decode) mem_cost
       (by
-        rw [vatPackedHighMask vat]
+        rw [addressWord_shiftLeft96_high_mask vat]
         unfold dogCtorVatMem Reasoning.Theory.writeWord
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide])
       (by decide) (by evm_ov)]
@@ -232,7 +232,7 @@ theorem dogCtorReturnTrace
       (by decide) (by evm_ov),
     push1 ⟨96⟩, shr]
   have rdVat := by
-    simpa [vatWord_high_shift_decode vat] using rdVatRaw
+    simpa [addressWord_shiftLeft96_shiftRight96 vat] using rdVatRaw
   have rdBeforeReturn := dog_ctor_run rdVat with [
     push2 ⟨4745⟩, push2 ⟨182⟩, push1 ⟨0⟩,
     raw codecopy

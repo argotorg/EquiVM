@@ -17,7 +17,7 @@ def initializerBodyPc (i : InitializerBodySite) : UInt256 :=
 
 def initializerEntered (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   if initializingWord σ I = ⟨0⟩ then
-    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerBeginWord (solcSlotWord σ I ⟨0⟩))
+    sstoreAccountMap I.codeOwner σ ⟨0⟩ (setBoolPairTrueWord (solcSlotWord σ I ⟨0⟩))
   else σ
 
 def initializerBeginWf (i : InitializerBodySite) : Prop :=

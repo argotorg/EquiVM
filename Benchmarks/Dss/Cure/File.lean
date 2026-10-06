@@ -2,9 +2,43 @@ import Reasoning.MemoryArithmetic
 import Reasoning.ABILegacy
 import Benchmarks.Dss.Cure.Rely
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cure
+
+theorem fileEventMem_size {mem : ByteArray} (data : UInt256)
+    (hmem : mem.size = 96) :
+    ((UInt256.toByteArray data).write 0 mem 128 32).size = 160 := by
+  exact toByteArray_write32_size_of_ge mem data 128 96 160 hmem (by omega)
+    (lt_usize _ (by decide)) (by omega)
+
+theorem fileEventMem_read64 {mem : ByteArray} (data : UInt256)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    ((UInt256.toByteArray data).write 0 mem 128 32).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  have hgap : 128 - mem.size < USize.size := by
+    rw [hmem]
+    exact lt_usize _ (by decide)
+  have hreadBound : 64 + 32 ≤ mem.size := by
+    omega
+  have hbelow : 64 + 32 ≤ 128 := by
+    norm_num
+  rw [toByteArray_write_read_below_of_gap data mem 128 64
+    hreadBound hbelow hgap]
+  exact hread64
+
+end Benchmarks.Dss.Cure
+
+end
 
 namespace Benchmarks.Dss.Cure
 

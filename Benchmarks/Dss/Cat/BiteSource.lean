@@ -188,7 +188,7 @@ theorem biteFlipRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         solcAddrMask).toNat))
     hbase
     (by
-      have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+      have hkeyLen := calldata_first_word_min_length (I := I) hsz36
       change _ = bytes32Width.val + 1 at hkeyLen
       have hvar : evalExpr? config { contract := contract, locals := locals } evm (.var "ilk") =
           .ok (biteIlkVal I) := by
@@ -220,7 +220,7 @@ theorem biteChopRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       (solcSlotWordAt (biteChopSlot I) evm.accountMap evm.executionEnv).toNat))
     hbase
     (by
-      have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+      have hkeyLen := calldata_first_word_min_length (I := I) hsz36
       change _ = bytes32Width.val + 1 at hkeyLen
       have hvar : evalExpr? config { contract := contract, locals := locals } evm (.var "ilk") =
           .ok (biteIlkVal I) := by
@@ -252,7 +252,7 @@ theorem biteDunkRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       (solcSlotWordAt (biteDunkSlot I) evm.accountMap evm.executionEnv).toNat))
     hbase
     (by
-      have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+      have hkeyLen := calldata_first_word_min_length (I := I) hsz36
       change _ = bytes32Width.val + 1 at hkeyLen
       have hvar : evalExpr? config { contract := contract, locals := locals } evm (.var "ilk") =
           .ok (biteIlkVal I) := by

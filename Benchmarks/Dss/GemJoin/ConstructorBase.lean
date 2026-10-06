@@ -6,11 +6,86 @@ import Reasoning.ExternalCall
 import Reasoning.Initcode
 import Solm.Equiv
 
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor shared helpers
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.GemJoin
+
+theorem wordAt0Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
+    (wordAt0Mem word mem).size = 224 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 224 224 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_224 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 224) :
+    (wordAt32Mem word mem).size = 224 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 224 224 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below_len _ _ 32 0 32 (by rw [toByteArray_size])
+    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by omega)
+    (by rw [wordAt0Mem_size_224 key hmem]; omega) (by decide) (by norm_num)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  exact toByteArray_write_read_back_of_gap slot (wordAt0Mem key mem) 32
+    (by rw [wordAt0Mem_size_224 key hmem]; exact lt_usize 0 (by decide))
+
+theorem twoWordHashMem_read0_64_224 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 224) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num) (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_224]
+        · omega
+        · exact wordAt0Mem_size_224 key hmem)]
+  have h0 :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 0 32
+        (by norm_num) (by norm_num) (by
+          unfold twoWordHashMem
+          rw [wordAt32Mem_size_224]
+          · omega
+          · exact wordAt0Mem_size_224 key hmem),
+      twoWordHashMem_read0_224 key slot hmem]
+  have h32 :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract' (twoWordHashMem key slot mem) 32 32
+        (by norm_num) (by norm_num) (by
+          unfold twoWordHashMem
+          rw [wordAt32Mem_size_224]
+          · omega
+          · exact wordAt0Mem_size_224 key hmem),
+      twoWordHashMem_read32_224 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num, h0, h32]
+
+end Benchmarks.Dss.GemJoin
+
+end
 
 namespace Benchmarks.Dss.GemJoin
 

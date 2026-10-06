@@ -677,7 +677,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
         have hlastIndexEq : lastIndex = UInt256.sub
             (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
           rw [show lastIndex = solcSlotWord σFlux I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-          rw [yankLenAddLnotZero_eq_subOne, hstorageFlux]
+          rw [u256_add_lnot_zero_eq_sub_one, hstorageFlux]
         have hidEqSolm : clipperYankArgWord I =
             Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner
               (clipperYankActiveSlot
@@ -745,7 +745,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
         have hlastIndexEq : lastIndex = UInt256.sub
             (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
           rw [show lastIndex = solcSlotWord σFlux I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-          rw [yankLenAddLnotZero_eq_subOne, hstorageFlux]
+          rw [u256_add_lnot_zero_eq_sub_one, hstorageFlux]
         have hidNeSolm : clipperYankArgWord I ≠
             Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner
               (clipperYankActiveSlot
@@ -811,7 +811,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
         have hlastIndexEq : lastIndex = UInt256.sub
             (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
           rw [show lastIndex = solcSlotWord σFlux I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-          rw [yankLenAddLnotZero_eq_subOne, hstorageFlux]
+          rw [u256_add_lnot_zero_eq_sub_one, hstorageFlux]
         have hmoveSolm :
             Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner
                 (clipperYankActiveSlot
@@ -897,7 +897,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
         have hlastIndexAfterEq : lastIndexAfter = popLastIndex := by
           rw [show lastIndexAfter = solcSlotWord σMove I ⟨11⟩ +
             UInt256.lnot ⟨0⟩ from rfl]
-          rw [yankLenAddLnotZero_eq_subOne, hstorageMove]
+          rw [u256_add_lnot_zero_eq_sub_one, hstorageMove]
         have hAccountsFinal :=
           clipperYankSuccessAccountMap_state_accounts_eq
             (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
@@ -922,7 +922,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
         have hlastIndexEq : lastIndex = UInt256.sub
             (Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩) ⟨1⟩ := by
           rw [show lastIndex = solcSlotWord σFlux I ⟨11⟩ + UInt256.lnot ⟨0⟩ from rfl]
-          rw [yankLenAddLnotZero_eq_subOne, hstorageFlux]
+          rw [u256_add_lnot_zero_eq_sub_one, hstorageFlux]
         have hidNeSolm : clipperYankArgWord I ≠
             Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner
               (clipperYankActiveSlot
@@ -1093,7 +1093,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquivFromPostCallAccounts
         AccountAddress.ofUInt256
           (UInt256.land (clipperTakeWhoWord I) solcAddrMask) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact takeAddressOfWord_eq_masked (clipperTakeWhoWord I)
+    exact addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)
   have hcodeSolm :
       0 < (UInt256.ofNat
         ((evmVatSolm.lookupAccount
@@ -1137,7 +1137,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquivFromPostCallAccounts
         AccountAddress.ofNat (UInt256.land who solcAddrMask).toNat =
           AccountAddress.ofNat (clipperTakeWhoWord I).toNat := by
       rw [hwhoClean, hwho]
-      exact (takeAddressOfWord_eq_masked (clipperTakeWhoWord I)).symm
+      exact (addressOfNat_eq_of_masked_word (clipperTakeWhoWord I)).symm
     rw [htargetAddr] at hcallCbSolmRaw
     simpa only [evmCbSolm, hevmVatEnv, htab] using hcallCbSolmRaw
   have hcallback :=

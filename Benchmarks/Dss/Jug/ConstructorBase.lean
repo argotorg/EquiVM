@@ -6,6 +6,7 @@ import Reasoning.ExternalCall
 import Reasoning.Initcode
 import Solm.Equiv
 
+
 /-!
 # MakerDAO/Sky DSS Jug constructor shared helpers
 
@@ -14,6 +15,80 @@ semantics proofs.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Jug
+
+theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt0Mem word mem).size = 160 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem wordAt32Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
+    (wordAt32Mem word mem).size = 160 := by
+  unfold wordAt32Mem
+  exact toByteArray_write32_size_of_le mem word 32 160 160 hmem
+    (by rw [hmem]; omega) (by omega)
+
+theorem twoWordHashMem_read0_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 =
+      UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem twoWordHashMem_read32_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 =
+      UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [wordAt0Mem_size_160 key hmem]; omega)]
+  exact toByteArray_extract_all slot
+
+theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 160) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read0_160 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32 (by
+        unfold twoWordHashMem
+        rw [wordAt32Mem_size_160]
+        · omega
+        · exact wordAt0Mem_size_160 key hmem),
+      twoWordHashMem_read32_160 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+    rw [ByteArray.extract_append_extract]
+    norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.Jug
+
+end
 
 namespace Benchmarks.Dss.Jug
 

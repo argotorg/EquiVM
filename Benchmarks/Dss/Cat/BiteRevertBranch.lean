@@ -1945,7 +1945,8 @@ theorem catBiteReachGuardRoomSubAw {σ σ₀ A I} {g : UInt256}
   have hMq : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat q.toNat 32) = ⟨9⟩ := awInv32 ⟨9⟩ (by omega)
   have hMq32 : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat (q + ⟨32⟩).toNat 32) = ⟨9⟩ :=
     awInv32 ⟨9⟩ (by omega)
-  have hMkec : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 0 64) = ⟨9⟩ := catBiteAwMInv64 ⟨9⟩ (by omega)
+  have hMkec : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 0 64) = ⟨9⟩ :=
+    awInv64 ⟨9⟩ (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
     by native_decide
   have hDunkOff : (q + ⟨64⟩).toNat = 288 := by rw [eq64, hqNat]
@@ -3832,7 +3833,7 @@ theorem catBiteRevertIlksDecode {σ σ₀ A I} {g : UInt256}
 
 These four `require`s fire after the `milk`-struct build (`aw = ⟨10⟩`, free pointer `mem[0x40] = 320`,
 `mem.size = 320`), so they route through the fp=320 `Error(string)` tail
-`RD.solcErrorStringRevertTail320` rather than the pre-milk fp=128 tail. -/
+`Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail` rather than the pre-milk fp=128 tail. -/
 
 /-- `catBiteUrnsPostCallMem` (the urns-output overlay over the 288-byte urns-calldata frame) writes
 64 bytes at offset 128 in bounds, so its size stays 288. -/
@@ -3855,7 +3856,8 @@ theorem catBiteUrnsPostCallMem_size288 {I : ExecutionEnv} {o' ou : ByteArray}
   omega
 
 /-- The post-milk memory (`catBiteMilkMem` over the 288-byte urns overlay, `q = 96+128`) has size
-`max 288 320 = 320`. Discharges the `hmem` obligation of `RD.solcErrorStringRevertTail320`. -/
+`max 288 320 = 320`. Discharges the `hmem` obligation of
+`Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail`. -/
 theorem catBiteMilkSize320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop dunk : UInt256}
     (hqfp : q = ⟨96⟩ + ⟨128⟩)
     (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
@@ -3869,7 +3871,7 @@ theorem catBiteMilkSize320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop d
   native_decide
 
 /-- The post-milk free pointer `mem[0x40] = q + 96 = 320` survives (needed as the `hread64`
-obligation of `RD.solcErrorStringRevertTail320`). -/
+obligation of `Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail`). -/
 theorem catBiteMilkRead64_320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop dunk : UInt256}
     (hqfp : q = ⟨96⟩ + ⟨128⟩)
     (hilkslen : 160 ≤ o'.size) (hosz : o'.size < UInt256.size)
@@ -3884,7 +3886,8 @@ theorem catBiteMilkRead64_320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip cho
 
 /-- **Post-milk generic `require(cond, "msg")`-false → `Error(string)` revert leaf.** fp=320 / `aw=⟨10⟩`
 analogue of `catBiteRequireStringRevertLeaf`: hand-trace `PUSH2 okPc; JUMPI`-not-taken into the milk
-`Error(string)` tail (`RD.solcErrorStringRevertTail320`) and bridge to the Solm `.reverted` body. -/
+`Error(string)` tail (`Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail`) and bridge to
+the Solm `.reverted` body. -/
 theorem catBiteMilkRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -3914,7 +3917,8 @@ theorem catBiteMilkRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
-  have hrev := RD.solcErrorStringRevertTail320 rd3 htail hpush hword hmem hread64 hov
+  have hrev :=
+    Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail rd3 htail hpush hword hmem hread64 hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 set_option maxHeartbeats 2000000 in
@@ -4706,7 +4710,7 @@ theorem catBiteRevertDinkLimit {σ σ₀ A I} {g : UInt256}
 The `require(litter < box && room >= dust, "Cat/liquidation-limit-hit")` guard (pc 1730) pushes its
 25-byte message as a single `PUSH32 word` (left-aligned, no `PUSH1 shift; SHL`), so it uses a
 different tail bytecode than the ≤16-byte dart/dink strings.  This is the fp=320 / `aw=⟨10⟩` analogue
-of `Reasoning`'s full-word tail — it reuses the same `solcErrorString320Mem0-3` overlay. -/
+of `Reasoning`'s full-word tail — it reuses the same `catBiteMilkErrMem0-3` overlay. -/
 
 @[reducible] def catBiteMilkFullWordRevertTailWf
     (code : ByteArray) (pc len word : UInt256) : Prop :=
@@ -4778,8 +4782,9 @@ of `Reasoning`'s full-word tail — it reuses the same `solcErrorString320Mem0-3
 
 set_option maxHeartbeats 2000000 in
 /-- **Post-milk (`fp = 320`, `aw = ⟨10⟩`) full-word (`PUSH32`) `Error(string)` revert tail.** Like
-`RD.solcErrorStringRevertTail320` but the 25-byte message is a single `PUSH32 word` (no
-`PUSH1 shift; SHL`); reuses the `solcErrorString320Mem0-3` overlay. -/
+`Benchmarks.Dss.Cat.RD.catBiteMilkErrorStringRevertTail` but the 25-byte message is a single
+`PUSH32 word` (no
+`PUSH1 shift; SHL`); reuses the `catBiteMilkErrMem0-3` overlay. -/
 theorem RD.catBiteMilkErrorStringFullWordRevertTail {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
     {stk : List UInt256} {mem rdata : ByteArray}
@@ -4808,19 +4813,19 @@ theorem RD.catBiteMilkErrorStringFullWordRevertTail {code : ByteArray} {g : Sat2
     raw push1 ⟨229⟩ hd8 (by evm_ov),
     raw shl hd10 (by evm_ov),
     raw dup2 hd11 (by evm_ov),
-    raw mstore 3 (solcErrorString320Mem0 mem) (UInt256.ofNat 11)
+    raw mstore 3 (catBiteMilkErrMem0 mem) (UInt256.ofNat 11)
       hd12 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩ hd13 (by evm_ov),
     raw push1 ⟨4⟩ hd15 (by evm_ov),
     raw dup3 hd17 (by evm_ov),
     raw add hd18 (by evm_ov),
-    raw mstore 3 (solcErrorString320Mem1 mem) (UInt256.ofNat 12)
+    raw mstore 3 (catBiteMilkErrMem1 mem) (UInt256.ofNat 12)
       hd19 mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 len hd20 (by evm_ov),
     raw push1 ⟨36⟩ hd22 (by evm_ov),
     raw dup3 hd24 (by evm_ov),
     raw add hd25 (by evm_ov),
-    raw mstore 3 (solcErrorString320Mem2 len mem) (UInt256.ofNat 13)
+    raw mstore 3 (catBiteMilkErrMem2 len mem) (UInt256.ofNat 13)
       hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst word (width := 32) (op := .PUSH32)
     (by decide) hd27 (by simp only [List.length_cons]; omega)
@@ -4828,12 +4833,12 @@ theorem RD.catBiteMilkErrorStringFullWordRevertTail {code : ByteArray} {g : Sat2
     raw push1 ⟨68⟩ hd68 (by evm_ov),
     raw dup3 hdDup3 (by evm_ov),
     raw add hdAdd (by evm_ov),
-    raw mstore 3 (solcErrorString320Mem3 len word mem)
+    raw mstore 3 (catBiteMilkErrMem3 len word mem)
       (UInt256.ofNat 14) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
     raw swap1 hdSwap (by evm_ov),
     raw mload 0 ⟨320⟩ (UInt256.ofNat 14) hdMload
       mem_cost
-      (solcErrorString320Mem3_mload64 len word hmem hread64)
+      (catBiteMilkErrMem3_mload64 len word hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 hdSwap2 (by evm_ov),
     raw dup2 hdDup2 (by evm_ov),

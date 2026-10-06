@@ -370,7 +370,7 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksPipEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
@@ -394,7 +394,7 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksMatEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,

@@ -121,7 +121,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by
@@ -496,7 +496,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
   have hcond :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) = ⟨1⟩ :=
-    yankNonzeroLenPredLt (solcSlotWord σ ee ⟨11⟩) hlen
+    u256_pred_lt_of_ne_zero (solcSlotWord σ ee ⟨11⟩) hlen
   have hcondNe :
       UInt256.lt (solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩)
         (solcSlotWord σ ee ⟨11⟩) ≠ ⟨0⟩ := by

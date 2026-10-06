@@ -2,10 +2,94 @@ import Reasoning.SolcRoutines
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.End.Dispatch
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+set_option maxHeartbeats 1000000 in
+theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sat256}
+    {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 6) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rdMload := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw dup1 hd2 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) hd3
+      mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4
+    (by simp only [List.length_cons]; omega)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ hd8 (by evm_ov),
+    raw shl hd10 (by evm_ov),
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6)
+      hd12 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd13 (by evm_ov),
+    raw push1 ⟨4⟩ hd15 (by evm_ov),
+    raw dup3 hd17 (by evm_ov),
+    raw add hd18 (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
+      hd19 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 len hd20 (by evm_ov),
+    raw push1 ⟨36⟩ hd22 (by evm_ov),
+    raw dup3 hd24 (by evm_ov),
+    raw add hd25 (by evm_ov),
+    raw mstore 3 (solcErrorStringMem2 len mem)
+      (UInt256.ofNat 7) hd26 mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rdRaw := rdPrefix.pushConst rawWord (width := width) (op := op)
+    hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdWord := evm_run rdRaw with [
+    raw push1 shift hdRawOut (by evm_ov),
+    raw shl hdShl (by evm_ov)]
+  rw [hword] at rdWord
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ hd68 (by evm_ov),
+    raw dup3 hdDup3 (by evm_ov),
+    raw add hdAdd (by evm_ov),
+    raw mstore 3 (solcErrorStringMem3 len word mem)
+      (UInt256.ofNat 8) hdMstore3 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 hdSwap (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) hdMload
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size164 len word hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 hdSwap2 (by evm_ov),
+    raw dup2 hdDup2 (by evm_ov),
+    raw swap1 hdSwap3 (by evm_ov),
+    raw sub hdSub (by evm_ov),
+    raw push1 ⟨100⟩ hd100 (by evm_ov),
+    raw add hdAdd2 (by evm_ov),
+    raw swap1 hdSwap4 (by evm_ov),
+    raw rev 0 hdRev mem_cost (by evm_ov)]
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -1452,7 +1536,7 @@ theorem endThawX_daiNonzero {σ σ' σ₀ A I}
   have rd4798 := rd4795.push2 ⟨4866⟩ (by native_decide) (by evm_ov)
   have rd4799 := rd4798.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.solcErrorStringRevertTailAw6Size164
+  exact endThaw_solcErrorStringRevertTail_aw6_size164
     (pc := ⟨4799⟩) (len := ⟨20⟩)
     (rawWord := ⟨396382172534018756375957589142925699600051696239⟩)
     (shift := ⟨96⟩)
@@ -1486,7 +1570,7 @@ theorem endThawX_deadlineNotFinished {σ σ' σ₀ A I}
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdWait
   have rd4888 := rdWait.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.solcErrorStringRevertTailAw6Size164
+  exact endThaw_solcErrorStringRevertTail_aw6_size164
     (pc := ⟨4888⟩) (len := ⟨21⟩)
     (rawWord := ⟨25368459042510824971369391205765018885210945231193⟩)
     (shift := ⟨90⟩)

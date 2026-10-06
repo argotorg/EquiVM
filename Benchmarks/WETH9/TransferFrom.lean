@@ -256,7 +256,7 @@ theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
           · by_cases hallow : (tfWadWord I).toNat ≤ (tfAllowWord I σ).toNat
             · -- Spend
               have hnotMax : solcSlotWord σ I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
-                fun h => hmax (by unfold tfAllowWord; rw [h]; exact wtf_lnot0_toNat)
+                fun h => hmax (by unfold tfAllowWord; rw [h]; exact u256_lnot_zero_toNat)
               obtain ⟨_, _, h1282⟩ := weth9TFBranchSpendOk h1186 hperm (tfSrcMasked_canonical I)
                 hnotMax hallow (by simp only [List.length_cons, List.length_nil]; omega)
               have hspendbase : (solcNestedMappingCallerHashMem ⟨4⟩ (tfSrcMasked I) I
@@ -276,7 +276,7 @@ theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
               exact weth9TFConnect hcode hsel hsz100 hX hbody hmap
             · -- allowance < wad: inner require reverts
               have hnotMax : solcSlotWord σ I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
-                fun h => hmax (by unfold tfAllowWord; rw [h]; exact wtf_lnot0_toNat)
+                fun h => hmax (by unfold tfAllowWord; rw [h]; exact u256_lnot_zero_toNat)
               have hrev := weth9TFBranchSpendRev h1186 (tfSrcMasked_canonical I) hnotMax
                 (by change (tfAllowWord I σ).toNat < (tfWadWord I).toNat; omega)
                 (by simp only [List.length_cons, List.length_nil]; omega)

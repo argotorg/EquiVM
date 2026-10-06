@@ -9,8 +9,28 @@ import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.TakePostDogSource
 import Benchmarks.Dss.Clipper.TakeNoAdjustPostDogSource
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakeVatFluxPostCallAw_eq :
+    UInt256.ofNat
+      (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
+        (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
+        (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
+      UInt256.ofNat 9 := by
+  decide
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Benchmarks.Dss.Clipper
 
@@ -159,7 +179,7 @@ theorem clipperTakeOweGtTabSourceDivLeLot_of_post_words {I : ExecutionEnv}
   have hsliceLot : (clipperMinWord (clipperTakeAmtWord I) lot).toNat ≤ lot.toNat :=
     clipperMinWord_le_right (clipperTakeAmtWord I) lot
   have hbase :=
-    takeTabDivPrice_le_lot_of_owe_gt
+    clipperTakeTabDivPrice_le_lot_of_owe_gt
       (tab := tab) (price := price) (slice := clipperMinWord (clipperTakeAmtWord I) lot)
       (lot := lot)
       (by simpa [Nat.mul_comm] using hmul)

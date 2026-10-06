@@ -8,10 +8,70 @@ import Benchmarks.Dss.Cat.BiteSource
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Cat.BiteCallKick
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Cat
+
+theorem seg8_evMemRead64 (base : ByteArray) (v1 v2 v3 v4 v5 : UInt256)
+    (hsz : 288 ≤ base.size) :
+    ((UInt256.toByteArray v5).write 0
+      ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
+      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+        32) 224 32) 256 32).readWithPadding 64 32
+      = base.readWithPadding 64 32 := by
+  have s1 : ((UInt256.toByteArray v1).write 0 base 128 32).size = base.size :=
+    wordWrite_size_of_le base v1 128 (by omega)
+  have s2 : ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160
+    32).size = base.size := by
+    rw [wordWrite_size_of_le _ v2 160 (by omega)]; exact s1
+  have s3 : ((UInt256.toByteArray v3).write 0
+    ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+      32).size = base.size := by
+    rw [wordWrite_size_of_le _ v3 192 (by omega)]; exact s2
+  have s4 : ((UInt256.toByteArray v4).write 0
+    ((UInt256.toByteArray v3).write 0
+      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+        32) 224 32).size = base.size := by
+    rw [wordWrite_size_of_le _ v4 224 (by omega)]; exact s3
+  rw [wordWrite_read64_of_ge96 _ v5 256 (by omega) (by omega),
+    wordWrite_read64_of_ge96 _ v4 224 (by omega) (by omega),
+    wordWrite_read64_of_ge96 _ v3 192 (by omega) (by omega),
+      wordWrite_read64_of_ge96 _ v2 160 (by omega) (by omega),
+    wordWrite_read64_of_ge96 _ v1 128 (by omega) (by omega)]
+
+theorem seg8_evMemSize (base : ByteArray) (v1 v2 v3 v4 v5 : UInt256) (hsz : 288 ≤ base.size)
+    :
+    ((UInt256.toByteArray v5).write 0
+      ((UInt256.toByteArray v4).write 0 ((UInt256.toByteArray v3).write 0
+      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+        32) 224 32) 256 32).size = base.size := by
+  have s1 := wordWrite_size_of_le base v1 128 (by omega)
+  have s2 : ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160
+    32).size = base.size := by
+    rw [wordWrite_size_of_le _ v2 160 (by rw [s1]; omega)]; exact s1
+  have s3 : ((UInt256.toByteArray v3).write 0
+    ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+      32).size = base.size := by
+    rw [wordWrite_size_of_le _ v3 192 (by rw [s2]; omega)]; exact s2
+  have s4 : ((UInt256.toByteArray v4).write 0
+    ((UInt256.toByteArray v3).write 0
+      ((UInt256.toByteArray v2).write 0 ((UInt256.toByteArray v1).write 0 base 128 32) 160 32) 192
+        32) 224 32).size = base.size := by
+    rw [wordWrite_size_of_le _ v4 224 (by rw [s3]; omega)]; exact s3
+  rw [wordWrite_size_of_le _ v5 256 (by rw [s4]; omega)]; exact s4
+
+end Benchmarks.Dss.Cat
+
+end
 
 namespace Benchmarks.Dss.Cat
 
@@ -880,7 +940,7 @@ theorem catBiteTraceSeg6 {σ σ₀ A I} {g : UInt256}
     awInv32 aw (by omega)
   have hMq64 : UInt256.ofNat (MachineState.M aw.toNat (q + ⟨64⟩).toNat 32) = aw :=
     awInv32 aw (by omega)
-  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := catBiteAwMInv64 aw (by omega)
+  have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := awInv64 aw (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
     by native_decide
   -- 1620 → 3818 (call the 96-byte allocator)
@@ -2525,11 +2585,13 @@ theorem catBiteTraceSeg8b2 {σ σ₀ A I} {g : UInt256}
       ((UInt256.toByteArray (UInt256.mul dart iRate)).write 0 ((UInt256.toByteArray dart).write 0
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)).readWithPadding 64 32
       = mem8.readWithPadding 64 32 :=
-    fiveWordWrite128_read64 mem8 dink dart (UInt256.mul dart iRate) (UInt256.land biteAddrMaskWord flip2) id hmem8size
+    seg8_evMemRead64 mem8 dink dart (UInt256.mul dart iRate) (UInt256.land biteAddrMaskWord flip2)
+      id hmem8size
   have hevSize : (((UInt256.toByteArray id).write 0 ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
       ((UInt256.toByteArray (UInt256.mul dart iRate)).write 0 ((UInt256.toByteArray dart).write 0
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)).size = mem8.size :=
-    fiveWordWrite128_size mem8 dink dart (UInt256.mul dart iRate) (UInt256.land biteAddrMaskWord flip2) id hmem8size
+    seg8_evMemSize mem8 dink dart (UInt256.mul dart iRate) (UInt256.land biteAddrMaskWord flip2)
+      id hmem8size
   have hFreeEv : (if (⟨64⟩ : UInt256).toNat ≥ (((UInt256.toByteArray id).write 0 ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
       ((UInt256.toByteArray (UInt256.mul dart iRate)).write 0 ((UInt256.toByteArray dart).write 0
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)).size then ⟨0⟩

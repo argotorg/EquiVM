@@ -92,7 +92,7 @@ theorem evalExpr_initStorageRate (evm : EVM.State) (I : ExecutionEnv)
     (initStore_get_ilks I)
     (by
       have hkeyLen : ((I.calldata.toList.drop 4).take 32).length =
-          ↑bytes32Width + 1 := initIlkBytes_length hsz36
+          ↑bytes32Width + 1 := calldata_first_word_length hsz36
       simp [initRateEvaledRef, initIlkKey, initIlkValue, evalStorageRef,
         evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
         EvalResult.ofOption, EvalResult.bind, pure, bind, hkeyLen])
@@ -149,7 +149,7 @@ theorem assign_initRateStorage (evm : EVM.State) (I : ExecutionEnv)
       (hbase := initStore_get_ilks I)
       (her := by
         have hkeyLen : ((I.calldata.toList.drop 4).take 32).length =
-            ↑bytes32Width + 1 := initIlkBytes_length hsz36
+            ↑bytes32Width + 1 := calldata_first_word_length hsz36
         simp [initRateEvaledRef, initIlkKey, initIlkValue, evalStorageRef,
           evalStorageRefSteps, evalStorageRefStep, ilksF, evalExpr?, valueToKey?,
           EvalResult.ofOption, EvalResult.bind, pure, bind, hkeyLen])

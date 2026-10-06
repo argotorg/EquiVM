@@ -396,7 +396,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksDutyEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef, evalStorageRefSteps,
           evalStorageRefStep, ilksF, evalExpr?, valueToKey?, EvalResult.ofOption,
@@ -418,7 +418,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat))
       (by simp [frame, ilksF])
       (by
-        have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+        have hkeyLen := calldata_first_word_min_length (I := I) hsz36
         change _ = bytes32Width.val + 1 at hkeyLen
         simp [frame, ilksRhoEvaledRef, ilksArgKey, ilksArgValue, evalStorageRef, evalStorageRefSteps,
           evalStorageRefStep, ilksF, evalExpr?, valueToKey?, EvalResult.ofOption,

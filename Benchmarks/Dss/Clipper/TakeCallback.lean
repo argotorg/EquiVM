@@ -4,8 +4,66 @@ import Reasoning.Stepping
 import Reasoning.Reach
 import Benchmarks.Dss.Clipper.TakeVatMoveSource
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperTakePaddedSizeWord (dataLen : UInt256)
+    (hlenMax : dataLen.toNat ≤ 4294967296) :
+    UInt256.land (dataLen + ⟨31⟩) (UInt256.lnot ⟨31⟩) =
+      UInt256.ofNat (ABI.paddedSize dataLen.toNat) := by
+  apply u256_inj
+  have hsum : dataLen.toNat + 31 < 2 ^ 256 := by
+    omega
+  have hpad : ABI.paddedSize dataLen.toNat < UInt256.size := by
+    have hle := paddedSize_le_add31 dataLen.toNat
+    change ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  rw [uland_toNat, lnot31_toNat, uadd_toNat,
+    show (⟨31⟩ : UInt256).toNat = 31 by decide,
+    show UInt256.size = 2 ^ 256 by decide, Nat.mod_eq_of_lt hsum,
+    nat_land_mask _ hsum, ulit_toNat' _ hpad]
+  rfl
+
+theorem clipperTakeCallbackInputSizeWord (dataLen : UInt256)
+    (hlenMax : dataLen.toNat ≤ 4294967296) :
+    UInt256.sub (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)) ⟨128⟩ =
+      UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat) := by
+  apply u256_inj
+  have hpadLe : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
+    paddedSize_le_add31 _
+  have hpadLt : ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hsumLt : 292 + ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change 292 + ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hrhsLt : 164 + ABI.paddedSize dataLen.toNat < UInt256.size := by
+    change 164 + ABI.paddedSize dataLen.toNat < 2 ^ 256
+    omega
+  have hsub : (⟨128⟩ : UInt256).toNat ≤
+      (⟨292⟩ + UInt256.ofNat (ABI.paddedSize dataLen.toNat)).toNat := by
+    rw [uadd_toNat, show (⟨292⟩ : UInt256).toNat = 292 by decide,
+      ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt]
+    change 128 ≤ 292 + ABI.paddedSize dataLen.toNat
+    omega
+  rw [usub_toNat hsub, uadd_toNat,
+    show (⟨292⟩ : UInt256).toNat = 292 by decide,
+    show (⟨128⟩ : UInt256).toNat = 128 by decide,
+    ulit_toNat' _ hpadLt, Nat.mod_eq_of_lt hsumLt,
+    ulit_toNat' _ hrhsLt]
+  omega
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Reasoning.Theory
 
@@ -1098,9 +1156,9 @@ theorem clipperTakeCallbackCalldataMem_read128 (I : ExecutionEnv)
     simpa [hdataLenEq] using hpayload
   have hZSize : Z.size = 32 := by simp [Z, toByteArray_size]
   have hpaddedLo : dataLen.toNat ≤ ABI.paddedSize dataLen.toNat :=
-    take_le_paddedSize _
+    nat_le_paddedSize _
   have hpaddedHi : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
-    take_paddedSize_le _
+    paddedSize_le_add31 _
   rw [clipperTakeCallbackCalldataMem_eq I owe slice dataLen dataStart hmem hdataLen
     hdataLenEq hdataStartEq hpayload]
   change (H ++ D ++ Z).readWithPadding 128
@@ -1164,9 +1222,9 @@ theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     simp only [ByteArray.size, List.size_toArray]
     simpa [hdataLenEq] using hpayload
   have hpadLo : dataLen.toNat ≤ ABI.paddedSize dataLen.toNat :=
-    take_le_paddedSize _
+    nat_le_paddedSize _
   have hpadHi : ABI.paddedSize dataLen.toNat ≤ dataLen.toNat + 31 :=
-    take_paddedSize_le _
+    paddedSize_le_add31 _
   have hpadCount : ABI.paddedSize dataLen.toNat - dataLen.toNat ≤ 32 := by omega
   have hdataBytes :
       (ByteArray.mk (clipperTakeDataBytes I).toArray).toList =
@@ -1406,7 +1464,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     raw pop (by clipper_runtime_decode) (by evm_ov),
     raw pop (by clipper_runtime_decode) (by evm_ov),
     raw pop (by clipper_runtime_decode) (by evm_ov)]
-  rw [takePaddedSizeWord dataLen hlenMax] at rd4651
+  rw [clipperTakePaddedSizeWord dataLen hlenMax] at rd4651
   have hdataLenNat : dataLen.toNat ≠ 0 := by
     intro hz
     apply hdataLen
@@ -1512,7 +1570,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup8 (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
-  rw [takeCallbackInputSizeWord dataLen hlenMax] at rd4664pre
+  rw [clipperTakeCallbackInputSizeWord dataLen hlenMax] at rd4664pre
   refine ⟨awPad, _, _, by simpa [u256_land_comm] using rd4664pre, ?_⟩
   exact ⟨by
     rw [clipperTakeCallbackCalldataMem_size ee owe slice dataLen dataStart hmem

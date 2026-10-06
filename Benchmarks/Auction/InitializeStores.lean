@@ -23,7 +23,7 @@ def InitializeArgs.storeMap (args : InitializeArgs) (σ : AccountMap) (I : Execu
 
 def initializerExited (σ : AccountMap) (I : ExecutionEnv) (top : UInt256) : AccountMap :=
   if top = ⟨0⟩ then σ else
-    sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerEndWord (solcSlotWord σ I ⟨0⟩))
+    sstoreAccountMap I.codeOwner σ ⟨0⟩ (clearBoolOffset1Word (solcSlotWord σ I ⟨0⟩))
 
 theorem initializeStoreArgs {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2245⟩ (top :: args.words.reverse ++ ret :: R)

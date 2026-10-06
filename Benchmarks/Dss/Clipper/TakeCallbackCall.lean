@@ -226,7 +226,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
       ?_ ?_ ?_
     · rw [accountAddress_ofUInt256_eq_ofNat_toNat]
       exact eVM_address_id _
-    · have hpadLe := take_paddedSize_le dataLen.toNat
+    · have hpadLe := paddedSize_le_add31 dataLen.toNat
       have hinSizeLt : 164 + ABI.paddedSize dataLen.toNat < UInt256.size := by
         change 164 + ABI.paddedSize dataLen.toNat < 2 ^ 256
         omega

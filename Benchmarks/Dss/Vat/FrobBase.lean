@@ -12,7 +12,277 @@ import Benchmarks.Dss.Vat.Grab
 import Benchmarks.Dss.Vat.Signed
 import Mathlib.Tactic.SuppressCompilation
 
+
 open Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Vat
+
+theorem frobIBytes_len (I : ExecutionEnv) (hsz196 : 196 ≤ I.calldata.size) :
+    ((I.calldata.toList.drop 4).take 32).length = ↑abiBytes32Width + 1 := by
+  have htlen : I.calldata.toList.length = I.calldata.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  rw [List.length_take, List.length_drop, htlen]
+  simp [abiBytes32Width]
+  omega
+
+theorem twoWordHashMem_read64_of_size576 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 576)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨576⟩ := by
+  rw [twoWordHashMem_read64_preserved_of_ge96]
+  · exact hread64
+  · rw [hmem]
+    omega
+
+theorem twoWordHashMem_size_576 {mem : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 576) :
+    (twoWordHashMem key slot mem).size = 576 := by
+  rw [twoWordHashMem_size_of_ge64]
+  · exact hmem
+  · rw [hmem]
+    omega
+
+theorem twoWordHashMem_read32_above64_of_size576 {mem : ByteArray}
+    (key slot : UInt256) {readOff : Nat} {word : UInt256}
+    (habove : 64 ≤ readOff) (hin : readOff + 32 ≤ 576) (hmem : mem.size = 576)
+    (hread : mem.readWithPadding readOff 32 = UInt256.toByteArray word) :
+    (twoWordHashMem key slot mem).readWithPadding readOff 32 =
+      UInt256.toByteArray word := by
+  rw [twoWordHashMem_read32_above64 key slot habove]
+  · exact hread
+  · rw [hmem]
+    exact hin
+
+def frobErrorStringMem0 (mem : ByteArray) : ByteArray :=
+  writeWordMem 576 solcErrorStringSelector mem
+
+theorem frobDustSourceCond_of_evm {urnArtNew tab ilkDust : UInt256}
+    (h :
+      UInt256.lor
+        (UInt256.isZero (UInt256.lt tab ilkDust))
+        (UInt256.eq ⟨0⟩ urnArtNew) ≠ ⟨0⟩) :
+    urnArtNew.toNat = 0 ∨ ilkDust.toNat ≤ tab.toNat := by
+  by_cases hzero : UInt256.eq ⟨0⟩ urnArtNew = ⟨0⟩
+  · have hltIsZero : UInt256.isZero (UInt256.lt tab ilkDust) ≠ ⟨0⟩ :=
+      u256_lor_left_ne_zero_of_lor_ne_zero_right_zero h hzero
+    have hlt : UInt256.lt tab ilkDust = ⟨0⟩ :=
+      u256_isZero_ne_zero_to_eq_zero hltIsZero
+    exact Or.inr (ult_eq_zero_to_le hlt)
+  · have heq : (⟨0⟩ : UInt256) = urnArtNew :=
+      u256_eq_ne_zero_to_eq hzero
+    exact Or.inl (by rw [← heq]; rfl)
+
+theorem frobDustSourceFalseCond_of_evm {urnArtNew tab ilkDust : UInt256}
+    (h :
+      UInt256.lor
+        (UInt256.isZero (UInt256.lt tab ilkDust))
+        (UInt256.eq ⟨0⟩ urnArtNew) = ⟨0⟩) :
+    tab.toNat < ilkDust.toNat ∧ 0 < urnArtNew.toNat := by
+  have hcomm :
+      UInt256.lor
+        (UInt256.eq ⟨0⟩ urnArtNew)
+        (UInt256.isZero (UInt256.lt tab ilkDust)) = ⟨0⟩ := by
+    simpa [u256_lor_comm] using h
+  exact forkDustSourceCond_false_of_evm hcomm
+
+def frobErrorStringMem1 (mem : ByteArray) : ByteArray :=
+  writeWordMem 580 (⟨32⟩ : UInt256) (frobErrorStringMem0 mem)
+
+theorem frobErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 576) :
+    (frobErrorStringMem0 mem).size = 608 := by
+  unfold frobErrorStringMem0 writeWordMem
+  rw [toByteArray_write32_size_of_ge mem solcErrorStringSelector 576 576 608
+    hmem (by omega) (by exact USize.size_pos) (by omega)]
+
+def frobErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+  writeWordMem 612 len (frobErrorStringMem1 mem)
+
+theorem frobErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 576) :
+    (frobErrorStringMem1 mem).size = 612 := by
+  unfold frobErrorStringMem1 writeWordMem
+  rw [toByteArray_write32_size_of_le (frobErrorStringMem0 mem) (⟨32⟩ : UInt256)
+    580 608 612 (frobErrorStringMem0_size hmem)
+    (by rw [frobErrorStringMem0_size hmem]; omega) (by omega)]
+
+def frobErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+  writeWordMem 644 word (frobErrorStringMem2 len mem)
+
+theorem frobErrorStringMem2_size (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 576) :
+    (frobErrorStringMem2 len mem).size = 644 := by
+  unfold frobErrorStringMem2 writeWordMem
+  rw [toByteArray_write32_size_of_ge (frobErrorStringMem1 mem) len
+    612 612 644 (frobErrorStringMem1_size hmem) (by omega)
+    (by exact USize.size_pos) (by omega)]
+
+theorem frobErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 576) :
+    (frobErrorStringMem3 len word mem).size = 676 := by
+  unfold frobErrorStringMem3 writeWordMem
+  rw [toByteArray_write32_size_of_ge (frobErrorStringMem2 len mem) word
+    644 644 676 (frobErrorStringMem2_size len hmem) (by omega)
+    (by exact USize.size_pos) (by omega)]
+
+theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 576)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩) :
+    (frobErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨576⟩ := by
+  let err0 := frobErrorStringMem0 mem
+  let err1 := frobErrorStringMem1 mem
+  let err2 := frobErrorStringMem2 len mem
+  have herr0Size : err0.size = 608 := by
+    unfold err0
+    exact frobErrorStringMem0_size hmem
+  have herr1Size : err1.size = 612 := by
+    unfold err1
+    exact frobErrorStringMem1_size hmem
+  have herr2Size : err2.size = 644 := by
+    unfold err2
+    exact frobErrorStringMem2_size len hmem
+  have herr0Read : err0.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
+    unfold err0 frobErrorStringMem0
+    rw [writeWordMem_read64_below]
+    · exact hread64
+    · rw [hmem]; omega
+    · omega
+    · rw [hmem]; exact USize.size_pos
+  have herr1Read : err1.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
+    unfold err1 frobErrorStringMem1
+    change (writeWordMem 580 (⟨32⟩ : UInt256) err0).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨576⟩
+    rw [writeWordMem_read64_below]
+    · exact herr0Read
+    · rw [herr0Size]; omega
+    · omega
+    · rw [herr0Size]; exact USize.size_pos
+  have herr2Read : err2.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
+    unfold err2 frobErrorStringMem2
+    change (writeWordMem 612 len err1).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨576⟩
+    rw [writeWordMem_read64_below]
+    · exact herr1Read
+    · rw [herr1Size]; omega
+    · omega
+    · rw [herr1Size]; exact USize.size_pos
+  unfold frobErrorStringMem3
+  change (writeWordMem 644 word err2).readWithPadding 64 32 =
+    UInt256.toByteArray ⟨576⟩
+  rw [writeWordMem_read64_below]
+  · exact herr2Read
+  · rw [herr2Size]; omega
+  · omega
+  · rw [herr2Size]; exact USize.size_pos
+
+end Benchmarks.Dss.Vat
+
+namespace Benchmarks.Dss.Vat.RD
+
+set_option maxHeartbeats 1000000 in
+theorem solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
+    {op : Operation.POp} {width : ℕ}
+    {stk : List UInt256} {mem rdata : ByteArray}
+    {acc : AccountMap}
+    (h : RD code ee g s0 pc stk mem (UInt256.ofNat 18) rdata acc k C)
+    (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
+    (hpush : op ≠ .PUSH0)
+    (hword : UInt256.shiftLeft rawWord shift = word)
+    (hmem : mem.size = 576)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩)
+    (hov : stk.length + 5 ≤ 1024) :
+    RDrev code g s0 := by
+  rcases hwf with
+    ⟨hd0, hd2, hd3, hd4, hd8, hd10, hd11, hd12, hd13, hd15, hd17, hd18,
+      hd19, hd20, hd22, hd24, hd25, hd26, hd27, hdRawOut, hdShl, hd68,
+      hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
+      hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
+  have rd3199 := h.push1 ⟨64⟩ hd0 (by evm_ov)
+  have rd3200 := rd3199.dup1 hd2 (by evm_ov)
+  have hmload576 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian
+          (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
+        ⟨576⟩ := by
+    exact mloadWordValue_of_readWithPadding
+      (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem]; omega)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
+  have rd3201 := rd3200.mload 0 ⟨576⟩ (UInt256.ofNat 18)
+    hd3 mem_cost hmload576 (by decide) (by evm_ov)
+  have rd3205 := rd3201.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
+  have rd3207 := rd3205.push1 ⟨229⟩ hd8 (by evm_ov)
+  have rd3208 := rd3207.shl hd10 (by evm_ov)
+  have rd3209 := rd3208.dup2 hd11 (by evm_ov)
+  have rd3210 := rd3209.mstore 3 (frobErrorStringMem0 mem)
+    (UInt256.ofNat 19) hd12 mem_cost
+    (by rw [show (⟨576⟩ : UInt256).toNat = 576 from by decide]
+        simp [frobErrorStringMem0, writeWordMem, solcErrorStringSelector])
+    (by decide) (by evm_ov)
+  have rd3212 := rd3210.push1 ⟨32⟩ hd13 (by evm_ov)
+  have rd3214 := rd3212.push1 ⟨4⟩ hd15 (by evm_ov)
+  have rd3215 := rd3214.dup3 hd17 (by evm_ov)
+  have rd3216 := rd3215.add hd18 (by evm_ov)
+  have rd3217 := rd3216.mstore 3 (frobErrorStringMem1 mem)
+    (UInt256.ofNat 20) hd19 mem_cost (by rfl) (by decide)
+    (by evm_ov)
+  have rd3219 := rd3217.push1 len hd20 (by evm_ov)
+  have rd3221 := rd3219.push1 ⟨36⟩ hd22 (by evm_ov)
+  have rd3222 := rd3221.dup3 hd24 (by evm_ov)
+  have rd3223 := rd3222.add hd25 (by evm_ov)
+  have rd3224 := rd3223.mstore 3 (frobErrorStringMem2 len mem)
+    (UInt256.ofNat 21) hd26 mem_cost (by rfl) (by decide)
+    (by evm_ov)
+  have rdRaw := rd3224.pushConst rawWord
+    (width := width) (op := op) hpush hd27 (by simp only [List.length_cons]; omega)
+  have rdShift := rdRaw.push1 shift hdRawOut (by evm_ov)
+  have rdWordRaw := rdShift.shl hdShl (by evm_ov)
+  have rdWord := rdWordRaw
+  rw [hword] at rdWord
+  have rd3246 := rdWord.push1 ⟨68⟩ hd68 (by evm_ov)
+  have rd3247 := rd3246.dup3 hdDup3 (by evm_ov)
+  have rd3248 := rd3247.add hdAdd (by evm_ov)
+  have rd3249 := rd3248.mstore 3 (frobErrorStringMem3 len word mem)
+    (UInt256.ofNat 22) hdMstore3 mem_cost (by rfl) (by decide)
+    (by evm_ov)
+  have rd3250 := rd3249.swap1 hdSwap (by evm_ov)
+  have herrMload64 :
+    (if (⟨64⟩ : UInt256).toNat ≥ (frobErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((frobErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32))) =
+      ⟨576⟩ := by
+    exact mloadWordValue_of_readWithPadding
+      (by
+        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
+          frobErrorStringMem3_size len word hmem]
+        omega)
+      (by
+        simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
+          frobErrorStringMem3_read64 len word hmem hread64)
+  have rd3251 := rd3250.mload 0 ⟨576⟩ (UInt256.ofNat 22)
+    hdMload mem_cost herrMload64 (by decide) (by evm_ov)
+  have rd3252 := rd3251.swap1 hdSwap2 (by evm_ov)
+  have rd3253 := rd3252.dup2 hdDup2 (by evm_ov)
+  have rd3254 := rd3253.swap1 hdSwap3 (by evm_ov)
+  have rd3255 := rd3254.sub hdSub (by evm_ov)
+  have rd3257 := rd3255.push1 ⟨100⟩ hd100 (by evm_ov)
+  have rd3258 := rd3257.add hdAdd2 (by evm_ov)
+  have rd3259 := rd3258.swap1 hdSwap4 (by evm_ov)
+  exact rd3259.rev 0 hdRev mem_cost (by evm_ov)
+
+end Benchmarks.Dss.Vat.RD
+
+end
 
 namespace Reasoning.Theory
 
@@ -4731,7 +5001,7 @@ theorem RD.vatFrobCeilingCheckRevert
   have rdFall := by
     simpa [σDebt, mem, rateOld, ilkLine, Line, ceilingDebt] using
       rd3426.jumpiNT (by native_decide) hceiling (by evm_ov)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3427⟩) (len := ⟨20⟩)
     (rawWord := ⟨123286624931416782702299037100121319580670433625⟩)
     (shift := ⟨98⟩)
@@ -5212,7 +5482,7 @@ theorem RD.vatFrobSafetyCheckRevert
   have rdFall := by
     simpa [σDebt, mem, ilkSpot, inkSpot] using
       rd3545.jumpiNT (by native_decide) hsafe (by evm_ov)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3546⟩) (len := ⟨12⟩)
     (rawWord := ⟨26733525318604986088616453733⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨26733525318604986088616453733⟩ ⟨160⟩)
@@ -5773,7 +6043,7 @@ theorem RD.vatFrobUWishCheckRevert
       (twoWordHashMem_size_576 (frobUMaskedWord I) ⟨1⟩ hmemBase576)
       (twoWordHashMem_read64_of_size576 (frobUMaskedWord I) ⟨1⟩
         hmemBase576 hreadBase64)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (ee := I) (g := g)
     (s0 := initState σ σ₀ g A I)
     (stk := [tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I,
@@ -5978,7 +6248,7 @@ theorem RD.vatFrobVWishCheckRevert
   have rdFall := by
     simpa [σDebt, memBase, memU, shortcut, wish, frobVWishSlot] using
       rd3727.jumpiNT (by native_decide) hwish (by evm_ov)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3728⟩) (len := ⟨17⟩)
     (rawWord := ⟨14696910969625138635756632684136422839995⟩) (shift := ⟨121⟩)
     (word := UInt256.shiftLeft ⟨14696910969625138635756632684136422839995⟩ ⟨121⟩)
@@ -6233,7 +6503,7 @@ theorem RD.vatFrobWWishCheckRevert
   have rdFall := by
     simpa [σDebt, memBase, memU, memV, shortcut, wish, frobWWishSlot] using
       rd3814.jumpiNT (by native_decide) hwish (by evm_ov)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3815⟩) (len := ⟨17⟩)
     (rawWord := ⟨29393821939250277271513265368272845679991⟩) (shift := ⟨120⟩)
     (word := UInt256.shiftLeft ⟨29393821939250277271513265368272845679991⟩ ⟨120⟩)
@@ -6661,7 +6931,7 @@ theorem RD.vatFrobDustCheckRevert
   have rdFall := by
     simpa [memW, dust] using
       rd3907.jumpiNT (by native_decide) hdust (by evm_ov)
-  exact RD.solcErrorStringRevertTail576
+  exact Benchmarks.Dss.Vat.RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3908⟩) (len := ⟨8⟩)
     (rawWord := ⟨1556095976725109981⟩) (shift := ⟨194⟩)
     (word := UInt256.shiftLeft ⟨1556095976725109981⟩ ⟨194⟩)
@@ -9181,7 +9451,7 @@ theorem frobCeilingSourceFalseCond_of_evm {I : ExecutionEnv}
       rw [hdartSgtZero]
       change UInt256.lor bounds (UInt256.isZero (⟨0⟩ : UInt256)) ≠ ⟨0⟩
       rw [u256_lor_comm]
-      exact fork_u256_lor_one_ne_zero bounds
+      exact u256_lor_one_left_ne_zero bounds
     exact hlorNe (by simpa [bounds] using h)
   have hdartPos : 0 < frobDartInt I :=
     sgt_zero_ne_zero_to_pos (frobDartWord I) hdartSgtNe
@@ -9201,7 +9471,7 @@ theorem frobCeilingSourceFalseCond_of_evm {I : ExecutionEnv}
         UInt256.lor bounds (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠
           ⟨0⟩ := by
       rw [hboundsOne]
-      exact fork_u256_lor_one_ne_zero
+      exact u256_lor_one_left_ne_zero
         (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))
     exact hlorNe (by simpa [bounds] using h)
 
@@ -9256,7 +9526,7 @@ theorem frobSafetySourceFalseCond_of_evm {I : ExecutionEnv} {tab inkSpot : UInt2
     intro hgtZero
     have hlorNe :
         UInt256.lor (UInt256.isZero (UInt256.gt tab inkSpot)) shortcut ≠ ⟨0⟩ := by
-      simpa [shortcut, hgtZero] using fork_u256_lor_one_ne_zero shortcut
+      simpa [shortcut, hgtZero] using u256_lor_one_left_ne_zero shortcut
     exact hlorNe (by simpa [shortcut] using h)
   have htabGt : inkSpot.toNat < tab.toNat := ugt_ne_zero_to_gt hgtNe
   constructor
@@ -9280,7 +9550,7 @@ theorem frobSafetySourceFalseCond_of_evm {I : ExecutionEnv} {tab inkSpot : UInt2
     have hlorNe :
         UInt256.lor (UInt256.isZero (UInt256.gt tab inkSpot)) shortcut ≠ ⟨0⟩ := by
       rw [hshortcutOne, u256_lor_comm]
-      exact fork_u256_lor_one_ne_zero (UInt256.isZero (UInt256.gt tab inkSpot))
+      exact u256_lor_one_left_ne_zero (UInt256.isZero (UInt256.gt tab inkSpot))
     exact hlorNe (by simpa [shortcut] using h)
   · exact htabGt
 
@@ -9552,7 +9822,7 @@ theorem frobAuthUSourceFalseCond_of_evm {I : ExecutionEnv} {uWish : UInt256}
           (UInt256.lor (UInt256.eq uWish ⟨1⟩)
             (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I))) both ≠ ⟨0⟩ := by
       rw [hbothOne, u256_lor_comm]
-      exact fork_u256_lor_one_ne_zero
+      exact u256_lor_one_left_ne_zero
         (UInt256.lor (UInt256.eq uWish ⟨1⟩)
           (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I)))
     exact hlorNe (by simpa [both] using h)

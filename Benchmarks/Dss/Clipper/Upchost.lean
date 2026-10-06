@@ -7,8 +7,40 @@ import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.Vat
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.Clipper
+
+theorem clipperVatIlksPostCallWrite_size_gt64 {base : ByteArray} (out : ByteArray) (L : ℕ)
+    (hbase : base.size = 164) (hLo : L ≤ out.size) :
+    64 < (out.write 0 base 128 L).size := by
+  rcases Nat.eq_zero_or_pos L with hzero | hpos
+  · subst L
+    rw [byteArray_write_len_zero, hbase]
+    norm_num
+  · by_cases hin : 128 + L ≤ base.size
+    · rw [write_eq_gen out base 128 L (by omega) hLo hin, ByteArray.size_append,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+        ByteArray.size_extract, hbase]
+      omega
+    · have hdest : 128 ≤ base.size := by
+        rw [hbase]
+        omega
+      have hext : base.size < 128 + L := Nat.lt_of_not_ge hin
+      rw [write_eq_gen_extend out base 128 L (by omega) hLo hdest hext,
+        ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, hbase]
+      omega
+
+end Benchmarks.Dss.Clipper
+
+end
 
 namespace Benchmarks.Dss.Clipper
 
@@ -466,7 +498,7 @@ theorem clipperVatIlksPostCallMem_size_gt64 (v : ClipperImmutables) (out : ByteA
       (min (⟨160⟩ : UInt256) (UInt256.ofNat out.size)).toNat = out.size :=
     umin_ofNat_right_toNat_of_lt (c := 160) (n := out.size) (by decide) hshort hout
   rw [hlen]
-  exact vatIlksPostCallWrite_size_gt64 out out.size
+  exact clipperVatIlksPostCallWrite_size_gt64 out out.size
     (clipperVatIlksCalldataMem_size (clipperUpchostIlkWord v) solcFreePtrMem_size) le_rfl
 
 theorem clipperVatIlksPostCallMem_read64 (v : ClipperImmutables) (out : ByteArray)
@@ -878,7 +910,7 @@ theorem clipperVatIlksPostCallMem_mload256_long (v : ClipperImmutables) (out : B
 theorem clipperVatIlksDecode_none_short {v : ClipperImmutables} {out : ByteArray}
     (hshort : out.size < 160) :
     (config v).externalABI.decode? "vatIlks" out = none := by
-  have h := vatIlksDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyFiveUint256_none_short (out := out) hshort
   simpa [config, externalABI] using h
 
 theorem clipperVatIlksDecode_ok_aux {out : ByteArray} (hlo : 160 ≤ out.size) :

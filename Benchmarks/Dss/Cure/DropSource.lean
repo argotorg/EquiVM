@@ -179,7 +179,7 @@ theorem dropSrcsLastSlot_eq (len : UInt256) (hpos : 0 < len.toNat) :
   unfold dropSrcsLastSlot srcElemSlot
   change srcsDataSlot + EVM.wordOfInt (Int.ofNat len.toNat - 1) =
     srcsDataSlot + UInt256.ofNat (len.toNat - 1)
-  rw [dropWordOfInt_pred len hpos]
+  rw [wordOfInt_natCast_pred_of_pos len hpos]
 
 theorem dropSrcsSlotForIndex_eq_add (idx : UInt256) :
     dropSrcsSlotForIndex idx = srcsDataSlot + idx := by
@@ -967,9 +967,9 @@ theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by
     simpa [hposLoad] using hposNe
   have hlastIndexSub : lastIndex = UInt256.sub lenWord ⟨1⟩ := by
-    simpa [lastIndex, dropLastIndex] using (dropSubOne_eq_pred lenWord hlenPos).symm
+    simpa [lastIndex, dropLastIndex] using (u256_sub_one_eq_pred_of_pos lenWord hlenPos).symm
   have hdstIndexSub : dstIndex = UInt256.sub posWord ⟨1⟩ := by
-    simpa [dstIndex, dropDstIndex] using (dropSubOne_eq_pred posWord hposNat).symm
+    simpa [dstIndex, dropDstIndex] using (u256_sub_one_eq_pred_of_pos posWord hposNat).symm
   have hlastIdxLt : lastIndex.toNat < lenWord.toNat := by
     dsimp [lastIndex, dropLastIndex]
     rw [ulit_toNat' (lenWord.toNat - 1) (by
@@ -1245,9 +1245,9 @@ theorem cureDropSourceBodySwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (dropPosSlotFor I) ≠ ⟨0⟩ := by
     simpa [hposLoad] using hposNe
   have hlastIndexSub : lastIndex = UInt256.sub lenWord ⟨1⟩ := by
-    simpa [lastIndex, dropLastIndex] using (dropSubOne_eq_pred lenWord hlenPos).symm
+    simpa [lastIndex, dropLastIndex] using (u256_sub_one_eq_pred_of_pos lenWord hlenPos).symm
   have hdstIndexSub : dstIndex = UInt256.sub posWord ⟨1⟩ := by
-    simpa [dstIndex, dropDstIndex] using (dropSubOne_eq_pred posWord hposNat).symm
+    simpa [dstIndex, dropDstIndex] using (u256_sub_one_eq_pred_of_pos posWord hposNat).symm
   have hlastIdxLt : lastIndex.toNat < lenWord.toNat := by
     dsimp [lastIndex, dropLastIndex]
     rw [ulit_toNat' (lenWord.toNat - 1) (by

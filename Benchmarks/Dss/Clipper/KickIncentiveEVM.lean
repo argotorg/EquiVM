@@ -359,10 +359,10 @@ theorem clipperKickSuckEncode_eq (v : ClipperImmutables) (σ : AccountMap)
   have hvowWord :
       EVM.word (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat).val =
         clipperRedoVowTarget σ ee := by
-    simpa [hvowClean] using redoAddressWord (clipperRedoVowTarget σ ee)
+    simpa [hvowClean] using word_of_addressOfNat_eq_mask (clipperRedoVowTarget σ ee)
   have hkprWord : EVM.word (AccountAddress.ofNat kpr.toNat).val =
       clipperRedoKprTarget kpr := by
-    simpa [clipperRedoKprTarget, u256_land_comm] using redoAddressWord kpr
+    simpa [clipperRedoKprTarget, u256_land_comm] using word_of_addressOfNat_eq_mask kpr
   have hcoinWord : EVM.word coin.toNat = coin := u256_ofNat_toNat coin
   have hcoinLt : coin.toNat < EVM.twoPow 256 := by
     change coin.val.val < UInt256.size

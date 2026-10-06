@@ -154,7 +154,7 @@ theorem endCageCallCalldataMem_overwrite_auth (I : ExecutionEnv) :
         ((endRelyAuthHashMem I) ++ ByteArray.zeroes 32 ++
           endCageCallSelectorShifted.toByteArray).size) =
         ByteArray.empty := by
-    apply endCage_byteArray_extract_empty_of_le
+    apply byteArray_extract_empty_of_le
     rw [ByteArray.size_append, ByteArray.size_append, hbaseSize, hzeroSize, toByteArray_size]
   rw [hprefix, hword, htail, ByteArray.append_empty]
 

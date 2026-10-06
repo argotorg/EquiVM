@@ -2,10 +2,93 @@ import Reasoning.MemoryShapes
 import Benchmarks.Dss.End.Dispatch
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem endWordAt0Mem_size_228 (word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (wordAt0Mem word mem).size = 228 := by
+  unfold wordAt0Mem
+  exact toByteArray_write32_size_of_le mem word 0 228 228 hmem (by omega) (by omega)
+
+theorem endTwoWordHashMem_size_228 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (twoWordHashMem key slot mem).size = 228 := by
+  unfold twoWordHashMem wordAt32Mem
+  exact toByteArray_write32_size_of_le (wordAt0Mem key mem) slot 32 228 228
+    (endWordAt0Mem_size_228 key hmem)
+    (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)
+
+theorem endTwoWordHashMem_read64_228 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)
+      (by rw [endWordAt0Mem_size_228 key hmem]; omega)]
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+      (by omega) (by rw [hmem]; omega)]
+  exact hread64
+
+theorem endTwoWordHashMem_read0_228 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (twoWordHashMem key slot mem).readWithPadding 0 32 = UInt256.toByteArray key := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_below _ _ 32 0 (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_228 key hmem]; omega) (by omega)]
+  exact wordAt0Mem_read0 key mem
+
+theorem endTwoWordHashMem_read32_228 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (twoWordHashMem key slot mem).readWithPadding 32 32 = UInt256.toByteArray slot := by
+  unfold twoWordHashMem wordAt32Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size])
+      (by rw [endWordAt0Mem_size_228 key hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray slot).size ≤ 32
+    rw [toByteArray_size])
+
+theorem endTwoWordHashMem_read0_64_228 (key slot : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (twoWordHashMem key slot mem).readWithPadding 0 64 =
+      UInt256.toByteArray key ++ UInt256.toByteArray slot := by
+  rw [readWithPadding_eq_extract' _ 0 64 (by norm_num) (by norm_num)
+      (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega)]
+  have hleft :
+      (twoWordHashMem key slot mem).extract 0 32 = UInt256.toByteArray key := by
+    rw [← readWithPadding_eq_extract _ 0
+        (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega),
+      endTwoWordHashMem_read0_228 key slot hmem]
+  have hright :
+      (twoWordHashMem key slot mem).extract 32 64 = UInt256.toByteArray slot := by
+    rw [← readWithPadding_eq_extract _ 32
+        (by rw [endTwoWordHashMem_size_228 key slot hmem]; omega),
+      endTwoWordHashMem_read32_228 key slot hmem]
+  rw [show (twoWordHashMem key slot mem).extract 0 64 =
+      (twoWordHashMem key slot mem).extract 0 32 ++
+        (twoWordHashMem key slot mem).extract 32 64 by
+      rw [ByteArray.extract_append_extract]
+      norm_num]
+  rw [hleft, hright]
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -280,7 +363,7 @@ theorem endPackBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagHashMem
-  rw [twoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
+  rw [endTwoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) ⟨16⟩
@@ -289,7 +372,7 @@ theorem endPackBagHashMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endPackBagHashMem σ I amt out).size = 228 := by
   unfold endPackBagHashMem
-  exact twoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
+  exact endTwoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)
 
 theorem endPackBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -297,7 +380,7 @@ theorem endPackBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endPackBagHashMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endPackBagHashMem
-  exact twoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
+  exact endTwoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
     (endPackMovePostCallMem_size σ I amt out)
     (endPackMovePostCallMem_read64 σ I amt out)
 
@@ -305,7 +388,7 @@ theorem endPackBagStoreSlotMem_size (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     (endPackBagStoreSlotMem σ I amt out).size = 228 := by
   unfold endPackBagStoreSlotMem
-  exact twoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
+  exact endTwoWordHashMem_size_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)
 
 theorem endPackBagStoreSlotMem_read64 (σ : AccountMap) (I : ExecutionEnv)
@@ -313,7 +396,7 @@ theorem endPackBagStoreSlotMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (endPackBagStoreSlotMem σ I amt out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endPackBagStoreSlotMem
-  exact twoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
+  exact endTwoWordHashMem_read64_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)
     (endPackBagHashMem_read64 σ I amt out)
 
@@ -324,7 +407,7 @@ theorem endPackBagStoreSlotMem_slot (σ : AccountMap) (I : ExecutionEnv)
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagStoreSlotMem
-  rw [twoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
+  rw [endTwoWordHashMem_read0_64_228 (solcSourceWord I) ⟨16⟩
     (endPackBagHashMem_size σ I amt out)]
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) ⟨16⟩

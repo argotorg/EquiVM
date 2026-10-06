@@ -140,7 +140,7 @@ theorem initializeFinalState_accounts (args : InitializeArgs) {σ : AccountMap} 
   generalize heA : args.storeState evmP = evmA at h1
   have henvA : evmA.executionEnv = evm.executionEnv := by
     rw [← heA, InitializeArgs.storeState_env, henvP]
-  have h2 := storageWordWrite_accounts (evm := evmA) h1 ⟨0⟩ initializerEndWord
+  have h2 := storageWordWrite_accounts (evm := evmA) h1 ⟨0⟩ clearBoolOffset1Word
   rw [henvA] at h2
   unfold initializeFinalMap initializeFinalState initializerExited initializerExitedState
   rw [hσP, heP, heA, h]

@@ -516,7 +516,8 @@ theorem RD.catFileIlkFlipHopePostCall {σ σ₀ A I} {g : Sat256} {flip ret sel 
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       rfl
       (by
-        have h := fifHopeEncode_eq hmem (UInt256.land flip solcAddrMask) (fifHopeArg_canonical flip)
+        have h :=
+          fifHopeEncode_eq hmem (UInt256.land flip solcAddrMask) (maskedWord_address_canonical flip)
         simpa [show (⟨128⟩ : UInt256).toNat = 128 from rfl,
           show (⟨36⟩ : UInt256).toNat = 36 from rfl] using h)
       ?_

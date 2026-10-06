@@ -172,7 +172,7 @@ private theorem assign_gemJoinCtorBytes32Storage (evm : EVM.State) (locals : Sto
       (hscalar := by trivial)
   simpa [bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width, evm'] using
     Reasoning.Theory.storageLocStore_bytes32 evm slot word
-      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_ctorIlk word)
+      (.fixedBytes bytes32Width (EVM.Word.toBytesBE word)) (valueToWord_bytes32_toBytesBE word)
 
 theorem assign_gemJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "live" = none) :

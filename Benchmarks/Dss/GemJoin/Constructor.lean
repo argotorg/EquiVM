@@ -278,7 +278,7 @@ theorem gemJoinConstructorCorrect :
             have hretWordBytes : UInt256.toByteArray retWord = out.extract 0 32 := by
               dsimp only [retWord, gemJoinCtorDecimalsReturnWord]
               rw [← uInt256OfByteArray_eq (out.extract 0 32)]
-              exact toByteArray_uInt256OfByteArray_of_size_gemJoin
+              exact toByteArray_uInt256OfByteArray_of_size32
                 (by rw [ByteArray.size_extract]; omega)
             have hmload224 :
                 (if (⟨224⟩ : UInt256).toNat ≥ memRet.size

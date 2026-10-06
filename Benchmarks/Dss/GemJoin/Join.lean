@@ -4,9 +4,120 @@ import Reasoning.SolcMemory
 import Benchmarks.Dss.GemJoin.Deny
 import Reasoning.ExternalCall
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.GemJoin
+
+theorem joinTransferFromReturnWrite_size {base out : ByteArray} (L : ℕ)
+    (hbase : base.size = 228) (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 base 128 L).size = 228 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hbase
+  · rw [write_eq_gen out base 128 L (by omega) hLo (by rw [hbase]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, hbase]
+    omega
+
+theorem joinTransferFromReturnWrite_read64 {base out : ByteArray} (L : ℕ)
+    (hbase : base.size = 228)
+    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 base 128 L).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hread64
+  · rw [write_read_below_gen out base 128 L 64 (by omega) hLo
+      (by rw [hbase]; omega) (by omega), hread64]
+
+theorem joinTransferFromReturnWrite_read128_32 {base out : ByteArray}
+    (hbase : base.size = 228) (ho32 : 32 ≤ out.size) :
+    (out.write 0 base 128 32).readWithPadding 128 32 =
+      out.extract 0 32 :=
+  write32_read_back out base 128 ho32 (by rw [hbase]; omega)
+
+theorem solcErrorStringMem0_size_of_size228 {mem : ByteArray} (hmem : mem.size = 228) :
+    (solcErrorStringMem0 mem).size = 228 := by
+  unfold solcErrorStringMem0
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract, hmem, toByteArray_size]
+
+theorem solcErrorStringMem1_size_of_size228 {mem : ByteArray} (hmem : mem.size = 228) :
+    (solcErrorStringMem1 mem).size = 228 := by
+  unfold solcErrorStringMem1
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem0_size_of_size228 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem0_size_of_size228 hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem2_size_of_size228 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (solcErrorStringMem2 len mem).size = 228 := by
+  unfold solcErrorStringMem2
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem1_size_of_size228 hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem1_size_of_size228 hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem3_size_of_size228 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228) :
+    (solcErrorStringMem3 len word mem).size = 228 := by
+  unfold solcErrorStringMem3
+  rw [write32_eq _ _ _ (by rw [toByteArray_size])
+      (by rw [solcErrorStringMem2_size_of_size228 len hmem]; omega)]
+  simp [toByteArray_size, ByteArray.size_append, ByteArray.size_extract,
+    solcErrorStringMem2_size_of_size228 len hmem,
+    toByteArray_size]
+
+theorem solcErrorStringMem3_read64_of_size228 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem3
+  rw [toByteArray_write_read_below_of_gap word _ 196 64
+      (by rw [solcErrorStringMem2_size_of_size228 len hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size_of_size228 len hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size_of_size228 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size_of_size228 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size_of_size228 hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size_of_size228 hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+theorem solcErrorStringMem3_mload64_of_size228 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 228)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
+     else UInt256.ofNat
+       (fromByteArrayBigEndian
+        ((solcErrorStringMem3 len word mem).readWithPadding
+          (⟨64⟩ : UInt256).toNat 32)))
+      = ⟨128⟩ :=
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size228 len word hmem]; decide)
+    (solcErrorStringMem3_read64_of_size228 len word hmem hread64)
+
+end Benchmarks.Dss.GemJoin
+
+end
 
 namespace Benchmarks.Dss.GemJoin
 

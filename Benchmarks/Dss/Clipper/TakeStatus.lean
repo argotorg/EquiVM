@@ -1325,7 +1325,7 @@ theorem clipperEvalTakeUsrNeZeroAfterTic_true (v : ClipperImmutables)
   have haddr : AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evm I).toNat ≠
       AccountAddress.ofNat 0 := by
     simpa [clipperTakeSalesUsrEVMWord] using
-      redoMaskedAddress_ne_zero
+      maskedAddress_ne_zero_of_mask_ne_zero
         (w := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperTakeSalesPackedSlot I))
         (by simpa [clipperTakeSalesUsrEVMWord] using husr)

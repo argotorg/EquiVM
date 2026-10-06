@@ -2,11 +2,53 @@ import Reasoning.MemoryArithmetic
 import Reasoning.WordArithmetic
 import Benchmarks.Dss.GemJoin.ConstructorTraceStores
 
+
 /-!
 # MakerDAO/Sky DSS GemJoin constructor decimals staticcall trace
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.GemJoin
+
+theorem gemJoinCtorDecimalsReturnWrite_read64 {base out : ByteArray} (L : ℕ)
+    (hbase : base.size = 256)
+    (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨224⟩)
+    (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 base 224 L).readWithPadding 64 32 = UInt256.toByteArray ⟨224⟩ := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hread64
+  · rw [write_read_below_gen out base 224 L 64 (by omega) hLo
+      (by rw [hbase]; omega) (by omega), hread64]
+
+theorem gemJoinCtorDecimalsReturnWrite_size {base out : ByteArray} (L : ℕ)
+    (hbase : base.size = 256) (hL : L ≤ 32) (hLo : L ≤ out.size) :
+    (out.write 0 base 224 L).size = 256 := by
+  rcases Nat.eq_zero_or_pos L with h | h
+  · subst h
+    rw [byteArray_write_len_zero]
+    exact hbase
+  · rw [write_eq_gen out base 224 L (by omega) hLo (by rw [hbase]; omega),
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract, hbase]
+    omega
+
+theorem gemJoinCtorDecimalsReturnWrite_read224_32 {base out : ByteArray}
+    (hbase : base.size = 256) (ho32 : 32 ≤ out.size) :
+    (out.write 0 base 224 32).readWithPadding 224 32 =
+      out.extract 0 32 :=
+  write32_read_back out base 224 ho32 (by rw [hbase]; omega)
+
+end Benchmarks.Dss.GemJoin
+
+end
 
 namespace Benchmarks.Dss.GemJoin
 

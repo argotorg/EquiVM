@@ -20,7 +20,7 @@ theorem evalExpr_fold_wordWrapAdd_ok {evm : EVM.State} {locals : Store}
   have hwrap :
       (Int.ofNat old.toNat + addendInt) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat sum.toNat := by
-    simpa [hsum] using slipSignedAddWrap old addend addendInt haddend
+    simpa [hsum] using signedAddWrap old addend addendInt haddend
   have hmodNe : ¬ EVM.wordModulus = 0 := by decide
   simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hmodNe]
   simpa using hwrap

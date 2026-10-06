@@ -631,7 +631,7 @@ theorem clipperTakeVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     rfl
   have hwho : EVM.word (AccountAddress.ofNat who.toNat).val =
       UInt256.land who solcAddrMask :=
-    takeWhoAddressWord who
+    word_of_addressOfNat_eq_mask' who
   have hsliceWord : EVM.word slice.toNat = slice := u256_ofNat_toNat slice
   have hsliceLt : slice.toNat < EVM.twoPow 256 := by
     change slice.val.val < UInt256.size

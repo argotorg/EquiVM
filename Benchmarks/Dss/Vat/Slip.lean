@@ -1379,7 +1379,7 @@ theorem vatSlipSourceOk
       (Int.ofNat old.toNat + slipWadInt I) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
-      slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
+      signedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
   have hguardAuth := vatAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by
@@ -1458,7 +1458,7 @@ theorem vatSlipSourceRevertGuardNeg
       (Int.ofNat old.toNat + slipWadInt I) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
-      slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
+      signedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
   have hguardAuth := vatAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by
@@ -1522,7 +1522,7 @@ theorem vatSlipSourceRevertGuardPos
       (Int.ofNat old.toNat + slipWadInt I) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat gemNew.toNat := by
     simpa [old, gemNew] using
-      slipSignedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
+      signedAddWrap old (slipWadWord I) (slipWadInt I) (slipWadInt_mod_word I)
   have hguardAuth := vatAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := slipStore I) (slipStore_wards I) (by

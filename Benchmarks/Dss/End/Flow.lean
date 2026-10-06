@@ -8,10 +8,58 @@ import Benchmarks.Dss.End.Pack
 import Benchmarks.Dss.End.Cash
 import Benchmarks.Dss.End.Thaw
 
+
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
+
+section
+set_option maxRecDepth 2000000
+set_option maxHeartbeats 2000000
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+
+namespace Benchmarks.Dss.End
+
+theorem write128Min160_size_gt64 (base out : ByteArray) (hbaseSize : base.size = 164) :
+    64 < (out.write 0 base 128 (min 160 out.size)).size := by
+  by_cases hlen0 : min 160 out.size = 0
+  · rw [hlen0, byteArray_write_len_zero, hbaseSize]
+    omega
+  · by_cases hext : base.size < 128 + min 160 out.size
+    · rw [write_eq_gen_extend out base 128 (min 160 out.size) hlen0
+        (Nat.min_le_right _ _) (by omega) hext]
+      have hprefix : (base.extract 0 128).size = 128 := by
+        rw [ByteArray.size_extract, hbaseSize]
+        omega
+      have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
+        rw [ByteArray.size_extract]
+        omega
+      rw [ByteArray.size_append, hprefix, hsrc]
+      have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
+      omega
+    · have hin : 128 + min 160 out.size ≤ base.size := by
+        omega
+      rw [write_eq_gen out base 128 (min 160 out.size) hlen0
+        (Nat.min_le_right _ _) hin]
+      have hprefix : (base.extract 0 128).size = 128 := by
+        rw [ByteArray.size_extract, hbaseSize]
+        omega
+      have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
+        rw [ByteArray.size_extract]
+        omega
+      have htail :
+          (base.extract (128 + min 160 out.size) base.size).size =
+            164 - (128 + min 160 out.size) := by
+        rw [ByteArray.size_extract, hbaseSize]
+        omega
+      rw [ByteArray.size_append, ByteArray.size_append, hprefix, hsrc, htail]
+      have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
+      omega
+
+end Benchmarks.Dss.End
+
+end
 
 namespace Benchmarks.Dss.End
 
@@ -512,11 +560,11 @@ theorem endFlowVatIlksDecode_ok_aux {out : ByteArray} (hlo : 160 ≤ out.size) :
   have htake128 : ((out.toList.drop 128).take 32).length = 32 := by
     rw [List.length_take, List.length_drop, hlen]
     omega
-  have hword0 := endCageIlk_bytesToWord_drop_take32_eq_extract out 0
-  have hword32 := endCageIlk_bytesToWord_drop_take32_eq_extract out 32
-  have hword64 := endCageIlk_bytesToWord_drop_take32_eq_extract out 64
-  have hword96 := endCageIlk_bytesToWord_drop_take32_eq_extract out 96
-  have hword128 := endCageIlk_bytesToWord_drop_take32_eq_extract out 128
+  have hword0 := bytesToWord_drop_take32_eq_extract' out 0
+  have hword32 := bytesToWord_drop_take32_eq_extract' out 32
+  have hword64 := bytesToWord_drop_take32_eq_extract' out 64
+  have hword96 := bytesToWord_drop_take32_eq_extract' out 96
+  have hword128 := bytesToWord_drop_take32_eq_extract' out 128
   unfold ABI.decodeReturnValuesWithMode?
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256]) (by decide)]
@@ -557,7 +605,7 @@ theorem endFlowVatIlksDecode_ok {out : ByteArray} (hlo : 160 ≤ out.size) :
 
 theorem endFlowVatIlksDecode_none_short {out : ByteArray} (hshort : out.size < 160) :
     config.externalABI.decode? "vatIlks" out = none := by
-  have h := vatIlksDecode_none_short_aux (out := out) hshort
+  have h := decodeReturnValues_legacyFiveUint256_none_short (out := out) hshort
   simpa [config, externalABI, uint256, uint256Int, abiUInt256] using h
 
 theorem endFlowVatIlksWriteLen_eq {out : ByteArray} (hout : out.size < UInt256.size) :

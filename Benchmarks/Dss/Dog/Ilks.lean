@@ -582,7 +582,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
             evm.executionEnv).toNat))])) := by
   subst locals
   let frame : Frame := { contract := contract v, locals := ilksLocals I }
-  have hkeyLen := biteIlkBytes_len_min (I := I) hsz36
+  have hkeyLen := calldata_first_word_min_length (I := I) hsz36
   change _ = bytes32Width.val + 1 at hkeyLen
   have hclip :
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "clip")) =
@@ -690,7 +690,7 @@ theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
         (.int (Int.ofNat dirt.toNat))])
       ilksTransition.returnType := by
   rw [show ilksTransition.returnType = [addr, uint256, uint256, uint256] by rfl]
-  exact returnEquiv.returned rfl (ilksReturnEncoding clip chop hole dirt)
+  exact returnEquiv.returned rfl (addressThreeUint256ReturnEncoding clip chop hole dirt)
 
 theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256}
