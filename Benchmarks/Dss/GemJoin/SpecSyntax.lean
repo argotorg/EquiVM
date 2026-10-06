@@ -22,6 +22,9 @@ def contractSyntax : ContractDecl := solidity% contract GemJoin {
   uint256 dec;
   uint256 live;
 
+  event Join(address indexed usr, uint256 wad);
+  event Exit(address indexed usr, uint256 wad);
+
   constructor(address vat_, bytes32 ilk_, address gem_) {
     wards[msg.sender] = 1;
     live = 1;
@@ -54,6 +57,7 @@ def contractSyntax : ContractDecl := solidity% contract GemJoin {
     require(${Expr.extCodeSize (Expr.storage gemRef)} > 0);
     var transferOk = gem.transfer(usr, wad);
     require(transferOk);
+    emit Exit(usr, wad);
   }
 
   function gem() external returns (address) {
@@ -72,6 +76,7 @@ def contractSyntax : ContractDecl := solidity% contract GemJoin {
     require(${Expr.extCodeSize (Expr.storage gemRef)} > 0);
     var transferFromOk = gem.transferFrom(msg.sender, this, wad);
     require(transferFromOk);
+    emit Join(usr, wad);
   }
 
   function live() external returns (uint256) {
