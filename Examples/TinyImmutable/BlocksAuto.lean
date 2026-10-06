@@ -32,13 +32,13 @@ theorem immutableDecode_71 (immWords : String → UInt256) :
     (by native_decide) (immutableRuntime_size immWords)
     (by native_decide) (by native_decide)
     (by simp [Layout.writes, immutableLayout_sites, WindowDisjointFromWrites,
-      UInt256.toNat, UInt256.size] <;> native_decide)
+      UInt256.toNat, UInt256.size]; try native_decide)
     (by native_decide) (by rfl)
     (by
       rw [writeCascade_size]
-      · simp [writeCascadeSize] <;> native_decide
-      · simp [WriteGapsOk] <;> native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+      · simp [writeCascadeSize]; try native_decide
+      · simp [WriteGapsOk]; try native_decide)
+    (by simp [WindowDisjointFromWrites]; try native_decide)
 
 theorem immutableDecode_185 (immWords : String → UInt256) :
     decode (TinyImmutable.immutableLayout.runtime TinyImmutable.tinyImmutableBytecode immWords) (⟨185⟩ : UInt256) =
@@ -48,13 +48,13 @@ theorem immutableDecode_185 (immWords : String → UInt256) :
     (by native_decide) (immutableRuntime_size immWords)
     (by native_decide) (by native_decide)
     (by simp [Layout.writes, immutableLayout_sites, WindowDisjointFromWrites,
-      UInt256.toNat, UInt256.size] <;> native_decide)
+      UInt256.toNat, UInt256.size]; try native_decide)
     (by native_decide) (by rfl)
     (by
       rw [writeCascade_size]
-      · simp [writeCascadeSize] <;> native_decide
-      · simp [WriteGapsOk] <;> native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+      · simp [writeCascadeSize]; try native_decide
+      · simp [WriteGapsOk]; try native_decide)
+    (by simp [WindowDisjointFromWrites]; try native_decide)
 
 theorem immutableDecode_244 (immWords : String → UInt256) :
     decode (TinyImmutable.immutableLayout.runtime TinyImmutable.tinyImmutableBytecode immWords) (⟨244⟩ : UInt256) =
@@ -64,13 +64,13 @@ theorem immutableDecode_244 (immWords : String → UInt256) :
     (by native_decide) (immutableRuntime_size immWords)
     (by native_decide) (by native_decide)
     (by simp [Layout.writes, immutableLayout_sites, WindowDisjointFromWrites,
-      UInt256.toNat, UInt256.size] <;> native_decide)
+      UInt256.toNat, UInt256.size]; try native_decide)
     (by native_decide) (by rfl)
     (by
       rw [writeCascade_size]
-      · simp [writeCascadeSize] <;> native_decide
-      · simp [WriteGapsOk] <;> native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+      · simp [writeCascadeSize]; try native_decide
+      · simp [WriteGapsOk]; try native_decide)
+    (by simp [WindowDisjointFromWrites]; try native_decide)
 
 theorem immutableDecode_360 (immWords : String → UInt256) :
     decode (TinyImmutable.immutableLayout.runtime TinyImmutable.tinyImmutableBytecode immWords) (⟨360⟩ : UInt256) =
@@ -80,13 +80,13 @@ theorem immutableDecode_360 (immWords : String → UInt256) :
     (by native_decide) (immutableRuntime_size immWords)
     (by native_decide) (by native_decide)
     (by simp [Layout.writes, immutableLayout_sites, WindowDisjointFromWrites,
-      UInt256.toNat, UInt256.size] <;> native_decide)
+      UInt256.toNat, UInt256.size]; try native_decide)
     (by native_decide) (by rfl)
     (by
       rw [writeCascade_size]
-      · simp [writeCascadeSize] <;> native_decide
-      · simp [WriteGapsOk] <;> native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+      · simp [writeCascadeSize]; try native_decide
+      · simp [WriteGapsOk]; try native_decide)
+    (by simp [WindowDisjointFromWrites]; try native_decide)
 
 /-- Final stack for bytecode block summary `tinyImmutable_block_0_taken`. -/
 def tinyImmutable_block_0_taken_stack {ee : ExecutionEnv} {R : List UInt256} : List UInt256 :=
