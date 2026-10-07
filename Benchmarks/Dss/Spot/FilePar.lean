@@ -23,7 +23,7 @@ theorem evalExpr_live_true_of_none (evm : EVM.State) (locals : Store)
   have hstorage :
       evalExpr? config { contract := contract, locals := locals } evm
         (.storage liveRef) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := locals })
       (slot := liveRef)
@@ -49,7 +49,7 @@ theorem evalExpr_live_false_of_none (evm : EVM.State) (locals : Store)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := locals })
       (slot := liveRef)
@@ -291,10 +291,10 @@ theorem assign_fileParStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage parRef (.int (Int.ofNat (fileParData I).toNat)) =
         .ok ({ contract := contract, locals := fileParLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "par", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨3⟩)
+      (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileParLocals_get_par I)
       (her := by simp [parRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -168,23 +169,23 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "flip"] }, _ =>
-      some (addrLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "chop"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "dunk"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨2⟩))
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨2⟩)
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨4⟩)
-  | { base := "box", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | { base := "litter", steps := [] }, _ => some (wordLoc ⟨6⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "flip"] } =>
+      some (.leaf (addrLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "chop"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "dunk"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨2⟩)))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨2⟩))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨4⟩))
+  | { base := "box", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | { base := "litter", steps := [] } => some (.leaf (wordLoc ⟨6⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -470,7 +471,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # Reuse — Solm spec for `C.sol`
@@ -61,12 +62,12 @@ def cContract : ContractDecl :=
 
 end Reuse
 
+/-- Generated layout for the single persistent storage word. -/
+def cStorageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [Reuse.cContract.storage]
+
 /-- Verification config: `s` at slot 0, default external-call ABI. -/
 def cConfig : Config :=
-  { storage :=
-      { layout := fun ref =>
-          match ref.base, ref.steps with
-          | "s", [] => fun _ => some Reuse.sLoc
-          | _, _ => fun _ => none }
+  { storageBackend := solidityStorageBackend cStorageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment Reuse.cContract.ctor.params }

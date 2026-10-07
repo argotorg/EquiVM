@@ -5007,15 +5007,14 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
     exact hlive (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-  erw [storageLocLoad_uint256]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -5041,15 +5040,14 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
     simpa [w, solcSlotWordAt] using hlive
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
-  erw [storageLocLoad_uint256]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   have hload' :
       Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩ = ⟨1⟩ := by
     simpa [w] using hload
@@ -5632,7 +5630,7 @@ theorem evalExpr_barkStorageMilkClip {v : DogImmutables} {evm : EVM.State}
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (barkIlksClipSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "clip") (er := barkIlksClipEvaledRef I)
     (t := .address) (loc := addrLoc (barkIlksClipSlotFor I))
@@ -5662,7 +5660,7 @@ theorem evalExpr_barkStorageMilkChop {v : DogImmutables} {evm : EVM.State}
       (.storage (ilksF (.var "ilk") "chop")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (barkIlksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "chop") (er := barkIlksChopEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksChopSlotFor I))
@@ -5690,7 +5688,7 @@ theorem evalExpr_barkStorageMilkHole {v : DogImmutables} {evm : EVM.State}
       (.storage (ilksF (.var "ilk") "hole")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (barkIlksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "hole") (er := barkIlksHoleEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksHoleSlotFor I))
@@ -5718,7 +5716,7 @@ theorem evalExpr_barkStorageMilkDirt {v : DogImmutables} {evm : EVM.State}
       (.storage (ilksF (.var "ilk") "dirt")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (barkIlksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "dirt") (er := barkIlksDirtEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (barkIlksDirtSlotFor I))
@@ -5743,7 +5741,7 @@ theorem evalExpr_barkStorageHole {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage HoleRef) =
         .ok (.int (Int.ofNat (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := HoleRef) (er := ({ base := "Hole", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
@@ -5760,7 +5758,7 @@ theorem evalExpr_barkStorageDirt {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage DirtRef) =
         .ok (.int (Int.ofNat (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -5776,7 +5774,7 @@ theorem evalExpr_barkStorageVow {v : DogImmutables} {evm : EVM.State}
     (hvow : locals.get? "vow" = none) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm vowAddr =
       .ok (.address (AccountAddress.ofNat (barkVowWord evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -6209,9 +6207,9 @@ theorem assign_barkDirtStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat dirtNew.toNat)) =
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ dirtNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by simp [DirtRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -6243,9 +6241,9 @@ theorem assign_barkIlkDirtStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc (barkIlksDirtSlotFor I))
           (.int (Int.ofNat ilkDirtNew.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm (barkIlksDirtSlotFor I) ilkDirtNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := barkIlksDirtEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (barkIlksDirtSlotFor I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (barkIlksDirtSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [barkIlksDirtEvaledRef, barkIlkKey, barkIlkValue, evalStorageRef,

@@ -221,9 +221,9 @@ theorem clipperRedoAssignSalesTop (v : ClipperImmutables)
       ((clipperRedoLocalsTopNew evmLoc evmRead I price feedPrice topNew).get? "id") = _
     rw [hget]
     rfl
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperRedoSalesTopRef I) (ty := uint256St)
-    (loc := wordLoc (clipperRedoSalesTopSlot I))
+    (loc := wordLoc (clipperRedoSalesTopSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperRedoLocalsTopNew, clipperRedoLocalsFeedPrice,
       clipperRedoLocalsLot, clipperRedoLocalsTab, clipperRedoLocalsSt,
       clipperRedoLocalsTop, clipperRedoLocalsTic, clipperRedoLocalsUsr,

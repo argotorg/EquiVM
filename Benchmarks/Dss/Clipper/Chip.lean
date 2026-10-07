@@ -63,11 +63,10 @@ theorem clipperEvalChip (v : ClipperImmutables) (evm : EVM.State) (locals : Stor
   have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint64Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint64St]
   have hloc :
-      (config v).storage.layout er =
-        fun _ => some (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide)) := by
-    funext evm'
+      (config v).storageBackend.locate? er =
+        some (.leaf (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide))) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (clipperStorageLocLoad_uint64 evm ⟨8⟩)
 
 theorem clipperChipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

@@ -167,13 +167,13 @@ theorem assign_filePipStorage (evm : EVM.State) (I : ExecutionEnv)
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm (filePipSlotFor I) (filePipMaskedWord I)
         (filePipMaskedWord_canonical I)
-  exact assignStorageRef_storage_scalar_value
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := filePipLocals I })
     (slot := ilksF (.var "ilk") "pip")
     (ty := .elem .address)
     (er := filePipEvaledRef I)
-    (loc := addrLoc (filePipSlotFor I))
+    (loc := addrLoc (filePipSlotFor I)) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := filePipLocals_get_ilks I)
     (her := by
       have hkeyLen : (filePipIlkBytes I).length = ↑bytes32Width + 1 := by
@@ -186,7 +186,7 @@ theorem assign_filePipStorage (evm : EVM.State) (I : ExecutionEnv)
       simp [filePipIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, addrSt])
     (hloc := by rfl)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem spotFilePipSourceBodySplit {σ σ₀ A I} {g : UInt256}

@@ -4372,7 +4372,7 @@ theorem evalExpr_endSkim_tag (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endSkimTagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endSkimStore I })
     (slot := tagRef (.var "ilk"))
@@ -5539,9 +5539,9 @@ theorem endSkimAssignGap {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       .storage (gapRef (.var "ilk")) (.int (Int.ofNat gapNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endSkimPostGapState evm I gapNew) := by
   have href := evalStorageRef_endFlow_gap_of_get evm I hget (by omega)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endSkimGapSlot I))
+      (loc := wordLoc (endSkimGapSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := by simpa [endSkimGapSlot, endFlowGapSlot] using href)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

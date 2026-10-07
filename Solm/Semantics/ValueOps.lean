@@ -1,55 +1,12 @@
 import ABI.Encode
 import Solm.Value
+import Solm.Result
 
 /-! The evaluation monad (`EvalResult`) and value-level primitive operations. -/
 
 namespace Solm
 
 open ABI
-
-/-- Solm evaluation errors. Should never happen in well-formed programs -/
-inductive EvalError where
-  | unboundVariable
-  | typeError
-  | storageError
-  deriving DecidableEq, Repr, Inhabited
-
-/-- Result of evaluating an Solm expression:
-    - a value (`ok`)
-    - a `revert`
-    - or an error, which indicates an ill-formed program
--/
-inductive EvalResult (α : Type) where
-  | ok : α -> EvalResult α
-  | revert : EvalResult α
-  | error : EvalError -> EvalResult α
-  deriving Repr, DecidableEq
-
-namespace EvalResult
-
-@[inline] def bind : EvalResult α -> (α -> EvalResult β) -> EvalResult β
-  | .ok a,    f => f a
-  | .revert,  _ => .revert
-  | .error e, _ => .error e
-
-instance : Monad EvalResult where
-  pure := .ok
-  bind := bind
-
-/-- Lift an `Option`, mapping `none` to the model-level `error e`. -/
-@[inline] def ofOption (e : EvalError) : Option α -> EvalResult α
-  | some a => .ok a
-  | none   => .error e
-
-/-- Sequence a list of results, short-circuiting on the first `revert`/`error`. -/
-def seqList : List (EvalResult α) -> EvalResult (List α)
-  | [] => .ok []
-  | x :: xs => do
-      let a <- x
-      let as <- seqList xs
-      .ok (a :: as)
-
-end EvalResult
 
 def envValue (evm : EVM.State) : EnvVar -> Value
   | .caller => .address evm.executionEnv.source

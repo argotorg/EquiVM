@@ -120,7 +120,7 @@ theorem evalExpr_clipperRely_auth_true (v : ClipperImmutables) (evm : EVM.State)
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := clipperRelyStore I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperRelyStore I })
       (slot := wardsRef sender)
@@ -151,7 +151,7 @@ theorem evalExpr_clipperRely_auth_false (v : ClipperImmutables) (evm : EVM.State
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperRelyStore I })
       (slot := wardsRef sender)
@@ -191,9 +191,9 @@ theorem clipperRelyAssign (v : ClipperImmutables) (evm : EVM.State) (I : Executi
       .storage (wardsRef (.var "usr")) (.int 1) =
         .ok ({ contract := contract v, locals := clipperRelyStore I },
           clipperRelyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (clipperRelyUsrStorageSlot I))
+      (loc := wordLoc (clipperRelyUsrStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := clipperRelyStore_wards I)
       (her := evalStorageRef_clipperRely_usr v evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

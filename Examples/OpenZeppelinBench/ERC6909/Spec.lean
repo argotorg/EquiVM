@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin ERC6909 benchmark spec
@@ -67,16 +68,24 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_balances", [.mindex owner, .mindex id] =>
-        some (wordLoc (balanceSlot owner id))
-    | "_operatorApprovals", [.mindex owner, .mindex spender] =>
-        some (boolLoc (operatorApprovalSlot owner spender))
-    | "_allowances", [.mindex owner, .mindex spender, .mindex id] =>
-        some (wordLoc (allowanceSlot owner spender id))
-    | _, _ => none
+def storageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
+
+@[simp] theorem storageLayout_balance (owner id : KeyValue) :
+    storageLayout { base := "_balances", steps := [.mindex owner, .mindex id] } =
+      some (.leaf (wordLoc (balanceSlot owner id))) := by
+  rfl
+
+@[simp] theorem storageLayout_operatorApproval (owner spender : KeyValue) :
+    storageLayout { base := "_operatorApprovals", steps := [.mindex owner, .mindex spender] }
+      = some (.leaf (boolLoc (operatorApprovalSlot owner spender))) := by
+  rfl
+
+@[simp] theorem storageLayout_allowance (owner spender id : KeyValue) :
+    storageLayout
+      { base := "_allowances", steps := [.mindex owner, .mindex spender, .mindex id] } =
+      some (.leaf (wordLoc (allowanceSlot owner spender id))) := by
+  rfl
 
 def supportsInterfaceTransition : TransitionDecl :=
   { name := "supportsInterface"
@@ -206,7 +215,7 @@ def contract : ContractDecl :=
         transferFromTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

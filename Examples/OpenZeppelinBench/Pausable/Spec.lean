@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin Pausable benchmark spec
@@ -24,11 +25,8 @@ def storageDecls : List StorageDecl :=
 def boolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_paused", [] => some (boolLoc ⟨0⟩)
-    | _, _ => none
+def storageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
 
 def pausedTransition : TransitionDecl :=
   { name := "paused"
@@ -90,7 +88,7 @@ def contract : ContractDecl :=
         unpauseTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

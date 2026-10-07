@@ -401,14 +401,14 @@ theorem evalExpr_transfer_from_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferStore I } evm
       (.storage (balanceRef sender (.var "id"))) =
         .ok (transferFromBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromSlot evm I))
     (hbase := by simpa [balanceRef] using transferStore_balances I)
     (her := evalStorageRef_transfer_from_balance evm I)
     (hty := by
       simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])]
+    (hloc := by rfl)]
   simp [show wordLoc = uint256Loc from rfl, transferFromEvaledRef, transferFromSlot,
     transferFromBalanceWord,
     storageLocLoad_uint256]
@@ -471,7 +471,7 @@ theorem transferAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferStoreFromBalance evm I },
           transferAfterDebitState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromSlot evm I))
       (hbase := by simpa [balanceRef] using transferStoreFromBalance_balances evm I)
       (her := by
@@ -479,7 +479,7 @@ theorem transferAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, transferFromEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromEvaledRef, transferFromSlot])
+      (hloc := by rfl)
   erw [storageLocStore_uint256]
   simp [transferAfterDebitState, transferFromSlot]
 
@@ -523,14 +523,14 @@ theorem evalExpr_transfer_to_balance (evm : EVM.State) (I : ExecutionEnv) :
       { contract := contract, locals := transferStoreFromBalance evm I }
       (transferAfterDebitState evm I) (.storage (balanceRef (.var "receiver") (.var "id"))) =
         .ok (transferToBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferToSlot I))
     (hbase := by simpa [balanceRef] using transferStoreFromBalance_balances evm I)
     (her := evalStorageRef_transfer_to_balance_fromBalance evm (transferAfterDebitState evm I) I)
     (hty := by
       simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])]
+    (hloc := by rfl)]
   simp [show wordLoc = uint256Loc from rfl, transferToEvaledRef, transferToSlot,
     transferToBalanceWord,
     storageLocLoad_uint256, transferAfterDebit_codeOwner]
@@ -588,7 +588,7 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferStoreToBalance evm I },
           transferPostState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferToSlot I))
       (hbase := by
         simp [balanceRef, transferStoreToBalance, transferStoreFromBalance, transferStore])
@@ -597,7 +597,7 @@ theorem transferAssignTo (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, transferToEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferToEvaledRef, transferToSlot])
+      (hloc := by simp [config, transferToEvaledRef, transferToSlot])
   rw [← transferNewToWord_toNat evm I hfit]
   erw [storageLocStore_uint256]
   simp [transferPostState, transferToSlot, transferAfterDebit_codeOwner]

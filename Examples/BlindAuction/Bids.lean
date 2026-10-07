@@ -101,6 +101,28 @@ theorem bidsElementSlot_spec (I : ExecutionEnv)
         rw [Fin.val_mul]
         rfl]
 
+theorem bidsArrayLength (evm : EVM.State) (a : KeyValue) :
+    blindAuctionConfig.storageBackend.length
+      { base := "bids", steps := [.mindex a] }
+      (.dynamicArray bidStructTy) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (bidsBase a)).toNat := by
+  change solidityStorageLength? blindAuctionStorageLayout
+    { base := "bids", steps := [.mindex a] }
+    (.dynamicArray bidStructTy) evm = _
+  have hanchor : blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex a] } =
+      some (.anchor (bidsBase a)) :=
+    blindAuctionConfig_storage_bids_length a
+  have hloc : solidityLengthLoc? blindAuctionStorageLayout
+      { base := "bids", steps := [.mindex a] } =
+      some (uint256Loc (bidsBase a)) := by
+    simp [solidityLengthLoc?, solidityAnchor?, hanchor, solidityAnchorWordLoc, uint256Loc]
+  simp only [solidityStorageLength?, solidityDynamicLength?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [storageLocLoad_uint256]
+  simp
+
 theorem bidsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
@@ -110,11 +132,10 @@ theorem bidsArrayIndexInBounds_ok (evm : EVM.State) (I : ExecutionEnv)
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) := by
     simpa [bidsLengthCurrent, bidsLengthSlot, bidsAddressKey] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, show blindAuctionUint256Loc = uint256Loc from rfl, storageLocLoad_uint256,
-      bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hboundStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls, bidsIndexKey]
+  rw [bidsArrayLength evm (bidsAddressKey I)]
+  simp [bidsAddressKey, hboundStorage]
 
 theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
     (hbound : ¬ (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
@@ -130,11 +151,10 @@ theorem bidsArrayIndexInBounds_revert (evm : EVM.State) (I : ExecutionEnv)
           (bidsBase (KeyValue.address (AccountAddress.ofNat (bidsAddressWord I).toNat)))) ≤
         (bidsIndexWord I).toNat :=
     Nat.le_of_not_gt hboundStorage
-  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, show blindAuctionUint256Loc = uint256Loc from rfl, storageLocLoad_uint256,
-      bidsAddressKey, bidsIndexKey,
-    bidsLengthSlot, hleStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls, bidsIndexKey]
+  rw [bidsArrayLength evm (bidsAddressKey I)]
+  simp [bidsAddressKey, hleStorage]
 
 theorem evalStorageRef_bidsField_ok (evm : EVM.State) (I : ExecutionEnv) (field : Ident)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthCurrent evm I).toNat) :
@@ -222,14 +242,12 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, blindAuctionContract,
           storageDecls, bidStructTy, uint256St]
       have hlocBlinded :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "blindedBid") =
-            fun _ => some (blindAuctionBytes32Loc (bidsElementSlot I)) := by
-        funext evm'
+          blindAuctionConfig.storageBackend.locate? (bidsEvaledRef I "blindedBid") =
+            some (.leaf (blindAuctionBytes32Loc (bidsElementSlot I))) := by
         simp [bidsEvaledRef, bidsElementSlot]
       have hlocDeposit :
-          blindAuctionConfig.storage.layout (bidsEvaledRef I "deposit") =
-            fun _ => some (blindAuctionUint256Loc (bidsDepositSlot I)) := by
-        funext evm'
+          blindAuctionConfig.storageBackend.locate? (bidsEvaledRef I "deposit") =
+            some (.leaf (blindAuctionUint256Loc (bidsDepositSlot I))) := by
         simp [bidsEvaledRef, bidsDepositSlot, bidsElementSlot]
       have hloadBlinded :
           storageLocLoad evm (blindAuctionBytes32Loc (bidsElementSlot I)) =
@@ -242,10 +260,10 @@ theorem blindAuctionBidsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         simpa [bidsDepositCurrent, show blindAuctionUint256Loc = uint256Loc from rfl] using
           storageLocLoad_uint256 evm (bidsDepositSlot I)
       simp only [Solm.evalExprs?.eq_def,
-        evalExpr_storage_scalar (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .bytes ⟨31, by decide⟩) (hbase := hbaseBlinded)
           (her := evalStorageRef_bidsField_ok evm I "blindedBid" hbound)
           (hty := htyBlinded) (hloc := hlocBlinded),
-        evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbaseDeposit)
+        evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbaseDeposit)
           (her := evalStorageRef_bidsField_ok evm I "deposit" hbound)
           (hty := htyDeposit) (hloc := hlocDeposit),
         EvalResult.bind, bind, pure, hloadBlinded, hloadDeposit,

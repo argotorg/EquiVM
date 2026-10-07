@@ -176,7 +176,7 @@ theorem evalExpr_join_live_true (evm : EVM.State) (I : ExecutionEnv)
     have hload : storageLocLoad evm (wordLoc ⟨5⟩) = .int 1 := by
       rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hlive]
       native_decide
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := joinStore I })
       (slot := liveRef)
@@ -200,7 +200,7 @@ theorem evalExpr_join_live_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := joinStore I })
       (slot := liveRef)
@@ -353,7 +353,7 @@ theorem evalExpr_join_vat (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.land
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := joinStore I })
     (slot := vatRef)
@@ -372,7 +372,7 @@ theorem evalExpr_join_gem (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.land
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩)
           solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := joinStore I })
     (slot := gemRef)
@@ -390,7 +390,7 @@ theorem evalExpr_join_ilk (evm : EVM.State) (I : ExecutionEnv) :
       .ok (.fixedBytes bytes32Width
         (EVM.Word.toBytesBE
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩))) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := joinStore I })
     (slot := ilkRef)
@@ -542,7 +542,7 @@ abbrev joinLocalsAfterTransferFalse (I : ExecutionEnv) : Store :=
 theorem evalExpr_join_gem_afterSlip (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := joinLocalsAfterSlip I } evm
       (.storage gemRef) = .ok (.address (joinGemAddressOf evm)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := joinLocalsAfterSlip I })
     (slot := gemRef)

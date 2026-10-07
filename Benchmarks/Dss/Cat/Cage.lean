@@ -124,14 +124,13 @@ theorem catCageBodyCore
         have hstore :
             storageLocStore evm0 (wordLoc ⟨2⟩) (.int 0) = some evm1 := by
           simpa [evm1] using storageLocStore_uint256 evm0 ⟨2⟩ ⟨0⟩
-        exact assignStorageRef_storage_scalar
-          (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨2⟩)
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨2⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
           (hbase := by simp [locals, liveRef])
           (her := her)
           (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
           (hstore := hstore)
       constructor
       · have hblock := nonpayableRequireAssignStorageBlock

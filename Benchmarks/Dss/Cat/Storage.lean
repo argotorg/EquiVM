@@ -97,14 +97,13 @@ theorem catAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (catCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         catCallerWardsEvaledRef, catCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
@@ -128,14 +127,13 @@ theorem catAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (catCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         catCallerWardsEvaledRef, catCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]

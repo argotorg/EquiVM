@@ -208,15 +208,14 @@ theorem assign_fileAddressVowStorage (evm : EVM.State) {locals : Store} (data : 
       storageLocStore_address_offset0 evm ⟨4⟩ (UInt256.land solcAddrMask data) (by
         rw [u256_land_comm solcAddrMask data]
         exact solcAddrMask_result_canonical data)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc ⟨4⟩)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc ⟨4⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
 theorem fileAddressVowSourceBodySplit {σ σ₀ A I} {g : UInt256}

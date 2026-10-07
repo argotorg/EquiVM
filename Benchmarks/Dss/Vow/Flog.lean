@@ -78,30 +78,30 @@ theorem evalExpr_flogWaitStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage waitRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flogWaitEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogWaitEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨7⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨7⟩)
   · exact hbase
   · simp [flogWaitEvaledRef, waitRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flogWaitEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flogWaitEvaledRef]
 
 theorem evalExpr_flogSinCapitalStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "Sin" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage SinRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flogSinCapitalEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogSinCapitalEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨5⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨5⟩)
   · exact hbase
   · simp [flogSinCapitalEvaledRef, SinRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       flogSinCapitalEvaledRef]
 
 theorem evalExpr_flogSinStorageOfLoad (evm : EVM.State) {I : ExecutionEnv}
@@ -112,7 +112,7 @@ theorem evalExpr_flogSinStorageOfLoad (evm : EVM.State) {I : ExecutionEnv}
       (.storage (sinRef (.var "era"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (flogEraSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flogSinEvaledRef I) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flogSinEvaledRef I) (t := .int uint256Int)
     (loc := wordLoc (flogEraSlot I))]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ (flogEraSlot I))
   · exact hbase
@@ -122,8 +122,8 @@ theorem evalExpr_flogSinStorageOfLoad (evm : EVM.State) {I : ExecutionEnv}
     rw [← Std.HashMap.get?_eq_getElem?, hera]
     rfl
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flogSinEvaledRef,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flogSinEvaledRef,
       flogEraSlot]
 
 theorem flogInternalAddReturn (I : ExecutionEnv) (evm : EVM.State)
@@ -313,14 +313,13 @@ theorem assign_flogSinCapitalStorage (evm : EVM.State) {locals : Store} (SinNew 
   have hstore :
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat SinNew.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ SinNew
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         flogSinCapitalEvaledRef])
     (hstore := hstore)
 
@@ -345,14 +344,13 @@ theorem assign_flogSinStorage (evm : EVM.State) {I : ExecutionEnv} {locals : Sto
       storageLocStore evm (wordLoc (flogEraSlot I)) (.int (Int.ofNat value.toNat)) =
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm (flogEraSlot I) value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (flogEraSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (flogEraSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flogSinEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flogSinEvaledRef,
         flogEraSlot])
     (hstore := hstore)
 

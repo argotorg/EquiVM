@@ -33,7 +33,7 @@ theorem evalExpr_clipperAuth_true (v : ClipperImmutables) (evm : EVM.State)
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := wardsRef sender)
@@ -66,7 +66,7 @@ theorem evalExpr_clipperAuth_false (v : ClipperImmutables) (evm : EVM.State)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := wardsRef sender)
@@ -117,7 +117,7 @@ theorem evalExpr_clipperLocked_zero_true (v : ClipperImmutables) (evm : EVM.Stat
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.storage lockedRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := lockedRef)
@@ -144,7 +144,7 @@ theorem evalExpr_clipperLocked_zero_false (v : ClipperImmutables) (evm : EVM.Sta
         (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := lockedRef)
@@ -184,9 +184,9 @@ theorem assign_clipperLocked (v : ClipperImmutables) (evm : EVM.State)
       .storage lockedRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract v, locals := locals },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨13⟩)
+      (loc := wordLoc ⟨13⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_clipperLocked v evm locals)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

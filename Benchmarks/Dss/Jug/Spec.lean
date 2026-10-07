@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Reasoning.EVMWord
 import Solm.Semantics
 import Solm.SolidityLayout
@@ -128,19 +129,19 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "duty"] }, _ =>
-      some (wordLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "rho"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "base", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "duty"] } =>
+      some (.leaf (wordLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "rho"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "base", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -381,7 +382,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := jugExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

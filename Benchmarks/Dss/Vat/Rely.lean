@@ -59,17 +59,16 @@ theorem vatAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (vatCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         vatCallerWardsEvaledRef, vatCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, hopeSourceWord])]
-  erw [storageLocLoad_uint256]
+  erw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -90,17 +89,16 @@ theorem vatAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (vatCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         vatCallerWardsEvaledRef, vatCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, hopeSourceWord])]
-  erw [storageLocLoad_uint256]
+  erw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -125,15 +123,14 @@ theorem vatLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
       pure, bind]
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨10⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, vatLiveEvaledRef])]
-  erw [storageLocLoad_uint256]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, vatLiveEvaledRef])]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
@@ -156,15 +153,14 @@ theorem vatLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       pure, bind]
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨10⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, vatLiveEvaledRef])]
-  erw [storageLocLoad_uint256]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, vatLiveEvaledRef])]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
   · intro hnat
@@ -987,14 +983,14 @@ theorem vatRelyBodyCoreOk
         have hstore :
             storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 1) = some evm1 := by
           simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨1⟩
-        exact assignStorageRef_storage_scalar
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (hleaf := Or.inl ⟨_, rfl⟩)
           (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
           (hbase := by simp [locals, wardsRef])
           (her := her)
           (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
       have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0

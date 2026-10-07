@@ -233,14 +233,14 @@ theorem vatDenyBodyCoreOk
         have hstore :
             storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 0) = some evm1 := by
           simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨0⟩
-        exact assignStorageRef_storage_scalar
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (hleaf := Or.inl ⟨_, rfl⟩)
           (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
           (hbase := by simp [locals, wardsRef])
           (her := her)
           (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
       have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals } evm0

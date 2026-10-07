@@ -35,7 +35,7 @@ theorem setMinBidBodySplit (evm : EVM.State) (value : UInt256)
     simp [locals, evalExpr?, EvalResult.ofOption]
   have hassign := scalarWrite evm _ locals "minBidIncrementPercentage"
     (.elem (.int (.uint ⟨8, by decide⟩))) (auctionUint8LocAt ⟨205⟩ 0) _
-    (by simp [locals]) (by native_decide) rfl (by trivial)
+    (by simp [locals]) (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
     (storageLocStore_uint8 evm ⟨205⟩ value hc)
   constructor
   · exact ExecFuncBody.execBlockOK

@@ -33,7 +33,7 @@ theorem unpauseStoreSourceSplit {evm : EVM.State} {locals : Store}
   have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
       evm (.boolLit false) = .ok (.bool false) := by simp only [evalExpr?, pure]
   have hassign := scalarWrite evm _ locals "_paused" (.elem .bool)
-    (auctionBoolLoc ⟨51⟩) (.bool false) hb (by native_decide) rfl (by trivial)
+    (auctionBoolLoc ⟨51⟩) (.bool false) hb (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
     (storageLocStore_bool_false_offset0 evm ⟨51⟩)
   exact ⟨ExecStmt.assign hvalue hassign,
     fun hperm ↦ ExecStmt.assignStatic hvalue hassign hperm⟩

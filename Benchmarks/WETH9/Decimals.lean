@@ -52,7 +52,6 @@ theorem weth9DecimalsBodyReturns (evm : EVM.State)
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar_value
-        (cfg := config)
         (solm := { contract := contract, locals := ∅ })
         (slot := decimalsRef)
         (er := ({ base := "decimals", steps := [] } : EvaledStorageRef))

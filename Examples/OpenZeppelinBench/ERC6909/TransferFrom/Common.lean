@@ -247,13 +247,13 @@ theorem evalExpr_transferFrom_operator (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (operatorApprovalRef (.var "sender") sender)) =
         .ok (transferFromOperatorValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .bool) (loc := boolLoc (transferFromOperatorSlot evm I))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (loc := boolLoc (transferFromOperatorSlot evm I))
     (hbase := by simp [transferFromStore, operatorApprovalRef])
     (her := evalStorageRef_transferFrom_operator evm I)
     (hty := by
       simp [storageTypeAt?, transferFromOperatorEvaledRef, contract, storageDecls, boolSt,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromOperatorEvaledRef,
+    (hloc := by simp [config, transferFromOperatorEvaledRef,
       transferFromOperatorSlot])]
   simpa [transferFromOperatorValue, transferFromOperatorWord, boolLoc, boolOffset0Loc] using
     storageLocLoad_bool_offset0 evm (transferFromOperatorSlot evm I)
@@ -431,14 +431,14 @@ theorem evalExpr_transferFrom_currentAllowance (evm : EVM.State) (I : ExecutionE
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (allowanceRef (.var "sender") sender (.var "id"))) =
         .ok (transferFromCurrentAllowanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromAllowanceSlot evm I))
     (hbase := by simp [allowanceRef, transferFromStore])
     (her := evalStorageRef_transferFrom_allowance evm I)
     (hty := by
       simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromAllowanceEvaledRef,
+    (hloc := by simp [config, transferFromAllowanceEvaledRef,
       transferFromAllowanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromCurrentAllowanceValue,
     transferFromCurrentAllowanceWord,
@@ -452,15 +452,14 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferFromStoreCurrentAllowance evm I },
           transferFromAfterAllowanceState evm I) := by
   simp only [allowanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromAllowanceSlot evm I))
       (hbase := by simp [allowanceRef, transferFromStoreCurrentAllowance, transferFromStore])
       (her := evalStorageRef_transferFrom_allowance_currentAllowance evm evm I)
       (hty := by
         simp [storageTypeAt?, transferFromAllowanceEvaledRef, contract, storageDecls, uint256St,
           storageTypeStep?])
-      (hloc := by
-        simp [config, storageLayout, transferFromAllowanceEvaledRef, transferFromAllowanceSlot])
+      (hloc := by rfl)
   erw [storageLocStore_uint256]
   simp [transferFromAfterAllowanceState, transferFromAllowanceSlot]
 
@@ -556,7 +555,7 @@ theorem transferFromAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := transferFromStoreFromBalance evm I },
           transferFromAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromStoreFromBalance, transferFromStoreCurrentAllowance,
         transferFromStore])
@@ -565,7 +564,7 @@ theorem transferFromAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+      (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
         transferFromSenderBalanceSlot])
   erw [storageLocStore_uint256]
   simp [transferFromAfterSenderBalanceState, transferFromSenderBalanceSlot,
@@ -587,7 +586,7 @@ theorem evalExpr_transferFrom_sender_balance (evm : EVM.State) (I : ExecutionEnv
       { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
       (transferFromAfterAllowanceState evm I) (.storage (balanceRef (.var "sender") (.var "id"))) =
         .ok (transferFromSenderBalanceValue (transferFromAfterAllowanceState evm I) I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromSenderBalanceSlot I))
     (hbase := by simp [balanceRef, transferFromStoreCurrentAllowance, transferFromStore])
     (her := evalStorageRef_transferFrom_sender_balance_currentAllowance evm
@@ -595,7 +594,7 @@ theorem evalExpr_transferFrom_sender_balance (evm : EVM.State) (I : ExecutionEnv
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls, uint256St,
         storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromSenderBalanceValue,
     transferFromSenderBalanceWord,
@@ -671,7 +670,7 @@ theorem evalExpr_transferFrom_receiver_balance (evm : EVM.State) (I : ExecutionE
       (transferFromAfterSenderBalanceState evm I)
       (.storage (balanceRef (.var "receiver") (.var "id"))) =
         .ok (transferFromReceiverBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromReceiverBalanceSlot I))
     (hbase := by simp [balanceRef, transferFromStoreFromBalance, transferFromStoreCurrentAllowance,
       transferFromStore])
@@ -680,7 +679,7 @@ theorem evalExpr_transferFrom_receiver_balance (evm : EVM.State) (I : ExecutionE
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromReceiverBalanceValue,
     transferFromReceiverBalanceWord,
@@ -742,7 +741,7 @@ theorem transferFromAssignReceiverBalance (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferFromStoreToBalance evm I },
           transferFromPostState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromStoreToBalance, transferFromStoreFromBalance,
         transferFromStoreCurrentAllowance, transferFromStore])
@@ -751,7 +750,7 @@ theorem transferFromAssignReceiverBalance (evm : EVM.State) (I : ExecutionEnv)
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+      (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
         transferFromReceiverBalanceSlot])
   rw [← transferFromReceiverCreditWord_toNat evm I hfit]
   erw [storageLocStore_uint256]
@@ -771,14 +770,14 @@ theorem evalExpr_transferFrom_tail_sender_balance (evm : EVM.State) (I : Executi
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (balanceRef (.var "sender") (.var "id"))) =
         .ok (transferFromSenderBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromSenderBalanceSlot I))
     (hbase := by simp [balanceRef, transferFromStore])
     (her := evalStorageRef_transferFrom_tail_sender_balance evm evm I)
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromSenderBalanceValue,
     transferFromSenderBalanceWord,
@@ -820,14 +819,14 @@ theorem transferFromTailAssignSenderBalance (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I },
           transferFromTailAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, transferFromStore])
       (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance evm evm I)
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+      (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
         transferFromSenderBalanceSlot])
   erw [storageLocStore_uint256]
   simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
@@ -844,7 +843,7 @@ theorem transferFromTailAssignSenderBalance_of_get (locals : Store)
         .ok ({ contract := contract, locals := transferFromTailStoreFromBalance locals evm I },
           transferFromTailAfterSenderBalanceState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromSenderBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
       (her := evalStorageRef_transferFrom_tail_sender_balance_fromBalance_of_get
@@ -852,7 +851,7 @@ theorem transferFromTailAssignSenderBalance_of_get (locals : Store)
       (hty := by
         simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+      (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
         transferFromSenderBalanceSlot])
   erw [storageLocStore_uint256]
   simp [transferFromTailAfterSenderBalanceState, transferFromSenderBalanceSlot]
@@ -866,7 +865,7 @@ theorem evalExpr_transferFrom_tail_sender_balance_of_get (locals : Store)
       { contract := contract, locals := locals } evm
       (.storage (balanceRef (.var "sender") (.var "id"))) =
         .ok (transferFromSenderBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromSenderBalanceSlot I))
     (hbase := by simp [balanceRef, hbase])
     (her := by
@@ -881,7 +880,7 @@ theorem evalExpr_transferFrom_tail_sender_balance_of_get (locals : Store)
     (hty := by
       simp [storageTypeAt?, transferFromSenderBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromSenderBalanceEvaledRef,
+    (hloc := by simp [config, transferFromSenderBalanceEvaledRef,
       transferFromSenderBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromSenderBalanceValue,
     transferFromSenderBalanceWord,
@@ -1048,7 +1047,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance (evm : EVM.State) (I : Execu
       (transferFromTailAfterSenderBalanceState evm I)
       (.storage (balanceRef (.var "receiver") (.var "id"))) =
         .ok (transferFromTailReceiverBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromReceiverBalanceSlot I))
     (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, transferFromStore])
     (her := evalStorageRef_transferFrom_tail_receiver_balance_fromBalance evm
@@ -1056,7 +1055,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance (evm : EVM.State) (I : Execu
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromTailReceiverBalanceValue,
     transferFromTailReceiverBalanceWord,
@@ -1072,7 +1071,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance_of_get (locals : Store)
       (transferFromTailAfterSenderBalanceState evm I)
       (.storage (balanceRef (.var "receiver") (.var "id"))) =
         .ok (transferFromTailReceiverBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
     (loc := wordLoc (transferFromReceiverBalanceSlot I))
     (hbase := by simp [balanceRef, transferFromTailStoreFromBalance, hbase])
     (her := evalStorageRef_transferFrom_tail_receiver_balance_fromBalance_of_get locals evm
@@ -1080,7 +1079,7 @@ theorem evalExpr_transferFrom_tail_receiver_balance_of_get (locals : Store)
     (hty := by
       simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
         uint256St, storageTypeStep?])
-    (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+    (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
       transferFromReceiverBalanceSlot])]
   simp [show wordLoc = uint256Loc from rfl, transferFromTailReceiverBalanceValue,
     transferFromTailReceiverBalanceWord,
@@ -1228,7 +1227,7 @@ theorem transferFromTailAssignReceiverBalance (evm : EVM.State) (I : ExecutionEn
         .ok ({ contract := contract, locals := transferFromTailStoreToBalance (transferFromStore I) evm I },
           transferFromTailPostState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by simp [balanceRef, transferFromTailStoreToBalance,
         transferFromTailStoreFromBalance, transferFromStore])
@@ -1237,7 +1236,7 @@ theorem transferFromTailAssignReceiverBalance (evm : EVM.State) (I : ExecutionEn
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+      (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
         transferFromReceiverBalanceSlot])
   rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
   erw [storageLocStore_uint256]
@@ -1258,7 +1257,7 @@ theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
         .ok ({ contract := contract, locals := transferFromTailStoreToBalance locals evm I },
           transferFromTailPostState evm I) := by
   simp only [balanceRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (loc := wordLoc (transferFromReceiverBalanceSlot I))
       (hbase := by
         simp [balanceRef, transferFromTailStoreToBalance, transferFromTailStoreFromBalance,
@@ -1268,7 +1267,7 @@ theorem transferFromTailAssignReceiverBalance_of_get (locals : Store)
       (hty := by
         simp [storageTypeAt?, transferFromReceiverBalanceEvaledRef, contract, storageDecls,
           uint256St, storageTypeStep?])
-      (hloc := by simp [config, storageLayout, transferFromReceiverBalanceEvaledRef,
+      (hloc := by simp [config, transferFromReceiverBalanceEvaledRef,
         transferFromReceiverBalanceSlot])
   rw [← transferFromTailReceiverCreditWord_toNat evm I hfit]
   erw [storageLocStore_uint256]

@@ -712,11 +712,11 @@ private theorem evalIlksField
       evalStorageRef config { contract := contract, locals := ilksStore I } evm
         (ilksF (.var "arg0") field) = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     evalExpr? config { contract := contract, locals := ilksStore I } evm
         (.storage (ilksF (.var "arg0") field)) =
       .ok (.int (Int.ofNat (solcSlotWordAt slot evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := ilksStore I }) (evm := evm)
     (slot := ilksF (.var "arg0") field) (er := er)
     (t := .int uint256Int) (loc := wordLoc slot)

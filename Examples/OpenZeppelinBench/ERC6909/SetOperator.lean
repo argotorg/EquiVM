@@ -187,6 +187,7 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := setOperatorStore I },
           setOperatorPostState evm I) := by
   apply assignStorageRef_storage_bool_word
+      (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
       (er := setOperatorEvaledRef evm I) (ty := boolSt)
       (loc := boolLoc (setOperatorSlot evm I))
       (word := setOperatorApprovedWord I)
@@ -201,7 +202,7 @@ theorem setOperatorAssign (evm : EVM.State) (I : ExecutionEnv) :
         simp [storageTypeAt?, setOperatorEvaledRef, contract, storageDecls, boolSt,
           storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, setOperatorEvaledRef, setOperatorSlot])
+        simp [config, setOperatorEvaledRef, setOperatorSlot])
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, setOperatorBoolWord, setBoolOffset0Word] using
           storageLocStore_bool_word_offset0 evm (setOperatorSlot evm I)

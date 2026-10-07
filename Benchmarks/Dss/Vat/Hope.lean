@@ -94,9 +94,9 @@ theorem hopeAssign (evm : EVM.State) (I : ExecutionEnv)
     assignStorageRef? config { contract := contract, locals := hopeStore I } evm
       .storage (canRef sender (.var "usr")) (.int 1) =
         .ok ({ contract := contract, locals := hopeStore I }, hopePostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (hopeStorageSlot I))
+      (loc := wordLoc (hopeStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hopeStore_can I)
       (her := evalStorageRef_hope_can evm I hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,

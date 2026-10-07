@@ -2493,7 +2493,7 @@ theorem evalExpr_endCash_fix (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endCashFixSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endCashStore I })
     (slot := fixRef (.var "ilk"))
@@ -2565,7 +2565,7 @@ theorem evalExpr_endCash_vat {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := vatRef)
@@ -2995,7 +2995,7 @@ theorem evalExpr_endCash_out (evm : EVM.State) (I : ExecutionEnv)
       (.storage (outRef (.var "ilk") sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endCashStoreFlux σ I })
     (slot := outRef (.var "ilk") sender)
@@ -3040,7 +3040,7 @@ theorem evalExpr_endCash_out_of_get {locals : Store} (evm : EVM.State)
       (.storage (outRef (.var "ilk") sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashOutSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := outRef (.var "ilk") sender)
@@ -3068,7 +3068,7 @@ theorem evalExpr_endCash_bag {locals : Store} (evm : EVM.State) (I : ExecutionEn
     evalExpr? config { contract := contract, locals := locals } evm (.storage (bagRef sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endCashBagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := bagRef sender)
@@ -3090,9 +3090,9 @@ theorem endCashAssignOut {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (outRef (.var "ilk") sender) (.int (Int.ofNat outNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endCashPostState evm I outNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endCashOutSlot I))
+      (loc := wordLoc (endCashOutSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endCash_out_of_get evm I hget hsrc hsz68)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

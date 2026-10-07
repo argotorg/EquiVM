@@ -136,7 +136,7 @@ theorem evalExpr_acceptOwnership_pendingOwner (evm : EVM.State) :
       ({ base := "_pendingOwner", steps := [] } : EvaledStorageRef) =
       some (.elem .address) := by
     decide
-  erw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+  erw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0]
 
 theorem evalExpr_acceptOwnership_sender (evm : EVM.State) :
@@ -201,11 +201,12 @@ theorem acceptOwnershipAssignPending (evm : EVM.State) :
         some (acceptOwnershipAfterPendingState evm) := by
     simpa [acceptOwnershipAfterPendingState, acceptOwnershipClearPendingWord] using
       storageLocStore_address_offset0 evm ⟨1⟩ ⟨0⟩ (by decide)
-  exact assignStorageRef_storage_scalar_value (cfg := config) (solm := { contract := contract, locals := ∅ })
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config) (solm := { contract := contract, locals := ∅ })
     (evm := evm) (evm' := acceptOwnershipAfterPendingState evm) (slot := pendingOwnerRef)
     (er := { base := "_pendingOwner", steps := [] }) (ty := .elem .address)
     (loc := addrLoc ⟨1⟩) (value := .address (AccountAddress.ofNat 0))
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (hbase := by simp) (her := her) (hty := hty) (hloc := by rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (hstore := hstore)
 
 theorem acceptOwnershipAssignOwner (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ }
@@ -233,13 +234,14 @@ theorem acceptOwnershipAssignOwner (evm : EVM.State) :
       storageLocStore_address_offset0 (acceptOwnershipAfterPendingState evm) ⟨0⟩
         (UInt256.ofNat (acceptOwnershipAfterPendingState evm).executionEnv.source.val)
         (ownable2StepSourceWord_canonical (acceptOwnershipAfterPendingState evm).executionEnv)
-  exact assignStorageRef_storage_scalar_value (cfg := config) (solm := { contract := contract, locals := ∅ })
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config) (solm := { contract := contract, locals := ∅ })
     (evm := acceptOwnershipAfterPendingState evm)
     (evm' := acceptOwnershipAfterOwnerState evm) (slot := ownerRef)
     (er := { base := "_owner", steps := [] }) (ty := .elem .address)
     (loc := addrLoc ⟨0⟩)
     (value := .address (acceptOwnershipAfterPendingState evm).executionEnv.source)
-    (by simp) her hty (by rfl) (by trivial) hstore
+    (hbase := by simp) (her := her) (hty := hty) (hloc := by rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (hstore := hstore)
 
 theorem ownable2StepAcceptOwnershipBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

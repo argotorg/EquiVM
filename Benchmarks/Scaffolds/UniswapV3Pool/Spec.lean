@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Reasoning.SolmBody
 import Solm.Semantics
 import Solm.SolidityLayout
@@ -262,79 +263,79 @@ def loc (slot : Ethereum.UInt256) (offset : Fin 32) (size : Fin 33)
     (hbound : offset.val + size.val - 1 < 32) (ty : ElemType) : StorageLoc :=
   { slot := slot, offset := offset, size := size, hbound := hbound, type := ty }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "slot0", steps := [.field "sqrtPriceX96"] }, _ =>
-      some (loc ⟨0⟩ ⟨0, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
-  | { base := "slot0", steps := [.field "tick"] }, _ =>
-      some (loc ⟨0⟩ ⟨20, by decide⟩ ⟨3, by decide⟩ (by decide) (.int int24Int))
-  | { base := "slot0", steps := [.field "observationIndex"] }, _ =>
-      some (loc ⟨0⟩ ⟨23, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int))
-  | { base := "slot0", steps := [.field "observationCardinality"] }, _ =>
-      some (loc ⟨0⟩ ⟨25, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int))
-  | { base := "slot0", steps := [.field "observationCardinalityNext"] }, _ =>
-      some (loc ⟨0⟩ ⟨27, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int))
-  | { base := "slot0", steps := [.field "feeProtocol"] }, _ =>
-      some (loc ⟨0⟩ ⟨29, by decide⟩ ⟨1, by decide⟩ (by decide) (.int uint8Int))
-  | { base := "slot0", steps := [.field "unlocked"] }, _ =>
-      some (loc ⟨0⟩ ⟨30, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
-  | { base := "feeGrowthGlobal0X128", steps := [] }, _ =>
-      some (loc ⟨1⟩ ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "feeGrowthGlobal1X128", steps := [] }, _ =>
-      some (loc ⟨2⟩ ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "protocolFees", steps := [.field "token0"] }, _ =>
-      some (loc ⟨3⟩ ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "protocolFees", steps := [.field "token1"] }, _ =>
-      some (loc ⟨3⟩ ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "liquidity", steps := [] }, _ =>
-      some (loc ⟨4⟩ ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "ticks", steps := [.mindex tick, .field "liquidityGross"] }, _ =>
-      some (loc (ticksBase tick) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "ticks", steps := [.mindex tick, .field "liquidityNet"] }, _ =>
-      some (loc (ticksBase tick) ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int int128Int))
-  | { base := "ticks", steps := [.mindex tick, .field "feeGrowthOutside0X128"] }, _ =>
-      some (loc (ticksBase tick + ⟨1⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "ticks", steps := [.mindex tick, .field "feeGrowthOutside1X128"] }, _ =>
-      some (loc (ticksBase tick + ⟨2⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "ticks", steps := [.mindex tick, .field "tickCumulativeOutside"] }, _ =>
-      some (loc (ticksBase tick + ⟨3⟩) ⟨0, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int))
-  | { base := "ticks", steps := [.mindex tick, .field "secondsPerLiquidityOutsideX128"] }, _ =>
-      some (loc (ticksBase tick + ⟨3⟩) ⟨7, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
-  | { base := "ticks", steps := [.mindex tick, .field "secondsOutside"] }, _ =>
-      some (loc (ticksBase tick + ⟨3⟩) ⟨27, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int))
-  | { base := "ticks", steps := [.mindex tick, .field "initialized"] }, _ =>
-      some (loc (ticksBase tick + ⟨3⟩) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
-  | { base := "tickBitmap", steps := [.mindex wordPosition] }, _ =>
-      some (loc (tickBitmapSlot wordPosition) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "positions", steps := [.mindex key, .field "liquidity"] }, _ =>
-      some (loc (positionsBase key) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "positions", steps := [.mindex key, .field "feeGrowthInside0LastX128"] }, _ =>
-      some (loc (positionsBase key + ⟨1⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "positions", steps := [.mindex key, .field "feeGrowthInside1LastX128"] }, _ =>
-      some (loc (positionsBase key + ⟨2⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int))
-  | { base := "positions", steps := [.mindex key, .field "tokensOwed0"] }, _ =>
-      some (loc (positionsBase key + ⟨3⟩) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "positions", steps := [.mindex key, .field "tokensOwed1"] }, _ =>
-      some (loc (positionsBase key + ⟨3⟩) ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int))
-  | { base := "observations", steps := [.aindex index, .field "blockTimestamp"] }, _ =>
-      some (loc (observationBase index) ⟨0, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int))
-  | { base := "observations", steps := [.aindex index, .field "tickCumulative"] }, _ =>
-      some (loc (observationBase index) ⟨4, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int))
-  | { base := "observations", steps := [.aindex index, .field "secondsPerLiquidityCumulativeX128"] }, _ =>
-      some (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
-  | { base := "observations", steps := [.aindex index, .field "initialized"] }, _ =>
-      some (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
-  | { base := "observationsRaw", steps := [.mindex index, .field "blockTimestamp"] }, _ =>
-      some (loc (observationBase index) ⟨0, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int))
-  | { base := "observationsRaw", steps := [.mindex index, .field "tickCumulative"] }, _ =>
-      some (loc (observationBase index) ⟨4, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int))
-  | { base := "observationsRaw", steps := [.mindex index, .field "secondsPerLiquidityCumulativeX128"] }, _ =>
-      some (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int))
-  | { base := "observationsRaw", steps := [.mindex index, .field "initialized"] }, _ =>
-      some (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "slot0", steps := [.field "sqrtPriceX96"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨0, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int)))
+  | { base := "slot0", steps := [.field "tick"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨20, by decide⟩ ⟨3, by decide⟩ (by decide) (.int int24Int)))
+  | { base := "slot0", steps := [.field "observationIndex"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨23, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int)))
+  | { base := "slot0", steps := [.field "observationCardinality"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨25, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int)))
+  | { base := "slot0", steps := [.field "observationCardinalityNext"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨27, by decide⟩ ⟨2, by decide⟩ (by decide) (.int uint16Int)))
+  | { base := "slot0", steps := [.field "feeProtocol"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨29, by decide⟩ ⟨1, by decide⟩ (by decide) (.int uint8Int)))
+  | { base := "slot0", steps := [.field "unlocked"] } =>
+      some (.leaf (loc ⟨0⟩ ⟨30, by decide⟩ ⟨1, by decide⟩ (by decide) .bool))
+  | { base := "feeGrowthGlobal0X128", steps := [] } =>
+      some (.leaf (loc ⟨1⟩ ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "feeGrowthGlobal1X128", steps := [] } =>
+      some (.leaf (loc ⟨2⟩ ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "protocolFees", steps := [.field "token0"] } =>
+      some (.leaf (loc ⟨3⟩ ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "protocolFees", steps := [.field "token1"] } =>
+      some (.leaf (loc ⟨3⟩ ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "liquidity", steps := [] } =>
+      some (.leaf (loc ⟨4⟩ ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "liquidityGross"] } =>
+      some (.leaf (loc (ticksBase tick) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "liquidityNet"] } =>
+      some (.leaf (loc (ticksBase tick) ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int int128Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "feeGrowthOutside0X128"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨1⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "feeGrowthOutside1X128"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨2⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "tickCumulativeOutside"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨3⟩) ⟨0, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "secondsPerLiquidityOutsideX128"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨3⟩) ⟨7, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "secondsOutside"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨3⟩) ⟨27, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int)))
+  | { base := "ticks", steps := [.mindex tick, .field "initialized"] } =>
+      some (.leaf (loc (ticksBase tick + ⟨3⟩) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool))
+  | { base := "tickBitmap", steps := [.mindex wordPosition] } =>
+      some (.leaf (loc (tickBitmapSlot wordPosition) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "positions", steps := [.mindex key, .field "liquidity"] } =>
+      some (.leaf (loc (positionsBase key) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "positions", steps := [.mindex key, .field "feeGrowthInside0LastX128"] } =>
+      some (.leaf (loc (positionsBase key + ⟨1⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "positions", steps := [.mindex key, .field "feeGrowthInside1LastX128"] } =>
+      some (.leaf (loc (positionsBase key + ⟨2⟩) ⟨0, by decide⟩ ⟨32, by decide⟩ (by decide) (.int uint256Int)))
+  | { base := "positions", steps := [.mindex key, .field "tokensOwed0"] } =>
+      some (.leaf (loc (positionsBase key + ⟨3⟩) ⟨0, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "positions", steps := [.mindex key, .field "tokensOwed1"] } =>
+      some (.leaf (loc (positionsBase key + ⟨3⟩) ⟨16, by decide⟩ ⟨16, by decide⟩ (by decide) (.int uint128Int)))
+  | { base := "observations", steps := [.aindex index, .field "blockTimestamp"] } =>
+      some (.leaf (loc (observationBase index) ⟨0, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int)))
+  | { base := "observations", steps := [.aindex index, .field "tickCumulative"] } =>
+      some (.leaf (loc (observationBase index) ⟨4, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int)))
+  | { base := "observations", steps := [.aindex index, .field "secondsPerLiquidityCumulativeX128"] } =>
+      some (.leaf (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int)))
+  | { base := "observations", steps := [.aindex index, .field "initialized"] } =>
+      some (.leaf (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool))
+  | { base := "observationsRaw", steps := [.mindex index, .field "blockTimestamp"] } =>
+      some (.leaf (loc (observationBase index) ⟨0, by decide⟩ ⟨4, by decide⟩ (by decide) (.int uint32Int)))
+  | { base := "observationsRaw", steps := [.mindex index, .field "tickCumulative"] } =>
+      some (.leaf (loc (observationBase index) ⟨4, by decide⟩ ⟨7, by decide⟩ (by decide) (.int int56Int)))
+  | { base := "observationsRaw", steps := [.mindex index, .field "secondsPerLiquidityCumulativeX128"] } =>
+      some (.leaf (loc (observationBase index) ⟨11, by decide⟩ ⟨20, by decide⟩ (by decide) (.int uint160Int)))
+  | { base := "observationsRaw", steps := [.mindex index, .field "initialized"] } =>
+      some (.leaf (loc (observationBase index) ⟨31, by decide⟩ ⟨1, by decide⟩ (by decide) .bool))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -2288,7 +2289,7 @@ def contract (v : PoolImmutables) : ContractDecl :=
     transitions := transitions v }
 
 def config (v : PoolImmutables) : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := poolExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }

@@ -1691,66 +1691,57 @@ theorem forkStorageType_can (I : ExecutionEnv) (er : EvaledStorageRef)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
 
 theorem forkStorageLayout_src_ink (I : ExecutionEnv) :
-    config.storage.layout (forkSrcInkEvaledRef I) =
-      fun _ => some (wordLoc (forkSrcInkSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkSrcInkEvaledRef I) evm = some (wordLoc (forkSrcInkSlot I))
+    config.storageBackend.locate? (forkSrcInkEvaledRef I) =
+      some (.leaf (wordLoc (forkSrcInkSlot I))) := by
+  change storageLayoutRaw (forkSrcInkEvaledRef I) = some (.leaf (wordLoc (forkSrcInkSlot I)))
   simp [storageLayoutRaw, forkSrcInkEvaledRef, forkSrcInkSlot, forkSrcUrnBase]
 
 theorem forkStorageLayout_src_art (I : ExecutionEnv) :
-    config.storage.layout (forkSrcArtEvaledRef I) =
-      fun _ => some (wordLoc (forkSrcArtSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkSrcArtEvaledRef I) evm = some (wordLoc (forkSrcArtSlot I))
+    config.storageBackend.locate? (forkSrcArtEvaledRef I) =
+      some (.leaf (wordLoc (forkSrcArtSlot I))) := by
+  change storageLayoutRaw (forkSrcArtEvaledRef I) = some (.leaf (wordLoc (forkSrcArtSlot I)))
   simp [storageLayoutRaw, forkSrcArtEvaledRef, forkSrcArtSlot, forkSrcUrnBase]
 
 theorem forkStorageLayout_dst_ink (I : ExecutionEnv) :
-    config.storage.layout (forkDstInkEvaledRef I) =
-      fun _ => some (wordLoc (forkDstInkSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkDstInkEvaledRef I) evm = some (wordLoc (forkDstInkSlot I))
+    config.storageBackend.locate? (forkDstInkEvaledRef I) =
+      some (.leaf (wordLoc (forkDstInkSlot I))) := by
+  change storageLayoutRaw (forkDstInkEvaledRef I) = some (.leaf (wordLoc (forkDstInkSlot I)))
   simp [storageLayoutRaw, forkDstInkEvaledRef, forkDstInkSlot, forkDstUrnBase]
 
 theorem forkStorageLayout_dst_art (I : ExecutionEnv) :
-    config.storage.layout (forkDstArtEvaledRef I) =
-      fun _ => some (wordLoc (forkDstArtSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkDstArtEvaledRef I) evm = some (wordLoc (forkDstArtSlot I))
+    config.storageBackend.locate? (forkDstArtEvaledRef I) =
+      some (.leaf (wordLoc (forkDstArtSlot I))) := by
+  change storageLayoutRaw (forkDstArtEvaledRef I) = some (.leaf (wordLoc (forkDstArtSlot I)))
   simp [storageLayoutRaw, forkDstArtEvaledRef, forkDstArtSlot, forkDstUrnBase]
 
 theorem forkStorageLayout_ilk_rate (I : ExecutionEnv) :
-    config.storage.layout (forkIlkRateEvaledRef I) =
-      fun _ => some (wordLoc (forkIlkRateSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkIlkRateEvaledRef I) evm = some (wordLoc (forkIlkRateSlot I))
+    config.storageBackend.locate? (forkIlkRateEvaledRef I) =
+      some (.leaf (wordLoc (forkIlkRateSlot I))) := by
+  change storageLayoutRaw (forkIlkRateEvaledRef I) = some (.leaf (wordLoc (forkIlkRateSlot I)))
   simp [storageLayoutRaw, forkIlkRateEvaledRef, forkIlkRateSlot, forkIlkBase]
 
 theorem forkStorageLayout_ilk_spot (I : ExecutionEnv) :
-    config.storage.layout (forkIlkSpotEvaledRef I) =
-      fun _ => some (wordLoc (forkIlkSpotSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkIlkSpotEvaledRef I) evm = some (wordLoc (forkIlkSpotSlot I))
+    config.storageBackend.locate? (forkIlkSpotEvaledRef I) =
+      some (.leaf (wordLoc (forkIlkSpotSlot I))) := by
+  change storageLayoutRaw (forkIlkSpotEvaledRef I) = some (.leaf (wordLoc (forkIlkSpotSlot I)))
   simp [storageLayoutRaw, forkIlkSpotEvaledRef, forkIlkSpotSlot, forkIlkBase]
 
 theorem forkStorageLayout_ilk_dust (I : ExecutionEnv) :
-    config.storage.layout (forkIlkDustEvaledRef I) =
-      fun _ => some (wordLoc (forkIlkDustSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkIlkDustEvaledRef I) evm = some (wordLoc (forkIlkDustSlot I))
+    config.storageBackend.locate? (forkIlkDustEvaledRef I) =
+      some (.leaf (wordLoc (forkIlkDustSlot I))) := by
+  change storageLayoutRaw (forkIlkDustEvaledRef I) = some (.leaf (wordLoc (forkIlkDustSlot I)))
   simp [storageLayoutRaw, forkIlkDustEvaledRef, forkIlkDustSlot, forkIlkBase]
 
 theorem forkStorageLayout_src_can (I : ExecutionEnv) :
-    config.storage.layout (forkSrcWishEvaledRef I) =
-      fun _ => some (wordLoc (forkSrcWishSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkSrcWishEvaledRef I) evm = some (wordLoc (forkSrcWishSlot I))
+    config.storageBackend.locate? (forkSrcWishEvaledRef I) =
+      some (.leaf (wordLoc (forkSrcWishSlot I))) := by
+  change storageLayoutRaw (forkSrcWishEvaledRef I) = some (.leaf (wordLoc (forkSrcWishSlot I)))
   simp [storageLayoutRaw, forkSrcWishEvaledRef, forkSrcWishSlot]
 
 theorem forkStorageLayout_dst_can (I : ExecutionEnv) :
-    config.storage.layout (forkDstWishEvaledRef I) =
-      fun _ => some (wordLoc (forkDstWishSlot I)) := by
-  funext evm
-  change storageLayoutRaw (forkDstWishEvaledRef I) evm = some (wordLoc (forkDstWishSlot I))
+    config.storageBackend.locate? (forkDstWishEvaledRef I) =
+      some (.leaf (wordLoc (forkDstWishSlot I))) := by
+  change storageLayoutRaw (forkDstWishEvaledRef I) = some (.leaf (wordLoc (forkDstWishSlot I)))
   simp [storageLayoutRaw, forkDstWishEvaledRef, forkDstWishSlot]
 
 set_option maxHeartbeats 0 in
@@ -1760,7 +1751,7 @@ theorem evalExpr_fork_src_ink {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "src") "ink")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcInkSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_urns I)
     (her := evalStorageRef_fork_src_ink evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
@@ -1774,7 +1765,7 @@ theorem evalExpr_fork_src_art {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "src") "art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcArtSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_urns I)
     (her := evalStorageRef_fork_src_art evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
@@ -1788,7 +1779,7 @@ theorem evalExpr_fork_dst_ink {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "dst") "ink")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstInkSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_urns I)
     (her := evalStorageRef_fork_dst_ink evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkDstInkEvaledRef I)
@@ -1803,7 +1794,7 @@ theorem evalExpr_fork_dst_art {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "dst") "art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstArtSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_urns I)
     (her := evalStorageRef_fork_dst_art evm I hsz164)
     (hty := forkStorageType_urn_uint256 I (forkDstArtEvaledRef I)
@@ -1818,7 +1809,7 @@ theorem evalExpr_fork_ilk_rate {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "rate")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkRateSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_ilks I)
     (her := evalStorageRef_fork_ilk_rate evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkRateEvaledRef I) (Or.inl rfl))
@@ -1832,7 +1823,7 @@ theorem evalExpr_fork_ilk_spot {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "spot")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkSpotSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_ilks I)
     (her := evalStorageRef_fork_ilk_spot evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkSpotEvaledRef I) (Or.inr (Or.inl rfl)))
@@ -1846,7 +1837,7 @@ theorem evalExpr_fork_ilk_dust {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "dust")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkDustSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := forkStore_ilks I)
     (her := evalStorageRef_fork_ilk_dust evm I hsz164)
     (hty := forkStorageType_ilk_uint256 I (forkIlkDustEvaledRef I) (Or.inr (Or.inr rfl)))
@@ -1969,7 +1960,7 @@ theorem evalExpr_fork_src_ink_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "src") "ink")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcInkSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_src_ink_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
@@ -1985,7 +1976,7 @@ theorem evalExpr_fork_src_art_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "src") "art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcArtSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_src_art_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
@@ -2001,7 +1992,7 @@ theorem evalExpr_fork_dst_ink_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "dst") "ink")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstInkSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_dst_ink_locals evm I locals hsz164 hilk hdst)
     (hty := forkStorageType_urn_uint256 I (forkDstInkEvaledRef I)
@@ -2018,7 +2009,7 @@ theorem evalExpr_fork_dst_art_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (urnsF (.var "ilk") (.var "dst") "art")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkDstArtSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_dst_art_locals evm I locals hsz164 hilk hdst)
     (hty := forkStorageType_urn_uint256 I (forkDstArtEvaledRef I)
@@ -2034,7 +2025,7 @@ theorem evalExpr_fork_ilk_rate_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "rate")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkRateSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_ilk_rate_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkRateEvaledRef I) (Or.inl rfl))
@@ -2049,7 +2040,7 @@ theorem evalExpr_fork_ilk_spot_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "spot")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkSpotSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_ilk_spot_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkSpotEvaledRef I) (Or.inr (Or.inl rfl)))
@@ -2064,7 +2055,7 @@ theorem evalExpr_fork_ilk_dust_locals {evm : EVM.State} {I : ExecutionEnv}
       (.storage (ilksF (.var "ilk") "dust")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkIlkDustSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_fork_ilk_dust_locals evm I locals hsz164 hilk)
     (hty := forkStorageType_ilk_uint256 I (forkIlkDustEvaledRef I) (Or.inr (Or.inr rfl)))
@@ -2082,7 +2073,8 @@ theorem assignStorageRef_fork_src_ink (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "ilk") (.var "src") "ink") (.int (Int.ofNat srcInkNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fork_src_ink_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcInkEvaledRef I) (Or.inl rfl))
@@ -2101,7 +2093,8 @@ theorem assignStorageRef_fork_src_art (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "ilk") (.var "src") "art") (.int (Int.ofNat srcArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fork_src_art_locals evm I locals hsz164 hilk hsrc)
     (hty := forkStorageType_urn_uint256 I (forkSrcArtEvaledRef I) (Or.inr (Or.inl rfl)))
@@ -2120,7 +2113,8 @@ theorem assignStorageRef_fork_dst_ink (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "ilk") (.var "dst") "ink") (.int (Int.ofNat dstInkNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fork_dst_ink_locals evm I locals hsz164 hilk hdst)
     (hty := forkStorageType_urn_uint256 I (forkDstInkEvaledRef I)
@@ -2140,7 +2134,8 @@ theorem assignStorageRef_fork_dst_art (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "ilk") (.var "dst") "art") (.int (Int.ofNat dstArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_fork_dst_art_locals evm I locals hsz164 hilk hdst)
     (hty := forkStorageType_urn_uint256 I (forkDstArtEvaledRef I)
@@ -5175,7 +5170,7 @@ theorem evalExpr_fork_src_can_final {evm : EVM.State} {I : ExecutionEnv}
   let locals :=
     forkStoreDstInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot
       dstInkSpot
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := by
       change locals.get? "can" = none
       simpa [locals] using
@@ -5203,7 +5198,7 @@ theorem evalExpr_fork_dst_can_final {evm : EVM.State} {I : ExecutionEnv}
   let locals :=
     forkStoreDstInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot
       dstInkSpot
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := by
       change locals.get? "can" = none
       simpa [locals] using
@@ -5924,7 +5919,7 @@ theorem evalExpr_fork_src_can_final_store {evm : EVM.State} {I : ExecutionEnv}
   let locals :=
     forkStoreDstInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot dstInkSpot
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := by
       change locals.get? "can" = none
       simpa [locals] using
@@ -5957,7 +5952,7 @@ theorem evalExpr_fork_dst_can_final_store {evm : EVM.State} {I : ExecutionEnv}
   let locals :=
     forkStoreDstInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot dstInkSpot
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := by
       change locals.get? "can" = none
       simpa [locals] using

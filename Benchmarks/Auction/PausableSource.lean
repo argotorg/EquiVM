@@ -60,7 +60,7 @@ theorem pauseBlockSplit (evm : EVM.State) (locals : Store)
   have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
       evm (.boolLit true) = .ok (.bool true) := by simp only [evalExpr?, pure]
   have hassign := scalarWrite evm _ locals "_paused" (.elem .bool)
-    (auctionBoolLoc ⟨51⟩) (.bool true) hbase (by native_decide) rfl (by trivial)
+    (auctionBoolLoc ⟨51⟩) (.bool true) hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
     (storageLocStore_bool_true_offset0 evm ⟨51⟩)
   constructor
   · exact ExecBlock.consNormal (ExecStmt.requireTrue hguard) (assignStorageBlock hvalue hassign)

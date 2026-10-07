@@ -551,9 +551,9 @@ theorem clipperTakeGenericAssignSalesTab
       .ok (Frame.mk (contract v) locals,
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperTakeSalesTabSlot I) tab) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesTabRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesTabSlot I))
+    (loc := wordLoc (clipperTakeSalesTabSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact hsales
   · simp [clipperTakeSalesTabRef, clipperTakeIdKey, salesF,
       evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
@@ -575,9 +575,9 @@ theorem clipperTakeGenericAssignSalesLot
       .ok (Frame.mk (contract v) locals,
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperTakeSalesLotSlot I) lot) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesLotRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesLotSlot I))
+    (loc := wordLoc (clipperTakeSalesLotSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact hsales
   · simp [clipperTakeSalesLotRef, clipperTakeIdKey, salesF,
       evalStorageRef, evalStorageRefSteps, evalStorageRefStep,

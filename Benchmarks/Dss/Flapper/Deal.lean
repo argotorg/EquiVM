@@ -156,46 +156,57 @@ theorem deleteStorage_auction_bid (evm : EVM.State) (locals : Store) (id : UInt2
   rw [deleteStorage?]
   rw [resolveStorageRef_auction_bid evm locals id hget hbase]
   simp only [EvalResult.bind, bind]
-  rw [Solm.clearStorage?.eq_def]
-  simp only [BidStructTy]
-  rw [Solm.clearFields?.eq_def]
+  have hfields : config.storageBackend.clear
+      { base := "bids", steps := [.mindex (auctionIdKey id)] } BidStructTy evm =
+      solidityClearFields? config.storageBackend.locate? evm
+        { base := "bids", steps := [.mindex (auctionIdKey id)] }
+        [("bid", uint256St), ("lot", uint256St), ("guy", addrSt),
+          ("tic", uint48St), ("end", uint48St)] := by
+    simp only [config, solidityStorageBackend, BidStructTy, solidityClearStorage?]
+  rw [hfields]
+  simp only [show uint256St = Benchmarks.Dss.Flopper.uint256St by rfl,
+    show addrSt = Benchmarks.Dss.Flopper.addrSt by rfl,
+    show uint48St = Benchmarks.Dss.Flopper.uint48St by rfl]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint256_zero (slot := auctionBidSlot id) (hloc := auctionBidLayout evm id)]
-  change clearFields? config (auctionDeleteAfterBid id evm)
+  rw [Benchmarks.Dss.Flopper.solidityClearStorage_uint256_zero (slot := auctionBidSlot id) (hloc := auctionBidLayout evm id)]
+  change solidityClearFields? config.storageBackend.locate? (auctionDeleteAfterBid id evm)
       { base := "bids", steps := [.mindex (auctionIdKey id)] }
       [("lot", uint256St), ("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (auctionDeletePostState id evm)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint256_zero (slot := auctionLotSlot id)
+  simp only [show uint256St = Benchmarks.Dss.Flopper.uint256St by rfl]
+  rw [Benchmarks.Dss.Flopper.solidityClearStorage_uint256_zero (slot := auctionLotSlot id)
     (hloc := auctionLotLayout (auctionDeleteAfterBid id evm) id)]
-  change clearFields? config (auctionDeleteAfterLot id evm)
+  change solidityClearFields? config.storageBackend.locate? (auctionDeleteAfterLot id evm)
       { base := "bids", steps := [.mindex (auctionIdKey id)] }
       [("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (auctionDeletePostState id evm)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_addr_zero (slot := auctionPackedSlot id)
+  simp only [show addrSt = Benchmarks.Dss.Flopper.addrSt by rfl]
+  rw [Benchmarks.Dss.Flopper.solidityClearStorage_addr_zero (slot := auctionPackedSlot id)
     (hloc := auctionGuyLayout (auctionDeleteAfterLot id evm) id)]
-  change clearFields? config (auctionDeleteAfterGuy id evm)
+  change solidityClearFields? config.storageBackend.locate? (auctionDeleteAfterGuy id evm)
       { base := "bids", steps := [.mindex (auctionIdKey id)] }
       [("tic", uint48St), ("end", uint48St)] =
     .ok (auctionDeletePostState id evm)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint48_offset20_zero (slot := auctionPackedSlot id)
+  simp only [show uint48St = Benchmarks.Dss.Flopper.uint48St by rfl]
+  rw [Benchmarks.Dss.Flopper.solidityClearStorage_uint48_offset20_zero (slot := auctionPackedSlot id)
     (hloc := auctionTicLayout (auctionDeleteAfterGuy id evm) id)]
-  change clearFields? config (auctionDeleteAfterTic id evm)
+  change solidityClearFields? config.storageBackend.locate? (auctionDeleteAfterTic id evm)
       { base := "bids", steps := [.mindex (auctionIdKey id)] }
       [("end", uint48St)] =
     .ok (auctionDeletePostState id evm)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint48_offset26_zero (slot := auctionPackedSlot id)
+  simp only [show uint48St = Benchmarks.Dss.Flopper.uint48St by rfl]
+  rw [Benchmarks.Dss.Flopper.solidityClearStorage_uint48_offset26_zero (slot := auctionPackedSlot id)
     (hloc := auctionEndLayout (auctionDeleteAfterTic id evm) id)]
-  simp only
-  rw [Solm.clearFields?.eq_def]
-  simp [auctionDeletePostState]
+  simp [solidityClearFields?, auctionDeletePostState, bind, EvalResult.bind]
 
 theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
     clearUint48Offset26Word
@@ -846,7 +857,7 @@ theorem evalExpr_deal_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dealLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := dealLiveEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)
@@ -910,7 +921,7 @@ theorem evalExpr_deal_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := dealTicEvaledRef I)
     (t := .int uint48Int)
@@ -944,7 +955,7 @@ theorem evalExpr_deal_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := dealEndEvaledRef I)
     (t := .int uint48Int)
@@ -966,7 +977,7 @@ theorem evalExpr_deal_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dealLotWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dealLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dealIdWord I)))
@@ -995,7 +1006,7 @@ theorem evalExpr_deal_gem_storage_of_locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage gemRef) =
       .ok (.address (AccountAddress.ofNat (dealGemWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := gemRef) (er := dealGemEvaledRef)
     (t := .address) (loc := addrLoc ⟨3⟩)
@@ -1014,7 +1025,7 @@ theorem evalExpr_deal_guy_storage_of_lotLocals (evm : EVM.State) (I : ExecutionE
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (dealGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLotLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := dealGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (dealIdWord I)))
@@ -1085,7 +1096,7 @@ theorem evalExpr_deal_bid_storage_of_moveLocals (evm0 evm : EVM.State) (I : Exec
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (dealBidWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealMoveLocals evm0 I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := dealBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (dealIdWord I)))
@@ -1108,7 +1119,7 @@ theorem evalExpr_deal_fill_storage_of_locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage fillRef) =
       .ok (.int (Int.ofNat (dealFillWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := fillRef) (er := dealFillEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨9⟩)
@@ -1145,10 +1156,10 @@ theorem assign_deal_fillNew (evm0 evmFill : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := dealFillNewLocals evm0 evmFill I },
           Solm.EVM.storageStore evmFill evmFill.executionEnv.codeOwner ⟨9⟩
             (UInt256.sub (dealFillWord evmFill) (dealLotWord evm0 I))) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := dealFillEvaledRef)
-      (loc := wordLoc ⟨9⟩)
+      (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [dealFillNewLocals, dealBurnLocals, dealMoveLocals, dealLotLocals,
         dealLocals, fillRef])
       (her := by simp [dealFillEvaledRef, evalStorageRef, evalStorageRefSteps, fillRef,

@@ -295,7 +295,7 @@ theorem evalExpr_digsDirtStorage {v : DogImmutables} {evm : EVM.State}
     evalExpr? (config v) { contract := contract v, locals := locals } evm
       (.storage DirtRef) =
         .ok (.int (Int.ofNat (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := DirtRef) (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -325,7 +325,7 @@ theorem evalExpr_digsIlkDirtStorage {v : DogImmutables} {evm : EVM.State}
       .ok (digsIlkValue I)
     rw [hilk]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := { contract := contract v, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "dirt") (er := digsDirtEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (digsDirtSlotFor I))
@@ -352,9 +352,9 @@ theorem assign_digsDirtStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat dirtNew.toNat)) =
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ dirtNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := ({ base := "Dirt", steps := [] } : EvaledStorageRef))
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by simp [DirtRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -386,9 +386,9 @@ theorem assign_digsIlkDirtStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc (digsDirtSlotFor I))
           (.int (Int.ofNat ilkDirtNew.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm (digsDirtSlotFor I) ilkDirtNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := digsDirtEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (digsDirtSlotFor I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (digsDirtSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [digsDirtEvaledRef, digsIlkKey, digsIlkValue, evalStorageRef,

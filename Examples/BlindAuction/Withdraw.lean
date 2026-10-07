@@ -362,7 +362,7 @@ theorem withdrawPendingReturns_load (evm : EVM.State) (locals : Store)
       (.storage (pendingReturnsRef sender)) =
     .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
       (withdrawAmountSlot evm.executionEnv)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := withdrawPendingReturns_evalStorageRef evm locals)
     (hty := withdrawPendingReturns_storageType)
     (hloc := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))]
@@ -375,7 +375,7 @@ theorem withdrawPendingReturns_clear (evm : EVM.State) (locals : Store)
       .storage (pendingReturnsRef sender) (.int 0) =
     .ok ({ contract := blindAuctionContract, locals := locals },
       withdrawClearedState evm evm.executionEnv) := by
-  rw [assignStorageRef_storage_scalar (hbase := hbase)
+  rw [assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (hbase := hbase)
     (her := withdrawPendingReturns_evalStorageRef evm locals)
     (hty := withdrawPendingReturns_storageType)
     (hloc := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))

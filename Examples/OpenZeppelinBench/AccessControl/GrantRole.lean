@@ -156,7 +156,7 @@ theorem evalExpr_grantRole_admin (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := grantRoleStore I } evm
       (.storage (roleAdminRef (.var "role"))) = .ok (grantRoleAdminValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes bytes32Width)
     (loc := bytes32Loc (grantRoleAdminSlot I))
     (hbase := grantRoleStore_roles I)
     (her := evalStorageRef_grantRole_admin evm I hsz68)
@@ -184,7 +184,7 @@ theorem evalExpr_grantRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEnv
         ⟨255⟩ ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (grantRoleAdminHasRoleSlot evm I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_grantRole_adminHasRole evm I)
@@ -201,7 +201,7 @@ theorem evalExpr_grantRole_adminHasRole_false (evm : EVM.State) (I : ExecutionEn
         ⟨255⟩ = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (grantRoleAdminHasRoleSlot evm I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_grantRole_adminHasRole evm I)
@@ -237,7 +237,7 @@ theorem evalExpr_grantRole_target_true (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (grantRoleTargetSlot I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_grantRole_target evm I hsz68)
@@ -255,7 +255,7 @@ theorem evalExpr_grantRole_target_false (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (grantRoleTargetSlot I))
     (hbase := grantRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_grantRole_target evm I hsz68)
@@ -294,7 +294,7 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       .storage (roleHasRoleRef (.var "role") (.var "account")) (.bool true) =
         .ok ({ contract := contract, locals := grantRoleStoreWithAdmin evm I },
           grantRolePostState evm I) := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (er := grantRoleTargetEvaledRef I) (ty := boolSt)
       (loc := boolLoc (grantRoleTargetSlot I))
       (value := .bool true)
@@ -305,8 +305,9 @@ theorem grantRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, grantRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, grantRoleTargetEvaledRef, grantRoleTargetSlot])
-      (hscalar := by trivial)
+        simpa [config, grantRoleTargetEvaledRef, grantRoleTargetSlot] using
+          storageLayout_hasRole (grantRoleRoleKey I) (grantRoleAccountKey I))
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, grantRoleSetTrueWord] using
           storageLocStore_bool_true_offset0 evm (grantRoleTargetSlot I))

@@ -1111,7 +1111,7 @@ theorem evalExpr_joinChiOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "chi" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage chiRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := chiRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := chiRef)
     (er := ({ base := "chi", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
     hbase
@@ -1124,7 +1124,7 @@ theorem evalExpr_joinPieScalarOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "Pie" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage PieRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := PieRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := PieRef)
     (er := ({ base := "Pie", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩)
     hbase
@@ -1137,7 +1137,7 @@ theorem evalExpr_joinRhoOf {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "rho" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage rhoRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := rhoRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := rhoRef)
     (er := ({ base := "rho", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)
     hbase
@@ -1152,7 +1152,7 @@ theorem evalExpr_joinVatOf {evm : EVM.State} {locals : Store}
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
           solcAddrMask).toNat)) :=
-  evalExpr_storage_scalar_value (slot := vatRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := vatRef)
     (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨5⟩)
     hbase
@@ -1173,7 +1173,7 @@ theorem evalExpr_joinPieMapOf {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage (pieRef sender)) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (pieSlot (.address evm.executionEnv.source))).toNat)) :=
-  evalExpr_storage_scalar_value (slot := pieRef sender)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := pieRef sender)
     (er := ({ base := "pie",
               steps := [.mindex (.address evm.executionEnv.source)] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc (pieSlot (.address evm.executionEnv.source)))
@@ -1190,8 +1190,8 @@ theorem joinAssignPieMap (evm : EVM.State) {locals : Store} (v : UInt256)
       .ok ({ contract := contract, locals := locals },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (pieSlot (.address evm.executionEnv.source)) v) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
-    (loc := wordLoc (pieSlot (.address evm.executionEnv.source)))
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St)
+    (loc := wordLoc (pieSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_joinPie evm)
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]) (by rfl)
   exact storageLocStore_uint256 evm (pieSlot (.address evm.executionEnv.source)) v
@@ -1202,7 +1202,7 @@ theorem joinAssignPieScalar (evm : EVM.State) {locals : Store} (v : UInt256)
         .storage PieRef (.int (Int.ofNat v.toNat)) =
       .ok ({ contract := contract, locals := locals },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨2⟩ v) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St) (loc := wordLoc ⟨2⟩)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (loc := wordLoc ⟨2⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := ({ base := "Pie", steps := [] } : EvaledStorageRef))
     hbase
     (by simp [PieRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])

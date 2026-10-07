@@ -38,7 +38,7 @@ theorem daiDomainSeparatorBodyReturns (evm : EVM.State)
               domainSeparatorStorageSlot)))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := domainSeparatorStore })
         (slot := domainSeparatorRef)

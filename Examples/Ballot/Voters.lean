@@ -99,12 +99,13 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "weight")) =
               .ok (.int (Int.ofNat (votersWeightWord evm.accountMap I).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint256Int)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
           (hbase := by simp [votersStore, voterF])
           (her := evalStorageRef_votersField evm I "weight")
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
-          (hloc := by funext evm'; rfl),
+          (hloc := by simpa only [votersEvaledRef, votersBaseSlot] using
+            (ballotStorageLayout_voterWeight (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
         simp [votersWeightWord, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]
@@ -112,12 +113,13 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "voted")) =
               .ok (wordToElem .bool (votersVotedWord evm.accountMap I)) := by
-        rw [evalExpr_storage_scalar (t := .bool)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
           (hbase := by simp [votersStore, voterF])
           (her := evalStorageRef_votersField evm I "voted")
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, boolSt, storageTypeStep?])
-          (hloc := by funext evm'; rfl),
+          (hloc := by simpa only [votersEvaledRef, votersPackedSlot, votersBaseSlot] using
+            (ballotStorageLayout_voterVoted (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           storageLocLoad_bool_offset0']
         simp [votersVotedWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -125,12 +127,13 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "delegate")) =
               .ok (.address (AccountAddress.ofNat (votersDelegateWord evm.accountMap I).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .address)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address)
           (hbase := by simp [votersStore, voterF])
           (her := evalStorageRef_votersField evm I "delegate")
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, addrSt, storageTypeStep?])
-          (hloc := by funext evm'; rfl),
+          (hloc := by simpa only [votersEvaledRef, votersPackedSlot, votersBaseSlot] using
+            (ballotStorageLayout_voterDelegate (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           storageLocLoad_address_offset1]
         simp [votersDelegateWord, votersPackedWord, votersPackedSlot, votersBaseSlot, howner,
           Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -138,12 +141,13 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "vote")) =
               .ok (.int (Int.ofNat (votersVoteWord evm.accountMap I).toNat)) := by
-        rw [evalExpr_storage_scalar (t := .int uint256Int)
+        rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
           (hbase := by simp [votersStore, voterF])
           (her := evalStorageRef_votersField evm I "vote")
           (hty := by simp [storageTypeAt?, votersEvaledRef, ballotContract, ballotStorageDecls,
             voterStructTy, uint256St, storageTypeStep?])
-          (hloc := by funext evm'; rfl),
+          (hloc := by simpa only [votersEvaledRef, votersVoteSlot, votersBaseSlot] using
+            (ballotStorageLayout_voterVote (.address (AccountAddress.ofNat (votersArgWord I).toNat)))),
           show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
         simp [votersVoteWord, votersVoteSlot, votersBaseSlot, howner, Solm.EVM.storageLoad,
           State.lookupAccount, Account.lookupStorage]

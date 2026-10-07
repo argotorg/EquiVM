@@ -21,10 +21,10 @@ theorem cageAssign (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := ∅ }, cagePostState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
       (ty := uint256St)
-      (loc := wordLoc ⟨3⟩)
+      (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [liveRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -48,7 +48,7 @@ theorem evalExpr_cage_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := ∅ } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := wardsRef sender)
@@ -77,7 +77,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := wardsRef sender)

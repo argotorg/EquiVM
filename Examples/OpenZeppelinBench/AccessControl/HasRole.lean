@@ -168,18 +168,19 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
         .ok (wordToElem .bool
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩)) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (hbase := by simpa [roleHasRoleRef] using hasRoleStore_roles I)
     (her := evalStorageRef_hasRole evm I hsz68)
     (hty := by
       simp [storageTypeAt?, hasRoleEvaledRef, contract, storageDecls, roleDataSt, boolSt,
         storageTypeStep?])
     (hloc := by
-      show config.storage.layout (hasRoleEvaledRef I) =
-        fun _ => some (boolLoc (hasRoleSlot I))
-      simp [config, storageLayout, hasRoleEvaledRef, hasRoleSlot, roleHasRoleSlot,
-        roleDataSlot])]
-  erw [storageLocLoad_bool_offset0 evm (hasRoleSlot I)]
+      show config.storageBackend.locate? (hasRoleEvaledRef I) =
+        some (.leaf (boolLoc (hasRoleSlot I)))
+      simpa [config, hasRoleEvaledRef, hasRoleSlot] using
+        storageLayout_hasRole (hasRoleRoleKey I) (hasRoleAccountKey I))]
+  rw [show boolLoc (hasRoleSlot I) = boolOffset0Loc (hasRoleSlot I) from rfl,
+    storageLocLoad_bool_offset0 evm (hasRoleSlot I)]
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :

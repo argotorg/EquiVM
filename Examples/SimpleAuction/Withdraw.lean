@@ -1348,7 +1348,7 @@ theorem evalExpr_withdraw_pendingReturns (evm : EVM.State) :
       ({ base := "pendingReturns", steps := [.mindex (.address evm.executionEnv.source)] } :
         EvaledStorageRef) = some (.elem (.int uint256Int)) := by
     simp [storageTypeAt?, storageTypeStep?, simpleAuctionContract, storageDecls, uint256St]
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_pendingReturns
       (.address evm.executionEnv.source))]
   erw [storageLocLoad_uint256]
@@ -1433,7 +1433,7 @@ theorem withdrawAssignPending (evm : EVM.State) (locals : Store) (amount : UInt2
         .ok ({ contract := simpleAuctionContract, locals := locals },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner
             (withdrawPendingSlot evm.executionEnv) amount) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
       (hbase := hbase)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, pendingReturnsRef, sender,

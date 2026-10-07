@@ -167,15 +167,15 @@ theorem assign_fileVowStorage (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := fileVowLocals I }, evm') := by
   intro evm'
   rw [fileVowData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨3⟩)
+      (loc := addrLoc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := fileVowLocals_get_vow I)
       (her := by simp [vowRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨3⟩ (fileVowDataMaskedWord I)
       (fileVowDataMaskedWord_canonical I)

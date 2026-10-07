@@ -234,7 +234,7 @@ theorem evalExpr_endFileAddress_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFileAddressLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileAddressLocals I })
       (slot := wardsRef sender)
@@ -264,7 +264,7 @@ theorem evalExpr_endFileAddress_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (endRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileAddressLocals I })
       (slot := wardsRef sender)
@@ -311,7 +311,7 @@ theorem evalExpr_endFileAddress_live_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFileAddressLocals I } evm
         (.storage liveRef) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileAddressLocals I })
       (slot := liveRef)
@@ -336,7 +336,7 @@ theorem evalExpr_endFileAddress_live_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileAddressLocals I })
       (slot := liveRef)
@@ -382,21 +382,21 @@ theorem endFileAddressAssignAddress (evm : EVM.State) (I : ExecutionEnv)
       evalStorageRef config { contract := contract, locals := endFileAddressLocals I } evm ref =
         .ok er)
     (hty : storageTypeAt? contract.storage er = some addrSt)
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     assignStorageRef? config { contract := contract, locals := endFileAddressLocals I } evm
       .storage ref (.address (endFileAddressData I)) =
         .ok ({ contract := contract, locals := endFileAddressLocals I },
           endFileAddressPostState evm I slot) := by
   rw [endFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := er)
-      (loc := addrLoc slot)
+      (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbase)
       (her := her)
       (hty := hty)
       (hloc := hloc)
-      (hscalar := by trivial)
+
   simpa [addrLoc, endFileAddressPostState] using
     storageLocStore_address_offset0 evm slot (endFileAddressDataMaskedWord I)
       (endFileAddressDataMaskedWord_canonical I)

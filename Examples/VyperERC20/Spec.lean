@@ -50,13 +50,12 @@ def erc20AllowanceOwnerSlot (owner : KeyValue) : Ethereum.UInt256 :=
 def erc20AllowanceSlot (owner spender : KeyValue) : Ethereum.UInt256 :=
   vyperMappingSlot (erc20AllowanceOwnerSlot owner) spender
 
-def erc20StorageLayout : StorageLayout where
-  layout ref _ :=
+def erc20StorageLayout : StorageLayout := fun ref =>
     match ref.base, ref.steps with
-    | "balanceOf", [.mindex owner] => some (vyperUint256Loc (erc20BalanceOfSlot owner))
+    | "balanceOf", [.mindex owner] => some (.leaf (vyperUint256Loc (erc20BalanceOfSlot owner)))
     | "allowance", [.mindex owner, .mindex spender] =>
-        some (vyperUint256Loc (erc20AllowanceSlot owner spender))
-    | "totalSupply", [] => some (vyperUint256Loc ⟨2⟩)
+        some (.leaf (vyperUint256Loc (erc20AllowanceSlot owner spender)))
+    | "totalSupply", [] => some (.leaf (vyperUint256Loc ⟨2⟩))
     | _, _ => none
 
 @[simp] theorem erc20BalanceOfSlot_eq (owner : KeyValue) :
@@ -73,39 +72,41 @@ def erc20StorageLayout : StorageLayout where
   rfl
 
 @[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } =
-      fun _ => some (vyperUint256Loc ⟨2⟩) :=
+    erc20StorageLayout { base := "totalSupply", steps := [] } =
+      some (.leaf (vyperUint256Loc ⟨2⟩)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
-      fun _ => some (vyperUint256Loc (erc20BalanceOfSlot owner)) :=
+    erc20StorageLayout { base := "balanceOf", steps := [.mindex owner] } =
+      some (.leaf (vyperUint256Loc (erc20BalanceOfSlot owner))) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      fun _ => some (vyperUint256Loc (erc20AllowanceSlot owner spender)) :=
+    erc20StorageLayout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+      some (.leaf (vyperUint256Loc (erc20AllowanceSlot owner spender))) :=
   rfl
 
 end VyperERC20
 
+/-- The ERC20 leaves are full-word integers. Their reads and writes use the Solidity scalar
+operations, while the handwritten Vyper locator determines the mapping slots. -/
 def vyperERC20Config : Config :=
-  { storage := VyperERC20.erc20StorageLayout
+  { storageBackend := solidityStorageBackend VyperERC20.erc20StorageLayout
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.vyper
     selfDeployment := genSolidityConstructorDeployment VyperERC20.erc20Contract.ctor.params }
 
 @[simp] theorem vyperERC20Config_storage_totalSupply :
-    vyperERC20Config.storage.layout { base := "totalSupply", steps := [] } =
-      fun _ => some (vyperUint256Loc ⟨2⟩) :=
+    vyperERC20Config.storageBackend.locate? { base := "totalSupply", steps := [] } =
+      some (.leaf (vyperUint256Loc ⟨2⟩)) :=
   rfl
 
 @[simp] theorem vyperERC20Config_storage_balanceOf (owner : KeyValue) :
-    vyperERC20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
-      fun _ => some (vyperUint256Loc (VyperERC20.erc20BalanceOfSlot owner)) :=
+    vyperERC20Config.storageBackend.locate? { base := "balanceOf", steps := [.mindex owner] } =
+      some (.leaf (vyperUint256Loc (VyperERC20.erc20BalanceOfSlot owner))) :=
   rfl
 
 @[simp] theorem vyperERC20Config_storage_allowance (owner spender : KeyValue) :
-    vyperERC20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      fun _ => some (vyperUint256Loc (VyperERC20.erc20AllowanceSlot owner spender)) :=
+    vyperERC20Config.storageBackend.locate? { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+      some (.leaf (vyperUint256Loc (VyperERC20.erc20AllowanceSlot owner spender))) :=
   rfl

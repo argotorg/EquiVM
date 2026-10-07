@@ -254,15 +254,15 @@ theorem evalExpr_kissAshStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage AshRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := kissAshEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := kissAshEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨6⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨6⟩)
   · exact hbase
   · simp [kissAshEvaledRef, AshRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, kissAshEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, kissAshEvaledRef]
 
 theorem evalExpr_kissVatStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "vat" = none) :
@@ -271,15 +271,15 @@ theorem evalExpr_kissVatStorage (evm : EVM.State) {locals : Store}
         (UInt256.land
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar (er := kissVatEvaledRef) (t := .address)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := kissVatEvaledRef) (t := .address)
     (loc := addrLoc ⟨1⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_address_offset0 _ ⟨1⟩)
   · exact hbase
   · simp [kissVatEvaledRef, vatRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, kissVatEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, kissVatEvaledRef]
 
 theorem evalExprs_kissThis (evm : EVM.State) (locals : Store) :
     evalExprs? config { contract := contract, locals := locals } evm [thisAddr] =
@@ -334,14 +334,13 @@ theorem assign_kissAshStorage (evm : EVM.State) {locals : Store} (AshNew : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨6⟩) (.int (Int.ofNat AshNew.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨6⟩ AshNew
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, kissAshEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, kissAshEvaledRef])
     (hstore := hstore)
 
 theorem kissInternalSubReturn (I : ExecutionEnv) (evm : EVM.State)

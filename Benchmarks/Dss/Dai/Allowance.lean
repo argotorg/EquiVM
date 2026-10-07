@@ -108,7 +108,7 @@ theorem daiAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (allowanceStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := allowanceStore I })
         (slot := allowanceRef (.var "arg0") (.var "arg1"))

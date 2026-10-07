@@ -35,9 +35,9 @@ theorem clipperDenyAssign (v : ClipperImmutables) (evm : EVM.State) (I : Executi
       .storage (wardsRef (.var "usr")) (.int 0) =
         .ok ({ contract := contract v, locals := clipperRelyStore I },
           clipperDenyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (clipperRelyUsrStorageSlot I))
+      (loc := wordLoc (clipperRelyUsrStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := clipperRelyStore_wards I)
       (her := evalStorageRef_clipperRely_usr v evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

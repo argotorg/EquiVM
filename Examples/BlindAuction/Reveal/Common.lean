@@ -1,6 +1,7 @@
 import Reasoning.ABIViews
 import Reasoning.WordArithmetic
 import Examples.BlindAuction.Reveal.Decode
+import Examples.BlindAuction.Bids
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -1521,7 +1522,7 @@ theorem evalExpr_reveal_biddingEnd (evm : EVM.State) (locals : Store)
       ({ base := "biddingEnd", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_biddingEnd)]
   erw [storageLocLoad_uint256]
 
@@ -1538,7 +1539,7 @@ theorem evalExpr_reveal_revealEnd (evm : EVM.State) (locals : Store)
       ({ base := "revealEnd", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_revealEnd)]
   erw [storageLocLoad_uint256]
 
@@ -1877,20 +1878,8 @@ theorem evalExpr_reveal_bids_length_zero (evm : EVM.State) (locals : Store)
     resolveStorageRef?_ok hbids her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? blindAuctionConfig evm er (.dynamicArray bidStructTy) =
-    .ok (.int 0)
-  simp only [readStorageArrayLength?, er, List.cons_append, List.nil_append]
-  change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
-  change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
-    | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
-  erw [storageLocLoad_uint256, hlen]
-  rfl
+  simp [er, bidsArrayLength, hlen,
+    EvalResult.bind, bind, pure]
 
 theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len : UInt256)
     (hbids : locals.get? "bids" = none)
@@ -1914,20 +1903,8 @@ theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len 
     resolveStorageRef?_ok hbids her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? blindAuctionConfig evm er (.dynamicArray bidStructTy) =
-    .ok (.int (Int.ofNat len.toNat))
-  simp only [readStorageArrayLength?, er, List.cons_append, List.nil_append]
-  change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
-  change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
-    | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
-  erw [storageLocLoad_uint256, hlen]
-  rfl
+  simp [er, bidsArrayLength, hlen,
+    EvalResult.bind, bind, pure]
 
 theorem blindAuctionRevealBodyReturns_empty_callSuccess
     (evm evm' : EVM.State) (out : ByteArray)

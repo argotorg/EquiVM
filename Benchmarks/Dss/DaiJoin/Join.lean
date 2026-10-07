@@ -265,7 +265,7 @@ theorem evalExpr_daiJoinVatStorage {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨1⟩)
@@ -343,7 +343,7 @@ theorem evalExpr_daiJoinDaiStorage {evm : EVM.State} {locals : Store}
     (hdai : locals.get? "dai" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage daiRef) =
       .ok (.address (daiJoinDaiAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := daiRef) (er := ({ base := "dai", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)

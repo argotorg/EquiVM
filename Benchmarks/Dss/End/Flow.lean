@@ -2598,7 +2598,7 @@ theorem evalExpr_endFlow_debt (evm : EVM.State) (I : ExecutionEnv) :
       (.storage debtRef) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endFlowStore I })
     (slot := debtRef)
@@ -2617,7 +2617,7 @@ theorem evalExpr_endFlow_debt_of_base {locals : Store} (evm : EVM.State) (I : Ex
       (.storage debtRef) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := debtRef)
@@ -2718,7 +2718,7 @@ theorem evalExpr_endFlow_fix (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endFlowFixSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endFlowStore I })
     (slot := fixRef (.var "ilk"))
@@ -2823,7 +2823,7 @@ theorem evalExpr_endFlow_Art_of_get {locals : Store} (evm : EVM.State)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endFlowArtSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := ArtRef (.var "ilk"))
@@ -2845,9 +2845,9 @@ theorem endFlowAssignArtOfGet {locals : Store} (evm : EVM.State) (I : ExecutionE
       .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
         .ok ({ contract := contract, locals := locals },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (endFlowArtSlot I) artNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endFlowArtSlot I))
+      (loc := wordLoc (endFlowArtSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endFlow_Art_of_get evm I hget hsz36)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -2882,7 +2882,7 @@ theorem evalExpr_endFlow_tag_of_get {locals : Store} (evm : EVM.State)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endFlowTagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := tagRef (.var "ilk"))
@@ -2923,7 +2923,7 @@ theorem evalExpr_endFlow_gap_of_get {locals : Store} (evm : EVM.State)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endFlowGapSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := gapRef (.var "ilk"))
@@ -3249,9 +3249,9 @@ theorem endFlowStmtAssignFixVSplit (evm : EVM.State) (I : ExecutionEnv)
           (.int (Int.ofNat (endFlowFixVWord σ I out).toNat)) =
         .ok ({ contract := contract, locals := endFlowStoreFixV σ I out },
           endFlowPostState evm I (endFlowFixVWord σ I out)) := by
-    apply assignStorageRef_storage_scalar
+    apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endFlowFixSlot I))
+      (loc := wordLoc (endFlowFixSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simp [fixRef, endFlowStoreFixV, endFlowStoreDen, endFlowStoreNum, endFlowStoreNum0,
           endFlowStoreWad, endFlowStoreWad0, endFlowStoreRate, endFlowStoreVatIlk,

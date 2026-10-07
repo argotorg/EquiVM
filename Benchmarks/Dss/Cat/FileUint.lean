@@ -135,14 +135,13 @@ theorem assign_fileUintBoxStorage (evm : EVM.State) {locals : Store} (data : UIn
   have hstore :
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 /-! ### Dispatch, ABI decode, reachability -/

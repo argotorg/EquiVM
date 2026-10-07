@@ -229,7 +229,7 @@ theorem xferCall_assignSrc (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (callerBalSlot I)).toNat - Int.ofNat (xferWadWord I).toNat)) =
       .ok ({ contract := contract, locals := transferCallStore I }, xferSrcSt evm I) := by
-  refine assignStorageRef_storage_scalar_value (er := callerBalRef I) (ty := uint256St)
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St]) (er := callerBalRef I) (ty := uint256St)
     (loc := wordLoc (callerBalSlot I)) (hbase := by simp [balanceOfRef, transferCallStore])
     (xferCall_srcRef evm I)
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]) (by rfl)
@@ -244,7 +244,7 @@ theorem xferCall_assignDst (evm : EVM.State) (I : ExecutionEnv) :
         (xferSrcSt evm I).executionEnv.codeOwner (xferDstSlot I)).toNat
         + Int.ofNat (xferWadWord I).toNat)) =
       .ok ({ contract := contract, locals := transferCallStore I }, xferDstSt (xferSrcSt evm I) I) := by
-  refine assignStorageRef_storage_scalar_value (er := xferDstBalRef I) (ty := uint256St)
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St]) (er := xferDstBalRef I) (ty := uint256St)
     (loc := wordLoc (xferDstSlot I)) (hbase := by simp [balanceOfRef, transferCallStore])
     (xferCall_dstRef (xferSrcSt evm I) I)
     (by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]) (by rfl)

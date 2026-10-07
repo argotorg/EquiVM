@@ -99,10 +99,9 @@ theorem clipperEvalTail (v : ClipperImmutables) (evm : EVM.State) (locals : Stor
     rfl
   have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : (config v).storage.layout er = fun _ => some (wordLoc ⟨6⟩) := by
-    funext evm'
+  have hloc : (config v).storageBackend.locate? er = some (.leaf (wordLoc ⟨6⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (storageLocLoad_uint256 evm ⟨6⟩)
 
 theorem clipperTailBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

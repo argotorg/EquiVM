@@ -354,7 +354,7 @@ theorem clipperEvalRedoSalesTabAfterStatusTrue (v : ClipperImmutables)
       evmRead (.storage (salesF (.var "id") "tab")) =
       .ok (.int (Int.ofNat (clipperRedoSalesTabEVMWord evmRead I).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperRedoLocalsSt evmLoc I true price }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evmRead)
     (slot := salesF (.var "id") "tab") (er := clipperRedoSalesTabRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperRedoSalesTabSlot I))
@@ -379,7 +379,7 @@ theorem clipperEvalRedoSalesLotAfterTab (v : ClipperImmutables)
       evmRead (.storage (salesF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (clipperRedoSalesLotEVMWord evmRead I).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperRedoLocalsTab evmLoc evmRead I price }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evmRead)
     (slot := salesF (.var "id") "lot") (er := clipperRedoSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperRedoSalesLotSlot I))
@@ -719,9 +719,9 @@ theorem clipperRedoAssignSalesTicTimestampExact (v : ClipperImmutables)
             (UInt256.land solcAddrMask
               (Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner
                 (clipperRedoSalesPackedSlot I))))) := by
-    apply assignStorageRef_storage_scalar
+    apply assignStorageRef_storage_scalar (hbackend := rfl)
       (er := clipperRedoSalesTicRef I)
-      (ty := uint96St) (loc := loc)
+      (ty := uint96St) (loc := loc) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     · simp [salesF, clipperRedoLocalsLot, clipperRedoLocalsTab, clipperRedoLocalsSt,
         clipperRedoLocalsTop, clipperRedoLocalsTic, clipperRedoLocalsUsr, clipperRedoStore]
     · simp [salesF, clipperRedoSalesTicRef, clipperRedoIdValue, clipperRedoIdKey,

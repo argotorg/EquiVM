@@ -1355,7 +1355,8 @@ theorem evalExpr_mint_totalSupply_of_get
     (hbase : locals.get? "totalSupply" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage totalSupplyRef) =
       .ok (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by simpa [totalSupplyRef] using hbase)
     (her := evalStorageRef_mint_totalSupply_of_get evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

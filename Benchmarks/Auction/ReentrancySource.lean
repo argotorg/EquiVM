@@ -49,7 +49,7 @@ theorem statusStoreSourceSplit {evm locals e word}
         ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
         (.assign .storage statusRef e) .staticViolation) := by
   have hassign := scalarWrite evm _ locals "_status" (.elem (.int uint256Int))
-    (auctionUint256Loc ⟨101⟩) _ hl (by native_decide) rfl (by trivial)
+    (auctionUint256Loc ⟨101⟩) _ hl (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
     (storageLocStore_uint256 evm ⟨101⟩ word)
   exact ⟨ExecStmt.assign he hassign, fun hperm ↦ ExecStmt.assignStatic he hassign hperm⟩
 

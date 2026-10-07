@@ -8,13 +8,13 @@ theorem scalarWrite (evm evm' : EVM.State) (locals : Store) (name : Ident)
     (ty : StorageType) (loc : StorageLoc) (value : Value)
     (hbase : locals.get? name = none)
     (hty : storageTypeAt? auctionContract.storage { base := name } = some ty)
-    (hloc : auctionConfig.storage.layout { base := name } = fun _ => some loc)
-    (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
+    (hloc : auctionConfig.storageBackend.locate? { base := name } = some (.leaf loc))
+    (hleaf : (∃ t, ty = .elem t) ∨ (∃ name, ty = .contract name))
     (hstore : storageLocStore evm loc value = some evm') :
     assignStorageRef? auctionConfig { contract := auctionContract, locals := locals } evm
       .storage { base := name } value =
         .ok ({ contract := auctionContract, locals := locals }, evm') := by
-  apply assignStorageRef_storage_scalar_value hbase _ hty hloc hscalar hstore
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl) hbase _ hty hloc hleaf hstore
   simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
 theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Ident)
@@ -25,8 +25,8 @@ theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Id
     (hparam : locals.get? param = some (.int (Int.ofNat value.toNat)))
     (hty : storageTypeAt? auctionContract.storage { base := name } =
       some (.elem (.int uint256Int)))
-    (hloc : auctionConfig.storage.layout { base := name } =
-      fun _ ↦ some (auctionUint256Loc slot)) :
+    (hloc : auctionConfig.storageBackend.locate? { base := name } =
+      some (.leaf (auctionUint256Loc slot))) :
     (ExecTransitionBody auctionConfig auctionContract evm locals
       [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
         .assign .storage { base := name } (.var param)]
@@ -41,7 +41,7 @@ theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Id
     simp only [evalExpr?, hparam, EvalResult.ofOption]
   have hassign := scalarWrite evm _ locals name (.elem (.int uint256Int))
     (auctionUint256Loc slot) _ hbase hty hloc
-    (by trivial) (storageLocStore_uint256 evm slot value)
+    (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm slot value)
   constructor
   · exact ExecFuncBody.execBlockOK
       (nonpayableRequireAssignStorageBlock hwv hownerEval hvalue hassign)

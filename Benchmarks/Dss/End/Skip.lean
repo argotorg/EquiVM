@@ -7219,7 +7219,7 @@ theorem evalExpr_endSkip_tag (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endSkipTagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endSkipStore I })
     (slot := tagRef (.var "ilk"))
@@ -7306,7 +7306,7 @@ theorem evalExpr_endSkip_cat {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := catRef)
@@ -9329,9 +9329,9 @@ theorem endSkipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
       .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endSkipPostArtState evm I artNew) := by
   have href := evalStorageRef_endFlow_Art_of_get evm I hget (by omega)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endSkipArtSlot I))
+      (loc := wordLoc (endSkipArtSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := by simpa [endSkipArtSlot, endFlowArtSlot, endSkipIlkKey, endFlowIlkKey] using href)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

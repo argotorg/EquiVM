@@ -1,4 +1,4 @@
-import Solm.SolidityLayout
+import Solm.SolidityStorage
 
 /-!
 # WETH9 per-contract `bytes`/`string` storage read hook (solc 0.5.16 total header decode)
@@ -34,21 +34,21 @@ def weth9DecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat :=
 
 /-- Base data slot + decoded length for a `bytes`/`string` leaf, via the total decode. -/
 def weth9BytesBaseSlotAndLength?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult (EVM.Word × Nat) :=
-  match layout { er with steps := er.steps ++ [.length] } evm with
-  | some lenLoc =>
+  match layout { er with steps := er.steps ++ [.length] } with
+  | some (.anchor slot) =>
       match weth9DecodeBytesLengthHeader
-          (EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot) with
-      | .ok len => .ok (lenLoc.slot, len)
+          (EVM.storageLoad evm evm.executionEnv.codeOwner slot) with
+      | .ok len => .ok (slot, len)
       | .revert => .revert
       | .error => .error
-  | none => .error
+  | _ => .error
 
 /-- Read a `bytes`/`string` value: form chosen by `len < 32` (inline header bytes vs keccak data
     words), matching the runtime's form branch at `runtime.hex` 0x388.  Never reverts. -/
 def weth9ReadBytesValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult Value :=
   match weth9BytesBaseSlotAndLength? layout er evm with
   | .ok (baseSlot, len) =>
@@ -65,7 +65,7 @@ def weth9ReadBytesValue?
 /-- WETH9 `readValue?` hook: total compact-string read for `bytes`/`string`, `none` (fall through to
     `.layout`) for every scalar/structured leaf — so non-string reads are definitionally unchanged. -/
 def weth9ReadValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
     Option (StorageReadResult Value) :=
   match ty with
@@ -81,7 +81,7 @@ def weth9ReadValue?
     leave that word intact while the runtime zeroes it.  The long-value branch is unexercised by WETH9
     (both `name`/`symbol` are short) and mirrors the Solidity default. -/
 def weth9WriteBytesValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (bytes : ByteArray) (evm : EVM.State) :
     StorageReadResult EVM.State :=
   match weth9BytesBaseSlotAndLength? layout er evm with
@@ -109,7 +109,7 @@ def weth9WriteBytesValue?
 /-- WETH9 `writeValue?` hook: 0.5.16 string/bytes write for `bytes`/`string`, `none` for scalars
     (so non-string writes are definitionally unchanged). -/
 def weth9WriteValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : StorageType) (value : Value) (evm : EVM.State) :
     Option (StorageReadResult EVM.State) :=
   match ty, value with
@@ -122,11 +122,18 @@ def weth9WriteValue?
     store.  `.layout`, `clearValue?`, `readBytesLength` are inherited verbatim; `clearValue?` is never
     invoked (WETH9 deletes no strings).  Scalar/mapping leaves are definitionally unchanged (both hooks
     return `none` for non-string types). -/
-def weth9StorageLayout
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout :=
-  { solidityStorageLayout layout with
-    readValue? := weth9ReadValue? layout
-    writeValue? := weth9WriteValue? layout }
+def weth9StorageBackend (layout : StorageLayout) : StorageBackend :=
+  let base := solidityStorageBackend layout
+  { base with
+    read := fun er ty evm =>
+      match ty with
+      | .bytes | .string => solidityValueResultToEval (weth9ReadBytesValue? layout er evm)
+      | _ => base.read er ty evm
+    write := fun er ty value evm =>
+      match ty, value with
+      | .bytes, .bytes bytes => solidityStateResultToEval (weth9WriteBytesValue? layout er bytes evm)
+      | .string, .bytes bytes => solidityStateResultToEval (weth9WriteBytesValue? layout er bytes evm)
+      | _, _ => base.write er ty value evm }
 
 /-! ## Totality checks: total decode never reverts; the default Solidity decode does -/
 

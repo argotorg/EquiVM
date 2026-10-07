@@ -283,7 +283,7 @@ theorem evalExpr_priceCut_word {evm : EVM.State} {locals : Store} {cut : UInt256
       .ok (.int (Int.ofNat cut.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int (Int.ofNat cut.toNat) := by
     rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hcut]
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := cutRef) (er := ({ base := "cut", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨1⟩) (value := .int (Int.ofNat cut.toNat))

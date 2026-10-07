@@ -66,7 +66,7 @@ theorem evalExpr_bidBid_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "bid")) =
         .ok (.int (Int.ofNat (bidBidWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidBaseOfWord id))
     (hbase := hbids)
@@ -77,8 +77,7 @@ theorem evalExpr_bidBid_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -93,7 +92,7 @@ theorem evalExpr_bidLot_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "lot")) =
         .ok (.int (Int.ofNat (bidLotWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidSlotOfWord id ⟨1⟩))
     (hbase := hbids)
@@ -104,8 +103,7 @@ theorem evalExpr_bidLot_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -121,7 +119,7 @@ theorem evalExpr_bidLot_of_get_id_evm {evm : EVM.State} {locals : Store}
       (.storage (bidsF (.var "id") "lot")) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨1⟩)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidSlotOfWord id ⟨1⟩))
     (hbase := hbids)
@@ -131,8 +129,7 @@ theorem evalExpr_bidLot_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -145,7 +142,7 @@ theorem evalExpr_bidGuy_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "guy")) =
         .ok (.address (AccountAddress.ofNat (bidGuyWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidPackedSlotOfWord id))
     (hbase := hbids)
@@ -156,8 +153,7 @@ theorem evalExpr_bidGuy_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -175,7 +171,7 @@ theorem evalExpr_bidGuy_of_get_id_evm {evm : EVM.State} {locals : Store}
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidPackedSlotOfWord id))
             solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidPackedSlotOfWord id))
     (hbase := hbids)
@@ -185,8 +181,7 @@ theorem evalExpr_bidGuy_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -200,7 +195,7 @@ theorem evalExpr_bidTic_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "tic")) =
         .ok (.int (Int.ofNat (bidTicWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (bidPackedSlotOfWord id) ⟨20, by decide⟩ (by decide))
     (hbase := hbids)
@@ -211,8 +206,7 @@ theorem evalExpr_bidTic_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -227,7 +221,7 @@ theorem evalExpr_bidEnd_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "end")) =
         .ok (.int (Int.ofNat (bidEndWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (bidPackedSlotOfWord id) ⟨26, by decide⟩ (by decide))
     (hbase := hbids)
@@ -238,8 +232,7 @@ theorem evalExpr_bidEnd_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -254,7 +247,7 @@ theorem evalExpr_bidUsr_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "usr")) =
         .ok (.address (AccountAddress.ofNat (bidUsrWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidSlotOfWord id ⟨3⟩))
     (hbase := hbids)
@@ -265,8 +258,7 @@ theorem evalExpr_bidUsr_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -281,7 +273,7 @@ theorem evalExpr_bidGal_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "gal")) =
         .ok (.address (AccountAddress.ofNat (bidGalWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidSlotOfWord id ⟨4⟩))
     (hbase := hbids)
@@ -292,8 +284,7 @@ theorem evalExpr_bidGal_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -311,7 +302,7 @@ theorem evalExpr_bidGal_of_get_id_evm {evm : EVM.State} {locals : Store}
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨4⟩))
             solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidSlotOfWord id ⟨4⟩))
     (hbase := hbids)
@@ -321,8 +312,7 @@ theorem evalExpr_bidGal_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -336,7 +326,7 @@ theorem evalExpr_bidTab_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "tab")) =
         .ok (.int (Int.ofNat (bidTabWord id σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidSlotOfWord id ⟨5⟩))
     (hbase := hbids)
@@ -347,8 +337,7 @@ theorem evalExpr_bidTab_of_get_id {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -364,7 +353,7 @@ theorem evalExpr_bidTab_of_get_id_evm {evm : EVM.State} {locals : Store}
       (.storage (bidsF (.var "id") "tab")) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨5⟩)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidSlotOfWord id ⟨5⟩))
     (hbase := hbids)
@@ -374,8 +363,7 @@ theorem evalExpr_bidTab_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -390,18 +378,17 @@ theorem assign_bidBidStorage (evm : EVM.State) (id value : UInt256) {locals : St
       .storage (bidsF (.var "id") "bid") (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := bidEvaledRefOfWord id "bid")
-      (loc := wordLoc (bidBaseOfWord id))
+      (loc := wordLoc (bidBaseOfWord id)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := id) (field := "bid") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, uint256St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
   simpa [evm'] using storageLocStore_uint256 evm (bidBaseOfWord id) value
 
@@ -414,18 +401,17 @@ theorem assign_bidLotStorage (evm : EVM.State) (id value : UInt256) {locals : St
       .storage (bidsF (.var "id") "lot") (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := bidEvaledRefOfWord id "lot")
-      (loc := wordLoc (bidSlotOfWord id ⟨1⟩))
+      (loc := wordLoc (bidSlotOfWord id ⟨1⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := id) (field := "lot") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, uint256St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
   simpa [evm'] using storageLocStore_uint256 evm (bidSlotOfWord id ⟨1⟩) value
 
@@ -446,20 +432,19 @@ theorem assign_bidGuyStorage (evm : EVM.State) (id : UInt256) {locals : Store}
         .address (AccountAddress.ofNat (EVM.word evm.executionEnv.source.val).toNat) := by
     rw [accountAddress_of_word_val]
   rw [hvalue]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := bidEvaledRefOfWord id "guy")
-      (loc := addrLoc (bidPackedSlotOfWord id))
+      (loc := addrLoc (bidPackedSlotOfWord id)) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := id) (field := "guy") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, addrSt])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidPackedSlotOfWord])
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm', solcSourceWord] using
     storageLocStore_address_offset0 evm (bidPackedSlotOfWord id)
       (EVM.word evm.executionEnv.source.val) (word_val_addr_canonical evm.executionEnv.source)
@@ -477,18 +462,17 @@ theorem assign_bidTicStorage (evm : EVM.State) (id value : UInt256) {locals : St
       .storage (bidsF (.var "id") "tic") (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := bidEvaledRefOfWord id "tic")
-      (loc := uint48Loc (bidPackedSlotOfWord id) ⟨20, by decide⟩ (by decide))
+      (loc := uint48Loc (bidPackedSlotOfWord id) ⟨20, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := id) (field := "tic") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, uint48St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidPackedSlotOfWord])
   simpa [evm'] using flipperStorageLocStore_uint48_offset20 evm (bidPackedSlotOfWord id)
     value hvalue

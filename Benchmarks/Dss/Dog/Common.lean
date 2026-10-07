@@ -185,7 +185,7 @@ theorem dogAddressGetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef (config v) { contract := contract v, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? (contract v).storage er = some (.elem .address))
-    (hloc : (config v).storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : (config v).storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     ExecTransitionBody (config v) (contract v) evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract v, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
@@ -193,7 +193,7 @@ theorem dogAddressGetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
             solcAddrMask).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (storageLocLoad_address_offset0 evm slot))
 
 theorem dogUint256GetterBodyReturns (v : DogImmutables) (evm : EVM.State) (locals : Store)
@@ -202,14 +202,14 @@ theorem dogUint256GetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef (config v) { contract := contract v, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)))
-    (hloc : (config v).storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : (config v).storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody (config v) (contract v) evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract v, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem dogAddressGetterBodyCore
@@ -363,14 +363,13 @@ theorem dogAuthGuardEval_true {v : DogImmutables}
     simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (dogCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         dogCallerWardsEvaledRef, dogCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
@@ -395,14 +394,13 @@ theorem dogAuthGuardEval_false {v : DogImmutables}
     exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (dogCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         dogCallerWardsEvaledRef, dogCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]

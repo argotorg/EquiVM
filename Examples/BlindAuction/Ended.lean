@@ -37,7 +37,7 @@ theorem blindAuctionEndedBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? blindAuctionContract.storage
           ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
         decide
-      erw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := blindAuctionConfig_storage_ended),
         storageLocLoad_bool_offset0]
       rw [u256_land_comm])

@@ -428,4 +428,18 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (width := width) (op := op) hreach hentry hgetter hroutine hret hreturnWf
   exact hrd.reEquivExecution hcode hdispatch hdecode hbody henc
 
+theorem clipperActiveDynamicLength (evm : EVM.State) :
+    solidityDynamicLength? storageLayoutRaw evm { base := "active" } =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+  have hloc : solidityAnchorWordLoc ⟨11⟩ = wordLoc ⟨11⟩ := rfl
+  simp only [solidityDynamicLength?, solidityLengthLoc?, solidityAnchor?,
+    storageLayoutRaw, hloc, Option.map_some, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  simp
+
+theorem clipperActiveLength (evm : EVM.State) :
+    solidityStorageLength? storageLayoutRaw { base := "active" } (.dynamicArray uint256St) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+  simpa only [solidityStorageLength?] using clipperActiveDynamicLength evm
+
 end Benchmarks.Dss.Clipper

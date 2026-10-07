@@ -83,9 +83,9 @@ theorem mintAssignKLastProduct
     assignStorageRef? config { contract := contract, locals := locals } evm .storage kLastRef
       (mintKLastProductValue evm) =
         .ok ({ contract := contract, locals := locals }, mintKLastUpdatedState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
       (er := ({ base := "kLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := uint256Loc ⟨11⟩)
+      (ty := uint256St) (loc := wordLoc ⟨11⟩)
   · simpa [kLastRef] using hkLastBase
   · simp [evalStorageRef, evalStorageRefSteps, kLastRef, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]

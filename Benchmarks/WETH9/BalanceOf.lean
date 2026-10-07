@@ -78,7 +78,6 @@ theorem weth9BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar_value
-        (cfg := config)
         (solm := { contract := contract, locals := balanceOfStore I })
         (slot := balanceOfRef (.var "owner"))
         (er := ({ base := "balanceOf", steps := [.mindex (balanceOfArgKey I)] } :

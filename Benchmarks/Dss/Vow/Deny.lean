@@ -55,14 +55,13 @@ theorem vowAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     simpa [solcSlotWordAt] using hauth
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (vowCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         vowCallerWardsEvaledRef, vowCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
@@ -86,14 +85,13 @@ theorem vowAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     exact hauth (by simpa [w, solcSlotWordAt] using hw)
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc (vowCallerWardsSlot I))
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         vowCallerWardsEvaledRef, vowCallerWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord])]
   rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
@@ -251,14 +249,14 @@ theorem vowDenyBodyCore
       have hstore :
           storageLocStore evm0 (wordLoc (denySlotFor I)) (.int 0) = some evm1 := by
         simpa [evm1] using storageLocStore_uint256 evm0 (denySlotFor I) ⟨0⟩
-      exact assignStorageRef_storage_scalar
+      exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (hleaf := Or.inl ⟨_, rfl⟩)
         (ty := .elem (.int uint256Int)) (loc := wordLoc (denySlotFor I))
         (hbase := by simp [locals, wardsRef])
         (her := her)
         (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
         (hloc := by
-          funext evm
-          simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+          simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
             denyEvaledRef, denySlotFor])
         (hstore := hstore)
     have hbody :

@@ -116,7 +116,7 @@ theorem bidExtensionRoutine {I g s0 s bidder snap noun ret R mem aw rdata σ k C
       exact ExecBlock.consNormal (ExecStmt.assign ha
         (auctionFieldWrite evm evm' locals1 "endTime" (.elem (.int uint256Int))
           (auctionUint256Loc ⟨210⟩) _ (hv1.storage _ (by decide)) (by native_decide) rfl
-          (by trivial) (storageLocStore_uint256 evm ⟨210⟩ finish))) ExecBlock.nil
+          (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm ⟨210⟩ finish))) ExecBlock.nil
     · have ha := checkedAddSourceOverflow hn (bidTimeBufferSource hs hv1) (by omega)
       refine Or.inr ⟨?_, checkedAddOverflow rd5704 (by omega) (by evm_ov)⟩
       apply ExecBlock.consNormal (ExecStmt.letDecl he)

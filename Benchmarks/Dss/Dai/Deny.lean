@@ -116,7 +116,7 @@ theorem evalExpr_deny_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := denyStore I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := denyStore I })
       (slot := wardsRef sender)
@@ -148,7 +148,7 @@ theorem evalExpr_deny_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (denyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := denyStore I })
       (slot := wardsRef sender)
@@ -194,9 +194,9 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := denyStore I } evm
       .storage (wardsRef (.var "guy")) (.int 0) =
         .ok ({ contract := contract, locals := denyStore I }, denyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (denyGuyStorageSlot I) (.int uint256Int))
+      (loc := wordLoc (denyGuyStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := denyStore_wards I)
       (her := evalStorageRef_deny_guy evm I)
       (hty := by

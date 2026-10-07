@@ -978,10 +978,13 @@ theorem callerAssign (evm' : EVM.State) (L : Solm.Store) (k : ℕ) (hbase : L.ge
   have hty : storageTypeAt? callerContract.storage { base := "stored", steps := [] } =
       some (.elem (.int (.uint ⟨256, by decide⟩))) := by
     simp [storageTypeAt?, callerContract]
-  have hloc : callerConfig.storage.layout { base := "stored", steps := [] } =
-      fun _ => some { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
-                      bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) } := rfl
-  exact assignStorageRef_storage_scalar hbase her hty hloc (callerLocStore evm' k)
+  have hbackend : callerConfig.storageBackend =
+      solidityStorageBackend Caller.callerStorageLayout := rfl
+  have hloc : Caller.callerStorageLayout { base := "stored", steps := [] } =
+      some (.leaf { slot := ⟨0⟩, offset := 0, size := 32, hbound := (by decide),
+                    bitOffset := .none, type := .int (.uint ⟨256, (by decide)⟩) }) := rfl
+  exact assignStorageRef_storage_scalar hbase her hty hbackend hloc
+    (Or.inl ⟨_, rfl⟩) (callerLocStore evm' k)
 
 
 theorem callerCanon_eq {I : ExecutionEnv} (hcanon : (callerArg0 I).toNat < EVM.addressModulus) :

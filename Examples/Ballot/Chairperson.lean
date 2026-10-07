@@ -32,7 +32,7 @@ theorem ballotChairpersonBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? ballotContract.storage
           ({ base := "chairperson", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
-      rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := by rfl)]
       change EvalResult.ok (storageLocLoad evm (addressOffset0Loc ⟨0⟩)) = _
       rw [storageLocLoad_address_offset0])

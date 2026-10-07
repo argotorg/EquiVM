@@ -50,9 +50,12 @@ theorem weth9DepositBodyReturnsSplit {σ σ₀ A I} {g : Sat256} :
       .ok ({ contract := contract, locals := ∅ },
         Solm.EVM.storageStore evm I.codeOwner (callerBalSlot I)
           (UInt256.add (Solm.EVM.storageLoad evm I.codeOwner (callerBalSlot I)) I.weiValue)) := by
-    refine assignStorageRef_storage_scalar_value
+    refine Benchmarks.WETH9.assignStorageRef_storage_scalar_value
+      (solm := { contract := contract, locals := ∅ }) (slot := balanceOfRef sender)
       (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
-      (hbase := by simp [balanceOfRef]) ?_ ?_ (by rfl) (by trivial) ?_
+      (hbase := by simp [balanceOfRef]) (her := ?_) (hty := ?_)
+      (hloc := by rfl) (hleaf := by exact Or.inl ⟨_, rfl⟩)
+      (hscalar := by trivial) (hstore := ?_)
     · simp only [balanceOfRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
         evalExpr?, envValue, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
     · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]

@@ -23,22 +23,22 @@ theorem snapshotSourceRead (evm : EVM.State) (locals : Store)
     · simp [auctionRef, evalStorageRef, evalStorageRefSteps, pure, bind, EvalResult.bind]
     · change storageTypeAt? auctionContract.storage { base := "auction" } = some auctionStructTy
       native_decide
-  have h0 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h0 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "nounId"] })
     (t := .int uint256Int) (loc := auctionUint256Loc ⟨207⟩) rfl
-  have h1 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h1 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "amount"] })
     (t := .int uint256Int) (loc := auctionUint256Loc ⟨208⟩) rfl
-  have h2 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h2 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "startTime"] })
     (t := .int uint256Int) (loc := auctionUint256Loc ⟨209⟩) rfl
-  have h3 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h3 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "endTime"] })
     (t := .int uint256Int) (loc := auctionUint256Loc ⟨210⟩) rfl
-  have h4 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h4 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "bidder"] })
     (t := .address) (loc := auctionAddrLoc ⟨211⟩) rfl
-  have h5 := readStorage?_elem (cfg := auctionConfig) (evm := evm)
+  have h5 := readStorage?_elem (hbackend := rfl) (cfg := auctionConfig) (evm := evm)
     (er := { base := "auction", steps := [.field "settled"] })
     (t := .bool) (loc := auctionBoolLocAt ⟨211⟩ 20) rfl
   rw [loadUint256] at h0 h1 h2 h3
@@ -46,11 +46,13 @@ theorem snapshotSourceRead (evm : EVM.State) (locals : Store)
   rw [loadBoolAt] at h5
   have hpow : UInt256.ofNat (256 ^ (20 : Fin 32).val) = (⟨2 ^ 160⟩ : UInt256) := by native_decide
   rw [hpow] at h5
+  simp only [auctionConfig, solidityStorageBackend] at h0 h1 h2 h3 h4 h5
   rw [evalExpr?, hr]
   simp only [bind, EvalResult.bind]
+  change solidityReadStorage? auctionStorageLayout evm { base := "auction" } auctionStructTy = _
   unfold auctionStructTy
-  rw [readStorage?]
-  simp only [readFields?, List.nil_append, h0, h1, h2, h3, h4, h5,
+  rw [solidityReadStorage?]
+  simp only [solidityReadFields?, List.nil_append, h0, h1, h2, h3, h4, h5,
     uint256St, addrSt, boolSt, bind, EvalResult.bind, pure]
   rfl
 

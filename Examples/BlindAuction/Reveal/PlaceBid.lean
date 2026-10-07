@@ -75,7 +75,7 @@ theorem scratch_eval_placeBid_highestBid
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
       (.storage highestBidRef) = .ok (.int (Int.ofNat high.toNat)) := by
-  rw [evalExpr_storage_scalar (cfg := blindAuctionConfig)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
     (slot := highestBidRef)
@@ -125,7 +125,7 @@ theorem scratch_eval_placeBid_highestBidder
       { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
       (.storage highestBidderRef) =
         .ok (.address (AccountAddress.ofNat (UInt256.land old solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar (cfg := blindAuctionConfig)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
     (slot := highestBidderRef)
@@ -219,7 +219,7 @@ theorem scratch_eval_placeBid_pendingReturns
       { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
       (.storage (pendingReturnsRef (.storage highestBidderRef))) =
         .ok (.int (Int.ofNat pending.toNat)) := by
-  rw [evalExpr_storage_scalar (cfg := blindAuctionConfig)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
     (slot := pendingReturnsRef (.storage highestBidderRef))
@@ -323,7 +323,7 @@ theorem scratch_assign_placeBid_pendingReturns
   unfold scratch_placeBidAfterPending
   have hsumToNat : (UInt256.ofNat (pending.toNat + high.toNat)).toNat =
       pending.toNat + high.toNat := UInt256.toNat_ofNat_of_lt hsum
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
     (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
@@ -352,7 +352,7 @@ theorem scratch_assign_placeBid_highestBid
     .ok ({ contract := blindAuctionContract, locals := scratch_placeBidStore bidder value },
       scratch_placeBidAfterHigh evm value) := by
   unfold scratch_placeBidAfterHigh
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
     (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
@@ -365,7 +365,7 @@ theorem scratch_assign_placeBid_highestBid
     (scratch_placeBidStore_base_none bidder value (by decide) (by decide))
     (by simp [evalStorageRef, evalStorageRefSteps, highestBidRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidRef])
-    blindAuctionConfig_storage_highestBid
+    (blindAuctionConfig_storage_highestBid)
     (blindAuctionStorageLocStore_uint256_natCast evm ⟨6⟩ value)
 
 theorem scratch_assign_placeBid_highestBidder
@@ -390,7 +390,7 @@ theorem scratch_assign_placeBid_highestBidder
     simpa [haddrOfNat] using
       scratch_blindAuctionStorageLocStore_address_offset0 evm ⟨5⟩ (UInt256.ofNat bidder.val)
         (addressWord_canonical bidder)
-  exact assignStorageRef_storage_scalar_value
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
     (cfg := blindAuctionConfig)
     (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
     (evm := evm)
@@ -405,8 +405,7 @@ theorem scratch_assign_placeBid_highestBidder
     (scratch_placeBidStore_base_none bidder value (by decide) (by decide))
     (by simp [evalStorageRef, evalStorageRefSteps, highestBidderRef, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, blindAuctionContract, storageDecls, highestBidderRef, addrSt])
-    blindAuctionConfig_storage_highestBidder
-    (by trivial)
+    (blindAuctionConfig_storage_highestBidder)
     hstore
 
 theorem scratch_blindAuctionPlaceBidBodyReturns_false

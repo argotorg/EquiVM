@@ -8557,83 +8557,73 @@ theorem frobStorageType_dai_w (I : ExecutionEnv) :
     uint256St]
 
 theorem frobStorageLayout_urn_ink_source (I : ExecutionEnv) :
-    config.storage.layout (frobUrnInkEvaledRef I) =
-      fun _ => some (wordLoc (frobUrnInkSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobUrnInkEvaledRef I) evm =
-    some (wordLoc (frobUrnInkSourceSlot I))
+    config.storageBackend.locate? (frobUrnInkEvaledRef I) =
+      some (.leaf (wordLoc (frobUrnInkSourceSlot I))) := by
+  change storageLayoutRaw (frobUrnInkEvaledRef I) =
+    some (.leaf (wordLoc (frobUrnInkSourceSlot I)))
   simp [storageLayoutRaw, frobUrnInkEvaledRef, frobUrnInkSourceSlot, frobUrnSourceBase]
 
 theorem frobStorageLayout_urn_art_source (I : ExecutionEnv) :
-    config.storage.layout (frobUrnArtEvaledRef I) =
-      fun _ => some (wordLoc (frobUrnArtSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobUrnArtEvaledRef I) evm =
-    some (wordLoc (frobUrnArtSourceSlot I))
+    config.storageBackend.locate? (frobUrnArtEvaledRef I) =
+      some (.leaf (wordLoc (frobUrnArtSourceSlot I))) := by
+  change storageLayoutRaw (frobUrnArtEvaledRef I) =
+    some (.leaf (wordLoc (frobUrnArtSourceSlot I)))
   simp [storageLayoutRaw, frobUrnArtEvaledRef, frobUrnArtSourceSlot, frobUrnSourceBase]
 
 theorem frobStorageLayout_ilk_art_source (I : ExecutionEnv) :
-    config.storage.layout (frobIlkFieldEvaledRef I "Art") =
-      fun _ => some (wordLoc (frobIlkArtSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobIlkFieldEvaledRef I "Art") evm =
-    some (wordLoc (frobIlkArtSourceSlot I))
+    config.storageBackend.locate? (frobIlkFieldEvaledRef I "Art") =
+      some (.leaf (wordLoc (frobIlkArtSourceSlot I))) := by
+  change storageLayoutRaw (frobIlkFieldEvaledRef I "Art") =
+    some (.leaf (wordLoc (frobIlkArtSourceSlot I)))
   simp [storageLayoutRaw, frobIlkFieldEvaledRef, frobIlkArtSourceSlot, frobIlkSourceBase]
 
 theorem frobStorageLayout_ilk_rate_source (I : ExecutionEnv) :
-    config.storage.layout (frobIlkFieldEvaledRef I "rate") =
-      fun _ => some (wordLoc (frobIlkRateSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobIlkFieldEvaledRef I "rate") evm =
-    some (wordLoc (frobIlkRateSourceSlot I))
+    config.storageBackend.locate? (frobIlkFieldEvaledRef I "rate") =
+      some (.leaf (wordLoc (frobIlkRateSourceSlot I))) := by
+  change storageLayoutRaw (frobIlkFieldEvaledRef I "rate") =
+    some (.leaf (wordLoc (frobIlkRateSourceSlot I)))
   simp [storageLayoutRaw, frobIlkFieldEvaledRef, frobIlkRateSourceSlot, frobIlkSourceBase]
 
 theorem frobStorageLayout_ilk_spot_source (I : ExecutionEnv) :
-    config.storage.layout (frobIlkFieldEvaledRef I "spot") =
-      fun _ => some (wordLoc (frobIlkSpotSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobIlkFieldEvaledRef I "spot") evm =
-    some (wordLoc (frobIlkSpotSourceSlot I))
+    config.storageBackend.locate? (frobIlkFieldEvaledRef I "spot") =
+      some (.leaf (wordLoc (frobIlkSpotSourceSlot I))) := by
+  change storageLayoutRaw (frobIlkFieldEvaledRef I "spot") =
+    some (.leaf (wordLoc (frobIlkSpotSourceSlot I)))
   simp [storageLayoutRaw, frobIlkFieldEvaledRef, frobIlkSpotSourceSlot, frobIlkSourceBase]
 
 theorem frobStorageLayout_ilk_line_source (I : ExecutionEnv) :
-    config.storage.layout (frobIlkFieldEvaledRef I "line") =
-      fun _ => some (wordLoc (frobIlkLineSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobIlkFieldEvaledRef I "line") evm =
-    some (wordLoc (frobIlkLineSourceSlot I))
+    config.storageBackend.locate? (frobIlkFieldEvaledRef I "line") =
+      some (.leaf (wordLoc (frobIlkLineSourceSlot I))) := by
+  change storageLayoutRaw (frobIlkFieldEvaledRef I "line") =
+    some (.leaf (wordLoc (frobIlkLineSourceSlot I)))
   simp [storageLayoutRaw, frobIlkFieldEvaledRef, frobIlkLineSourceSlot, frobIlkSourceBase]
 
 theorem frobStorageLayout_ilk_dust_source (I : ExecutionEnv) :
-    config.storage.layout (frobIlkFieldEvaledRef I "dust") =
-      fun _ => some (wordLoc (frobIlkDustSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobIlkFieldEvaledRef I "dust") evm =
-    some (wordLoc (frobIlkDustSourceSlot I))
+    config.storageBackend.locate? (frobIlkFieldEvaledRef I "dust") =
+      some (.leaf (wordLoc (frobIlkDustSourceSlot I))) := by
+  change storageLayoutRaw (frobIlkFieldEvaledRef I "dust") =
+    some (.leaf (wordLoc (frobIlkDustSourceSlot I)))
   simp [storageLayoutRaw, frobIlkFieldEvaledRef, frobIlkDustSourceSlot, frobIlkSourceBase]
 
 theorem frobStorageLayout_can (usr : KeyValue) (I : ExecutionEnv) :
-    config.storage.layout (frobWishEvaledRef usr I) =
-      fun _ => some (wordLoc (canSlot usr (frobSourceKey I))) := by
-  funext evm
-  change storageLayoutRaw (frobWishEvaledRef usr I) evm =
-    some (wordLoc (canSlot usr (frobSourceKey I)))
+    config.storageBackend.locate? (frobWishEvaledRef usr I) =
+      some (.leaf (wordLoc (canSlot usr (frobSourceKey I)))) := by
+  change storageLayoutRaw (frobWishEvaledRef usr I) =
+    some (.leaf (wordLoc (canSlot usr (frobSourceKey I))))
   simp [storageLayoutRaw, frobWishEvaledRef, canSlot]
 
 theorem frobStorageLayout_gem_v_source (I : ExecutionEnv) :
-    config.storage.layout (frobGemVEvaledRef I) =
-      fun _ => some (wordLoc (frobGemVSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobGemVEvaledRef I) evm =
-    some (wordLoc (frobGemVSourceSlot I))
+    config.storageBackend.locate? (frobGemVEvaledRef I) =
+      some (.leaf (wordLoc (frobGemVSourceSlot I))) := by
+  change storageLayoutRaw (frobGemVEvaledRef I) =
+    some (.leaf (wordLoc (frobGemVSourceSlot I)))
   simp [storageLayoutRaw, frobGemVEvaledRef, frobGemVSourceSlot]
 
 theorem frobStorageLayout_dai_w_source (I : ExecutionEnv) :
-    config.storage.layout (frobDaiWEvaledRef I) =
-      fun _ => some (wordLoc (frobDaiWSourceSlot I)) := by
-  funext evm
-  change storageLayoutRaw (frobDaiWEvaledRef I) evm =
-    some (wordLoc (frobDaiWSourceSlot I))
+    config.storageBackend.locate? (frobDaiWEvaledRef I) =
+      some (.leaf (wordLoc (frobDaiWSourceSlot I))) := by
+  change storageLayoutRaw (frobDaiWEvaledRef I) =
+    some (.leaf (wordLoc (frobDaiWSourceSlot I)))
   simp [storageLayoutRaw, frobDaiWEvaledRef, frobDaiWSourceSlot]
 
 set_option linter.unusedSimpArgs false in
@@ -8792,7 +8782,7 @@ theorem evalExpr_frob_urn_ink_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobUrnInkSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_urn_ink_locals evm I locals hsz196 hi hu)
     (hty := frobStorageType_urn_ink I)
@@ -8809,7 +8799,7 @@ theorem evalExpr_frob_urn_art_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobUrnArtSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_urn_art_locals evm I locals hsz196 hi hu)
     (hty := frobStorageType_urn_art I)
@@ -8825,7 +8815,7 @@ theorem evalExpr_frob_ilk_art_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobIlkArtSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_art_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_art I)
@@ -8841,7 +8831,7 @@ theorem evalExpr_frob_ilk_rate_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobIlkRateSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_rate_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_rate I)
@@ -8857,7 +8847,7 @@ theorem evalExpr_frob_ilk_spot_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobIlkSpotSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_spot_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_spot I)
@@ -8873,7 +8863,7 @@ theorem evalExpr_frob_ilk_line_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobIlkLineSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_line_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_line I)
@@ -8889,7 +8879,7 @@ theorem evalExpr_frob_ilk_dust_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobIlkDustSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_dust_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_dust I)
@@ -8906,7 +8896,7 @@ theorem evalExpr_frob_can_u_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobUWishSlot I)).toNat)) := by
-  have h := evalExpr_storage_scalar_value
+  have h := evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_can_u_locals evm I locals hsrc hu)
     (hty := frobStorageType_can (frobUKey I) I)
@@ -8924,7 +8914,7 @@ theorem evalExpr_frob_can_v_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobVWishSlot I)).toNat)) := by
-  have h := evalExpr_storage_scalar_value
+  have h := evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_can_v_locals evm I locals hsrc hv)
     (hty := frobStorageType_can (frobVKey I) I)
@@ -8942,7 +8932,7 @@ theorem evalExpr_frob_can_w_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobWWishSlot I)).toNat)) := by
-  have h := evalExpr_storage_scalar_value
+  have h := evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_can_w_locals evm I locals hsrc hw)
     (hty := frobStorageType_can (frobWKey I) I)
@@ -9056,7 +9046,7 @@ theorem evalExpr_frob_gem_v_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobGemVSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_gem_v_locals evm I locals hsz196 hi hv)
     (hty := frobStorageType_gem_v I)
@@ -9072,7 +9062,7 @@ theorem evalExpr_frob_dai_w_locals {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (frobDaiWSourceSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := hbase)
     (her := evalStorageRef_frob_dai_w_locals evm I locals hw)
     (hty := frobStorageType_dai_w I)
@@ -9415,16 +9405,15 @@ theorem evalExpr_frob_LineRef {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage LineRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := ({ base := "Line", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (hbase := hbase)
     (her := by
       simp [evalStorageRef, evalStorageRefSteps, LineRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw ({ base := "Line", steps := [] } : EvaledStorageRef) evm =
-        some (wordLoc ⟨9⟩)
+      change storageLayoutRaw ({ base := "Line", steps := [] } : EvaledStorageRef) =
+        some (.leaf (wordLoc ⟨9⟩))
       simp [storageLayoutRaw])]
   exact congrArg EvalResult.ok (storageLocLoad_uint256 evm ⟨9⟩)
 
@@ -12367,7 +12356,8 @@ theorem assignStorageRef_frob_urn_ink (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "i") (.var "u") "ink") (.int (Int.ofNat urnInkNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_urn_ink_locals evm I locals hsz196 hi hu)
     (hty := frobStorageType_urn_ink I)
@@ -12387,7 +12377,8 @@ theorem assignStorageRef_frob_urn_art (evm : EVM.State) (I : ExecutionEnv)
       (urnsF (.var "i") (.var "u") "art") (.int (Int.ofNat urnArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_urn_art_locals evm I locals hsz196 hi hu)
     (hty := frobStorageType_urn_art I)
@@ -12406,7 +12397,8 @@ theorem assignStorageRef_frob_ilk_art (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "Art") (.int (Int.ofNat ilkArtNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_art_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_art I)
@@ -12425,7 +12417,8 @@ theorem assignStorageRef_frob_ilk_rate (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "rate") (.int (Int.ofNat ilkRate.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_rate_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_rate I)
@@ -12444,7 +12437,8 @@ theorem assignStorageRef_frob_ilk_spot (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "spot") (.int (Int.ofNat ilkSpot.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_spot_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_spot I)
@@ -12463,7 +12457,8 @@ theorem assignStorageRef_frob_ilk_line (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "line") (.int (Int.ofNat ilkLine.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_line_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_line I)
@@ -12482,7 +12477,8 @@ theorem assignStorageRef_frob_ilk_dust (evm : EVM.State) (I : ExecutionEnv)
       (ilksF (.var "i") "dust") (.int (Int.ofNat ilkDust.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_ilk_dust_locals evm I locals hsz196 hi)
     (hty := frobStorageType_ilk_dust I)
@@ -12502,7 +12498,8 @@ theorem assignStorageRef_frob_gem_v (evm : EVM.State) (I : ExecutionEnv)
       (gemRef (.var "i") (.var "v")) (.int (Int.ofNat gemNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_gem_v_locals evm I locals hsz196 hi hv)
     (hty := frobStorageType_gem_v I)
@@ -12520,7 +12517,8 @@ theorem assignStorageRef_frob_dai_w (evm : EVM.State) (I : ExecutionEnv)
       (daiRef (.var "w")) (.int (Int.ofNat daiNew.toNat)) =
       .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_frob_dai_w_locals evm I locals hw)
     (hty := frobStorageType_dai_w I)

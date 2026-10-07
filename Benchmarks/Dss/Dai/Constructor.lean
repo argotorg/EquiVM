@@ -1029,9 +1029,9 @@ theorem daiCtorAssignWards (evm : EVM.State) (I : ExecutionEnv) (chainId : Int)
       .storage (wardsRef sender) (.int 1) =
         .ok (daiCtorFrame chainId,
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (daiCtorWardsSlot I) ⟨1⟩) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (daiCtorWardsSlot I) (.int uint256Int))
+      (loc := wordLoc (daiCtorWardsSlot I) (.int uint256Int)) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := daiCtorLocals_get_wards chainId)
       (her := evalStorageRef_daiCtor_wards evm I chainId hsrc)
       (hty := by
@@ -1049,14 +1049,14 @@ theorem daiCtorAssignDomain (evm : EVM.State) (I : ExecutionEnv) (chainId : Int)
         .ok (daiCtorFrame chainId,
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner daiCtorDomainSlot
             (daiCtorDomainWord chainIdWord (daiCtorThisWord I))) := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := bytes32St)
-      (loc := wordLoc daiCtorDomainSlot (.bytes bytes32Width))
+      (loc := wordLoc daiCtorDomainSlot (.bytes bytes32Width)) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := daiCtorLocals_get_DOMAIN_SEPARATOR chainId)
       (her := evalStorageRef_daiCtor_domain evm chainId)
       (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [wordLoc, bytes32Loc, bytes32Width] using
     storageLocStore_bytes32 evm daiCtorDomainSlot
       (daiCtorDomainWord chainIdWord (daiCtorThisWord I))

@@ -60,11 +60,12 @@ theorem unpauseAssign (evm : EVM.State) :
   have hstore :
       storageLocStore evm (boolLoc ⟨0⟩) (.bool false) = some (unpausePostState evm) := by
     simpa [unpausePostState] using storageLocStore_bool_false_offset0 evm ⟨0⟩
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl) (cfg := config)
     (solm := { contract := contract, locals := ∅ }) (evm := evm) (evm' := unpausePostState evm)
     (slot := pausedRef) (er := { base := "_paused", steps := [] }) (ty := boolSt)
-    (loc := boolLoc ⟨0⟩) (value := .bool false) (by simp) her hty (by rfl)
-    (by trivial) hstore
+    (loc := boolLoc ⟨0⟩) (value := .bool false)
+    (hbase := by simp) (her := her) (hty := hty) (hloc := by rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩) (hstore := hstore)
 
 theorem pausableUnpauseBodyReturns (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

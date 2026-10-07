@@ -684,7 +684,7 @@ theorem evalExpr_auctionEnd_auctionEndTime (evm : EVM.State) :
       ({ base := "auctionEndTime", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_auctionEndTime)]
   erw [storageLocLoad_uint256]
 
@@ -699,7 +699,7 @@ theorem evalExpr_auctionEnd_beneficiary (evm : EVM.State) :
   have hty : storageTypeAt? simpleAuctionContract.storage
       ({ base := "beneficiary", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_beneficiary)]
   erw [storageLocLoad_address_offset0]
   rfl
@@ -716,7 +716,7 @@ theorem evalExpr_auctionEnd_highestBid (evm : EVM.State) :
       ({ base := "highestBid", steps := [] } : EvaledStorageRef) =
       some (.elem (.int uint256Int)) := by
     decide
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_highestBid)]
   erw [storageLocLoad_uint256]
   rfl
@@ -732,7 +732,7 @@ theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
   have hty : storageTypeAt? simpleAuctionContract.storage
       ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
     storageLocLoad_bool_offset0_false evm ⟨5⟩ hzero
@@ -748,7 +748,7 @@ theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
   have hty : storageTypeAt? simpleAuctionContract.storage
       ({ base := "ended", steps := [] } : EvaledStorageRef) = some (.elem .bool) := by
     decide
-  rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := simpleAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
     storageLocLoad_bool_offset0_true evm ⟨5⟩ hnz
@@ -806,13 +806,13 @@ theorem auctionEndAssignEnded (evm : EVM.State) :
     assignStorageRef? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
       .storage endedRef (.bool true) =
         .ok ({ contract := simpleAuctionContract, locals := ∅ }, auctionEndAfterEndedState evm) := by
-  apply assignStorageRef_storage_scalar_value (ty := boolSt)
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := boolSt)
       (hbase := by simp)
       (her := by
         simp [evalStorageRef, evalStorageRefSteps, endedRef, EvalResult.bind, pure, bind])
       (hty := by decide)
       (hloc := simpleAuctionConfig_storage_ended)
-      (hscalar := by trivial)
   erw [storageLocStore_bool_true_offset0]
   rfl
 

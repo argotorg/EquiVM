@@ -70,9 +70,9 @@ theorem winningProposalArrayIndexInBounds_ok (evm : EVM.State) (p : UInt256)
       p.toNat <
         UInt256.toNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩) := by
     simpa [winningProposalLengthCurrent] using hbound
-  simp [arrayIndexInBounds?, storageTypeAt?, ballotConfig, ballotStorageLayout,
-    ballotContract, ballotStorageDecls, proposalStructTy, uint256St, bytes32St,
-    show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hboundStorage]
+  simp [arrayIndexInBounds?, storageTypeAt?, ballotContract, ballotStorageDecls]
+  rw [ballotProposalsLength]
+  simp [hboundStorage]
 
 theorem winningProposalEvalLength (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "proposals" = none) :
@@ -84,11 +84,10 @@ theorem winningProposalEvalLength (evm : EVM.State) (locals : Store)
     exact hbase
   rw [evalExpr?]
   simp [resolveStorageRef?, evalStorageRef, evalStorageRefSteps, proposalsRef,
-    readStorageArrayLength?, storageTypeAt?, ballotConfig, ballotStorageLayout,
-    ballotContract, ballotStorageDecls, proposalStructTy, winningProposalLengthCurrent,
+    storageTypeAt?, ballotContract, ballotStorageDecls,
+    winningProposalLengthCurrent,
     EvalResult.ofOption, EvalResult.bind, bind, pure, hbaseGet]
-  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256 evm ⟨2⟩]
-  rfl
+  rw [ballotProposalsLength]
 
 theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UInt256)
     (hbaseProposals : locals.get? "proposals" = none)
@@ -124,17 +123,16 @@ theorem winningProposalEvalVoteCount (evm : EVM.State) (locals : Store) (p : UIn
     simp [winningProposalCountEvaledRef, storageTypeAt?, storageTypeStep?, ballotContract,
       ballotStorageDecls, proposalStructTy, uint256St]
   have hloc :
-      ballotConfig.storage.layout (winningProposalCountEvaledRef p) =
-        fun _ => some (wordLoc (winningProposalVoteCountSlot p)) := by
-    funext evm'
+      ballotConfig.storageBackend.locate? (winningProposalCountEvaledRef p) =
+        some (.leaf (wordLoc (winningProposalVoteCountSlot p))) := by
     simp [winningProposalCountEvaledRef, winningProposalVoteCountSlot_spec, ballotConfig,
-      ballotStorageLayout]
+      u256_add_comm]
   have hload :
       storageLocLoad evm (wordLoc (winningProposalVoteCountSlot p)) =
         .int (Int.ofNat (winningProposalVoteCountCurrent evm p).toNat) := by
     simpa [winningProposalVoteCountCurrent] using
       (storageLocLoad_uint256 evm (winningProposalVoteCountSlot p))
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase) (her := her)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase) (her := her)
     (hty := hty) (hloc := hloc)]
   rw [hload]
 

@@ -153,7 +153,7 @@ theorem evalExpr_giveRight_chair_true (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    erw [evalExpr_storage_scalar
+    erw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -189,7 +189,7 @@ theorem evalExpr_giveRight_chair_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.address (AccountAddress.ofNat
             (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)
               solcAddrMask).toNat)) := by
-    erw [evalExpr_storage_scalar
+    erw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "chairperson", steps := [] } : EvaledStorageRef))
       (t := .address)
       (loc := { slot := ⟨0⟩, offset := 0, size := 20, hbound := by decide, type := .address })
@@ -239,7 +239,7 @@ theorem evalExpr_giveRight_notVoted_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? ballotConfig { contract := ballotContract, locals := giveRightStore I } evm
         (.storage (voterF (.var "voter") "voted")) = .ok (.bool false) := by
-    rw [evalExpr_storage_scalar (t := .bool)
+    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "voted")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
@@ -259,7 +259,7 @@ theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? ballotConfig { contract := ballotContract, locals := giveRightStore I } evm
         (.storage (voterF (.var "voter") "voted")) = .ok (.bool true) := by
-    rw [evalExpr_storage_scalar (t := .bool)
+    rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "voted")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
@@ -281,13 +281,14 @@ theorem evalExpr_giveRight_weight_zero_true (evm : EVM.State) (I : ExecutionEnv)
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    erw [evalExpr_storage_scalar (t := .int uint256Int)
+    erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), storageLocLoad_uint256]
-    simp [giveRightVoterSlot]
+      (hloc := by rfl)]
+    change EvalResult.ok (storageLocLoad evm (uint256Loc (giveRightVoterSlot I))) = _
+    rw [storageLocLoad_uint256]
   simp [EvalResult.bind, bind, pure, hstorage, evalExpr?, evalBinaryOp?, hweight]
 
 theorem evalExpr_giveRight_weight_zero_false (evm : EVM.State) (I : ExecutionEnv)
@@ -300,13 +301,14 @@ theorem evalExpr_giveRight_weight_zero_false (evm : EVM.State) (I : ExecutionEnv
         (.storage (voterF (.var "voter") "weight")) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat)) := by
-    erw [evalExpr_storage_scalar (t := .int uint256Int)
+    erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, uint256St, storageTypeStep?])
-      (hloc := by rfl), storageLocLoad_uint256]
-    simp [giveRightVoterSlot]
+      (hloc := by rfl)]
+    change EvalResult.ok (storageLocLoad evm (uint256Loc (giveRightVoterSlot I))) = _
+    rw [storageLocLoad_uint256]
   have hnat : (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (giveRightVoterSlot I)).toNat ≠
       0 := by
     intro hz
@@ -320,7 +322,7 @@ theorem giveRightAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage (voterF (.var "voter") "weight") (.int 1) =
         .ok ({ contract := ballotContract, locals := giveRightStore I },
           giveRightPostState evm I) := by
-  apply assignStorageRef_storage_scalar (ty := .elem (.int uint256Int))
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := .elem (.int uint256Int))
       (hbase := by simp [giveRightStore, voterF])
       (her := evalStorageRef_giveRight_voterField evm I "weight")
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract, ballotStorageDecls,

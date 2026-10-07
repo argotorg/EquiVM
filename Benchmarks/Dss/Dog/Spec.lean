@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Dss.Dog.Immutables
@@ -164,24 +165,24 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "clip"] }, _ =>
-      some (addrLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "chop"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "hole"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨2⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "dirt"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨3⟩))
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨3⟩)
-  | { base := "Hole", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | { base := "Dirt", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "clip"] } =>
+      some (.leaf (addrLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "chop"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "hole"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨2⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "dirt"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨3⟩)))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨3⟩))
+  | { base := "Hole", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | { base := "Dirt", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -483,7 +484,7 @@ def contract (v : DogImmutables) : ContractDecl :=
     transitions := transitions v }
 
 def config (_v : DogImmutables) : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment constructorDecl.params }

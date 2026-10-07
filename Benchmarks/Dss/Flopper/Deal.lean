@@ -234,7 +234,7 @@ theorem evalExpr_deal_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dealLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := dealLiveEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -298,7 +298,7 @@ theorem evalExpr_deal_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := dealTicEvaledRef I)
     (t := .int uint48Int)
@@ -332,7 +332,7 @@ theorem evalExpr_deal_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := dealEndEvaledRef I)
     (t := .int uint48Int)
@@ -354,7 +354,7 @@ theorem evalExpr_deal_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (dealGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := dealGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (dealIdWord I)))
@@ -377,7 +377,7 @@ theorem evalExpr_deal_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dealLotWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dealLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dealIdWord I)))
@@ -398,7 +398,7 @@ theorem evalExpr_deal_gem_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dealLocals I } evm (.storage gemRef) =
       .ok (.address (AccountAddress.ofNat (dealGemWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := gemRef) (er := dealGemEvaledRef)
     (t := .address) (loc := addrLoc ⟨3⟩)

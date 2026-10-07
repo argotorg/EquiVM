@@ -362,7 +362,7 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "pip")) =
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (ilksPipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "pip") (er := ilksPipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksPipSlotFor I))
@@ -386,7 +386,7 @@ theorem spotIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "mat")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksMatSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "mat") (er := ilksMatEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksMatSlotFor I))

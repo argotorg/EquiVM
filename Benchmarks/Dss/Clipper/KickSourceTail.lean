@@ -170,9 +170,9 @@ theorem clipperKickAssignSalesTop (v : ClipperImmutables)
       clipperKickLocalsActivePos, store_get_ne _ _ (by decide),
       clipperKickLocalsId, store_get_self]
     rfl
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperKickSourceSalesRef evmLock "top") (ty := uint256St)
-    (loc := wordLoc (clipperKickSourceSalesBaseSlot evmLock + ⟨4⟩))
+    (loc := wordLoc (clipperKickSourceSalesBaseSlot evmLock + ⟨4⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperKickLocalsTop, clipperKickLocalsFeedPrice,
       clipperKickLocalsActivePos_get_sales]
   · simp [salesF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, hid,

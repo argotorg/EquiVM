@@ -260,14 +260,13 @@ theorem evalExpr_suck_sin_u_old (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (sinRef (.var "u"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := suckStore_sin I)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := suckStore_sin I)
     (her := evalStorageRef_suck_sin_u evm I (suckStore I) (suckStore_get_u I))
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
       storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (suckSinEvaledRef I) evm =
-        some (wordLoc (suckSinSlot I))
+      change storageLayoutRaw (suckSinEvaledRef I) =
+        some (.leaf (wordLoc (suckSinSlot I)))
       simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])]
   exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckSinSlot I))
 
@@ -277,14 +276,13 @@ theorem evalExpr_suck_sin_u (evm : EVM.State) (I : ExecutionEnv) (locals : Store
         (.storage (sinRef (.var "u"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckSinSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_suck_sin_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
       storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (suckSinEvaledRef I) evm =
-        some (wordLoc (suckSinSlot I))
+      change storageLayoutRaw (suckSinEvaledRef I) =
+        some (.leaf (wordLoc (suckSinSlot I)))
       simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])]
   exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckSinSlot I))
 
@@ -303,14 +301,13 @@ theorem evalExpr_suck_dai_v (evm : EVM.State) (I : ExecutionEnv) (locals : Store
         (.storage (daiRef (.var "v"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (suckDaiSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_suck_dai_v evm I locals hv)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract,
       storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (suckDaiEvaledRef I) evm =
-        some (wordLoc (suckDaiSlot I))
+      change storageLayoutRaw (suckDaiEvaledRef I) =
+        some (.leaf (wordLoc (suckDaiSlot I)))
       simp [storageLayoutRaw, suckDaiEvaledRef, suckDaiSlot])]
   exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (suckDaiSlot I))
 
@@ -331,7 +328,7 @@ theorem evalExpr_suck_vice (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage viceRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckViceSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_suck_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -342,7 +339,7 @@ theorem evalExpr_suck_debt (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage debtRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner suckDebtSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_suck_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -404,14 +401,13 @@ theorem assign_suck_sin_u (evm : EVM.State) (I : ExecutionEnv)
       .storage (sinRef (.var "u")) (.int (Int.ofNat sinNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckSinSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckSinSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_suck_sin_u evm I locals hu)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (suckSinEvaledRef I) evm = some (wordLoc (suckSinSlot I))
+      change storageLayoutRaw (suckSinEvaledRef I) = some (.leaf (wordLoc (suckSinSlot I)))
       simp [storageLayoutRaw, suckSinEvaledRef, suckSinSlot])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (suckSinSlot I) sinNew)
 
@@ -423,14 +419,13 @@ theorem assign_suck_dai_v (evm : EVM.State) (I : ExecutionEnv)
       .storage (daiRef (.var "v")) (.int (Int.ofNat daiNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckDaiSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (suckDaiSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_suck_dai_v evm I locals hv)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      change storageLayoutRaw (suckDaiEvaledRef I) evm = some (wordLoc (suckDaiSlot I))
+      change storageLayoutRaw (suckDaiEvaledRef I) = some (.leaf (wordLoc (suckDaiSlot I)))
       simp [storageLayoutRaw, suckDaiEvaledRef, suckDaiSlot])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (suckDaiSlot I) daiNew)
 
@@ -441,8 +436,8 @@ theorem assign_suck_vice (evm : EVM.State) (locals : Store) (viceNew : UInt256)
       .storage viceRef (.int (Int.ofNat viceNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc suckViceSlot)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc suckViceSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_suck_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -456,8 +451,8 @@ theorem assign_suck_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
       .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc suckDebtSlot)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc suckDebtSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_suck_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

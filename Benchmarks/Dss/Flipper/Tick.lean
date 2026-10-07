@@ -191,7 +191,7 @@ theorem evalExpr_tickEnd {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := tickLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "end")) =
         .ok (.int (Int.ofNat (tickEndWord (tickBidPackedSlot I) σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (tickBidPackedSlot I) ⟨26, by decide⟩ (by decide))
     (hbase := tickLocals_get_bids I)
@@ -201,8 +201,7 @@ theorem evalExpr_tickEnd {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, tickBidEvaledRef, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tickBidEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tickBidEvaledRef,
         tickBidPackedSlot, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -214,7 +213,7 @@ theorem evalExpr_tickTic {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := tickLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "id") "tic")) =
         .ok (.int (Int.ofNat (tickTicWord (tickBidPackedSlot I) σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (tickBidPackedSlot I) ⟨20, by decide⟩ (by decide))
     (hbase := tickLocals_get_bids I)
@@ -224,8 +223,7 @@ theorem evalExpr_tickTic {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, tickBidEvaledRef, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tickBidEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tickBidEvaledRef,
         tickBidPackedSlot, bidPackedSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -237,15 +235,14 @@ theorem evalExpr_tickTau {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := tickLocals I }
       (initState σ σ₀ g A I) (.storage tauRef) =
         .ok (.int (Int.ofNat (tickTauWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
     (hbase := tickLocals_get_tau I)
     (her := evalStorageRef_tickTau (evm := initState σ σ₀ g A I) (I := I))
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok
     (flipperStorageLocLoad_uint48_offset6 (initState σ σ₀ g A I) ⟨5⟩)
 
@@ -417,10 +414,10 @@ theorem assign_tickEndStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
       (.int (Int.ofNat (tickEndNewWord σ I).toNat)) =
         .ok ({ contract := contract, locals := tickLocalsWithEnd σ I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := tickBidEvaledRef I "end")
-      (loc := uint48Loc (tickBidPackedSlot I) ⟨26, by decide⟩ (by decide))
+      (loc := uint48Loc (tickBidPackedSlot I) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := tickLocalsWithEnd_get_bids σ I)
       (her := evalStorageRef_tickBidFieldWithEnd (evm := evm) (σ := σ) (I := I)
         (field := "end"))
@@ -428,8 +425,7 @@ theorem assign_tickEndStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
         simp [storageTypeAt?, storageTypeStep?, tickBidEvaledRef, contract, storageDecls,
           BidStructTy, uint48St])
       (hloc := by
-        funext evm
-        simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tickBidEvaledRef,
+        simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tickBidEvaledRef,
           tickBidPackedSlot, bidPackedSlotOfWord, bidBaseOfWord]
         unfold bidsBase mapSlot solcMappingSlot
         rw [keyValueToWord_uint256_natCast])

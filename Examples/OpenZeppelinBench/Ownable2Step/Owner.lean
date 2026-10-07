@@ -31,7 +31,7 @@ theorem ownable2StepOwnerBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? contract.storage
           ({ base := "_owner", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
         decide
-      erw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := by rfl), storageLocLoad_address_offset0])
 
 theorem ownable2StepX_owner {σ σ₀ A I} {g : Sat256}

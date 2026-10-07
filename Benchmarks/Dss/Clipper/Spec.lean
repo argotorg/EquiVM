@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Dss.Clipper.Immutables
@@ -239,33 +240,34 @@ def uint192Loc (slot : Ethereum.UInt256) (offset : Fin 32)
     (hbound : offset.val + 24 - 1 < 32) : StorageLoc :=
   { slot := slot, offset := offset, size := 24, hbound := hbound, type := .int uint192Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "dog", steps := [] }, _ => some (addrLoc ⟨1⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "spotter", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "calc", steps := [] }, _ => some (addrLoc ⟨4⟩)
-  | { base := "buf", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | { base := "tail", steps := [] }, _ => some (wordLoc ⟨6⟩)
-  | { base := "cusp", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "chip", steps := [] }, _ => some (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide))
-  | { base := "tip", steps := [] }, _ => some (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide))
-  | { base := "chost", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "kicks", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | { base := "active", steps := [.length] }, _ => some (wordLoc ⟨11⟩)
-  | { base := "active", steps := [.aindex idx] }, _ => some (wordLoc (activeSlot idx))
-  | { base := "sales", steps := [.mindex id, .field "pos"] }, _ => some (wordLoc (salesBase id))
-  | { base := "sales", steps := [.mindex id, .field "tab"] }, _ => some (wordLoc (salesBase id + ⟨1⟩))
-  | { base := "sales", steps := [.mindex id, .field "lot"] }, _ => some (wordLoc (salesBase id + ⟨2⟩))
-  | { base := "sales", steps := [.mindex id, .field "usr"] }, _ => some (addrLoc (salesBase id + ⟨3⟩))
-  | { base := "sales", steps := [.mindex id, .field "tic"] }, _ =>
-      some (uint96Loc (salesBase id + ⟨3⟩) ⟨20, by decide⟩ (by decide))
-  | { base := "sales", steps := [.mindex id, .field "top"] }, _ => some (wordLoc (salesBase id + ⟨4⟩))
-  | { base := "locked", steps := [] }, _ => some (wordLoc ⟨13⟩)
-  | { base := "stopped", steps := [] }, _ => some (wordLoc ⟨14⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "dog", steps := [] } => some (.leaf (addrLoc ⟨1⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "spotter", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "calc", steps := [] } => some (.leaf (addrLoc ⟨4⟩))
+  | { base := "buf", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | { base := "tail", steps := [] } => some (.leaf (wordLoc ⟨6⟩))
+  | { base := "cusp", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "chip", steps := [] } => some (.leaf (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide)))
+  | { base := "tip", steps := [] } => some (.leaf (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide)))
+  | { base := "chost", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | { base := "kicks", steps := [] } => some (.leaf (wordLoc ⟨10⟩))
+  | { base := "active", steps := [] } => some (.anchor ⟨11⟩)
+  | { base := "active", steps := [.length] } => some (.anchor ⟨11⟩)
+  | { base := "active", steps := [.aindex idx] } => some (.leaf (wordLoc (activeSlot idx)))
+  | { base := "sales", steps := [.mindex id, .field "pos"] } => some (.leaf (wordLoc (salesBase id)))
+  | { base := "sales", steps := [.mindex id, .field "tab"] } => some (.leaf (wordLoc (salesBase id + ⟨1⟩)))
+  | { base := "sales", steps := [.mindex id, .field "lot"] } => some (.leaf (wordLoc (salesBase id + ⟨2⟩)))
+  | { base := "sales", steps := [.mindex id, .field "usr"] } => some (.leaf (addrLoc (salesBase id + ⟨3⟩)))
+  | { base := "sales", steps := [.mindex id, .field "tic"] } =>
+      some (.leaf (uint96Loc (salesBase id + ⟨3⟩) ⟨20, by decide⟩ (by decide)))
+  | { base := "sales", steps := [.mindex id, .field "top"] } => some (.leaf (wordLoc (salesBase id + ⟨4⟩)))
+  | { base := "locked", steps := [] } => some (.leaf (wordLoc ⟨13⟩))
+  | { base := "stopped", steps := [] } => some (.leaf (wordLoc ⟨14⟩))
+  | _ => none
 
-def storageLayout : StorageLayout := solidityStorageLayout storageLayoutRaw
+def storageLayout : StorageLayout := storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -681,7 +683,7 @@ def contract (v : ClipperImmutables) : ContractDecl :=
     transitions := transitions v }
 
 def config (v : ClipperImmutables) : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }

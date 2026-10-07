@@ -377,7 +377,7 @@ theorem evalExpr_clipperFileAddress_auth_true (v : ClipperImmutables) (evm : EVM
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
         evm (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileAddressLocals I })
       (slot := wardsRef sender)
@@ -409,7 +409,7 @@ theorem evalExpr_clipperFileAddress_auth_false (v : ClipperImmutables) (evm : EV
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileAddressLocals I })
       (slot := wardsRef sender)
@@ -459,7 +459,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_true (v : ClipperImmutables)
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := clipperFileAddressLocals I }
         evm (.storage lockedRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileAddressLocals I })
       (slot := lockedRef)
@@ -486,7 +486,7 @@ theorem evalExpr_clipperFileAddress_locked_zero_false (v : ClipperImmutables)
         evm (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileAddressLocals I })
       (slot := lockedRef)
@@ -526,9 +526,9 @@ theorem assign_clipperFileAddress_locked (v : ClipperImmutables) (evm : EVM.Stat
       evm .storage lockedRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileAddressLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨13⟩)
+      (loc := wordLoc ⟨13⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileAddressLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileAddress_locked v evm I)
@@ -546,17 +546,17 @@ theorem assign_clipperFileAddress_spotter (v : ClipperImmutables) (evm : EVM.Sta
         .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "spotter", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨3⟩)
+      (loc := addrLoc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [spotterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure,
         bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨3⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -571,16 +571,16 @@ theorem assign_clipperFileAddress_dog (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "dog", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨1⟩)
+      (loc := addrLoc ⟨1⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [dogRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨1⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -595,16 +595,16 @@ theorem assign_clipperFileAddress_vow (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨2⟩)
+      (loc := addrLoc ⟨2⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [vowRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨2⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)
@@ -619,16 +619,16 @@ theorem assign_clipperFileAddress_calc (v : ClipperImmutables) (evm : EVM.State)
         .ok ({ contract := contract v, locals := clipperFileAddressLocals I }, evm') := by
   intro evm'
   rw [clipperFileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "calc", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨4⟩)
+      (loc := addrLoc ⟨4⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := clipperFileAddressLocals_get_base_none I
         (by native_decide) (by native_decide))
       (her := by simp [calcRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨4⟩ (clipperFileAddressDataMaskedWord I)
       (clipperFileAddressDataMaskedWord_canonical I)

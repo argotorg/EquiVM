@@ -101,9 +101,9 @@ theorem clipperTakeAssignSalesTabAtDigsRet
             slice' tabNew lotNew),
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperTakeSalesTabSlot I)
             tabNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesTabRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesTabSlot I))
+    (loc := wordLoc (clipperTakeSalesTabSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperTakeLocalsDigsRet, clipperTakeLocalsMoveRet,
       clipperTakeLocalsDogLoaded, clipperTakeLocalsFluxBuyerRet,
       clipperTakeLocalsLotAssigned, clipperTakeLocalsTabAssigned, clipperTakeLocalsLotNew,
@@ -137,9 +137,9 @@ theorem clipperTakeAssignSalesLotAtDigsRet
             slice' tabNew lotNew),
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperTakeSalesLotSlot I)
             lotNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesLotRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesLotSlot I))
+    (loc := wordLoc (clipperTakeSalesLotSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperTakeLocalsDigsRet, clipperTakeLocalsMoveRet,
       clipperTakeLocalsDogLoaded, clipperTakeLocalsFluxBuyerRet,
       clipperTakeLocalsLotAssigned, clipperTakeLocalsTabAssigned, clipperTakeLocalsLotNew,

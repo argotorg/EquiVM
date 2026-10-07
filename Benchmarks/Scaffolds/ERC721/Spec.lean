@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -87,14 +88,13 @@ def addrLoc (s : Ethereum.UInt256) : StorageLoc :=
 def boolLoc (s : Ethereum.UInt256) : StorageLoc :=
   { slot := s, offset := 0, size := 1, hbound := by decide, type := .bool }
 
-def erc721StorageLayout : StorageLayout where
-  layout ref _ :=
+def erc721StorageLayout : StorageLayout := fun ref =>
     match ref.base, ref.steps with
-    | "_ownerOf", [.mindex id]    => some (addrLoc (ownerOfSlot id))
-    | "_balanceOf", [.mindex a]   => some (wordLoc (balanceOfSlot a))
-    | "getApproved", [.mindex id] => some (addrLoc (getApprovedSlot id))
+    | "_ownerOf", [.mindex id]    => some (.leaf (addrLoc (ownerOfSlot id)))
+    | "_balanceOf", [.mindex a]   => some (.leaf (wordLoc (balanceOfSlot a)))
+    | "getApproved", [.mindex id] => some (.leaf (addrLoc (getApprovedSlot id)))
     | "isApprovedForAll", [.mindex owner, .mindex operator] =>
-        some (boolLoc (isApprovedForAllSlot owner operator))
+        some (.leaf (boolLoc (isApprovedForAllSlot owner operator)))
     | _, _ => none
 
 /-! ## Transitions -/
@@ -202,6 +202,6 @@ def erc721Contract : ContractDecl :=
 end ERC721
 
 def erc721Config : Config :=
-  { storage := ERC721.erc721StorageLayout
+  { storageBackend := solidityStorageBackend ERC721.erc721StorageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment ERC721.erc721Contract.ctor.params }

@@ -3204,7 +3204,7 @@ theorem evalExpr_endCageIlk_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endCageIlkStore I })
       (slot := liveRef)
@@ -3271,7 +3271,7 @@ theorem evalExpr_endCageIlk_tag (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endCageIlkTagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endCageIlkStore I })
     (slot := tagRef (.var "ilk"))
@@ -3313,7 +3313,7 @@ theorem evalExpr_endCageIlk_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm
         (.storage liveRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endCageIlkStore I })
       (slot := liveRef)
@@ -3341,7 +3341,7 @@ theorem evalExpr_endCageIlk_tag_eq_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endCageIlkStore I } evm
         (.storage (tagRef (.var "ilk"))) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endCageIlkStore I })
       (slot := tagRef (.var "ilk"))
@@ -3522,7 +3522,7 @@ theorem endCageIlk_evalExpr_spot {locals : Store} (evm : EVM.State)
     evalExpr? config { contract := contract, locals := locals } evm (.storage spotRef) =
       .ok (.address
         (AccountAddress.ofNat (endCageIlkSpotWord evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := spotRef)
@@ -4386,10 +4386,10 @@ theorem endCageIlkAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv
       .storage (ArtRef (.var "ilk"))
       (.int (Int.ofNat (endFlowVatIlkArtWord vatOut).toNat)) =
         .ok ({ contract := contract, locals := locals }, endCageIlkPostArtState evm I vatOut) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := endCageIlkArtEvaledRef I)
-      (loc := wordLoc (endCageIlkArtSlot I))
+      (loc := wordLoc (endCageIlkArtSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endCageIlk_Art_of_get evm I hget hsz36)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -4656,10 +4656,10 @@ theorem endCageIlkAssignTag {locals : Store} (evm : EVM.State) (I : ExecutionEnv
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (tagRef (.var "ilk")) (.int (Int.ofNat tagV.toNat)) =
         .ok ({ contract := contract, locals := locals }, endCageIlkPostTagState evm I tagV) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := endCageIlkTagEvaledRef I)
-      (loc := wordLoc (endCageIlkTagSlot I))
+      (loc := wordLoc (endCageIlkTagSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endCageIlk_tag_of_get evm I hget hsz36)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -5626,7 +5626,7 @@ theorem endCageIlkBodyReverts_tagNonzero {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := endCageIlkStore I } evm0
           (.storage liveRef) = .ok (.int 0) := by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := endCageIlkStore I })
         (slot := liveRef)

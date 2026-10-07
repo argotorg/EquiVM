@@ -466,7 +466,7 @@ theorem evalExpr_pokeStorageParOfLocals {evm : EVM.State} {locals : Store}
     (hpar : locals.get? "par" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage parRef) =
       .ok (.int (Int.ofNat (pokeParWord evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := parRef) (er := ({ base := "par", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)
@@ -485,7 +485,7 @@ theorem evalExpr_pokeStorageMatOfLocals {evm : EVM.State} {I : ExecutionEnv}
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "mat")) =
         .ok (.int (Int.ofNat (pokeMatWord evm.accountMap I).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "mat")
     (er := ({ base := "ilks", steps := [.mindex (pokeIlkKey I), .field "mat"] } :

@@ -10,7 +10,7 @@ theorem evalExpr_pokeStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (pokeVatAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -221,7 +221,7 @@ theorem evalExpr_pokeStoragePip {evm : EVM.State} {I : ExecutionEnv}
     evalExpr? config { contract := contract, locals := pokeLocals I } evm
       (.storage (ilksF (.var "ilk") "pip")) =
         .ok (.address (pokePipAddress evm.accountMap I)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := pokeLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "pip") (er := pokePipEvaledRef I)
     (t := .address) (loc := addrLoc (pokePipSlotFor I))

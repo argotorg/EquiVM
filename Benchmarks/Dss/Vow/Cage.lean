@@ -260,14 +260,13 @@ theorem assign_cageLiveStorage (evm : EVM.State) {locals : Store} (value : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨12⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨12⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨12⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨12⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, liveEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, liveEvaledRef])
     (hstore := hstore)
 
 theorem assign_cageSinStorage (evm : EVM.State) {locals : Store} (value : UInt256)
@@ -285,14 +284,13 @@ theorem assign_cageSinStorage (evm : EVM.State) {locals : Store} (value : UInt25
   have hstore :
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cageSinEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, cageSinEvaledRef])
     (hstore := hstore)
 
 theorem assign_cageAshStorage (evm : EVM.State) {locals : Store} (value : UInt256)
@@ -310,14 +308,13 @@ theorem assign_cageAshStorage (evm : EVM.State) {locals : Store} (value : UInt25
   have hstore :
       storageLocStore evm (wordLoc ⟨6⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨6⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cageAshEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, cageAshEvaledRef])
     (hstore := hstore)
 
 theorem vowCageSourceClearPrefixSplit {σ σ₀ A I} {g : UInt256}

@@ -148,10 +148,10 @@ theorem assign_fileBaseStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage baseRef (.int (Int.ofNat (fileBaseData I).toNat)) =
         .ok ({ contract := contract, locals := fileBaseLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "base", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨4⟩)
+      (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileBaseLocals_get_base I)
       (her := by simp [baseRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

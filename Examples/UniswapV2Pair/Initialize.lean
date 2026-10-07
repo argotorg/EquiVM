@@ -128,6 +128,7 @@ theorem evalExpr_initialize_factory (evm : EVM.State) (I : ExecutionEnv) :
       ({ base := "factory", steps := [] } : EvaledStorageRef) = some addrSt := by
     decide
   rw [evalExpr_storage_scalar
+    (hbackend := rfl)
     (er := ({ base := "factory", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨5⟩)
     (hbase := initializeStore_factory I)
@@ -228,12 +229,12 @@ theorem initializeAssignToken0 (evm : EVM.State) (I : ExecutionEnv) :
     simpa [initializeToken0State] using
       storageLocStore_address_offset0 evm ⟨6⟩ (initializeToken0MaskedWord I)
         (initializeToken0MaskedWord_canonical I)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (cfg := config) (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩)
     (solm := { contract := contract, locals := initializeStore I }) (evm := evm)
     (evm' := initializeToken0State evm I) (slot := token0Ref)
     (er := { base := "token0", steps := [] }) (ty := addrSt) (loc := addrLoc ⟨6⟩)
-    (value := initializeToken0Value I) (initializeStore_token0Base I) her hty (by rfl)
-    (by trivial) hstore
+    (value := initializeToken0Value I) (initializeStore_token0Base I) her hty (by rfl) hstore
 
 theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := initializeStore I }
@@ -255,12 +256,13 @@ theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     simpa [initializePostState] using
       storageLocStore_address_offset0 (initializeToken0State evm I) ⟨7⟩
         (initializeToken1MaskedWord I) (initializeToken1MaskedWord_canonical I)
-  exact assignStorageRef_storage_scalar_value (cfg := config)
+  exact assignStorageRef_storage_scalar_value (cfg := config) (hbackend := rfl)
+    (hleaf := Or.inl ⟨_, rfl⟩)
     (solm := { contract := contract, locals := initializeStore I })
     (evm := initializeToken0State evm I) (evm' := initializePostState evm I)
     (slot := token1Ref) (er := { base := "token1", steps := [] }) (ty := addrSt)
     (loc := addrLoc ⟨7⟩) (value := initializeToken1Value I)
-    (initializeStore_token1Base I) her hty (by rfl) (by trivial) hstore
+    (initializeStore_token1Base I) her hty (by rfl) hstore
 
 theorem uniswapDecode_initialize_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :

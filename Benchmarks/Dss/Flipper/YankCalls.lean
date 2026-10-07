@@ -461,7 +461,7 @@ theorem evalExpr_bidBid_of_get_id_evm {evm : EVM.State} {locals : Store}
       (.storage (bidsF (.var "id") "bid")) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidBaseOfWord id)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidBaseOfWord id))
     (hbase := hbids)
@@ -471,8 +471,7 @@ theorem evalExpr_bidBid_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]

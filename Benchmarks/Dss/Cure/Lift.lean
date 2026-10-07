@@ -85,6 +85,12 @@ theorem liftSrcElemSlot_intWord (w : UInt256) :
   rw [keyValueToWord_uint256]
 
 
+theorem liftStorageLocStore_uint256_succ_coe (evm : EVM.State) (slot val : UInt256) :
+    storageLocStore evm (wordLoc slot) (.int ((↑val.toNat : Int) + 1)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (val + ⟨1⟩)) := by
+  simpa [show wordLoc = uint256Loc from rfl] using
+    storageLocStore_uint256_succ evm slot val
+
 theorem liftPushArray_ok {σ σ₀ A I} {g : Sat256}
     (hcanonSrc : (liftKey I).toNat < EVM.addressModulus) :
     pushArray? config { contract := contract, locals := liftLocals I }
@@ -95,17 +101,19 @@ theorem liftPushArray_ok {σ σ₀ A I} {g : Sat256}
           (liftSrcsLenWord σ I) (liftKey I)) := by
   unfold pushArray? resolveStorageRef? evalStorageRef evalStorageRefSteps
     evalStorageRefStep srcsRef storageTypeAt? storageTypeStep? contract storageDecls
-    config storageLayout solidityStorageLayout storageLayoutRaw liftLocals addrSt
+    config storageLayout solidityStorageBackend liftLocals addrSt
     liftAfterSrcsLengthState liftAfterSrcsElemState liftSrcsLenWord solcSlotWordAt solcSlotWord
-  simp [EvalResult.bind, bind, pure, EvalResult.ofOption, initState, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage]
-  erw [storageLocLoad_uint256]
-  simp only [EvalResult.bind, bind]
-  erw [storageLocStore_uint256_succ]
+  simp [EvalResult.bind, bind, pure, EvalResult.ofOption]
+  rw [solidityPushStorage?, cureSrcsDynamicLength]
+  rw [show solidityLengthLoc? storageLayoutRaw { base := "srcs" } =
+    some (wordLoc ⟨2⟩) from rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
+  rw [liftStorageLocStore_uint256_succ_coe]
   simp only [Option.bind, EvalResult.bind, bind, pure]
-  rw [writeStorage?.eq_def]
-  simp only [EvalResult.bind, bind]
-  rw [liftSrcElemSlot_intWord]
+  rw [solidityWriteStorage?]
+  simp only [solidityLeafLoc?, storageLayoutRaw, List.nil_append,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  simp only [srcElemSlot, keyValueToWord_uint256, keyValueToWord_uint256_natCast]
   rw [show ∀ slot, addrLoc slot = addressOffset0Loc slot by intro slot; rfl]
   have haddrWord :
       Value.address (liftSrc I) =
@@ -115,6 +123,7 @@ theorem liftPushArray_ok {σ σ₀ A I} {g : Sat256}
   rw [storageLocStore_address_offset0]
   · simp only [EvalResult.ofOption, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, Std.ExtTreeMap.get?_eq_getElem?]
+    simp [initState]
   · exact hcanonSrc
 
 theorem evalExpr_liftPosStorage (evm : EVM.State) (I : ExecutionEnv) :
@@ -122,7 +131,7 @@ theorem evalExpr_liftPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (posRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (liftPosSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := liftPosEvaledRef I) (t := .int uint256Int) (loc := wordLoc (liftPosSlotFor I))]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 evm (liftPosSlotFor I))
   · simp [liftLocals, posRef]
@@ -130,8 +139,8 @@ theorem evalExpr_liftPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, liftLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       liftPosEvaledRef, liftPosSlotFor]
 
 theorem evalExpr_liftPosZero_true (evm : EVM.State) (I : ExecutionEnv)
@@ -164,7 +173,7 @@ theorem evalExpr_liftSrcsLength (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)) := by
   simp [evalExpr?, liftLocals, srcsRef, config, contract, storageDecls, storageLayout,
-    solidityStorageLayout, storageLayoutRaw, readStorageArrayLength?, resolveStorageRef?,
+    solidityStorageBackend, storageLayoutRaw, resolveStorageRef?,
     storageTypeAt?, evalStorageRef, evalStorageRefSteps, wordLoc, EvalResult.ofOption,
     EvalResult.bind, pure, bind]
   change
@@ -195,14 +204,13 @@ theorem liftAssignPos_ok (evm : EVM.State) (I : ExecutionEnv) :
     simpa [liftAfterPosState] using
       storageLocStore_uint256 evm (liftPosSlotFor I)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (liftPosSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (liftPosSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simp [liftLocals, posRef])
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         liftPosEvaledRef, liftPosSlotFor])
     (hstore := hstore)
 

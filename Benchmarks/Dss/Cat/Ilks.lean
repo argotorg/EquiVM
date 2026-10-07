@@ -572,7 +572,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         .ok (.address (AccountAddress.ofNat
           (UInt256.land (solcSlotWordAt (ilksFlipSlotFor I) evm.accountMap evm.executionEnv)
             solcAddrMask).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "flip") (er := ilksFlipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksFlipSlotFor I))
@@ -595,7 +595,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "chop")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "chop") (er := ilksChopEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksChopSlotFor I))
@@ -617,7 +617,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "dunk")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDunkSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "dunk") (er := ilksDunkEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDunkSlotFor I))

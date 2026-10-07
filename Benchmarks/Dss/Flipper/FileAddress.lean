@@ -167,15 +167,15 @@ theorem assign_fileAddressCatStorage (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := fileAddressLocals I }, evm') := by
   intro evm'
   rw [fileAddressData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "cat", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨7⟩)
+      (loc := addrLoc ⟨7⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := fileAddressLocals_get_cat I)
       (her := by simp [catRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨7⟩ (fileAddressDataKey I)
       (fileAddressDataKey_canonical I)

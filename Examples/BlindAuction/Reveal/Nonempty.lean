@@ -684,11 +684,10 @@ theorem scratch_revealBid_arrayIndexInBounds_revert (evm : EVM.State) (i curLen 
     (hbound : curLen.toNat ≤ i.toNat) :
     arrayIndexInBounds? blindAuctionConfig evm blindAuctionContract.storage "bids"
       [.mindex (.address evm.executionEnv.source)] (.int (Int.ofNat i.toNat)) = .revert := by
-  simp [show blindAuctionUint256Loc = uint256Loc from rfl,
-    arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionConfig,
-    blindAuctionStorageLayout, blindAuctionContract, storageDecls, bidStructTy, uint256St,
-    bytes32St, storageLocLoad_uint256, hlen]
-  omega
+  simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, blindAuctionContract,
+    storageDecls]
+  rw [bidsArrayLength evm (.address evm.executionEnv.source)]
+  simp [hlen, Nat.not_lt.mpr hbound]
 
 theorem scratch_resolveStorageRef_reveal_bid_revert_of_get (evm : EVM.State) (locals : Store)
     (i curLen : UInt256)

@@ -70,7 +70,7 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (balanceOfStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (er := ({ base := "balanceOf", steps := [.mindex (balanceOfOwnerKey I)] } :
           EvaledStorageRef))
         (loc := wordLoc (balanceOfStorageSlot I))

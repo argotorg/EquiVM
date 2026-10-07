@@ -131,10 +131,11 @@ theorem evalExpr_delegate_loopLocals_voter_delegate (evm : EVM.State)
         .ok (delegateCurrentNextValue evm w) := by
   have hresolve := resolveStorageRef_delegate_loopLocals_voterDelegate evm I w L hL
   have hread :
-      readStorage? ballotConfig evm (delegateCurrentVoterFieldRef w "delegate")
-          (.elem .address) =
+      ballotConfig.storageBackend.read (delegateCurrentVoterFieldRef w "delegate")
+          (.elem .address) evm =
         .ok (delegateCurrentNextValue evm w) := by
-    rw [readStorage?_elem (hloc := by rfl)]
+    rw [show ballotConfig.storageBackend = solidityStorageBackend ballotStorageLayout from rfl,
+      solidityStorageBackend_read_elem (hloc := by rfl)]
     change EvalResult.ok (storageLocLoad evm
         { slot := delegateVoterPackedSlot w, offset := 1, size := 20,
           hbound := _, type := .address }) =

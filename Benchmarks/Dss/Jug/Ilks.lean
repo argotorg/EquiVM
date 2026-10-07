@@ -387,7 +387,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "duty")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "duty") (er := ilksDutyEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDutySlotFor I))
@@ -409,7 +409,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "rho")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "rho") (er := ilksRhoEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksRhoSlotFor I))

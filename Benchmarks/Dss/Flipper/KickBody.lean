@@ -118,7 +118,7 @@ theorem evalExpr_kickTau {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage tauRef) =
         .ok (.int (Int.ofNat (kickTauWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
     (hbase := htau)
@@ -126,8 +126,7 @@ theorem evalExpr_kickTau {σ σ₀ A I} {g : Sat256} {locals : Store}
     (her := by simp [tauRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok
     (flipperStorageLocLoad_uint48_offset6 (initState σ σ₀ g A I) ⟨5⟩)
 
@@ -135,7 +134,7 @@ theorem evalExpr_kickTau_evm {evm : EVM.State} {locals : Store}
     (htau : locals.get? "tau" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage tauRef) =
       .ok (.int (Int.ofNat (kickTauWord evm.accountMap evm.executionEnv).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
     (hbase := htau)
@@ -143,8 +142,7 @@ theorem evalExpr_kickTau_evm {evm : EVM.State} {locals : Store}
     (her := by simp [tauRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok (flipperStorageLocLoad_uint48_offset6 evm ⟨5⟩)
 
 theorem evalExpr_kickNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
@@ -306,7 +304,7 @@ theorem evalExpr_kickIlk_ofLocals {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage ilkRef) =
       .ok (.fixedBytes bytes32Width
         (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .bytes bytes32Width)
     (loc := bytes32Loc ⟨3⟩)
     (er := ({ base := "ilk", steps := [] } : EvaledStorageRef))
@@ -314,8 +312,7 @@ theorem evalExpr_kickIlk_ofLocals {evm : EVM.State} {locals : Store}
     (her := by simp [evalStorageRef, evalStorageRefSteps, ilkRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, ilkRef])]
   exact congrArg EvalResult.ok (storageLocLoad_bytes32 evm ⟨3⟩)
 
 theorem evalExprs_kickFluxArgs_ofLocals {evm : EVM.State} {locals : Store}
@@ -335,17 +332,16 @@ theorem assign_kickKicksStorage (evm : EVM.State) (σ : AccountMap) (I : Executi
       .storage kicksRef (.int (Int.ofNat (kickIdWord σ I).toNat)) =
         .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨6⟩)
+      (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simpa [kicksRef] using kickLocalsWithId_get_kicks σ I)
       (her := by simp [kicksRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
         pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
   simpa [evm'] using storageLocStore_uint256 evm ⟨6⟩ (kickIdWord σ I)
 
 theorem assign_kickBidStorage (evm : EVM.State) (σ : AccountMap) (I : ExecutionEnv)
@@ -358,18 +354,17 @@ theorem assign_kickBidStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
       .storage (bidsF (.var "id") "bid") (.int (Int.ofNat (kickBid I).toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := bidEvaledRefOfWord (kickIdWord σ I) "bid")
-      (loc := wordLoc (bidBaseOfWord (kickIdWord σ I)))
+      (loc := wordLoc (bidBaseOfWord (kickIdWord σ I))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := kickIdWord σ I) (field := "bid") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, uint256St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
   simpa [evm'] using storageLocStore_uint256 evm (bidBaseOfWord (kickIdWord σ I))
     (kickBid I)
@@ -384,18 +379,17 @@ theorem assign_kickLotStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
       .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (kickLot I).toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := bidEvaledRefOfWord (kickIdWord σ I) "lot")
-      (loc := wordLoc (bidSlotOfWord (kickIdWord σ I) ⟨1⟩))
+      (loc := wordLoc (bidSlotOfWord (kickIdWord σ I) ⟨1⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := kickIdWord σ I) (field := "lot") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, uint256St])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
   simpa [evm'] using storageLocStore_uint256 evm
     (bidSlotOfWord (kickIdWord σ I) ⟨1⟩) (kickLot I)
@@ -419,20 +413,19 @@ theorem assign_kickGuyStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
         .address (AccountAddress.ofNat (EVM.word I.source.val).toNat) := by
     rw [accountAddress_of_word_val]
   rw [hvalue]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := bidEvaledRefOfWord (kickIdWord σ I) "guy")
-      (loc := addrLoc (bidPackedSlotOfWord (kickIdWord σ I)))
+      (loc := addrLoc (bidPackedSlotOfWord (kickIdWord σ I))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbids)
       (her := evalStorageRef_bidField_of_get_id (evm := evm) (locals := locals)
         (id := kickIdWord σ I) (field := "guy") hid)
       (hty := by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
         storageDecls, BidStructTy, addrSt])
       (hloc := by
-        funext evm
-        simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+        simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
           bidEvaledRefOfWord, bidsBase_intOfNatWord, bidPackedSlotOfWord])
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm', solcSourceWord] using
     storageLocStore_address_offset0 evm (bidPackedSlotOfWord (kickIdWord σ I))
       (EVM.word I.source.val) (word_val_addr_canonical I.source)
@@ -449,7 +442,7 @@ theorem assign_kickEndStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
       (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) =
         .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := kickLocalsWithEnd σ I })
     (evm := evm)
@@ -457,7 +450,7 @@ theorem assign_kickEndStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (slot := bidsF (.var "id") "end")
     (er := bidEvaledRefOfWord (kickIdWord σ I) "end")
     (ty := uint48St)
-    (loc := uint48Loc (bidPackedSlotOfWord (kickIdWord σ I)) ⟨26, by decide⟩ (by decide))
+    (loc := uint48Loc (bidPackedSlotOfWord (kickIdWord σ I)) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)
     (kickLocalsWithEnd_get_bids σ I)
     (evalStorageRef_bidField_of_get_id (evm := evm) (locals := kickLocalsWithEnd σ I)
@@ -465,8 +458,7 @@ theorem assign_kickEndStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
       storageDecls, BidStructTy, uint48St])
     (by
-      funext evm
-      simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidsBase_intOfNatWord, bidPackedSlotOfWord])
     (by
       exact flipperStorageLocStore_uint48_offset26 evm
@@ -489,7 +481,7 @@ theorem assign_kickUsrStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
         .address (AccountAddress.ofNat (EVM.word (kickUsr I).val).toNat) := by
     rw [accountAddress_of_word_val]
   rw [hvalue]
-  exact assignStorageRef_storage_scalar_value
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := kickLocalsWithEnd σ I })
     (evm := evm)
@@ -497,7 +489,7 @@ theorem assign_kickUsrStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (slot := bidsF (.var "id") "usr")
     (er := bidEvaledRefOfWord (kickIdWord σ I) "usr")
     (ty := addrSt)
-    (loc := addrLoc (bidSlotOfWord (kickIdWord σ I) ⟨3⟩))
+    (loc := addrLoc (bidSlotOfWord (kickIdWord σ I) ⟨3⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (value := .address (AccountAddress.ofNat (EVM.word (kickUsr I).val).toNat))
     (kickLocalsWithEnd_get_bids σ I)
     (evalStorageRef_bidField_of_get_id (evm := evm) (locals := kickLocalsWithEnd σ I)
@@ -505,10 +497,8 @@ theorem assign_kickUsrStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
       storageDecls, BidStructTy, addrSt])
     (by
-      funext evm
-      simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
-    (by trivial)
     (by
       simpa [addrLoc, kickUsrWord_eq_key I] using
         storageLocStore_address_offset0 evm (bidSlotOfWord (kickIdWord σ I) ⟨3⟩)
@@ -530,7 +520,7 @@ theorem assign_kickGalStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
         .address (AccountAddress.ofNat (EVM.word (kickGal I).val).toNat) := by
     rw [accountAddress_of_word_val]
   rw [hvalue]
-  exact assignStorageRef_storage_scalar_value
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := kickLocalsWithEnd σ I })
     (evm := evm)
@@ -538,7 +528,7 @@ theorem assign_kickGalStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (slot := bidsF (.var "id") "gal")
     (er := bidEvaledRefOfWord (kickIdWord σ I) "gal")
     (ty := addrSt)
-    (loc := addrLoc (bidSlotOfWord (kickIdWord σ I) ⟨4⟩))
+    (loc := addrLoc (bidSlotOfWord (kickIdWord σ I) ⟨4⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (value := .address (AccountAddress.ofNat (EVM.word (kickGal I).val).toNat))
     (kickLocalsWithEnd_get_bids σ I)
     (evalStorageRef_bidField_of_get_id (evm := evm) (locals := kickLocalsWithEnd σ I)
@@ -546,10 +536,8 @@ theorem assign_kickGalStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
       storageDecls, BidStructTy, addrSt])
     (by
-      funext evm
-      simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
-    (by trivial)
     (by
       simpa [addrLoc, kickGalWord_eq_key I] using
         storageLocStore_address_offset0 evm (bidSlotOfWord (kickIdWord σ I) ⟨4⟩)
@@ -562,7 +550,7 @@ theorem assign_kickTabStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
       .storage (bidsF (.var "id") "tab") (.int (Int.ofNat (kickTab I).toNat)) =
         .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := kickLocalsWithEnd σ I })
     (evm := evm)
@@ -570,7 +558,7 @@ theorem assign_kickTabStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (slot := bidsF (.var "id") "tab")
     (er := bidEvaledRefOfWord (kickIdWord σ I) "tab")
     (ty := uint256St)
-    (loc := wordLoc (bidSlotOfWord (kickIdWord σ I) ⟨5⟩))
+    (loc := wordLoc (bidSlotOfWord (kickIdWord σ I) ⟨5⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (kickTab I).toNat)
     (kickLocalsWithEnd_get_bids σ I)
     (evalStorageRef_bidField_of_get_id (evm := evm) (locals := kickLocalsWithEnd σ I)
@@ -578,8 +566,7 @@ theorem assign_kickTabStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (by simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract,
       storageDecls, BidStructTy, uint256St])
     (by
-      funext evm
-      simp only [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp only [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidsBase_intOfNatWord, bidSlotOfWord])
     (storageLocStore_uint256 evm (bidSlotOfWord (kickIdWord σ I) ⟨5⟩) (kickTab I))
 

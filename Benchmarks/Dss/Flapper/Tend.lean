@@ -626,7 +626,7 @@ theorem evalExpr_tend_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := tendLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (tendLiveWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)
@@ -685,7 +685,7 @@ theorem evalExpr_tend_bid_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (tendBidStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := tendBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (tendIdWord I)))
@@ -707,7 +707,7 @@ theorem evalExpr_tend_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (tendLotStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := tendLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (tendIdWord I)))
@@ -729,7 +729,7 @@ theorem evalExpr_tend_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (tendGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := tendGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (tendIdWord I)))
@@ -826,7 +826,7 @@ theorem evalExpr_tend_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := tendTicEvaledRef I)
     (t := .int uint48Int)
@@ -949,7 +949,7 @@ theorem evalExpr_tend_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := tendEndEvaledRef I)
     (t := .int uint48Int)
@@ -1097,7 +1097,7 @@ theorem evalExpr_tend_beg_storage_bidOneLocals (evm : EVM.State) (I : ExecutionE
         (.storage begRef) =
       .ok (.int (Int.ofNat (tendBegWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendBidOneLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := begRef) (er := tendBegEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
@@ -1114,7 +1114,7 @@ theorem evalExpr_tend_beg_storage_begBidLocals (evm : EVM.State) (I : ExecutionE
         (.storage begRef) =
       .ok (.int (Int.ofNat (tendBegWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendBegBidLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := begRef) (er := tendBegEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
@@ -1131,7 +1131,7 @@ theorem evalExpr_tend_bid_storage_bidOneLocals (evm : EVM.State) (I : ExecutionE
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (tendBidStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendBidOneLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := tendBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (tendIdWord I)))
@@ -1153,7 +1153,7 @@ theorem evalExpr_tend_bid_storage_begBidLocals (evm : EVM.State) (I : ExecutionE
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (tendBidStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := tendBegBidLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := tendBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (tendIdWord I)))
@@ -1442,7 +1442,7 @@ theorem evalExpr_tend_gem_storage_of_locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage gemRef) =
       .ok (.address (AccountAddress.ofNat (tendGemWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := gemRef) (er := ({ base := "gem", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨3⟩)
@@ -1462,7 +1462,7 @@ theorem evalExpr_tend_guy_storage_of_locals
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (tendGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := tendGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (tendIdWord I)))
@@ -1487,7 +1487,7 @@ theorem evalExpr_tend_bid_storage_of_locals
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (tendBidStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := tendBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (tendIdWord I)))
@@ -1677,10 +1677,10 @@ theorem assign_tendGuyStorage_of_locals
     symm
     simpa [src, solcSourceWord] using solcSource_ofNat evm.executionEnv
   rw [haddr]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := tendGuyEvaledRef I)
-      (loc := addrLoc (auctionPackedSlot (tendIdWord I)))
+      (loc := addrLoc (auctionPackedSlot (tendIdWord I))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbids)
       (her := by
         simpa [tendGuyEvaledRef, tendIdValue] using
@@ -1689,7 +1689,7 @@ theorem assign_tendGuyStorage_of_locals
       (hty := by simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract,
         storageDecls, BidStructTy, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   have hcanon : src.toNat < EVM.addressModulus := by
     simpa [src, solcSourceWord] using solcSourceWord_canonical evm.executionEnv
   simpa [tendAfterGuyStore, addrLoc, src] using
@@ -1703,7 +1703,7 @@ theorem assign_tendBidStorage_of_locals
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (bidsF (.var "id") "bid") (.int (Int.ofNat (tendBidWord I).toNat)) =
       .ok ({ contract := contract, locals := locals }, tendAfterBidStore evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (evm := evm)
@@ -1711,7 +1711,7 @@ theorem assign_tendBidStorage_of_locals
     (slot := bidsF (.var "id") "bid")
     (er := tendBidEvaledRef I)
     (ty := uint256St)
-    (loc := wordLoc (auctionBidSlot (tendIdWord I)))
+    (loc := wordLoc (auctionBidSlot (tendIdWord I))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (tendBidWord I).toNat)
     hbids
     (by
@@ -1722,8 +1722,7 @@ theorem assign_tendBidStorage_of_locals
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint256St])
     (by
-      funext evm'
-      exact auctionBidLayout evm' (tendIdWord I))
+      exact auctionBidLayout evm (tendIdWord I))
     (by
       simpa [wordLoc, uint256Loc, tendAfterBidStore] using
         storageLocStore_uint256 evm (auctionBidSlot (tendIdWord I)) (tendBidWord I))
@@ -1769,7 +1768,7 @@ theorem evalExpr_tend_ttl_storage_afterBid_of_locals
         .int (Int.ofNat (tendTtlWord (tendAfterBidStore evm I)).toNat) := by
     simpa [tendTtlWord, uint48Offset0Word, solcSlotWordAt] using
       storageLocLoad_uint48_offset0 (tendAfterBidStore evm I) ⟨5⟩
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := tendAfterBidStore evm I)
     (slot := ttlRef) (er := tendTtlEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
@@ -1928,7 +1927,7 @@ theorem assign_tendTicStorage_of_locals
       .storage (bidsF (.var "id") "tic")
         (.int (Int.ofNat (tendTicPostWord evm I).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := locals }, tendPostState evm I) := by
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (evm := tendAfterBidStore evm I)
@@ -1936,7 +1935,7 @@ theorem assign_tendTicStorage_of_locals
     (slot := bidsF (.var "id") "tic")
     (er := tendTicEvaledRef I)
     (ty := uint48St)
-    (loc := uint48Loc (auctionPackedSlot (tendIdWord I)) ⟨20, by decide⟩ (by decide))
+    (loc := uint48Loc (auctionPackedSlot (tendIdWord I)) ⟨20, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (n := Int.ofNat (tendTicPostWord evm I).toNat % uint48Modulus)
     hbids
     (by
@@ -1947,8 +1946,7 @@ theorem assign_tendTicStorage_of_locals
       simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionTicLayout evm' (tendIdWord I))
+      exact auctionTicLayout evm (tendIdWord I))
     (by
       simpa [tendPostState, tendAfterTicStore, uint48Loc] using
         Reasoning.Theory.storageLocStore_uint48_offset20_word (tendAfterBidStore evm I)

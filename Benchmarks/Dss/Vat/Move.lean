@@ -241,26 +241,23 @@ theorem moveStorageType_can (I : ExecutionEnv) :
   simp [moveWishEvaledRef, storageTypeAt?, storageTypeStep?, storageDecls, uint256St]
 
 theorem moveStorageLayout_src_dai (I : ExecutionEnv) :
-    config.storage.layout (moveSrcDaiEvaledRef I) =
-      fun _ => some (wordLoc (moveSrcDaiSlot I)) := by
-  funext evm
-  change storageLayoutRaw (moveSrcDaiEvaledRef I) evm =
-    some (wordLoc (moveSrcDaiSlot I))
+    config.storageBackend.locate? (moveSrcDaiEvaledRef I) =
+      some (.leaf (wordLoc (moveSrcDaiSlot I))) := by
+  change storageLayoutRaw (moveSrcDaiEvaledRef I) =
+    some (.leaf (wordLoc (moveSrcDaiSlot I)))
   simp [storageLayoutRaw, moveSrcDaiEvaledRef, moveSrcDaiSlot]
 
 theorem moveStorageLayout_dst_dai (I : ExecutionEnv) :
-    config.storage.layout (moveDstDaiEvaledRef I) =
-      fun _ => some (wordLoc (moveDstDaiSlot I)) := by
-  funext evm
-  change storageLayoutRaw (moveDstDaiEvaledRef I) evm =
-    some (wordLoc (moveDstDaiSlot I))
+    config.storageBackend.locate? (moveDstDaiEvaledRef I) =
+      some (.leaf (wordLoc (moveDstDaiSlot I))) := by
+  change storageLayoutRaw (moveDstDaiEvaledRef I) =
+    some (.leaf (wordLoc (moveDstDaiSlot I)))
   simp [storageLayoutRaw, moveDstDaiEvaledRef, moveDstDaiSlot]
 
 theorem moveStorageLayout_can (I : ExecutionEnv) :
-    config.storage.layout (moveWishEvaledRef I) =
-      fun _ => some (wordLoc (moveWishSlot I)) := by
-  funext evm
-  change storageLayoutRaw (moveWishEvaledRef I) evm = some (wordLoc (moveWishSlot I))
+    config.storageBackend.locate? (moveWishEvaledRef I) =
+      some (.leaf (wordLoc (moveWishSlot I))) := by
+  change storageLayoutRaw (moveWishEvaledRef I) = some (.leaf (wordLoc (moveWishSlot I)))
   simp [storageLayoutRaw, moveWishEvaledRef, moveWishSlot]
 
 theorem evalExpr_move_src_dai_old {evm : EVM.State} {I : ExecutionEnv} :
@@ -268,7 +265,7 @@ theorem evalExpr_move_src_dai_old {evm : EVM.State} {I : ExecutionEnv} :
       (.storage (daiRef (.var "src"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (moveSrcDaiSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := moveStore_dai I)
     (her := evalStorageRef_move_src_dai evm I)
     (hty := moveStorageType_src_dai I)
@@ -281,7 +278,7 @@ theorem evalExpr_move_dst_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
       (.storage (daiRef (.var "dst"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (moveDstDaiSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := moveStoreSrcDaiNew_dai I srcDaiNew)
     (her := evalStorageRef_move_dst_dai_after_src evm I srcDaiNew)
     (hty := moveStorageType_dst_dai I)
@@ -294,7 +291,7 @@ theorem evalExpr_move_src_dai_after_src {evm : EVM.State} {I : ExecutionEnv}
       (.storage (daiRef (.var "src"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (moveSrcDaiSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := moveStoreSrcDaiNew_dai I srcDaiNew)
     (her := evalStorageRef_move_src_dai_after_src evm I srcDaiNew)
     (hty := moveStorageType_src_dai I)
@@ -308,7 +305,7 @@ theorem evalExpr_move_dst_dai_after_dst {evm : EVM.State} {I : ExecutionEnv}
       (.storage (daiRef (.var "dst"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (moveDstDaiSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := moveStoreDstDaiNew_dai I srcDaiNew dstDaiNew)
     (her := evalStorageRef_move_dst_dai_after_dst evm I srcDaiNew dstDaiNew)
     (hty := moveStorageType_dst_dai I)
@@ -321,7 +318,7 @@ theorem evalExpr_move_can {evm : EVM.State} {I : ExecutionEnv}
       (.storage (canRef (.var "src") sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (moveWishSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (hbase := moveStore_can I)
     (her := evalStorageRef_move_can evm I hsrc)
     (hty := moveStorageType_can I)
@@ -483,7 +480,7 @@ theorem assignStorageRef_move_src_dai {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact storageLocStore_uint256 evm (moveSrcDaiSlot I) srcDaiNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := moveStoreSrcDaiNew_dai I srcDaiNew)
     (her := evalStorageRef_move_src_dai_after_src evm I srcDaiNew)
     (hty := moveStorageType_src_dai I)
@@ -505,7 +502,7 @@ theorem assignStorageRef_move_dst_dai {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact storageLocStore_uint256 evm (moveDstDaiSlot I) dstDaiNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := moveStoreDstDaiNew_dai I srcDaiNew dstDaiNew)
     (her := evalStorageRef_move_dst_dai_after_dst evm I srcDaiNew dstDaiNew)
     (hty := moveStorageType_dst_dai I)

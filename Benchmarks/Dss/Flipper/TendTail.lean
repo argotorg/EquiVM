@@ -791,7 +791,7 @@ theorem evalExpr_tendTtl {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ttlRef) =
       .ok (.int (Int.ofNat (tendTtlWord evm.accountMap I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (er := ({ base := "ttl", steps := [] } : EvaledStorageRef))
     (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))

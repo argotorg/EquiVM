@@ -53,7 +53,7 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
       have hty : storageTypeAt? erc20Contract.storage ({ base := "totalSupply", steps := [] } : EvaledStorageRef)
           = some (.elem (.int uint256Int)) := by
         decide
-      erw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hlocals) (her := her)
+      erw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := vyperERC20Config_storage_totalSupply),
         storageLocLoad_uint256])
 

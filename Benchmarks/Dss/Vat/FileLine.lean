@@ -148,10 +148,10 @@ theorem assign_fileLineStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage LineRef (.int (Int.ofNat (fileLineData I).toNat)) =
         .ok ({ contract := contract, locals := fileLineLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "Line", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨9⟩)
+      (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLineLocals_get_Line I)
       (her := by simp [LineRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
         pure, bind])
