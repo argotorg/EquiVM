@@ -681,7 +681,7 @@ theorem flopperTickBodyCoreEndNotExpired
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeSolm :
       (tickTimestampWord evmSolm).toNat ≤ (tickEndWord evmSolm I).toNat := by
@@ -709,7 +709,7 @@ theorem flopperTickBodyCoreTicNonzero
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -744,7 +744,7 @@ theorem flopperTickBodyCoreMulOverflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -784,7 +784,7 @@ theorem flopperTickBodyCoreAddOverflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -836,7 +836,7 @@ theorem flopperTickBodyCoreSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4292⟩
       [tickIdWord I, ⟨334⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -882,7 +882,7 @@ theorem flopperTickBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨849⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flopperTickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flopperDecode_tick_none_short hsz4 hshort)
@@ -892,7 +892,7 @@ theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 14)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 14) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=

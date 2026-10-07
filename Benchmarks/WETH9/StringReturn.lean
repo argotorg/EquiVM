@@ -14,7 +14,7 @@ which reallocates the object as an ABI `(offset, len, paddeddata)` triple and `R
 
 This module proves the reusable, **config-independent** facts: driving the RD symbolic executor from
 the routine entry to an `RDret` returning exactly `weth9StringAbiEncode len data` (or `OutOfGass`).
-The final `runtimeEquivalenceFor` connect (dispatch/decode/body) is wired separately in
+The final `runtimeRefinementFor` connect (dispatch/decode/body) is wired separately in
 `Name.lean`/`Symbol.lean`.
 -/
 

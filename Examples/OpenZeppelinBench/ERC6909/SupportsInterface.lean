@@ -497,7 +497,7 @@ theorem erc6909SupportsInterfaceBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hselSupports : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ := by
     simpa [erc6909SelBytes] using hsel

@@ -788,7 +788,7 @@ theorem vowFessBodyCore
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let tab := fessTab I
   let eraSlot := solcMappingSlot ⟨4⟩ (fessEraKey I)
   let slot := fessSinSlotFor I
@@ -1193,7 +1193,7 @@ theorem vowFessBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowFessBodyCore hcode hwv hsz36 hsize (vowDispatch_fess hsel)
     (by simpa [fessLocals] using vowDecode_fess_ok (I := I) hsz36)
@@ -1204,7 +1204,7 @@ theorem vowFessShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachFessBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

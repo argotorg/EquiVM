@@ -569,7 +569,7 @@ theorem daiDenyBodyCoreStatic
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : denyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
@@ -600,7 +600,7 @@ theorem daiDenyBodyCoreOk
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   swap
   · exact daiDenyBodyCoreStatic hcode hsize (by simpa using hperm) hwv hsz36 hauth
@@ -639,7 +639,7 @@ theorem daiDenyBodyCoreUnauthorized
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : denyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
@@ -662,7 +662,7 @@ theorem daiDenyBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_deny_none_short (I := I) hsz4 hshort
   exact (daiDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
@@ -672,7 +672,7 @@ theorem daiDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 5)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 5) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=

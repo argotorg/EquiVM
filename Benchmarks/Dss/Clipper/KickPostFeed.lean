@@ -35,21 +35,21 @@ inductive ClipperKickTailOutcome (v : ClipperImmutables) (code : ByteArray)
     (g : UInt256) (s0 : EVM.State) (I : ExecutionEnv)
     (evmLock sourceInit : EVM.State) (id : UInt256) : Prop
   | reverted
-      (hsource : ExecBlock (config v)
-        (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-        sourceInit (clipperKickAfterInitializationBody v) .reverted)
+      (hsource : ExecBlock config
+        (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+        sourceInit (clipperKickAfterInitializationBody) .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | invalid
-      (hsource : ExecBlock (config v)
-        (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-        sourceInit (clipperKickAfterInitializationBody v) .reverted)
+      (hsource : ExecBlock config
+        (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+        sourceInit (clipperKickAfterInitializationBody) .reverted)
       (hevm : RDinvalid code (Sat256.ofUInt256 g) s0)
   | returned
       (σ : AccountMap)
       (sourceAfter : EVM.State) (frame : Frame)
-      (hsource : ExecBlock (config v)
-        (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-        sourceInit (clipperKickAfterInitializationBody v)
+      (hsource : ExecBlock config
+        (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+        sourceInit (clipperKickAfterInitializationBody)
         (.returned frame sourceAfter
           (some [.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)])))
       (hevm : RDret code (Sat256.ofUInt256 g) s0 σ id.toByteArray)
@@ -58,11 +58,10 @@ inductive ClipperKickTailOutcome (v : ClipperImmutables) (code : ByteArray)
 theorem clipperKickAfterFeedTopPrefix
     (v : ClipperImmutables) (evmLock sourceInit sourceAfter evmTop : EVM.State)
     (I : ExecutionEnv) (feedPrice top : UInt256)
-    (hgetFeed : ExecStmt (config v)
-      (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
+    (hgetFeed : ExecStmt config
+      (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
       sourceInit (.internalCall "getFeedPrice" [] "feedPrice")
-      (.ok (Frame.mk (contract v)
-        (clipperKickLocalsFeedPrice evmLock I feedPrice)) sourceAfter))
+      (.ok (Frame.mk contract (clipperKickLocalsFeedPrice evmLock I feedPrice) (immStore v)) sourceAfter))
     (hmul : feedPrice.toNat *
       (Solm.EVM.storageLoad sourceAfter
         sourceAfter.executionEnv.codeOwner ⟨5⟩).toNat < UInt256.size)
@@ -71,16 +70,15 @@ theorem clipperKickAfterFeedTopPrefix
         (Solm.EVM.storageLoad sourceAfter
           sourceAfter.executionEnv.codeOwner ⟨5⟩)) clipperRayWord = top)
     (htopPos : 0 < top.toNat) {result : ExecResult}
-    (htail : ExecBlock (config v)
-      (Frame.mk (contract v)
-        (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top))
+    (htail : ExecBlock config
+      (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
       evmTop
-      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+      [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
         .assign .storage lockedRef (.intLit 0), .return [.var "id"] ] result)
     (hevmTop : evmTop = clipperKickSourceTopState evmLock sourceAfter top) :
-    ExecBlock (config v)
-      (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-      sourceInit (clipperKickAfterInitializationBody v) result := by
+    ExecBlock config
+      (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+      sourceInit (clipperKickAfterInitializationBody) result := by
   exact clipperKickAfterInitializationSuccessPrefix
     v evmLock sourceInit sourceAfter evmTop I feedPrice top hgetFeed hmul
       htopEq htopPos hevmTop htail
@@ -97,15 +95,14 @@ theorem clipperKickFinishActive
     (hactive : clipperKickTipWord σTop I ≠ ⟨0⟩ ∨
       clipperKickChipWord σTop I ≠ ⟨0⟩)
     (hprefix : ∀ {result : ExecResult},
-      ExecBlock (config v)
-        (Frame.mk (contract v)
-          (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top))
+      ExecBlock config
+        (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
         evmTop
-        [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+        [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
           .assign .storage lockedRef (.intLit 0), .return [.var "id"] ] result →
-      ExecBlock (config v)
-        (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-        sourceInit (clipperKickAfterInitializationBody v) result)
+      ExecBlock config
+        (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+        sourceInit (clipperKickAfterInitializationBody) result)
     (halignTop : ClipperKickCallAligned
       (initState σStart σ₀ (Sat256.ofUInt256 g) A I)
       σTop I evmTop)
@@ -215,7 +212,7 @@ theorem clipperKickFinishActive
             halignSuck⟩ := clipperKickCallAligned_transport halignTop hcallSuck
         have hvow := clipperKickVowAddress_eq_of_aligned halignTop
         have hkpr := clipperKickKprValue_eq_masked I
-        have hcallSuckSource : typedCallViaEVM (config v) evmTop
+        have hcallSuckSource : typedCallViaEVM config evmTop
             (EVM.address v.vat) "suck" 0
             [.address (clipperKickSourceVowAddress evmTop),
               clipperKickKprValue I,
@@ -375,16 +372,15 @@ theorem clipperKickFinishAfterFeedPrice
         have hreadTop : memTop.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
           exact twoWordHashMem_read64_of_ge id ⟨12⟩ (by omega) hread64
         have hprefix {result : ExecResult}
-            (htail : ExecBlock (config v)
-              (Frame.mk (contract v)
-                (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top))
+            (htail : ExecBlock config
+              (Frame.mk contract (clipperKickLocalsCoinZero evmLock evmTop I feedPrice top) (immStore v))
               evmTop
-              [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],
+              [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody) [],
                 .assign .storage lockedRef (.intLit 0), .return [.var "id"] ]
               result) :
-            ExecBlock (config v)
-              (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
-              sourceInit (clipperKickAfterInitializationBody v) result := by
+            ExecBlock config
+              (Frame.mk contract (clipperKickLocalsActivePos evmLock I) (immStore v))
+              sourceInit (clipperKickAfterInitializationBody) result := by
           exact clipperKickAfterFeedTopPrefix v evmLock sourceInit sourceAfter
             evmTop I feedPrice top hgetFeed hmulSource htopSource htopPos htail rfl
         by_cases htipZero : clipperKickTipWord σTop I = ⟨0⟩

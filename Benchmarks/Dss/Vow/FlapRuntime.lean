@@ -27,7 +27,7 @@ theorem vowFlapSin0CallDepthLimitBody
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hdepthEq : I.depth = 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd937⟩ :=
     RD.vowFlapSin0CallDepthLimit hreach hcodeSizeSinNE hdepthEq
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -284,11 +284,11 @@ theorem vowFlapBodyPrefix
             solcSlotWordAt slot σ_sin I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSinSolm.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
@@ -566,11 +566,11 @@ theorem vowFlapBodyToSin1
             solcSlotWordAt slot σ_dai I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmDaiSolm.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -853,11 +853,11 @@ theorem vowFlapBodyToSub
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1129,11 +1129,11 @@ theorem vowFlapBodyToKick
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1220,7 +1220,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=

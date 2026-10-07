@@ -231,7 +231,7 @@ theorem weth9Decode_symbol_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) 
 theorem weth9SymbolBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 7) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩

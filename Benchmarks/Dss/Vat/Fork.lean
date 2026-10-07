@@ -9720,7 +9720,7 @@ theorem vatForkBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1095⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (vatForkX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchFork hsel)
       (vatDecode_fork_none_short hsz4 hshort)
@@ -13581,7 +13581,7 @@ theorem vatForkSuccessEquivFromFinalState
         (forkStore I) forkTransition.body
         (.returned { contract := contract, locals := finalLocals } evmFinal none))
     (haccounts : Eq (forkAfterDstArt σ I) evmFinal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none forkTransition.returnType := by
     rw [show forkTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -13615,7 +13615,7 @@ theorem vatForkSuccessEquivFromSourceFinal
         (forkDstArtSlot I) dstArtNew
       ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
         (.returned { contract := contract, locals := finalLocals } evm4 none)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   dsimp at hbody
   have hsourceAccounts :=
     forkSourceFinal_accountMap_eq
@@ -13795,7 +13795,7 @@ theorem vatForkSuccessEquivFromFinalGuards
               (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
               (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
             (solcSlotWord (forkAfterDstArt σ I) I (forkIlkDustSlot I)))) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let utab :=
     UInt256.mul
       (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))

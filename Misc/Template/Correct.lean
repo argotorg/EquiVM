@@ -1,6 +1,6 @@
 import Benchmarks.Xxx.Constructor
 import Benchmarks.Xxx.Function   -- one import per transition's proof file
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # Xxx correctness capstone (TEMPLATE)
@@ -22,15 +22,15 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Xxx
 
 -- theorem xxxNonPayable … (hwv : I.weiValue ≠ ⟨0⟩) :
---     runtimeEquivalenceFor config contract … := …   (Pot: potNonPayable)
+--     runtimeRefinementFor config contract … := …   (Pot: potNonPayable)
 
 -- theorem xxxNoDispatch … (hnm : ∀ i, i < nArms → (xxxSelBytes i == …) = false) :
---     runtimeEquivalenceFor config contract … := …   (Pot: potNoDispatch)
+--     runtimeRefinementFor config contract … := …   (Pot: potNoDispatch)
 
 -- theorem xxxNoSelectorMatches … : ∀ i, i < nArms → … := by interval_cases i <;> simpa [selIs] …
 
--- theorem xxxCorrect : runtimeEquivalence config xxxBytecode contract := by
---   refine runtimeEquivalence.intro ?_
+-- theorem xxxCorrect : runtimeRefinement config xxxBytecode contract := by
+--   refine runtimeRefinement.intro ?_
 --   intro σ σ₀ g A I hcode hsize
 --   by_cases hwv : I.weiValue = ⟨0⟩
 --   · by_cases h0 : selIs I (xxxSelBytes 0)
@@ -41,7 +41,7 @@ namespace Benchmarks.Xxx
 --   · exact xxxNonPayable hcode hwv
 
 -- theorem xxxContractCorrect :
---     contractEquivalence config xxxCreationBytecode xxxBytecode contract :=
---   contractEquivalence.intro xxxConstructorCorrect xxxCorrect
+--     contractRefinement config xxxCreationBytecode contract :=
+--   contractRefinement.of_constant xxxConstructorCorrect xxxCorrect
 
 end Benchmarks.Xxx

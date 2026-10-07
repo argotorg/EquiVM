@@ -1051,7 +1051,7 @@ theorem flapperCageBodyCoreUnauthorized
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolmWord : relyAuthWord σ I ≠ ⟨1⟩ := by
     exact hauth
@@ -1085,7 +1085,7 @@ theorem flapperCageBodyCoreMoveNoCode
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolmWord : relyAuthWord σ I = ⟨1⟩ := by
     exact hauth
@@ -1137,7 +1137,7 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLiveSolm := cageLivePostState evmSolm
   let vat := solcAddressSlotWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv
@@ -1250,7 +1250,7 @@ theorem flapperCageBodyCoreMoveCallFailure
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := cageLivePostAccountMap I σ }
@@ -1336,7 +1336,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some (cageLocals I)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := cageLivePostAccountMap I σ }
@@ -1404,7 +1404,7 @@ theorem flapperCageBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flapperCageX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flapperDecode_cage_none_short hsz4 hshort)
@@ -1414,7 +1414,7 @@ theorem flapperCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 2)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=

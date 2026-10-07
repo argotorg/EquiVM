@@ -525,7 +525,7 @@ theorem stairstepX_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem stairstepNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (stairstepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -549,7 +549,7 @@ theorem stairstepNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (stairstepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (stairstepDispatch_none_nomatch hnm)

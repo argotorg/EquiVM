@@ -62,7 +62,7 @@ theorem flipperDealBodyCoreShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3))
     (hshort : I.calldata.size < 36) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -80,7 +80,7 @@ theorem flipperDealBodyCoreTicZero {σ σ₀ A I} {g : UInt256}
     (hsel : selIs I (flipperSelBytes 3))
     (hsz36 : 36 ≤ I.calldata.size)
     (hticEvm : bidTicWord (dealId I) σ I = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -112,7 +112,7 @@ theorem flipperDealBodyCoreNotFinished {σ σ₀ A I} {g : UInt256}
       (UInt256.ofNat I.header.timestamp).toNat ≤ (bidTicWord (dealId I) σ I).toNat)
     (hendGeEvm :
       (UInt256.ofNat I.header.timestamp).toNat ≤ (bidEndWord (dealId I) σ I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -148,7 +148,7 @@ theorem flipperDealBodyCoreCatNoCodeEndExpired {σ σ₀ A I}
       (bidEndWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -194,7 +194,7 @@ theorem flipperDealBodyCoreCatNoCodeTicExpired {σ σ₀ A I}
       (bidTicWord (dealId I) σ I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -247,7 +247,7 @@ theorem flipperDealBodyCoreCatCallDepthLimit {σ σ₀ A I}
     (hcatNe :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepthEq : I.depth = 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -323,7 +323,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
     (hcatNe :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepthNe : I.depth ≠ 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dealTransition :=
@@ -533,7 +533,7 @@ theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hfinished :
         (bidTicWord (dealId I) σ I ≠ ⟨0⟩ ∧
@@ -546,7 +546,7 @@ theorem flipperDealBodyCore {σ σ₀ A I} {g : UInt256}
               (UInt256.ofNat I.header.timestamp).toNat) →
           Reasoning.Theory.extCodeSizeWord σ
               (flipperCatTargetWord σ I) ≠ ⟨0⟩ →
-        runtimeEquivalenceFor config contract σ σ₀ g A I := by
+        runtimeRefinementFor config contract σ σ₀ g A I := by
       intro hfinishedEvm hcatNe
       by_cases hdepthEq : I.depth = 1024
       · exact flipperDealBodyCoreCatCallDepthLimit hcode hsize hwv hsel hsz36

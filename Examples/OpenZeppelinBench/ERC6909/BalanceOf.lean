@@ -653,7 +653,7 @@ theorem erc6909BalanceOfBodyCore
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨136⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909BalanceOfSelector_size hsel
   have hd := erc6909Dispatch_balanceOf (cd := I.calldata) hsel

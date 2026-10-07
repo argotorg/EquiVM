@@ -30,17 +30,17 @@ theorem denySlotFor_eq (I : ExecutionEnv) :
   unfold denySlotFor denyUsr denyKey wardsSlot mapSlot solcMappingSlot
   rw [keyValueToWord_address_ofNat_mask]
 
-theorem dogDecode_deny_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_deny_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
       (transitionSignature denyTransition).paramTypes I.calldata =
         some (denyLocals I) := by
   simpa [config, denyTransition, denyLocals, denyUsr] using
     (decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "usr") hsz36)
 
-theorem dogDecode_deny_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_deny_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
       (transitionSignature denyTransition).paramTypes I.calldata = none := by
   simpa [config, denyTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort)
@@ -328,14 +328,14 @@ theorem dogDenyBodyCoreOk
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (denyLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨466⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := dogCallerWardsSlot I
@@ -382,20 +382,20 @@ theorem dogDenyBodyCoreOk
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
     have hbodySplit :
-        (ExecTransitionBody (config v) (contract v) evm0 locals denyTransition.body
-          (.returned { contract := contract v, locals := locals } evm1 none)) ∧
-        (I.perm = false → ExecTransitionBody (config v) (contract v)
-          evm0 locals denyTransition.body .staticViolation) := by
+        (ExecTransitionBody config contract evm0 locals denyTransition.body
+          (.returned { contract := contract, locals := locals, immutables := immStore v } evm1 none) (immStore v)) ∧
+        (I.perm = false → ExecTransitionBody config contract
+          evm0 locals denyTransition.body .staticViolation (immStore v)) := by
       have hguard := dogAuthGuardEval_true (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, denyLocals]) hauthSolm
       have hassign :
-          assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+          assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
             .storage (wardsRef (.var "usr")) (.int 0) =
-              .ok ({ contract := contract v, locals := locals }, evm1) := by
+              .ok ({ contract := contract, locals := locals, immutables := immStore v }, evm1) := by
         have her :
-            evalStorageRef (config v) { contract := contract v, locals := locals } evm0
+            evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm0
               (wardsRef (.var "usr")) = .ok (denyEvaledRef I) := by
           simp [evm0, denyEvaledRef, denyUsr, wardsRef, evalStorageRef,
             evalStorageRefSteps, evalStorageRefStep, evalExpr?, valueToKey?,
@@ -414,7 +414,7 @@ theorem dogDenyBodyCoreOk
           (hstore := hstore)
       constructor
       · have hblock := nonpayableRequireAssignStorageBlock
-          (cfg := config v) (solm := { contract := contract v, locals := locals })
+          (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
           (evm := evm0) (evm' := evm1)
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
           (rhs := .intLit 0) (ref := wardsRef (.var "usr")) (value := .int 0)
@@ -424,7 +424,7 @@ theorem dogDenyBodyCoreOk
           ExecFuncBody.execBlockOK hblock
       · intro hperm
         have hblock := nonpayableRequireAssignStorageBlockStatic
-          (cfg := config v) (solm := { contract := contract v, locals := locals })
+          (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
           (evm := evm0) (rest := [])
           (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
           (rhs := .intLit 0) (ref := wardsRef (.var "usr")) (value := .int 0)
@@ -499,13 +499,13 @@ theorem dogDenyBodyCoreOk
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hbody : ExecTransitionBody (config v) (contract v) evm0 locals denyTransition.body .reverted := by
+    have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted (immStore v) := by
       have hguard := dogAuthGuardEval_false (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, denyLocals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
-        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
         (rest := [.assign .storage (wardsRef (.var "usr")) (.intLit 0)])
@@ -541,11 +541,11 @@ theorem dogDenyBodyCoreDecodeFailed_short
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨466⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -572,7 +572,7 @@ theorem dogDenyBodyCoreDecodeFailed_short
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
-    (dogDecode_deny_none_short (v := v) hsz4 hshort)
+    (dogDecode_deny_none_short hsz4 hshort)
 
 theorem dogDenyBodyCore {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
@@ -581,17 +581,17 @@ theorem dogDenyBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 5)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 5) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     dogDispatchDeny hsel
   have hreach := dogReachDenyBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogDenyBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_deny_ok (v := v) hsz36) hreach
+      (dogDecode_deny_ok hsz36) hreach
   · exact dogDenyBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

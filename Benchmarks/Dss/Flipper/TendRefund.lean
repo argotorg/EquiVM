@@ -2710,7 +2710,7 @@ theorem flipperTendBodyFrom3486Refund
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let memHash := twoWordHashMem (tendId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]

@@ -1,6 +1,7 @@
 import Reasoning.Reach
 import Reasoning.SolmBody
 import Solm.SolidityLayout
+import Solm.Refine
 
 /-!
 # Constructor — reusable constructor-equivalence proof skeletons
@@ -69,7 +70,8 @@ theorem emptySolmCtorExec
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode) :
+    (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode)
+    (himm : contract.immutables = [] := by rfl) :
     solmCtorExec cfg contract args σ σ₀ g A I
       (.returned
         { contract := contract
@@ -81,7 +83,8 @@ theorem emptySolmCtorExec
     (argsStore := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args))
     ?_ (emptyCtorDeployment_args_length hself hparams hdeploy) rfl ?_
   · rfl
-  · exact emptyCtorBodyReturns _ _ hbody
+  · rw [initialImmutables_noImmutables himm]
+    exact emptyCtorBodyReturns _ _ hbody
 
 /-- Generic constructor-equivalence wrapper for empty constructors.
 
@@ -99,9 +102,9 @@ theorem emptyConstructorCorrect_of_RDret
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode) :
-    constructorEquivalence cfg initcode contract runtimeCode := by
-  refine constructorEquivalence.intro ?_
+      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
+    (himm : contract.immutables = [] := by rfl) :
+    typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode hself hparams hdeploy
@@ -109,12 +112,12 @@ theorem emptyConstructorCorrect_of_RDret
   have hrd := hrun (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode
   rcases hrd.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
-  · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
-  · refine constructorEquivalenceFor.execution hsuccess
+  · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
+  · refine typedConstructorRefinementFor.execution hsuccess
       (emptySolmCtorExec (cfg := cfg) (contract := contract)
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         (args := args) (initcode := initcode) (deployedInitcode := deployedInitcode)
-        hself hparams hbody hdeploy) ?_
+        hself hparams hbody hdeploy himm) ?_ (ctorImmutablesFit_noImmutables himm)
     exact ctorResultEquiv.success rfl rfl rfl rfl
 
 theorem emptyContractCorrect_of_RDret
@@ -129,19 +132,24 @@ theorem emptyContractCorrect_of_RDret
         {g : Sat256},
       I.code = initcode →
       RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
-    (hruntime : runtimeEquivalence cfg runtimeCode contract) :
-    contractEquivalence cfg initcode runtimeCode contract :=
-  contractEquivalence.intro
-    (emptyConstructorCorrect_of_RDret hself hparams hbody hrun)
-    hruntime
+    (hruntime : runtimeRefinement cfg runtimeCode contract)
+    (himm : contract.immutables = [] := by rfl) :
+    contractRefinement cfg initcode contract :=
+  contractRefinement.of_constant
+    (emptyConstructorCorrect_of_RDret hself hparams hbody hrun himm)
+    hruntime himm
 
 theorem solmEmptyParamsCtorExec_of_body {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {res : ExecResult}
     (hparams : decl.ctor.params = [])
     (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      ∅ decl.ctor.body res) :
+      ∅ decl.ctor.body res)
+    (himm : decl.immutables = [] := by rfl) :
     solmCtorExec cfg decl [] σ σ₀ g A I res := by
-  refine solmCtorExec.intro rfl ?_ ?_ hbody
+  have hbody' : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      ∅ decl.ctor.body res (initialImmutables decl) := by
+    rw [initialImmutables_noImmutables himm]; exact hbody
+  refine solmCtorExec.intro rfl ?_ ?_ hbody'
   · rw [hparams]; rfl
   · rw [hparams]; rfl
 
@@ -151,7 +159,7 @@ namespace Reasoning.Reach
 
 open Reasoning.Theory
 
-theorem RDret.constructorEquivalenceEmptyParams {cfg : Config} {decl : ContractDecl}
+theorem RDret.constructorRefinementEmptyParams {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {code runtime : ByteArray}
     {acc : AccountMap} {final : EVM.State} {frame : Frame}
     (rd : RDret code (Sat256.ofUInt256 g)
@@ -159,28 +167,31 @@ theorem RDret.constructorEquivalenceEmptyParams {cfg : Config} {decl : ContractD
     (hcode : I.code = code) (hparams : decl.ctor.params = [])
     (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ∅ decl.ctor.body (.returned frame final none))
-    (ha : acc = final.accountMap) :
-    constructorEquivalenceFor cfg decl [] σ σ₀ g A I runtime := by
+    (ha : acc = final.accountMap)
+    (himm : decl.immutables = [] := by rfl) :
+    typedConstructorRefinementFor cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
   rcases rd with hoog | ⟨s, hX, hacc⟩
-  · exact constructorEquivalenceFor.outOfGas
+  · exact typedConstructorRefinementFor.outOfGas
       (by simpa using Xi_error_of_X (by rw [← hcode] at hoog; exact hoog))
   · have hxi := Xi_success_of_X (by rw [← hcode] at hX; exact hX)
     rw [hacc] at hxi
-    exact constructorEquivalenceFor.execution (by simpa using hxi)
-      (solmEmptyParamsCtorExec_of_body hparams hbody)
-      (ctorResultEquiv.success rfl rfl ha rfl)
+    exact typedConstructorRefinementFor.execution (by simpa using hxi)
+      (solmEmptyParamsCtorExec_of_body hparams hbody himm)
+      (ctorResultEquiv.success rfl rfl ha rfl) (ctorImmutablesFit_noImmutables himm)
 
-theorem RDrev.constructorEquivalenceEmptyParams {cfg : Config} {decl : ContractDecl}
+theorem RDrev.constructorRefinementEmptyParams {cfg : Config} {decl : ContractDecl}
     {σ σ₀ A I} {g : UInt256} {code runtime : ByteArray}
     (rd : RDrev code (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hcode : I.code = code) (hparams : decl.ctor.params = [])
     (hbody : ExecTransitionBody cfg decl (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      ∅ decl.ctor.body .reverted) :
-    constructorEquivalenceFor cfg decl [] σ σ₀ g A I runtime := by
+      ∅ decl.ctor.body .reverted)
+    (himm : decl.immutables = [] := by rfl) :
+    typedConstructorRefinementFor cfg decl [] σ σ₀ g A I (fun _ => runtime) := by
   rcases rd.xiResult hcode with hoog | ⟨g', o, hxi⟩
-  · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
-  · exact constructorEquivalenceFor.execution (by simpa using hxi)
-      (solmEmptyParamsCtorExec_of_body hparams hbody) (ctorResultEquiv.revert rfl rfl)
+  · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
+  · exact typedConstructorRefinementFor.execution (by simpa using hxi)
+      (solmEmptyParamsCtorExec_of_body hparams hbody himm) (ctorResultEquiv.revert rfl rfl)
+      (ctorImmutablesFit_noImmutables himm)
 
 end Reasoning.Reach

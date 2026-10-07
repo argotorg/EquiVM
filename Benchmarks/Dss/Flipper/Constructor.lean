@@ -7,7 +7,7 @@ import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Storage
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flipper constructor correctness stub
@@ -1656,8 +1656,7 @@ theorem flipperCtorSuccessRDret
 
 set_option maxHeartbeats 1000000 in
 theorem flipperConstructorCorrect :
-    constructorEquivalence config flipperCreationBytecode contract flipperBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config flipperCreationBytecode contract (fun _ => flipperBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases flipperCtorDeployment_shape hdeploy with ⟨vat, cat, ilk, hargs, hilk, hdeployed⟩
@@ -1693,7 +1692,7 @@ theorem flipperConstructorCorrect :
       simpa [σBeg, slot5Old, slot5New, σPacked, σKicks, vatStored, σVat, catStored,
         σCat, σIlk, σWards] using hrd0
     rcases RDretXiResultAccountMap hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · let evm0s :=
         initState σ σ₀
           (Sat256.ofUInt256 g) A I
@@ -1778,7 +1777,7 @@ theorem flipperConstructorCorrect :
           hAccountsIlk
         simpa [σWards, evm8s, evm7s, flipperCtorAfterWardsState, storageStore_accountMap,
           storageStore_executionEnv, hEvm6Exec, hEvm7Exec, hslot] using hbase
-      refine constructorEquivalenceFor.execution
+      refine typedConstructorRefinementFor.execution
         (by simpa [Sat256.ofUInt256] using hsuccess)
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, evm7s, evm8s]
@@ -1791,8 +1790,8 @@ theorem flipperConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat cat ilk hcodeTail hperm hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (flipperSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat cat ilk hwv) ?_

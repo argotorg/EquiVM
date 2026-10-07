@@ -1146,7 +1146,7 @@ theorem potFileDsrBodyCoreOk
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let data := fileDsrData I
   let locals := fileDsrLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1190,7 +1190,7 @@ theorem potFileDsrBodyCoreStatic
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hdecoded⟩ := potFileDsrX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
   obtain ⟨_, _, hauthd⟩ := potFileDsrX_authorized (I := I) hauth hdecoded
   obtain ⟨_, _, hlived⟩ := potFileDsrX_liveOK (I := I) hlive hauthd
@@ -1215,7 +1215,7 @@ theorem potFileDsrBodyCoreUnauthorized
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I ≠ ⟨1⟩ := hauth
@@ -1242,7 +1242,7 @@ theorem potFileDsrBodyCoreLiveRevert
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
@@ -1272,7 +1272,7 @@ theorem potFileDsrBodyCoreRhoRevert
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
@@ -1305,7 +1305,7 @@ theorem potFileDsrBodyCoreUnrecognized
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileDsrLocals I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
@@ -1333,7 +1333,7 @@ theorem potFileDsrBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨367⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (potFileDsrX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (potDecode_fileDsr_none_short hsz4 hshort)
 
@@ -1344,7 +1344,7 @@ theorem potFileDsrBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 7)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (potSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileDsrTransition :=
@@ -1377,7 +1377,7 @@ theorem potFileDsrBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 7)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potFileDsrBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm

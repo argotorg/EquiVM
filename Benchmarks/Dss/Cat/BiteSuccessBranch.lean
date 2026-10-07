@@ -89,7 +89,7 @@ theorem catBiteSuccessBranch {σ σ₀ A I} {g : UInt256}
           bw (biteDinkV I evmUrn iRate art ink), .int 0] (true, evmKick, kickOut) true)
     (hKickDec : config.externalABI.decode? "kick" kickOut = some [bw id])
     (hAccountsFinal : acc = evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact catBiteSuccessLeaf hcode hret hdispatch hdecode hsz36 hwv hvatCode0 hIlksCall hIlksDec
     hvatCodeIlk hUrnsCall hUrnsDec hlive hfitInkSpot hfitArtRate hfitDunkRoomWad hfitInkDart
     hfitDartRate hfitTabBase hfitLitterNew hspotPos hratePos hartPos hmilkChopPos hunsafe hlitLtBox

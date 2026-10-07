@@ -15,7 +15,7 @@ theorem flopperDentBody
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
   have hsz4 : 4 ≤ I.calldata.size :=

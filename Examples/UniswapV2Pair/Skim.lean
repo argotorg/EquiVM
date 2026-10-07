@@ -10,7 +10,7 @@ theorem uniswapSkimBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode : decodeCalldataWithMode config.abiDecodeMode
         (skimTransition.params.map Param.name)
@@ -28,7 +28,7 @@ theorem uniswapSkimBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapSkimBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm

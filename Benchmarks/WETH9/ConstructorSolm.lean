@@ -3,7 +3,7 @@ import Reasoning.WordArithmetic
 import Benchmarks.WETH9.ConstructorClear
 import Reasoning.SolmBody
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 
 /-!

@@ -50,9 +50,9 @@ abbrev ilksHoleSlotFor (I : ExecutionEnv) : UInt256 :=
 abbrev ilksDirtSlotFor (I : ExecutionEnv) : UInt256 :=
   ilksClipSlotFor I + ⟨3⟩
 
-theorem dogDecode_ilks_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_ilks_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (ilksTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (ilksTransition.params.map Param.name)
       (transitionSignature ilksTransition).paramTypes I.calldata =
         some (ilksLocals I) := by
   simpa [config, ilksTransition, ilksLocals, ilksArgValue, ilksArgBytes, bytes32,
@@ -60,9 +60,9 @@ theorem dogDecode_ilks_ok {v : DogImmutables} {I : ExecutionEnv}
     (decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "arg0")
       hsz36)
 
-theorem dogDecode_ilks_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_ilks_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (ilksTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (ilksTransition.params.map Param.name)
       (transitionSignature ilksTransition).paramTypes I.calldata = none := by
   simpa [config, ilksTransition, bytes32, bytes32Width] using
     (decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0")
@@ -570,8 +570,8 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (evm : EVM.State) (locals : Store)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocals : locals = ilksLocals I) :
-    ExecTransitionBody (config v) (contract v) evm locals ilksTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals ilksTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)),
           (.int (Int.ofNat (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap
@@ -579,17 +579,17 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
           (.int (Int.ofNat (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap
             evm.executionEnv).toNat)),
           (.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap
-            evm.executionEnv).toNat))])) := by
+            evm.executionEnv).toNat))])) (immStore v) := by
   subst locals
-  let frame : Frame := { contract := contract v, locals := ilksLocals I }
+  let frame : Frame := { contract := contract, locals := ilksLocals I, immutables := immStore v }
   have hkeyLen := calldata_first_word_min_length (I := I) hsz36
   change _ = bytes32Width.val + 1 at hkeyLen
   have hclip :
-      evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "clip")) =
+      evalExpr? config frame evm (.storage (ilksF (.var "arg0") "clip")) =
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "clip") (er := ilksClipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksClipSlotFor I))
       (value := .address (AccountAddress.ofNat
@@ -605,11 +605,11 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by simpa [solcAddressSlotWord, solcSlotWordAt] using
         storageLocLoad_address_offset0 evm (ilksClipSlotFor I))
   have hchop :
-      evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "chop")) =
+      evalExpr? config frame evm (.storage (ilksF (.var "arg0") "chop")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "chop") (er := ilksChopEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksChopSlotFor I))
       (value := .int (Int.ofNat
@@ -624,11 +624,11 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by rfl)
       (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksChopSlotFor I))
   have hhole :
-      evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "hole")) =
+      evalExpr? config frame evm (.storage (ilksF (.var "arg0") "hole")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "hole") (er := ilksHoleEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksHoleSlotFor I))
       (value := .int (Int.ofNat
@@ -643,11 +643,11 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by rfl)
       (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksHoleSlotFor I))
   have hdirt :
-      evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "dirt")) =
+      evalExpr? config frame evm (.storage (ilksF (.var "arg0") "dirt")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
     exact evalExpr_storage_scalar_value (hbackend := rfl)
-      (cfg := config v) (solm := frame) (evm := evm)
+      (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "dirt") (er := ilksDirtEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDirtSlotFor I))
       (value := .int (Int.ofNat
@@ -662,7 +662,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       (by rfl)
       (by simpa [solcSlotWordAt] using storageLocLoad_uint256 evm (ilksDirtSlotFor I))
   have hreturns :
-      evalExprs? (config v) frame evm
+      evalExprs? config frame evm
         [.storage (ilksF (.var "arg0") "clip"), .storage (ilksF (.var "arg0") "chop"),
           .storage (ilksF (.var "arg0") "hole"), .storage (ilksF (.var "arg0") "dirt")] =
           .ok
@@ -799,14 +799,14 @@ theorem dogIlksBodyCoreOk
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some ilksTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (ilksTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (ilksTransition.params.map Param.name)
         (transitionSignature ilksTransition).paramTypes I.calldata = some (ilksLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let baseSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let clipWord := solcSlotWordAt baseSlot σ I
   let chopWord := solcSlotWordAt (baseSlot + ⟨1⟩) σ I
@@ -834,16 +834,16 @@ theorem dogIlksBodyCoreOk
       dirtWord, solcAddressSlotWord]
   have henc := dogIlksReturnEquiv clipWord chopWord holeWord dirtWord
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         ilksTransition.body
-        (.returned { contract := contract v, locals := locals }
+        (.returned { contract := contract, locals := locals, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord (ilksClipSlotFor I) σ I).toNat)),
             (.int (Int.ofNat (solcSlotWordAt (ilksChopSlotFor I) σ I).toNat)),
             (.int (Int.ofNat (solcSlotWordAt (ilksHoleSlotFor I) σ I).toNat)),
-            (.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) σ I).toNat))])) := by
+            (.int (Int.ofNat (solcSlotWordAt (ilksDirtSlotFor I) σ I).toNat))])) (immStore v) := by
     simpa [locals, initState] using
       dogIlksBodyReturns (v := v) (I := I) hsz36
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
@@ -929,11 +929,11 @@ theorem dogIlksBodyCoreDecodeFailed_short
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some ilksTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨658⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -960,7 +960,7 @@ theorem dogIlksBodyCoreDecodeFailed_short
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
-    (dogDecode_ilks_none_short (v := v) hsz4 hshort)
+    (dogDecode_ilks_none_short hsz4 hshort)
 
 theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
@@ -969,17 +969,17 @@ theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 11)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 11) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some ilksTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     dogDispatchIlks hsel
   have hreach := dogReachIlksBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogIlksBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_ilks_ok (v := v) hsz36) hreach
+      (dogDecode_ilks_ok hsz36) hreach
   · exact dogIlksBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

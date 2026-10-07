@@ -12,12 +12,13 @@ import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.HighestBid
 import Reasoning.Initcode
 import Reasoning.SolmArithmetic
+import Solm.Refine
 
 /-!
 # BlindAuction — top-level correctness proof
 
 This file is the Phase 0 dispatcher assembly for
-`blindAuctionCorrect : runtimeEquivalence …`.  It follows the optimizer-on binary-search
+`blindAuctionCorrect : runtimeRefinement …`.  It follows the optimizer-on binary-search
 dispatcher shape shared with Ballot/SimpleAuction, but with BlindAuction's payable top-level
 dispatcher: calldata size and selector routing happen before any callvalue check, and non-payable
 guards are proved inside the individual body files.
@@ -32,7 +33,7 @@ namespace BlindAuction
 
 /-- The deployed BlindAuction runtime bytecode refines the Solm specification. -/
 theorem blindAuctionCorrect :
-    runtimeEquivalence blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
+    runtimeRefinement blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩
@@ -1717,9 +1718,8 @@ theorem blindAuctionCtorRevealBaseWord_equiv
 
 /-- The creation/initcode bytecode refines the BlindAuction Solm constructor specification. -/
 theorem blindAuctionConstructorCorrect :
-    constructorEquivalence blindAuctionConfig blindAuctionInitcode blindAuctionContract
-      blindAuctionBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement blindAuctionConfig blindAuctionInitcode blindAuctionContract
+      (fun _ => blindAuctionBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases blindAuctionDeployment_shape hdeploy with
@@ -1740,8 +1740,8 @@ theorem blindAuctionConstructorCorrect :
         (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
         hperm hwv hoverBid
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
-      · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-      · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+      · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+      · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
           (blindAuctionSolmCtorExecReverts_biddingOverflow
             (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             biddingTime revealTime beneficiaryAddress h0Bid hltBid hwv (by
@@ -1760,8 +1760,8 @@ theorem blindAuctionConstructorCorrect :
           (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
           hperm hwv (by simpa [bidWord] using hoverBid) hoverReveal
         rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', o, hrev⟩
-        · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-        · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+        · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+        · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
             (blindAuctionSolmCtorExecReverts_revealOverflow
               (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
               biddingTime revealTime beneficiaryAddress h0Bid hltBid h0Reveal hltReveal hwv
@@ -1775,7 +1775,7 @@ theorem blindAuctionConstructorCorrect :
           (g := Sat256.ofUInt256 g) bidWord revealWord beneficiaryAddress hcodeCtor
           hperm hwv (by simpa [bidWord] using hoverBid) hoverReveal
         rcases hrd with hOOG | ⟨s, hX, hacc⟩
-        · exact constructorEquivalenceFor.outOfGas
+        · exact typedConstructorRefinementFor.outOfGas
             (Xi_error_of_X (g := g) (by
               rw [← hcodeCtor] at hOOG
               simpa [Sat256.ofUInt256] using hOOG))
@@ -1813,7 +1813,7 @@ theorem blindAuctionConstructorCorrect :
             simpa [beneficiaryStoreWordEvm, oldSlotEvm, biddingEndWordEvm, revealEndWordEvm,
               bidWord] using hacc
           rw [hσFinal] at hsuccess
-          refine constructorEquivalenceFor.execution hsuccess
+          refine typedConstructorRefinementFor.execution hsuccess
             (blindAuctionSolmCtorExecSuccess
               (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
               biddingTime revealTime beneficiaryAddress h0Bid hltBid h0Reveal hltReveal hwv
@@ -1873,8 +1873,8 @@ theorem blindAuctionConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (blindAuctionSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           biddingTime revealTime beneficiaryAddress hwv) ?_
@@ -1882,8 +1882,8 @@ theorem blindAuctionConstructorCorrect :
 
 /-- The full BlindAuction contract equivalence combines constructor/initcode and runtime proofs. -/
 theorem blindAuctionContractCorrect :
-    contractEquivalence blindAuctionConfig blindAuctionInitcode blindAuctionBytecode
+    contractRefinement blindAuctionConfig blindAuctionInitcode
       blindAuctionContract :=
-  contractEquivalence.intro blindAuctionConstructorCorrect blindAuctionCorrect
+  contractRefinement.of_constant blindAuctionConstructorCorrect blindAuctionCorrect
 
 end BlindAuction

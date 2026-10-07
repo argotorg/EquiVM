@@ -3,7 +3,7 @@ import Reasoning.Memory
 import Benchmarks.Dss.GemJoin.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS GemJoin constructor shared helpers

@@ -1378,7 +1378,7 @@ theorem vowHealSinDecodeShortBodyCore
     (hcallSin :
       typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (true, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd1295⟩ := RD.vowHealSinCallSuccessToDecode rd1277 (by simp)
   have hrev :=
     RD.vowHealSinReturnDecodeShortReverts rd1295 houtShort houtSize hMload64Value
@@ -1431,7 +1431,7 @@ theorem vowHealFreeSinUnderflowBodyCore
     (hSinLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨5⟩ =
         solcSlotWordAt ⟨5⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealFreeSinSubUnderflow rd1318 hunder
   have hbody := vowHealSourceFreeSinUnderflow
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1488,7 +1488,7 @@ theorem vowHealDebtUnderflowBodyCore
     (hAshLoad :
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨6⟩ =
         solcSlotWordAt ⟨6⟩ acc I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDebtSubUnderflow rd1325 hunder
   have hbody := vowHealSourceHealDebtUnderflow
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1550,7 +1550,7 @@ theorem vowHealInsufficientDebtBodyCore
         solcSlotWordAt ⟨6⟩ acc I)
     (hdebt : healDebt = UInt256.sub freeSin (solcSlotWordAt ⟨6⟩ acc I))
     (hdebtOk : (solcSlotWordAt ⟨6⟩ acc I).toNat ≤ freeSin.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealInsufficientDebt rd4921 hinsuff hmem hread64
   have hbody := vowHealSourceInsufficientDebt
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

@@ -5,9 +5,9 @@ open Benchmarks.Dss.Dog.Immutables
 
 namespace Benchmarks.Dss.Dog
 
-theorem dogDecode_vat {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((vatTransition v).params.map Param.name)
-      (transitionSignature (vatTransition v)).paramTypes I.calldata = some ∅ := by
+theorem dogDecode_vat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (vatTransition.params.map Param.name)
+      (transitionSignature vatTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
@@ -271,26 +271,22 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
     (_hsize : I.calldata.size < UInt256.size)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 14)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 14) rfl _hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
-        (vatTransition v).body
-        (.returned { contract := contract v, locals := ∅ }
+        vatTransition.body
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat v.vat.toNat))])) := by
-    simpa [vatTransition, vatExpr, nonpayable] using
-      nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v)
-        (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (locals := (∅ : Store)) (expr := Reasoning.Theory.addressLiteral v.vat)
+          (some [(.address (AccountAddress.ofNat v.vat.toNat))])) (immStore v) := by
+    simpa [vatTransition, nonpayable] using
+      nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
+        (imms := immStore v) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (locals := (∅ : Store)) (expr := vatExpr)
         (value := Value.address (AccountAddress.ofNat v.vat.toNat))
-        (by simp only [initState]; exact _hwv)
-        (by
-          exact dogAddrLitEval (v := v)
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-            (g := Sat256.ofUInt256 g) v.vat)
+        (by simp only [initState]; exact _hwv) dogVatEval
   have hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨350⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -328,11 +324,11 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
         (UInt256.toByteArray (UInt256.land (EVM.Word.ofNat v.vat.toNat) solcAddrMask))
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (EVM.Word.ofNat v.vat.toNat) solcAddrMask).toNat))])
-        (vatTransition v).returnType := by
-    rw [show (vatTransition v).returnType = [addr] by rfl]
+        vatTransition.returnType := by
+    rw [show vatTransition.returnType = [addr] by rfl]
     exact returnEquiv_of_encode
       (solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat v.vat.toNat))
   exact hret.reEquivExecutionTransport _hcode (dogDispatchVat _hsel)
-    (dogDecode_vat (v := v) hsz) hbody (addressValueTransport v.vat) henc
+    (dogDecode_vat hsz) hbody (addressValueTransport v.vat) henc
 
 end Benchmarks.Dss.Dog

@@ -238,7 +238,7 @@ theorem flipperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem flipperNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (flipperX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -1001,7 +1001,7 @@ theorem flipperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 19 → (flipperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flipperX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (flipperDispatch_none_nomatch hnm)

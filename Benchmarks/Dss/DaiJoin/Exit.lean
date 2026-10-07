@@ -185,7 +185,7 @@ theorem daiJoinExitInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
   have hstmt :=
     internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (exitStore I))
+      (caller := Frame.mk contract (exitStore I) ∅)
       (evm := evm) (calleeEvm := evm)
       (name := "mul") (retVar := "rad")
       (args := [.intLit ONE, .var "wad"])

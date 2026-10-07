@@ -19,7 +19,7 @@ import Mathlib.Tactic.IntervalCases
 /-!
 # Ballot — top-level correctness proof
 
-This is the routing proof for `ballotCorrect : runtimeEquivalence …`.  It mirrors
+This is the routing proof for `ballotCorrect : runtimeRefinement …`.  It mirrors
 `Examples/ERC20/Correct.lean`: `by_cases` on `callvalue = 0`, `size ≥ 4`, then each of the eight
 selectors, dispatching to that function's body obligation, with the shared revert paths.
 
@@ -322,7 +322,7 @@ theorem ballotVoteBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨137⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotVoteBodyCore hcode hsize hwv hsel hreach
 
@@ -333,7 +333,7 @@ theorem ballotProposalsBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotProposalsBodyCore hcode hsize hwv hsel hreach
 
@@ -344,7 +344,7 @@ theorem ballotChairpersonBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨203⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotChairpersonBodyCore hcode hwv hsel hreach
 
@@ -355,7 +355,7 @@ theorem ballotDelegateBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨245⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotDelegateBodyCoreComplete hcode hsize hwv hsel hreach
 
@@ -367,7 +367,7 @@ theorem ballotWinningProposalBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨264⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotWinningProposalBodyCore hcode hsize hwv hsel hreach
 
@@ -378,7 +378,7 @@ theorem ballotGiveRightToVoteBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨286⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotGiveRightToVoteBodyCore hcode hsize hwv hsel hreach
 
@@ -389,7 +389,7 @@ theorem ballotVotersBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨305⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotVotersBodyCore hcode hsize hwv hsel hreach
 
@@ -400,7 +400,7 @@ theorem ballotWinnerNameBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [ballotSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact ballotWinnerNameBodyCore hcode hsize hwv hsel hreach
 
@@ -546,7 +546,7 @@ theorem ballotX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable global guard). -/
 theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact (ballotX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -570,7 +570,7 @@ theorem ballotNonPayable {σ σ₀ A I} {g : UInt256}
 theorem ballotShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   exact (ballotX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (ballotDispatch_none_short hsz)
@@ -580,7 +580,7 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (ballotSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (ballotX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
@@ -593,7 +593,7 @@ theorem ballotNoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed Ballot runtime bytecode refines the Solm specification, for every initial state. -/
 theorem ballotCorrect :
-    runtimeEquivalence ballotConfig ballotBytecode ballotContract := by
+    runtimeRefinement ballotConfig ballotBytecode ballotContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

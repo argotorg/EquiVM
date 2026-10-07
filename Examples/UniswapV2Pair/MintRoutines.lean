@@ -323,7 +323,8 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hargs : evalExprs? config caller evm args =
       .ok [mintFunctionToValue recipient, mintFunctionValueValue value])
     (hfitSupply : mintFunctionTotalSupplyNewNat evm value < UInt256.size)
-    (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size) :
+    (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_mint" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none)
         (mintFunctionPostState evm recipient value)) := by
@@ -336,10 +337,10 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := mintFunctionCallStore recipient value })
     (value := none)
     hargs
-    (by simpa [hcontract] using uniswapLookupMintFunction)
+    (by simpa [hcontract, himm] using uniswapLookupMintFunction)
     (bindParams_mintFunction_call recipient value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapMintFunctionBody evm recipient value hfitSupply hfitBalance))
 
 end UniswapV2Pair

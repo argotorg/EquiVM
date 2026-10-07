@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Spot.ConstructorSource
 import Benchmarks.Dss.Spot.ConstructorTrace
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Spotter constructor correctness
@@ -16,8 +17,7 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem spotConstructorCorrect :
-    constructorEquivalence config spotCreationBytecode contract spotBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config spotCreationBytecode contract (fun _ => spotBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases spotCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
@@ -29,7 +29,7 @@ theorem spotConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -81,7 +81,7 @@ theorem spotConstructorCorrect :
         simp [σLive, evm4s, evm3s, evm2s, evm1s, evm0s, spotCtorAfterLiveState,
           spotCtorAfterParState, spotCtorAfterVatState, spotCtorAfterWardsState, initState,
           storageStore_accountMap, storageStore_executionEnv, hAccountsPar]
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using
             spotSolmCtorExecSuccess
@@ -94,8 +94,8 @@ theorem spotConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (spotSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat hwv)

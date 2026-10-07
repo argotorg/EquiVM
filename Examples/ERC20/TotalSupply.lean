@@ -104,7 +104,7 @@ theorem erc20TotalSupplyBodyCore
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel

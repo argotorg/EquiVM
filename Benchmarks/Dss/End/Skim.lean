@@ -7093,7 +7093,7 @@ theorem endSkimBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endSkimEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (endSkimX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_skim_none_short hsz4 hshort)
 
@@ -7101,7 +7101,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf skimTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endSkimConcreteSelector := by
     simpa [endSkimSelectorBytes, endSkimConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -7931,7 +7931,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                                       hwadLimitSolm hartLimit
                                       (by simpa [evmGrabSolm] using hgrabCallSolm)
                                     let csGrab : Solm.Frame :=
-                                      ⟨contract, endSkimStoreGrab σ_urns I vatOut urnOut⟩
+                                      ⟨contract, endSkimStoreGrab σ_urns I vatOut urnOut, ∅⟩
                                     have hbody :
                                         ExecTransitionBody config contract evmSolm
                                           (endSkimStore I) skimTransition.body

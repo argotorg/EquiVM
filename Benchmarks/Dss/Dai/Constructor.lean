@@ -7,7 +7,7 @@ import Reasoning.MemCascade
 import Reasoning.Memory
 import Reasoning.SolmBody
 import Reasoning.Stepping
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO DSS Dai constructor correctness stub
@@ -1541,8 +1541,7 @@ theorem daiSolmCtorExecSuccess
               I chainId (EVM.word chainId.toNat))
 
 theorem daiConstructorCorrect :
-    constructorEquivalence config daiCreationBytecode contract daiBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config daiCreationBytecode contract (fun _ => daiBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases daiDeployment_shape hdeploy with ⟨chainId, hargs, h0, hlt, hdeployed⟩
@@ -1556,7 +1555,7 @@ theorem daiConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word chainId.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -1564,7 +1563,7 @@ theorem daiConstructorCorrect :
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
       rw [hacc] at hsuccess
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (daiSolmCtorExecSuccess
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           chainId h0 hlt hwv) ?_
@@ -1577,8 +1576,8 @@ theorem daiConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (daiSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           chainId hwv) ?_

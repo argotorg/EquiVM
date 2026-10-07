@@ -1319,7 +1319,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hchi : dripChiWord σ I = dripChiWord σ I := rfl
   have hPie : dripPieWord σ I = dripPieWord σ I := rfl
   have hVat : solcSlotWordAt ⟨5⟩ σ I = solcSlotWordAt ⟨5⟩ σ I := rfl
@@ -1528,7 +1528,7 @@ theorem potDripBodyAfterRpowStatic {σ σ₀ A I} {g pow : UInt256} {rpowLocals 
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
       (pow :: ⟨1934⟩ :: ⟨0⟩ :: ⟨341⟩ :: [sel]) solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hfitRmul : pow.toNat * (dripChiWord σ I).toNat < UInt256.size
   · obtain ⟨_, _, rd1934⟩ := potDripX_rmulReturns hfitRmul rd1926
     by_cases hleSub : (dripChiWord σ I).toNat ≤ (dripTmpVal σ I pow).toNat
@@ -1548,7 +1548,7 @@ theorem potDripBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some dripTransition := potDispatchDrip hsel
   have hdecode : decodeCalldataWithMode config.abiDecodeMode (dripTransition.params.map Param.name)
@@ -1621,7 +1621,7 @@ theorem potDripBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potDripBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm

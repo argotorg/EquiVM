@@ -383,7 +383,7 @@ theorem ballotWinnerNameBodyCore
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨417⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor ballotConfig ballotContract
+    runtimeRefinementFor ballotConfig ballotContract
       σ σ₀ g A I := by
   have hsz4 := ballotWinnerNameSelector_size hsel
   have hd := ballotDispatch_winnerName (cd := I.calldata) hsel

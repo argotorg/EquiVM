@@ -1732,7 +1732,7 @@ theorem erc20TransferBodyCore
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20TransferSelector_size hsel
   have hd := erc20Dispatch_transfer (cd := I.calldata) hsel

@@ -36,7 +36,7 @@ namespace Benchmarks.Xxx
 --     (hcode : I.code = xxxBytecode) (hsize : I.calldata.size < UInt256.size)
 --     (hwv : I.weiValue = ⟨0⟩)
 --     (hsel : selIs I (xxxSelBytes 0)) :
---     runtimeEquivalenceFor config contract σ σ₀ g A I := …
+--     runtimeRefinementFor config contract σ σ₀ g A I := …
 --
 -- There is no `I.perm = true` hypothesis: the body may run in static mode (STATICCALL).
 -- The trace segment holding a path's first SSTORE / LOG / value-CALL concludes

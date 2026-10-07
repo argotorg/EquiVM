@@ -30,7 +30,7 @@ theorem uniswapSwapBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz132 : 132 ≤ I.calldata.size
   · by_cases hoff : solcLegacyMaxU32 < swapDataOffset I
     · exact uniswapSwapBodyDecodeFailed_offsetHuge hcode hsize hwv hsel hsz132 hoff
@@ -198,7 +198,12 @@ theorem uniswapSwapBody
                           rw [swapAfterCallbackFrame_get_ne _ _ _ (by decide),
                             swapAfterTransfersFrame_get_ne _ _ _ _ (by decide) (by decide)]
                           exact ht1
-                        rcases uniswapSwapBalancesCases evmCb (uniswapAddressAtSlot evmL ⟨6⟩)
+                        rcases uniswapSwapBalancesCases
+                            (himm := by
+                              simp only [swapAfterCallbackFrame, swapAfterTransfersFrame,
+                                optionalSafeTransferFrame]
+                              split_ifs <;> rfl)
+                            evmCb (uniswapAddressAtSlot evmL ⟨6⟩)
                             (uniswapAddressAtSlot evmL ⟨7⟩) rd2091 haCb heCb hsCb
                             (by rw [swapAfterCallbackFrame_contract, swapAfterTransfersFrame_contract])
                             ht0Cb ht1Cb htarget0 htarget1 hmCb hgapCb
@@ -276,6 +281,8 @@ theorem uniswapSwapBody
                                   hb0U hb1U hr0Inv hr1Inv
                                 have hframeU := frame_eq_of_contract
                                   (swapBeforeUpdateFrame_contract evmL I balance0 balance1 amount0In amount1In)
+                                  (swapBeforeUpdateFrame_immutables evmL I balance0 balance1 amount0In
+                                    amount1In)
                                 rw [hframeU] at hargsU
                                 dsimp only [swapBeforeUpdateFrame] at hframeU
                                 rw [hframeU] at hinvariantPrefix
@@ -328,7 +335,7 @@ theorem uniswapSwapBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapSwapBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm

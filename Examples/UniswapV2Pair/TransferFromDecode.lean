@@ -38,7 +38,7 @@ theorem uniswapTransferFromBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_transferFrom_none_short (I := I) hsz4 hshort
   exact (uniswapTransferFromX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -52,7 +52,7 @@ theorem uniswapTransferFromBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ rfl hsel
   exact uniswapTransferFromBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -64,7 +64,7 @@ theorem uniswapTransferFromBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
     · by_cases hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus
@@ -232,7 +232,7 @@ theorem uniswapTransferFromBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some transferFromTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapTransferFromBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm

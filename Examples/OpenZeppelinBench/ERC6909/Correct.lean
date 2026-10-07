@@ -179,7 +179,7 @@ theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
 
 theorem erc6909NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (erc6909X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -202,7 +202,7 @@ theorem erc6909NonPayable {σ σ₀ A I} {g : UInt256}
 theorem erc6909ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (erc6909X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc6909Dispatch_none_short hsz)
@@ -211,7 +211,7 @@ theorem erc6909NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (erc6909X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -222,7 +222,7 @@ theorem erc6909NoDispatch {σ σ₀ A I} {g : UInt256}
 
 /-- The deployed ERC6909 benchmark runtime bytecode refines the Solm specification. -/
 theorem erc6909Correct :
-    runtimeEquivalence config erc6909BenchBytecode contract := by
+    runtimeRefinement config erc6909BenchBytecode contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize
       => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

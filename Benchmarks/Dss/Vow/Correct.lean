@@ -30,7 +30,7 @@ import Benchmarks.Dss.Vow.Sump
 import Benchmarks.Dss.Vow.Vat
 import Benchmarks.Dss.Vow.Wait
 import Benchmarks.Dss.Vow.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Vow benchmark correctness stub
@@ -49,7 +49,7 @@ namespace Benchmarks.Dss.Vow
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem vowNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (vowX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -73,7 +73,7 @@ theorem vowNonPayable {σ σ₀ A I} {g : UInt256}
 theorem vowShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (vowX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (vowDispatch_none_short hsz)
@@ -83,7 +83,7 @@ theorem vowNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 24 → (vowSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (vowX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
@@ -152,23 +152,23 @@ theorem vowCorrectWith
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (flapBody :
       ∀ {σ σ₀ A I} {g : UInt256},
         I.code = vowBytecode →
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (flopBody :
       ∀ {σ σ₀ A I} {g : UInt256},
         I.code = vowBytecode →
         I.calldata.size < UInt256.size →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ →
-        runtimeEquivalenceFor config contract σ σ₀ g A I) :
-    runtimeEquivalence config vowBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+        runtimeRefinementFor config contract σ σ₀ g A I) :
+    runtimeRefinement config vowBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hAsh : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩
@@ -269,11 +269,11 @@ theorem vowCorrectWith
   · exact vowNonPayable hcode hwv
 
 theorem vowCorrect :
-    runtimeEquivalence config vowBytecode contract := by
+    runtimeRefinement config vowBytecode contract := by
   exact vowCorrectWith vowCageBody vowFlapBody vowFlopBody
 
 theorem vowContractCorrect :
-    contractEquivalence config vowCreationBytecode vowBytecode contract :=
-  contractEquivalence.intro vowConstructorCorrect vowCorrect
+    contractRefinement config vowCreationBytecode contract :=
+  contractRefinement.of_constant vowConstructorCorrect vowCorrect
 
 end Benchmarks.Dss.Vow

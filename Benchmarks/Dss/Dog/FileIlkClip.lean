@@ -357,9 +357,9 @@ theorem fileIlkClipCallMem_read128_4 {mem : ByteArray} (hmem : mem.size = 96) :
     (by norm_num) (by norm_num) (by norm_num) (by rw [hmem]; native_decide)]
   exact fileIlkClipIlkSelectorWord_extract
 
-theorem fileIlkClipEncode_eq {v : DogImmutables} {mem : ByteArray}
+theorem fileIlkClipEncode_eq {mem : ByteArray}
     (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "ilk" [] =
+    config.externalABI.encode? "ilk" [] =
       some ((fileIlkClipCallMem mem).readWithPadding 128 4) := by
   rw [fileIlkClipCallMem_read128_4 hmem]
   simp [config, externalABI, clipperIlkSelector]
@@ -570,9 +570,9 @@ theorem fileIlkClipWhatWord_ne_of_bytes_ne {I : ExecutionEnv} {bs : List UInt8}
   exact hneq (fileIlkClipWhat_eq_of_word_eq hsz68 hword hbsLen)
 
 
-theorem dogDecode_fileIlkClip_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_fileIlkClip_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode
+    decodeCalldataWithMode config.abiDecodeMode
       (fileIlkClipTransition.params.map Param.name)
       (transitionSignature fileIlkClipTransition).paramTypes I.calldata =
         some (fileIlkClipLocals I) := by
@@ -582,9 +582,9 @@ theorem dogDecode_fileIlkClip_ok {v : DogImmutables} {I : ExecutionEnv}
     decodeCalldata_legacyBytes32_bytes32_address_ok (cd := I.calldata)
       (x := "ilk") (y := "what") (z := "clip") hsz100
 
-theorem dogDecode_fileIlkClip_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_fileIlkClip_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100) :
-    decodeCalldataWithMode (config v).abiDecodeMode
+    decodeCalldataWithMode config.abiDecodeMode
       (fileIlkClipTransition.params.map Param.name)
       (transitionSignature fileIlkClipTransition).paramTypes I.calldata = none := by
   simpa [config, fileIlkClipTransition, bytes32, bytes32Width, addr, abiBytes32,
@@ -593,9 +593,9 @@ theorem dogDecode_fileIlkClip_none_short {v : DogImmutables} {I : ExecutionEnv}
       (cd := I.calldata) (x := "ilk") (y := "what") (z := "clip") hsz4 hshort
 
 
-theorem fileIlkClipDecode_ilk_return_ok {v : DogImmutables} {out : ByteArray}
+theorem fileIlkClipDecode_ilk_return_ok {out : ByteArray}
     (ho32 : 32 ≤ out.size) :
-    (config v).externalABI.decode? "ilk" out =
+    config.externalABI.decode? "ilk" out =
       some [.fixedBytes bytes32Width
         (EVM.Word.toBytesBE (uInt256OfByteArray (out.extract 0 32)))] := by
   change decodeReturn? bytes32 out =
@@ -605,9 +605,9 @@ theorem fileIlkClipDecode_ilk_return_ok {v : DogImmutables} {out : ByteArray}
   erw [decodeReturnValue_bytes32_ok ho32]
   rfl
 
-theorem fileIlkClipDecode_ilk_return_none_short {v : DogImmutables} {out : ByteArray}
+theorem fileIlkClipDecode_ilk_return_none_short {out : ByteArray}
     (hshort : out.size < 32) :
-    (config v).externalABI.decode? "ilk" out = none := by
+    config.externalABI.decode? "ilk" out = none := by
   change decodeReturn? bytes32 out = none
   unfold decodeReturn?
   erw [decodeReturnValue_bytes32_none_short hshort]
@@ -693,10 +693,10 @@ theorem evalExpr_fileIlkClipWhatEq_true {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store} {bs : List UInt8}
     (hget : locals.get? "what" = some (.fixedBytes bytes32Width (fileIlkClipWhat I)))
     (hwhat : fileIlkClipWhat I = bs) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "what") (.fixedBytesLit bytes32Width bs)) = .ok (.bool true) := by
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "what") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "what") =
         .ok (.fixedBytes bytes32Width (fileIlkClipWhat I)) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "what") =
@@ -712,10 +712,10 @@ theorem evalExpr_fileIlkClipWhatEq_false {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store} {bs : List UInt8}
     (hget : locals.get? "what" = some (.fixedBytes bytes32Width (fileIlkClipWhat I)))
     (hwhat : fileIlkClipWhat I ≠ bs) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "what") (.fixedBytesLit bytes32Width bs)) = .ok (.bool false) := by
   have hvar :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "what") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "what") =
         .ok (.fixedBytes bytes32Width (fileIlkClipWhat I)) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? "what") =
@@ -730,7 +730,7 @@ theorem evalExpr_fileIlkClipWhatEq_false {v : DogImmutables} {evm : EVM.State}
 theorem evalExpr_fileIlkClipIlk {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (hget : locals.get? "ilk" = some (fileIlkClipIlkValue I)) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "ilk") =
       .ok (fileIlkClipIlkValue I) := by
   rw [evalExpr?]
   change EvalResult.ofOption EvalError.unboundVariable (locals.get? "ilk") =
@@ -741,7 +741,7 @@ theorem evalExpr_fileIlkClipIlk {v : DogImmutables} {evm : EVM.State}
 theorem evalExpr_fileIlkClipClip {v : DogImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (hget : locals.get? "clip" = some (.address (fileIlkClipClip I))) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "clip") =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "clip") =
       .ok (.address (fileIlkClipClip I)) := by
   rw [evalExpr?]
   change EvalResult.ofOption EvalError.unboundVariable (locals.get? "clip") =
@@ -752,7 +752,7 @@ theorem evalExpr_fileIlkClipClip {v : DogImmutables} {evm : EVM.State}
 theorem evalExpr_fileIlkClipClipIlk {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {clipIlk : Value}
     (hget : locals.get? "clipIlk" = some clipIlk) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "clipIlk") =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "clipIlk") =
       .ok clipIlk := by
   rw [evalExpr?]
   change EvalResult.ofOption EvalError.unboundVariable (locals.get? "clipIlk") =
@@ -764,7 +764,7 @@ theorem evalExpr_fileIlkClipIlkEqClipIlk_true {v : DogImmutables} {evm : EVM.Sta
     {I : ExecutionEnv} {locals : Store}
     (hilk : locals.get? "ilk" = some (fileIlkClipIlkValue I))
     (hclipIlk : locals.get? "clipIlk" = some (fileIlkClipIlkValue I)) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "ilk") (.var "clipIlk")) = .ok (.bool true) := by
   have hilkEval := evalExpr_fileIlkClipIlk (v := v) (evm := evm) (I := I)
     (locals := locals) hilk
@@ -782,7 +782,7 @@ theorem evalExpr_fileIlkClipIlkEqClipIlk_false {v : DogImmutables} {evm : EVM.St
       some (.fixedBytes bytes32Width clipIlkBytes))
     (hneq :
       (fileIlkClipIlkValue I : Value) ≠ .fixedBytes bytes32Width clipIlkBytes) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .eq (.var "ilk") (.var "clipIlk")) = .ok (.bool false) := by
   have hilkEval := evalExpr_fileIlkClipIlk (v := v) (evm := evm) (I := I)
     (locals := locals) hilk
@@ -795,30 +795,30 @@ theorem evalExpr_fileIlkClipIlkEqClipIlk_false {v : DogImmutables} {evm : EVM.St
 
 theorem evalExprs_fileIlkClipEmptyArgs {v : DogImmutables} {evm : EVM.State}
     {locals : Store} :
-    evalExprs? (config v) { contract := contract v, locals := locals } evm [] = .ok [] := by
+    evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evm [] = .ok [] := by
   rfl
 
 theorem evalExpr_fileIlkClipCodeGuard_true {v : DogImmutables}
     {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hreceiver :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "clip") =
         .ok (.address (fileIlkClipClip I)))
     (hcode :
       0 < (UInt256.ofNat
         ((evm.lookupAccount (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) := by
   simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat, hcode]
 
 theorem evalExpr_fileIlkClipCodeGuard_false {v : DogImmutables}
     {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hreceiver :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "clip") =
         .ok (.address (fileIlkClipClip I)))
     (hcode :
       (UInt256.ofNat
         ((evm.lookupAccount (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool false) := by
   simp [evalExpr?, EvalResult.bind, bind, hreceiver, evalBinaryOp?, EVM.Word.ofNat, hcode]
 
@@ -891,19 +891,19 @@ theorem assign_fileIlkClipClipStorage (v : DogImmutables) (evm : EVM.State)
       (setAddressOffset0Word
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (fileIlkClipSlotFor I))
         (fileIlkClipClipKey I))
-    assignStorageRef? (config v) { contract := contract v, locals := locals } evm
+    assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm
       .storage (ilksF (.var "ilk") "clip") (.address (fileIlkClipClip I)) =
-        .ok ({ contract := contract v, locals := locals }, evm') := by
+        .ok ({ contract := contract, locals := locals, immutables := immStore v }, evm') := by
   intro evm'
   rw [fileIlkClipClip_value_masked I]
   have hkeyLen : (fileIlkClipIlkBytes I).length = bytes32Width.val + 1 := by
     simpa [bytes32Width] using fileIlkClipIlkBytes_len32 (I := I) hsz100
   have her :
-      evalStorageRef (config v) { contract := contract v, locals := locals } evm
+      evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm
           (ilksF (.var "ilk") "clip") =
         .ok (fileIlkClipIlkKey I |> fun k => { base := "ilks", steps := [.mindex k, .field "clip"] }) := by
     have hilk :
-        evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "ilk") =
+        evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "ilk") =
           .ok (fileIlkClipIlkValue I) :=
       evalExpr_fileIlkClipIlk (I := I) hilk
     simp [ilksF, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, hilk,
@@ -938,10 +938,10 @@ theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
-    (hdec : (config v).externalABI.decode? "ilk" out = some [fileIlkClipIlkValue I]) :
+    (hdec : config.externalABI.decode? "ilk" out = some [fileIlkClipIlkValue I]) :
     let locals := fileIlkClipLocals I
     let locals1 := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -950,49 +950,49 @@ theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
       (setAddressOffset0Word
         (Solm.EVM.storageLoad evmCall evmCall.executionEnv.codeOwner (fileIlkClipSlotFor I))
         (fileIlkClipClipKey I))
-    (ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      (.returned { contract := contract v, locals := locals1 } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody (config v) (contract v)
-        evm0 locals fileIlkClipTransition.body .staticViolation) := by
+    (ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      (.returned { contract := contract, locals := locals1, immutables := immStore v } evm1 none) (immStore v)) ∧
+      (I.perm = false → ExecTransitionBody config contract
+        evm0 locals fileIlkClipTransition.body .staticViolation (immStore v)) := by
   intro locals locals1 evm0 evm1
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool true) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_true (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hwhat)
   have hclip :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     simpa [locals] using
       (evalExpr_fileIlkClipClip (v := v) (evm := evm0) (I := I)
         (locals := locals) (by simp [locals, fileIlkClipLocals]))
   have hcodeGuard :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) := by
     exact evalExpr_fileIlkClipCodeGuard_true (v := v) (locals := locals) (I := I)
       hclip (by simpa [evm0] using hcodePos)
   have hcall' :
-      typedCallViaEVM (config v) evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
+      typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false := by
     simpa [evm0] using hcall
   have hcallStmt :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false))
-        (.ok { contract := contract v, locals := locals1 } evmCall) := by
+        (.ok { contract := contract, locals := locals1, immutables := immStore v } evmCall) := by
     simpa [locals1, fileIlkClipLocalsClipIlk, collapseReturns] using
-      (ExecStmt.externalCallSuccess (cfg := config v)
-        (solm := { contract := contract v, locals := locals }) (evm := evm0)
+      (ExecStmt.externalCallSuccess (cfg := config)
+        (solm := { contract := contract, locals := locals, immutables := immStore v }) (evm := evm0)
         (receiver := .var "clip") (name := "ilk") (eth := .intLit 0) (args := [])
         (retVar := "clipIlk") (perm := false) hclip (by simp [evalExpr?, pure])
         (evalExprs_fileIlkClipEmptyArgs (v := v) (evm := evm0) (locals := locals))
         hcall' hdec)
   have heq :
-      evalExpr? (config v) { contract := contract v, locals := locals1 } evmCall
+      evalExpr? config { contract := contract, locals := locals1, immutables := immStore v } evmCall
         (.binary .eq (.var "ilk") (.var "clipIlk")) = .ok (.bool true) := by
     exact evalExpr_fileIlkClipIlkEqClipIlk_true (v := v) (evm := evmCall) (I := I)
       (locals := locals1)
@@ -1001,16 +1001,16 @@ theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
       (by simpa [locals1] using
         fileIlkClipLocalsClipIlk_get_clipIlk I (fileIlkClipIlkValue I))
   have hclipPost :
-      evalExpr? (config v) { contract := contract v, locals := locals1 } evmCall (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals1, immutables := immStore v } evmCall (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     exact evalExpr_fileIlkClipClip (v := v) (evm := evmCall) (I := I)
       (locals := locals1)
       (by simpa [locals1] using
         fileIlkClipLocalsClipIlk_get_clip I (fileIlkClipIlkValue I))
   have hassign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals1 } evmCall
+      assignStorageRef? config { contract := contract, locals := locals1, immutables := immStore v } evmCall
         .storage (ilksF (.var "ilk") "clip") (.address (fileIlkClipClip I)) =
-          .ok ({ contract := contract v, locals := locals1 }, evm1) := by
+          .ok ({ contract := contract, locals := locals1, immutables := immStore v }, evm1) := by
     simpa [evm1] using
       (assign_fileIlkClipClipStorage v evmCall (I := I) (locals := locals1)
         hsz100
@@ -1019,9 +1019,9 @@ theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
         (by simpa [locals1] using
           fileIlkClipLocalsClipIlk_get_ilk I (fileIlkClipIlkValue I)))
   have hprefix {result : ExecResult}
-      (hwrite : ExecBlock (config v) { contract := contract v, locals := locals1 }
+      (hwrite : ExecBlock config { contract := contract, locals := locals1, immutables := immStore v }
         evmCall [.assign .storage (ilksF (.var "ilk") "clip") (.var "clip")] result) :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1048,48 +1048,48 @@ theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (false, evmCall, out) false) :
     let locals := fileIlkClipLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool true) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_true (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hwhat)
   have hclip :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     simpa [locals] using
       (evalExpr_fileIlkClipClip (v := v) (evm := evm0) (I := I)
         (locals := locals) (by simp [locals, fileIlkClipLocals]))
   have hcodeGuard :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) := by
     exact evalExpr_fileIlkClipCodeGuard_true (v := v) (locals := locals) (I := I)
       hclip (by simpa [evm0] using hcodePos)
   have hcall' :
-      typedCallViaEVM (config v) evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
+      typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (false, evmCall, out) false := by
     simpa [evm0] using hcall
   have hcallStmt :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false))
         .reverted := by
     exact ExecStmt.externalCallFailure hclip (by simp [evalExpr?, pure])
       (evalExprs_fileIlkClipEmptyArgs (v := v) (evm := evm0) (locals := locals))
       hcall'
   have hthenRaw :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .require (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)),
           .externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false),
           .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1098,7 +1098,7 @@ theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
     exact ExecBlock.consNormal (ExecStmt.requireTrue hcodeGuard)
       (ExecBlock.consRevert hcallStmt)
   have hthen :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         (checkedExternalCallStmts (.var "clip") "ilk" (.intLit 0) [] "clipIlk"
           (perm := false) ++
           [ .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1106,7 +1106,7 @@ theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
         .reverted := by
     simpa [checkedExternalCallStmts] using hthenRaw
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1124,49 +1124,49 @@ theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {σ σ₀ A I}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
-    (hdec : (config v).externalABI.decode? "ilk" out = none) :
+    (hdec : config.externalABI.decode? "ilk" out = none) :
     let locals := fileIlkClipLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool true) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_true (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hwhat)
   have hclip :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     simpa [locals] using
       (evalExpr_fileIlkClipClip (v := v) (evm := evm0) (I := I)
         (locals := locals) (by simp [locals, fileIlkClipLocals]))
   have hcodeGuard :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) := by
     exact evalExpr_fileIlkClipCodeGuard_true (v := v) (locals := locals) (I := I)
       hclip (by simpa [evm0] using hcodePos)
   have hcall' :
-      typedCallViaEVM (config v) evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
+      typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false := by
     simpa [evm0] using hcall
   have hcallStmt :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false))
         .reverted := by
     exact ExecStmt.externalCallReturnDecodeRevert hclip (by simp [evalExpr?, pure])
       (evalExprs_fileIlkClipEmptyArgs (v := v) (evm := evm0) (locals := locals))
       hcall' hdec
   have hthenRaw :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .require (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)),
           .externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false),
           .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1175,7 +1175,7 @@ theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {σ σ₀ A I}
     exact ExecBlock.consNormal (ExecStmt.requireTrue hcodeGuard)
       (ExecBlock.consRevert hcallStmt)
   have hthen :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         (checkedExternalCallStmts (.var "clip") "ilk" (.intLit 0) [] "clipIlk"
           (perm := false) ++
           [ .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1183,7 +1183,7 @@ theorem fileIlkClipDecodeRevertSourceBody {v : DogImmutables} {σ σ₀ A I}
         .reverted := by
     simpa [checkedExternalCallStmts] using hthenRaw
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1202,32 +1202,32 @@ theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {σ σ₀ A I}
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := fileIlkClipLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool true) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_true (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hwhat)
   have hclip :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     simpa [locals] using
       (evalExpr_fileIlkClipClip (v := v) (evm := evm0) (I := I)
         (locals := locals) (by simp [locals, fileIlkClipLocals]))
   have hcodeGuard :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool false) := by
     exact evalExpr_fileIlkClipCodeGuard_false (v := v) (locals := locals) (I := I)
       hclip (by simpa [evm0] using hcodeZero)
   have hthenRaw :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .require (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)),
           .externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false),
           .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1235,7 +1235,7 @@ theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {σ σ₀ A I}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse hcodeGuard)
   have hthen :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         (checkedExternalCallStmts (.var "clip") "ilk" (.intLit 0) [] "clipIlk"
           (perm := false) ++
           [ .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1243,7 +1243,7 @@ theorem fileIlkClipNoCodeSourceBody {v : DogImmutables} {σ σ₀ A I}
         .reverted := by
     simpa [checkedExternalCallStmts] using hthenRaw
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1261,58 +1261,58 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false)
     (hdec :
-      (config v).externalABI.decode? "ilk" out =
+      config.externalABI.decode? "ilk" out =
         some [.fixedBytes bytes32Width clipIlkBytes])
     (hneq :
       (fileIlkClipIlkValue I : Value) ≠ .fixedBytes bytes32Width clipIlkBytes) :
     let locals := fileIlkClipLocals I
     let locals1 := fileIlkClipLocalsClipIlk I (.fixedBytes bytes32Width clipIlkBytes)
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      .reverted (immStore v) := by
   intro locals locals1 evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool true) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_true (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hwhat)
   have hclip :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.var "clip") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.var "clip") =
         .ok (.address (fileIlkClipClip I)) := by
     simpa [locals] using
       (evalExpr_fileIlkClipClip (v := v) (evm := evm0) (I := I)
         (locals := locals) (by simp [locals, fileIlkClipLocals]))
   have hcodeGuard :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) := by
     exact evalExpr_fileIlkClipCodeGuard_true (v := v) (locals := locals) (I := I)
       hclip (by simpa [evm0] using hcodePos)
   have hcall' :
-      typedCallViaEVM (config v) evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
+      typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I)) "ilk" 0 []
         (true, evmCall, out) false := by
     simpa [evm0] using hcall
   have hcallStmt :
-      ExecStmt (config v) { contract := contract v, locals := locals } evm0
+      ExecStmt config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false))
-        (.ok { contract := contract v, locals := locals1 } evmCall) := by
+        (.ok { contract := contract, locals := locals1, immutables := immStore v } evmCall) := by
     simpa [locals1, fileIlkClipLocalsClipIlk, collapseReturns] using
-      (ExecStmt.externalCallSuccess (cfg := config v)
-        (solm := { contract := contract v, locals := locals }) (evm := evm0)
+      (ExecStmt.externalCallSuccess (cfg := config)
+        (solm := { contract := contract, locals := locals, immutables := immStore v }) (evm := evm0)
         (receiver := .var "clip") (name := "ilk") (eth := .intLit 0) (args := [])
         (retVar := "clipIlk") (perm := false) hclip (by simp [evalExpr?, pure])
         (evalExprs_fileIlkClipEmptyArgs (v := v) (evm := evm0) (locals := locals))
         hcall' hdec)
   have heq :
-      evalExpr? (config v) { contract := contract v, locals := locals1 } evmCall
+      evalExpr? config { contract := contract, locals := locals1, immutables := immStore v } evmCall
         (.binary .eq (.var "ilk") (.var "clipIlk")) = .ok (.bool false) := by
     exact evalExpr_fileIlkClipIlkEqClipIlk_false (v := v) (evm := evmCall) (I := I)
       (locals := locals1)
@@ -1322,7 +1322,7 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
         fileIlkClipLocalsClipIlk_get_clipIlk I (.fixedBytes bytes32Width clipIlkBytes))
       hneq
   have hthenRaw :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [ .require (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)),
           .externalCall (.var "clip") "ilk" (.intLit 0) [] "clipIlk" (perm := false),
           .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1332,7 +1332,7 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
       (ExecBlock.consNormal hcallStmt
         (ExecBlock.consRevert (ExecStmt.requireFalse heq)))
   have hthen :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         (checkedExternalCallStmts (.var "clip") "ilk" (.intLit 0) [] "clipIlk"
           (perm := false) ++
           [ .require (.binary .eq (.var "ilk") (.var "clipIlk")),
@@ -1340,7 +1340,7 @@ theorem fileIlkClipMismatchSourceBody {v : DogImmutables} {σ σ₀ A I}
         .reverted := by
     simpa [checkedExternalCallStmts] using hthenRaw
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -1355,29 +1355,29 @@ theorem fileIlkClipUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     (hnotClip : fileIlkClipWhat I ≠ fileIlkClipClipBytes) :
     let locals := fileIlkClipLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      .reverted := by
+    ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+      .reverted (immStore v) := by
   intro locals evm0
   have hguard := dogAuthGuardEval_true (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := locals) (by simp [locals, fileIlkClipLocals]) hauth
   have hcond :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.var "what") clipParamLit) = .ok (.bool false) := by
     simpa [clipParamLit, fileIlkClipClipBytes] using
       (evalExpr_fileIlkClipWhatEq_false (v := v) (evm := evm0) (I := I)
         (locals := locals) (bs := fileIlkClipClipBytes)
         (by simpa [locals] using fileIlkClipLocals_get_what I) hnotClip)
   have hreqFalse :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.boolLit false) = .ok (.bool false) := by
     simp [evalExpr?, pure]
   have helse :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         [.require (.boolLit false)] .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse hreqFalse)
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
         fileIlkClipTransition.body .reverted := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -2246,7 +2246,7 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
           fileIlkClipClipKey I :: fileIlkClipClipKey I ::
           fileIlkClipWhatWord I :: fileIlkClipIlkWord I :: ret :: sel :: R)
         (fileIlkClipPostCallMem mem out) (UInt256.ofNat 5) out σ' k' C'
-      ∧ typedCallViaEVM (config v) (initState σ σ₀ g A I)
+      ∧ typedCallViaEVM config (initState σ σ₀ g A I)
           (EVM.address (fileIlkClipClip I)) "ilk" 0 []
           (z,
             { initState σ σ₀ g A I with
@@ -2298,7 +2298,7 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
             ((fileIlkClipCallMem mem).readWithPadding 128 4) (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [accountAddress_roundtrip I.codeOwner] using hΘ'
     refine ⟨(fileIlkClipCallMem mem).readWithPadding 128 4,
-      fileIlkClipEncode_eq (v := v) hmem, ?_⟩
+      fileIlkClipEncode_eq hmem, ?_⟩
     rw [fileIlkClipClip_eq_clipKey I]
     have htargetNorm :
         AccountAddress.ofUInt256 (fileIlkClipClipKey I) =
@@ -3013,11 +3013,11 @@ theorem dogFileIlkClipBodyCoreDecodeFailed_short
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkClipTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some fileIlkClipTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -3044,7 +3044,7 @@ theorem dogFileIlkClipBodyCoreDecodeFailed_short
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
-    (dogDecode_fileIlkClip_none_short (v := v) hsz4 hshort)
+    (dogDecode_fileIlkClip_none_short hsz4 hshort)
 
 theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -3053,16 +3053,16 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkClipTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some fileIlkClipTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode
+      decodeCalldataWithMode config.abiDecodeMode
         (fileIlkClipTransition.params.map Param.name)
         (transitionSignature fileIlkClipTransition).paramTypes I.calldata =
           some (fileIlkClipLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨735⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let callerSlot := dogCallerWardsSlot I
   let locals := fileIlkClipLocals I
   have henc : returnEquiv ByteArray.empty none fileIlkClipTransition.returnType := by
@@ -3100,8 +3100,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody (config v) (contract v) evm0 locals
-              fileIlkClipTransition.body .reverted := by
+            ExecTransitionBody config contract evm0 locals
+              fileIlkClipTransition.body .reverted (immStore v) := by
           simpa [evm0, locals] using
             (fileIlkClipNoCodeSourceBody (v := v)
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -3128,12 +3128,12 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           let evmPostEvm :=
             { evmEvm with accountMap := σ', substate := A' }
           have hcallEvm :
-              typedCallViaEVM (config v) evmEvm (EVM.address (fileIlkClipClip I))
+              typedCallViaEVM config evmEvm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostEvm, out) false := by
             simpa [evmEvm, evmPostEvm] using hcallEvmRaw
           let evmPostSolm := evmPostEvm
           have hcallSolm :
-              typedCallViaEVM (config v) evmSolm (EVM.address (fileIlkClipClip I))
+              typedCallViaEVM config evmSolm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostSolm, out) false := by
             simpa [evmSolm, evmEvm, evmPostSolm] using hcallEvm
           have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := ⟨rfl, rfl⟩
@@ -3141,8 +3141,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           · simp only [Bool.false_eq_true, if_false] at rd2582 hcallSolm
             have hrev := RD.dogFileIlkClipCallFailure hpatch rd2582 hosz (by simp)
             have hbody :
-                ExecTransitionBody (config v) (contract v) evmSolm locals
-                  fileIlkClipTransition.body .reverted := by
+                ExecTransitionBody config contract evmSolm locals
+                  fileIlkClipTransition.body .reverted (immStore v) := by
               simpa [evmSolm, locals] using
                 (fileIlkClipCallFailureSourceBody (v := v)
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -3172,9 +3172,9 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               · have hrdretSplit := RD.dogFileIlkClipSuccessStopSplit hpatch rd2623 hretMatch
                   hpostMemSize hpostRead64
                 have hdecRet :
-                    (config v).externalABI.decode? "ilk" out =
+                    config.externalABI.decode? "ilk" out =
                       some [fileIlkClipIlkValue I] := by
-                  have hdecRaw := fileIlkClipDecode_ilk_return_ok (v := v) hlo
+                  have hdecRaw := fileIlkClipDecode_ilk_return_ok hlo
                   simpa [fileIlkClipDecodedReturn_eq_ilkValue (I := I) (out := out)
                     hsz100 hretMatch] using hdecRaw
                 let actualSlot := solcMappingSlot ⟨1⟩ (fileIlkClipIlkWord I)
@@ -3189,14 +3189,14 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   simpa [actualSlot, sourceSlot] using
                     (fileIlkClipSlotFor_eq (I := I) hsz100).symm
                 have hbodySplit :
-                    (ExecTransitionBody (config v) (contract v) evmSolm locals
+                    (ExecTransitionBody config contract evmSolm locals
                       fileIlkClipTransition.body
                       (.returned
-                        { contract := contract v,
-                          locals := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I) }
-                        evm1 none)) ∧
-                    (I.perm = false → ExecTransitionBody (config v) (contract v)
-                      evmSolm locals fileIlkClipTransition.body .staticViolation) := by
+                        { contract := contract,
+                          locals := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I), immutables := immStore v }
+                        evm1 none) (immStore v)) ∧
+                    (I.perm = false → ExecTransitionBody config contract
+                      evmSolm locals fileIlkClipTransition.body .staticViolation (immStore v)) := by
                   simpa [evmSolm, locals, evm1] using
                     (fileIlkClipSuccessSourceBodySplit (v := v)
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -3242,18 +3242,18 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               · have hrev := RD.dogFileIlkClipMismatchRevert hpatch rd2623 hretMatch
                   hpostMemSize hpostRead64 (by simp)
                 have hdecRet :
-                    (config v).externalABI.decode? "ilk" out =
+                    config.externalABI.decode? "ilk" out =
                       some [.fixedBytes bytes32Width
                         (EVM.Word.toBytesBE (uInt256OfByteArray (out.extract 0 32)))] :=
-                  fileIlkClipDecode_ilk_return_ok (v := v) hlo
+                  fileIlkClipDecode_ilk_return_ok hlo
                 have hneqValue :
                     (fileIlkClipIlkValue I : Value) ≠
                       .fixedBytes bytes32Width
                         (EVM.Word.toBytesBE (uInt256OfByteArray (out.extract 0 32))) :=
                   fileIlkClipDecodedReturn_ne_ilkValue hsz100 hretMatch
                 have hbody :
-                    ExecTransitionBody (config v) (contract v) evmSolm locals
-                      fileIlkClipTransition.body .reverted := by
+                    ExecTransitionBody config contract evmSolm locals
+                      fileIlkClipTransition.body .reverted (immStore v) := by
                   simpa [evmSolm, locals] using
                     (fileIlkClipMismatchSourceBody (v := v)
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -3265,11 +3265,11 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             · have hshortRet : out.size < 32 := Nat.lt_of_not_ge hlo
               have hrev := RD.dogFileIlkClipReturnDecodeShortReverts hpatch rd2600
                 hmemAuth hread64Auth hshortRet hosz (by simp)
-              have hdecRet : (config v).externalABI.decode? "ilk" out = none :=
-                fileIlkClipDecode_ilk_return_none_short (v := v) hshortRet
+              have hdecRet : config.externalABI.decode? "ilk" out = none :=
+                fileIlkClipDecode_ilk_return_none_short hshortRet
               have hbody :
-                  ExecTransitionBody (config v) (contract v) evmSolm locals
-                    fileIlkClipTransition.body .reverted := by
+                  ExecTransitionBody config contract evmSolm locals
+                    fileIlkClipTransition.body .reverted (immStore v) := by
                 simpa [evmSolm, locals] using
                   (fileIlkClipDecodeRevertSourceBody (v := v)
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -3290,17 +3290,17 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             { evm0 with
               substate := (evm0.addAccessedAccount (EVM.address (fileIlkClipClip I))).substate }
           have hcallDepth :
-              typedCallViaEVM (config v) evm0 (EVM.address (fileIlkClipClip I))
+              typedCallViaEVM config evm0 (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (false, evmCall, ByteArray.empty) false := by
             simpa [evm0, evmCall, initState] using
-              (callNotMade_depthLimit (cfg := config v) (evm := evm0)
+              (callNotMade_depthLimit (cfg := config) (evm := evm0)
                 (tgt := EVM.address (fileIlkClipClip I)) (name := "ilk")
                 (args := []) (callPerm := false)
-                (fileIlkClipEncode_eq (v := v) hmemAuth)
+                (fileIlkClipEncode_eq hmemAuth)
                 (by simpa [evm0, initState] using hdepth1024))
           have hbody :
-              ExecTransitionBody (config v) (contract v) evm0 locals
-                fileIlkClipTransition.body .reverted := by
+              ExecTransitionBody config contract evm0 locals
+                fileIlkClipTransition.body .reverted (immStore v) := by
             simpa [evm0, locals] using
               (fileIlkClipCallFailureSourceBody (v := v)
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -3313,8 +3313,8 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           fileIlkClipClipBytes_length
       let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody (config v) (contract v) evm0 locals
-            fileIlkClipTransition.body .reverted := by
+          ExecTransitionBody config contract evm0 locals
+            fileIlkClipTransition.body .reverted (immStore v) := by
         simpa [evm0, locals] using
           (fileIlkClipUnrecognizedSourceBody (v := v)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -3330,14 +3330,14 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
       exact hauthEvm hsolm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
-        ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-          .reverted := by
+        ExecTransitionBody config contract evm0 locals fileIlkClipTransition.body
+          .reverted (immStore v) := by
       have hguard := dogAuthGuardEval_false (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fileIlkClipLocals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
-        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
         (rest := [
@@ -3364,17 +3364,17 @@ theorem dogFileIlkClipBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 10)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 10) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some fileIlkClipTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some fileIlkClipTransition :=
     dogDispatchFileIlkClip hsel
   have hreach := dogReachFileIlkClipBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · exact dogFileIlkClipBodyCoreOk hpatch hcode hwv hsz100 hsize hdispatch
-      (dogDecode_fileIlkClip_ok (v := v) hsz100) hreach
+      (dogDecode_fileIlkClip_ok hsz100) hreach
   · exact dogFileIlkClipBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

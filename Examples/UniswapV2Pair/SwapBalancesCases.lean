@@ -30,7 +30,8 @@ theorem uniswapSwapBalancesCases
     (hin : 96 ≤ mem.size) (hgap : ptr.toNat - mem.size < USize.size) (hlo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hawLo : 96 ≤ aw.toNat * 32)
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
-    (hov : R.length + 25 ≤ 1024) :
+    (hov : R.length + 25 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecBlock config caller evm swapBalanceStmts .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     ∃ evm' σ' mem' aw' out balance0 balance1 k' C',
       ExecBlock config caller evm swapBalanceStmts
@@ -41,9 +42,9 @@ theorem uniswapSwapBalancesCases
       RD uniswapV2PairBytecode I g s0 ⟨2331⟩
         (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
           toWord :: amount1Out :: amount0Out :: R) mem' aw' out σ' k' C' := by
-  rcases caller with ⟨decl, locals⟩
-  dsimp only at hcaller
-  subst decl
+  rcases caller with ⟨decl, locals, imms⟩
+  dsimp only at hcaller himm
+  subst decl imms
   rw [address_of_val] at htarget0 htarget1
   obtain ⟨_, _, rd2149⟩ := RD.uniswapSwapBalance0Prepared rd2091 hin hgap hlo haw hawLo
     hfit hread (by omega)

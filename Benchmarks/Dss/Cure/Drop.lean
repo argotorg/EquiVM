@@ -1279,7 +1279,7 @@ theorem cureDropReturnRuntimeEquiv
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
         dropTransition.body (.returned fr evm' none))
     (haccounts : acc = evm'.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none dropTransition.returnType := by
     rw [show dropTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -1324,7 +1324,7 @@ theorem cureDropSwapBranchRefinement {σ σ₀ A I} {g sel key : UInt256}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (solcSlotWordAt (dropPosSlotFor I) σ I)
           (solcSlotWordAt ⟨2⟩ σ I)).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hposEvm : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩ := by
     intro hz
     apply hposSolm
@@ -1376,7 +1376,7 @@ theorem cureDropBodyCore {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 3))
     (_hStorageWF : cureStorageWF σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let key := dropKey I
   let callerSlot := cureCallerWardsSlot I

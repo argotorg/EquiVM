@@ -31,7 +31,7 @@ import Benchmarks.Dss.End.Thaw
 import Benchmarks.Dss.End.Flow
 import Benchmarks.Dss.End.Pack
 import Benchmarks.Dss.End.Cash
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS End benchmark correctness
@@ -42,8 +42,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.End
 
 theorem endCorrect :
-    runtimeEquivalence config endBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config endBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)
@@ -144,7 +144,7 @@ theorem endCorrect :
   · exact endNonPayable hcode hwv
 
 theorem endContractCorrect :
-    contractEquivalence config endCreationBytecode endBytecode contract :=
-  contractEquivalence.intro endConstructorCorrect endCorrect
+    contractRefinement config endCreationBytecode contract :=
+  contractRefinement.of_constant endConstructorCorrect endCorrect
 
 end Benchmarks.Dss.End

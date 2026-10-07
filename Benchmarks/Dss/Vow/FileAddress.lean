@@ -1476,7 +1476,7 @@ theorem vowFileAddressFlopperAuthorizedBodyCore
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotFlapper : fileAddressWhat I ≠ fileAddressFlapperBytes)
     (hwhat : fileAddressWhat I = fileAddressFlopperBytes) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let dataKey := fileAddressDataKey I
   let locals := fileAddressLocals I
   let callerSlot := vowCallerWardsSlot I
@@ -1534,7 +1534,7 @@ theorem vowFileAddressUnrecognizedAuthorizedBodyCore
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotFlapper : fileAddressWhat I ≠ fileAddressFlapperBytes)
     (hnotFlopper : fileAddressWhat I ≠ fileAddressFlopperBytes) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let callerSlot := vowCallerWardsSlot I
   have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
@@ -1566,7 +1566,7 @@ theorem vowFileAddressAuthRevertBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨737⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
   let callerSlot := vowCallerWardsSlot I
   have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := hauthEvm
@@ -1616,7 +1616,7 @@ theorem vowFileAddressNonFlapperBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨737⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnotFlapper : fileAddressWhat I ≠ fileAddressFlapperBytes) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let callerSlot := vowCallerWardsSlot I
   by_cases hauthEvm : solcSlotWordAt callerSlot σ I = ⟨1⟩
   · by_cases hflopper : fileAddressWhat I = fileAddressFlopperBytes
@@ -1635,7 +1635,7 @@ theorem vowFileAddressNonFlapperBody {σ σ₀ A I} {g : UInt256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩)
     (hnotFlapper : fileAddressWhat I ≠ fileAddressFlapperBytes) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
   exact vowFileAddressNonFlapperBodyCore (sel := vowSelWord I) hcode hwv hsz68 hsize
     (vowDispatch_fileAddress hsel)
@@ -1648,7 +1648,7 @@ theorem vowFileAddressShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachFileAddressBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

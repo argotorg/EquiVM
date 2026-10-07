@@ -1375,16 +1375,16 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 10)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 10) (by native_decide) hsel
-  have hdispatch := clipperDispatch_fileAddress v hsel
+  have hdispatch := clipperDispatch_fileAddress hsel
   have hreachEntry :=
     clipperReachFileAddressBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) v hpatch hcode hwv
       hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · have hdecode := clipperDecode_fileAddress_ok v (I := I) hsz68
+  · have hdecode := clipperDecode_fileAddress_ok (I := I) hsz68
     have hreachBody :=
       clipperFileAddressDecodedToBody
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1419,9 +1419,9 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
           let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm2 := clipperFileAddressPostState evmSolm ⟨3⟩ data
           have hbody :
-              ExecTransitionBody (config v) (contract v) evmSolm locals
+              ExecTransitionBody config contract evmSolm locals
                 fileAddressTransition.body
-                (.returned { contract := contract v, locals := locals } evm2 none) := by
+                (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
             simpa [evmSolm, evm2, locals, data] using
               (clipperFileAddressSpotterSourceBody
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1449,9 +1449,9 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
             let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             let evm2 := clipperFileAddressPostState evmSolm ⟨1⟩ data
             have hbody :
-                ExecTransitionBody (config v) (contract v) evmSolm locals
+                ExecTransitionBody config contract evmSolm locals
                   fileAddressTransition.body
-                  (.returned { contract := contract v, locals := locals } evm2 none) := by
+                  (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
               simpa [evmSolm, evm2, locals, data] using
                 (clipperFileAddressDogSourceBody
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1480,9 +1480,9 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
               let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evm2 := clipperFileAddressPostState evmSolm ⟨2⟩ data
               have hbody :
-                  ExecTransitionBody (config v) (contract v) evmSolm locals
+                  ExecTransitionBody config contract evmSolm locals
                     fileAddressTransition.body
-                    (.returned { contract := contract v, locals := locals } evm2 none) := by
+                    (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                 simpa [evmSolm, evm2, locals, data] using
                   (clipperFileAddressVowSourceBody
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1512,9 +1512,9 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                 let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 let evm2 := clipperFileAddressPostState evmSolm ⟨4⟩ data
                 have hbody :
-                    ExecTransitionBody (config v) (contract v) evmSolm locals
+                    ExecTransitionBody config contract evmSolm locals
                       fileAddressTransition.body
-                      (.returned { contract := contract v, locals := locals } evm2 none) := by
+                      (.returned { contract := contract, locals := locals, immutables := immStore v } evm2 none) (immStore v) := by
                   simpa [evmSolm, evm2, locals, data] using
                     (clipperFileAddressCalcSourceBody
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1538,8 +1538,8 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                     (bs := clipperFileAddressCalcBytes) (by omega) hcalc (by native_decide)
                 let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
-                    ExecTransitionBody (config v) (contract v) evmSolm locals
-                      fileAddressTransition.body .reverted := by
+                    ExecTransitionBody config contract evmSolm locals
+                      fileAddressTransition.body .reverted (immStore v) := by
                   simpa [evmSolm, locals] using
                     (clipperFileAddressUnrecognizedSourceBody
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -1566,8 +1566,8 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
           exact hlockedEvm (by rw [hlockWord, hsolm])
         let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
-            ExecTransitionBody (config v) (contract v) evmSolm locals
-              fileAddressTransition.body .reverted := by
+            ExecTransitionBody config contract evmSolm locals
+              fileAddressTransition.body .reverted (immStore v) := by
           simpa [evmSolm, locals] using
             (clipperFileAddressLockedSourceReverts
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
@@ -1582,8 +1582,8 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
         exact hauthEvm (by rw [hauthWord, hsolm])
       let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
-          ExecTransitionBody (config v) (contract v) evmSolm locals
-            fileAddressTransition.body .reverted := by
+          ExecTransitionBody config contract evmSolm locals
+            fileAddressTransition.body .reverted (immStore v) := by
         simpa [evmSolm, locals] using
           (clipperFileAddressAuthSourceReverts
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
@@ -1593,6 +1593,6 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
   · have hshort : I.calldata.size < 68 := by omega
     have hrev := clipperFileAddressX_shortarg (v := v) hpatch hsz4 hsize hshort hreachEntry
     exact hrev.reEquivDecodingFailed hcode hdispatch
-      (clipperDecode_fileAddress_none_short v hsz4 hshort)
+      (clipperDecode_fileAddress_none_short hsz4 hshort)
 
 end Benchmarks.Dss.Clipper

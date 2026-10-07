@@ -18,7 +18,7 @@ import Benchmarks.Dss.Flipper.Ttl
 import Benchmarks.Dss.Flipper.Vat
 import Benchmarks.Dss.Flipper.Wards
 import Benchmarks.Dss.Flipper.YankBody
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flipper benchmark correctness stub
@@ -78,8 +78,8 @@ theorem flipperNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs, flipperSelBytes] using hyank
 
 theorem flipperCorrect :
-    runtimeEquivalence config flipperBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config flipperBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
@@ -137,7 +137,7 @@ theorem flipperCorrect :
   · exact flipperNonPayable hcode hwv
 
 theorem flipperContractCorrect :
-    contractEquivalence config flipperCreationBytecode flipperBytecode contract :=
-  contractEquivalence.intro flipperConstructorCorrect flipperCorrect
+    contractRefinement config flipperCreationBytecode contract :=
+  contractRefinement.of_constant flipperConstructorCorrect flipperCorrect
 
 end Benchmarks.Dss.Flipper

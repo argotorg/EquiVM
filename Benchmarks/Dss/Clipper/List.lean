@@ -153,17 +153,17 @@ theorem clipperListBody (v : ClipperImmutables) {code : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 15))
     (hStorageWF : clipperStorageWF σ I) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 15) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.array
             (clipperActiveArrayValues
-              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))])) := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))])) (immStore v) := by
     exact clipperListBodyReturnsActive v
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv) (by simp)
@@ -187,7 +187,7 @@ theorem clipperListBody (v : ClipperImmutables) {code : ByteArray}
     by_cases hlen : solcSlotWord σ I ⟨11⟩ = ⟨0⟩
     · exact clipperX_list_empty v hpatch hreach hlen
     · exact clipperX_list_nonempty v hpatch hStorageWF hreach hlen
-  exact hret.reEquivExecution hcode (clipperDispatch_list v hsel)
-    (clipperDecode_list v hsz) hbody henc
+  exact hret.reEquivExecution hcode (clipperDispatch_list hsel)
+    (clipperDecode_list hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

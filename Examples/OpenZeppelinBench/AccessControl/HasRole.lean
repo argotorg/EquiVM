@@ -560,7 +560,7 @@ theorem accessControlHasRoleBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)

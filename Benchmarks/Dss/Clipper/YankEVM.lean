@@ -353,7 +353,7 @@ theorem clipperDogDigsCalldataMem_read128_68 (v : ClipperImmutables) (tab : UInt
 
 theorem clipperDogDigsEncode_eq (v : ClipperImmutables) (tab : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
+    config.externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
       some ((clipperDogDigsCalldataMem v tab mem).readWithPadding 128 68) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
   rw [hilk]
@@ -717,7 +717,7 @@ theorem clipperVatFluxCalldataMem_read128_132 (v : ClipperImmutables) (I : Execu
 
 theorem clipperVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (lot : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "flux"
+    config.externalABI.encode? "flux"
       [v.ilk, .address I.codeOwner, .address I.source, .int (Int.ofNat lot.toNat)] =
       some ((clipperVatFluxCalldataMem v I lot mem).readWithPadding 128 132) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
@@ -1601,7 +1601,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
         outDog σ_dog k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat tab.toNat)]
@@ -1631,7 +1631,7 @@ theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
   · exact rd2317raw
   · let evmDog : EVM.State :=
       { initState σStart σ₀ g A I with accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmDog)
       (name := "digs") (args := [v.ilk, .int (Int.ofNat tab.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target))

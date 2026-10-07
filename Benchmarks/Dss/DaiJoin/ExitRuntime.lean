@@ -61,7 +61,7 @@ theorem daiJoinExitBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
         (.internalCall "mul" [.intLit ONE, .var "wad"] "rad") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (exitStore I))
+      (caller := Frame.mk contract (exitStore I) ∅)
       (evm := evm) (name := "mul") (retVar := "rad")
       (args := [.intLit ONE, .var "wad"])
       (argVals := [.int (Int.ofNat daiJoinONEWord.toNat), exitWadValue I])
@@ -493,7 +493,7 @@ theorem daiJoinExitVatMoveCallFailedCore
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (hout : out.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmS := by
     simpa [evmS] using daiJoinExitVatMoveCallFailed rd1467 hout
@@ -580,7 +580,7 @@ theorem daiJoinExitDaiMintNoCodeCore
           ((exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem).readWithPadding
             128 100)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmS := by
     simpa [evmS] using daiJoinExitDaiMintNoCode rd1485 hdaiCodeSize
@@ -681,7 +681,7 @@ theorem daiJoinExitDaiMintCallFailedCore
               128 68)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
     (houtMint : outMint.size < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmS := by
     simpa [evmS] using daiJoinExitDaiMintCallFailed rd1576 houtMint
@@ -819,7 +819,7 @@ theorem daiJoinExitDaiMintSuccessCore
             (exitMoveCalldataMem I (daiJoinRadWord (exitWadWord I)) solcFreePtrMem)).readWithPadding
               128 68)
           (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   obtain ⟨_, _, rd1594⟩ := daiJoinExitDaiMintCallSucceeded rd1576
   have hmoveMemSize :
@@ -957,7 +957,7 @@ theorem daiJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiJoinSelBytes 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiJoinSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some exitTransition :=
@@ -980,7 +980,7 @@ theorem daiJoinExitBodyCore {σ σ₀ A I} {g : UInt256}
               joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I, exitWadWord I,
               exitUsrMaskedWord I, ⟨232⟩, daiJoinSelWord I]
             solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-          runtimeEquivalenceFor config contract σ σ₀ g A I := by
+          runtimeRefinementFor config contract σ σ₀ g A I := by
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ
               (daiJoinVatTargetWord σ I) = ⟨0⟩

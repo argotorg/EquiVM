@@ -226,7 +226,7 @@ theorem erc20TotalSupplyBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨769⟩
       [totalSupplySelectorWord] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel
@@ -256,7 +256,7 @@ theorem erc20TotalSupplyRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TotalSupplyBodyCore hcode hwv hsel
     (erc20X_totalSupplyReach (σ := σ)

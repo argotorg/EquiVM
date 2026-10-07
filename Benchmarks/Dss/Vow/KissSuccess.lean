@@ -947,7 +947,7 @@ theorem vowKissHealNoCodeBodyCore
       (UInt256.ofNat
         (((Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowKissHealNoCode rd1839 hmem hread64 hcodeSizeEvm
   have hbody := vowKissSourceHealNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1001,7 +1001,7 @@ theorem vowKissHealCallFailureBodyCore
         (Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner ⟨6⟩ AshNew)
         (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (kissRad I).toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowKissHealCallFailure rd1919 hrdataSize
   have hbody := vowKissSourceHealCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1056,7 +1056,7 @@ theorem vowKissHealSuccessBodyCore
         [.int (Int.ofNat (kissRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some [])
     (hAccountsFinal : Eq acc evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vowKissHealCallSuccess rd1919
   have hbody := vowKissSourceSuccess
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1074,7 +1074,7 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 36

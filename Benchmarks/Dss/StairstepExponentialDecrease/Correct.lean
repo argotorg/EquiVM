@@ -6,7 +6,7 @@ import Benchmarks.Dss.StairstepExponentialDecrease.Price
 import Benchmarks.Dss.StairstepExponentialDecrease.Rely
 import Benchmarks.Dss.StairstepExponentialDecrease.Step
 import Benchmarks.Dss.StairstepExponentialDecrease.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS StairstepExponentialDecrease benchmark correctness stub
@@ -23,8 +23,8 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.StairstepExponentialDecrease
 
 theorem stairstepExponentialDecreaseCorrect :
-    runtimeEquivalence config stairstepExponentialDecreaseBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config stairstepExponentialDecreaseBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
@@ -46,9 +46,8 @@ theorem stairstepExponentialDecreaseCorrect :
   · exact stairstepNonPayable hcode hwv
 
 theorem stairstepExponentialDecreaseContractCorrect :
-    contractEquivalence config stairstepExponentialDecreaseCreationBytecode
-      stairstepExponentialDecreaseBytecode contract :=
-  contractEquivalence.intro stairstepExponentialDecreaseConstructorCorrect
+    contractRefinement config stairstepExponentialDecreaseCreationBytecode contract :=
+  contractRefinement.of_constant stairstepExponentialDecreaseConstructorCorrect
     stairstepExponentialDecreaseCorrect
 
 end Benchmarks.Dss.StairstepExponentialDecrease

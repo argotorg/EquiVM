@@ -22,10 +22,10 @@ theorem clipperTakeTabZeroContinuationEquiv
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
-    (hdec : decodeCalldataWithMode (config v).abiDecodeMode
-      (List.map Param.name (takeTransition v).params)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata =
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
+    (hdec : decodeCalldataWithMode config.abiDecodeMode
+      (List.map Param.name takeTransition.params)
+      (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd4701 : RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4701⟩
@@ -50,25 +50,25 @@ theorem clipperTakeTabZeroContinuationEquiv
     (hvow : locals.get? "vow" = none)
     (htabZero : tabNew = ⟨0⟩) (hlotNe : lotNew ≠ ⟨0⟩)
     (hsourceReverted :
-      ExecBlock (config v) (Frame.mk (contract v) locals) evmCont
-        (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      ExecBlock config (Frame.mk contract locals (immStore v)) evmCont
+        (checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
-          clipperTakeAfterMoveStmts v) .reverted →
-      ExecTransitionBody (config v) (contract v)
+          clipperTakeAfterMoveStmts) .reverted →
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body .reverted)
+        (clipperTakeStore I) takeTransition.body .reverted (immStore v))
     (hsourceReturned : ∀ {finalFrame : Frame} {finalEvm : EVM.State},
-      ExecBlock (config v) (Frame.mk (contract v) locals) evmCont
-        (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      ExecBlock config (Frame.mk contract locals (immStore v)) evmCont
+        (checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
-          clipperTakeAfterMoveStmts v) (.ok finalFrame finalEvm) →
-      ExecTransitionBody (config v) (contract v)
+          clipperTakeAfterMoveStmts) (.ok finalFrame finalEvm) →
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (clipperTakeStore I) (takeTransition v).body
-        (.returned finalFrame finalEvm none))
+        (clipperTakeStore I) takeTransition.body
+        (.returned finalFrame finalEvm none) (immStore v))
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    runtimeEquivalenceFor (config v) (contract v)
-      σ σ₀ g A I := by
+    runtimeRefinementFor config contract
+      σ σ₀ g A I (immStore v) := by
   let evmContEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := σCont }
@@ -85,12 +85,12 @@ theorem clipperTakeTabZeroContinuationEquiv
   have closeRevert
       (hrev : RDrev code (Sat256.ofUInt256 g)
         (initState σ σ₀ (Sat256.ofUInt256 g) A I))
-      (htail : ExecBlock (config v) (Frame.mk (contract v) locals) evmCont
-        (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
+      (htail : ExecBlock config (Frame.mk contract locals (immStore v)) evmCont
+        (checkedExternalCallStmts vatExpr "move" (.intLit 0)
             [sender, .storage vowRef, .var "owe"] "_moveRet" ++
-          clipperTakeAfterMoveStmts v) .reverted) :
-      runtimeEquivalenceFor (config v) (contract v)
-        σ σ₀ g A I :=
+          clipperTakeAfterMoveStmts) .reverted) :
+      runtimeRefinementFor config contract
+        σ σ₀ g A I (immStore v) :=
     hrev.reEquivExecutionRevert hcode hdispatch hdec (hsourceReverted htail)
   apply RD.clipperTakeGeneralContinuationElim v hpatch rd4701 hmem hdepth hperm (by simp)
   · intro hnoCode hrev
@@ -121,7 +121,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccounts] using hmoveCode)
-    have hcallMoveSolm' : typedCallViaEVM (config v) evmCont
+    have hcallMoveSolm' : typedCallViaEVM config evmCont
         (EVM.address v.vat) "move" 0
         [.address evmCont.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCont).toNat),
@@ -155,7 +155,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccounts] using hmoveCode)
-    have hcallMoveSolm' : typedCallViaEVM (config v) evmCont
+    have hcallMoveSolm' : typedCallViaEVM config evmCont
         (EVM.address v.vat) "move" 0
         [.address evmCont.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCont).toNat),
@@ -171,9 +171,9 @@ theorem clipperTakeTabZeroContinuationEquiv
     have hmove := clipperTakeGenericVatMoveSuccess hmoveArgs hmoveCodeSolm hcallMoveSolm'
     have hdogRev := clipperTakeGenericDogNonzeroNoCode (v := v)
       hdog hlot hlotNe hdogNoCodeSolm
-    have hafter : ExecBlock (config v)
-        (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-        (clipperTakeAfterMoveStmts v) .reverted := by
+    have hafter : ExecBlock config
+        (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+        (clipperTakeAfterMoveStmts) .reverted := by
       simpa [clipperTakeAfterMoveStmts] using execBlockAppendReverted hdogRev
     exact closeRevert hrev (execBlockAppendOk hmove hafter)
   · intro σMove outMove AMove σDog outDog ADog _hlot
@@ -199,7 +199,7 @@ theorem clipperTakeTabZeroContinuationEquiv
       _,
       _⟩ :=
       typedCallViaEVM_syncFromState
-        (cfg := config v) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
+        (cfg := config) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
 
@@ -212,7 +212,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccounts] using hmoveCode)
-    have hcallMoveSolm' : typedCallViaEVM (config v) evmCont
+    have hcallMoveSolm' : typedCallViaEVM config evmCont
         (EVM.address v.vat) "move" 0
         [.address evmCont.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCont).toNat),
@@ -225,7 +225,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           rfl
           (by simpa only [← hAccountsMove] using hdogCode)
-    have hcallDogSolm' : typedCallViaEVM (config v) evmMove
+    have hcallDogSolm' : typedCallViaEVM config evmMove
         (EVM.address (AccountAddress.ofNat dog.toNat)) "digs" 0
         [v.ilk, .int (Int.ofNat owe.toNat)] (false, evmDog, outDog) true := by
       rw [← hdogAddress] at hcallDogSolm
@@ -233,9 +233,9 @@ theorem clipperTakeTabZeroContinuationEquiv
     have hmove := clipperTakeGenericVatMoveSuccess hmoveArgs hmoveCodeSolm hcallMoveSolm'
     have hdogRev := clipperTakeGenericDogNonzeroFailure (v := v)
       hdog howe hlot hlotNe hdogCodeSolm hcallDogSolm'
-    have hafter : ExecBlock (config v)
-        (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-        (clipperTakeAfterMoveStmts v) .reverted := by
+    have hafter : ExecBlock config
+        (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+        (clipperTakeAfterMoveStmts) .reverted := by
       simpa [clipperTakeAfterMoveStmts] using execBlockAppendReverted hdogRev
     exact closeRevert hrev (execBlockAppendOk hmove hafter)
   · intro σMove outMove AMove σDog outDog ADog kDog CDog _hlot
@@ -261,7 +261,7 @@ theorem clipperTakeTabZeroContinuationEquiv
       hevmDogSigma0,
       hevmDogEnv⟩ :=
       typedCallViaEVM_syncFromState
-        (cfg := config v) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
+        (cfg := config) (evmEvm := evmMoveEvm) (evmSolm := evmMove)
         (evmEvm' := evmDogEvm) hAccountsMove
         (by simp [evmMoveEvm, initState, hevmMoveSigma0])
 
@@ -274,7 +274,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           (clipperTakeVatTargetAddress v).symm
           (by simpa only [← hAccounts] using hmoveCode)
-    have hcallMoveSolm' : typedCallViaEVM (config v) evmCont
+    have hcallMoveSolm' : typedCallViaEVM config evmCont
         (EVM.address v.vat) "move" 0
         [.address evmCont.executionEnv.source,
           .address (AccountAddress.ofNat (clipperTakeVowEVMWord evmCont).toNat),
@@ -287,7 +287,7 @@ theorem clipperTakeTabZeroContinuationEquiv
         extCodeSizeWord_ne_zero_lookup_code_pos
           rfl
           (by simpa only [← hAccountsMove] using hdogCode)
-    have hcallDogSolm' : typedCallViaEVM (config v) evmMove
+    have hcallDogSolm' : typedCallViaEVM config evmMove
         (EVM.address (AccountAddress.ofNat dog.toNat)) "digs" 0
         [v.ilk, .int (Int.ofNat owe.toNat)] (true, evmDog, outDog) true := by
       rw [← hdogAddress] at hcallDogSolm
@@ -328,9 +328,9 @@ theorem clipperTakeTabZeroContinuationEquiv
             (by simpa only [← hAccountsDog] using hfluxNoCode)
       have hpost := clipperTakeGenericPostDogTabZeroNoCode
         htab' hlot' htabZero hlotNe hfluxNoCodeSolm
-      have hafter : ExecBlock (config v)
-          (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-          (clipperTakeAfterMoveStmts v) .reverted := by
+      have hafter : ExecBlock config
+          (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+          (clipperTakeAfterMoveStmts) .reverted := by
         simpa [clipperTakeAfterMoveStmts, postLocals] using
           execBlockAppendOk hdogOk hpost
       exact closeRevert hrev (execBlockAppendOk hmove hafter)
@@ -344,7 +344,7 @@ theorem clipperTakeTabZeroContinuationEquiv
       _,
       _⟩ :=
         typedCallViaEVM_syncFromState
-          (cfg := config v) (evmEvm := evmPostDogEvm) (evmSolm := evmDog)
+          (cfg := config) (evmEvm := evmPostDogEvm) (evmSolm := evmDog)
           (evmEvm' := evmFluxEvm) hAccountsDog
           (by simpa [evmDogEvm, evmPostDogEvm, initState] using hevmDogSigma0)
 
@@ -357,7 +357,7 @@ theorem clipperTakeTabZeroContinuationEquiv
           extCodeSizeWord_ne_zero_lookup_code_pos
             (clipperTakeVatTargetAddress v).symm
             (by simpa only [← hAccountsDog] using hfluxCode)
-      have hcallFluxSolm' : typedCallViaEVM (config v) evmDog
+      have hcallFluxSolm' : typedCallViaEVM config evmDog
           (EVM.address v.vat) "flux" 0
           [v.ilk, .address evmDog.executionEnv.codeOwner,
             .address (AccountAddress.ofNat packed.toNat),
@@ -366,9 +366,9 @@ theorem clipperTakeTabZeroContinuationEquiv
         simpa [evmPostDogEvm, evmFluxEvm, hevmDogEnv] using hcallFluxSolm
       have hpost := clipperTakeGenericPostDogTabZeroFailure
         husr' htab' hlot' htabZero hlotNe hfluxCodeSolm hcallFluxSolm'
-      have hafter : ExecBlock (config v)
-          (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-          (clipperTakeAfterMoveStmts v) .reverted := by
+      have hafter : ExecBlock config
+          (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+          (clipperTakeAfterMoveStmts) .reverted := by
         simpa [clipperTakeAfterMoveStmts, postLocals] using
           execBlockAppendOk hdogOk hpost
       exact closeRevert hrev (execBlockAppendOk hmove hafter)
@@ -383,7 +383,7 @@ theorem clipperTakeTabZeroContinuationEquiv
       _hevmFluxSigma0,
       hevmFluxEnv⟩ :=
         typedCallViaEVM_syncFromState
-          (cfg := config v) (evmEvm := evmPostDogEvm) (evmSolm := evmDog)
+          (cfg := config) (evmEvm := evmPostDogEvm) (evmSolm := evmDog)
           (evmEvm' := evmFluxEvm) hAccountsDog
           (by simpa [evmDogEvm, evmPostDogEvm, initState] using hevmDogSigma0)
 
@@ -396,7 +396,7 @@ theorem clipperTakeTabZeroContinuationEquiv
           extCodeSizeWord_ne_zero_lookup_code_pos
             (clipperTakeVatTargetAddress v).symm
             (by simpa only [← hAccountsDog] using hfluxCode)
-      have hcallFluxSolm' : typedCallViaEVM (config v) evmDog
+      have hcallFluxSolm' : typedCallViaEVM config evmDog
           (EVM.address v.vat) "flux" 0
           [v.ilk, .address evmDog.executionEnv.codeOwner,
             .address (AccountAddress.ofNat packed.toNat),
@@ -409,9 +409,9 @@ theorem clipperTakeTabZeroContinuationEquiv
       · intro hremove
         have hpost := clipperTakeGenericPostDogTabZeroRemoveReverts
           husr' htab' hlot' hid' htabZero hlotNe hfluxCodeSolm hcallFluxSolm' hremove
-        have hafter : ExecBlock (config v)
-            (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-            (clipperTakeAfterMoveStmts v) .reverted := by
+        have hafter : ExecBlock config
+            (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+            (clipperTakeAfterMoveStmts) .reverted := by
           simpa [clipperTakeAfterMoveStmts, postLocals] using
             execBlockAppendOk hdogOk hpost
         exact hsourceReverted (execBlockAppendOk hmove hafter)
@@ -421,15 +421,15 @@ theorem clipperTakeTabZeroContinuationEquiv
         have hpost := clipperTakeGenericPostDogTabZeroRemoveOk
           husr' htab' hlot' hid' hlocked' htabZero hlotNe hfluxCodeSolm
             hcallFluxSolm' hremove
-        have hafter : ExecBlock (config v)
-            (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evmMove
-            (clipperTakeAfterMoveStmts v)
-            (.ok (Frame.mk (contract v) resultLocals)
+        have hafter : ExecBlock config
+            (Frame.mk contract (clipperTakeGenericMoveRet locals) (immStore v)) evmMove
+            (clipperTakeAfterMoveStmts)
+            (.ok (Frame.mk contract resultLocals (immStore v))
               (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner
                 ⟨13⟩ ⟨0⟩)) := by
           simpa [clipperTakeAfterMoveStmts, postLocals, resultLocals] using
             execBlockAppendOk hdogOk hpost
-        exact ⟨Frame.mk (contract v) resultLocals,
+        exact ⟨Frame.mk contract resultLocals (immStore v),
           hsourceReturned (execBlockAppendOk hmove hafter)⟩
 
 theorem clipperTakeTabZeroContinuation
@@ -441,10 +441,10 @@ theorem clipperTakeTabZeroContinuation
       id sel : UInt256}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
-    (hdec : decodeCalldataWithMode (config v).abiDecodeMode
-      (List.map Param.name (takeTransition v).params)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata =
+    (hdispatch : dispatchMsg contract I.calldata = some takeTransition)
+    (hdec : decodeCalldataWithMode config.abiDecodeMode
+      (List.map Param.name takeTransition.params)
+      (transitionSignature takeTransition).paramTypes I.calldata =
         some (clipperTakeStore I))
     (hidWord : id = clipperTakeIdWord I)
     (htabZero : tabNew = ⟨0⟩) (hlotNe : lotNew ≠ ⟨0⟩)

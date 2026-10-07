@@ -14,19 +14,19 @@ theorem clipperTailSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x13 0xd8 0xc8 0x40 (clipperSelNat 21)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_tail (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_tail {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 21)) :
-    dispatchMsg (contract v) I.calldata = some tailTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some tailTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
         spotterTransition, stoppedTransition])
     (post :=
-      [takeTransition v, tipTransition, upchostTransition v, vatTransition v, vowTransition,
-        wardsTransition, yankTransition v])
+      [takeTransition, tipTransition, upchostTransition, vatTransition, vowTransition,
+        wardsTransition, yankTransition])
     (ti := tailTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -57,15 +57,15 @@ theorem clipperDispatch_tail (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -79,39 +79,39 @@ theorem clipperDispatch_tail (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, tailSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_tail (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_tail {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (tailTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (tailTransition.params.map Param.name)
       (transitionSignature tailTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalTail (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "tail" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage tailRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩).toNat)) := by
   let er : EvaledStorageRef := { base := "tail", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm tailRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm tailRef = .ok er := by
     unfold evalStorageRef tailRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint256Int)) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint256St]
-  have hloc : (config v).storageBackend.locate? er = some (.leaf (wordLoc ⟨6⟩)) := by
+  have hloc : config.storageBackend.locate? er = some (.leaf (wordLoc ⟨6⟩)) := by
     rfl
   exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (storageLocLoad_uint256 evm ⟨6⟩)
 
 theorem clipperTailBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "tail" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals tailTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals tailTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩).toNat))])) := by
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩).toNat))])) (immStore v) := by
   simpa [tailTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalTail v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -285,15 +285,15 @@ theorem clipperTailBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 21)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 21) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tailTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨6⟩).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨6⟩).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperTailBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -308,7 +308,7 @@ theorem clipperTailBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := tailTransition)
     (entry := (⟨592⟩ : UInt256)) (routine := (⟨1900⟩ : UInt256))
     (slot := (⟨6⟩ : UInt256)) (returnPc := (⟨476⟩ : UInt256))
-    hcode (clipperDispatch_tail v hsel) (clipperDecode_tail v hsz) hreach
+    hcode (clipperDispatch_tail hsel) (clipperDecode_tail hsz) hreach
     (clipperTailGetterEntryWf v hpatch) (clipperTailSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨476⟩ : UInt256) (by native_decide))
     (clipperReturnWord476Wf v hpatch) (by rfl) hbody

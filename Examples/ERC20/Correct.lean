@@ -223,7 +223,7 @@ theorem erc20ApproveBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20ApproveBodyCore hcode hsize hwv hsel hreach
 
@@ -234,7 +234,7 @@ theorem erc20TotalSupplyBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨148⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TotalSupplyBodyCore hcode hwv hsel hreach
 
@@ -245,7 +245,7 @@ theorem erc20TransferFromBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TransferFromBodyCore hcode hsize hwv hsel hreach
 
@@ -256,7 +256,7 @@ theorem erc20BalanceOfBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨226⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hsize hwv hsel hreach
 
@@ -267,7 +267,7 @@ theorem erc20TransferBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TransferBodyCore hcode hsize hwv hsel hreach
 
@@ -278,7 +278,7 @@ theorem erc20AllowanceBody {σ σ₀ A I} {g : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨322⟩ [erc20SelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hsize hwv hsel hreach
 
@@ -291,7 +291,7 @@ theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (erc20X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
@@ -306,7 +306,7 @@ theorem erc20NoDispatch {σ σ₀ A I} {g : UInt256}
 theorem erc20ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact (erc20X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc20Dispatch_none_short hsz)
@@ -314,7 +314,7 @@ theorem erc20ShortRevert {σ σ₀ A I} {g : UInt256}
 /-- `callvalue ≠ 0` ⇒ both sides revert (non-payable). -/
 theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor erc20Config erc20Contract
+    runtimeRefinementFor erc20Config erc20Contract
       σ σ₀ g A I := by
   exact (erc20X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -340,7 +340,7 @@ theorem erc20NonPayable {σ σ₀ A I} {g : UInt256}
     `callvalue ≠ 0` / short calldata / no-match revert; otherwise the dispatcher machinery
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
-theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract := by
+theorem erc20Correct : runtimeRefinement erc20Config erc20Bytecode erc20Contract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
@@ -885,8 +885,7 @@ theorem erc20SolmCtorExecSuccess
               initialSupply h0 hlt)
 
 theorem erc20ConstructorCorrect :
-    constructorEquivalence erc20Config erc20Initcode erc20Contract erc20Bytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement erc20Config erc20Initcode erc20Contract (fun _ => erc20Bytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode hcalldata hperm
   rcases erc20Deployment_shape hdeploy with ⟨initialSupply, hargs, h0, hlt, hdeployed⟩
@@ -900,7 +899,7 @@ theorem erc20ConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word initialSupply.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -908,7 +907,7 @@ theorem erc20ConstructorCorrect :
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
       rw [hacc] at hsuccess
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (erc20SolmCtorExecSuccess
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           initialSupply h0 hlt hwv) ?_
@@ -922,8 +921,8 @@ theorem erc20ConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (erc20SolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           initialSupply hwv) ?_
@@ -931,7 +930,7 @@ theorem erc20ConstructorCorrect :
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem erc20ContractCorrect :
-    contractEquivalence erc20Config erc20Initcode erc20Bytecode erc20Contract :=
-  contractEquivalence.intro erc20ConstructorCorrect erc20Correct
+    contractRefinement erc20Config erc20Initcode erc20Contract :=
+  contractRefinement.of_constant erc20ConstructorCorrect erc20Correct
 
 end ERC20

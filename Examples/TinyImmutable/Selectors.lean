@@ -19,8 +19,8 @@ abbrev scaleSelBytes : ByteArray := ⟨#[0xf5, 0x1e, 0x18, 0x1a]⟩
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 1000000 in
 /-- Selector fact: `keccak256("owner()")[0:4]`. -/
-theorem ownerSelectorOf (v : TinyImmutables) :
-    selectorOf (ownerTransition v) = ownerSelBytes := by
+theorem ownerSelectorOf :
+    selectorOf ownerTransition = ownerSelBytes := by
   simp only [selectorOf, ownerTransition, Solm.transitionSigStr,
     transitionSignature, ABI.printSignature]
   decide +kernel
@@ -28,9 +28,9 @@ theorem ownerSelectorOf (v : TinyImmutables) :
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 1000000 in
 /-- Selector fact: `keccak256("quote(uint256)")[0:4]`. -/
-theorem quoteSelectorOf (v : TinyImmutables) :
-    selectorOf (quoteTransition v) = quoteSelBytes := by
-  have hsig : Solm.transitionSigStr (quoteTransition v) = "quote(uint256)" := by
+theorem quoteSelectorOf :
+    selectorOf quoteTransition = quoteSelBytes := by
+  have hsig : Solm.transitionSigStr quoteTransition = "quote(uint256)" := by
     simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
       quoteTransition, uint256, uint256Int, ABI.abiToSigStr,
       ABI.elemToSigStr, ABI.intTypeToSigStr,
@@ -43,8 +43,8 @@ theorem quoteSelectorOf (v : TinyImmutables) :
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 1000000 in
 /-- Selector fact: `keccak256("scale()")[0:4]`. -/
-theorem scaleSelectorOf (v : TinyImmutables) :
-    selectorOf (scaleTransition v) = scaleSelBytes := by
+theorem scaleSelectorOf :
+    selectorOf scaleTransition = scaleSelBytes := by
   simp only [selectorOf, scaleTransition, Solm.transitionSigStr,
     transitionSignature, ABI.printSignature]
   decide +kernel

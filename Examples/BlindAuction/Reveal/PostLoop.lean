@@ -65,7 +65,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
           valuesLenWord (⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩)
           (blindAuctionSelWord I))
         aDone.mem aDone.aw ByteArray.empty aDone.acc kDone CDone) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   rcases hInvDone with
     ⟨_hiDone, _hlenDone, hrefundDone, _hbidsDone, _hvaluesDone,

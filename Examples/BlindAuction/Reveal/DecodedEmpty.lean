@@ -39,7 +39,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd963⟩ := h963
   let evmSolm : EVM.State :=

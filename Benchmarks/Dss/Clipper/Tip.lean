@@ -14,19 +14,19 @@ theorem clipperTipSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x27 0x55 0xcd 0x2d (clipperSelNat 23)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_tip (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_tip {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 23)) :
-    dispatchMsg (contract v) I.calldata = some tipTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some tipTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition])
     (post :=
-      [upchostTransition v, vatTransition v, vowTransition, wardsTransition,
-        yankTransition v])
+      [upchostTransition, vatTransition, vowTransition, wardsTransition,
+        yankTransition])
     (ti := tipTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -58,15 +58,15 @@ theorem clipperDispatch_tip (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -78,36 +78,36 @@ theorem clipperDispatch_tip (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, takeSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, takeSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · cases hfalse
   · rw [selectorOf, tipSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_tip (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_tip {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (tipTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (tipTransition.params.map Param.name)
       (transitionSignature tipTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalTip (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "tip" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.storage tipRef) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.storage tipRef) =
       .ok (.int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
           (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat)) := by
   let er : EvaledStorageRef := { base := "tip", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm tipRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm tipRef = .ok er := by
     unfold evalStorageRef tipRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint192Int)) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem (.int uint192Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint192St]
   have hloc :
-      (config v).storageBackend.locate? er =
+      config.storageBackend.locate? er =
         some (.leaf (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide))) := by
     rfl
   exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
@@ -115,14 +115,14 @@ theorem clipperEvalTip (v : ClipperImmutables) (evm : EVM.State) (locals : Store
 
 theorem clipperTipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "tip" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals tipTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals tipTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat (UInt256.land
           (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])) := by
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])) (immStore v) := by
   simpa [tipTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalTip v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -387,18 +387,18 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 23)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 23) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tipTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (UInt256.land
             (UInt256.div (solcSlotWord σ I ⟨8⟩)
               (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
-            (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])) := by
+            (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperTipBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -445,7 +445,7 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
     hmask192 (clipperJumpDest2599 v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨645⟩ : UInt256) (by native_decide))
     (clipperTipReturnComputedWf v hpatch)
-  exact hret.reEquivExecution hcode (clipperDispatch_tip v hsel)
-    (clipperDecode_tip v hsz) hbody henc
+  exact hret.reEquivExecution hcode (clipperDispatch_tip hsel)
+    (clipperDecode_tip hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

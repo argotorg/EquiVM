@@ -158,7 +158,7 @@ theorem flopperAddressGetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
             (solcAddressSlotWord slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcAddressSlotWord slot σ I))
         (some [(.address (AccountAddress.ofNat (solcAddressSlotWord slot σ I).toNat))])
@@ -202,7 +202,7 @@ theorem flopperUint48Offset0GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (uint48Offset0Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (uint48Offset0Word slot σ I))
         (some [(.int (Int.ofNat (uint48Offset0Word slot σ I).toNat))])
@@ -242,7 +242,7 @@ theorem flopperUint48Offset6GetterBodyCore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
             (Int.ofNat (uint48Offset6Word slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (uint48Offset6Word slot σ I))
         (some [(.int (Int.ofNat (uint48Offset6Word slot σ I).toNat))])
@@ -287,7 +287,7 @@ theorem flopperUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])

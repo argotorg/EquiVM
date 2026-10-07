@@ -16,7 +16,7 @@ import Benchmarks.Dss.Dog.Rely
 import Benchmarks.Dss.Dog.Vat
 import Benchmarks.Dss.Dog.Vow
 import Benchmarks.Dss.Dog.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Dog benchmark correctness stub
@@ -74,8 +74,8 @@ theorem dogNoSelectorMatches {I : ExecutionEnv}
 
 theorem dogCorrect (v : DogImmutables) {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
-    runtimeEquivalence (config v) code (contract v) := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config code contract (immStore v) := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hDirt : selIs I (dogSelBytes 0)
@@ -123,12 +123,26 @@ theorem dogCorrect (v : DogImmutables) {code : ByteArray}
                                           hVat hVow hWards)
   · exact dogNonPayable hpatch hcode hwv
 
-theorem dogContractCorrect (v : DogImmutables) {code : ByteArray}
-    (hcode : patchRuntime dogBytecode (patches v) = some code) :
-    contractEquivalenceWith (config v) dogCreationBytecode code (contract v)
-      (runtimeCodeOf dogBytecode) :=
-  contractEquivalenceWith.intro
-    (dogConstructorCorrect v)
-    (dogCorrect v hcode)
+/-- A well-typed immutables store runs as the store of some valuation. -/
+theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
+    ∃ v, restrictImmutables contract imms = immStore v := by
+  obtain ⟨vo, hvo, hfo⟩ := h ⟨"vat", .address⟩ (by simp [contract])
+  simp only at hvo
+  cases vo <;> simp [elemValueFits] at hfo
+  rename_i vat
+  rw [Std.HashMap.get?_eq_getElem?] at hvo
+  exact ⟨{ vat := vat }, by simp [restrictImmutables, contract, immStore, hvo]⟩
+
+theorem dogRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+    runtimeRefinement config (immutableLayout.deployed dogBytecode imms) contract
+      (restrictImmutables contract imms) := by
+  obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv,
+    dogDeployed_eq (vat := v.vat) (by simp [immStore])]
+  exact dogCorrect v (dogPatchRuntime_eq_ctorPatchedRuntime v.vat)
+
+theorem dogContractCorrect :
+    contractRefinement config dogCreationBytecode contract :=
+  .of_runtime dogConstructorCorrect dogRuntimeCorrect
 
 end Benchmarks.Dss.Dog

@@ -1965,7 +1965,7 @@ theorem potJoinBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 9)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some joinTransition := potDispatchJoin hsel
   have hreach := potReachJoinBody (σ := σ) (σ₀ := σ₀)
@@ -2121,7 +2121,7 @@ theorem potJoinBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 9)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potJoinBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm

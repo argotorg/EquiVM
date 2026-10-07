@@ -589,7 +589,7 @@ theorem weth9TransferDecodeFailRev {σ σ₀ A I} {g : Sat256}
 theorem weth9TransferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 8)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 8) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchTransfer hsel

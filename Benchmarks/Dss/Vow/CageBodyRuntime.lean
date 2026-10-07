@@ -161,7 +161,7 @@ theorem vowCageFirstDaiCallDepthLimitBody
         (vowCageClearedAccountMap I.codeOwner σ)
         (kissDaiTargetWord (vowCageClearedAccountMap I.codeOwner σ) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σClearedEvm := vowCageClearedAccountMap I.codeOwner σ
   let σClearedSolm := vowCageClearedAccountMap I.codeOwner σ
   have hsz : 4 ≤ I.calldata.size :=
@@ -302,11 +302,11 @@ theorem vowCageBodyToFlapperCage
         evmDai.σ₀ = σ₀ →
         evmDai.executionEnv = I →
         Eq σ_dai evmDai.accountMap →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩
   · by_cases hliveEvm : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩
     · let σClearedEvm := vowCageClearedAccountMap I.codeOwner σ
@@ -604,11 +604,11 @@ theorem vowCageBodyToFlopperCage
         evmFlap.σ₀ = σ₀ →
         evmFlap.executionEnv = I →
         Eq σ_flap evmFlap.accountMap →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σClearedEvm := vowCageClearedAccountMap I.codeOwner σ
   let σClearedSolm := vowCageClearedAccountMap I.codeOwner σ
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -847,11 +847,11 @@ theorem vowCageBodyToSecondDai
         evmFlop.σ₀ = σ₀ →
         evmFlop.executionEnv = I →
         Eq σ_flop evmFlop.accountMap →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=
@@ -1049,11 +1049,11 @@ theorem vowCageBodyToVatSin
         evmDai2.σ₀ = σ₀ →
         evmDai2.executionEnv = I →
         Eq σ_dai2 evmDai2.accountMap →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=

@@ -5096,7 +5096,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf thawTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endThawConcreteSelector := by
     simpa [endThawSelectorBytes, endThawConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=

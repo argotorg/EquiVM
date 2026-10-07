@@ -2,6 +2,7 @@ import Benchmarks.Auction.Bytecode
 import Benchmarks.Auction.Spec
 import Benchmarks.Auction.Common
 import Reasoning.Constructor
+import Solm.Refine
 
 /-!
 # Auction constructor correctness
@@ -15,9 +16,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 100000
 
 theorem auctionConstructorBodyCore :
-    constructorEquivalence auctionConfig auctionCreationBytecode Auction.auctionContract
-      auctionBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement auctionConfig auctionCreationBytecode Auction.auctionContract
+      (fun _ => auctionBytecode) := by
   intro σ σ₀ g A I args deployed hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode
     (cfg := auctionConfig) (contract := Auction.auctionContract) rfl rfl hdeploy
@@ -44,7 +44,7 @@ theorem auctionConstructorBodyCore :
       push0, raw ret 0 auctionBytecode (by native_decide) mem_cost
         (by native_decide) (by evm_ov) ]
     rcases hr.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
     · have hsolm : solmCtorExec auctionConfig Auction.auctionContract [] σ σ₀ g A I
           (.returned { contract := Auction.auctionContract, locals := ∅ }
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) none) :=
@@ -53,20 +53,20 @@ theorem auctionConstructorBodyCore :
           (argsStore := ∅) rfl rfl rfl
           (ExecFuncBody.execBlockOK
             (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ExecBlock.nil))
-      exact constructorEquivalenceFor.execution hsuccess hsolm
+      exact typedConstructorRefinementFor.execution hsuccess hsolm
         (ctorResultEquiv.success rfl rfl rfl rfl)
   · have hr := evm_run rd8 with [
       push2 ⟨15⟩, jumpiNT (isZero_eq_zero_of_ne hwv),
       raw solcPush0Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
         ]
     rcases hr.xiResult hcode with hoog | ⟨g', o, hrevert⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
-    · refine constructorEquivalenceFor.execution hrevert ?_ (ctorResultEquiv.revert rfl rfl)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
+    · refine typedConstructorRefinementFor.execution hrevert ?_ (ctorResultEquiv.revert rfl rfl)
       exact solmCtorExec.intro
         (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (argsStore := ∅) rfl rfl rfl (bodyReverts_nonPayable hwv)
 
 theorem auctionConstructorCorrect :
-    constructorEquivalence auctionConfig auctionCreationBytecode Auction.auctionContract
-      auctionBytecode :=
+    typedConstructorRefinement auctionConfig auctionCreationBytecode Auction.auctionContract
+      (fun _ => auctionBytecode) :=
   auctionConstructorBodyCore

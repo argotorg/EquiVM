@@ -3,6 +3,7 @@ import Examples.UniswapV2Pair.ConstructorEntry
 import Examples.UniswapV2Pair.ConstructorLiteralsRuntime
 import Examples.UniswapV2Pair.ConstructorCoupling
 import Examples.UniswapV2Pair.ConstructorStorageCoupling
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -12,12 +13,12 @@ theorem uniswapConstructorBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairInitcode)
     (hperm : I.perm = true) :
-    constructorEquivalenceFor config contract [] σ σ₀ g A I
-      uniswapV2PairBytecode := by
+    typedConstructorRefinementFor config contract [] σ σ₀ g A I
+      (fun _ => uniswapV2PairBytecode) := by
   rcases uniswapConstructorEntryCases (σ := σ) (σ₀ := σ₀)
       (A := A) (g := Sat256.ofUInt256 g) hcode hperm with
     ⟨hwv, rdRev⟩ | ⟨hwv, _, _, rd23⟩
-  · exact RDrev.constructorEquivalenceEmptyParams rdRev hcode rfl
+  · exact RDrev.constructorRefinementEmptyParams rdRev hcode rfl
       (uniswapConstructorSourceReverts _ hwv)
   · obtain ⟨_, _, rd49⟩ := RD.uniswapConstructorTypeHash rd23 (by decide)
     obtain ⟨_, _, rd100⟩ := RD.uniswapConstructorLiterals rd49 (by decide)
@@ -33,12 +34,11 @@ theorem uniswapConstructorBodyCore
     have heL : (uniswapLockExitedState evmS).executionEnv = I := by
       simp only [uniswapLockExitedState, uniswapUnlockedState, storageStore_executionEnv,
         evmS, initState]
-    exact RDret.constructorEquivalenceEmptyParams rdRet hcode rfl hbody
+    exact RDret.constructorRefinementEmptyParams rdRet hcode rfl hbody
       (constructorStoredAccountMap_eq heL haL)
 
 theorem uniswapV2PairConstructorCorrect :
-    constructorEquivalence config uniswapV2PairInitcode contract uniswapV2PairBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config uniswapV2PairInitcode contract (fun _ => uniswapV2PairBytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata
     hperm
   have hargs := emptyCtorDeployment_args_length (cfg := config) (contract := contract)

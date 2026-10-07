@@ -20,18 +20,21 @@ and `metadata.bytecodeHash: none`. `runtime.hex` is the deployed runtime templat
 immutable words. The patch table in `Immutables.lean` comes from
 `evm.deployedBytecode.immutableReferences`:
 
-- `imm_owner`: offsets `72`, `245`
-- `imm_scale`: offsets `186`, `361`
+- `owner`: offsets `72`, `245`
+- `scale`: offsets `186`, `361`
 
-The runtime is 432 bytes. `immutableReferences` records each constructor local,
-summary key, and list of patch offsets once; the constructor patch table and
-`immutableLayout` are derived from it. `TinyImmutables` gives the specification typed
-`owner` and `scale` fields. `immutableWords` converts those fields to the generator's
-`String → UInt256` interface. `patchedRuntime` is defined once as
-`immutableLayout.runtime tinyImmutableBytecode (immutableWords v)`.
-`patchRuntime_eq_patchedRuntime` proves that the constructor's patch operation
-produces this same bytecode. The runtime and contract correctness theorems are
-stated directly for `patchedRuntime v`.
+The runtime is 432 bytes. `immutableReferences` records each immutable's Solm name and patch
+offsets once; `immutableLayout` is derived from it, keyed by those names. The spec declares
+`owner` and `scale` as Solm immutables: the constructor assigns them and the getters and `quote`
+read them. The deployed runtime for an immutables store `imms` is the generic
+`immutableLayout.deployed tinyImmutableBytecode imms` (`Reasoning/Immutables.lean`): the
+template patched with `wordsOf imms`, each immutable's word under Solm's `valueToWord`. That
+function is the contract's `runtimeCodeOf`. The runtime proofs work with a valuation
+`v : TinyImmutables` and its store `immStore v`; `deployedRuntime v` is the code deployed for
+`immStore v`, and `wordsOf_immStore_owner`/`_scale` give its patched words.
+`tinyImmutableCorrect v` proves the runtime refinement of `deployedRuntime v` with the spec run
+with the immutables `immStore v`; `tinyImmutableContractCorrect` combines it with the
+constructor proof into `contractRefinement`.
 
 ## Generated runtime summaries
 

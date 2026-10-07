@@ -5,7 +5,7 @@ import Benchmarks.Dss.LinearDecrease.Price
 import Benchmarks.Dss.LinearDecrease.Rely
 import Benchmarks.Dss.LinearDecrease.Tau
 import Benchmarks.Dss.LinearDecrease.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS LinearDecrease benchmark correctness
@@ -19,8 +19,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Dss.LinearDecrease
 
 theorem linearDecreaseCorrect :
-    runtimeEquivalence config linearDecreaseBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config linearDecreaseBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hdeny : selIs I (stairstepSelBytes 0)
@@ -40,8 +40,7 @@ theorem linearDecreaseCorrect :
   · exact stairstepNonPayable hcode hwv
 
 theorem linearDecreaseContractCorrect :
-    contractEquivalence config linearDecreaseCreationBytecode
-      linearDecreaseBytecode contract :=
-  contractEquivalence.intro linearDecreaseConstructorCorrect linearDecreaseCorrect
+    contractRefinement config linearDecreaseCreationBytecode contract :=
+  contractRefinement.of_constant linearDecreaseConstructorCorrect linearDecreaseCorrect
 
 end Benchmarks.Dss.LinearDecrease

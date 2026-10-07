@@ -107,7 +107,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
     (hperm : I.perm = true)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply" (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter))
   let caller : Frame := { contract := contract, locals := afterTotalSupplyLocals }
@@ -318,7 +318,7 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
               outFee))).toNat +
           (⟨1000⟩ : UInt256).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -591,7 +591,7 @@ theorem uniswapMintInitialFeeOnKLastZeroMinimumMintBalanceOverflowFromFactoryCas
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
               outFee))).toNat +
           (⟨1000⟩ : UInt256).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -785,7 +785,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroMinimumMintBalanceOverflowFromFactor
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
               outFee))).toNat +
           (⟨1000⟩ : UInt256).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let σCleared := sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩

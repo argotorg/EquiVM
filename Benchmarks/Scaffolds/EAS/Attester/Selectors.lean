@@ -21,31 +21,31 @@ abbrev attesterAttestSelBytes : ByteArray := ⟨#[0x72, 0xb9, 0x96, 0x6d]⟩
 abbrev attesterRevokeSelBytes : ByteArray := ⟨#[0xc2, 0x66, 0x46, 0x10]⟩
 
 /-- Selector fact: `keccak256("attest(bytes32,uint256)")[0:4]`. -/
-theorem attestSelectorOf (v : AttesterImmutables) :
-    selectorOf (attestTransition v) = attesterAttestSelBytes := by
+theorem attestSelectorOf :
+    selectorOf (attestTransition) = attesterAttestSelBytes := by
   simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
     ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, attestTransition,
     bytes32, bytes32Width, uint256, uint256Int]
   decide +kernel
 
 /-- Selector fact: `keccak256("revoke(bytes32,bytes32)")[0:4]`. -/
-theorem revokeSelectorOf (v : AttesterImmutables) :
-    selectorOf (revokeTransition v) = attesterRevokeSelBytes := by
+theorem revokeSelectorOf :
+    selectorOf (revokeTransition) = attesterRevokeSelBytes := by
   simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
     ABI.abiToSigStr, revokeTransition, bytes32, bytes32Width]
   decide +kernel
 
 /-- Selector fact: `keccak256("multiAttest(bytes32[],uint256[][])")[0:4]`. -/
-theorem multiAttestSelectorOf (v : AttesterImmutables) :
-    selectorOf (multiAttestTransition v) = attesterMultiAttestSelBytes := by
+theorem multiAttestSelectorOf :
+    selectorOf (multiAttestTransition) = attesterMultiAttestSelBytes := by
   simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
     ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, multiAttestTransition,
     bytes32, bytes32Width, bytes32Array, uint256, uint256Int, uint256Array, uint256NestedArray]
   decide +kernel
 
 /-- Selector fact: `keccak256("multiRevoke(bytes32[],bytes32[][])")[0:4]`. -/
-theorem multiRevokeSelectorOf (v : AttesterImmutables) :
-    selectorOf (multiRevokeTransition v) = attesterMultiRevokeSelBytes := by
+theorem multiRevokeSelectorOf :
+    selectorOf (multiRevokeTransition) = attesterMultiRevokeSelBytes := by
   simp [selectorOf, transitionSigStr, transitionSignature, ABI.printSignature,
     ABI.abiToSigStr, revokeTransition, multiRevokeTransition,
     bytes32, bytes32Width, bytes32Array, bytes32NestedArray]

@@ -27,7 +27,8 @@ theorem uniswapSwapTransfersCases
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hready : SafeTransferMemoryReady mem aw freePtr)
     (hcap : freePtr.toNat + 2 ^ 138 + 227 ≤ 2 ^ 255 + 1024)
-    (hov : R.length + 31 ≤ 1024) :
+    (hov : R.length + 31 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecBlock config caller evm [swapFirstTransferStmt, swapSecondTransferStmt] .reverted ∧
       RDrev uniswapV2PairBytecode g s0) ∨
     (∃ evm' σ' mem' aw' ptr' data' k' C',

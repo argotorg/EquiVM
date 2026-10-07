@@ -14,18 +14,18 @@ theorem clipperChipSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0xb6 0x15 0x00 0xe4 (clipperSelNat 3)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_chip (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_chip {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 3)) :
-    dispatchMsg (contract v) I.calldata = some chipTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some chipTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre := [activeTransition, bufTransition, calcTransition])
     (post :=
       [chostTransition, countTransition, cuspTransition, denyTransition, dogTransition,
-        fileUintTransition, fileAddressTransition, getStatusTransition, ilkTransition v,
-        kickTransition v, kicksTransition, listTransition, redoTransition v, relyTransition,
-        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition v,
-        tipTransition, upchostTransition v, vatTransition v, vowTransition, wardsTransition,
-        yankTransition v])
+        fileUintTransition, fileAddressTransition, getStatusTransition, ilkTransition,
+        kickTransition, kicksTransition, listTransition, redoTransition, relyTransition,
+        salesTransition, spotterTransition, stoppedTransition, tailTransition, takeTransition,
+        tipTransition, upchostTransition, vatTransition, vowTransition, wardsTransition,
+        yankTransition])
     (ti := chipTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -41,29 +41,29 @@ theorem clipperDispatch_chip (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, chipSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_chip (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_chip {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (chipTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (chipTransition.params.map Param.name)
       (transitionSignature chipTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalChip (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "chip" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.storage chipRef) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.storage chipRef) =
       .ok (.int (Int.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
         (UInt256.ofNat (2 ^ 64 - 1))).toNat)) := by
   let er : EvaledStorageRef := { base := "chip", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm chipRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm chipRef = .ok er := by
     unfold evalStorageRef chipRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint64Int)) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem (.int uint64Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint64St]
   have hloc :
-      (config v).storageBackend.locate? er =
+      config.storageBackend.locate? er =
         some (.leaf (uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide))) := by
     rfl
   exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
@@ -71,13 +71,13 @@ theorem clipperEvalChip (v : ClipperImmutables) (evm : EVM.State) (locals : Stor
 
 theorem clipperChipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "chip" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals chipTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals chipTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.int (Int.ofNat (UInt256.land
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
-          (UInt256.ofNat (2 ^ 64 - 1))).toNat))])) := by
+          (UInt256.ofNat (2 ^ 64 - 1))).toNat))])) (immStore v) := by
   simpa [chipTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalChip v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -284,16 +284,16 @@ theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 3)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 3) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ chipTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (UInt256.land (solcSlotWord σ I ⟨8⟩)
-            (UInt256.ofNat (2 ^ 64 - 1))).toNat))])) := by
+            (UInt256.ofNat (2 ^ 64 - 1))).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperChipBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -327,7 +327,7 @@ theorem clipperChipBody (v : ClipperImmutables) {code : ByteArray}
     (by native_decide) (clipperJumpDest6743 v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨1266⟩ : UInt256) (by native_decide))
     (clipperChipReturnMaskedWf v hpatch)
-  exact hret.reEquivExecution hcode (clipperDispatch_chip v hsel)
-    (clipperDecode_chip v hsz) hbody henc
+  exact hret.reEquivExecution hcode (clipperDispatch_chip hsel)
+    (clipperDecode_chip hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

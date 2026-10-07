@@ -1384,7 +1384,7 @@ theorem simpleAuctionBidBody {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨114⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x19, 0x98, 0xae, 0xef]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by

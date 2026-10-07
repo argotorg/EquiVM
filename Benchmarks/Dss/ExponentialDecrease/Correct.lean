@@ -5,7 +5,7 @@ import Benchmarks.Dss.ExponentialDecrease.File
 import Benchmarks.Dss.ExponentialDecrease.Price
 import Benchmarks.Dss.ExponentialDecrease.Rely
 import Benchmarks.Dss.ExponentialDecrease.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS ExponentialDecrease benchmark correctness stub
@@ -20,8 +20,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace Benchmarks.Dss.ExponentialDecrease
 
 theorem exponentialDecreaseCorrect :
-    runtimeEquivalence config exponentialDecreaseBytecode contract := by
-  refine runtimeEquivalence.intro ?_
+    runtimeRefinement config exponentialDecreaseBytecode contract := by
+  refine runtimeRefinement.intro ?_
   intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
@@ -41,8 +41,7 @@ theorem exponentialDecreaseCorrect :
   · exact stairstepNonPayable hcode hwv
 
 theorem exponentialDecreaseContractCorrect :
-    contractEquivalence config exponentialDecreaseCreationBytecode
-      exponentialDecreaseBytecode contract :=
-  contractEquivalence.intro exponentialDecreaseConstructorCorrect exponentialDecreaseCorrect
+    contractRefinement config exponentialDecreaseCreationBytecode contract :=
+  contractRefinement.of_constant exponentialDecreaseConstructorCorrect exponentialDecreaseCorrect
 
 end Benchmarks.Dss.ExponentialDecrease

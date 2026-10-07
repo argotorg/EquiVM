@@ -51,7 +51,7 @@ theorem flipperDentBodyFrom4601LotLower
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4601⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let locals := dentLocals I
   have hlotWordEq : bidLotWord (dentId I) σ I = bidLotWord (dentId I) σ I := rfl

@@ -586,7 +586,7 @@ theorem catBiteSuccessBodyCore {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (biteLocals I) biteTransition.body (.returned cs evmKick (some [bw id])))
     (hAccountsFinal : acc = evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc : returnEquiv (UInt256.toByteArray id) (some [bw id]) biteTransition.returnType :=
     returnEquiv_of_encode (uint256ReturnEncoding id)
   exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
@@ -674,7 +674,7 @@ theorem catBiteSuccessLeaf {σ σ₀ A I} {g : UInt256}
           bw (biteDinkV I evmUrn iRate art ink), .int 0] (true, evmKick, kickOut) true)
     (hKickDec : config.externalABI.decode? "kick" kickOut = some [bw id])
     (hAccountsFinal : acc = evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody := catBiteSourceSuccess (σ := σ) hsz36 hwv hvatCode0 hIlksCall hIlksDec
     hvatCodeIlk hUrnsCall hUrnsDec hlive hfitInkSpot hfitArtRate hfitDunkRoomWad hfitInkDart
     hfitDartRate hfitTabBase hfitLitterNew hspotPos hratePos hartPos hmilkChopPos hunsafe hlitLtBox
@@ -759,7 +759,7 @@ theorem catBiteShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach := catReachBiteEntry (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by

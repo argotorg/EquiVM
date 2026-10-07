@@ -11,7 +11,7 @@ import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -952,7 +952,7 @@ theorem cNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 2 → (cSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor cConfig Reuse.cContract
+    runtimeRefinementFor cConfig Reuse.cContract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (cX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm).reEquivNoDispatch
@@ -965,7 +965,7 @@ theorem cNoDispatch {σ σ₀ A I} {g : UInt256}
 theorem cShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor cConfig Reuse.cContract
+    runtimeRefinementFor cConfig Reuse.cContract
       σ σ₀ g A I := by
   exact (cX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (cDispatch_none_short hsz)
@@ -973,7 +973,7 @@ theorem cShortRevert {σ σ₀ A I} {g : UInt256}
 /-- Non-zero callvalue: both Solm transition bodies and the bytecode revert as non-payable. -/
 theorem cNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor cConfig Reuse.cContract
+    runtimeRefinementFor cConfig Reuse.cContract
       σ σ₀ g A I := by
   exact (cX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -997,7 +997,7 @@ theorem cNonPayable {σ σ₀ A I} {g : UInt256}
 theorem cReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor cConfig Reuse.cContract
+    runtimeRefinementFor cConfig Reuse.cContract
       σ σ₀ g A I := by
   by_cases hselShort : I.calldata.size < 4
   · exact cShortRevert hcode hsize hwv hselShort
@@ -1073,7 +1073,7 @@ theorem cReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
         exact cNoDispatch hcode hsize hwv hnm
 
 /-- **Correctness of `C`.** -/
-theorem cCorrect : runtimeEquivalence cConfig cBytecode Reuse.cContract := by
+theorem cCorrect : runtimeRefinement cConfig cBytecode Reuse.cContract := by
   refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact cReEquiv_callvalueZero hcode hsize hwv
@@ -1154,10 +1154,10 @@ theorem cInitcodeRun {σ σ₀ A I} {g : Sat256}
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem cConstructorCorrect :
-    constructorEquivalence cConfig cInitcode Reuse.cContract cBytecode :=
+    typedConstructorRefinement cConfig cInitcode Reuse.cContract (fun _ => cBytecode) :=
   emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem cContractCorrect :
-    contractEquivalence cConfig cInitcode cBytecode Reuse.cContract :=
+    contractRefinement cConfig cInitcode Reuse.cContract :=
   emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => cInitcodeRun hcode) cCorrect

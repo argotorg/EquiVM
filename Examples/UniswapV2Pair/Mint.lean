@@ -13,7 +13,7 @@ theorem uniswapMintBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
       ((σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
@@ -500,7 +500,7 @@ theorem uniswapMintBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some mintTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapMintBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm

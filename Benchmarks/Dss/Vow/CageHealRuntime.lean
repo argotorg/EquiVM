@@ -962,7 +962,7 @@ theorem vowCageMinHealLeftNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd3238⟩ := RD.vowCageMinReturnLeft rd3234 hle (by simp; omega)
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
@@ -1063,7 +1063,7 @@ theorem vowCageMinHealRightNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd3238⟩ := RD.vowCageMinReturnRight rd3234 hlt (by simp; omega)
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
@@ -1162,7 +1162,7 @@ theorem vowCageMinHealLeftCallFailureBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealCallFailure rd3296 houtHealSize (by simp; omega)
@@ -1261,7 +1261,7 @@ theorem vowCageMinHealRightCallFailureBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageHealCallFailure rd3296 houtHealSize (by simp; omega)
@@ -1359,7 +1359,7 @@ theorem vowCageMinHealLeftSuccessBodyCore
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatDai.toNat)] (true, evmHeal, outHeal) true)
     (hAccountsFinal : Eq acc evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret : RDret vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
     RD.vowCageHealCallSuccess rd3296
@@ -1461,7 +1461,7 @@ theorem vowCageMinHealRightSuccessBodyCore
       typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
         "heal" 0 [.int (Int.ofNat vatSin.toNat)] (true, evmHeal, outHeal) true)
     (hAccountsFinal : Eq acc evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret : RDret vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
     RD.vowCageHealCallSuccess rd3296

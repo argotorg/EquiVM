@@ -1,4 +1,4 @@
-import Solm.Equiv
+import Solm.Refine
 import Ethereum.Theory.ProgressLemmas
 import Ethereum.Theory.OpcodeLemmas
 

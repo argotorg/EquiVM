@@ -94,7 +94,7 @@ theorem pausableGuardedWhenNotPausedBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨133⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz := pausableGuardedWhenNotPausedSelector_size hsel
   have hd := pausableDispatch_guardedWhenNotPaused (cd := I.calldata) hsel
   have hdec := pausableDecode_guardedWhenNotPaused (I := I) hsz

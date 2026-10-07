@@ -1,4 +1,5 @@
 import Solm.SolidityStorage
+import Solm.Refine
 
 /-!
 # KlimaToken per-contract `bytes`/`string` storage read/write hook (solc 0.7.5, pre-0.8 total decode)
@@ -74,8 +75,8 @@ def klimaReadValue?
 
 /-- Write a `bytes`/`string` value the pre-0.8 way.  The short-value store clears `ceil(oldLen/32)`
     keccak-data words **unconditionally** (no ≥0.8 "old value was packed, skip the clear" guard).  The
-    old length is read via the **total** decode.  Since `constructorEquivalence` quantifies over
-    arbitrary σ, an old short nonempty header with a nonzero `keccak(slot)` word is a legal input where
+    old length is read via the **total** decode.  Since `typedConstructorRefinement` quantifies over
+    (fun _ => arbitrary) σ, an old short nonempty header with a nonzero `keccak(slot)` word is a legal input where
     the guarded (≥0.8) default would leave that word intact while the runtime zeroes it.  The
     long-value branch is unexercised by Klima (both `name`/`symbol` are short) and mirrors the Solidity
     default. -/

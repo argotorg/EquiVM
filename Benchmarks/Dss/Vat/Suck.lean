@@ -1798,7 +1798,7 @@ theorem vatSuckBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1543⟩ [vatSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (vatSuckX_shortarg (g := Sat256.ofUInt256 g) hsz4 hshort hsize hreach)
     |>.reEquivDecodingFailed hcode (vatDispatchSuck hsel)
       (vatDecode_suck_none_short hsz4 hshort)
@@ -2446,7 +2446,7 @@ theorem vatSuckFinishSuccess
           (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
           (suckDaiSlot I) daiNew)
         suckViceSlot viceNew) k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vatSuckDebtStoreStop
     (σi := σ)
     (σ := sstoreAccountMap I.codeOwner
@@ -2511,7 +2511,7 @@ theorem vatSuckAfterDaiViceOverflow
             (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
             (suckDaiSlot I) daiNew) I).toNat +
           (suckRadWord I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σDaiEvm := sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
     (suckDaiSlot I) daiNew
@@ -2584,7 +2584,7 @@ theorem vatSuckAfterViceDebtOverflow
               (suckDaiSlot I) daiNew)
             suckViceSlot viceNew) I).toNat +
           (suckRadWord I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σViceEvm := sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
@@ -2640,7 +2640,7 @@ theorem vatSuckAfterDaiStore
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
         (suckDaiSlot I) daiNew) k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let σDaiEvm := sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner σ (suckSinSlot I) sinNew)
     (suckDaiSlot I) daiNew

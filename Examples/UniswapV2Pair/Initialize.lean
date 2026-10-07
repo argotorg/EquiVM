@@ -615,7 +615,7 @@ theorem uniswapInitializeBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -655,7 +655,7 @@ theorem uniswapInitializeBodyCoreRevert_forbidden
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hfactoryS :
       UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨5⟩)
@@ -685,7 +685,7 @@ theorem uniswapInitializeBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨979⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_initialize_none_short (I := I) hsz4 hshort
   exact (uniswapInitializeX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -702,7 +702,7 @@ theorem uniswapInitializeBodyOk
     (hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreOk hcode hsize hperm hwv hsz68
@@ -718,7 +718,7 @@ theorem uniswapInitializeBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ rfl hsel
   exact uniswapInitializeBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -730,7 +730,7 @@ theorem uniswapInitializeBody
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hfactory :
       UInt256.land (initializeFactoryWord σ I) solcAddrMask = uniswapSourceWord I
@@ -750,7 +750,7 @@ theorem uniswapInitializeBodyAnyPerm
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some initializeTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact uniswapInitializeBody hcode hsize hperm hwv hsel hdispatch
   replace hperm : I.perm = false := by simpa using hperm

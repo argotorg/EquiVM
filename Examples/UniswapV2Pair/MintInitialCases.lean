@@ -920,7 +920,7 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
     (hrootLt : rootLiquidity < minimumLiquidity)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
@@ -1070,7 +1070,7 @@ theorem uniswapMintFinishInitialFeeOff
     (hfeeOff : feeOn = ⟨0⟩)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let minimumMem :=
     uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
       (uniswapInternalMintBalanceHashMem ⟨0⟩
@@ -1316,7 +1316,7 @@ theorem uniswapMintFinishInitialFeeOn
             reserve112Mask).toNat < UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let minimumMem :=
     uniswapInternalMintLogMem (⟨1000⟩ : UInt256)
       (uniswapInternalMintBalanceHashMem ⟨0⟩

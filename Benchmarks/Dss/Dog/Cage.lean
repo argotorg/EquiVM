@@ -11,16 +11,16 @@ def dogCagePostState (evm : EVM.State) : EVM.State :=
 abbrev dogCageLogTopic : UInt256 :=
   ⟨0x2308ed18a14e800c39b86eb6ea43270105955ca385b603b64eca89f98ae8fbda⟩
 
-theorem dogDecode_cage {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (cageTransition.params.map Param.name)
+theorem dogDecode_cage {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
       (transitionSignature cageTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
 theorem dogCageAssignLive {v : DogImmutables} (evm : EVM.State) :
-    assignStorageRef? (config v) { contract := contract v, locals := ∅ } evm
+    assignStorageRef? config { contract := contract, locals := ∅, immutables := immStore v } evm
       .storage liveRef (.int 0) =
-        .ok ({ contract := contract v, locals := ∅ }, dogCagePostState evm) := by
+        .ok ({ contract := contract, locals := ∅, immutables := immStore v }, dogCagePostState evm) := by
   apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
@@ -224,37 +224,37 @@ theorem dogCageBodyCoreOk {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some cageTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (cageTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨432⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hauthEvm : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let callerSlot := dogCallerWardsSlot I
   let locals : Store := ∅
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := dogCagePostState evm0
   have hauthSolm : solcSlotWordAt callerSlot σ I = ⟨1⟩ := hauthEvm
   have hbodySplit :
-      (ExecTransitionBody (config v) (contract v) evm0 locals cageTransition.body
-        (.returned { contract := contract v, locals := locals } evm1 none)) ∧
-      (I.perm = false → ExecTransitionBody (config v) (contract v)
-        evm0 locals cageTransition.body .staticViolation) := by
+      (ExecTransitionBody config contract evm0 locals cageTransition.body
+        (.returned { contract := contract, locals := locals, immutables := immStore v } evm1 none) (immStore v)) ∧
+      (I.perm = false → ExecTransitionBody config contract
+        evm0 locals cageTransition.body .staticViolation (immStore v)) := by
     have hguard := dogAuthGuardEval_true (v := v)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (locals := locals)
       (by simp [locals]) (by simpa [callerSlot] using hauthSolm)
     have hassign :
-        assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+        assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
           .storage liveRef (.int 0) =
-            .ok ({ contract := contract v, locals := locals }, evm1) := by
+            .ok ({ contract := contract, locals := locals, immutables := immStore v }, evm1) := by
       simpa [locals, evm1] using dogCageAssignLive (v := v) evm0
     constructor
     · have hblock := nonpayableRequireAssignStorageBlock
-        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0) (evm' := evm1)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
         (rhs := .intLit 0) (ref := liveRef) (value := .int 0)
@@ -264,7 +264,7 @@ theorem dogCageBodyCoreOk {v : DogImmutables} {code : ByteArray}
         ExecFuncBody.execBlockOK hblock
     · intro hperm
       have hblock := nonpayableRequireAssignStorageBlockStatic
-        (cfg := config v) (solm := { contract := contract v, locals := locals })
+        (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0) (rest := [])
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
         (rhs := .intLit 0) (ref := liveRef) (value := .int 0)
@@ -349,26 +349,26 @@ theorem dogCageBodyCoreAuthRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some cageTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (cageTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨432⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hauthEvm : solcSlotWordAt (dogCallerWardsSlot I) σ I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let callerSlot := dogCallerWardsSlot I
   let locals : Store := ∅
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthSolm : solcSlotWordAt callerSlot σ I ≠ ⟨1⟩ := hauthEvm
-  have hbody : ExecTransitionBody (config v) (contract v) evm0 locals cageTransition.body .reverted := by
+  have hbody : ExecTransitionBody config contract evm0 locals cageTransition.body .reverted (immStore v) := by
     have hguard := dogAuthGuardEval_false (v := v)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (locals := locals)
       (by simp [locals]) (by simpa [callerSlot] using hauthSolm)
     have hblock := nonpayableSecondRequireReverts
-      (cfg := config v) (solm := { contract := contract v, locals := locals })
+      (cfg := config) (solm := { contract := contract, locals := locals, immutables := immStore v })
       (evm := evm0)
       (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
       (rest := [.assign .storage liveRef (.intLit 0)])
@@ -416,15 +416,15 @@ theorem dogCageBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 3)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 3) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some cageTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     dogDispatchCage hsel
   have hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (cageTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅ :=
-    dogDecode_cage (v := v) hsz4
+    dogDecode_cage hsz4
   have hreach := dogReachCageBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel

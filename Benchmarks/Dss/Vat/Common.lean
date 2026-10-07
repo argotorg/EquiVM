@@ -70,7 +70,7 @@ abbrev VatBodyTheorem (i : ℕ) : Prop :=
     I.perm = true →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeEquivalenceFor config contract σ σ₀ g A I
+    runtimeRefinementFor config contract σ σ₀ g A I
 
 /-- `VatBodyTheorem` for any call permission. -/
 abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
@@ -79,7 +79,7 @@ abbrev VatBodyTheoremAnyPerm (i : ℕ) : Prop :=
     I.calldata.size < UInt256.size →
     I.weiValue = ⟨0⟩ →
     selIs I (vatSelBytes i) →
-    runtimeEquivalenceFor config contract σ σ₀ g A I
+    runtimeRefinementFor config contract σ σ₀ g A I
 
 
 @[reducible] def solcSixWordThreeAddressExternalLoadAndJumpWf
@@ -275,7 +275,7 @@ theorem vatUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])

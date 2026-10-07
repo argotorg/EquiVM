@@ -104,7 +104,7 @@ theorem vowSinMappingBodyCore
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨700⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let key := sinMappingKey I
   let slot := solcMappingSlot ⟨4⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.int (Int.ofNat key.toNat))
@@ -192,7 +192,7 @@ theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowSinMappingBodyCore hcode hwv hsz36 hsize (vowDispatch_sin hsel)
     (vowDecode_sin_ok hsz36)
@@ -203,7 +203,7 @@ theorem vowSinMappingShort {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachSinMappingBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)

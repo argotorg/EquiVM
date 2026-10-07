@@ -1087,7 +1087,7 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C)
  :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := blindAuctionAuctionEndSelector_size hsel

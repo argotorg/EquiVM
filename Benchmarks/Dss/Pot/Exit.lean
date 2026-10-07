@@ -1101,7 +1101,7 @@ theorem potExitBody {σ σ₀ A I} {g : UInt256}
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 6)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some exitTransition := potDispatchExit hsel
   have hreach := potReachExitBody (σ := σ) (σ₀ := σ₀)
@@ -1243,7 +1243,7 @@ theorem potExitBodyAnyPerm {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (potSelBytes 6)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hperm : I.perm = true
   · exact potExitBody hcode hsize hperm hwv hsel
   replace hperm : I.perm = false := by simpa using hperm

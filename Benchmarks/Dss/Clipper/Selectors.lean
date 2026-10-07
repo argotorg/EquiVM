@@ -87,14 +87,14 @@ theorem getStatusSelectorBytes :
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, getStatusTransition, uint256]; decide +kernel
 
 /-- `keccak("ilk()")[0:4] = 0xc5ce281e`. -/
-theorem ilkSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (ilkTransition v)))).extract 0 4 =
+theorem ilkSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr ilkTransition))).extract 0 4 =
       clipperSelBytes 12 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ilkTransition]; decide +kernel
 
 /-- `keccak("kick(uint256,uint256,address,address)")[0:4] = 0x898eb267`. -/
-theorem kickSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (kickTransition v)))).extract 0 4 =
+theorem kickSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr kickTransition))).extract 0 4 =
       clipperSelBytes 13 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, kickTransition, uint256, addr]; decide +kernel
 
@@ -109,8 +109,8 @@ theorem listSelectorBytes :
       clipperSelBytes 15 := by decide +kernel
 
 /-- `keccak("redo(uint256,address)")[0:4] = 0xd843416d`. -/
-theorem redoSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (redoTransition v)))).extract 0 4 =
+theorem redoSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr redoTransition))).extract 0 4 =
       clipperSelBytes 16 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, redoTransition, uint256, addr]; decide +kernel
 
@@ -142,8 +142,8 @@ theorem tailSelectorBytes :
       clipperSelBytes 21 := by decide +kernel
 
 /-- `keccak("take(uint256,uint256,uint256,address,bytes)")[0:4] = 0x81a794cb`. -/
-theorem takeSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (takeTransition v)))).extract 0 4 =
+theorem takeSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr takeTransition))).extract 0 4 =
       clipperSelBytes 22 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, takeTransition, uint256, addr, bytesDyn]; decide +kernel
 
@@ -153,14 +153,14 @@ theorem tipSelectorBytes :
       clipperSelBytes 23 := by decide +kernel
 
 /-- `keccak("upchost()")[0:4] = 0x0cbb5862`. -/
-theorem upchostSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (upchostTransition v)))).extract 0 4 =
+theorem upchostSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr upchostTransition))).extract 0 4 =
       clipperSelBytes 24 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, upchostTransition]; decide +kernel
 
 /-- `keccak("vat()")[0:4] = 0x36569e77`. -/
-theorem vatSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (vatTransition v)))).extract 0 4 =
+theorem vatSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr vatTransition))).extract 0 4 =
       clipperSelBytes 25 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, vatTransition]; decide +kernel
 
@@ -176,8 +176,8 @@ theorem wardsSelectorBytes :
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, wardsTransition, addr]; decide +kernel
 
 /-- `keccak("yank(uint256)")[0:4] = 0x26e027f1`. -/
-theorem yankSelectorBytes (v : ClipperImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (yankTransition v)))).extract 0 4 =
+theorem yankSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr yankTransition))).extract 0 4 =
       clipperSelBytes 28 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, yankTransition, uint256]; decide +kernel
 

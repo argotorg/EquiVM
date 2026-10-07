@@ -1,21 +1,21 @@
 import Benchmarks.Scaffolds.UniswapV3Pool.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # UniswapV3Pool constructor correctness stub
 
-Parameterized over the pool's immutable values.  The constructor produces a runtime whose bytes
-depend on the seven immutables; `constructorEquivalenceWith` checks that the runtime the EVM returns
-equals `runtimeCodeOf` applied to the constructor's final `imm_<name>` locals.  Proof left as target.
+The constructor sets the pool's seven immutables.  `typedConstructorRefinement` checks that the runtime the EVM returns
+is the template patched with the constructor's final immutables (`deployedRuntime`), and that those
+are well typed.  Proof left as the benchmark target.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Benchmarks.UniswapV3Pool.Immutables
 
 namespace Benchmarks.UniswapV3Pool
 
-theorem uniswapV3PoolConstructorCorrect (v : PoolImmutables) :
-    constructorEquivalenceWith (config v) uniswapV3PoolCreationBytecode (contract v)
-      (runtimeCodeOf uniswapV3PoolBytecode) := by
+theorem uniswapV3PoolConstructorCorrect :
+    typedConstructorRefinement config uniswapV3PoolCreationBytecode contract
+      (deployedRuntime uniswapV3PoolBytecode) := by
   sorry
 
 end Benchmarks.UniswapV3Pool

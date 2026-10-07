@@ -1693,7 +1693,7 @@ theorem erc20TransferBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨24⟩
       [transferSelectorWord] transferDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20TransferSelector_size hsel
   have hd := erc20Dispatch_transfer (cd := I.calldata) hsel
@@ -1785,7 +1785,7 @@ theorem erc20TransferRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20TransferBodyCore hcode hwv hsize hsel
     (erc20X_transferReach (σ := σ)

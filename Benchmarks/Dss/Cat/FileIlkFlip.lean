@@ -3,7 +3,7 @@ import Reasoning.WordArithmetic
 import Reasoning.Storage
 import Benchmarks.Dss.Cat.FileIlkFlipCalls2
 import Benchmarks.Dss.Cat.BiteSource
-import Solm.Equiv
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -895,7 +895,7 @@ theorem catFileIlkFlipBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩ (by native_decide) hsel
   have hreach := catReachFileIlkFlipBody (σ := σ)

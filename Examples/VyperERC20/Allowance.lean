@@ -779,7 +779,7 @@ theorem erc20AllowanceBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨681⟩
       [allowanceSelectorWord] allowanceDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hd := erc20Dispatch_allowance (cd := I.calldata) hsel
   have hbody :
@@ -843,7 +843,7 @@ theorem erc20AllowanceRuntimeSuccess
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   exact erc20AllowanceBodyCore hcode hwv hsize hsel
     (erc20X_allowanceReach (σ := σ)

@@ -15,11 +15,9 @@ centralized through `Comet.Immutables`, whose values match that template bytecod
 
 open Solm ABI Ethereum
 
-open Benchmarks.CompoundIII.Comet.Immutables (CometImmutables)
-
 namespace Benchmarks.CompoundIII.Comet
 
-variable (v : CometImmutables)
+open Immutables
 
 /-! ## Types -/
 
@@ -115,24 +113,24 @@ def mulFactorExpr (n factor : Expr) : Expr :=
   .binary .div (u256 (.binary .mul n factor)) (.intLit factorScale)
 
 def borrowRateExpr (utilization : Expr) : Expr :=
-  .ite (.binary .le utilization (Immutables.borrowKink v))
-    (u256 (.binary .add (Immutables.borrowPerSecondInterestRateBase v)
-      (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeLow v) utilization)))
+  .ite (.binary .le utilization borrowKink)
+    (u256 (.binary .add borrowPerSecondInterestRateBase
+      (mulFactorExpr borrowPerSecondInterestRateSlopeLow utilization)))
     (u256 (.binary .add
-      (u256 (.binary .add (Immutables.borrowPerSecondInterestRateBase v)
-        (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeLow v) (Immutables.borrowKink v))))
-      (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeHigh v)
-        (u256 (.binary .sub utilization (Immutables.borrowKink v))))))
+      (u256 (.binary .add borrowPerSecondInterestRateBase
+        (mulFactorExpr borrowPerSecondInterestRateSlopeLow borrowKink)))
+      (mulFactorExpr borrowPerSecondInterestRateSlopeHigh
+        (u256 (.binary .sub utilization borrowKink)))))
 
 def supplyRateExpr (utilization : Expr) : Expr :=
-  .ite (.binary .le utilization (Immutables.supplyKink v))
-    (u256 (.binary .add (Immutables.supplyPerSecondInterestRateBase v)
-      (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeLow v) utilization)))
+  .ite (.binary .le utilization supplyKink)
+    (u256 (.binary .add supplyPerSecondInterestRateBase
+      (mulFactorExpr supplyPerSecondInterestRateSlopeLow utilization)))
     (u256 (.binary .add
-      (u256 (.binary .add (Immutables.supplyPerSecondInterestRateBase v)
-        (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeLow v) (Immutables.supplyKink v))))
-      (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeHigh v)
-        (u256 (.binary .sub utilization (Immutables.supplyKink v))))))
+      (u256 (.binary .add supplyPerSecondInterestRateBase
+        (mulFactorExpr supplyPerSecondInterestRateSlopeLow supplyKink)))
+      (mulFactorExpr supplyPerSecondInterestRateSlopeHigh
+        (u256 (.binary .sub utilization supplyKink)))))
 
 /-! ## Storage references -/
 
@@ -309,7 +307,7 @@ def nonpayable : List Stmt :=
 
 /-! ## Constructor -/
 
--- The Comet constructor binds each immutable as `imm_<name>` (for `runtimeCodeOf`).  Direct fields
+-- The Comet constructor sets each immutable (`setImmutable`).  Direct fields
 -- come from the `config` tuple; the per-second rates are `perYear / SECONDS_PER_YEAR` and
 -- `accrualDescaleFactor = baseScale / BASE_ACCRUAL_SCALE` — positive-operand divisions, so Solm's
 -- Euclidean `/` matches EVM truncating.  `baseScale = 10 ** decimals`.  See the report for the parts
@@ -318,34 +316,36 @@ def nonpayable : List Stmt :=
 def constructorDecl : ConstructorDecl :=
   { params := [{ name := "config", ty := (.tuple [addr, addr, addr, addr, addr, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint104, uint104, uint104, (.dynamicArray (.tuple [addr, addr, uint8, uint64, uint64, uint64, uint128]))]) }]
     body := nonpayable ++
-      [ .letDecl "imm_governor" none (.tupleGet (.var "config") 0),
-        .letDecl "imm_pauseGuardian" none (.tupleGet (.var "config") 1),
-        .letDecl "imm_baseToken" none (.tupleGet (.var "config") 2),
-        .letDecl "imm_baseTokenPriceFeed" none (.tupleGet (.var "config") 3),
-        .letDecl "imm_extensionDelegate" none (.tupleGet (.var "config") 4),
-        .letDecl "imm_storeFrontPriceFactor" none (.tupleGet (.var "config") 13),
-        .letDecl "imm_trackingIndexScale" none (.tupleGet (.var "config") 14),
-        .letDecl "imm_baseMinForRewards" none (.tupleGet (.var "config") 17),
-        .letDecl "imm_baseTrackingSupplySpeed" none (.tupleGet (.var "config") 15),
-        .letDecl "imm_baseTrackingBorrowSpeed" none (.tupleGet (.var "config") 16),
-        .letDecl "imm_baseBorrowMin" none (.tupleGet (.var "config") 18),
-        .letDecl "imm_targetReserves" none (.tupleGet (.var "config") 19),
-        .letDecl "imm_supplyKink" none (.tupleGet (.var "config") 5),
-        .letDecl "imm_borrowKink" none (.tupleGet (.var "config") 9),
-        .letDecl "imm_supplyPerSecondInterestRateSlopeLow" none (.binary .div (.tupleGet (.var "config") 6) (.intLit 31536000)),
-        .letDecl "imm_supplyPerSecondInterestRateSlopeHigh" none (.binary .div (.tupleGet (.var "config") 7) (.intLit 31536000)),
-        .letDecl "imm_supplyPerSecondInterestRateBase" none (.binary .div (.tupleGet (.var "config") 8) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateSlopeLow" none (.binary .div (.tupleGet (.var "config") 10) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateSlopeHigh" none (.binary .div (.tupleGet (.var "config") 11) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateBase" none (.binary .div (.tupleGet (.var "config") 12) (.intLit 31536000)),
+      [ .setImmutable "governor" (.tupleGet (.var "config") 0),
+        .setImmutable "pauseGuardian" (.tupleGet (.var "config") 1),
+        .setImmutable "baseToken" (.tupleGet (.var "config") 2),
+        .setImmutable "baseTokenPriceFeed" (.tupleGet (.var "config") 3),
+        .setImmutable "extensionDelegate" (.tupleGet (.var "config") 4),
+        .setImmutable "storeFrontPriceFactor" (.tupleGet (.var "config") 13),
+        .setImmutable "trackingIndexScale" (.tupleGet (.var "config") 14),
+        .setImmutable "baseMinForRewards" (.tupleGet (.var "config") 17),
+        .setImmutable "baseTrackingSupplySpeed" (.tupleGet (.var "config") 15),
+        .setImmutable "baseTrackingBorrowSpeed" (.tupleGet (.var "config") 16),
+        .setImmutable "baseBorrowMin" (.tupleGet (.var "config") 18),
+        .setImmutable "targetReserves" (.tupleGet (.var "config") 19),
+        .setImmutable "supplyKink" (.tupleGet (.var "config") 5),
+        .setImmutable "borrowKink" (.tupleGet (.var "config") 9),
+        .setImmutable "supplyPerSecondInterestRateSlopeLow" (.binary .div (.tupleGet (.var "config") 6) (.intLit 31536000)),
+        .setImmutable "supplyPerSecondInterestRateSlopeHigh" (.binary .div (.tupleGet (.var "config") 7) (.intLit 31536000)),
+        .setImmutable "supplyPerSecondInterestRateBase" (.binary .div (.tupleGet (.var "config") 8) (.intLit 31536000)),
+        .setImmutable "borrowPerSecondInterestRateSlopeLow" (.binary .div (.tupleGet (.var "config") 10) (.intLit 31536000)),
+        .setImmutable "borrowPerSecondInterestRateSlopeHigh" (.binary .div (.tupleGet (.var "config") 11) (.intLit 31536000)),
+        .setImmutable "borrowPerSecondInterestRateBase" (.binary .div (.tupleGet (.var "config") 12) (.intLit 31536000)),
         -- decimals := baseToken.decimals()  (external call; ABI wiring not faithfully modelled)
-        .externalCall (.var "imm_baseToken") "decimals" (.intLit 0) [] "imm_decimals" (perm := false),
-        .letDecl "imm_baseScale" none (.binary .exp (.intLit 10) (.var "imm_decimals")),
-        .letDecl "imm_accrualDescaleFactor" none (.binary .div (.var "imm_baseScale") (.intLit (10 ^ 15))),
+        .externalCall (.immutable "baseToken") "decimals" (.intLit 0) [] "decimals_" (perm := false),
+        .setImmutable "decimals" (.var "decimals_"),
+        .setImmutable "baseScale" (.binary .exp (.intLit 10) (.immutable "decimals")),
+        .setImmutable "accrualDescaleFactor" (.binary .div (.immutable "baseScale") (.intLit (10 ^ 15))),
         -- numAssets := assetConfigs.length  (NOT modelled — placeholder; see report)
-        .letDecl "imm_numAssets" none (.intLit 0),
+        .setImmutable "numAssets" (.intLit 0),
         -- assetList := AssetListFactory(...).createAssetList(assetConfigs)  (two-hop chain — stubbed)
-        .externalCall (.var "imm_extensionDelegate") "createAssetList" (.intLit 0) [] "imm_assetList" (perm := true) ] }
+        .externalCall (.immutable "extensionDelegate") "createAssetList" (.intLit 0) [] "assetList_" (perm := true),
+        .setImmutable "assetList" (.var "assetList_") ] }
 
 /-! ## Public ABI surface -/
 
@@ -371,7 +371,7 @@ def assetListTransition : TransitionDecl :=
   { name := "assetList"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.assetList v)] ] }
+    body := nonpayable ++ [ .return [assetList] ] }
 
 def balanceOfTransition : TransitionDecl :=
   { name := "balanceOf"
@@ -390,43 +390,43 @@ def baseBorrowMinTransition : TransitionDecl :=
   { name := "baseBorrowMin"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.baseBorrowMin v)] ] }
+    body := nonpayable ++ [ .return [baseBorrowMin] ] }
 
 def baseMinForRewardsTransition : TransitionDecl :=
   { name := "baseMinForRewards"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.baseMinForRewards v)] ] }
+    body := nonpayable ++ [ .return [baseMinForRewards] ] }
 
 def baseScaleTransition : TransitionDecl :=
   { name := "baseScale"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.baseScale v)] ] }
+    body := nonpayable ++ [ .return [baseScale] ] }
 
 def baseTokenTransition : TransitionDecl :=
   { name := "baseToken"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.baseToken v)] ] }
+    body := nonpayable ++ [ .return [baseToken] ] }
 
 def baseTokenPriceFeedTransition : TransitionDecl :=
   { name := "baseTokenPriceFeed"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.baseTokenPriceFeed v)] ] }
+    body := nonpayable ++ [ .return [baseTokenPriceFeed] ] }
 
 def baseTrackingBorrowSpeedTransition : TransitionDecl :=
   { name := "baseTrackingBorrowSpeed"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.baseTrackingBorrowSpeed v)] ] }
+    body := nonpayable ++ [ .return [baseTrackingBorrowSpeed] ] }
 
 def baseTrackingSupplySpeedTransition : TransitionDecl :=
   { name := "baseTrackingSupplySpeed"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.baseTrackingSupplySpeed v)] ] }
+    body := nonpayable ++ [ .return [baseTrackingSupplySpeed] ] }
 
 def borrowBalanceOfTransition : TransitionDecl :=
   { name := "borrowBalanceOf"
@@ -446,25 +446,25 @@ def borrowKinkTransition : TransitionDecl :=
   { name := "borrowKink"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.borrowKink v)] ] }
+    body := nonpayable ++ [ .return [borrowKink] ] }
 
 def borrowPerSecondInterestRateBaseTransition : TransitionDecl :=
   { name := "borrowPerSecondInterestRateBase"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.borrowPerSecondInterestRateBase v)] ] }
+    body := nonpayable ++ [ .return [borrowPerSecondInterestRateBase] ] }
 
 def borrowPerSecondInterestRateSlopeHighTransition : TransitionDecl :=
   { name := "borrowPerSecondInterestRateSlopeHigh"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.borrowPerSecondInterestRateSlopeHigh v)] ] }
+    body := nonpayable ++ [ .return [borrowPerSecondInterestRateSlopeHigh] ] }
 
 def borrowPerSecondInterestRateSlopeLowTransition : TransitionDecl :=
   { name := "borrowPerSecondInterestRateSlopeLow"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.borrowPerSecondInterestRateSlopeLow v)] ] }
+    body := nonpayable ++ [ .return [borrowPerSecondInterestRateSlopeLow] ] }
 
 def buyCollateralTransition : TransitionDecl :=
   { name := "buyCollateral"
@@ -476,13 +476,13 @@ def decimalsTransition : TransitionDecl :=
   { name := "decimals"
     params := []
     returnType := [uint8]
-    body := nonpayable ++ [ .return [(Immutables.decimals v)] ] }
+    body := nonpayable ++ [ .return [decimals] ] }
 
 def extensionDelegateTransition : TransitionDecl :=
   { name := "extensionDelegate"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.extensionDelegate v)] ] }
+    body := nonpayable ++ [ .return [extensionDelegate] ] }
 
 def getAssetInfoTransition : TransitionDecl :=
   { name := "getAssetInfo"
@@ -500,7 +500,7 @@ def getBorrowRateTransition : TransitionDecl :=
   { name := "getBorrowRate"
     params := [{ name := "utilization", ty := uint256 }]
     returnType := [uint64]
-    body := nonpayable ++ [ .return [u64 (borrowRateExpr v (.var "utilization"))] ] }
+    body := nonpayable ++ [ .return [u64 (borrowRateExpr (.var "utilization"))] ] }
 
 def getCollateralReservesTransition : TransitionDecl :=
   { name := "getCollateralReserves"
@@ -524,7 +524,7 @@ def getSupplyRateTransition : TransitionDecl :=
   { name := "getSupplyRate"
     params := [{ name := "utilization", ty := uint256 }]
     returnType := [uint64]
-    body := nonpayable ++ [ .return [u64 (supplyRateExpr v (.var "utilization"))] ] }
+    body := nonpayable ++ [ .return [u64 (supplyRateExpr (.var "utilization"))] ] }
 
 def getUtilizationTransition : TransitionDecl :=
   { name := "getUtilization"
@@ -547,7 +547,7 @@ def governorTransition : TransitionDecl :=
   { name := "governor"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.governor v)] ] }
+    body := nonpayable ++ [ .return [governor] ] }
 
 def hasPermissionTransition : TransitionDecl :=
   { name := "hasPermission"
@@ -630,7 +630,7 @@ def numAssetsTransition : TransitionDecl :=
   { name := "numAssets"
     params := []
     returnType := [uint8]
-    body := nonpayable ++ [ .return [(Immutables.numAssets v)] ] }
+    body := nonpayable ++ [ .return [numAssets] ] }
 
 def pauseTransition : TransitionDecl :=
   { name := "pause"
@@ -640,8 +640,8 @@ def pauseTransition : TransitionDecl :=
       nonpayable ++
       [ .require
           (.binary .or
-            (.binary .eq sender (Immutables.governor v))
-            (.binary .eq sender (Immutables.pauseGuardian v))),
+            (.binary .eq sender governor)
+            (.binary .eq sender pauseGuardian)),
         .assign .storage pauseFlagsRef
           (pauseFlagsValue (.var "supplyPaused") (.var "transferPaused")
             (.var "withdrawPaused") (.var "absorbPaused") (.var "buyPaused")) ] }
@@ -650,7 +650,7 @@ def pauseGuardianTransition : TransitionDecl :=
   { name := "pauseGuardian"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [(Immutables.pauseGuardian v)] ] }
+    body := nonpayable ++ [ .return [pauseGuardian] ] }
 
 def quoteCollateralTransition : TransitionDecl :=
   { name := "quoteCollateral"
@@ -662,7 +662,7 @@ def storeFrontPriceFactorTransition : TransitionDecl :=
   { name := "storeFrontPriceFactor"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.storeFrontPriceFactor v)] ] }
+    body := nonpayable ++ [ .return [storeFrontPriceFactor] ] }
 
 def supplyTransition : TransitionDecl :=
   { name := "supply"
@@ -680,25 +680,25 @@ def supplyKinkTransition : TransitionDecl :=
   { name := "supplyKink"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.supplyKink v)] ] }
+    body := nonpayable ++ [ .return [supplyKink] ] }
 
 def supplyPerSecondInterestRateBaseTransition : TransitionDecl :=
   { name := "supplyPerSecondInterestRateBase"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.supplyPerSecondInterestRateBase v)] ] }
+    body := nonpayable ++ [ .return [supplyPerSecondInterestRateBase] ] }
 
 def supplyPerSecondInterestRateSlopeHighTransition : TransitionDecl :=
   { name := "supplyPerSecondInterestRateSlopeHigh"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.supplyPerSecondInterestRateSlopeHigh v)] ] }
+    body := nonpayable ++ [ .return [supplyPerSecondInterestRateSlopeHigh] ] }
 
 def supplyPerSecondInterestRateSlopeLowTransition : TransitionDecl :=
   { name := "supplyPerSecondInterestRateSlopeLow"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.supplyPerSecondInterestRateSlopeLow v)] ] }
+    body := nonpayable ++ [ .return [supplyPerSecondInterestRateSlopeLow] ] }
 
 def supplyToTransition : TransitionDecl :=
   { name := "supplyTo"
@@ -710,7 +710,7 @@ def targetReservesTransition : TransitionDecl :=
   { name := "targetReserves"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.targetReserves v)] ] }
+    body := nonpayable ++ [ .return [targetReserves] ] }
 
 def totalBorrowTransition : TransitionDecl :=
   { name := "totalBorrow"
@@ -740,7 +740,7 @@ def trackingIndexScaleTransition : TransitionDecl :=
   { name := "trackingIndexScale"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [(Immutables.trackingIndexScale v)] ] }
+    body := nonpayable ++ [ .return [trackingIndexScale] ] }
 
 def transferTransition : TransitionDecl :=
   { name := "transfer"
@@ -813,40 +813,40 @@ def fallbackTransition : TransitionDecl :=
     params := [{ name := "calldata", ty := bytesTy }]
     returnType := [bytesTy]
     body :=
-      [ .delegateCall (Immutables.extensionDelegate v) (.var "calldata") "ok" "returndata",
+      [ .delegateCall extensionDelegate (.var "calldata") "ok" "returndata",
         .require (.var "ok"),
         .return [.var "returndata"] ] }
 
-def transitions (v : CometImmutables) : List TransitionDecl :=
+def transitions : List TransitionDecl :=
   [ absorbTransition,
     accrueAccountTransition,
     approveThisTransition,
-    assetListTransition v,
+    assetListTransition,
     balanceOfTransition,
-    baseBorrowMinTransition v,
-    baseMinForRewardsTransition v,
-    baseScaleTransition v,
-    baseTokenTransition v,
-    baseTokenPriceFeedTransition v,
-    baseTrackingBorrowSpeedTransition v,
-    baseTrackingSupplySpeedTransition v,
+    baseBorrowMinTransition,
+    baseMinForRewardsTransition,
+    baseScaleTransition,
+    baseTokenTransition,
+    baseTokenPriceFeedTransition,
+    baseTrackingBorrowSpeedTransition,
+    baseTrackingSupplySpeedTransition,
     borrowBalanceOfTransition,
-    borrowKinkTransition v,
-    borrowPerSecondInterestRateBaseTransition v,
-    borrowPerSecondInterestRateSlopeHighTransition v,
-    borrowPerSecondInterestRateSlopeLowTransition v,
+    borrowKinkTransition,
+    borrowPerSecondInterestRateBaseTransition,
+    borrowPerSecondInterestRateSlopeHighTransition,
+    borrowPerSecondInterestRateSlopeLowTransition,
     buyCollateralTransition,
-    decimalsTransition v,
-    extensionDelegateTransition v,
+    decimalsTransition,
+    extensionDelegateTransition,
     getAssetInfoTransition,
     getAssetInfoByAddressTransition,
-    getBorrowRateTransition v,
+    getBorrowRateTransition,
     getCollateralReservesTransition,
     getPriceTransition,
     getReservesTransition,
-    getSupplyRateTransition v,
+    getSupplyRateTransition,
     getUtilizationTransition,
-    governorTransition v,
+    governorTransition,
     hasPermissionTransition,
     initializeStorageTransition,
     isAbsorbPausedTransition,
@@ -858,23 +858,23 @@ def transitions (v : CometImmutables) : List TransitionDecl :=
     isTransferPausedTransition,
     isWithdrawPausedTransition,
     liquidatorPointsTransition,
-    numAssetsTransition v,
-    pauseTransition v,
-    pauseGuardianTransition v,
+    numAssetsTransition,
+    pauseTransition,
+    pauseGuardianTransition,
     quoteCollateralTransition,
-    storeFrontPriceFactorTransition v,
+    storeFrontPriceFactorTransition,
     supplyTransition,
     supplyFromTransition,
-    supplyKinkTransition v,
-    supplyPerSecondInterestRateBaseTransition v,
-    supplyPerSecondInterestRateSlopeHighTransition v,
-    supplyPerSecondInterestRateSlopeLowTransition v,
+    supplyKinkTransition,
+    supplyPerSecondInterestRateBaseTransition,
+    supplyPerSecondInterestRateSlopeHighTransition,
+    supplyPerSecondInterestRateSlopeLowTransition,
     supplyToTransition,
-    targetReservesTransition v,
+    targetReservesTransition,
     totalBorrowTransition,
     totalSupplyTransition,
     totalsCollateralTransition,
-    trackingIndexScaleTransition v,
+    trackingIndexScaleTransition,
     transferTransition,
     transferAssetTransition,
     transferAssetFromTransition,
@@ -887,18 +887,19 @@ def transitions (v : CometImmutables) : List TransitionDecl :=
     withdrawReservesTransition,
     withdrawToTransition ]
 
-def contract (v : CometImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "CometWithExtendedAssetList"
     storage := storageDecls
+    immutables := [⟨"governor", .address⟩, ⟨"pauseGuardian", .address⟩, ⟨"baseToken", .address⟩, ⟨"baseTokenPriceFeed", .address⟩, ⟨"extensionDelegate", .address⟩, ⟨"supplyKink", .int (.uint ⟨256, by decide⟩)⟩, ⟨"supplyPerSecondInterestRateSlopeLow", .int (.uint ⟨256, by decide⟩)⟩, ⟨"supplyPerSecondInterestRateSlopeHigh", .int (.uint ⟨256, by decide⟩)⟩, ⟨"supplyPerSecondInterestRateBase", .int (.uint ⟨256, by decide⟩)⟩, ⟨"borrowKink", .int (.uint ⟨256, by decide⟩)⟩, ⟨"borrowPerSecondInterestRateSlopeLow", .int (.uint ⟨256, by decide⟩)⟩, ⟨"borrowPerSecondInterestRateSlopeHigh", .int (.uint ⟨256, by decide⟩)⟩, ⟨"borrowPerSecondInterestRateBase", .int (.uint ⟨256, by decide⟩)⟩, ⟨"storeFrontPriceFactor", .int (.uint ⟨256, by decide⟩)⟩, ⟨"baseScale", .int (.uint ⟨256, by decide⟩)⟩, ⟨"trackingIndexScale", .int (.uint ⟨256, by decide⟩)⟩, ⟨"baseTrackingSupplySpeed", .int (.uint ⟨256, by decide⟩)⟩, ⟨"baseTrackingBorrowSpeed", .int (.uint ⟨256, by decide⟩)⟩, ⟨"baseMinForRewards", .int (.uint ⟨256, by decide⟩)⟩, ⟨"baseBorrowMin", .int (.uint ⟨256, by decide⟩)⟩, ⟨"targetReserves", .int (.uint ⟨256, by decide⟩)⟩, ⟨"decimals", .int (.uint ⟨8, by decide⟩)⟩, ⟨"numAssets", .int (.uint ⟨8, by decide⟩)⟩, ⟨"accrualDescaleFactor", .int (.uint ⟨256, by decide⟩)⟩, ⟨"assetList", .address⟩]
     ctor := constructorDecl
     structs := structs
     functions := []
-    transitions := transitions v
-    fallback := some (fallbackTransition v) }
+    transitions := transitions
+    fallback := some (fallbackTransition) }
 
-def config (v : CometImmutables) : Config :=
+def config : Config :=
   { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
-    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment (contract).ctor.params }
 
 end Benchmarks.CompoundIII.Comet

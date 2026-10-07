@@ -9,13 +9,13 @@ import Reasoning.Memory
 import Reasoning.Stepping
 import Reasoning.SolmBody
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 
 /-!
 # WETH9 constructor correctness
 
-`weth9ConstructorCorrect : constructorEquivalence config weth9CreationBytecode contract weth9Bytecode`.
+`weth9ConstructorCorrect : typedConstructorRefinement config weth9CreationBytecode contract (fun _ => weth9Bytecode`.)
 
 The solc-0.5.16 creation bytecode writes the two compact short strings `name` = "Wrapped Ether"
 (slot 0) and `symbol` = "WETH" (slot 1) and `decimals` = 18 (slot 2), then (after a non-payable
@@ -407,8 +407,7 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : Accou
 
 set_option maxHeartbeats 1000000 in
 theorem weth9ConstructorCorrect :
-    constructorEquivalence config weth9CreationBytecode contract weth9Bytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config weth9CreationBytecode contract (fun _ => weth9Bytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode weth9_selfDeployment_eq weth9_ctor_params_nil
     hdeploy
@@ -422,13 +421,13 @@ theorem weth9ConstructorCorrect :
     have hrd := weth9CtorInitcodeSuccess (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hoog | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas (Xi_error_of_X (g := g) (by
+    · exact typedConstructorRefinementFor.outOfGas (Xi_error_of_X (g := g) (by
         rw [← hcode] at hoog; simpa [Sat256.ofUInt256] using hoog))
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcode] at hX; simpa [Sat256.ofUInt256] using hX)
       have hσ' : s.accountMap = weth9EvmFinalMap σ I.codeOwner := hacc
       rw [hσ'] at hsuccess
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (weth9SolmCtorExecSuccess (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
@@ -438,8 +437,8 @@ theorem weth9ConstructorCorrect :
     have hrd := weth9CtorInitcodeRevert (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd.xiResult hcode with hoog | ⟨g', o, hrev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hoog)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hoog)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (weth9SolmCtorExecReverts (σ := σ) (σ₀ := σ₀)
           (g := g) (A := A) (I := I) hwv) ?_
       exact ctorResultEquiv.revert rfl rfl

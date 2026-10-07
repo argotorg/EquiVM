@@ -8,8 +8,8 @@ import Reasoning.JumpDest
 Generated from upstream `contracts/UniswapV2Router02.sol` with solc 0.6.6:
 `--optimize --optimize-runs 999999 --metadata-hash none`.
 
-The runtime is solc's immutable template; concrete deployments patch it using
-`Benchmarks.UniswapV2Router02.Immutables.runtimeCodeOf`.
+The runtime is solc's immutable template; a deployment patches it with the immutables
+(`Benchmarks.UniswapV2Router02.Immutables.deployedRuntime`).
 -/
 
 open Solm Ethereum Ethereum.EVM

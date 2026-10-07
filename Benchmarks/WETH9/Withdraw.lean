@@ -15,7 +15,7 @@ namespace Benchmarks.WETH9
 theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 4)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 4) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchWithdraw hsel

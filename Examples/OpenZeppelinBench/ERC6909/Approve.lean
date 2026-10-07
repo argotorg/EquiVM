@@ -994,7 +994,7 @@ theorem erc6909ApproveBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hselApprove : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩ := by
     simpa [erc6909SelBytes] using hsel

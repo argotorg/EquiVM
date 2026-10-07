@@ -74,7 +74,7 @@ theorem scratch_blindAuctionReveal_nonempty_fromLoopStart
           valuesLenWord (⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩)
           (blindAuctionSelWord I))
         initCursor.mem initCursor.aw ByteArray.empty initCursor.acc k1014 C1014) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have hloopResult :
       (∃ aDone LDone evmDone kDone CDone,

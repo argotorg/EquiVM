@@ -106,11 +106,11 @@ theorem clipperKickDepthLimitReverts
       substate := (sourceInit.addAccessedAccount
         (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))).substate }
   have hcalldata := clipperKickSpotterIlksEncode_eq v hmem
-  have hcall : typedCallViaEVM (config v) sourceInit
+  have hcall : typedCallViaEVM config sourceInit
       (EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))
       "spotterIlks" 0 [v.ilk] (false, sourceAfter, ByteArray.empty) true := by
     simpa [sourceAfter] using
-      (callNotMade_depthLimit (cfg := config v) (evm := sourceInit)
+      (callNotMade_depthLimit (cfg := config) (evm := sourceInit)
         (tgt := EVM.address (clipperGetFeedPriceSpotterAddress sourceInit))
         (name := "spotterIlks") (args := [v.ilk]) (callPerm := true)
         hcalldata hdepthSource)

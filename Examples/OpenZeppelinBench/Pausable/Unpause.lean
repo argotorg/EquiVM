@@ -218,7 +218,7 @@ theorem pausableUnpauseBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨89⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have hsz := pausableUnpauseSelector_size hsel
   have hd := pausableDispatch_unpause (cd := I.calldata) hsel

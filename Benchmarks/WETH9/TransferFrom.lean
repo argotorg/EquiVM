@@ -172,7 +172,7 @@ theorem weth9TFConnect {σ σ₀ A I} {g : UInt256} {evmPost : EVM.State} {cs}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true])))
     (hbodyMap : evmPost.accountMap = evmPostMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   refine weth9ReEquivExecGen (t := transferFromTransition) hcode hX
     (weth9SelectorDispatchTransferFrom hsel) ?_ hbody ?_ ?_
   · show decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
@@ -228,7 +228,7 @@ theorem weth9TFDecodeFailRev {σ σ₀ A I} {g : Sat256}
 theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 3) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchTransferFrom hsel

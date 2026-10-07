@@ -27,18 +27,18 @@ abbrev chopEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev chopSlotFor (I : ExecutionEnv) : UInt256 :=
   ilksBase (chopArgKey I) + ⟨1⟩
 
-theorem dogDecode_chop_ok {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_chop_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (chopTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (chopTransition.params.map Param.name)
       (transitionSignature chopTransition).paramTypes I.calldata =
         some (chopLocals I) := by
   simpa [config, chopTransition, chopLocals, chopArgValue, chopArgBytes, bytes32,
     bytes32Width] using
     (decodeCalldataWithMode_legacyBytes32_ok (cd := I.calldata) (x := "ilk") hsz36)
 
-theorem dogDecode_chop_none_short {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDecode_chop_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (chopTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (chopTransition.params.map Param.name)
       (transitionSignature chopTransition).paramTypes I.calldata = none := by
   simpa [config, chopTransition, bytes32, bytes32Width] using
     (decodeCalldataWithMode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk")
@@ -161,14 +161,14 @@ theorem dogChopBodyCoreOk
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some chopTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some chopTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (chopTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (chopTransition.params.map Param.name)
         (transitionSignature chopTransition).paramTypes I.calldata = some (chopLocals I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨629⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let key := chopArgWord I
   let slot := solcMappingSlot ⟨1⟩ key + ⟨1⟩
   let locals := chopLocals I
@@ -177,13 +177,13 @@ theorem dogChopBodyCoreOk
   have hkeyLen : (chopArgBytes I).length = bytes32Width.val + 1 :=
     chopArgBytes_len I hsz36
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         chopTransition.body
-        (.returned { contract := contract v, locals := locals }
+        (.returned { contract := contract, locals := locals, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat
-            (solcSlotWordAt (chopSlotFor I) σ I).toNat))])) := by
+            (solcSlotWordAt (chopSlotFor I) σ I).toNat))])) (immStore v) := by
     simpa [chopTransition, chopSlotFor, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount, locals] using
       dogUint256GetterBodyReturns v
@@ -283,11 +283,11 @@ theorem dogChopBodyCoreDecodeFailed_short
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some chopTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some chopTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨629⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -314,7 +314,7 @@ theorem dogChopBodyCoreDecodeFailed_short
     (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
-    (dogDecode_chop_none_short (v := v) hsz4 hshort)
+    (dogDecode_chop_none_short hsz4 hshort)
 
 theorem dogChopBodyCore {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
@@ -323,17 +323,17 @@ theorem dogChopBodyCore {v : DogImmutables} {code : ByteArray}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (dogSelBytes 4)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 4) rfl hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some chopTransition :=
+  have hdispatch : dispatchMsg contract I.calldata = some chopTransition :=
     dogDispatchChop hsel
   have hreach := dogReachChopBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogChopBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_chop_ok (v := v) hsz36) hreach
+      (dogDecode_chop_ok hsz36) hreach
   · exact dogChopBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

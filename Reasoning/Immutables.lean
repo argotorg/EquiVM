@@ -1,5 +1,7 @@
 import Reasoning.MemCascade
 import Reasoning.Reach
+import Reasoning.Initcode
+import Solm.Refine
 
 /-!
 Immutable-aware runtime summaries execute the total runtime obtained by applying
@@ -795,5 +797,163 @@ theorem Layout.decodeSite {layout : Layout} {template : ByteArray}
   rw [Layout.readSiteWord off key before after hsplit hbefore hafter hsize hsize64 hbound]
   rw [word_from_bytes]
 
+/-! ## Immutable words from Solm immutables
+
+Generated runtime summaries quantify the patched words as a `String → UInt256` map.  `wordsOf`
+supplies that map from a Solm immutables store, encoding each value with Solm's own `valueToWord`,
+and `Layout.deployed` is the runtime a constructor deploys for a store: the template with every
+layout site patched with its immutable's word.  `Layout.deployed` is contract-independent, so it
+serves directly as the `runtimeCodeOf` of `contractRefinement.of_runtime`.
+-/
+
+/-- The word of each immutable in `imms` (zero for a missing or word-less value). -/
+def wordsOf (imms : Store) : String → UInt256 :=
+  fun k => ((imms.get? k).bind valueToWord).getD ⟨0⟩
+
+/-- The runtime deployed for the immutables `imms`: the template, patched at every site. -/
+def Layout.deployed (layout : Layout) (template : ByteArray) (imms : Store) : ByteArray :=
+  layout.runtime template (wordsOf imms)
+
+theorem wordsOf_of_get {imms : Store} {k : String} {v : Value} {w : UInt256}
+    (h : imms.get? k = some v) (hw : valueToWord v = some w) : wordsOf imms k = w := by
+  unfold wordsOf
+  rw [h]
+  simp [hw]
+
+/-- The runtime only reads the words of the layout's keys. -/
+theorem Layout.runtime_congr {layout : Layout} {template : ByteArray} {w₁ w₂ : String → UInt256}
+    (h : ∀ site ∈ layout.sites, w₁ site.2.2 = w₂ site.2.2) :
+    layout.runtime template w₁ = layout.runtime template w₂ := by
+  unfold Layout.runtime Layout.writes
+  congr 1
+  exact List.map_congr_left fun site hsite => by
+    obtain ⟨off, width, key⟩ := site
+    simp only [h _ hsite]
+
+theorem restrictImmutables_get?_foldl (imms : Store) (decls : List ImmutableDecl) (n : Ident) :
+    ∀ acc : Store,
+      (decls.foldl (fun acc d =>
+        match imms.get? d.name with
+        | some v => acc.insert d.name v
+        | none => acc) acc).get? n =
+        if n ∈ decls.map (·.name) then (imms.get? n).or (acc.get? n) else acc.get? n := by
+  induction decls with
+  | nil => intro acc; simp
+  | cons d rest ih =>
+      intro acc
+      rw [List.foldl_cons, ih]
+      simp only [Std.HashMap.get?_eq_getElem?] at *
+      by_cases hd : d.name = n
+      · subst hd
+        cases himm : imms[d.name]? <;> simp
+      · cases himm : imms[d.name]? <;> simp [Std.HashMap.getElem?_insert, hd, Ne.symm hd]
+
+/-- A declared immutable keeps its value under `restrictImmutables`. -/
+theorem restrictImmutables_get? {contract : ContractDecl} {imms : Store} {n : Ident}
+    (h : n ∈ contract.immutables.map (·.name)) :
+    (restrictImmutables contract imms).get? n = imms.get? n := by
+  refine (restrictImmutables_get?_foldl imms contract.immutables n ∅).trans ?_
+  rw [if_pos h]
+  cases imms.get? n <;> simp [Std.HashMap.get?_eq_getElem?]
+
+/-- When every layout key is a declared immutable, restricting the immutables does not change the
+    deployed runtime. -/
+theorem Layout.deployed_restrict {layout : Layout} {template : ByteArray}
+    {contract : ContractDecl} {imms : Store}
+    (hkeys : ∀ site ∈ layout.sites, site.2.2 ∈ contract.immutables.map (·.name)) :
+    layout.deployed template (restrictImmutables contract imms) = layout.deployed template imms := by
+  unfold Layout.deployed
+  exact Layout.runtime_congr fun site hsite => by
+    simp only [wordsOf, restrictImmutables_get? (hkeys site hsite)]
+
+/-! ## Jump destinations of patched runtimes
+
+The `D_J` scan reads one opcode byte per instruction and skips its immediate bytes.  Immutable
+patch sites are push payloads, so the scan of a patched runtime never reads a patched byte: it
+visits the same opcodes as the scan of the template, and the two jump-destination tables agree.
+
+`Layout.scanDisjoint` is that condition as a concrete check, mirroring `D_J_aux`: every byte the
+scan of the template reads lies outside every patch site.  As with the decode checks of the
+generated summaries (`Layout.decodeConcreteOfChecks`), it is discharged by `native_decide` on the
+template, after which every jump-destination obligation on the patched runtime is a concrete
+check on the template.
+-/
+
+/-- Whether the `D_J` scan of `code` from `i` reads only bytes outside every patch site. -/
+def Layout.scanDisjoint (layout : Layout) (code : ByteArray) (i : ℕ) : Bool :=
+  layout.disjoint i (i + 1) &&
+    match _hget : code.get? i >>= parseInstr with
+    | none => true
+    | some cᵢ => layout.scanDisjoint code (N i cᵢ)
+termination_by code.size - i
+decreasing_by
+  have hNincr : ∀ pc i, pc < N pc i := by
+    intros; simp [N]; omega
+  simp [bind, Option.bind] at _hget
+  split at _hget; simp at _hget
+  rename_i hget_some
+  simp [ByteArray.get?] at hget_some
+  obtain ⟨hsize, _⟩ := hget_some
+  apply Nat.sub_lt_sub_left hsize (hNincr i cᵢ)
+
+theorem Layout.scanDisjoint_disjoint {layout : Layout} {code : ByteArray} {i : ℕ}
+    (h : layout.scanDisjoint code i = true) : layout.disjoint i (i + 1) = true := by
+  rw [Layout.scanDisjoint] at h
+  exact (Bool.and_eq_true _ _ |>.mp h).1
+
+theorem Layout.scanDisjoint_next {layout : Layout} {code : ByteArray} {i : ℕ} {cᵢ : Operation}
+    (h : layout.scanDisjoint code i = true) (hget : code.get? i >>= parseInstr = some cᵢ) :
+    layout.scanDisjoint code (N i cᵢ) = true := by
+  rw [Layout.scanDisjoint] at h
+  have h2 := (Bool.and_eq_true _ _ |>.mp h).2
+  split at h2
+  · rename_i hnone; rw [hnone] at hget; cases hget
+  · rename_i cᵢ' hsome; rw [hsome] at hget; cases hget; exact h2
+
+/-- A byte outside every patch site is unchanged by the patch, in range or not. -/
+theorem Layout.runtime_get?_of_disjoint {layout : Layout} {template : ByteArray}
+    {words : String → UInt256} {i : ℕ} (hbound : layout.inBounds template = true)
+    (hdisj : layout.disjoint i (i + 1) = true) :
+    (layout.runtime template words).get? i = template.get? i := by
+  by_cases hi : i + 1 ≤ template.size
+  · rw [← Layout.runtimeN_eq_runtime (words := words) (Layout.widths32_of_inBounds hbound)]
+    exact Layout.runtimeN_get_unchanged i (Layout.inBoundsN_of_inBounds hbound) hdisj hi
+  · have hsize := Layout.runtime_size_of_bounds (words := words) hbound
+    rw [ByteArray.get?, dif_neg (by omega), ByteArray.get?, dif_neg (by omega)]
+
+theorem Layout.D_J_aux_runtime {layout : Layout} {template : ByteArray}
+    {words : String → UInt256} (hbound : layout.inBounds template = true) :
+    ∀ (n i : ℕ) (result : Array UInt256), template.size - i = n →
+      layout.scanDisjoint template i = true →
+      D_J_aux (layout.runtime template words) i result = D_J_aux template i result := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    intro i result hn hscan
+    have hget : (layout.runtime template words).get? i >>= parseInstr =
+        template.get? i >>= parseInstr := by
+      rw [Layout.runtime_get?_of_disjoint hbound (Layout.scanDisjoint_disjoint hscan)]
+    cases h : template.get? i >>= parseInstr with
+    | none =>
+        rw [Reasoning.Theory.D_J_aux_eq_none _ i result (hget.trans h), Reasoning.Theory.D_J_aux_eq_none _ i result h]
+    | some cᵢ =>
+        rw [Reasoning.Theory.D_J_aux_eq_some _ i result cᵢ (hget.trans h), Reasoning.Theory.D_J_aux_eq_some _ i result cᵢ h]
+        have hlt : i < template.size := by
+          rcases hb : template.get? i with _ | b
+          · rw [hb] at h; simp at h
+          · simp only [ByteArray.get?] at hb
+            split at hb
+            · assumption
+            · cases hb
+        exact ih (template.size - N i cᵢ) (by rw [← hn]; simp only [N]; omega) _ _ rfl
+          (Layout.scanDisjoint_next hscan h)
+
+/-- The patched runtime has the template's jump destinations whenever the template's opcode scan
+    avoids every patch site (a concrete check, discharged by `native_decide`). -/
+theorem Layout.D_J_runtime {layout : Layout} {template : ByteArray}
+    {words : String → UInt256} (hbound : layout.inBounds template = true)
+    (hscan : layout.scanDisjoint template 0 = true) :
+    D_J (layout.runtime template words) 0 = D_J template 0 :=
+  Layout.D_J_aux_runtime hbound _ 0 #[] rfl hscan
 
 end Reasoning.Immutables

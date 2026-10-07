@@ -11,7 +11,7 @@ theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (entryBytes 18))
     (hreach : EntryReached 18 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 18 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 18) (entryBytes_size 18) hsel

@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cat.Common
-import Solm.Equiv
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -62,7 +62,7 @@ theorem catVowBody {σ σ₀ A I} {g : UInt256}
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩ rfl hsel
   have hbody :

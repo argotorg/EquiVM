@@ -255,28 +255,28 @@ abbrev clipperRayWord : UInt256 :=
 abbrev clipperRdivReturnLocals (x y xray : UInt256) : Store :=
   (clipperUintBinaryLocals x y).insert "xray" (.int (Int.ofNat xray.toNat))
 
-theorem clipperLookupMulFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "mul" = some mulFunction.toCallable := by
+theorem clipperLookupMulFunction :
+    lookupCallable? contract "mul" = some mulFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction, mulFunction]
 
-theorem clipperLookupSubFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "sub" = some subFunction.toCallable := by
+theorem clipperLookupSubFunction :
+    lookupCallable? contract "sub" = some subFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction]
 
-theorem clipperLookupWmulFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "wmul" = some wmulFunction.toCallable := by
+theorem clipperLookupWmulFunction :
+    lookupCallable? contract "wmul" = some wmulFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction, mulFunction, wmulFunction]
 
-theorem clipperLookupRmulFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "rmul" = some rmulFunction.toCallable := by
+theorem clipperLookupRmulFunction :
+    lookupCallable? contract "rmul" = some rmulFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction, mulFunction, wmulFunction, rmulFunction]
 
-theorem clipperLookupRdivFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "rdiv" = some rdivFunction.toCallable := by
+theorem clipperLookupRdivFunction :
+    lookupCallable? contract "rdiv" = some rdivFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction, mulFunction, wmulFunction, rmulFunction,
     rdivFunction]
@@ -313,51 +313,51 @@ theorem clipperBindParamsRdiv (x y : UInt256) :
 
 theorem clipperEvalExprsUintBinary (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (x y : UInt256) {xExpr yExpr : Expr}
-    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm xExpr =
+    (hx : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm xExpr =
       .ok (.int (Int.ofNat x.toNat)))
-    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm yExpr =
+    (hy : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm yExpr =
       .ok (.int (Int.ofNat y.toNat))) :
-    evalExprs? (config v) { contract := contract v, locals := locals } evm [xExpr, yExpr] =
+    evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evm [xExpr, yExpr] =
       .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] := by
   simp only [evalExprs?, hx, hy, bind, EvalResult.bind, pure]
 
 theorem clipperEvalVarX (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (.var "x") = .ok (.int (Int.ofNat x.toNat)) := by
   simp only [evalExpr?, clipperUintBinaryLocals]
   rw [store_get_self]
   rfl
 
 theorem clipperEvalVarY (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (.var "y") = .ok (.int (Int.ofNat y.toNat)) := by
   simp only [evalExpr?, clipperUintBinaryLocals]
   rw [store_get_ne _ _ (by decide), store_get_self]
   rfl
 
 theorem clipperEvalVarZ (v : ClipperImmutables) (evm : EVM.State) (x y z : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocalsZ x y z }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocalsZ x y z, immutables := immStore v }
       evm (.var "z") = .ok (.int (Int.ofNat z.toNat)) := by
   simp only [evalExpr?, clipperUintBinaryLocalsZ]
   rw [store_get_self]
   rfl
 
 theorem clipperEvalVarX_Z (v : ClipperImmutables) (evm : EVM.State) (x y z : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocalsZ x y z }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocalsZ x y z, immutables := immStore v }
       evm (.var "x") = .ok (.int (Int.ofNat x.toNat)) := by
   simp only [evalExpr?, clipperUintBinaryLocalsZ, clipperUintBinaryLocals]
   rw [store_get_ne _ _ (by decide), store_get_self]
   rfl
 
 theorem clipperEvalVarY_Z (v : ClipperImmutables) (evm : EVM.State) (x y z : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocalsZ x y z }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocalsZ x y z, immutables := immStore v }
       evm (.var "y") = .ok (.int (Int.ofNat y.toNat)) := by
   simp only [evalExpr?, clipperUintBinaryLocalsZ, clipperUintBinaryLocals]
   rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
   rfl
 
 theorem clipperEvalVarXY (v : ClipperImmutables) (evm : EVM.State) (x y xy : UInt256) :
-    evalExpr? (config v) { contract := contract v, locals := clipperWmulReturnLocals x y xy }
+    evalExpr? config { contract := contract, locals := clipperWmulReturnLocals x y xy, immutables := immStore v }
       evm (.var "xy") = .ok (.int (Int.ofNat xy.toNat)) := by
   simp only [evalExpr?, clipperWmulReturnLocals]
   rw [store_get_self]
@@ -365,8 +365,8 @@ theorem clipperEvalVarXY (v : ClipperImmutables) (evm : EVM.State) (x y xy : UIn
 
 theorem clipperEvalVarXray (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperRdivReturnLocals x y xray }
+    evalExpr? config
+      { contract := contract, locals := clipperRdivReturnLocals x y xray, immutables := immStore v }
       evm (.var "xray") = .ok (.int (Int.ofNat xray.toNat)) := by
   simp only [evalExpr?, clipperRdivReturnLocals]
   rw [store_get_self]
@@ -374,8 +374,8 @@ theorem clipperEvalVarXray (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalVarY_Xray (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperRdivReturnLocals x y xray }
+    evalExpr? config
+      { contract := contract, locals := clipperRdivReturnLocals x y xray, immutables := immStore v }
       evm (.var "y") = .ok (.int (Int.ofNat y.toNat)) := by
   simp only [evalExpr?, clipperRdivReturnLocals, clipperUintBinaryLocals]
   rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
@@ -383,7 +383,7 @@ theorem clipperEvalVarY_Xray (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalRdivMulArgs (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) :
-    evalExprs? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExprs? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm [.var "x", .intLit RAY] =
       .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat clipperRayWord.toNat)] := by
   have hray : RAY = Int.ofNat clipperRayWord.toNat := by native_decide
@@ -392,7 +392,7 @@ theorem clipperEvalRdivMulArgs (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalMul256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hmul : x.toNat * y.toNat < UInt256.size) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (mul256 (.var "x") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.mul x y).toNat)) := by
   have hlt : ¬ Int.ofNat (x.toNat * y.toNat) ≥ (2 : Int) ^ 256 :=
@@ -410,7 +410,7 @@ theorem clipperEvalMul256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UI
 
 theorem clipperEvalMul256_revert (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (mul256 (.var "x") (.var "y")) = .revert := by
   simp [mul256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
     clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int]
@@ -419,12 +419,12 @@ theorem clipperEvalMul256_revert (v : ClipperImmutables) (evm : EVM.State) (x y 
 
 theorem clipperEvalAdd256_ok (v : ClipperImmutables) {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b sum : UInt256}
-    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+    (hx : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm x =
       .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+    (hy : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hsum : sum = a + b) (hfit : a.toNat + b.toNat < UInt256.size) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
   have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
     not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
@@ -441,12 +441,12 @@ theorem clipperEvalAdd256_ok (v : ClipperImmutables) {evm : EVM.State} {locals :
 
 theorem clipperEvalAdd256_revert (v : ClipperImmutables) {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b : UInt256}
-    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+    (hx : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm x =
       .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+    (hy : evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (add256 x y) =
       .revert := by
   simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
   intro _
@@ -454,7 +454,7 @@ theorem clipperEvalAdd256_revert (v : ClipperImmutables) {evm : EVM.State}
 
 theorem clipperEvalSub256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hle : y.toNat ≤ x.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (sub256 (.var "x") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.sub x y).toNat)) := by
   have hword : (UInt256.sub x y).toNat = x.toNat - y.toNat := usub_toNat hle
@@ -488,7 +488,7 @@ theorem clipperEvalSub256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UI
 
 theorem clipperEvalSub256_revert (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hlt : x.toNat < y.toNat) :
-    evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
+    evalExpr? config { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v }
       evm (sub256 (.var "x") (.var "y")) = .revert := by
   simp [sub256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
     clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int]
@@ -497,8 +497,8 @@ theorem clipperEvalSub256_revert (v : ClipperImmutables) (evm : EVM.State) (x y 
 
 theorem clipperEvalCheckedSubRequire_true (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : y.toNat ≤ x.toNat) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.sub x y) } :
+    evalExpr? config
+      ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.sub x y), immutables := immStore v } :
         Frame) evm
       (.binary .le (.var "z") (.var "x")) =
       .ok (.bool true) := by
@@ -512,8 +512,8 @@ theorem clipperEvalCheckedSubRequire_true (v : ClipperImmutables) (evm : EVM.Sta
 
 theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
+    evalExpr? config
+      ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v } :
         Frame) evm
       (.binary .or
         (.binary .eq (.var "y") (.intLit 0))
@@ -540,15 +540,15 @@ theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.Sta
       intro hzero
       exact hy (uint256_toNat_eq_zero hzero)
     have hleft :
-        evalExpr? (config v)
-          ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
+        evalExpr? config
+          ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v } :
             Frame) evm
           (.binary .eq (.var "y") (.intLit 0)) = .ok (.bool false) := by
       simp [evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?,
         clipperEvalVarY_Z v evm x y (UInt256.mul x y), hyNat]
     have hright :
-        evalExpr? (config v)
-          ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
+        evalExpr? config
+          ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v } :
             Frame) evm
           (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x")) =
           .ok (.bool true) := by
@@ -560,8 +560,8 @@ theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.Sta
     simp [evalExpr?, EvalResult.bind, bind, pure, hleft, hright]
 
 theorem clipperEvalWmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+    evalExpr? config
+      ({ contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v } :
         Frame) evm
       (.binary .div (.var "xy") (.intLit WAD)) =
       .ok (.int (Int.ofNat (UInt256.div (UInt256.mul x y) ⟨1000000000000000000⟩).toNat)) := by
@@ -578,8 +578,8 @@ theorem clipperEvalWmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : U
   rw [if_neg hwad, hdiv]
 
 theorem clipperEvalRmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+    evalExpr? config
+      ({ contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v } :
         Frame) evm
       (.binary .div (.var "xy") (.intLit RAY)) =
       .ok (.int (Int.ofNat
@@ -598,8 +598,8 @@ theorem clipperEvalRmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : U
 
 theorem clipperEvalRdivReturn (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) (hy : y ≠ ⟨0⟩) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperRdivReturnLocals x y xray } : Frame) evm
+    evalExpr? config
+      ({ contract := contract, locals := clipperRdivReturnLocals x y xray, immutables := immStore v } : Frame) evm
       (.binary .div (.var "xray") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.div xray y).toNat)) := by
   have hyNat : y.toNat ≠ 0 := by
@@ -619,8 +619,8 @@ theorem clipperEvalRdivReturn (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalRdivReturn_revert (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) (hy : y = ⟨0⟩) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperRdivReturnLocals x y xray } : Frame) evm
+    evalExpr? config
+      ({ contract := contract, locals := clipperRdivReturnLocals x y xray, immutables := immStore v } : Frame) evm
       (.binary .div (.var "xray") (.var "y")) = .revert := by
   subst y
   simp [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, clipperEvalVarXray,
@@ -628,11 +628,11 @@ theorem clipperEvalRdivReturn_revert (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm mulFunction.body
       (.returned
-        ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
+        ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v } :
           Frame) evm
         (some [.int (Int.ofNat (UInt256.mul x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -645,8 +645,8 @@ theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm mulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
@@ -655,11 +655,11 @@ theorem clipperMulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperSubFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : y.toNat ≤ x.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm subFunction.body
       (.returned
-        ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.sub x y) } :
+        ({ contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.sub x y), immutables := immStore v } :
           Frame) evm
         (some [.int (Int.ofNat (UInt256.sub x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
@@ -672,8 +672,8 @@ theorem clipperSubFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperSubFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hlt : x.toNat < y.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm subFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [subFunction, checkedSubUintInto, List.cons_append, List.nil_append]
@@ -682,26 +682,26 @@ theorem clipperSubFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm wmulFunction.body
       (.returned
-        ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+        ({ contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v } :
           Frame) evm
         (some [.int (Int.ofNat
           (UInt256.div (UInt256.mul x y) ⟨1000000000000000000⟩).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [wmulFunction]
   let afterMul : Frame :=
-    { contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) }
+    { contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v }
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperWmulReturnLocals] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
         (evm := evm) (calleeEvm := evm)
         (name := "mul") (retVar := "xy")
         (args := [.var "x", .var "y"])
@@ -709,11 +709,11 @@ theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
         (callee := mulFunction)
         (locals := clipperUintBinaryLocals x y)
         (calleeSolm :=
-          { contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) })
+          { contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v })
         (value := some [.int (Int.ofNat (UInt256.mul x y).toNat)])
         (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
           (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
-        (clipperLookupMulFunction v)
+        (clipperLookupMulFunction)
         (clipperBindParamsMul x y)
         (clipperMulFunctionReturns v evm x y hmul))
   refine ExecBlock.consNormal hcall ?_
@@ -723,18 +723,18 @@ theorem clipperWmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperWmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm wmulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [wmulFunction]
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") .reverted :=
     internalCallFunctionRevert
-      (cfg := config v)
-      (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+      (cfg := config)
+      (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
       (evm := evm)
       (name := "mul") (retVar := "xy")
       (args := [.var "x", .var "y"])
@@ -743,44 +743,44 @@ theorem clipperWmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
       (locals := clipperUintBinaryLocals x y)
       (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
         (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
-      (clipperLookupMulFunction v)
+      (clipperLookupMulFunction)
       (clipperBindParamsMul x y)
       (clipperMulFunctionReverts v evm x y hover)
   exact ExecBlock.consRevert hcall
 
 theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rmulFunction.body
       (.returned
-        ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+        ({ contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v } :
           Frame) evm
         (some [.int (Int.ofNat
           (UInt256.div (UInt256.mul x y) clipperRayWord).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [rmulFunction]
   let afterMul : Frame :=
-    { contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) }
+    { contract := contract, locals := clipperWmulReturnLocals x y (UInt256.mul x y), immutables := immStore v }
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperWmulReturnLocals] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
         (evm := evm) (calleeEvm := evm)
         (name := "mul") (retVar := "xy")
         (args := [.var "x", .var "y"])
         (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
         (callee := mulFunction) (locals := clipperUintBinaryLocals x y)
         (calleeSolm :=
-          { contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) })
+          { contract := contract, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y), immutables := immStore v })
         (value := some [.int (Int.ofNat (UInt256.mul x y).toNat)])
         (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
           (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
-        (clipperLookupMulFunction v) (clipperBindParamsMul x y)
+        (clipperLookupMulFunction) (clipperBindParamsMul x y)
         (clipperMulFunctionReturns v evm x y hmul))
   refine ExecBlock.consNormal hcall ?_
   simpa [afterMul] using
@@ -789,52 +789,52 @@ theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperRmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rmulFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [rmulFunction]
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .var "y"] "xy") .reverted :=
     internalCallFunctionRevert
-      (cfg := config v)
-      (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+      (cfg := config)
+      (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
       (evm := evm) (name := "mul") (retVar := "xy")
       (args := [.var "x", .var "y"])
       (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
       (callee := mulFunction) (locals := clipperUintBinaryLocals x y)
       (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
         (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
-      (clipperLookupMulFunction v) (clipperBindParamsMul x y)
+      (clipperLookupMulFunction) (clipperBindParamsMul x y)
       (clipperMulFunctionReverts v evm x y hover)
   exact ExecBlock.consRevert hcall
 
 theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body
       (.returned
-        ({ contract := contract v,
-            locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord) } : Frame)
+        ({ contract := contract,
+            locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord), immutables := immStore v } : Frame)
           evm
         (some [.int (Int.ofNat
           (UInt256.div (UInt256.mul x clipperRayWord) y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [rdivFunction]
   let afterMul : Frame :=
-    { contract := contract v, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord) }
+    { contract := contract, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord), immutables := immStore v }
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperRdivReturnLocals] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
         (evm := evm) (calleeEvm := evm)
         (name := "mul") (retVar := "xray")
         (args := [.var "x", .intLit RAY])
@@ -842,12 +842,12 @@ theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
         (callee := mulFunction)
         (locals := clipperUintBinaryLocals x clipperRayWord)
         (calleeSolm :=
-          { contract := contract v,
+          { contract := contract,
             locals := clipperUintBinaryLocalsZ x clipperRayWord
-              (UInt256.mul x clipperRayWord) })
+              (UInt256.mul x clipperRayWord), immutables := immStore v })
         (value := some [.int (Int.ofNat (UInt256.mul x clipperRayWord).toNat)])
         (clipperEvalRdivMulArgs v evm x y)
-        (clipperLookupMulFunction v)
+        (clipperLookupMulFunction)
         (clipperBindParamsMul x clipperRayWord)
         (clipperMulFunctionReturns v evm x clipperRayWord hmul))
   refine ExecBlock.consNormal hcall ?_
@@ -859,18 +859,18 @@ theorem clipperRdivFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperRdivFunctionRevertsMul (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hover : UInt256.size ≤ x.toNat * clipperRayWord.toNat) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [rdivFunction]
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") .reverted :=
     internalCallFunctionRevert
-      (cfg := config v)
-      (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+      (cfg := config)
+      (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
       (evm := evm)
       (name := "mul") (retVar := "xray")
       (args := [.var "x", .intLit RAY])
@@ -878,7 +878,7 @@ theorem clipperRdivFunctionRevertsMul (v : ClipperImmutables) (evm : EVM.State)
       (callee := mulFunction)
       (locals := clipperUintBinaryLocals x clipperRayWord)
       (clipperEvalRdivMulArgs v evm x y)
-      (clipperLookupMulFunction v)
+      (clipperLookupMulFunction)
       (clipperBindParamsMul x clipperRayWord)
       (clipperMulFunctionReverts v evm x clipperRayWord hover)
   exact ExecBlock.consRevert hcall
@@ -886,21 +886,21 @@ theorem clipperRdivFunctionRevertsMul (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperRdivFunctionRevertsDivZero (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y = ⟨0⟩) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm rdivFunction.body .reverted := by
   apply ExecFuncBody.execBlockRevert
   simp only [rdivFunction]
   let afterMul : Frame :=
-    { contract := contract v, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord) }
+    { contract := contract, locals := clipperRdivReturnLocals x y (UInt256.mul x clipperRayWord), immutables := immStore v }
   have hcall :
-      ExecStmt (config v)
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+      ExecStmt config
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (.internalCall "mul" [.var "x", .intLit RAY] "xray") (.ok afterMul evm) := by
     simpa [afterMul, resumeAfterInternalCall, clipperRdivReturnLocals] using
       (internalCallFunctionReturn
-        (cfg := config v)
-        (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+        (cfg := config)
+        (caller := { contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v })
         (evm := evm) (calleeEvm := evm)
         (name := "mul") (retVar := "xray")
         (args := [.var "x", .intLit RAY])
@@ -908,12 +908,12 @@ theorem clipperRdivFunctionRevertsDivZero (v : ClipperImmutables) (evm : EVM.Sta
         (callee := mulFunction)
         (locals := clipperUintBinaryLocals x clipperRayWord)
         (calleeSolm :=
-          { contract := contract v,
+          { contract := contract,
             locals := clipperUintBinaryLocalsZ x clipperRayWord
-              (UInt256.mul x clipperRayWord) })
+              (UInt256.mul x clipperRayWord), immutables := immStore v })
         (value := some [.int (Int.ofNat (UInt256.mul x clipperRayWord).toNat)])
         (clipperEvalRdivMulArgs v evm x y)
-        (clipperLookupMulFunction v)
+        (clipperLookupMulFunction)
         (clipperBindParamsMul x clipperRayWord)
         (clipperMulFunctionReturns v evm x clipperRayWord hmul))
   refine ExecBlock.consNormal hcall ?_
@@ -946,8 +946,8 @@ theorem clipperMinWord_comm (x y : UInt256) :
     simp [hxy, hyx]
 
 
-theorem clipperLookupMinFunction (v : ClipperImmutables) :
-    lookupCallable? (contract v) "min" = some minFunction.toCallable := by
+theorem clipperLookupMinFunction :
+    lookupCallable? contract "min" = some minFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction]
 
@@ -959,8 +959,8 @@ theorem clipperBindParamsMin (x y : UInt256) :
 
 theorem clipperEvalMinLe_true (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : x.toNat ≤ y.toNat) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    evalExpr? config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm (.binary .le (.var "x") (.var "y")) = .ok (.bool true) := by
   simp only [evalExpr?, clipperEvalVarX v evm x y, clipperEvalVarY v evm x y,
     EvalResult.bind, bind]
@@ -968,8 +968,8 @@ theorem clipperEvalMinLe_true (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalMinLe_false (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : ¬x.toNat ≤ y.toNat) :
-    evalExpr? (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    evalExpr? config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm (.binary .le (.var "x") (.var "y")) = .ok (.bool false) := by
   simp only [evalExpr?, clipperEvalVarX v evm x y, clipperEvalVarY v evm x y,
     EvalResult.bind, bind]
@@ -977,22 +977,22 @@ theorem clipperEvalMinLe_false (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) :
-    ExecFuncBody (config v)
-      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+    ExecFuncBody config
+      ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
       evm minFunction.body
       (.returned
-        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+        ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
         (some [.int (Int.ofNat (clipperMinWord x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [minFunction]
   by_cases hle : x.toNat ≤ y.toNat
   · have hcond := clipperEvalMinLe_true v evm x y hle
     have hthen :
-        ExecBlock (config v)
-          ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+        ExecBlock config
+          ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
           evm [.return [.var "x"]]
           (.returned
-            ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+            ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
             (some [.int (Int.ofNat x.toNat)])) := by
       exact ExecBlock.consReturn
         (ExecStmt.return (evalExprs?_singleton (clipperEvalVarX v evm x y)))
@@ -1001,11 +1001,11 @@ theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     simpa [hmin] using ExecBlock.consReturn (ExecStmt.iteTrue hcond hthen)
   · have hcond := clipperEvalMinLe_false v evm x y hle
     have helse :
-        ExecBlock (config v)
-          ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+        ExecBlock config
+          ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame)
           evm [.return [.var "y"]]
           (.returned
-            ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+            ({ contract := contract, locals := clipperUintBinaryLocals x y, immutables := immStore v } : Frame) evm
             (some [.int (Int.ofNat y.toNat)])) := by
       exact ExecBlock.consReturn
         (ExecStmt.return (evalExprs?_singleton (clipperEvalVarY v evm x y)))

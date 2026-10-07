@@ -2371,7 +2371,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C)
  :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
 

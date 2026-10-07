@@ -81,7 +81,7 @@ include hcode hd hdec hstore hpv hevmSolm hwvSolm hafterBody hbeforeBody
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_postLoop_callDepth_fromCall
     (hdepthEq : I.depth = 1024) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
     RD.callValueDepthLimitEmptyInOutOr rd1349 hpv (by decide) hdepthEq (by simp)
@@ -157,7 +157,7 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
     (hdepthLt : I.depth.val < 1024)
     (hbalance :
       ¬ aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
     RD.callValueInsufficientBalanceEmptyInOutOr rd1349 hpv (by decide) hbalance hdepthLt
@@ -392,7 +392,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_failure
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (false, evmSCall, out)) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody blindAuctionConfig blindAuctionContract
@@ -485,7 +485,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
       callViaEVM evmDone (EVM.address evmDone.executionEnv.source)
         (Int.ofNat aDone.refund.toNat) ByteArray.empty
         (true, evmSCall, out)) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody blindAuctionConfig blindAuctionContract
@@ -583,7 +583,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
     (hdepthNe : ¬ I.depth = 1024)
     (hbalance :
       aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨σ', z, out, A_in, callGas, k1350, C1350,
       hTheta, houtSize, rd1350⟩ :=

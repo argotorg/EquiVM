@@ -1204,7 +1204,7 @@ theorem accessControlGrantRoleBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨214⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := grantRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_grantRole (cd := I.calldata)

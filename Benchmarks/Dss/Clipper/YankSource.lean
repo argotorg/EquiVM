@@ -36,8 +36,8 @@ abbrev clipperYankRemoveStore (I : ExecutionEnv) : Store :=
 abbrev clipperYankRemoveLastIndexStore (I : ExecutionEnv) (lastIndex : UInt256) : Store :=
   (clipperYankRemoveStore I).insert "lastIndex" (.int (Int.ofNat lastIndex.toNat))
 
-theorem clipperYankRemoveLookup (v : ClipperImmutables) :
-    lookupCallable? (contract v) "_remove" = some removeFunction.toCallable := by
+theorem clipperYankRemoveLookup :
+    lookupCallable? contract "_remove" = some removeFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     removeFunction, minFunction, addFunction, subFunction, mulFunction, wmulFunction,
     rmulFunction, rdivFunction, statusFunction, getFeedPriceFunction]
@@ -50,14 +50,14 @@ theorem clipperYankRemoveBind (I : ExecutionEnv) :
 theorem clipperYankRemoveEmptySourceReverts (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩) :
-    ExecFuncBody (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm removeFunction.body
+    ExecFuncBody config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
       .reverted := by
   have hlenEval :=
     clipperEvalActiveLength v evm (clipperYankRemoveStore I)
       (by simp [clipperYankRemoveStore])
   have hlast :
-      evalExpr? (config v) { contract := contract v, locals := clipperYankRemoveStore I } evm
+      evalExpr? config { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (sub256 (.arrayLength .storage activeRef) (.intLit 1)) = .revert := by
     simp [sub256, u256, evalExpr?, hlenEval, hlen, evalBinaryOp?, bind, EvalResult.bind,
       uint256Int]
@@ -66,15 +66,15 @@ theorem clipperYankRemoveEmptySourceReverts (v : ClipperImmutables)
 
 theorem clipperEvalYankRemoveSalesPos (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
       (.storage (salesF (.var "id") "pos")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesPosSlot I)).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankRemoveStore I }
+  let frame : Frame := { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "pos") (er := clipperYankSalesPosRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesPosSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -94,7 +94,7 @@ theorem clipperEvalYankRemoveSalesPos (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperEvalYankRemoveLastIndex (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperYankRemoveStore I } evm
+    evalExpr? config { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (sub256 (.arrayLength .storage activeRef) (.intLit 1)) =
       .ok (.int (Int.ofNat
         (UInt256.sub (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩).toNat)) := by
@@ -138,15 +138,15 @@ theorem clipperEvalYankRemoveActiveElem (v : ClipperImmutables) (evm : EVM.State
     (hbound :
       idx.toNat <
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveLastIndexStore I idx } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveLastIndexStore I idx, immutables := immStore v } evm
       (.storage (activeElemRef (.var "lastIndex"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankActiveSlot idx)).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankRemoveLastIndexStore I idx }
+  let frame : Frame := { contract := contract, locals := clipperYankRemoveLastIndexStore I idx, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := activeElemRef (.var "lastIndex"))
     (er := ({ base := "active", steps := [.aindex (.int (Int.ofNat idx.toNat))] } :
       EvaledStorageRef))
@@ -201,8 +201,8 @@ theorem clipperYankRemoveMoveStore_get_sales (I : ExecutionEnv)
 
 theorem clipperEvalYankRemoveId (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
       (.var "id") = .ok (clipperYankArgValue I) := by
   rw [evalExpr?]
   change EvalResult.ofOption .unboundVariable
@@ -212,8 +212,8 @@ theorem clipperEvalYankRemoveId (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalYankRemoveMove (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move : UInt256) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
       (.var "_move") = .ok (.int (Int.ofNat move.toNat)) := by
   rw [evalExpr?]
   change EvalResult.ofOption .unboundVariable
@@ -224,8 +224,8 @@ theorem clipperEvalYankRemoveMove (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperEvalYankRemoveIdNeMove_true (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move : UInt256)
     (hne : clipperYankArgWord I ≠ move) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
       (.binary .ne (.var "id") (.var "_move")) = .ok (.bool true) := by
   have hnatNe : ¬ (clipperYankArgWord I).toNat = move.toNat := by
     intro hnat
@@ -244,8 +244,8 @@ theorem clipperEvalYankRemoveIdNeMove_true (v : ClipperImmutables) (evm : EVM.St
 theorem clipperEvalYankRemoveIdNeMove_false (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move : UInt256)
     (heq : clipperYankArgWord I = move) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
       (.binary .ne (.var "id") (.var "_move")) = .ok (.bool false) := by
   have hnat : (clipperYankArgWord I).toNat = move.toNat := by rw [heq]
   rw [evalExpr?]
@@ -263,10 +263,10 @@ abbrev clipperYankRemoveIndexStore (I : ExecutionEnv) (lastIndex move idx : UInt
 theorem clipperYankRemoveAssignActive (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move idx : UInt256)
     (hbound : idx.toNat < (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat) :
-    assignStorageRef? (config v)
-      { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+    assignStorageRef? config
+      { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
       .storage (activeElemRef (.var "_index")) (.int (Int.ofNat move.toNat)) =
-      .ok ({ contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx },
+      .ok ({ contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperYankActiveSlot idx) move) := by
   apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := ({ base := "active", steps := [.aindex (.int (Int.ofNat idx.toNat))] } :
@@ -287,10 +287,10 @@ theorem clipperYankRemoveAssignActive (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperYankRemoveAssignMovePos (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex move idx : UInt256) :
-    assignStorageRef? (config v)
-      { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+    assignStorageRef? config
+      { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
       .storage (salesF (.var "_move") "pos") (.int (Int.ofNat idx.toNat)) =
-      .ok ({ contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx },
+      .ok ({ contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperYankSalesMovePosSlot move) idx) := by
   apply assignStorageRef_storage_scalar (hbackend := rfl)
@@ -299,8 +299,8 @@ theorem clipperYankRemoveAssignMovePos (v : ClipperImmutables) (evm : EVM.State)
   · simp [clipperYankRemoveIndexStore, clipperYankRemoveMoveStore,
       clipperYankRemoveLastIndexStore, clipperYankRemoveStore, salesF]
   · have hmoveEval :
-        evalExpr? (config v)
-          { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx } evm
+        evalExpr? config
+          { contract := contract, locals := clipperYankRemoveIndexStore I lastIndex move idx, immutables := immStore v } evm
           (.var "_move") = .ok (.int (Int.ofNat move.toNat)) := by
       rw [evalExpr?]
       change EvalResult.ofOption .unboundVariable
@@ -396,11 +396,11 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
     {acc : Account} (hacc : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hgetSales : locals.get? "sales" = none)
     (hgetId : locals.get? "id" = some (clipperYankArgValue I)) :
-    deleteStorage? (config v) { contract := contract v, locals := locals } evm
+    deleteStorage? config { contract := contract, locals := locals, immutables := immStore v } evm
         (saleRef (.var "id")) =
       .ok (clipperYankDeleteSaleState evm I) := by
   have hid :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm (.var "id") =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.var "id") =
         .ok (clipperYankArgValue I) := by
     rw [evalExpr?]
     change EvalResult.ofOption .unboundVariable (locals.get? "id") = _
@@ -409,11 +409,11 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
   have hsalesElem : locals["sales"]? = none := by
     simpa [Std.HashMap.get?_eq_getElem?] using hgetSales
   have hresolve :
-      resolveStorageRef? (config v) { contract := contract v, locals := locals } evm
+      resolveStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm
           (saleRef (.var "id")) =
         .ok (clipperYankSalesDeleteRef I, SaleStructTy) := by
     have her :
-        evalStorageRef (config v) { contract := contract v, locals := locals } evm
+        evalStorageRef config { contract := contract, locals := locals, immutables := immStore v } evm
             (saleRef (.var "id")) =
           .ok (clipperYankSalesDeleteRef I) := by
       simp [saleRef, clipperYankSalesDeleteRef, evalStorageRef, evalStorageRefSteps,
@@ -421,7 +421,7 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
         bind, pure, clipperYankArgValue, clipperYankArgKey]
     unfold resolveStorageRef?
     rw [show (saleRef (.var "id")).base = "sales" by rfl]
-    rw [show ({ contract := contract v, locals := locals } : Frame).locals.get? "sales" = none by
+    rw [show ({ contract := contract, locals := locals, immutables := immStore v } : Frame).locals.get? "sales" = none by
       simpa [Std.HashMap.get?_eq_getElem?] using hsalesElem]
     rw [her]
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, SaleStructTy,
@@ -568,8 +568,8 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩) :
     let lastIndex :=
       UInt256.sub (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩
-    popArray? (config v)
-        { contract := contract v, locals := locals }
+    popArray? config
+        { contract := contract, locals := locals, immutables := immStore v }
         evm activeRef =
       .ok (clipperYankRemovePopState evm lastIndex) := by
   intro lastIndex
@@ -597,8 +597,8 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
         Int.ofNat lastIndex.toNat := by
     simpa using hlastInt
   have hresolve :
-      resolveStorageRef? (config v)
-        { contract := contract v, locals := locals }
+      resolveStorageRef? config
+        { contract := contract, locals := locals, immutables := immStore v }
         evm activeRef =
         .ok (({ base := "active", steps := [] } : EvaledStorageRef), .dynamicArray uint256St) := by
     have hactiveElem : locals["active"]? = none := by
@@ -677,9 +677,9 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
       UInt256.sub (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩
     let move :=
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperYankActiveSlot lastIndex)
-    ExecFuncBody (config v)
-      { contract := contract v, locals := clipperYankRemoveStore I } evm removeFunction.body
-      (.returned { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+    ExecFuncBody config
+      { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm removeFunction.body
+      (.returned { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
         (clipperYankDeleteSaleState (clipperYankRemovePopState evm lastIndex) I) none) := by
   intro lastIndex move
   have hpos : 0 < (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
@@ -700,41 +700,41 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
     rw [hlastNat]
     omega
   have hlastStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evm
         (.letDecl "lastIndex" (some uint256)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
-        (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
+        (.ok { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveLastIndexStore I lastIndex, immutables := immStore v } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evm) := by
     exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      evalExpr? config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.binary .ne (.var "id") (.var "_move")) = .ok (.bool false) := by
     exact clipperEvalYankRemoveIdNeMove_false v evm I lastIndex move (by simpa [move] using heq)
   have hite :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.ite (.binary .ne (.var "id") (.var "_move"))
           [.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")),
             .assign .storage (activeElemRef (.var "_index")) (.var "_move"),
             .assign .storage (salesF (.var "_move") "pos") (.var "_index")]
           [])
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           evm) := by
     exact ExecStmt.iteFalse hcond ExecBlock.nil
   have hpop :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v } evm
         (.pop activeRef)
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           (clipperYankRemovePopState evm lastIndex)) := by
     exact ExecStmt.pop
       (by
@@ -751,11 +751,11 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
       sstoreAccountMap, haccElem, Option.option, Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
-      ExecStmt (config v)
-        { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+      ExecStmt config
+        { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
         (clipperYankRemovePopState evm lastIndex)
         (.delete (saleRef (.var "id")))
-        (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
+        (.ok { contract := contract, locals := clipperYankRemoveMoveStore I lastIndex move, immutables := immStore v }
           (clipperYankDeleteSaleState (clipperYankRemovePopState evm lastIndex) I)) := by
     exact ExecStmt.delete
       (clipperYankDeleteSale v (clipperYankRemovePopState evm lastIndex) I
@@ -772,15 +772,15 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
 
 theorem clipperEvalYankSalesUsr (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankStore I } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
       (.storage (salesF (.var "id") "usr")) =
       .ok (.address (AccountAddress.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesUsrSlot I)) solcAddrMask).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankStore I }
+  let frame : Frame := { contract := contract, locals := clipperYankStore I, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "usr") (er := clipperYankSalesUsrRef I)
     (t := .address) (loc := addrLoc (clipperYankSalesUsrSlot I))
     (value := .address (AccountAddress.ofNat (UInt256.land
@@ -804,11 +804,11 @@ theorem clipperEvalYankSalesUsrNeZero_false (v : ClipperImmutables) (evm : EVM.S
       UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperYankSalesUsrSlot I))
         solcAddrMask = ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperYankStore I } evm
+    evalExpr? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
       (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool false) := by
   have hstorage := clipperEvalYankSalesUsr v evm I
   have hzero :
-      evalExpr? (config v) { contract := contract v, locals := clipperYankStore I } evm zeroAddr =
+      evalExpr? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm zeroAddr =
         .ok (.address (AccountAddress.ofNat 0)) := by
     simp [zeroAddr, addrSt, evalExpr?, castValue?, EvalResult.bind, EvalResult.ofOption,
       pure, bind]
@@ -823,11 +823,11 @@ theorem clipperEvalYankSalesUsrNeZero_true (v : ClipperImmutables) (evm : EVM.St
       UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (clipperYankSalesUsrSlot I))
         solcAddrMask ≠ ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := clipperYankStore I } evm
+    evalExpr? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
       (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
   have hstorage := clipperEvalYankSalesUsr v evm I
   have hzero :
-      evalExpr? (config v) { contract := contract v, locals := clipperYankStore I } evm zeroAddr =
+      evalExpr? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm zeroAddr =
         .ok (.address (AccountAddress.ofNat 0)) := by
     simp [zeroAddr, addrSt, evalExpr?, castValue?, EvalResult.bind, EvalResult.ofOption,
       pure, bind]
@@ -852,7 +852,7 @@ theorem clipperEvalYankSalesUsrNeZero_true (v : ClipperImmutables) (evm : EVM.St
 
 theorem clipperEvalYankDogTarget (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (hbase : locals.get? "dog" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage dogRef) =
       .ok (.address (AccountAddress.ofUInt256
         (clipperYankDogTarget evm.accountMap evm.executionEnv))) := by
@@ -868,7 +868,7 @@ theorem clipperEvalYankDogCodeGuard_false (v : ClipperImmutables) (evm : EVM.Sta
         (AccountAddress.ofUInt256
           (clipperYankDogTarget evm.accountMap evm.executionEnv))).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) =
         .ok (.bool false) := by
   have hnoCode' :
@@ -887,7 +887,7 @@ theorem clipperEvalYankDogCodeGuard_true (v : ClipperImmutables) (evm : EVM.Stat
         (AccountAddress.ofUInt256
           (clipperYankDogTarget evm.accountMap evm.executionEnv))).option 0
           (fun acc => acc.code.size))).toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) =
         .ok (.bool true) := by
   have hcode' :
@@ -901,15 +901,15 @@ theorem clipperEvalYankDogCodeGuard_true (v : ClipperImmutables) (evm : EVM.Stat
 
 theorem clipperEvalYankSalesTab (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankStore I } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
       (.storage (salesF (.var "id") "tab")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesTabSlot I)).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankStore I }
+  let frame : Frame := { contract := contract, locals := clipperYankStore I, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "tab") (er := clipperYankSalesTabRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesTabSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -928,15 +928,15 @@ theorem clipperEvalYankSalesTab (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalYankSalesLot (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankStore I } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
       (.storage (salesF (.var "id") "lot")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesLotSlot I)).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankStore I }
+  let frame : Frame := { contract := contract, locals := clipperYankStore I, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "lot") (er := clipperYankSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesLotSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -955,15 +955,15 @@ theorem clipperEvalYankSalesLot (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalYankIlkExpr (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (ilkExpr v) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm ilkExpr =
       .ok v.ilk := by
   rcases v.ilk_wf with ⟨bs, hilk, _hlen⟩
-  simp [ilkExpr, hilk, evalExpr?, pure]
+  exact evalExpr_ilkExpr
 
 theorem clipperEvalYankDogDigsArgs (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExprs? (config v) { contract := contract v, locals := clipperYankStore I } evm
-        [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+    evalExprs? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
+        [ilkExpr, .storage (salesF (.var "id") "tab")] =
       .ok
         [v.ilk,
           .int (Int.ofNat
@@ -974,8 +974,8 @@ theorem clipperEvalYankDogDigsArgs (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalYankVatFluxArgs (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExprs? (config v) { contract := contract v, locals := clipperYankStore I } evm
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
+    evalExprs? config { contract := contract, locals := clipperYankStore I, immutables := immStore v } evm
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
       .ok
         [v.ilk, .address evm.executionEnv.codeOwner, .address evm.executionEnv.source,
           .int (Int.ofNat
@@ -986,15 +986,15 @@ theorem clipperEvalYankVatFluxArgs (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperEvalYankSalesLotAfterDog (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExpr? (config v)
-      { contract := contract v, locals := clipperYankDogRetStore I } evm
+    evalExpr? config
+      { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evm
       (.storage (salesF (.var "id") "lot")) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesLotSlot I)).toNat)) := by
-  let frame : Frame := { contract := contract v, locals := clipperYankDogRetStore I }
+  let frame : Frame := { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v }
   exact evalExpr_storage_scalar_value (hbackend := rfl)
-    (cfg := config v) (solm := frame) (evm := evm)
+    (cfg := config) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "lot") (er := clipperYankSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesLotSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -1022,7 +1022,7 @@ theorem clipperEvalYankSalesLotAfterDog (v : ClipperImmutables) (evm : EVM.State
         injection hsome with hval
         exact hval.symm
       have hindex :
-          evalExpr? (config v) frame evm (.var "id") =
+          evalExpr? config frame evm (.var "id") =
             .ok (clipperYankArgValue I) := by
         unfold evalExpr?
         simp [frame, hgetIdVal, EvalResult.ofOption]
@@ -1038,8 +1038,8 @@ theorem clipperEvalYankSalesLotAfterDog (v : ClipperImmutables) (evm : EVM.State
 
 theorem clipperEvalYankVatFluxArgsAfterDog (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
-    evalExprs? (config v) { contract := contract v, locals := clipperYankDogRetStore I } evm
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
+    evalExprs? config { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evm
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
       .ok
         [v.ilk, .address evm.executionEnv.codeOwner, .address evm.executionEnv.source,
           .int (Int.ofNat
@@ -1048,12 +1048,12 @@ theorem clipperEvalYankVatFluxArgsAfterDog (v : ClipperImmutables) (evm : EVM.St
   simp only [evalExprs?, clipperEvalYankIlkExpr, clipperEvalYankSalesLotAfterDog,
     thisAddr, sender, evalExpr?, envValue, EvalResult.bind, bind, pure]
 
-theorem clipperYankDecodeDigsVoid (v : ClipperImmutables) (out : ByteArray) :
-    (config v).externalABI.decode? "digs" out = some [] := by
+theorem clipperYankDecodeDigsVoid (out : ByteArray) :
+    config.externalABI.decode? "digs" out = some [] := by
   simp [config, externalABI, decodeVoid?]
 
-theorem clipperYankDecodeFluxVoid (v : ClipperImmutables) (out : ByteArray) :
-    (config v).externalABI.decode? "flux" out = some [] := by
+theorem clipperYankDecodeFluxVoid (out : ByteArray) :
+    config.externalABI.decode? "flux" out = some [] := by
   simp [config, externalABI, decodeVoid?]
 
 theorem clipperEvalYankVatCodeGuard_true (v : ClipperImmutables) (evm : EVM.State)
@@ -1061,8 +1061,8 @@ theorem clipperEvalYankVatCodeGuard_true (v : ClipperImmutables) (evm : EVM.Stat
     (hcode :
       0 <
         (UInt256.ofNat ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
-      (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
+      (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) =
         .ok (.bool true) := by
   simp [evalExpr?, EvalResult.bind, bind, clipperEvalVat, evalBinaryOp?, EVM.Word.ofNat,
     hcode]
@@ -1072,8 +1072,8 @@ theorem clipperEvalYankVatCodeGuard_false (v : ClipperImmutables) (evm : EVM.Sta
     (hnoCode :
       (UInt256.ofNat ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
-      (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) =
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
+      (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) =
         .ok (.bool false) := by
   simp [evalExpr?, EvalResult.bind, bind, clipperEvalVat, evalBinaryOp?, EVM.Word.ofNat,
     hnoCode]
@@ -1083,22 +1083,22 @@ theorem clipperYankAuthSourceReverts {σ σ₀ A I} {g : UInt256}
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_false v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth] using
       nonpayableSecondRequireReverts
-        (cfg := config v)
-        (solm := { contract := contract v, locals := locals })
+        (cfg := config)
+        (solm := { contract := contract, locals := locals, immutables := immStore v })
         (evm := evm0)
         (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
         (by simp [evm0, initState]; exact hwv)
@@ -1112,40 +1112,40 @@ theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     (clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩ →
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted) ∧
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v)) ∧
     (I.perm = false →
-      ExecTransitionBody (config v) (contract v) evm0 locals
-        (yankTransition v).body .staticViolation) := by
+      ExecTransitionBody config contract evm0 locals
+        yankTransition.body .staticViolation (immStore v)) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have hprefix {result : ExecResult}
-      (hrest : ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        ((yankTransition v).body.drop 3) result) :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body result := by
+      (hrest : ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        (yankTransition.body.drop 3) result) :
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
@@ -1161,12 +1161,12 @@ theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount] using husr
     have husrEval :
-        evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+        evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
           (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool false) := by
       simpa [locals] using clipperEvalYankSalesUsrNeZero_false v evmLock I husrLoad
     have hblock :
-        ExecBlock (config v) { contract := contract v, locals := locals } evm0
-          (yankTransition v).body .reverted := by
+        ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+          yankTransition.body .reverted := by
       apply hprefix
       simpa [yankTransition, nonpayable, auth, lockPrefix] using
         (by
@@ -1186,7 +1186,7 @@ theorem clipperYankInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
       clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted :=
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) :=
   (clipperYankInactiveSourceRevertsSplit v hwv hauth hlocked).1 husr
 
 theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
@@ -1195,24 +1195,24 @@ theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool false) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_false v evm0 locals
         (by simp [locals]) hlocked
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix] using
       (by
         refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
@@ -1233,30 +1233,30 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
         (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I) = ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -1267,7 +1267,7 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hnoDogCode :
@@ -1292,12 +1292,12 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     | some acc =>
         simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using h
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool false) := by
     exact clipperEvalYankDogCodeGuard_false v evmLock locals (by simp [locals]) hnoDogCode
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append] using
       (by
@@ -1327,7 +1327,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1341,30 +1341,30 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
         (false, evmDog, outDog) true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -1375,19 +1375,19 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankDogCodeGuard_true v evmLock locals (by simp [locals])
       (by
         simpa [evmLock, evm0, initState, storageStore_accountMap,
           storageStore_executionEnv, State.lookupAccount] using hdogCode)
   have hdogArgs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evmLock
-          [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evmLock
+          [ilkExpr, .storage (salesF (.var "id") "tab")] =
         .ok
           [v.ilk,
             .int (Int.ofNat
@@ -1402,7 +1402,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM (config v) evmLock
+      typedCallViaEVM config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1413,8 +1413,8 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append] using
       (by
@@ -1448,7 +1448,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1465,30 +1465,30 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
         (fun acc => acc.code.size))).toNat = 0) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -1499,19 +1499,19 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankDogCodeGuard_true v evmLock locals (by simp [locals])
       (by
         simpa [evmLock, evm0, initState, storageStore_accountMap,
           storageStore_executionEnv, State.lookupAccount] using hdogCode)
   have hdogArgs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evmLock
-          [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evmLock
+          [ilkExpr, .storage (salesF (.var "id") "tab")] =
         .ok
           [v.ilk,
             .int (Int.ofNat
@@ -1526,7 +1526,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM (config v) evmLock
+      typedCallViaEVM config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1537,14 +1537,14 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hvatEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool false) := by
+      evalExpr? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) = .ok (.bool false) := by
     exact clipperEvalYankVatCodeGuard_false v evmDog (clipperYankDogRetStore I)
       hvatNoCode
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore] using
       (by
@@ -1559,7 +1559,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
           (ExecStmt.externalCallSuccess
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
-            (clipperYankDecodeDigsVoid v outDog)) ?_
+            (clipperYankDecodeDigsVoid outDog)) ?_
         exact ExecBlock.consRevert (ExecStmt.requireFalse hvatEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
@@ -1580,7 +1580,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1596,7 +1596,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
@@ -1604,30 +1604,30 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
         (false, evmVat, outVat) true) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -1638,19 +1638,19 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankDogCodeGuard_true v evmLock locals (by simp [locals])
       (by
         simpa [evmLock, evm0, initState, storageStore_accountMap,
           storageStore_executionEnv, State.lookupAccount] using hdogCode)
   have hdogArgs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evmLock
-          [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evmLock
+          [ilkExpr, .storage (salesF (.var "id") "tab")] =
         .ok
           [v.ilk,
             .int (Int.ofNat
@@ -1665,7 +1665,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM (config v) evmLock
+      typedCallViaEVM config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1676,15 +1676,15 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hvatEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool true) := by
+      evalExpr? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankVatCodeGuard_true v evmDog (clipperYankDogRetStore I)
       hvatCode
   have hvatArgs :
-      evalExprs? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
+      evalExprs? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
       .ok
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
@@ -1692,8 +1692,8 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankSalesLotSlot I)).toNat)] :=
     clipperEvalYankVatFluxArgsAfterDog v evmDog I
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore] using
       (by
@@ -1708,7 +1708,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
           (ExecStmt.externalCallSuccess
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
-            (clipperYankDecodeDigsVoid v outDog)) ?_
+            (clipperYankDecodeDigsVoid outDog)) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hvatEval) ?_
         exact ExecBlock.consRevert
           (ExecStmt.externalCallFailure
@@ -1733,7 +1733,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankDogTarget (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I))).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         (Solm.EVM.storageStore
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
@@ -1749,7 +1749,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       0 < (UInt256.ofNat ((evmDog.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat)
     (hcallVat :
-      typedCallViaEVM (config v) evmDog (EVM.address v.vat) "flux" 0
+      typedCallViaEVM config evmDog (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
             (Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner
@@ -1758,30 +1758,30 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
     (hactiveLen : Solm.EVM.storageLoad evmVat evmVat.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    ExecTransitionBody config contract evm0 locals yankTransition.body .reverted (immStore v) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0, clipperRelyAuthWord, solcSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       evalExpr_clipperAuth_true v evm0 I locals (by simp [evm0, initState])
         (by simp [locals]) hauth
   have hlockedEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0
         (.binary .eq (.storage lockedRef) (.intLit 0)) = .ok (.bool true) := by
     simpa [locals, evm0, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       evalExpr_clipperLocked_zero_true v evm0 locals
         (by simp [locals]) hlocked
   have hlockRhs :
-      evalExpr? (config v) { contract := contract v, locals := locals } evm0 (.intLit 1) =
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm0 (.intLit 1) =
         .ok (.int 1) := by
     simp [evalExpr?, pure]
   have hlockAssign :
-      assignStorageRef? (config v) { contract := contract v, locals := locals } evm0
+      assignStorageRef? config { contract := contract, locals := locals, immutables := immStore v } evm0
         .storage lockedRef (.int 1) =
-          .ok ({ contract := contract v, locals := locals }, evmLock) := by
+          .ok ({ contract := contract, locals := locals, immutables := immStore v }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
   have husrLoad :
@@ -1792,19 +1792,19 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
       State.lookupAccount] using husr
   have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool true) := by
     simpa [locals] using clipperEvalYankSalesUsrNeZero_true v evmLock I husrLoad
   have hdogEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+      evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankDogCodeGuard_true v evmLock locals (by simp [locals])
       (by
         simpa [evmLock, evm0, initState, storageStore_accountMap,
           storageStore_executionEnv, State.lookupAccount] using hdogCode)
   have hdogArgs :
-      evalExprs? (config v) { contract := contract v, locals := locals } evmLock
-          [ilkExpr v, .storage (salesF (.var "id") "tab")] =
+      evalExprs? config { contract := contract, locals := locals, immutables := immStore v } evmLock
+          [ilkExpr, .storage (salesF (.var "id") "tab")] =
         .ok
           [v.ilk,
             .int (Int.ofNat
@@ -1819,7 +1819,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
-      typedCallViaEVM (config v) evmLock
+      typedCallViaEVM config evmLock
         (EVM.address (AccountAddress.ofUInt256
           (clipperYankDogTarget evmLock.accountMap evmLock.executionEnv)))
         "digs" 0
@@ -1830,15 +1830,15 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
     simpa [evmLock, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv] using hcallDog
   have hvatEval :
-      evalExpr? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)) = .ok (.bool true) := by
+      evalExpr? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        (.binary .gt (.extCodeSize vatExpr) (.intLit 0)) = .ok (.bool true) := by
     exact clipperEvalYankVatCodeGuard_true v evmDog (clipperYankDogRetStore I)
       hvatCode
   have hvatArgs :
-      evalExprs? (config v)
-        { contract := contract v, locals := clipperYankDogRetStore I } evmDog
-        [ilkExpr v, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
+      evalExprs? config
+        { contract := contract, locals := clipperYankDogRetStore I, immutables := immStore v } evmDog
+        [ilkExpr, thisAddr, sender, .storage (salesF (.var "id") "lot")] =
       .ok
         [v.ilk, .address evmDog.executionEnv.codeOwner, .address evmDog.executionEnv.source,
           .int (Int.ofNat
@@ -1846,7 +1846,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
               (clipperYankSalesLotSlot I)).toNat)] :=
     clipperEvalYankVatFluxArgsAfterDog v evmDog I
   have hremoveArgs :
-      evalExprs? (config v) { contract := contract v, locals := clipperYankFluxRetStore I }
+      evalExprs? config { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v }
         evmVat [.var "id"] = .ok [clipperYankArgValue I] := by
     have hgetId :
         (clipperYankFluxRetStore I).get? "id" = some (clipperYankArgValue I) := by
@@ -1870,13 +1870,13 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       exact hval.symm
     exact evalExprs?_singleton (by simp [evalExpr?, hgetIdVal, EvalResult.ofOption])
   have hremoveBody :
-      ExecFuncBody (config v)
-        { contract := contract v, locals := clipperYankRemoveStore I } evmVat
+      ExecFuncBody config
+        { contract := contract, locals := clipperYankRemoveStore I, immutables := immStore v } evmVat
         removeFunction.body .reverted :=
     clipperYankRemoveEmptySourceReverts v evmVat I hactiveLen
   have hblock :
-      ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
+      ExecBlock config { contract := contract, locals := locals, immutables := immStore v } evm0
+        yankTransition.body .reverted := by
     simpa [yankTransition, nonpayable, auth, lockPrefix, checkedExternalCallStmts,
       List.cons_append, List.nil_append, clipperYankDogRetStore, clipperYankFluxRetStore] using
       (by
@@ -1891,24 +1891,24 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
           (ExecStmt.externalCallSuccess
             (clipperEvalYankDogTarget v evmLock locals (by simp [locals]))
             (by simp [evalExpr?, pure]) hdogArgs hcallDog'
-            (clipperYankDecodeDigsVoid v outDog)) ?_
+            (clipperYankDecodeDigsVoid outDog)) ?_
         refine ExecBlock.consNormal (ExecStmt.requireTrue hvatEval) ?_
         refine ExecBlock.consNormal
           (ExecStmt.externalCallSuccess
             (clipperEvalVat v evmDog (clipperYankDogRetStore I))
             (by simp [evalExpr?, pure]) hvatArgs hcallVat
-            (clipperYankDecodeFluxVoid v outVat)) ?_
+            (clipperYankDecodeFluxVoid outVat)) ?_
         exact ExecBlock.consRevert
           (internalCallFunctionRevert
-            (cfg := config v)
-            (caller := { contract := contract v, locals := clipperYankFluxRetStore I })
+            (cfg := config)
+            (caller := { contract := contract, locals := clipperYankFluxRetStore I, immutables := immStore v })
             (evm := evmVat)
             (name := "_remove") (retVar := "_removeRet")
             (args := [.var "id"])
             (argVals := [clipperYankArgValue I])
             (callee := removeFunction)
             (locals := clipperYankRemoveStore I)
-            hremoveArgs (clipperYankRemoveLookup v) (clipperYankRemoveBind I)
+            hremoveArgs (clipperYankRemoveLookup) (clipperYankRemoveBind I)
             hremoveBody))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 

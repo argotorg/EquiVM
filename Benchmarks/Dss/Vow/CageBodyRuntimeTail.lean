@@ -80,7 +80,7 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
       (UInt256.ofNat
         ((evmDai2.lookupAccount (cageVatAddressOf evmDai2)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageVatSinNoCode rd3115 hmem hread64 hcodeSize hov
@@ -158,11 +158,11 @@ theorem vowCageBodyToMinHeal
         evmSin.σ₀ = σ₀ →
         evmSin.executionEnv = I →
         Eq σ_sin evmSin.accountMap →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=
@@ -379,7 +379,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     vowDispatch_cage hsel
   have hsz : 4 ≤ I.calldata.size :=

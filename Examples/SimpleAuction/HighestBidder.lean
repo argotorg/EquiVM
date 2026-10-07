@@ -120,7 +120,7 @@ theorem simpleAuctionHighestBidderBody {σ σ₀ A I}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩
       [simpleAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
+    runtimeRefinementFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   have hsz := simpleAuctionHighestBidderSelector_size hsel
   have hd := simpleAuctionDispatch_highestBidder (cd := I.calldata) hsel

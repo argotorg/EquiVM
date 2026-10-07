@@ -8,7 +8,8 @@ import Examples.TinyImmutable.Immutables
 
 The contract has no storage. Its persistent constructor data are two Solidity immutables:
 `owner : address` and `scale : uint256`. The constructor always assigns `owner`, but assigns
-`scale` only when `useScale` is true; the false path leaves `scale` at Solidity's default `0`.
+`scale` only when `useScale` is true; the false path leaves `scale` at Solidity's default `0`,
+which is also the value Solm immutables start from.
 
 The public getters return those immutable values. `quote` requires `msg.sender == owner` and returns
 `amount * scale` from an `unchecked` Solidity block, so the Solm spec reduces the product modulo
@@ -46,46 +47,47 @@ def constructorDecl : ConstructorDecl :=
         { name := "useScale", ty := boolTy } ]
     body :=
       nonpayable ++
-      [ .letDecl "imm_owner" (some addr) (.var "_owner"),
+      [ .setImmutable "owner" (.var "_owner"),
         .ite (.var "useScale")
-          [ .letDecl "imm_scale" (some uint256) (.var "_scale") ]
-          [ .letDecl "imm_scale" (some uint256) (.intLit 0) ] ] }
+          [ .setImmutable "scale" (.var "_scale") ]
+          [] ] }
 
-def ownerTransition (v : TinyImmutables) : TransitionDecl :=
+def ownerTransition : TransitionDecl :=
   { name := "owner"
     params := []
     returnType := [addr]
-    body := nonpayable ++ [ .return [owner v] ] }
+    body := nonpayable ++ [ .return [.immutable "owner"] ] }
 
-def scaleTransition (v : TinyImmutables) : TransitionDecl :=
+def scaleTransition : TransitionDecl :=
   { name := "scale"
     params := []
     returnType := [uint256]
-    body := nonpayable ++ [ .return [scale v] ] }
+    body := nonpayable ++ [ .return [.immutable "scale"] ] }
 
-def quoteTransition (v : TinyImmutables) : TransitionDecl :=
+def quoteTransition : TransitionDecl :=
   { name := "quote"
     params := [{ name := "amount", ty := uint256 }]
     returnType := [uint256]
     body :=
       nonpayable ++
-      [ .require (.binary .eq sender (owner v)),
-        .return [wrap256 (.binary .mul (.var "amount") (scale v))] ] }
+      [ .require (.binary .eq sender (.immutable "owner")),
+        .return [wrap256 (.binary .mul (.var "amount") (.immutable "scale"))] ] }
 
-def transitions (v : TinyImmutables) : List TransitionDecl :=
-  [ ownerTransition v,
-    quoteTransition v,
-    scaleTransition v ]
+def transitions : List TransitionDecl :=
+  [ ownerTransition,
+    quoteTransition,
+    scaleTransition ]
 
-def contract (v : TinyImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "TinyImmutable"
     storage := []
+    immutables := [⟨"owner", .address⟩, ⟨"scale", .int uint256Int⟩]
     ctor := constructorDecl
-    transitions := transitions v }
+    transitions := transitions }
 
-def config (v : TinyImmutables) : Config :=
+def config : Config :=
   { storageBackend := solidityStorage! [([] : List StructDecl)] [([] : List StorageDecl)]
     externalABI := defaultExternalCallABI
-    selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
+    selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 
 end TinyImmutable

@@ -1132,7 +1132,7 @@ theorem erc6909SetOperatorBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨247⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909SetOperatorSelector_size hsel
   have hd := erc6909Dispatch_setOperator (cd := I.calldata) hsel

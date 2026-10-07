@@ -156,7 +156,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintTotalSupplyOverflowFr
       UInt256.size ≤ mintFunctionTotalSupplyNewNat (mintFeeKLastClearedState evmFeeS)
         liquidity ∧
       UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σCleared I).toNat + liquidity.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToZero, hkLastNonzero, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliquidity, hliqNonzero, hsourceOverflow,
@@ -424,7 +424,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroSecondMintBalanceOverflowFromFa
             (feeToStaticcallMem
               (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
               outFee))).toNat + liquidity.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToZero, hkLastNonzero, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliquidity, hliqNonzero, hfitSupplySource,
@@ -693,7 +693,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroUpdateBoundFromFactoryCases
             outFee))).toNat + liquidity.toNat < UInt256.size ∧
       (reserve112Mask.toNat < balance0.toNat ∨
         balance0.toNat ≤ reserve112Mask.toNat ∧ reserve112Mask.toNat < balance1.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToZero, hkLastNonzero, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliquidity, hliqNonzero, hfitSupplySource,

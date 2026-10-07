@@ -262,7 +262,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -569,7 +569,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -924,7 +924,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -1394,7 +1394,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -1873,7 +1873,7 @@ theorem catBiteRevertKickDecodeW {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hMloadFreeAw : UInt256.ofNat (MachineState.M (⟨17⟩ : UInt256).toNat 64 32) = ⟨17⟩ := by
     native_decide
   have hMloadFreeValue := catBiteKickPostCallMemP_mload64_short p
@@ -2111,7 +2111,7 @@ theorem catBiteRoomUnderflowEmptyRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.solcCheckedSubEmptyRevertFromDecodes rd hsub (by native_decide) (by native_decide)
     (by native_decide) hlt hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -2169,7 +2169,7 @@ theorem catBiteRevertRoomSub {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by native_decide
   have h128 : (⟨128⟩ : UInt256).toNat = 128 := by native_decide
@@ -2314,7 +2314,7 @@ theorem catBiteRevertDunkRoomWad {σ σ₀ A I} {g : UInt256}
     (hmilkDunkDef : milkDunk = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
     (hmilkChopDef : milkChop = solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
     (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd3720⟩ := catBiteReachGuardDunkRoomWad rd1810 hChop hDunk
@@ -2468,7 +2468,7 @@ theorem catBiteRevertMilkChopZero {σ σ₀ A I} {g : UInt256}
     (hdunkRoomDef : dunkRoom = if milkDunk.gt room = ⟨0⟩ then milkDunk else room)
     (hdunkRoomWadDef : dunkRoomWad = dunkRoom.mul ⟨1000000000000000000⟩)
     (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd1865⟩ := catBiteReachGuardMilkChopZero rd1810 hChop hDunk
@@ -2594,7 +2594,7 @@ theorem catBiteRevertInkSpot {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hInkSpotNofit : ¬ ink.toNat * iSpot.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hsz_pos : 0 < UInt256.size := by rw [show UInt256.size = 2 ^ 256 from rfl]; positivity
   have hspotPos : 0 < iSpot.toNat := by
@@ -2688,7 +2688,7 @@ theorem catBiteRevertLive {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hlive : solcSlotWordAt ⟨2⟩ σu I ≠ ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
     have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
@@ -2852,7 +2852,7 @@ theorem catBiteRevertUnsafe {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hunsafeF : ¬ (ink * iSpot).toNat < (art * iRate).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
     have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
@@ -2976,7 +2976,7 @@ theorem catBiteRevertSpotZero {σ σ₀ A I} {g : UInt256}
     (hiSpot : iSpot = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 64 96)))
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hspot0N : iSpot.toNat = 0 := by rw [hspot0]; native_decide
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
@@ -3098,7 +3098,7 @@ theorem catBiteRevertArtRate {σ σ₀ A I} {g : UInt256}
     (hiRate : iRate = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 32 64)))
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hfitArtRateF : ¬ art.toNat * iRate.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hsz_pos : 0 < UInt256.size := by rw [show UInt256.size = 2 ^ 256 from rfl]; positivity
   have hover : UInt256.size ≤ art.toNat * iRate.toNat := Nat.le_of_not_lt hfitArtRateF
@@ -3268,7 +3268,7 @@ theorem catBiteRevertInkDart {σ σ₀ A I} {g : UInt256}
     (hdartDenomDef : dartDenomRate = dunkRoomWad.div iRate)
     (hdartCandDef : dartCandidate = dartDenomRate.div milkChop)
     (hdartDef : dart = if art.gt dartCandidate = ⟨0⟩ then art else dartCandidate) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -3460,7 +3460,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hChopNofit : ¬ milkChop.toNat * dartRate.toNat < UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -3812,7 +3812,7 @@ theorem catBiteRevertIlksDecode {σ σ₀ A I} {g : UInt256}
     (hstatus : status ≠ ⟨0⟩)
     (hosz : o'.size < UInt256.size) (hawout9 : awout = ⟨9⟩)
     (hilkslen : ¬ 160 ≤ o'.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   subst hawout9
   obtain ⟨σs, As, hIlksSolm, _hEq⟩ := catBiteMapIlksCall hIlksCall
   have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I))
@@ -3913,7 +3913,7 @@ theorem catBiteMilkRequireStringRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
   have hrev :=
@@ -4008,7 +4008,7 @@ theorem catBiteRevertDartZero {σ σ₀ A I} {g : UInt256}
     (hdinkCandDef : dinkCandidate = UInt256.div inkDart art)
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : ¬ (0 < dart.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4195,7 +4195,7 @@ theorem catBiteRevertDinkZero {σ σ₀ A I} {g : UInt256}
     (hdinkCandDef : dinkCandidate = UInt256.div inkDart art)
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : 0 < dart.toNat) (hDinkPos : ¬ (0 < dink.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4392,7 +4392,7 @@ theorem catBiteRevertDartLimit {σ σ₀ A I} {g : UInt256}
     (hdinkDef : dink = if UInt256.gt ink dinkCandidate = ⟨0⟩ then ink else dinkCandidate)
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : ¬ (dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4591,7 +4591,7 @@ theorem catBiteRevertDinkLimit {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : ¬ (dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -4874,7 +4874,7 @@ theorem catBiteMilkRequireStringFullWordRevertLeaf {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have rd2 := rd.push2 okPc hpush2 (by simp only [List.length_cons]; omega)
   have rd3 := rd2.jumpiNT hjumpi hcond (by omega)
   have hrev := RD.catBiteMilkErrorStringFullWordRevertTail rd3 htail hmem hread64 hov
@@ -4936,7 +4936,7 @@ theorem catBiteRevertLitterGeBox {σ σ₀ A I} {g : UInt256}
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160)))
     (hle : (solcSlotWord σu I ⟨6⟩).toNat ≤ (solcSlotWord σu I ⟨5⟩).toNat)
     (hlitterbox : ¬ ((solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -5054,7 +5054,7 @@ theorem catBiteRevertRoomDust {σ σ₀ A I} {g : UInt256}
     (hroomDef : room = (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩))
     (hlitterbox : (solcSlotWord σu I ⟨6⟩).toNat < (solcSlotWord σu I ⟨5⟩).toNat)
     (hroomdust : ¬ (iDust.toNat ≤ room.toNat)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
@@ -5207,7 +5207,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -5566,10 +5566,10 @@ theorem catBiteRevertKickNoCodeSplit {σ σ₀ A I} {g : UInt256}
           ⟨2516⟩ (biteAddrMaskWord.land flipW :: biteAddrMaskWord.land flipW :: R3) mem3 aw3 rdata3
           (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew) k3 C3)
       (_hov3 : R3.length + 4 ≤ 1024),
-      runtimeEquivalenceFor config contract σ σ₀ g A I) ∧
+      runtimeRefinementFor config contract σ σ₀ g A I) ∧
     (I.perm = false →
       RDstatic catBytecode (Sat256.ofUInt256 g) (initState σ σ₀ (Sat256.ofUInt256 g) A I) →
-      runtimeEquivalenceFor config contract σ σ₀ g A I) := by
+      runtimeRefinementFor config contract σ σ₀ g A I) := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
@@ -6010,7 +6010,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I :=
+    runtimeRefinementFor config contract σ σ₀ g A I :=
   (catBiteRevertKickNoCodeSplit
     hcode hdispatch hdecode hwv hsz36 hdepth
     hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode
@@ -6164,7 +6164,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     (hDartPos : 0 < dart.toNat) (hDinkPos : 0 < dink.toNat)
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=

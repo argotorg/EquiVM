@@ -27,7 +27,7 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
       ∀ (σFlux : AccountMap)
         (outFlux : ByteArray) (AFlux : Substate),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "flux" 0
@@ -42,7 +42,7 @@ theorem RD.clipperTakePostDogTabZeroContinuationElim
       ∀ (σFlux : AccountMap)
         (outFlux : ByteArray) (AFlux : Substate) (kFlux CFlux : ℕ),
         extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩ →
-        typedCallViaEVM (config v)
+        typedCallViaEVM config
           { initState σStart σ₀ g A I with
             accountMap := σ }
           (EVM.address v.vat) "flux" 0

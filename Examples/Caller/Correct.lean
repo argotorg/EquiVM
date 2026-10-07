@@ -1091,7 +1091,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
-    runtimeEquivalenceFor callerConfig callerContract
+    runtimeRefinementFor callerConfig callerContract
       σ σ₀ g.toUInt256 A I := by
   have hcanon := callerArg0_canonical hclean
   have hd : dispatchMsg callerContract I.calldata = some runTransition := by
@@ -1202,7 +1202,7 @@ theorem callerReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) :
-    runtimeEquivalenceFor callerConfig callerContract
+    runtimeRefinementFor callerConfig callerContract
       σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
   · exact (callerX_cvz_short hcode hwv hsz).reEquivNoDispatch hcode (callerDispatch.none_short hsz)
@@ -1255,7 +1255,7 @@ theorem callerReEquiv_callvalueZero
 
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem callerCorrect :
-    runtimeEquivalence callerConfig callerBytecode callerContract := by
+    runtimeRefinement callerConfig callerBytecode callerContract := by
   refine ⟨fun σ σ₀ g A I
       hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -1338,12 +1338,12 @@ theorem callerInitcodeRun {σ σ₀ A I} {g : Sat256}
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem callerConstructorCorrect :
-    constructorEquivalence callerConfig callerInitcode callerContract callerBytecode :=
+    typedConstructorRefinement callerConfig callerInitcode callerContract (fun _ => callerBytecode) :=
   emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem callerContractCorrect :
-    contractEquivalence callerConfig callerInitcode callerBytecode callerContract :=
+    contractRefinement callerConfig callerInitcode callerContract :=
   emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
     callerCorrect
 

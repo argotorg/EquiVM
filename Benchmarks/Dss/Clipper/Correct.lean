@@ -29,7 +29,7 @@ import Benchmarks.Dss.Clipper.Vat
 import Benchmarks.Dss.Clipper.Vow
 import Benchmarks.Dss.Clipper.Wards
 import Benchmarks.Dss.Clipper.Yank
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Clipper benchmark correctness
@@ -47,8 +47,8 @@ namespace Benchmarks.Dss.Clipper
 
 theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
     (hcode : patchRuntime clipperBytecode (patches v) = some code) :
-    runtimeEquivalenceWithWF clipperStorageWF (config v) code (contract v) := by
-  refine runtimeEquivalenceWithWF.intro ?_
+    runtimeRefinementWithWF clipperStorageWF config code contract (immStore v) := by
+  refine runtimeRefinementWithWF.intro ?_
   intro σ σ₀ g A I hIcode hsize hStorageWF
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hactive : selIs I (clipperSelBytes 0)
@@ -147,13 +147,35 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                                                   hyank)
   · exact clipperNonPayable v hcode hIcode hwv
 
-theorem clipperContractCorrect (v : ClipperImmutables) {code : ByteArray}
-    (hcode : patchRuntime clipperBytecode (patches v) = some code) :
-    contractEquivalenceWithWF clipperStorageWF (config v)
-      clipperCreationBytecode code (contract v)
-      (runtimeCodeOf clipperBytecode) :=
-  contractEquivalenceWithWF.intro
-    (clipperConstructorCorrect v)
-    (clipperCorrect v hcode)
+/-- A well-typed immutables store runs as the store of the immutables some deployment sets. -/
+theorem restrictImmutables_of_fit {imms : Store} (hfit : immutablesFit contract imms) :
+    ∃ vat ilk hlen,
+      restrictImmutables contract imms = immStore (clipperCtorImmutables vat ilk hlen) := by
+  obtain ⟨vv, hvv, hfv⟩ := hfit ⟨"vat", .address⟩ (by simp [contract])
+  obtain ⟨vi, hvi, hfi⟩ := hfit ⟨"ilk", .bytes ⟨31, by decide⟩⟩ (by simp [contract])
+  simp only at hvv hvi
+  cases vv <;> simp [elemValueFits] at hfv
+  cases vi <;> simp [elemValueFits] at hfi
+  rename_i vat n ilk
+  obtain ⟨hn, hlen⟩ := hfi
+  have hilk : n = bytes32Width := by rw [bytes32Width]; exact hn.symm
+  subst hilk
+  rw [Std.HashMap.get?_eq_getElem?] at hvv hvi
+  exact ⟨vat, ilk, hlen,
+    by simp [restrictImmutables, contract, immStore, clipperCtorImmutables, hvv, hvi]⟩
+
+/-- The runtime half for every well-typed immutables store. -/
+theorem clipperRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+    runtimeRefinementWithWF clipperStorageWF config
+      (immutableLayout.deployed clipperBytecode imms) contract
+      (restrictImmutables contract imms) := by
+  obtain ⟨vat, ilk, hlen, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv,
+    clipperDeployed_eq (vat := vat) (immStore_get_vat _) (immStore_get_ilk _) hlen]
+  exact clipperCorrect _ (clipperPatchRuntime_eq_ctorPatchedRuntime vat ilk hlen)
+
+theorem clipperContractCorrect :
+    contractRefinementWF clipperStorageWF config clipperCreationBytecode contract :=
+  .of_runtime clipperConstructorCorrect clipperRuntimeCorrect
 
 end Benchmarks.Dss.Clipper

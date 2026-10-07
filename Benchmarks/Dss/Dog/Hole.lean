@@ -5,8 +5,8 @@ open Benchmarks.Dss.Dog.Immutables
 
 namespace Benchmarks.Dss.Dog
 
-theorem dogDecode_Hole {v : DogImmutables} {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (HoleTransition.params.map Param.name)
+theorem dogDecode_Hole {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
+    decodeCalldataWithMode config.abiDecodeMode (HoleTransition.params.map Param.name)
       (transitionSignature HoleTransition).paramTypes I.calldata = some ∅ := by
   show decodeCalldataWithMode DecodeMode.legacySolc05 [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
@@ -103,15 +103,15 @@ theorem dogHoleBodyCore {v : DogImmutables} {code : ByteArray}
     (_hsize : I.calldata.size < UInt256.size)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hsel : selIs I (dogSelBytes 1)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 1) rfl _hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ HoleTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWordAt ⟨4⟩ σ I).toNat))])) := by
+          (some [(.int (Int.ofNat (solcSlotWordAt ⟨4⟩ σ I).toNat))])) (immStore v) := by
     simpa [HoleTransition, solcSlotWordAt, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       dogUint256GetterBodyReturns v
@@ -123,7 +123,7 @@ theorem dogHoleBodyCore {v : DogImmutables} {code : ByteArray}
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
   exact dogUint256GetterBodyCore (entry := ⟨504⟩) (returnPc := ⟨448⟩)
     (routine := ⟨1912⟩) (slot := ⟨4⟩)
-    _hcode (dogDispatchHole _hsel) (dogDecode_Hole (v := v) hsz)
+    _hcode (dogDispatchHole _hsel) (dogDecode_Hole hsz)
     (dogReachHoleBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
     (by
       unfold solcGetterEntryWf

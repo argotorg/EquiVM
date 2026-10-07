@@ -314,7 +314,7 @@ theorem vowHealHealNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealHealNoCode rd4997 hmem hread64 hcodeSizeEvm
   have hbody := vowHealSourceHealNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -912,7 +912,7 @@ theorem vowHealHealCallFailureBodyCore
     (hcallHeal :
       typedCallViaEVM config evmSin (EVM.address (kissVatAddress σ I)) "heal" 0
         [.int (Int.ofNat (healRad I).toNat)] (false, evmHeal, outHeal) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowKissHealCallFailure (by simpa [kissRad] using rd1919) hrdataSize
   have hbody := vowHealSourceHealCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -988,7 +988,7 @@ theorem vowHealHealSuccessBodyCore
         [.int (Int.ofNat (healRad I).toNat)] (true, evmHeal, outHeal) true)
     (hdecHeal : config.externalABI.decode? "heal" outHeal = some [])
     (hAccountsFinal : Eq acc evmHeal.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vowKissHealCallSuccess (by simpa [kissRad] using rd1919)
   have hbody := vowHealSourceSuccess
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

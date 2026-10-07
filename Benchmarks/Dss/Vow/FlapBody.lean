@@ -1356,7 +1356,7 @@ theorem vowFlapSurplus0AddOverflowBodyCore
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨10⟩ = BumpVal)
     (hBumpEvm : BumpVal = solcSlotWordAt ⟨10⟩ acc I)
     (hover : UInt256.size ≤ vatSin0.toNat + BumpVal.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hoverEvm :
       UInt256.size ≤ vatSin0.toNat + (solcSlotWordAt ⟨10⟩ acc I).toNat := by
     simpa [← hBumpEvm] using hover
@@ -1399,7 +1399,7 @@ theorem vowFlapSurplusNeedAddOverflowBodyCore
       Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner ⟨11⟩ = HumpVal)
     (hHumpEvm : HumpVal = solcSlotWordAt ⟨11⟩ acc I)
     (hover : UInt256.size ≤ surplus0.toNat + HumpVal.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hoverEvm :
       UInt256.size ≤ surplus0.toNat + (solcSlotWordAt ⟨11⟩ acc I).toNat := by
     simpa [← hHumpEvm] using hover
@@ -1460,7 +1460,7 @@ theorem vowFlapDai0InsufficientSurplusBodyCore
       config.externalABI.decode? "dai" outDai =
         some [.int (Int.ofNat vatDai.toNat)])
     (hinsuff : vatDai.toNat < surplusNeed.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapDai0InsufficientSurplus rd1113 hinsuff hmem hread64
   have hbody := flapSourceInsufficientSurplus
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

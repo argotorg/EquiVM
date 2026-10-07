@@ -12,28 +12,28 @@ namespace Benchmarks.Dss.Clipper
 def clipperDenyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperRelyUsrStorageSlot I) ⟨0⟩
 
-theorem clipperDecode_deny_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_deny_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
       (transitionSignature denyTransition).paramTypes I.calldata =
         some (clipperRelyStore I) := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["usr"] [addr] I.calldata = _
+  show decodeCalldataWithMode config.abiDecodeMode ["usr"] [addr] I.calldata = _
   simpa [config, clipperRelyStore, clipperRelyUsrValue, clipperRelyUsrWord,
     calldataWord] using
       decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "usr") hsz36
 
-theorem clipperDecode_deny_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_deny_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
-    decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
       (transitionSignature denyTransition).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["usr"] [addr] I.calldata = none
+  show decodeCalldataWithMode config.abiDecodeMode ["usr"] [addr] I.calldata = none
   simpa [config] using
     decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort
 
 theorem clipperDenyAssign (v : ClipperImmutables) (evm : EVM.State) (I : ExecutionEnv) :
-    assignStorageRef? (config v) { contract := contract v, locals := clipperRelyStore I } evm
+    assignStorageRef? config { contract := contract, locals := clipperRelyStore I, immutables := immStore v } evm
       .storage (wardsRef (.var "usr")) (.int 0) =
-        .ok ({ contract := contract v, locals := clipperRelyStore I },
+        .ok ({ contract := contract, locals := clipperRelyStore I, immutables := immStore v },
           clipperDenyPostState evm I) := by
   apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
@@ -51,14 +51,14 @@ theorem clipperDenyBodyReturns (v : ClipperImmutables) (evm : EVM.State)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩) :
-    ExecTransitionBody (config v) (contract v) evm (clipperRelyStore I) denyTransition.body
-      (.returned { contract := contract v, locals := clipperRelyStore I }
-        (clipperDenyPostState evm I) none) := by
+    ExecTransitionBody config contract evm (clipperRelyStore I) denyTransition.body
+      (.returned { contract := contract, locals := clipperRelyStore I, immutables := immStore v }
+        (clipperDenyPostState evm I) none) (immStore v) := by
   refine ExecFuncBody.execBlockOK ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableRequireAssignStorageBlock
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperRelyStore I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperRelyStore I, immutables := immStore v })
       (evm := evm)
       (evm' := clipperDenyPostState evm I)
       (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
@@ -76,13 +76,13 @@ theorem clipperDenyBodyStatic (v : ClipperImmutables) (evm : EVM.State)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) = ⟨1⟩) (hperm : evm.executionEnv.perm = false) :
-    ExecTransitionBody (config v) (contract v) evm (clipperRelyStore I) denyTransition.body
-      .staticViolation := by
+    ExecTransitionBody config contract evm (clipperRelyStore I) denyTransition.body
+      .staticViolation (immStore v) := by
   refine ExecFuncBody.execBlockStatic ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableRequireAssignStorageBlockStatic
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperRelyStore I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperRelyStore I, immutables := immStore v })
       (evm := evm)
       (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
       (rhs := .intLit 0)
@@ -101,13 +101,13 @@ theorem clipperDenyBodyReverts (v : ClipperImmutables) (evm : EVM.State)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (clipperRelyAuthStorageSlot I) ≠ ⟨1⟩) :
-    ExecTransitionBody (config v) (contract v) evm (clipperRelyStore I)
-      denyTransition.body .reverted := by
+    ExecTransitionBody config contract evm (clipperRelyStore I)
+      denyTransition.body .reverted (immStore v) := by
   refine ExecFuncBody.execBlockRevert ?_
   simpa [denyTransition, nonpayable, auth] using
     nonpayableSecondRequireReverts
-      (cfg := config v)
-      (solm := { contract := contract v, locals := clipperRelyStore I })
+      (cfg := config)
+      (solm := { contract := contract, locals := clipperRelyStore I, immutables := immStore v })
       (evm := evm)
       (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
       (rest := [.assign .storage (wardsRef (.var "usr")) (.intLit 0)])
@@ -121,19 +121,19 @@ theorem clipperDenySelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 (clipperSelNat 7)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_deny (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_deny {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 7)) :
-    dispatchMsg (contract v) I.calldata = some denyTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some denyTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition])
     (post :=
       [dogTransition, fileUintTransition, fileAddressTransition, getStatusTransition,
-        ilkTransition v, kickTransition v, kicksTransition, listTransition, redoTransition v,
+        ilkTransition, kickTransition, kicksTransition, listTransition, redoTransition,
         relyTransition, salesTransition, spotterTransition, stoppedTransition, tailTransition,
-        takeTransition v, tipTransition, upchostTransition v, vatTransition v, vowTransition,
-        wardsTransition, yankTransition v])
+        takeTransition, tipTransition, upchostTransition, vatTransition, vowTransition,
+        wardsTransition, yankTransition])
     (ti := denyTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -768,22 +768,22 @@ theorem clipperDenyBodyCoreOk
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (clipperRelyStore I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1123⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hbody :
-      ExecTransitionBody (config v) (contract v) evmSolm (clipperRelyStore I)
+      ExecTransitionBody config contract evmSolm (clipperRelyStore I)
         denyTransition.body
-        (.returned { contract := contract v, locals := clipperRelyStore I }
-          (clipperDenyPostState evmSolm I) none) := by
+        (.returned { contract := contract, locals := clipperRelyStore I, immutables := immStore v }
+          (clipperDenyPostState evmSolm I) none) (immStore v) := by
     simpa [evmSolm, clipperRelyAuthWord, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       clipperDenyBodyReturns v evmSolm I
@@ -807,21 +807,21 @@ theorem clipperDenyBodyCoreStatic
     (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (clipperRelyStore I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1123⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hbody :
-      ExecTransitionBody (config v) (contract v) evmSolm (clipperRelyStore I)
+      ExecTransitionBody config contract evmSolm (clipperRelyStore I)
         denyTransition.body
-        .staticViolation := by
+        .staticViolation (immStore v) := by
     simpa [evmSolm, clipperRelyAuthWord, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       clipperDenyBodyStatic v evmSolm I
@@ -841,21 +841,21 @@ theorem clipperDenyBodyCoreUnauthorized
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
-      decodeCalldataWithMode (config v).abiDecodeMode (denyTransition.params.map Param.name)
+      decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (clipperRelyStore I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1123⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hauthWord : clipperRelyAuthWord σ I ≠ ⟨1⟩ := by
     intro hbad
     exact hauth hbad
   have hbody :
-      ExecTransitionBody (config v) (contract v) evmSolm (clipperRelyStore I)
-        denyTransition.body .reverted := by
+      ExecTransitionBody config contract evmSolm (clipperRelyStore I)
+        denyTransition.body .reverted (immStore v) := by
     simpa [evmSolm, clipperRelyAuthWord, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       clipperDenyBodyReverts v evmSolm I
@@ -872,14 +872,14 @@ theorem clipperDenyBodyCoreDecodeFailed_short
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition)
+    (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1123⟩ : UInt256) [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   exact (clipperDenyX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4
       hsize hshort hreach)
-    |>.reEquivDecodingFailed hcode hdispatch (clipperDecode_deny_none_short v hsz4 hshort)
+    |>.reEquivDecodingFailed hcode hdispatch (clipperDecode_deny_none_short hsz4 hshort)
 
 theorem clipperDenyBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -887,20 +887,20 @@ theorem clipperDenyBody (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 7)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 7) (by native_decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition :=
-    clipperDispatch_deny v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
+    clipperDispatch_deny hsel
   have hreach := clipperReachDenyBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : clipperRelyAuthWord σ I = ⟨1⟩
     · exact clipperDenyBodyCoreOk (v := v) hpatch hcode hsize hperm hwv hsz36
-        hauth hdispatch (clipperDecode_deny_ok v hsz36) hreach
+        hauth hdispatch (clipperDecode_deny_ok hsz36) hreach
     · exact clipperDenyBodyCoreUnauthorized (v := v) hpatch hcode hsize hwv hsz36
-        hauth hdispatch (clipperDecode_deny_ok v hsz36) hreach
+        hauth hdispatch (clipperDecode_deny_ok hsz36) hreach
   · exact clipperDenyBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4
       (by omega) hdispatch hreach
 
@@ -910,23 +910,23 @@ theorem clipperDenyBodyAnyPerm (v : ClipperImmutables) {code : ByteArray}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 7)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   by_cases hperm : I.perm = true
   · exact clipperDenyBody v hpatch hcode hsize hperm hwv hsel
   have hstatic : I.perm = false := by simpa using hperm
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 7) (by decide) hsel
-  have hdispatch : dispatchMsg (contract v) I.calldata = some denyTransition :=
-    clipperDispatch_deny v hsel
+  have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
+    clipperDispatch_deny hsel
   have hreach := clipperReachDenyBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hauth : clipperRelyAuthWord σ I = ⟨1⟩
     · exact clipperDenyBodyCoreStatic (v := v) hpatch hcode hsize hstatic hwv hsz36
-        hauth hdispatch (clipperDecode_deny_ok v hsz36) hreach
+        hauth hdispatch (clipperDecode_deny_ok hsz36) hreach
     · exact clipperDenyBodyCoreUnauthorized (v := v) hpatch hcode hsize hwv hsz36
-        hauth hdispatch (clipperDecode_deny_ok v hsz36) hreach
+        hauth hdispatch (clipperDecode_deny_ok hsz36) hreach
   · exact clipperDenyBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4
       (by omega) hdispatch hreach
 

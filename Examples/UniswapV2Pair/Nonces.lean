@@ -170,7 +170,7 @@ theorem uniswapNoncesBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1125⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -203,7 +203,7 @@ theorem uniswapNoncesBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1125⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_nonces_none_short (I := I) hsz4 hshort
   exact (uniswapNoncesX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -217,7 +217,7 @@ theorem uniswapNoncesBodyOk
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some noncesTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ rfl hsel
   exact uniswapNoncesBodyCoreOk hcode hsize hwv hsz36 hdispatch
@@ -232,7 +232,7 @@ theorem uniswapNoncesBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some noncesTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ rfl hsel
   exact uniswapNoncesBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -243,7 +243,7 @@ theorem uniswapNoncesBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some noncesTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact uniswapNoncesBodyOk hcode hsize hwv hsel hsz36 hdispatch
   · exact uniswapNoncesBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

@@ -34,7 +34,8 @@ theorem uniswapSafeTransferReturnCases
     (hbase96 : base.readWithPadding 96 32 = UInt256.toByteArray ⟨0⟩)
     (houtSize : out.size < UInt256.size)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
-    (hov : R.length + 16 ≤ 1024) :
+    (hov : R.length + 16 ≤ 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
         .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
