@@ -1290,7 +1290,7 @@ theorem permitAssignSavedNonce (evm evm' : EVM.State) (I : ExecutionEnv)
   have hbase :
       (permitSavedNonceStore evm I out recovered oldNonce).get? "nonces" = none :=
     by
-      simp [permitSavedNonceStore, permitRecoveredStore_get_nonces]
+      simp [permitSavedNonceStore]
 
   have her :
       evalStorageRef config
