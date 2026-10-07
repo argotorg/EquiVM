@@ -1,4 +1,4 @@
-import Benchmarks.Scaffolds.Safe.Bytecode
+import Benchmarks.Safe.Bytecode
 import Solm.Refine
 
 /-!

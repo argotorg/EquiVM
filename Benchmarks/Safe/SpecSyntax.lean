@@ -1,4 +1,4 @@
-import Benchmarks.Scaffolds.Safe.Spec
+import Benchmarks.Safe.Spec
 import Solm.Notation
 
 /-!
@@ -44,11 +44,14 @@ def contractSyntax : ContractDecl :=
       threshold = 1;
     }
 
-    receive() external payable { }
+    receive() external payable {
+      emit SafeReceived(msg.sender, msg.value);
+    }
 
     fallback(bytes calldata) external returns (bytes) {
-      address handler = _fallbackHandler;
-      if (handler == address(0)) {
+      uint256 handlerWord = _rawStorage[${Expr.intLit fallbackHandlerSlot.toNat}];
+      address handler = address(handlerWord);
+      if (handlerWord == 0) {
         return "";
       } else {
         (bool handlerSuccess, bytes memory handlerReturn) =
@@ -122,6 +125,7 @@ def contractSyntax : ContractDecl :=
       require(_threshold <= ownerCount);
       require(_threshold != 0);
       threshold = _threshold;
+      emit ChangedThreshold(_threshold);
     }
 
     function setupOwners(address[] _owners, uint256 _threshold) internal {
@@ -175,6 +179,11 @@ def contractSyntax : ContractDecl :=
       if (guard != address(0)) {
         require(guard.code.length > 0);
         var _after = guard.checkAfterModuleExecution(guardHash, success);
+      }
+      if (success) {
+        emit ExecutionFromModuleSuccess(msg.sender);
+      } else {
+        emit ExecutionFromModuleFailure(msg.sender);
       }
     }
 
@@ -255,8 +264,9 @@ def contractSyntax : ContractDecl :=
           uint256 qy = abi.decode(signatures[p256Offset + 96 : p256Offset + 96 + 32], (uint256));
           address signerAddress =
             address(uint256(keccak256(abi.encodePacked(uint256(qx), uint256(qy)))));
+          require(currentOwner == signerAddress);
           var p256Ok = p256Verify(dataHash, p256r, p256s, qx, qy);
-          require(currentOwner == signerAddress && p256Ok);
+          require(p256Ok);
         } else if (v > 30) {
           bytes32 ethSignedHash =
             keccak256(abi.encodePacked(bytes(${ethSignPrefix}), bytes32(dataHash)));
@@ -289,6 +299,7 @@ def contractSyntax : ContractDecl :=
       owners[owner] = owners[address(1)];
       owners[address(1)] = owner;
       ownerCount = ((ownerCount + 1) as uint256);
+      emit AddedOwner(owner);
       if (threshold != _threshold) {
         var _thresholdChanged = changeThresholdBody(_threshold);
       }
@@ -297,6 +308,7 @@ def contractSyntax : ContractDecl :=
     function approveHash(bytes32 hashToApprove) external {
       require(owners[msg.sender] != address(0));
       approvedHashes[msg.sender][hashToApprove] = 1;
+      emit ApproveHash(hashToApprove, msg.sender);
     }
 
     function approvedHashes(address arg0, bytes32 arg1) external returns (uint256) {
@@ -310,19 +322,23 @@ def contractSyntax : ContractDecl :=
 
     function checkNSignatures(bytes32 dataHash, bytes data, bytes signatures,
         uint256 requiredSignatures) external {
+      require(signatures.length <= ${Expr.intLit (2 ^ 64 - 192)});
       var _checked = checkNSignaturesImpl(msg.sender, dataHash, signatures, requiredSignatures);
     }
 
     function checkNSignatures(address executor, bytes32 dataHash, bytes signatures,
         uint256 requiredSignatures) external {
+      require(signatures.length <= ${Expr.intLit (2 ^ 64 - 192)});
       var _checked = checkNSignaturesImpl(executor, dataHash, signatures, requiredSignatures);
     }
 
     function checkSignatures(bytes32 dataHash, bytes data, bytes signatures) external {
+      require(signatures.length <= ${Expr.intLit (2 ^ 64 - 192)});
       var _checked = checkSignaturesImpl(msg.sender, dataHash, signatures);
     }
 
     function checkSignatures(address executor, bytes32 dataHash, bytes signatures) external {
+      require(signatures.length <= ${Expr.intLit (2 ^ 64 - 192)});
       var _checked = checkSignaturesImpl(executor, dataHash, signatures);
     }
 
@@ -332,6 +348,7 @@ def contractSyntax : ContractDecl :=
       require(modules[prevModule] == «module»);
       modules[prevModule] = modules[«module»];
       modules[«module»] = address(0);
+      emit DisabledModule(«module»);
     }
 
     function domainSeparator() external returns (bytes32) {
@@ -347,13 +364,16 @@ def contractSyntax : ContractDecl :=
       require(modules[«module»] == address(0));
       modules[«module»] = modules[address(1)];
       modules[address(1)] = «module»;
+      emit EnabledModule(«module»);
     }
 
     function execTransaction(address «to», uint256 value, bytes data, uint8 operation,
         uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken,
         address refundReceiver, bytes signatures) external payable returns (bool) {
+      require(signatures.length <= ${Expr.intLit (2 ^ 64 - 192)});
       require(operation <= 1);
       uint256 nonceBefore = nonce;
+      nonce = ((nonceBefore + 1) as uint256);
       bytes32 txHash = keccak256(abi.encodePacked(
         bytes2(bytes2(0x1901)),
         bytes32(keccak256(abi.encodePacked(
@@ -372,7 +392,6 @@ def contractSyntax : ContractDecl :=
           uint256(uint256(gasToken)),
           uint256(uint256(refundReceiver)),
           uint256(nonceBefore))))));
-      nonce = ((nonceBefore + 1) as uint256);
       var _sigOk = checkSignaturesImpl(msg.sender, txHash, signatures);
       address guard = _guard;
       if (guard != address(0)) {
@@ -396,6 +415,11 @@ def contractSyntax : ContractDecl :=
         var paymentCall = handlePayment(gasUsed, baseGas, gasPrice, gasToken, refundReceiver);
         payment = paymentCall;
       }
+      if (success) {
+        emit ExecutionSuccess(txHash, payment);
+      } else {
+        emit ExecutionFailure(txHash, payment);
+      }
       if (guard != address(0)) {
         require(guard.code.length > 0);
         var _guardAfter = guard.checkAfterExecution(txHash, success);
@@ -405,6 +429,7 @@ def contractSyntax : ContractDecl :=
 
     function execTransactionFromModule(address «to», uint256 value, bytes data, uint8 operation)
         external returns (bool) {
+      require(data.length <= ${Expr.intLit (2 ^ 64 - 192)});
       require(operation <= 1);
       var pre = preModuleExecution(«to», value, data, operation);
       var success = execute(«to», value, data, operation, type(uint256).max);
@@ -414,6 +439,7 @@ def contractSyntax : ContractDecl :=
 
     function execTransactionFromModuleReturnData(address «to», uint256 value, bytes data,
         uint8 operation) external returns (bool, bytes) {
+      require(data.length <= ${Expr.intLit (2 ^ 64 - 192)});
       require(operation <= 1);
       var pre = preModuleExecution(«to», value, data, operation);
       if (operation == 1) {
@@ -429,6 +455,7 @@ def contractSyntax : ContractDecl :=
         external returns (address[], address) {
       require(start == address(1) || (modules[start] != address(0) && start != address(1)));
       require(pageSize != 0);
+      require(pageSize <= ${maxMemoryLength});
       uint256 moduleCount = 0;
       address next = modules[start];
       address last = address(0);
@@ -453,6 +480,7 @@ def contractSyntax : ContractDecl :=
     }
 
     function getOwners() external returns (address[]) {
+      require(ownerCount <= ${maxMemoryLength});
       address[] memory array = new address[](ownerCount);
       uint256 index = 0;
       address currentOwner = owners[address(1)];
@@ -465,10 +493,11 @@ def contractSyntax : ContractDecl :=
     }
 
     function getStorageAt(uint256 offset, uint256 length) external returns (bytes) {
+      require((length <<[uint256] 5) <= ${maxMemoryLength});
       bytes memory result = "";
       uint256 index = 0;
       while (index < length) {
-        result = abi.encodePacked(bytes(result), uint256(_rawStorage[offset + index]));
+        result = abi.encodePacked(bytes(result), uint256(_rawStorage[uint256(offset + index)]));
         index = ((index + 1) as uint256);
       }
       return result;
@@ -521,6 +550,7 @@ def contractSyntax : ContractDecl :=
       var _ok = requireCanRemoveOwner(prevOwner, owner);
       owners[prevOwner] = owners[owner];
       owners[owner] = address(0);
+      emit RemovedOwner(owner);
       if (threshold != _threshold) {
         var _thresholdChanged = changeThresholdBody(_threshold);
       }
@@ -529,6 +559,7 @@ def contractSyntax : ContractDecl :=
     function setFallbackHandler(address handler) external {
       require(msg.sender == address(this));
       var _ok = internalSetFallbackHandler(handler);
+      emit ChangedFallbackHandler(handler);
     }
 
     function setGuard(address guard) external {
@@ -538,6 +569,7 @@ def contractSyntax : ContractDecl :=
         require(supported);
       }
       _guard = guard;
+      emit ChangedGuard(guard);
     }
 
     function setModuleGuard(address moduleGuard) external {
@@ -547,11 +579,13 @@ def contractSyntax : ContractDecl :=
         require(supported);
       }
       _moduleGuard = moduleGuard;
+      emit ChangedModuleGuard(moduleGuard);
     }
 
     function setup(address[] _owners, uint256 _threshold, address «to», bytes data,
         address fallbackHandler, address paymentToken, uint256 payment,
         address paymentReceiver) external {
+      emit SafeSetup(msg.sender, _owners, _threshold, «to», fallbackHandler);
       var _ownersSetup = setupOwners(_owners, _threshold);
       if (fallbackHandler != address(0)) {
         var _fallbackSet = internalSetFallbackHandler(fallbackHandler);
@@ -567,6 +601,7 @@ def contractSyntax : ContractDecl :=
     }
 
     function simulateAndRevert(address targetContract, bytes calldataPayload) external {
+      require(calldataPayload.length <= ${Expr.intLit (2 ^ 64 - 192)});
       (bool simulateSuccess, bytes memory simulateReturn) =
         targetContract.delegatecall(calldataPayload);
       require(false);
@@ -579,6 +614,8 @@ def contractSyntax : ContractDecl :=
       owners[newOwner] = owners[oldOwner];
       owners[prevOwner] = newOwner;
       owners[oldOwner] = address(0);
+      emit RemovedOwner(oldOwner);
+      emit AddedOwner(newOwner);
     }
   }
 

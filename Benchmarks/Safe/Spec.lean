@@ -8,9 +8,10 @@ import Solm.SolidityLayout
 Source-shaped Solm spec for upstream `safe-global/safe-smart-account`
 `Benchmarks/Safe/contracts/Safe.sol`, compiled with solc 0.8.35.
 
-Events and revert strings are intentionally omitted, since the benchmark equivalence relation
-observes successful return values, storage/world effects, and revert-vs-success behavior, but not
-logs or revert payloads.  The fallback and receive entrypoints are modeled explicitly.
+The refinement relation observes successful return values, the final account map, reverts, and
+static-mode violations. Event statements retain their position and static-mode behavior, although
+log contents and revert payloads are not observations of that relation. Gas observations and call
+gas use Solm's existential witnesses. The fallback and receive entrypoints are modeled explicitly.
 -/
 
 open Solm ABI Ethereum
@@ -47,6 +48,9 @@ def bytes32St : StorageType := .elem (.bytes bytes32Width)
 def addrArrayTy : ABIType := .dynamicArray addr
 
 def maxUint256 : Int := 2 ^ 256 - 1
+
+-- solc 0.8.35's explicit allocation-size panic guard (distinct from EVM out-of-gas).
+def maxMemoryLength : Expr := .intLit (2 ^ 64 - 1)
 
 def sender : Expr := .env .caller
 def origin : Expr := .env .origin
@@ -229,9 +233,11 @@ def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
       some (.leaf (wordLoc (signedMessagesSlot messageHash) (.int uint256Int)))
   | { base := "approvedHashes", steps := [.mindex owner, .mindex messageHash] } =>
       some (.leaf (wordLoc (approvedHashesSlot owner messageHash) (.int uint256Int)))
-  | { base := "_fallbackHandler", steps := [] } => some (.leaf (addrLoc fallbackHandlerSlot))
-  | { base := "_guard", steps := [] } => some (.leaf (addrLoc guardSlot))
-  | { base := "_moduleGuard", steps := [] } => some (.leaf (addrLoc moduleGuardSlot))
+  -- These three fields use assembly SSTORE, which clears the entire word's high bits.
+  | { base := "_fallbackHandler", steps := [] } =>
+      some (.leaf (wordLoc fallbackHandlerSlot .address))
+  | { base := "_guard", steps := [] } => some (.leaf (wordLoc guardSlot .address))
+  | { base := "_moduleGuard", steps := [] } => some (.leaf (wordLoc moduleGuardSlot .address))
   | { base := "_rawStorage", steps := [.mindex slot] } =>
       some (.leaf (wordLoc (keyValueToWord slot) (.int uint256Int)))
   | _ => none
@@ -302,6 +308,12 @@ def safeExternalABI : ExternalCallABI where
 
 def nonpayable : List Stmt :=
   [ .require (eqE callvalue (.intLit 0)) ]
+
+-- Each affected public decoder allocates its only memory bytes argument at 0x80.
+-- solc checks 0x80 + 0x20 + ceil32(length) <= 2^64 - 1, hence length <= 2^64 - 192.
+-- Calldata-only bytes arguments do not perform this allocation.
+def decodeMemoryBytes (name : Ident) : List Stmt :=
+  [.require (leE (localLength name) (.intLit (2 ^ 64 - 192)))]
 
 def authorized : List Stmt :=
   [ .require (eqE sender this) ]
@@ -486,7 +498,8 @@ def changeThresholdBodyFunction : FunctionDecl :=
     body :=
       [ .require (leE (.var "_threshold") (.storage ownerCountRef)),
         .require (neE (.var "_threshold") (.intLit 0)),
-        .assign .storage thresholdRef (.var "_threshold") ] }
+        .assign .storage thresholdRef (.var "_threshold"),
+        .emit "ChangedThreshold" [.var "_threshold"] ] }
 
 def setupOwnersFunction : FunctionDecl :=
   { name := "setupOwners"
@@ -561,7 +574,10 @@ def postModuleExecutionFunction : FunctionDecl :=
       [ .ite (neE (.var "guard") zeroAddr)
           (checkedExternalCallStmts (.var "guard") "checkAfterModuleExecution" (.intLit 0)
             [.var "guardHash", .var "success"] "_after")
-          [] ] }
+          [],
+        .ite (.var "success")
+          [.emit "ExecutionFromModuleSuccess" [sender]]
+          [.emit "ExecutionFromModuleFailure" [sender]] ] }
 
 def validateContractSignatureFunction : FunctionDecl :=
   { name := "validateContractSignature"
@@ -688,12 +704,11 @@ def checkNSignaturesImplFunction : FunctionDecl :=
                               (.keccak256
                                 (.abiEncodePacked
                                   [(uint256, .var "qx"), (uint256, .var "qy")])))),
+                        .require (eqE (.var "currentOwner") (.var "signerAddress")),
                         .internalCall "p256Verify"
                           [.var "dataHash", .var "p256r", .var "p256s", .var "qx", .var "qy"]
                           "p256Ok",
-                        .require
-                          (andE (eqE (.var "currentOwner") (.var "signerAddress"))
-                            (.var "p256Ok")) ]
+                        .require (.var "p256Ok") ]
                       [ .ite (gtE (.var "v") (.intLit 30))
                           [ .letDecl "ethSignedHash" (some bytes32)
                               (.keccak256
@@ -758,7 +773,7 @@ def receiveTransition : TransitionDecl :=
   { name := "receive"
     params := []
     returnType := []
-    body := [] }
+    body := [.emit "SafeReceived" [sender, callvalue]] }
 
 def fallbackTransition : TransitionDecl :=
   { name := "fallback"
@@ -766,8 +781,11 @@ def fallbackTransition : TransitionDecl :=
     returnType := [bytesTy]
     body :=
       nonpayable ++
-      [ .letDecl "handler" (some addr) (.storage fallbackHandlerRef),
-        .ite (eqE (.var "handler") zeroAddr)
+      -- Assembly tests the raw word, then CALL truncates its target to 160 bits.
+      [ .letDecl "handlerWord" (some uint256)
+          (.storage (rawStorageRef (.intLit fallbackHandlerSlot.toNat))),
+        .letDecl "handler" (some addr) (uint256AsAddress (.var "handlerWord")),
+        .ite (eqE (.var "handlerWord") (.intLit 0))
           [ .return [emptyBytes] ]
           [ .lowLevelCall (.var "handler") (.intLit 0)
               (.abiEncodePacked [(bytesTy, .var "calldata"), (addr, sender)])
@@ -793,6 +811,7 @@ def addownerwiththresholdTransition : TransitionDecl :=
         .assign .storage (ownersRef (.var "owner")) (.storage (ownersRef sentinelAddr)),
         .assign .storage (ownersRef sentinelAddr) (.var "owner"),
         .assign .storage ownerCountRef (inc256 (.storage ownerCountRef)),
+        .emit "AddedOwner" [.var "owner"],
         .ite (neE (.storage thresholdRef) (.var "_threshold"))
           [ .internalCall "changeThresholdBody" [.var "_threshold"] "_thresholdChanged" ]
           [] ] }
@@ -804,7 +823,8 @@ def approvehashTransition : TransitionDecl :=
     body :=
       nonpayable ++
       [ .require (neE (.storage (ownersRef sender)) zeroAddr),
-        .assign .storage (approvedHashesRef sender (.var "hashToApprove")) (.intLit 1) ] }
+        .assign .storage (approvedHashesRef sender (.var "hashToApprove")) (.intLit 1),
+        .emit "ApproveHash" [.var "hashToApprove", sender] ] }
 
 def approvedhashesTransition : TransitionDecl :=
   { name := "approvedHashes"
@@ -825,7 +845,7 @@ def checknsignaturesTransition : TransitionDecl :=
         { name := "signatures", ty := bytesTy }, { name := "requiredSignatures", ty := uint256 } ]
     returnType := []
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "signatures" ++
       [ .internalCall "checkNSignaturesImpl"
           [sender, .var "dataHash", .var "signatures", .var "requiredSignatures"] "_checked" ] }
 
@@ -837,7 +857,7 @@ def checknsignaturesAddressBytes32BytesUint256Transition : TransitionDecl :=
         { name := "requiredSignatures", ty := uint256 } ]
     returnType := []
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "signatures" ++
       [ .internalCall "checkNSignaturesImpl"
           [.var "executor", .var "dataHash", .var "signatures", .var "requiredSignatures"]
           "_checked" ] }
@@ -849,7 +869,7 @@ def checksignaturesTransition : TransitionDecl :=
         { name := "signatures", ty := bytesTy } ]
     returnType := []
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "signatures" ++
       [ .internalCall "checkSignaturesImpl" [sender, .var "dataHash", .var "signatures"]
           "_checked" ] }
 
@@ -860,7 +880,7 @@ def checksignaturesAddressBytes32BytesTransition : TransitionDecl :=
         { name := "signatures", ty := bytesTy } ]
     returnType := []
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "signatures" ++
       [ .internalCall "checkSignaturesImpl"
           [.var "executor", .var "dataHash", .var "signatures"] "_checked" ] }
 
@@ -873,7 +893,8 @@ def disablemoduleTransition : TransitionDecl :=
       [ .require (andE (neE (.var "module") zeroAddr) (neE (.var "module") sentinelAddr)),
         .require (eqE (.storage (modulesRef (.var "prevModule"))) (.var "module")),
         .assign .storage (modulesRef (.var "prevModule")) (.storage (modulesRef (.var "module"))),
-        .assign .storage (modulesRef (.var "module")) zeroAddr ] }
+        .assign .storage (modulesRef (.var "module")) zeroAddr,
+        .emit "DisabledModule" [.var "module"] ] }
 
 def domainseparatorTransition : TransitionDecl :=
   { name := "domainSeparator"
@@ -890,7 +911,8 @@ def enablemoduleTransition : TransitionDecl :=
       [ .require (andE (neE (.var "module") zeroAddr) (neE (.var "module") sentinelAddr)),
         .require (eqE (.storage (modulesRef (.var "module"))) zeroAddr),
         .assign .storage (modulesRef (.var "module")) (.storage (modulesRef sentinelAddr)),
-        .assign .storage (modulesRef sentinelAddr) (.var "module") ] }
+        .assign .storage (modulesRef sentinelAddr) (.var "module"),
+        .emit "EnabledModule" [.var "module"] ] }
 
 def exectransactionTransition : TransitionDecl :=
   { name := "execTransaction"
@@ -901,11 +923,11 @@ def exectransactionTransition : TransitionDecl :=
         { name := "gasPrice", ty := uint256 }, { name := "gasToken", ty := addr },
         { name := "refundReceiver", ty := addr }, { name := "signatures", ty := bytesTy } ]
     returnType := [boolTy]
-    body :=
+    body := decodeMemoryBytes "signatures" ++
       [ .require validOperation,
         .letDecl "nonceBefore" (some uint256) (.storage nonceRef),
-        .letDecl "txHash" (some bytes32) (transactionHashExpr (.var "nonceBefore")),
         .assign .storage nonceRef (inc256 (.var "nonceBefore")),
+        .letDecl "txHash" (some bytes32) (transactionHashExpr (.var "nonceBefore")),
         .internalCall "checkSignaturesImpl" [sender, .var "txHash", .var "signatures"] "_sigOk",
         .letDecl "guard" (some addr) (.storage guardRef),
         .ite (neE (.var "guard") zeroAddr)
@@ -936,6 +958,9 @@ def exectransactionTransition : TransitionDecl :=
                 .var "refundReceiver"] "paymentCall",
             .assign .localVar (varRef "payment") (.var "paymentCall") ]
           [],
+        .ite (.var "success")
+          [.emit "ExecutionSuccess" [.var "txHash", .var "payment"]]
+          [.emit "ExecutionFailure" [.var "txHash", .var "payment"]],
         .ite (neE (.var "guard") zeroAddr)
           (checkedExternalCallStmts (.var "guard") "checkAfterExecution" (.intLit 0)
             [.var "txHash", .var "success"] "_guardAfter")
@@ -949,7 +974,7 @@ def exectransactionfrommoduleTransition : TransitionDecl :=
         { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
     returnType := [boolTy]
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "data" ++
       [ .require validOperation,
         .internalCall "preModuleExecution"
           [.var "to", .var "value", .var "data", .var "operation"] "pre",
@@ -966,7 +991,7 @@ def exectransactionfrommodulereturndataTransition : TransitionDecl :=
         { name := "data", ty := bytesTy }, { name := "operation", ty := uint8 } ]
     returnType := [boolTy, bytesTy]
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "data" ++
       [ .require validOperation,
         .internalCall "preModuleExecution"
           [.var "to", .var "value", .var "data", .var "operation"] "pre",
@@ -985,6 +1010,7 @@ def getmodulespaginatedTransition : TransitionDecl :=
       nonpayable ++
       [ .require (orE (eqE (.var "start") sentinelAddr) (moduleEnabledExpr (.var "start"))),
         .require (neE (.var "pageSize") (.intLit 0)),
+        .require (leE (.var "pageSize") maxMemoryLength),
         .letDecl "moduleCount" (some uint256) (.intLit 0),
         .letDecl "next" (some addr) (.storage (modulesRef (.var "start"))),
         .letDecl "last" (some addr) zeroAddr,
@@ -1014,7 +1040,8 @@ def getownersTransition : TransitionDecl :=
     returnType := [(.dynamicArray addr)]
     body :=
       nonpayable ++
-      [ .letDecl "array" (some (.dynamicArray addr)) (.newArray addrSt (.storage ownerCountRef)),
+      [ .require (leE (.storage ownerCountRef) maxMemoryLength),
+        .letDecl "array" (some (.dynamicArray addr)) (.newArray addrSt (.storage ownerCountRef)),
         .letDecl "index" (some uint256) (.intLit 0),
         .letDecl "currentOwner" (some addr) (.storage (ownersRef sentinelAddr)),
         .while (neE (.var "currentOwner") sentinelAddr)
@@ -1030,13 +1057,15 @@ def getstorageatTransition : TransitionDecl :=
     returnType := [bytesTy]
     body :=
       nonpayable ++
-      [ .letDecl "result" (some bytesTy) emptyBytes,
+      [ .require (leE (shlE (.var "length") (.intLit 5)) maxMemoryLength),
+        .letDecl "result" (some bytesTy) emptyBytes,
         .letDecl "index" (some uint256) (.intLit 0),
         .while (ltE (.var "index") (.var "length"))
           [ .assign .localVar (varRef "result")
               (.abiEncodePacked
                 [ (bytesTy, .var "result"),
-                  (uint256, .storage (rawStorageRef (addE (.var "offset") (.var "index")))) ]),
+                  (uint256, .storage
+                    (rawStorageRef (.cast (addE (.var "offset") (.var "index")) uint256St))) ]),
             .assign .localVar (varRef "index") (inc256 (.var "index")) ],
         .return [.var "result"] ] }
 
@@ -1088,6 +1117,7 @@ def removeownerTransition : TransitionDecl :=
         .internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "owner"] "_ok",
         .assign .storage (ownersRef (.var "prevOwner")) (.storage (ownersRef (.var "owner"))),
         .assign .storage (ownersRef (.var "owner")) zeroAddr,
+        .emit "RemovedOwner" [.var "owner"],
         .ite (neE (.storage thresholdRef) (.var "_threshold"))
           [ .internalCall "changeThresholdBody" [.var "_threshold"] "_thresholdChanged" ]
           [] ] }
@@ -1098,7 +1128,8 @@ def setfallbackhandlerTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++ authorized ++
-      [ .internalCall "internalSetFallbackHandler" [.var "handler"] "_ok" ] }
+      [ .internalCall "internalSetFallbackHandler" [.var "handler"] "_ok",
+        .emit "ChangedFallbackHandler" [.var "handler"] ] }
 
 def setguardTransition : TransitionDecl :=
   { name := "setGuard"
@@ -1111,7 +1142,8 @@ def setguardTransition : TransitionDecl :=
             [transactionGuardInterfaceId] "supported" (perm := false) ++
             [ .require (.var "supported") ])
           [],
-        .assign .storage guardRef (.var "guard") ] }
+        .assign .storage guardRef (.var "guard"),
+        .emit "ChangedGuard" [.var "guard"] ] }
 
 def setmoduleguardTransition : TransitionDecl :=
   { name := "setModuleGuard"
@@ -1124,7 +1156,8 @@ def setmoduleguardTransition : TransitionDecl :=
             [moduleGuardInterfaceId] "supported" (perm := false) ++
             [ .require (.var "supported") ])
           [],
-        .assign .storage moduleGuardRef (.var "moduleGuard") ] }
+        .assign .storage moduleGuardRef (.var "moduleGuard"),
+        .emit "ChangedModuleGuard" [.var "moduleGuard"] ] }
 
 def setupTransition : TransitionDecl :=
   { name := "setup"
@@ -1137,7 +1170,9 @@ def setupTransition : TransitionDecl :=
     returnType := []
     body :=
       nonpayable ++
-      [ .internalCall "setupOwners" [.var "_owners", .var "_threshold"] "_ownersSetup",
+      [ .emit "SafeSetup" [sender, .var "_owners", .var "_threshold", .var "to",
+          .var "fallbackHandler"],
+        .internalCall "setupOwners" [.var "_owners", .var "_threshold"] "_ownersSetup",
         .ite (neE (.var "fallbackHandler") zeroAddr)
           [ .internalCall "internalSetFallbackHandler" [.var "fallbackHandler"] "_fallbackSet" ]
           [],
@@ -1160,7 +1195,7 @@ def simulateandrevertTransition : TransitionDecl :=
       [ { name := "targetContract", ty := addr }, { name := "calldataPayload", ty := bytesTy } ]
     returnType := []
     body :=
-      nonpayable ++
+      nonpayable ++ decodeMemoryBytes "calldataPayload" ++
       [ .delegateCall (.var "targetContract") (.var "calldataPayload")
           "simulateSuccess" "simulateReturn",
         .require (.boolLit false) ] }
@@ -1177,7 +1212,9 @@ def swapownerTransition : TransitionDecl :=
         .internalCall "requireCanRemoveOwner" [.var "prevOwner", .var "oldOwner"] "_canRemove",
         .assign .storage (ownersRef (.var "newOwner")) (.storage (ownersRef (.var "oldOwner"))),
         .assign .storage (ownersRef (.var "prevOwner")) (.var "newOwner"),
-        .assign .storage (ownersRef (.var "oldOwner")) zeroAddr ] }
+        .assign .storage (ownersRef (.var "oldOwner")) zeroAddr,
+        .emit "RemovedOwner" [.var "oldOwner"],
+        .emit "AddedOwner" [.var "newOwner"] ] }
 
 def transitions : List TransitionDecl :=
   [ versionTransition,

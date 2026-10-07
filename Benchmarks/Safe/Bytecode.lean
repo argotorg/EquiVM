@@ -1,4 +1,4 @@
-import Benchmarks.Scaffolds.Safe.Spec
+import Benchmarks.Safe.Spec
 import Ethereum.Semantics
 import Reasoning.JumpDest
 

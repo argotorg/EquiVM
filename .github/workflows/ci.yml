@@ -63,7 +63,7 @@ jobs:
           python3 -m unittest scripts/test_generate_rd_blocks.py
           python3 scripts/check_all_benchmark_blocks.py \
             --contract Scaffolds/UniswapV3Pool \
-            --contract Scaffolds/Safe \
+            --contract Safe \
             --jobs 4
 
       # These End dispatch consumers previously overflowed Lean's default stack.
@@ -91,6 +91,7 @@ jobs:
       #     lake build \
       #       Benchmarks.Auction.Correct \
       #       Benchmarks.WETH9.Correct \
+      #       Benchmarks.Safe.Correct \
       #       Benchmarks.Dss.Dai.Correct \
       #       Benchmarks.Dss.Jug.Correct \
       #       Benchmarks.Dss.Vat.Correct \

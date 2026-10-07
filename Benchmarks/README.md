@@ -3,8 +3,8 @@
 Real-world contracts used to evaluate the framework at scale. The layout separates finished work
 from prepared targets:
 
-- **This directory** holds benchmarks whose refinement proof is complete (top-level
-  `…ContractCorrect` theorem, no `sorry`), with one exception noted below.
+- **This directory** holds completed benchmarks (top-level `…ContractCorrect` theorem, no
+  `sorry`) and the explicitly marked work in progress below.
 - **`Scaffolds/`** holds benchmarks that are prepared for proving but not yet
   proved: the Sol⁻ specification, the exact compiled bytecode, the verified
   jump-destination table, and the top-level theorem statements (as `sorry`
@@ -43,11 +43,20 @@ Sizes are bytes of checked-in `runtime.hex`.
 `Dss/Clipper` stays here rather than in `Scaffolds/` because it completes the Dss suite and its
 proof is substantially under way.
 
+## In progress
+
+| Benchmark | Upstream source | solc | Runtime bytes |
+|---|---|---|---|
+| `Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.8.35 | 11874 |
+
+[`Safe/README.md`](Safe/README.md) records the semantic audit, generated block summaries,
+entrypoint proof scaffolds, and reproduction commands for handoff. Refinement proofs remain
+unfilled. Build the handoff with `lake build Benchmarks.Safe.Correct Benchmarks.Safe.Audit`.
+
 ## Scaffolds
 
 | Benchmark | Upstream source | solc | Runtime bytes |
 |---|---|---|---|
-| `Scaffolds/Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.8.35 | 11874 |
 | `Scaffolds/Klima` | [`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol) | 0.7.5 | 6975 |
 | `Scaffolds/ERC721` | Benchmark-local compact ERC721 core ([`ERC721.sol`](Scaffolds/ERC721/ERC721.sol)) | 0.8.35 | 1482 |
 | `Scaffolds/EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 | 3186 |
