@@ -42,6 +42,9 @@ and the correctness of the runtime code:
 runtimeRefinement <config> <runtimeBytecode> <contract>
 ```
 
+For a contract with immutables, the deployed runtime depends on the values the constructor sets,
+and the theorem is assembled with `contractRefinement.of_runtime` instead (Section 7).
+
 Your goal is to complete the proof. The proof must be correct,
 modular, fast enough to work on, and axiom-clean except for the
 accepted trusted base below.
@@ -220,6 +223,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 | `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
 | `<Fn>.lean` | one file per interface (public/external) function — its decode, source body, EVM trace, and `…BodyCore` refinement. |
 | `Constructor.lean` | the equivalence proof of the contract's constructor. |
+| `Immutables.lean` (with immutables) | the solc `immutableReferences` table and the immutables valuation. |
+| `ImmutableCode.lean` (with immutables) | the `Layout` of the runtime template's immutable sites. |
+| `BlocksAuto.lean` (with immutables) | generated runtime block summaries; regenerate, never edit by hand. |
+| `BlocksProof.lean` (with immutables) | dispatch/body/revert paths composed from the generated summaries. |
 | `Correct.lean` | thin top-level: dispatcher driver + per-function routing + revert paths + constructor packaging + the final `theorem <name>Correct`. |
 
 
@@ -423,7 +430,86 @@ Function calls should be proven modularly. In particular:
   iterations, on both the Solm side and the bytecode trace.
 ---
 
-## 7. Build discipline, tactics, proof engineering, efficiency
+## 7. Immutables
+
+Follow `Examples/TinyImmutable`. Do not copy the Dog/Clipper style (a
+`patchRuntime … = some code` hypothesis, hand-transported decodes, valuations holding `Value`s):
+those proofs were migrated mechanically and predate this approach.
+
+The top-level theorem is
+
+```lean
+theorem <name>ContractCorrect : contractRefinement config <initcode> contract :=
+  .of_runtime <name>ConstructorCorrect <name>RuntimeCorrect
+```
+
+(`contractRefinementWF <wf> …` with a storage precondition), with
+`runtimeCodeOf := immutableLayout.deployed <template>` from `Reasoning/ImmutableWords.lean`: the
+template with every immutable site patched with `wordsOf imms`, each immutable's word under Solm's
+`valueToWord`. Never define a contract-specific `runtimeCodeOf`, word map, or patch function.
+
+**Layout.**
+- `Immutables.lean`: `immutableReferences : List (Ident × List Nat)`, each immutable's Solm name
+  and its offsets copied verbatim from solc's `evm.deployedBytecode.immutableReferences`, listed
+  in the order the constructor writes them; and a valuation `structure <Name>Immutables` with
+  EVM-level fields (`EVM.Address`, `EVM.Word`, …), used by the runtime proofs.
+- `ImmutableCode.lean`: `immutableLayout : Layout`, derived from the table (width 32, key = the
+  Solm name).
+- `Common.lean`: `immStore v : Store`; `@[simp] wordsOf_immStore_<x>` for each immutable (via
+  `wordsOf_of_get`); `patchedRuntime v := immutableLayout.deployed <template> (immStore v)`;
+  `evalImmutable_<x>`; `immutableLayout_keys` (every site key is a declared immutable, by
+  `decide`); and `restrictImmutables_of_fit : immutablesFit contract imms →
+  ∃ v, restrictImmutables contract imms = immStore v`.
+
+**Runtime.**
+1. Prove the runtime for every valuation: `<name>Correct (v) : runtimeRefinement config
+   (patchedRuntime v) contract (immStore v)`. Never fix immutable values, and never take the code
+   as a parameter.
+2. Generate the block summaries over the template with the layout:
+   `lake build <Module>.ImmutableCode`, then
+   `python3 scripts/generate_rd_blocks.py <Dir>/runtime.hex --name <name> --code-term <template>
+   --bytecode-import <Module>.Bytecode --import <Module>.ImmutableCode
+   --layout-term <Ns>.immutableLayout --output <Dir>/BlocksAuto.lean`.
+   Instantiate every summary with `immWords := wordsOf (immStore v)`; an immutable site pushes
+   `wordsOf (immStore v) "<x>"`, which `wordsOf_immStore_<x>` rewrites to its value (it does not
+   reduce definitionally, so `rw` it before a `change`). Compose the summaries in
+   `BlocksProof.lean` (see `tinyBlocksReachSelector`, `tinyOwnerX`). Never reprove that the
+   patched code decodes like the template.
+3. Jump destinations: the summaries need `(D_J (patchedRuntime v) 0).contains pc`. Prove
+   `D_J (patchedRuntime v) 0 = D_J <template> 0` once, then each jump destination is a
+   `native_decide` on the template; flag the lemma as a LIBRARY CANDIDATE.
+4. Bridge, in `Correct.lean`:
+   ```lean
+   theorem <name>RuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+       runtimeRefinement config (immutableLayout.deployed <template> imms) contract
+         (restrictImmutables contract imms) := by
+     obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+     rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv]
+     exact <name>Correct v
+   ```
+
+**Constructor** (`typedConstructorRefinement config <initcode> contract
+(immutableLayout.deployed <template>)`).
+1. Deployment shape: `config.selfDeployment <initcode> args = some d → ∃ <typed args>,
+   args = [...] ∧ <range facts> ∧ d = <initcode> ++ <encoded args>`.
+2. The final immutables of each source path, built from `initialImmutables contract` by `insert`
+   (an immutable a path does not assign keeps its zero value), with `get?` lemmas. The Solm body
+   assigns them with `ExecStmt.setImmutable` (value, declared type, `elemValueFits`).
+3. The EVM trace ends in `RDret … (patchedRuntime {…})`: the template `CODECOPY` puts the template
+   in memory, each patch `MSTORE` is a `writeWord`, and together they form a `writeCascade`. Prove
+   the cascade `= patchedRuntime {…}` by unfolding `Layout.deployed`/`Layout.runtime`/
+   `Layout.writes` with the `wordsOf_immStore_<x>` lemmas (`tinyCtorPatchedRuntime_eq_patchedRuntime`);
+   listing the table in write order keeps this a `rfl`.
+4. Tie the final immutables to that code: two stores deploy the same code when they agree on each
+   immutable's word (`deployed_eq_patchedRuntime`, by `Layout.runtime_congr` and
+   `immutableLayout_keys`); per path, `wordsOf_of_get (<…>_get_<x> …) rfl` gives each word.
+5. Close each success case with
+   `.execution hΞ hsolm (ctorResultEquiv.success rfl rfl rfl (<deployed lemma>).symm) (<…>_fit …)`,
+   and each revert with `.execution hΞ hsolm (ctorResultEquiv.revert rfl rfl) trivial`.
+
+---
+
+## 8. Build discipline, tactics, proof engineering, efficiency
 
 - Every file should compile and should be validated by the build
   system.
@@ -462,7 +548,7 @@ Function calls should be proven modularly. In particular:
 
 ---
 
-## 8. Routine-lemma discipline
+## 9. Routine-lemma discipline
 
 Every repeated bytecode segment becomes one `RD`-combinator lemma,
 proved once, applied many times:
@@ -512,7 +598,7 @@ When a step fails, re-check it against the disassembly first.
 
 ---
 
-## 9. Hard rules
+## 10. Hard rules
 
 - Do not make changes outside of your working directory.
 
@@ -538,7 +624,7 @@ When a step fails, re-check it against the disassembly first.
 
 ---
 
-## 10. Finish checklist
+## 11. Finish checklist
 
 Run, and report results verbatim:
 
