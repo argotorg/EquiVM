@@ -33,13 +33,13 @@ theorem tinyOwnerReturnEncoding (v : TinyImmutables) :
     solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat (↑v.owner : Nat))
 
 theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨67⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) := by
   obtain ⟨k, C, rd67⟩ := hreach
-  have rd106 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
+  have rd106 : RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
       [EVM.Word.ofNat (↑v.owner : Nat), ⟨106⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
     have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -48,14 +48,14 @@ theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     have h := tinyImmutableBlocks.tinyImmutable_block_67 (immWords := wordsOf (immStore v))
       (by simp) hvalid rd67
     simpa [tinyImmutableBlocks.tinyImmutable_block_67_stack, wordsOf_immStore_owner, wordsOf_immStore_scale,
-      patchedRuntime] using h
+      deployedRuntime] using h
   have hret := RD.tinyBlocksReturnAddress106 (v := v) (R := [solcSelectorWord I]) rd106
     (by simp only [List.length_singleton]; omega)
   simpa [tinyOwnerWord_clean v] using hret
 
 theorem tinyOwnerBodyCore
     {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hsize : I.calldata.size < UInt256.size)
+    (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : (ownerSelBytes == I.calldata.extract 0 4) = true) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by

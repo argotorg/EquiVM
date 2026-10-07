@@ -504,9 +504,9 @@ theorem tinyCtorRuntime_codecopy_mem (owner : AccountAddress) (scale : UInt256)
   · rw [tinyCtorDecodedMem_size]
     norm_num
 
-theorem tinyCtorPatchedRuntime_eq_patchedRuntime (owner : AccountAddress) (scale : UInt256) :
-    tinyCtorPatchedRuntime owner scale = patchedRuntime { owner := owner, scale := scale } := by
-  simp only [tinyCtorPatchedRuntime, patchedRuntime, Reasoning.Immutables.Layout.deployed,
+theorem tinyCtorPatchedRuntime_eq_deployedRuntime (owner : AccountAddress) (scale : UInt256) :
+    tinyCtorPatchedRuntime owner scale = deployedRuntime { owner := owner, scale := scale } := by
+  simp only [tinyCtorPatchedRuntime, deployedRuntime, Reasoning.Immutables.Layout.deployed,
     Reasoning.Immutables.Layout.runtime, Reasoning.Immutables.Layout.writes, immutableLayout,
     immutableReferences, List.flatMap_cons, List.flatMap_nil, List.map_cons, List.map_nil,
     List.cons_append, List.nil_append, List.append_nil, wordsOf_immStore_owner,
@@ -515,13 +515,13 @@ theorem tinyCtorPatchedRuntime_eq_patchedRuntime (owner : AccountAddress) (scale
 
 theorem tinyCtorPatchedRuntime_read (owner : AccountAddress) (scale : UInt256) :
     (tinyCtorPatchedRuntime owner scale).readWithPadding 0 432 =
-      patchedRuntime { owner := owner, scale := scale } := by
+      deployedRuntime { owner := owner, scale := scale } := by
   rw [readWithPadding_eq_extract' _ 0 432 (by norm_num) (by norm_num)
     (by rw [tinyCtorPatchedRuntime_size])]
   rw [show 432 = (tinyCtorPatchedRuntime owner scale).size by
     rw [tinyCtorPatchedRuntime_size]]
   have hself := byteArray_extract_self (tinyCtorPatchedRuntime owner scale)
-  simpa [tinyCtorPatchedRuntime_eq_patchedRuntime, Nat.zero_add] using hself
+  simpa [tinyCtorPatchedRuntime_eq_deployedRuntime, Nat.zero_add] using hself
 
 theorem tinyCtorArgLocals_get_owner (owner : AccountAddress) (scaleInt : Int) (useScale : Bool) :
     (tinyCtorArgLocals owner scaleInt useScale).get? "_owner" = some (.address owner) := by
@@ -694,12 +694,12 @@ theorem tinyCtorFinalImms_fit (owner : AccountAddress) (scaleInt : Int) (useScal
     · exact ⟨_, tinyCtorFinalImms_get_scale_true owner scaleInt,
         by simp [elemValueFits, uint256Int, h0]; exact lt_of_lt_of_eq hlt' (by norm_num)⟩
 
-/-- The runtime deployed for `imms` is `patchedRuntime v` when they agree on every word. -/
-theorem deployed_eq_patchedRuntime {imms : Store} {v : TinyImmutables}
+/-- The runtime deployed for `imms` is `deployedRuntime v` when they agree on every word. -/
+theorem deployed_eq_deployedRuntime {imms : Store} {v : TinyImmutables}
     (ho : wordsOf imms "owner" = wordsOf (immStore v) "owner")
     (hs : wordsOf imms "scale" = wordsOf (immStore v) "scale") :
-    immutableLayout.deployed tinyImmutableBytecode imms = patchedRuntime v := by
-  unfold patchedRuntime Reasoning.Immutables.Layout.deployed
+    immutableLayout.deployed tinyImmutableBytecode imms = deployedRuntime v := by
+  unfold deployedRuntime Reasoning.Immutables.Layout.deployed
   refine Reasoning.Immutables.Layout.runtime_congr fun site hsite => ?_
   have hk := immutableLayout_keys site hsite
   simp only [contract, List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil,
@@ -709,8 +709,8 @@ theorem deployed_eq_patchedRuntime {imms : Store} {v : TinyImmutables}
 theorem tinyCtorFinalImms_deployed_true (owner : AccountAddress) (scaleInt : Int)
     (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256)) :
     immutableLayout.deployed tinyImmutableBytecode (tinyCtorFinalImms owner scaleInt true) =
-      patchedRuntime { owner := owner, scale := EVM.word scaleInt.toNat } := by
-  refine deployed_eq_patchedRuntime ?_ ?_
+      deployedRuntime { owner := owner, scale := EVM.word scaleInt.toNat } := by
+  refine deployed_eq_deployedRuntime ?_ ?_
   · rw [wordsOf_of_get (tinyCtorFinalImms_get_owner owner scaleInt true) rfl,
       wordsOf_immStore_owner]
     rfl
@@ -720,8 +720,8 @@ theorem tinyCtorFinalImms_deployed_true (owner : AccountAddress) (scaleInt : Int
 
 theorem tinyCtorFinalImms_deployed_false (owner : AccountAddress) (scaleInt : Int) :
     immutableLayout.deployed tinyImmutableBytecode (tinyCtorFinalImms owner scaleInt false) =
-      patchedRuntime { owner := owner, scale := ⟨0⟩ } := by
-  refine deployed_eq_patchedRuntime ?_ ?_
+      deployedRuntime { owner := owner, scale := ⟨0⟩ } := by
+  refine deployed_eq_deployedRuntime ?_ ?_
   · rw [wordsOf_of_get (tinyCtorFinalImms_get_owner owner scaleInt false) rfl,
       wordsOf_immStore_owner]
     rfl
@@ -955,7 +955,7 @@ theorem tinyCtorInitcodeSuccessTrue
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (tinyCtorCode owner scale true) g
       (initState σ σ₀ g A I) σ
-      (patchedRuntime { owner := owner, scale := scale }) := by
+      (deployedRuntime { owner := owner, scale := scale }) := by
   obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale true hcode hwv
@@ -1030,7 +1030,7 @@ theorem tinyCtorInitcodeSuccessTrue
           show ((⟨245⟩ : UInt256) + ⟨0⟩).toNat = 245 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push0,
-    raw ret 0 (patchedRuntime { owner := owner, scale := scale })
+    raw ret 0 (deployedRuntime { owner := owner, scale := scale })
       (by tiny_ctor_decode) mem_cost (tinyCtorPatchedRuntime_read owner scale) (by evm_ov)]
 
 theorem tinyCtorInitcodeSuccessFalse
@@ -1044,7 +1044,7 @@ theorem tinyCtorInitcodeSuccessFalse
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (tinyCtorCode owner scale false) g
       (initState σ σ₀ g A I) σ
-      (patchedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) }) := by
+      (deployedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) }) := by
   obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale false hcode hwv
@@ -1113,7 +1113,7 @@ theorem tinyCtorInitcodeSuccessFalse
           show ((⟨245⟩ : UInt256) + ⟨0⟩).toNat = 245 from by decide])
       (by decide) (by evm_ov),
     push2 ⟨432⟩, push0,
-    raw ret 0 (patchedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) })
+    raw ret 0 (deployedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) })
       (by tiny_ctor_decode) mem_cost (tinyCtorPatchedRuntime_read owner (⟨0⟩ : UInt256))
       (by evm_ov)]
 

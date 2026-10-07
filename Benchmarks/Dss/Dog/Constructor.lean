@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Dog.ConstructorSource
 import Benchmarks.Dss.Dog.ConstructorTrace
 import Solm.Refine
-import Reasoning.ImmutableWords
+import Reasoning.Immutables
 
 /-!
 # MakerDAO/Sky DSS Dog constructor correctness stub

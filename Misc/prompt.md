@@ -457,7 +457,7 @@ theorem <name>ContractCorrect : contractRefinement config <initcode> contract :=
 ```
 
 (`contractRefinementWF <wf> …` with a storage precondition), with
-`runtimeCodeOf := immutableLayout.deployed <template>` from `Reasoning/ImmutableWords.lean`: the
+`runtimeCodeOf := immutableLayout.deployed <template>` from `Reasoning/Immutables.lean`: the
 template with every immutable site patched with `wordsOf imms`, each immutable's word under Solm's
 `valueToWord`. Never define a contract-specific `runtimeCodeOf`, word map, or patch function.
 
@@ -469,14 +469,14 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
 - `ImmutableCode.lean`: `immutableLayout : Layout`, derived from the table (width 32, key = the
   Solm name).
 - `Common.lean`: `immStore v : Store`; `@[simp] wordsOf_immStore_<x>` for each immutable (via
-  `wordsOf_of_get`); `patchedRuntime v := immutableLayout.deployed <template> (immStore v)`;
+  `wordsOf_of_get`); `deployedRuntime v := immutableLayout.deployed <template> (immStore v)`;
   `evalImmutable_<x>`; `immutableLayout_keys` (every site key is a declared immutable, by
   `decide`); and `restrictImmutables_of_fit : immutablesFit contract imms →
   ∃ v, restrictImmutables contract imms = immStore v`.
 
 **Runtime.**
 1. Prove the runtime for every valuation: `<name>Correct (v) : runtimeRefinement config
-   (patchedRuntime v) contract (immStore v)`. Never fix immutable values, and never take the code
+   (deployedRuntime v) contract (immStore v)`. Never fix immutable values, and never take the code
    as a parameter.
 2. Use the runtime summaries (Section 9); they are stated over the template patched by the
    layout. Every summary quantifies `immWords`; instantiate `immWords := wordsOf (immStore v)`,
@@ -485,9 +485,11 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
    Compose the summaries into dispatch, body and revert paths (see
    `Examples/TinyImmutable/BlocksProof.lean`: `tinyBlocksReachSelector`, `tinyOwnerX`). Never
    reprove that the patched code decodes like the template.
-3. Jump destinations: the summaries need `(D_J (patchedRuntime v) 0).contains pc`. Prove
-   `D_J (patchedRuntime v) 0 = D_J <template> 0` once, then each jump destination is a
-   `native_decide` on the template; flag the lemma as a LIBRARY CANDIDATE.
+3. Jump destinations: the summaries need `(D_J (deployedRuntime v) 0).contains pc`. The patched
+   runtime has the template's jump destinations, since the `D_J` scan skips push payloads:
+   `D_J (deployedRuntime v) 0 = D_J <template> 0 := Layout.D_J_runtime (by native_decide)
+   (by native_decide)` (see `tinyPatchedValidJumps`). Rewrite with it, and each jump
+   destination is a `native_decide` on the template.
 4. Bridge, in `Correct.lean`:
    ```lean
    theorem <name>RuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
@@ -505,14 +507,14 @@ template with every immutable site patched with `wordsOf imms`, each immutable's
 2. The final immutables of each source path, built from `initialImmutables contract` by `insert`
    (an immutable a path does not assign keeps its zero value), with `get?` lemmas. The Solm body
    assigns them with `ExecStmt.setImmutable` (value, declared type, `elemValueFits`).
-3. The EVM trace, chained from the creation summaries, ends in `RDret … (patchedRuntime {…})`:
+3. The EVM trace, chained from the creation summaries, ends in `RDret … (deployedRuntime {…})`:
    the template `CODECOPY` puts the template
    in memory, each patch `MSTORE` is a `writeWord`, and together they form a `writeCascade`. Prove
-   the cascade `= patchedRuntime {…}` by unfolding `Layout.deployed`/`Layout.runtime`/
-   `Layout.writes` with the `wordsOf_immStore_<x>` lemmas (`tinyCtorPatchedRuntime_eq_patchedRuntime`);
+   the cascade `= deployedRuntime {…}` by unfolding `Layout.deployed`/`Layout.runtime`/
+   `Layout.writes` with the `wordsOf_immStore_<x>` lemmas (`tinyCtorPatchedRuntime_eq_deployedRuntime`);
    listing the table in write order keeps this a `rfl`.
 4. Tie the final immutables to that code: two stores deploy the same code when they agree on each
-   immutable's word (`deployed_eq_patchedRuntime`, by `Layout.runtime_congr` and
+   immutable's word (`deployed_eq_deployedRuntime`, by `Layout.runtime_congr` and
    `immutableLayout_keys`); per path, `wordsOf_of_get (<…>_get_<x> …) rfl` gives each word.
 5. Close each success case with
    `.execution hΞ hsolm (ctorResultEquiv.success rfl rfl rfl (<deployed lemma>).symm) (<…>_fit …)`,

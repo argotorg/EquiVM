@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Clipper.ConstructorSource
 import Benchmarks.Dss.Clipper.ConstructorTrace
 import Solm.Refine
-import Reasoning.ImmutableWords
+import Reasoning.Immutables
 
 /-!
 # MakerDAO/Sky DSS Clipper constructor correctness

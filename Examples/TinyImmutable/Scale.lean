@@ -26,13 +26,13 @@ theorem tinyScaleBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
       simp [evalExprs?, evalImmutable_scale, pure])
 
 theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨181⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray v.scale) := by
   obtain ⟨k, C, rd181⟩ := hreach
-  have rd167 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
+  have rd167 : RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
       [EVM.wordOfInt (Int.ofNat v.scale.toNat), ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
     have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -41,7 +41,7 @@ theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     have h := tinyImmutableBlocks.tinyImmutable_block_181 (immWords := wordsOf (immStore v))
       (by simp) hvalid rd181
     simpa [tinyImmutableBlocks.tinyImmutable_block_181_stack, wordsOf_immStore_owner, wordsOf_immStore_scale,
-      patchedRuntime] using h
+      deployedRuntime] using h
   have hret := RD.tinyBlocksReturnWord167 (v := v) (R := [⟨167⟩, solcSelectorWord I]) rd167
     (by simp)
   rw [wordOfInt_ofNat_toNat] at hret
@@ -49,7 +49,7 @@ theorem tinyScaleX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 
 theorem tinyScaleBodyCore
     {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hsize : I.calldata.size < UInt256.size)
+    (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)

@@ -27,12 +27,12 @@ The runtime is 432 bytes. `immutableReferences` records each immutable's Solm na
 offsets once; `immutableLayout` is derived from it, keyed by those names. The spec declares
 `owner` and `scale` as Solm immutables: the constructor assigns them and the getters and `quote`
 read them. The deployed runtime for an immutables store `imms` is the generic
-`immutableLayout.deployed tinyImmutableBytecode imms` (`Reasoning/ImmutableWords.lean`): the
+`immutableLayout.deployed tinyImmutableBytecode imms` (`Reasoning/Immutables.lean`): the
 template patched with `wordsOf imms`, each immutable's word under Solm's `valueToWord`. That
 function is the contract's `runtimeCodeOf`. The runtime proofs work with a valuation
-`v : TinyImmutables` and its store `immStore v`; `patchedRuntime v` is the code deployed for
+`v : TinyImmutables` and its store `immStore v`; `deployedRuntime v` is the code deployed for
 `immStore v`, and `wordsOf_immStore_owner`/`_scale` give its patched words.
-`tinyImmutableCorrect v` proves the runtime refinement of `patchedRuntime v` with the spec run
+`tinyImmutableCorrect v` proves the runtime refinement of `deployedRuntime v` with the spec run
 with the immutables `immStore v`; `tinyImmutableContractCorrect` combines it with the
 constructor proof into `contractRefinement`.
 

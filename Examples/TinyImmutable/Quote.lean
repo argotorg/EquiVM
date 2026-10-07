@@ -106,10 +106,10 @@ theorem tinyQuoteReturnEncoding (v : TinyImmutables) (amount : UInt256) :
   simpa [uint256] using uint256ReturnEncoding (UInt256.mul amount v.scale)
 
 theorem tinyQuoteX_toDecoder {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD (patchedRuntime v) I g
+    ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨396⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨162⟩, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -121,15 +121,15 @@ theorem tinyQuoteX_toDecoder {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (by simp) hvalid rd148
   exact ⟨k + 7, C + 23, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_148_stack,
-      patchedRuntime] using h⟩
+      deployedRuntime] using h⟩
 
 theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD (patchedRuntime v) I g
+    ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
@@ -162,15 +162,15 @@ theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
   exact ⟨_, _, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_396_taken_stack,
       tinyImmutableBlocks.tinyImmutable_block_412_stack, calldataWord,
-      patchedRuntime] using rd220⟩
+      deployedRuntime] using rd220⟩
 
 theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
   have rd409 := tinyImmutableBlocks.tinyImmutable_block_396_fallthrough
     (immWords := wordsOf (immStore v)) (by simp)
@@ -186,10 +186,10 @@ theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 theorem tinyQuoteX_shortarg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
@@ -198,10 +198,10 @@ theorem tinyQuoteX_shortarg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 theorem tinyQuoteX_hugearg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨148⟩ [solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
@@ -210,11 +210,11 @@ theorem tinyQuoteX_hugearg {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 set_option maxHeartbeats 1000000 in
 theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcaller : I.source = v.owner)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
+    RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.mul (calldataWord I.calldata 4) v.scale)) := by
   obtain ⟨k, C, rd220⟩ := hreach
   have heq : UInt256.eq
@@ -237,17 +237,17 @@ theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     exact tinyContains167 v
   have rd167' := tinyImmutableBlocks.tinyImmutable_block_358 (immWords := wordsOf (immStore v))
     (by simp) hvalid167 rd358
-  have rd167 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
+  have rd167 : RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
       [EVM.wordOfInt (Int.ofNat v.scale.toNat) * calldataWord I.calldata 4,
         solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 9 + 6) (C + 30 + 22) := by
     simpa [tinyImmutableBlocks.tinyImmutable_block_358_stack,
       tinyImmutableBlocks.tinyImmutable_block_220_taken_stack, wordsOf_immStore_owner, wordsOf_immStore_scale,
-      patchedRuntime] using rd167'
+      deployedRuntime] using rd167'
   have hret := RD.tinyBlocksReturnWord167 (v := v) (R := [solcSelectorWord I]) rd167
     (by simp)
   rw [wordOfInt_ofNat_toNat] at hret
-  change RDret (patchedRuntime v) g (initState σ σ₀ g A I) σ
+  change RDret (deployedRuntime v) g (initState σ σ₀ g A I) σ
     (UInt256.toByteArray (UInt256.mul v.scale (calldataWord I.calldata 4))) at hret
   rw [u256_mul_comm v.scale (calldataWord I.calldata 4)] at hret
   exact hret
@@ -255,11 +255,11 @@ theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 set_option maxHeartbeats 1000000 in
 theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcaller : I.source ≠ v.owner)
-    (hreach : ∃ k C, RD (patchedRuntime v) I g
+    (hreach : ∃ k C, RD (deployedRuntime v) I g
       (initState σ σ₀ g A I) ⟨220⟩
       [calldataWord I.calldata 4, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd220⟩ := hreach
   have heq : UInt256.eq
       (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
@@ -277,7 +277,7 @@ theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 
 theorem tinyQuoteBodyCore
     {σ σ₀ A I} {g : UInt256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hsize : I.calldata.size < UInt256.size)
+    (hcode : I.code = deployedRuntime v) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hsel : (quoteSelBytes == I.calldata.extract 0 4) = true) :

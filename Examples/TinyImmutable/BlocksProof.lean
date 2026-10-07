@@ -9,9 +9,9 @@ namespace TinyImmutable
 
 /-- The shared runtime dispatcher prefix, proved from the generated block summaries. -/
 theorem tinyBlocksReachSelector {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨25⟩ []
+    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨25⟩ []
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have hvalid15 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -26,13 +26,13 @@ theorem tinyBlocksReachSelector {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     simpa [tinyImmutableBlocks.tinyImmutable_block_0_taken_stack,
       tinyImmutableBlocks.tinyImmutable_block_0_taken_memory,
       tinyImmutableBlocks.tinyImmutable_block_15_fallthrough_stack,
-      solcFreePtrMem, patchedRuntime] using rd25⟩
+      solcFreePtrMem, deployedRuntime] using rd25⟩
 
 theorem tinyBlocksReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨67⟩
+    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨67⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
@@ -45,14 +45,14 @@ theorem tinyBlocksReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
     (by decide) (by simpa [solcSelectorWord] using hcond) hvalid rd25
   exact ⟨_, _, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_25_taken_stack,
-      solcSelectorWord, patchedRuntime] using h⟩
+      solcSelectorWord, deployedRuntime] using h⟩
 
 theorem tinyBlocksReachQuoteBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨148⟩
+    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨148⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
@@ -71,15 +71,15 @@ theorem tinyBlocksReachQuoteBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
     (by decide) (by simpa [solcSelectorWord] using hquoteCond) hvalid rd41
   exact ⟨_, _, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_25_fallthrough_stack,
-      solcSelectorWord, patchedRuntime] using h⟩
+      solcSelectorWord, deployedRuntime] using h⟩
 
 theorem tinyBlocksReachScaleBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨181⟩
+    ∃ k C, RD (deployedRuntime v) I g (initState σ σ₀ g A I) ⟨181⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
@@ -106,11 +106,11 @@ theorem tinyBlocksReachScaleBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
       solcSelectorWord] using hscaleCond) hvalid rd52
   exact ⟨_, _, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_25_fallthrough_stack,
-      solcSelectorWord, patchedRuntime] using h⟩
+      solcSelectorWord, deployedRuntime] using h⟩
 
 theorem tinyBlocksX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have rd12 := tinyImmutableBlocks.tinyImmutable_block_0_fallthrough
     (immWords := wordsOf (immStore v)) (by decide) (isZero_eq_zero_of_ne hwv) rd0
@@ -119,9 +119,9 @@ theorem tinyBlocksX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : TinyImmutables
   simpa using hrev
 
 theorem tinyBlocksX_short {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   have rd0 := RD.initState (g := g) (σ := σ) (σ₀ := σ₀) (A := A) hcode
   have hvalid15 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 15) = true := by
@@ -138,12 +138,12 @@ theorem tinyBlocksX_short {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
   simpa using hrev
 
 theorem tinyBlocksX_noMatch {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
-    (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
+    (hcode : I.code = deployedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = false) :
-    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+    RDrev (deployedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd25⟩ := tinyBlocksReachSelector v hcode hwv hsz hsize
   have hownerCond : UInt256.eq ⟨2376452955⟩ (solcSelectorWord I) = ⟨0⟩ := by
     rw [solcSelectorWord, tinyOwnerEvmSelector hsz, howner]
@@ -172,10 +172,10 @@ theorem tinyBlocksX_noMatch {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
 theorem RD.tinyBlocksReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : TinyImmutables} {val : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (patchedRuntime v) ee g s0 ⟨167⟩ (val :: R)
+    (h : RD (deployedRuntime v) ee g s0 ⟨167⟩ (val :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
-    RDret (patchedRuntime v) g s0 acc (UInt256.toByteArray val) := by
+    RDret (deployedRuntime v) g s0 acc (UInt256.toByteArray val) := by
   have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 139) = true := by
     exact tinyContains139 v
@@ -196,15 +196,15 @@ theorem RD.tinyBlocksReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   simpa [tinyImmutableBlocks.tinyImmutable_block_167_stack, hload,
     show (⟨128⟩ : UInt256).toNat = 128 from by decide,
     show (UInt256.sub (UInt256.ofNat 32 + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
-    solcReturnMem_read128, patchedRuntime] using hret
+    solcReturnMem_read128, deployedRuntime] using hret
 
 theorem RD.tinyBlocksReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : Nat} {v : TinyImmutables} {val ret : UInt256} {R : List UInt256}
     {rdata : ByteArray} {acc : AccountMap}
-    (h : RD (patchedRuntime v) ee g s0 ⟨106⟩ (val :: ret :: R)
+    (h : RD (deployedRuntime v) ee g s0 ⟨106⟩ (val :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :
-    RDret (patchedRuntime v) g s0 acc
+    RDret (deployedRuntime v) g s0 acc
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   have rd139 := tinyImmutableBlocks.tinyImmutable_block_106 (immWords := wordsOf (immStore v))
     (by simp only [List.length_cons] at hov ⊢; omega) h
@@ -228,6 +228,6 @@ theorem RD.tinyBlocksReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionE
   simpa [tinyImmutableBlocks.tinyImmutable_block_106_stack, hload,
     show (⟨128⟩ : UInt256).toNat = 128 from by decide,
     show (UInt256.sub (UInt256.ofNat 32 + ⟨128⟩) ⟨128⟩).toNat = 32 from by decide,
-    solcReturnMem_read128, patchedRuntime] using hret
+    solcReturnMem_read128, deployedRuntime] using hret
 
 end TinyImmutable

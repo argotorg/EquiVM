@@ -31,7 +31,7 @@ theorem tinyBodyReverts_nonPayable (v : TinyImmutables) (t : TransitionDecl)
     exact ExecFuncBody.execBlockRevert (blockReverts_nonPayable hwv)
 
 theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
-    (v : TinyImmutables) (hcode : I.code = patchedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
+    (v : TinyImmutables) (hcode : I.code = deployedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
     runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   exact (tinyBlocksX_callvalue_ne (g := Sat256.ofUInt256 g) v hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -52,7 +52,7 @@ theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 theorem tinyImmutableCorrect (v : TinyImmutables) :
-    runtimeRefinement config (patchedRuntime v) contract (immStore v) := by
+    runtimeRefinement config (deployedRuntime v) contract (immStore v) := by
   refine ⟨fun σ σ₀ g A I hIcode hsize _hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4
