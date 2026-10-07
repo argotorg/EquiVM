@@ -21,6 +21,9 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
   mapping(address => mapping(address => uint256)) allowance;
   uint256 totalSupply;
 
+  event Transfer(address indexed «from», address indexed «to», uint256 value);
+  event Approval(address indexed owner, address indexed spender, uint256 value);
+
   constructor(uint256 initialSupply) {
     balanceOf[msg.sender] = initialSupply;
     totalSupply = initialSupply;
@@ -28,6 +31,7 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
 
   function approve(address spender, uint256 value) external returns (bool) {
     allowance[msg.sender][spender] = value;
+    emit Approval(msg.sender, spender, value);
     return true;
   }
 
@@ -45,6 +49,7 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
     uint256 toBalance = balanceOf[«to»];
     uint256 newToBalance = (toBalance + value) as uint256;
     balanceOf[«to»] = newToBalance;
+    emit Transfer(«from», «to», value);
     return true;
   }
 
@@ -59,6 +64,7 @@ def contractSyntax : ContractDecl := solidity% contract ERC20 {
     uint256 toBalance = balanceOf[«to»];
     uint256 newToBalance = (toBalance + value) as uint256;
     balanceOf[«to»] = newToBalance;
+    emit Transfer(msg.sender, «to», value);
     return true;
   }
 
