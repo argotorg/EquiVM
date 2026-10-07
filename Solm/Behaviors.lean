@@ -1,9 +1,9 @@
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # Behavioral inclusion
 
-`runtimeEquivalence` is a refinement: on every admissible input, the behavior of the bytecode is
+`runtimeRefinement` is a refinement: on every admissible input, the behavior of the bytecode is
 a behavior of the specification.  The relation is defined by four cases; this file states the
 inclusion as a theorem, so that it can be cited on its own.
 
@@ -43,12 +43,12 @@ def capturedBySpec (cfg : Config) (contract : ContractDecl)
       execResultsEquiv r solmRes returnConvention) ∨
   (specRejects cfg contract I.calldata ∧ ∃ g' o, r = .ok (.revert g' o))
 
-/-- Behavioral inclusion at fixed inputs: a `runtimeEquivalenceFor` derivation says that the
+/-- Behavioral inclusion at fixed inputs: a `runtimeRefinementFor` derivation says that the
     bytecode's result is out of gas or captured by the specification. -/
-theorem runtimeEquivalenceFor_captured {cfg : Config} {contract : ContractDecl}
+theorem runtimeRefinementFor_captured {cfg : Config} {contract : ContractDecl}
     {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv} {immutables : Store}
-    (h : runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables) :
+    (h : runtimeRefinementFor cfg contract σ σ₀ g A I immutables) :
     Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
     capturedBySpec cfg contract σ σ₀ g A I
       (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
@@ -70,9 +70,9 @@ theorem runtimeEquivalenceFor_captured {cfg : Config} {contract : ContractDecl}
     input (the deployed code, calldata shorter than `2^256` bytes, write permission set, related
     initial account maps) the bytecode's unique result is either out of gas or captured by a
     behavior of the specification.  No other behavior of the bytecode exists. -/
-theorem runtimeEquivalence_behaviors_included {cfg : Config} {bytecode : ByteArray}
+theorem runtimeRefinement_behaviors_included {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} {immutables : Store}
-    (h : runtimeEquivalence cfg bytecode contract immutables)
+    (h : runtimeRefinement cfg bytecode contract immutables)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
@@ -81,13 +81,13 @@ theorem runtimeEquivalence_behaviors_included {cfg : Config} {bytecode : ByteArr
     capturedBySpec cfg contract σ σ₀ g A I
       (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
   obtain ⟨hrun⟩ := h
-  exact runtimeEquivalenceFor_captured
+  exact runtimeRefinementFor_captured
     (hrun σ σ₀ g A I hcode hsize hperm)
 
 /-- The same inclusion for relations carrying a storage well-formedness precondition. -/
-theorem runtimeEquivalenceWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
+theorem runtimeRefinementWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
     {bytecode : ByteArray} {contract : ContractDecl}
-    {immutables : Store} (h : runtimeEquivalenceWithWF wf cfg bytecode contract immutables)
+    {immutables : Store} (h : runtimeRefinementWithWF wf cfg bytecode contract immutables)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
@@ -96,7 +96,7 @@ theorem runtimeEquivalenceWithWF_behaviors_included {wf : StorageWF} {cfg : Conf
     capturedBySpec cfg contract σ σ₀ g A I
       (Ethereum.EVM.Ξ σ σ₀ g A I) immutables := by
   obtain ⟨hrun⟩ := h
-  exact runtimeEquivalenceFor_captured
+  exact runtimeRefinementFor_captured
     (hrun σ σ₀ g A I hcode hsize hperm hwf)
 
 /-- A captured result is never an exceptional halt other than `INVALID`. -/
@@ -116,16 +116,16 @@ theorem capturedBySpec_error {cfg : Config} {contract : ContractDecl}
 /-- **No crash.**  A refined bytecode never halts with an exception other than out-of-gas or
     `INVALID` on an admissible input: no stack under- or overflow, invalid jump, invalid opcode,
     or static-mode violation is reachable. -/
-theorem runtimeEquivalence_no_crash {cfg : Config} {bytecode : ByteArray}
+theorem runtimeRefinement_no_crash {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} {immutables : Store}
-    (h : runtimeEquivalence cfg bytecode contract immutables)
+    (h : runtimeRefinement cfg bytecode contract immutables)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hperm : I.perm = true) {e : Ethereum.EVM.ExecutionException}
     (herr : Ethereum.EVM.Ξ σ σ₀ g A I = .error e) :
     e = .OutOfGass ∨ e = .InvalidInstruction := by
-  rcases runtimeEquivalence_behaviors_included h
+  rcases runtimeRefinement_behaviors_included h
       σ σ₀ g A I hcode hsize hperm with hoog | hcap
   · left; rw [herr] at hoog; exact Except.error.inj hoog
   · right; rw [herr] at hcap; exact capturedBySpec_error hcap

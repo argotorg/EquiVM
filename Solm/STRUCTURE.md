@@ -31,7 +31,7 @@ constant expression (`evalConstExprWith`). Immutables live in the frame
 (`Frame.immutables`): the constructor starts from their zero values and assigns them
 with `setImmutable`, and a runtime call reads the values the constructor left. How a
 compiler embeds those values in the deployed code is not part of the semantics; the
-refinement relation (`Equiv.lean`) quantifies over the map from immutable values to
+refinement relation (`Refine.lean`) quantifies over the map from immutable values to
 deployed code.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
@@ -67,8 +67,10 @@ Solm/
 │   │                      EVM's Θ/Λ (relational)
 │   └── Exec.lean          statement and transaction execution relations
 │                          (ExecStmt … solmExec, solmCtorExec)
-└── Equiv.lean             the top-level refinement statement (contractEquivalence)
-                           and supporting definitions.
+└── Refine.lean            the refinement relation: result equivalences, runtime
+                           refinement (runtimeRefinement), and the top-level
+                           contractRefinement linking constructor and runtime
+                           through the deployed immutables
 ```
 
 Dependency order (each layer imports the previous):

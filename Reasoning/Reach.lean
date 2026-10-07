@@ -4205,12 +4205,12 @@ end Reasoning.Reach
 
 namespace Reasoning.Theory
 
-/-! ## Coverage helpers — build a `runtimeEquivalenceFor` case from a `Ξ` outcome -/
+/-! ## Coverage helpers — build a `runtimeRefinementFor` case from a `Ξ` outcome -/
 
 /-- `Ξ` runs out of gas ⇒ the `outOfGas` case. -/
 theorem reEquiv_outOfGas {immutables : Store} {cfg contract σ σ₀ g A I}
     (h : Ξ σ σ₀ g A I = .error .OutOfGass) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
   .outOfGas h
 
 /-- When a contract has no `receive`/`fallback`, a successful `dispatchMsg` is a successful
@@ -4238,7 +4238,7 @@ theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
 theorem reEquiv_noDispatch {immutables : Store} {cfg contract σ σ₀ g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
     (h : Ξ σ σ₀ g A I = .ok (.revert g' o)) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
   .noDispatch hd h
 
 /-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. The Solm body does
@@ -4251,7 +4251,7 @@ theorem reEquiv_decodingFailed {immutables : Store}
     (h : Ξ σ σ₀ g A I = .ok (.revert g' o))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
   .decodingFailed (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
     rfl hdec h
 
@@ -4269,7 +4269,7 @@ theorem reEquiv_execution {immutables : Store}
     (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi t.returnType))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
   .execution rfl
     (.intro (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
       rfl hdec rfl hbody)
@@ -4285,7 +4285,7 @@ theorem reEquiv_receiveExecution {immutables : Store}
     (hbody : ExecTransitionBody cfg contract
               (initState σ σ₀ (.ofUInt256 g) A I) ∅ t.body actRes immutables)
     (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi [])) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables :=
   .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
 
 end Reasoning.Theory
@@ -4298,13 +4298,13 @@ open Reasoning.Theory
 
 `RDret`/`RDrev` record that the *whole* run `X (g+1) … (initState …)` halts.  These
 eliminators carry that halting fact across the `X → Ξ` bridge (`Xi_*_of_X`) and into a
-`runtimeEquivalenceFor` case, folding the out-of-gas alternative into `reEquiv_outOfGas`
+`runtimeRefinementFor` case, folding the out-of-gas alternative into `reEquiv_outOfGas`
 *once*.  A revert/success segment therefore reaches the Solm layer compositionally — e.g.
 `(powX_short …).reEquivNoDispatch hcode (powDispatch_none_short …)` — with no per-site
 `rcases` / `Xi_*_of_X` / `reEquiv_*` plumbing.  All four are contract- and bytecode-generic
 (`hcode : I.code = code` bridges the concrete bytecode back to `I.code`). -/
 
-/-- Eliminate an `RDrev` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
+/-- Eliminate an `RDrev` into a `runtimeRefinementFor`: the OOG alternative becomes the
     `outOfGas` case automatically, and the continuation `k` receives the `Ξ`-level revert. -/
 theorem RDrev.reEquivElim {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
@@ -4313,9 +4313,9 @@ theorem RDrev.reEquivElim {immutables : Store}
     (h : RDrev code g (initState σ σ₀ g A I))
     (k : ∀ g' o,
           Ξ σ σ₀ g.toUInt256 A I = .ok (.revert g' o) →
-          runtimeEquivalenceFor cfg contract σ σ₀
+          runtimeRefinementFor cfg contract σ σ₀
             g.toUInt256 A I immutables) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨g', o, hX⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
@@ -4327,7 +4327,7 @@ theorem RDrev.reEquivNoDispatch {immutables : Store}
     {code : ByteArray}
     (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = none) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
@@ -4342,11 +4342,11 @@ theorem RDrev.reEquivDecodingFailed {immutables : Store}
               (transitionSignature t).paramTypes I.calldata = none)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev hfallback hreceive
 
-/-- Eliminate an `RDret` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
+/-- Eliminate an `RDret` into a `runtimeRefinementFor`: the OOG alternative becomes the
     `outOfGas` case automatically; the continuation `k` receives the `Ξ`-level success, with
     the account map projected back to the carried `σ`. -/
 theorem RDret.reEquivElim {immutables : Store}
@@ -4356,9 +4356,9 @@ theorem RDret.reEquivElim {immutables : Store}
     (h : RDret code g (initState σ σ₀ g A I) σ o)
     (k : ∀ (g' : UInt256) (A' : Substate),
           Ξ σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) →
-          runtimeEquivalenceFor cfg contract σ σ₀
+          runtimeRefinementFor cfg contract σ σ₀
             g.toUInt256 A I immutables) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))

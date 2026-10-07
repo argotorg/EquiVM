@@ -1,4 +1,4 @@
-import Solm.Equiv
+import Solm.Refine
 import Reasoning.Reach
 import Reasoning.Storage
 
@@ -257,7 +257,7 @@ namespace Reasoning.Reach
 
 /-- **The whole `callvalue ≠ 0` Solm coupling**, generic over a single-transition contract.  Given the
     non-payable guard's revert (`h : RDrev …`) and the contract body's revert under non-zero call
-    value (`hbody`), produce the `runtimeEquivalenceFor` case: the OOG alternative folds via
+    value (`hbody`), produce the `runtimeRefinementFor` case: the OOG alternative folds via
     `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
     `execution`-with-revert.  Each example's `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
@@ -271,7 +271,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
               (initState σ σ₀ g A I)
               callargs transition.body .reverted immutables)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -305,7 +305,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
@@ -344,7 +344,7 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivExecutionGen hcode hd hdec hbody
     (by simp [initState]) henc hfallback hreceive
@@ -369,7 +369,7 @@ theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl}
     (henc : returnEquiv o rvEvm t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables := by
   subst rvEvm
   exact h.reEquivExecution hcode hd hdec hbody henc hfallback hreceive
@@ -388,7 +388,7 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
               (initState σ σ₀ g A I) callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
+    runtimeRefinementFor cfg contract σ σ₀
       g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive

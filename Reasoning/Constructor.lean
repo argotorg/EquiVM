@@ -1,6 +1,7 @@
 import Reasoning.Reach
 import Reasoning.SolmBody
 import Solm.SolidityLayout
+import Solm.Refine
 
 /-!
 # Constructor — reusable constructor-equivalence proof skeletons
@@ -103,8 +104,7 @@ theorem emptyConstructorCorrect_of_RDret
       I.code = initcode →
       RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
     (himm : contract.immutables = [] := by rfl) :
-    constructorEquivalence cfg initcode contract runtimeCode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement cfg initcode contract (fun _ => runtimeCode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata _hperm
   have hdeployed := emptyCtorDeployment_eq_initcode hself hparams hdeploy
@@ -112,12 +112,12 @@ theorem emptyConstructorCorrect_of_RDret
   have hrd := hrun (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode
   rcases hrd.xiResult hcode with hoog | ⟨g', A', hsuccess⟩
-  · exact constructorEquivalenceFor.outOfGas (by simpa using hoog)
-  · refine constructorEquivalenceFor.execution hsuccess
+  · exact typedConstructorRefinementFor.outOfGas (by simpa using hoog)
+  · refine typedConstructorRefinementFor.execution hsuccess
       (emptySolmCtorExec (cfg := cfg) (contract := contract)
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         (args := args) (initcode := initcode) (deployedInitcode := deployedInitcode)
-        hself hparams hbody hdeploy himm) ?_
+        hself hparams hbody hdeploy himm) ?_ (ctorImmutablesFit_noImmutables himm)
     exact ctorResultEquiv.success rfl rfl rfl rfl
 
 theorem emptyContractCorrect_of_RDret
@@ -132,10 +132,10 @@ theorem emptyContractCorrect_of_RDret
         {g : Sat256},
       I.code = initcode →
       RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
-    (hruntime : runtimeEquivalence cfg runtimeCode contract)
+    (hruntime : runtimeRefinement cfg runtimeCode contract)
     (himm : contract.immutables = [] := by rfl) :
-    contractEquivalence cfg initcode runtimeCode contract :=
-  contractEquivalence.intro
+    contractRefinement cfg initcode contract :=
+  contractRefinement.of_constant
     (emptyConstructorCorrect_of_RDret hself hparams hbody hrun himm)
     hruntime himm
 
