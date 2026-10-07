@@ -2076,35 +2076,6 @@ theorem catBiteTraceSeg7iSplit {σ σ₀ A I} {g : UInt256}
   obtain ⟨_, _, rd2381⟩ := rd2380.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, rd2381.pop (by native_decide) (by evm_ov)⟩
 
-theorem catBiteTraceSeg7i {σ σ₀ A I} {g : UInt256}
-    {σ' : AccountMap}
-    {q art ink iDust iSpot iRate urn ilk : UInt256}
-    {dink dart milkChop dartRate tabBase tab litterNew : UInt256}
-    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
-    (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
-      (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o σ' k C)
-    (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
-       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
-        = milkChop)
-    (haw : q.toNat + 64 ≤ aw.toNat * 32) (hqsz : q.toNat + 64 < UInt256.size)
-    (hperm : I.perm = true)
-    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
-    (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
-    (hLitFit : (solcSlotWord σ' I ⟨6⟩).toNat + tab.toNat < UInt256.size)
-    (hDartRate : UInt256.mul dart iRate = dartRate)
-    (hTabBase : UInt256.mul dartRate milkChop = tabBase)
-    (hTab : UInt256.div tabBase ⟨1000000000000000000⟩ = tab)
-    (hLitterNew : solcSlotWord σ' I ⟨6⟩ + tab = litterNew)
-    (hov : R.length + 24 ≤ 1024) :
-    ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
-      (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' :=
-  permSplit_true hperm (catBiteTraceSeg7iSplit rd hChop haw hqsz hRateFit
-    hChopFit hLitFit hDartRate hTabBase hTab hLitterNew hov)
-
 /-- **Seg 7f** (`2193 → 2242`): the `grab` call-success guard (`catBiteGrabCallSucceeded`, pops
 `status` + the return slot `d0`) then `dartRate = dart*rate` (`@3720`), reading `vow@4` and masking it
 (`vowMasked`) and pushing the `fess` selector into place.  `d0`/`d1`/`d2` are the dead frame words

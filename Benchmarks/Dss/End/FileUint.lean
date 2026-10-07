@@ -386,18 +386,6 @@ theorem endFileUintSourceWaitOkSplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem endFileUintSourceWaitOk {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
-    (hwhat : endFileUintWhat I = endFileUintWaitBytes) :
-    let locals := endFileUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := endFileUintPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (endFileUintSourceWaitOkSplit hwv hauth hlive hwhat).1
-
 theorem endFileUintSourceAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I ≠ ⟨1⟩) :
@@ -928,16 +916,6 @@ theorem endFileUintX_wait_okSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push2 endFileUintEventPc (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact endFileUintX_logReturn hperm rd1576
-
-theorem endFileUintX_wait_ok {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (hwhatWord : calldataWord I.calldata 4 = ABI.bytesToWord endFileUintWaitBytes)
-    (h : RD endBytecode I g s0 endFileUintSwitchPc
-      [endFileUintData I, calldataWord I.calldata 4, endRelyReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨10⟩ (endFileUintData I)) ByteArray.empty :=
-  permSplit_true hperm (endFileUintX_wait_okSplit hwhatWord h)
 
 abbrev endFileUintUnrecognizedRawWord : UInt256 :=
   ⟨0x456e642f66696c652d756e7265636f676e697a65642d706172616d0000000000⟩

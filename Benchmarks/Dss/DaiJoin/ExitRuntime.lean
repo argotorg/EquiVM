@@ -462,36 +462,6 @@ theorem daiJoinExitDaiMintSuccessAfterVatReturnsSplit (evm evmVat evmMint : EVM.
       (hprefix (ExecBlock.consStatic
         (ExecStmt.emitStatic (evalExprs_daiJoinExitEvent evmMint I) hperm)))
 
-theorem daiJoinExitDaiMintSuccessAfterVatReturns (evm evmVat evmMint : EVM.State)
-    (I : ExecutionEnv) (outMove outMint : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
-    (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
-    (hvatCode :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
-    (hcallMove :
-      typedCallViaEVM config evm
-        (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
-        [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
-          .int (Int.ofNat (daiJoinRadWord (exitWadWord I)).toNat)]
-        (true, evmVat, outMove) true)
-    (hdaiCode :
-      Reasoning.Theory.extCodeSizeWord evmVat.accountMap
-        (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
-    (hcallMint :
-      typedCallViaEVM config evmVat
-        (EVM.address (daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)) "mint" 0
-        [.address (AccountAddress.ofUInt256 (exitUsrMaskedWord I)), exitWadValue I]
-        (true, evmMint, outMint) true) :
-    ExecTransitionBody config contract evm (exitStore I) exitTransition.body
-      (.returned
-        { contract := contract,
-          locals := (exitAfterMoveStore I).insert "mintRet" (collapseReturns []) }
-        evmMint none) :=
-  (daiJoinExitDaiMintSuccessAfterVatReturnsSplit
-    evm evmVat evmMint I outMove outMint hwv hliveOne hfit hvatCode hcallMove hdaiCode hcallMint).1
-
 theorem daiJoinExitVatMoveCallFailedCore
     {σ σ' σ₀ A I} {g sel gasWord : UInt256}
     {Ain : Substate} {out : ByteArray} {k C : ℕ}

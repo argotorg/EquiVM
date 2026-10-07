@@ -365,18 +365,6 @@ theorem spotFileParSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem spotFileParSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hlive : spotLiveWord σ I = ⟨1⟩)
-    (hwhat : fileParWhat I = fileParBytes) :
-    let locals := fileParLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileParData I)
-    ExecTransitionBody config contract evm0 locals fileParTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (spotFileParSourceBodySplit hwv hauth hlive hwhat).1
-
 theorem spotFileParSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
@@ -778,17 +766,6 @@ theorem spotFileParX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   have rd214 := rd1446.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
-
-theorem spotFileParX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileParBytes)
-    (h : RD spotBytecode I g s0 ⟨1427⟩
-      [fileParData I, calldataWord I.calldata 4, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileParData I))
-      ByteArray.empty :=
-  permSplit_true hperm (spotFileParX_storeAuthorizedSplit hmatch h)
 
 theorem spotFileParX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}

@@ -1024,34 +1024,6 @@ theorem flopperYankBodyReturns_suckCallSuccessSplit
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
-theorem flopperYankBodyReturns_suckCallSuccess
-    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩)
-    (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
-        evm.executionEnv ≠ ⟨0⟩)
-    (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
-    (hcall :
-      typedCallViaEVM config evm
-        (EVM.address (AccountAddress.ofNat
-          (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat))
-        "suck" 0
-        [.address (AccountAddress.ofNat
-          (solcAddressSlotWord ⟨9⟩ evm.accountMap evm.executionEnv).toNat),
-        .address (AccountAddress.ofNat
-          (solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
-            evm.executionEnv).toNat),
-        .int (Int.ofNat
-          (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
-            evm.executionEnv).toNat)]
-        (true, evm', out) true) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
-      (.returned { contract := contract, locals := yankSuckLocals I }
-        (yankDeletePostState evm' I) none) :=
-  (flopperYankBodyReturns_suckCallSuccessSplit evm evm' I out hwv hlive hguy hcodeSize hcall).1
-
 theorem flopperDecode_yank_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)
       (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I) := by

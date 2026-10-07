@@ -718,18 +718,6 @@ theorem clipperDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   simpa [clipperRelyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd503 (by clipper_deny_decode) (by evm_ov)
 
-theorem clipperDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
-    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (h : RD code I g s0 ⟨6600⟩
-      [clipperRelyUsrMaskedWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret code g s0
-      (sstoreAccountMap I.codeOwner σ (clipperRelyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (clipperDenyX_storeAuthorizedSplit v hpatch h)
-
 theorem clipperX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)

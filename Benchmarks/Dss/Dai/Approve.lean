@@ -434,16 +434,6 @@ theorem daiApproveX_logReadySplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [approveStorageSlot_eq_innerSlot I, approveOwnerWord] using
       rd1404pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem daiApproveX_logReady {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD daiBytecode I g s0 ⟨1302⟩
-      [approveWadWord I, approveUsrMaskedWord I, ⟨496⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨496⟩ [⟨1⟩, sel]
-      (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' :=
-  permSplit_true hperm (daiApproveX_logReadySplit h)
-
 set_option maxHeartbeats 1000000 in
 theorem daiX_approve_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

@@ -1281,19 +1281,6 @@ theorem clipperYankX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨_, _, rd2077⟩ := rd2076.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, by simpa using rd2077⟩
 
-theorem clipperYankX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
-    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (h : RD code I g s0 ⟨2071⟩
-      [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨2077⟩
-      [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' :=
-  permSplit_true hperm (clipperYankX_lockStoreSplit v hpatch h)
-
 set_option maxHeartbeats 1000000 in
 theorem clipperYankX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}

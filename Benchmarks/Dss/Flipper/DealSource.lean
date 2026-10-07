@@ -693,41 +693,6 @@ theorem flipperDealSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
-theorem flipperDealSourceBodySuccess {σ σ₀ A I} {g : UInt256}
-    {evmCat evmVat : EVM.State} {outCat outVat : ByteArray}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hfinished :
-      evalExpr? config { contract := contract, locals := dealLocals I }
-        (initState σ σ₀ (Sat256.ofUInt256 g) A I) dealFinishedGuard =
-          .ok (.bool true))
-    (hcatCode :
-      0 <
-        (UInt256.ofNat
-          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-            (flipperCatAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
-    (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (dealClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
-        (true, evmCat, outCat) true)
-    (hvatCode :
-      0 <
-        (UInt256.ofNat
-          ((evmCat.lookupAccount (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
-            0 (fun acc ↦ acc.code.size))).toNat)
-    (hcallVat :
-      typedCallViaEVM config evmCat
-        (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
-        (dealFluxArgValsOf evmCat (dealId I)) (true, evmVat, outVat) true) :
-    let locals := dealLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let locals1 := (dealLocals I).insert "_clawRet" (collapseReturns [])
-    let locals2 := locals1.insert "_fluxRet" (collapseReturns [])
-    let evmDeleted := bidDeletedEVM evmVat (dealId I)
-    ExecTransitionBody config contract evm0 locals dealTransition.body
-      (.returned { contract := contract, locals := locals2 } evmDeleted none) :=
-  (flipperDealSourceBodySuccessSplit hwv hfinished hcatCode hcallCat hvatCode hcallVat).1
-
 theorem flipperDealSourceBodyVatNoCode {σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {outCat : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)

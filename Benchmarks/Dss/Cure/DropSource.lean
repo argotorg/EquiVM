@@ -789,27 +789,6 @@ theorem cureDropSourceBodyOkNoSwapSplit {σ σ₀ A I} {g : UInt256}
       (ExecBlock.consStatic (ExecStmt.popStatic hpop
         (by simpa [evm0, initState] using hperm))))
 
-theorem cureDropSourceBodyOkNoSwap {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
-    (hposNe : solcSlotWordAt (dropPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hlenPos : 0 < (solcSlotWordAt ⟨2⟩ σ I).toNat)
-    (hnoSwap :
-      (solcSlotWordAt ⟨2⟩ σ I).toNat ≤
-        (solcSlotWordAt (dropPosSlotFor I) σ I).toNat) :
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let posWord := solcSlotWordAt (dropPosSlotFor I) σ I
-    let lenWord := solcSlotWordAt ⟨2⟩ σ I
-    let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
-    let localsLast : Store := localsPos.insert "last" (.int (Int.ofNat lenWord.toNat))
-    let evmPop := dropAfterPopState evm0 lenWord
-    let evmPos := dropAfterDeletePosState evmPop I
-    let evmAmt := dropAfterDeleteAmtState evmPos I
-    ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body
-      (.returned { contract := contract, locals := localsLast } evmAmt none) :=
-  (cureDropSourceBodyOkNoSwapSplit hwv hauth hlive hposNe hlenPos hnoSwap).1
-
 theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)

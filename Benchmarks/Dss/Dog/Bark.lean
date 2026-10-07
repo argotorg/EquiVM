@@ -9845,16 +9845,6 @@ theorem dogBarkDirtAssignOkSourceSplit {v : DogImmutables} (evm : EVM.State)
   · intro hperm
     exact ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)
 
-theorem dogBarkDirtAssignOkSource {v : DogImmutables} (evm : EVM.State)
-    {locals : Store} {dirtNew : UInt256}
-    (hDirt : locals.get? "Dirt" = none)
-    (hDirtNew : locals.get? "DirtNew" = some (.int (Int.ofNat dirtNew.toNat))) :
-    ExecBlock (config v) { contract := contract v, locals := locals } evm
-      [ .assign .storage DirtRef (.var "DirtNew") ]
-      (.ok { contract := contract v, locals := locals }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ dirtNew)) :=
-  (dogBarkDirtAssignOkSourceSplit evm hDirt hDirtNew).1
-
 theorem dogBarkIlkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
     {locals : Store} {milkDirt tab : UInt256}
     (hmilkDirt : locals.get? "milkDirt" = some (.int (Int.ofNat milkDirt.toNat)))
@@ -21689,27 +21679,6 @@ theorem RD.dogBarkStoreDirtSplit {v : DogImmutables} {code : ByteArray}
     hstoreDec
     (by simp only [List.length_cons]; omega)
   exact ⟨k', C', rd4226⟩
-
-theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {σ : AccountMap}
-    {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
-    {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (rd4222 : RD code I g s0 ⟨4222⟩
-      (barkDirtNewWord (solcSlotWordAt ⟨5⟩ σ I) tab :: tab :: due :: dink ::
-        dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
-        ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata σ k C)
-    (hov : R.length + 17 ≤ 1024) :
-    ∃ k' C', RD code I g s0 ⟨4226⟩
-      (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
-        ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩
-        (barkDirtNewWord (solcSlotWordAt ⟨5⟩ σ I) tab)) k' C' :=
-  permSplit_true hperm (RD.dogBarkStoreDirtSplit hpatch rd4222 hov)
 
 theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}

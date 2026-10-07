@@ -1068,21 +1068,6 @@ theorem flopperDentX_guyStoreTailFrom2855Split
       using rd2889raw
   exact ⟨memGuy, _, _, by simpa [id] using rd2889⟩
 
-theorem flopperDentX_guyStoreTailFrom2855
-    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    {σ' : AccountMap}
-    {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (rd2855 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2855⟩
-      [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
-      mem (UInt256.ofNat 8) out σ' k C) :
-    ∃ (memGuy : ByteArray) (k' C' : ℕ),
-      RD flopperBytecode I g (initState σ σ₀ g A I) ⟨2889⟩
-        [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
-        memGuy (UInt256.ofNat 8) out
-        (dentRuntimeAfterGuyMap I.codeOwner σ' I) k' C' :=
-  permSplit_true hperm (flopperDentX_guyStoreTailFrom2855Split rd2855)
-
 theorem flopperDentX_kissCallSuccessToTailSplit
     {σ σ₀ A I} {g : Sat256} {sel target : UInt256}
     {σKiss : AccountMap}

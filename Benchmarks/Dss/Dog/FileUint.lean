@@ -215,17 +215,6 @@ theorem fileUintHoleSourceBodySplit {v : DogImmutables} {σ σ₀ A I} {g : UInt
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem fileUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
-    (hwhat : fileUintWhat I = fileUintHoleBytes) :
-    let locals := fileUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨4⟩ (fileUintData I)
-    ExecTransitionBody (config v) (contract v) evm0 locals fileUintTransition.body
-      (.returned { contract := contract v, locals := locals } evm1 none) :=
-  (fileUintHoleSourceBodySplit hwv hauth hwhat).1
-
 theorem fileUintUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -734,24 +723,6 @@ theorem RD.dogFileUintStoreHoleLogSplit {v : DogImmutables} {code : ByteArray}
       native_decide)
     hret (by evm_ov)⟩
 
-theorem RD.dogFileUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨1325⟩ (data :: what :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileUintHoleBytes)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R) (writeWord mem 128 data)
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨4⟩ data) k' C' :=
-  permSplit_true hperm (RD.dogFileUintStoreHoleLogSplit hpatch h hmatch hret hmem hread64 hov)
-
 theorem RD.dogFileUintUnrecognizedRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -858,21 +829,6 @@ theorem RD.dogFileUintSuccessSplit {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
       native_decide)
     (by simp only [List.length_singleton]; omega)
-
-theorem RD.dogFileUintSuccess {v : DogImmutables} {code : ByteArray}
-    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
-      ⟨315⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth :
-      solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hwhat : fileUintWhat I = fileUintHoleBytes) :
-    RDret code g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileUintData I)) ByteArray.empty :=
-  permSplit_true hperm (RD.dogFileUintSuccessSplit hpatch hreach hsz68 hsize hauth hwhat)
 
 theorem RD.dogFileUintUnrecognizedParamRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}

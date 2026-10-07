@@ -573,22 +573,6 @@ theorem RD.cureRelyStoreOneSplit {g : Sat256} {s0 : State}
   have rdPop := rdLogged.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rdPop.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2506⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata σ k C)
-    (hret : (D_J cureBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' :=
-  permSplit_true hperm (RD.cureRelyStoreOneSplit h hret hmem hread64 hcanonKey hov)
-
 theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)

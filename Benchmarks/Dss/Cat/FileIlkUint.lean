@@ -692,21 +692,6 @@ theorem RD.catFileIlkStoreChopSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
   have rd1034 := rd1033.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd1034.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.catFileIlkStoreChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨872⟩ (data :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileIlkChopBytes)
-    (hmem : mem.size = 96)
-    (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C' :=
-  permSplit_true hperm (RD.catFileIlkStoreChopSplit h hmatch hmem hret hov)
-
 theorem RD.catFileIlkSkipChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -799,21 +784,6 @@ theorem RD.catFileIlkStoreDunkSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
   have rd1033 := rd1032.pop (by native_decide) (by evm_ov)
   have rd1034 := rd1033.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd1034.jump (by native_decide) hret (by evm_ov)⟩
-
-theorem RD.catFileIlkStoreDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileIlkDunkBytes)
-    (hmem : mem.size = 96)
-    (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) (twoWordHashMem ilk ⟨1⟩ mem)
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C' :=
-  permSplit_true hperm (RD.catFileIlkStoreDunkSplit h hmatch hmem hret hov)
 
 theorem RD.catFileIlkSkipDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -937,19 +907,6 @@ theorem RD.catFileIlkChopSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
   simpa [fileIlkUintChopSlotFor_eq (by omega : 36 ≤ I.calldata.size)] using
     RD.stop hretPc' (by native_decide) (by simp)
 
-theorem RD.catFileIlkChopSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
-      ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz100 : 100 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hwhat : fileIlkUintWhat I = fileIlkChopBytes) :
-    RDret catBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (fileIlkUintChopSlotFor I) (fileIlkUintData I))
-      ByteArray.empty :=
-  permSplit_true hperm (RD.catFileIlkChopSuccessSplit hreach hsz100 hsize hauth hwhat)
-
 theorem RD.catFileIlkDunkSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
       ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -984,20 +941,6 @@ theorem RD.catFileIlkDunkSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   simpa [fileIlkUintDunkSlotFor_eq (by omega : 36 ≤ I.calldata.size)] using
     RD.stop hretPc' (by native_decide) (by simp)
-
-theorem RD.catFileIlkDunkSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
-      ⟨261⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz100 : 100 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hnotChop : fileIlkUintWhat I ≠ fileIlkChopBytes)
-    (hwhat : fileIlkUintWhat I = fileIlkDunkBytes) :
-    RDret catBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (fileIlkUintDunkSlotFor I) (fileIlkUintData I))
-      ByteArray.empty :=
-  permSplit_true hperm (RD.catFileIlkDunkSuccessSplit hreach hsz100 hsize hauth hnotChop hwhat)
 
 theorem RD.catFileIlkUintUnrecognizedParamRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)

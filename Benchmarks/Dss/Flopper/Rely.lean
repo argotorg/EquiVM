@@ -303,15 +303,6 @@ theorem flopperRelyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
 
-theorem flopperRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hsrc : evm.executionEnv.source = I.source)
-    (hauth :
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
-    ExecTransitionBody config contract evm (relyStore I) relyTransition.body
-      (.returned { contract := contract, locals := relyStore I } (relyPostState evm I) none) :=
-  (flopperRelyBodyReturnsSplit evm I hwv hsrc hauth).1
-
 theorem flopperRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -625,16 +616,6 @@ theorem flopperRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd227 (by native_decide) (by evm_ov)
 
-theorem flopperRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flopperBytecode I g s0 ⟨3102⟩
-      [relyUsrMaskedWord I, ⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperRelyX_storeAuthorizedSplit h)
-
 theorem flopperX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -649,17 +630,6 @@ theorem flopperX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1720⟩ := flopperRelyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd1809⟩ := flopperRelyX_authorized (I := I) hauth rd1720
   exact flopperRelyX_storeAuthorizedSplit rd1809
-
-theorem flopperX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD flopperBytecode I g
-      (initState σ σ₀ g A I) ⟨582⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperX_rely_okSplit hsz36 hsize hauth hreach)
 
 theorem flopperX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

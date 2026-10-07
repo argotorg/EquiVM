@@ -1184,17 +1184,6 @@ theorem flipperTickX_storeEndSplit {σ I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperTickX_storeEnd {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256}
-    (hperm : I.perm = true)
-    (h : RD flipperBytecode I g s0 ⟨6216⟩
-      [tickNow I + tickTauWord σ I, tickId I, ⟨323⟩, sel]
-      (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (tickBidPackedSlot I) (tickEndStoredWord σ I))
-      ByteArray.empty :=
-  permSplit_true hperm (flipperTickX_storeEndSplit h)
-
 theorem flipperTickSourceBodyNotFinished {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hge : (tickNow I).toNat ≤ (tickEndWord (tickBidPackedSlot I) σ I).toNat) :
@@ -1402,19 +1391,6 @@ theorem flipperTickSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consNormal (ExecStmt.requireTrue hge)
         (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign
           (by simp only [evm0, initState]; exact hperm)))))
-
-theorem flipperTickSourceBodySuccess {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hlt : (tickEndWord (tickBidPackedSlot I) σ I).toNat < (tickNow I).toNat)
-    (htic : tickTicWord (tickBidPackedSlot I) σ I = ⟨0⟩)
-    (hfit : (tickNow48 I).toNat + (tickTauWord σ I).toNat < 2 ^ 48) :
-    let locals := tickLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (tickBidPackedSlot I)
-      (tickEndStoredWord σ I)
-    ExecTransitionBody config contract evm0 locals tickTransition.body
-      (.returned { contract := contract, locals := tickLocalsWithEnd σ I } evm1 none) :=
-  (flipperTickSourceBodySuccessSplit hwv hlt htic hfit).1
 
 theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)

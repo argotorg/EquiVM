@@ -102,15 +102,6 @@ theorem flopperCageBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
 
-theorem flopperCageBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hsrc : evm.executionEnv.source = I.source)
-    (hauth :
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩) :
-    ExecTransitionBody config contract evm ∅ cageTransition.body
-      (.returned { contract := contract, locals := ∅ } (cagePostState evm I) none) :=
-  (flopperCageBodyReturnsSplit evm I hwv hsrc hauth).1
-
 theorem flopperCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -364,15 +355,6 @@ theorem flopperCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
       solcAddrMask from by decide]
     using RD.stop rd335 (by native_decide) (by evm_ov)
 
-theorem flopperCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flopperBytecode I g s0 ⟨3224⟩ [⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (cagePostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperCageX_storeAuthorizedSplit h)
-
 theorem flopperX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD flopperBytecode I g
@@ -386,16 +368,6 @@ theorem flopperX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd1579⟩ := flopperCageX_enter (g := g) hreach
   obtain ⟨_, _, rd1661⟩ := flopperCageX_authorized (I := I) hauth rd1579
   exact flopperCageX_storeAuthorizedSplit rd1661
-
-theorem flopperX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD flopperBytecode I g
-      (initState σ σ₀ g A I) ⟨620⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (cagePostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperX_cage_okSplit hauth hreach)
 
 theorem flopperX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)

@@ -2119,19 +2119,6 @@ theorem flipperTendX_storeRefundGuyToPayStartSplit {σ I} {g : Sat256} {s0 : Sta
   exact ⟨_, _, evm_run rd3685 with [
     raw pop (by native_decide) (by evm_ov)]⟩
 
-theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
-    (hperm : I.perm = true)
-    (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨3652⟩
-      [target, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3686⟩
-      [tendBid I, tendLot I, tendId I, ret, sel]
-      (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (tendAfterRefundMap σ I) k' C' :=
-  permSplit_true hperm (flipperTendX_storeRefundGuyToPayStartSplit hmemSize h)
-
 theorem tendPayHashMem_size_228 {mem : ByteArray} (I : ExecutionEnv)
     (hmemSize : mem.size = 228) :
     (tendPayHashMem mem I).size = 228 := by

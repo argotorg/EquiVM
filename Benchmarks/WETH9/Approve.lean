@@ -453,16 +453,6 @@ theorem weth9ApproveStoreLogSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [approveStorageSlot_eq_innerSlot I] using
       rd1082pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem weth9ApproveStoreLog {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD weth9Bytecode I g s0 ⟨981⟩
-      [approveWadWord I, approveGuyMaskedWord I, ⟨361⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD weth9Bytecode I g s0 ⟨361⟩ [⟨1⟩, sel]
-      (approveLogMem I) (UInt256.ofNat 5) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' :=
-  permSplit_true hperm (weth9ApproveStoreLogSplit h)
-
 /-- The full `approve` EVM run (68 ≤ calldata): stores `allowance[caller][guy] = wad`, logs, and
     returns the ABI encoding of `true`. -/
 theorem weth9ApproveX_okSplit {σ σ₀ A I} {g : Sat256}

@@ -235,19 +235,6 @@ theorem flipperFileAddressSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem flipperFileAddressSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (hwhat : fileAddressWhat I = fileAddressCatBytes) :
-    let locals := fileAddressLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨7⟩
-      (setAddressOffset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨7⟩)
-        (fileAddressDataKey I))
-    ExecTransitionBody config contract evm0 locals fileAddressTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flipperFileAddressSourceBodySplit hwv hauth hwhat).1
-
 theorem flipperFileAddressSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
@@ -530,19 +517,6 @@ theorem flipperFileAddressX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd324 (by native_decide) (by evm_ov)
-
-theorem flipperFileAddressX_storeAuthorized {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileAddressCatBytes)
-    (h : RD flipperBytecode I g s0 ⟨5903⟩
-      [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨7⟩
-        (setAddressOffset0Word (solcSlotWord σ I ⟨7⟩) (fileAddressDataKey I)))
-      ByteArray.empty :=
-  permSplit_true hperm (flipperFileAddressX_storeAuthorizedSplit hmatch h)
 
 theorem flipperFileAddressX_unrecognized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}

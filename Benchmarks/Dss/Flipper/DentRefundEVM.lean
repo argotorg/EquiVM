@@ -554,19 +554,6 @@ theorem flipperDentX_storeRefundGuyToFluxStartSplit {σ I} {g : Sat256} {s0 : St
   exact ⟨_, _, evm_run rd4926 with [
     raw pop (by native_decide) (by evm_ov)]⟩
 
-theorem flipperDentX_storeRefundGuyToFluxStart {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
-    (hperm : I.perm = true)
-    (hmemSize : 64 ≤ mem.size)
-    (h : RD flipperBytecode I g s0 ⟨4893⟩
-      [target, dentBid I, dentLot I, dentId I, ret, sel]
-      mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4927⟩
-      [dentBid I, dentLot I, dentId I, ret, sel]
-      (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (dentAfterRefundMap σ I) k' C' :=
-  permSplit_true hperm (flipperDentX_storeRefundGuyToFluxStartSplit hmemSize h)
-
 theorem dentVatHashMem_size_228 {mem : ByteArray} (I : ExecutionEnv)
     (hmemSize : mem.size = 228) :
     (dentVatHashMem mem I).size = 228 := by

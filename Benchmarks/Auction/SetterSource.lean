@@ -49,23 +49,6 @@ theorem ownerSetUint256Split (evm : EVM.State) (locals : Store) (name param : Id
     exact ExecFuncBody.execBlockStatic
       (nonpayableRequireAssignStorageBlockStatic hwv hownerEval hvalue hassign hperm)
 
-theorem ownerSetUint256 (evm : EVM.State) (locals : Store) (name param : Ident)
-    (slot value : UInt256)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv)
-    (howner : locals.get? "_owner" = none) (hbase : locals.get? name = none)
-    (hparam : locals.get? param = some (.int (Int.ofNat value.toNat)))
-    (hty : storageTypeAt? auctionContract.storage { base := name } =
-      some (.elem (.int uint256Int)))
-    (hloc : auctionConfig.storage.layout { base := name } =
-      fun _ => some (auctionUint256Loc slot)) :
-    ExecTransitionBody auctionConfig auctionContract evm locals
-      [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
-        .assign .storage { base := name } (.var param)]
-      (.returned { contract := auctionContract, locals := locals }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value) none) :=
-  (ownerSetUint256Split evm locals name param slot value hwv ho howner hbase hparam hty hloc).1
-
 theorem ownerBodyReverts (evm : EVM.State) (locals : Store) (rest : List Stmt)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv ≠ ownerWord evm.accountMap evm.executionEnv)

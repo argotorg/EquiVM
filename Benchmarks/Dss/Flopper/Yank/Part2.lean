@@ -184,25 +184,6 @@ theorem flopperYankX_suckCallSuccessDeleteSplit
   exact RD.flopperAuctionDeleteTailSplit
     (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
 
-theorem flopperYankX_suckCallSuccessDelete
-    {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
-    {σ' : AccountMap}
-    {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hstatus : status ≠ ⟨0⟩)
-    (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
-      (status :: yankSuckEndPtr :: yankSuckSelectorWord ::
-        solcAddressSlotWord ⟨2⟩ σ I :: yankIdWord I :: ⟨334⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) out σ' k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ' (auctionBidSlot (yankIdWord I)) ⟨0⟩)
-          (auctionLotSlot (yankIdWord I)) ⟨0⟩)
-        (auctionPackedSlot (yankIdWord I)) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperYankX_suckCallSuccessDeleteSplit hstatus rd1164)
-
 theorem flopperYankBodyCoreStillLive
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)

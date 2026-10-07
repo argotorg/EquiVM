@@ -736,39 +736,6 @@ theorem gemJoinJoinBodySuccessSplit (evm evmSlip evmTransfer : EVM.State) (I : E
       (hprefix (ExecBlock.consStatic
         (ExecStmt.emitStatic (evalExprs_gemJoinJoinEvent evmTransfer I) hperm)))
 
-theorem gemJoinJoinBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : ExecutionEnv)
-    {outSlip outTransfer : ByteArray}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩ = ⟨1⟩)
-    (hwadLow : (joinWadWord I).toNat < intLimit)
-    (hvatCode :
-      0 < (UInt256.ofNat
-        ((evm.lookupAccount (joinVatAddressOf evm)).option 0 (fun acc ↦ acc.code.size))).toNat)
-    (hcallSlip :
-      typedCallViaEVM config evm (EVM.address (joinVatAddressOf evm)) "slip" 0
-        [.fixedBytes bytes32Width
-          (EVM.Word.toBytesBE
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
-          joinUsrValue I, joinWadValue I]
-        (true, evmSlip, outSlip) true)
-    (hgemCode :
-      0 < (UInt256.ofNat
-        ((evmSlip.lookupAccount (joinGemAddressOf evmSlip)).option 0
-          (fun acc ↦ acc.code.size))).toNat)
-    (hcallTransfer :
-      typedCallViaEVM config evmSlip (EVM.address (joinGemAddressOf evmSlip))
-        "transferFrom" 0
-        [.address evmSlip.executionEnv.source, .address evmSlip.executionEnv.codeOwner,
-          joinWadValue I]
-        (true, evmTransfer, outTransfer) true)
-    (hdecTransfer : config.externalABI.decode? "transferFrom" outTransfer = some [.bool true]) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body
-      (.returned { contract := contract, locals := joinLocalsAfterTransferOk I }
-        evmTransfer none) :=
-  (gemJoinJoinBodySuccessSplit
-    evm evmSlip evmTransfer I hwv hlive hwadLow hvatCode hcallSlip hgemCode
-    hcallTransfer hdecTransfer).1
-
 theorem gemJoinJoinBodyRevertsVatNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩ = ⟨1⟩)
@@ -2688,22 +2655,6 @@ theorem RD.gemJoinTransferFromReturnTrueToStopSplit
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd255 := rd1029pre.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd255 (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-
-theorem RD.gemJoinTransferFromReturnTrueToStop
-    {σ σ₀ A I} {g sel retWord : UInt256}
-    {acc : AccountMap}
-    {mem outTransfer : ByteArray} {k C : ℕ}
-    (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨888⟩
-      (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) outTransfer acc k C)
-    (hret : retWord ≠ ⟨0⟩)
-    (hperm : I.perm = true)
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
-  permSplit_true hperm (RD.gemJoinTransferFromReturnTrueToStopSplit rd hret hmem hread64)
 
 
 theorem gemJoinReachJoinBody {σ σ₀ A I} {g : Sat256}

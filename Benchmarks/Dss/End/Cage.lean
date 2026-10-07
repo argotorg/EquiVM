@@ -691,15 +691,6 @@ theorem endCageX_storePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endCageStoredAccountMap] using rdAfterWhen⟩
 
-theorem endCageX_storePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD endBytecode I g s0 endCageStorePc [endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (endCageStoredAccountMap σ I) k' C' :=
-  permSplit_true hperm (endCageX_storePrefixSplit h)
-
 theorem endCageX_vatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (h : RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
@@ -2867,20 +2858,6 @@ theorem endCageSourceStoresPrefixSplit {σ σ₀ A I} {g : UInt256}
     exact hprefix (ExecBlock.consStatic
       (ExecStmt.assignStatic (by simp [evalExpr?, pure]) hassignLive
         (by simp only [evm0, initState]; exact hperm)))
-
-theorem endCageSourceStoresPrefix {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩) :
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evmStores := endCagePostStoresState evm0
-    ExecBlock config { contract := contract, locals := ∅ } evm0
-      (nonpayable ++ auth ++
-        [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
-          .assign .storage liveRef (.intLit 0),
-          .assign .storage whenRef nowT ])
-      (.ok { contract := contract, locals := ∅ } evmStores) :=
-  (endCageSourceStoresPrefixSplit hwv hauth hlive).1
 
 theorem evalExpr_endCage_storageAddr {evm : EVM.State} {locals : Store}
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}

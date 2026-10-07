@@ -5057,31 +5057,6 @@ theorem endSnipX_artStoreAtHashSplit {σ σmem σpost σ₀ A I} {g : Sat256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSnipPostArtAccountMap, memStore] using rd2410raw⟩
 
-theorem endSnipX_artStoreAtHash {σ σmem σpost σ₀ A I} {g : Sat256}
-    {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
-    (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
-      (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
-        endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
-        endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
-        endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
-        endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret σpost k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2410⟩
-      (⟨0⟩ :: endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
-        endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
-        endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
-        endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
-        endSnipReturnPc :: sel :: [])
-      (endSnipArtStoreHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (endSnipPostArtAccountMap σpost I
-        (endSnipArtNewWord σpost I vatOut saleOut)) k' C' :=
-  permSplit_true hperm (endSnipX_artStoreAtHashSplit hsz68 hloDog hloVat hloSale h)
-
 theorem endSnipX_artStoreIntGuardOkSplit {σ σmem σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)

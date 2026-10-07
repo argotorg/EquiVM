@@ -267,20 +267,6 @@ theorem cureLiftSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
       (ExecBlock.consStatic (ExecStmt.pushValStatic hsrc hpush
         (by simpa [evm0, initState] using hperm))))
 
-theorem cureLiftSourceBodyOk {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
-    (hpos : solcSlotWordAt (liftPosSlotFor I) σ I = ⟨0⟩) :
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let len := liftSrcsLenWord σ I
-    let evm1 := liftAfterSrcsLengthState evm0 len
-    let evm2 := liftAfterSrcsElemState evm1 len (liftKey I)
-    let evm3 := liftAfterPosState evm2 I
-    ExecTransitionBody config contract evm0 (liftLocals I) liftTransition.body
-      (.returned { contract := contract, locals := liftLocals I } evm3 none) :=
-  (cureLiftSourceBodyOkSplit hwv hauth hlive hpos).1
-
 theorem cureLiftSourceBodyPosRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
@@ -712,22 +698,6 @@ theorem RD.cureLiftStoreAndLogSplit {g : Sat256} {s0 : State}
   exact ⟨_, _, by
     simpa [liftStoreLogAccountMap, len, σLen, elemSlot, σElem] using
       rdPop.jump (by native_decide) hret (by evm_ov)⟩
-
-theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2092⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata σ k C)
-    (hret : (D_J cureBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret R
-      (twoWordHashMem key ⟨5⟩ mem) (UInt256.ofNat 3) rdata
-      (liftStoreLogAccountMap σ ee key) k' C' :=
-  permSplit_true hperm (RD.cureLiftStoreAndLogSplit h hret hmem hread64 hcanonKey hov)
 
 theorem cureDispatchLift {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 6)) :

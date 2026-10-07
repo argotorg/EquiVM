@@ -394,16 +394,6 @@ theorem gemJoinDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd255 (by native_decide) (by evm_ov)
 
-theorem gemJoinDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD gemJoinBytecode I g s0 ⟨1446⟩
-      [relyUsrMaskedWord I, ⟨254⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret gemJoinBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (gemJoinDenyX_storeAuthorizedSplit h)
-
 theorem gemJoinX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)

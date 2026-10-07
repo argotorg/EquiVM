@@ -1682,22 +1682,6 @@ theorem RD.gemJoinExitTransferReturnTrueToStopSplit
   have rd255 := rd2009pre.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd255 (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem RD.gemJoinExitTransferReturnTrueToStop
-    {σ σ₀ A I} {g sel retWord : UInt256}
-    {acc : AccountMap}
-    {mem outTransfer : ByteArray} {k C : ℕ}
-    (rd : RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1868⟩
-      (retWord :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) outTransfer acc k C)
-    (hret : retWord ≠ ⟨0⟩)
-    (hperm : I.perm = true)
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret gemJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
-  permSplit_true hperm (RD.gemJoinExitTransferReturnTrueToStopSplit rd hret hmem hread64)
-
 abbrev exitLocalsAfterSlip (I : ExecutionEnv) : Store :=
   (exitStore I).insert "slipRet" .unit
 
@@ -1952,35 +1936,6 @@ theorem gemJoinExitBodySuccessSplit (evm evmSlip evmTransfer : EVM.State) (I : E
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic
         (ExecStmt.emitStatic (evalExprs_gemJoinExitEvent evmTransfer I) hperm)))
-
-theorem gemJoinExitBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : ExecutionEnv)
-    {outSlip outTransfer : ByteArray}
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hwadOk : (joinWadWord I).toNat ≤ intLimit)
-    (hvatCode :
-      0 < (UInt256.ofNat
-        ((evm.lookupAccount (joinVatAddressOf evm)).option 0 (fun acc ↦ acc.code.size))).toNat)
-    (hcallSlip :
-      typedCallViaEVM config evm (EVM.address (joinVatAddressOf evm)) "slip" 0
-        [.fixedBytes bytes32Width
-          (EVM.Word.toBytesBE
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
-          .address evm.executionEnv.source, exitNegWadValue I]
-        (true, evmSlip, outSlip) true)
-    (hgemCode :
-      0 < (UInt256.ofNat
-        ((evmSlip.lookupAccount (joinGemAddressOf evmSlip)).option 0
-          (fun acc ↦ acc.code.size))).toNat)
-    (hcallTransfer :
-      typedCallViaEVM config evmSlip (EVM.address (joinGemAddressOf evmSlip))
-        "transfer" 0 [joinUsrValue I, joinWadValue I]
-        (true, evmTransfer, outTransfer) true)
-    (hdecTransfer : config.externalABI.decode? "transfer" outTransfer = some [.bool true]) :
-    ExecTransitionBody config contract evm (exitStore I) exitTransition.body
-      (.returned { contract := contract, locals := exitLocalsAfterTransferOk I }
-        evmTransfer none) :=
-  (gemJoinExitBodySuccessSplit
-    evm evmSlip evmTransfer I hwv hwadOk hvatCode hcallSlip hgemCode hcallTransfer hdecTransfer).1
 
 theorem gemJoinExitBodyRevertsOverflow (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

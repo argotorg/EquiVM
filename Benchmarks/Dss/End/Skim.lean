@@ -3495,27 +3495,6 @@ theorem endSkimX_gapStoreAtHashSplit {σ σ' σ₀ A I} {g : Sat256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSkimPostGapAccountMap, memStore] using rd7166raw⟩
 
-theorem endSkimX_gapStoreAtHash {σ σ' σ₀ A I} {g : Sat256}
-    {sel : UInt256} {vatOut urnOut rdata : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hloVat : 160 ≤ vatOut.size)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨7150⟩
-      (endSkimGapNewWord σ' I vatOut urnOut :: endSkimWadWord σ' I vatOut urnOut ::
-        endSkimOweWord σ' I vatOut urnOut :: endFreeUrnArtWord urnOut ::
-        endFreeUrnInkWord urnOut :: endFlowVatIlkRateWord vatOut :: endSkimUrnKey I ::
-        endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
-      (endSkimGapHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata σ' k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨7166⟩
-      (endSkimWadWord σ' I vatOut urnOut :: endSkimOweWord σ' I vatOut urnOut ::
-        endFreeUrnArtWord urnOut :: endFreeUrnInkWord urnOut ::
-        endFlowVatIlkRateWord vatOut :: endSkimUrnKey I :: endSkimIlkWord I ::
-        endSkimReturnPc :: sel :: [])
-      (endSkimGapStoreHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata
-      (endSkimPostGapAccountMap σ' I (endSkimGapNewWord σ' I vatOut urnOut))
-      k' C' :=
-  permSplit_true hperm (endSkimX_gapStoreAtHashSplit hsz68 hloVat h)
-
 theorem endSkimX_gapStoreIntGuardOkSplit {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {vatOut urnOut rdata : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)

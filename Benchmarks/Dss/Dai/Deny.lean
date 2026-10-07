@@ -520,16 +520,6 @@ theorem daiDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   simpa [denyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd687 (by native_decide) (by evm_ov)
 
-theorem daiDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD daiBytecode I g s0 ⟨3310⟩
-      [denyGuyMaskedWord I, ⟨686⟩, sel]
-      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (denyGuyStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (daiDenyX_storeAuthorizedSplit h)
-
 theorem daiX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : denyAuthWord σ I = ⟨1⟩)

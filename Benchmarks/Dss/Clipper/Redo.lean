@@ -1272,19 +1272,6 @@ theorem clipperRedoX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd7344raw⟩
 
-theorem clipperRedoX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
-    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (h : RD code I g s0 (⟨7338⟩ : UInt256)
-      [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 (⟨7344⟩ : UInt256)
-      [clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' :=
-  permSplit_true hperm (clipperRedoX_lockStoreSplit v hpatch h)
-
 set_option maxHeartbeats 1000000 in
 theorem clipperRedoX_stoppedClosed {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}

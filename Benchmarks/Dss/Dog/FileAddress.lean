@@ -890,26 +890,6 @@ theorem RD.dogFileAddressStoreVowLogSplit {v : DogImmutables} {code : ByteArray}
         (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
         hret (by evm_ov))⟩
 
-theorem RD.dogFileAddressStoreVowLog {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2235⟩ (data :: what :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileAddressVowBytes)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 28 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord mem 128 (UInt256.land data solcAddrMask))
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨2⟩
-        (setAddressOffset0Word (solcSlotWord σ ee ⟨2⟩) data)) k' C' :=
-  permSplit_true hperm (RD.dogFileAddressStoreVowLogSplit hpatch h hmatch hret hmem hread64 hov)
-
 theorem RD.dogFileAddressUnrecognizedRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1020,23 +1000,6 @@ theorem RD.dogFileAddressSuccessSplit {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
       native_decide)
     (by simp only [List.length_singleton]; omega)
-
-theorem RD.dogFileAddressSuccess {v : DogImmutables} {code : ByteArray}
-    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
-      ⟨585⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth :
-      solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hwhat : fileAddressWhat I = fileAddressVowBytes) :
-    RDret code g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨2⟩
-        (setAddressOffset0Word (solcSlotWord σ I ⟨2⟩) (fileAddressDataKey I)))
-      ByteArray.empty :=
-  permSplit_true hperm (RD.dogFileAddressSuccessSplit hpatch hreach hsz68 hsize hauth hwhat)
 
 theorem RD.dogFileAddressUnrecognizedParamRevert {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}

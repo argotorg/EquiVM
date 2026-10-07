@@ -2720,36 +2720,6 @@ theorem clipperUpchostBodyDogChopSuccessSplit (v : ClipperImmutables)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
 
-theorem clipperUpchostBodyDogChopSuccess (v : ClipperImmutables)
-    (evm evmVat evmDog : EVM.State) (out outDog : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hvatCode :
-      0 < (UInt256.ofNat ((evm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
-    (hcallVat :
-      typedCallViaEVM (config v) evm (EVM.address v.vat) "vatIlks" 0 [v.ilk]
-        (true, evmVat, out) true)
-    (hdecVat : (config v).externalABI.decode? "vatIlks" out = some (clipperVatIlksValues out))
-    (hdogCode :
-      0 < (UInt256.ofNat ((evmVat.lookupAccount
-        (AccountAddress.ofUInt256
-          (clipperUpchostDogTarget evmVat.accountMap evmVat.executionEnv))).option 0
-          (fun acc => acc.code.size))).toNat)
-    (hcallDog :
-      typedCallViaEVM (config v) evmVat
-        (EVM.address (AccountAddress.ofUInt256
-          (clipperUpchostDogTarget evmVat.accountMap evmVat.executionEnv)))
-        "chop" 0 [v.ilk] (true, evmDog, outDog) true)
-    (hdecDog : (config v).externalABI.decode? "chop" outDog = some (clipperDogChopValues outDog))
-    (hloDog : 32 ≤ outDog.size)
-    (hmul : (clipperVatIlksDustWord out).toNat * (clipperDogChopWord outDog).toNat <
-      UInt256.size) :
-    ExecTransitionBody (config v) (contract v) evm ∅ (upchostTransition v).body
-      (.returned { contract := contract v, locals := clipperUpchostChostLocals out outDog }
-        (Solm.EVM.storageStore evmDog evmDog.executionEnv.codeOwner ⟨9⟩
-          (clipperUpchostChostWord out outDog)) none) :=
-  (clipperUpchostBodyDogChopSuccessSplit v evm evmVat evmDog out outDog hwv hvatCode
-    hcallVat hdecVat hdogCode hcallDog hdecDog hloDog hmul).1
-
 theorem clipperUpchostBodyDogChopWmulRevert (v : ClipperImmutables)
     (evm evmVat evmDog : EVM.State) (out outDog : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

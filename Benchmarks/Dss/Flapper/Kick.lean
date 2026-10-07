@@ -2413,19 +2413,6 @@ theorem flapperKickX_fillStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [kickRuntimeAfterFillMap] using rd4161raw
   exact ⟨_, _, rd4161⟩
 
-theorem flapperKickX_fillStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flapperBytecode I g s0 ⟨4155⟩
-      [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
-        kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flapperBytecode I g s0 ⟨4161⟩
-      [solcSlotWordAt ⟨9⟩ σ I + kickLotWord I, ⟨0⟩, kickBidWord I,
-        kickLotWord I, ⟨313⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (kickRuntimeAfterFillMap I.codeOwner σ I) k' C' :=
-  permSplit_true hperm (flapperKickX_fillStoreSplit h)
-
 theorem flapperKickX_lidOkSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hfillLe :

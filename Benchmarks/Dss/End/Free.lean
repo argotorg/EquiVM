@@ -2070,31 +2070,6 @@ theorem endFreeTailReturns_grabSuccessSplit (evm evmGrab : EVM.State) (I : Execu
     exact hfinish (ExecBlock.consStatic (ExecStmt.emitStatic hargsEvent
       (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm)))
 
-theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionEnv)
-    (out grabOut : ByteArray)
-    (hsrc : evm.executionEnv.source = I.source)
-    (howner : evm.executionEnv.codeOwner = I.codeOwner)
-    (hart : endFreeUrnArtWord out = ⟨0⟩)
-    (hink : (endFreeUrnInkWord out).toNat ≤ 2 ^ 255)
-    (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (endPackVatWord evm.accountMap I) ≠ ⟨0⟩)
-    (hcall :
-      typedCallViaEVM config evm
-        (EVM.address (endPackVatAddr evm.accountMap I)) "grab" 0
-        [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-          .address I.source,
-          .address I.source,
-          .address (endPackVowAddr evm.accountMap I),
-          .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
-          .int 0]
-        (true, evmGrab, grabOut) true) :
-    ExecBlock config { contract := contract, locals := endFreeStoreVatUrn I out } evm
-      endFreeAfterUrnsStmts
-      (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) :=
-  (endFreeTailReturns_grabSuccessSplit
-    evm evmGrab I out grabOut hsrc howner hart hink hcodeSize hcall).1
-
 theorem endFreeBodyReverts_artNonzero {σ σ₀ A I} {g : UInt256}
     {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
@@ -2334,42 +2309,6 @@ theorem endFreeBodyReturns_grabSuccessSplit {σ σ₀ A I} {g : UInt256}
   · intro hperm
     exact ExecFuncBody.execBlockStatic
       (hfinish (htailSplit.2 (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm)))
-
-theorem endFreeBodyReturns_grabSuccess {σ σ₀ A I} {g : UInt256}
-    {evmUrns evmGrab : EVM.State} {out grabOut : ByteArray}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨0⟩)
-    (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
-    (hcall :
-      typedCallViaEVM config
-        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (endPackVatAddr σ I)) "urns" 0
-        [.fixedBytes bytes32Width (endBytes32ArgBytes I), .address I.source]
-        (true, evmUrns, out) true)
-    (hlo : 64 ≤ out.size)
-    (hsrc : evmUrns.executionEnv.source = I.source)
-    (howner : evmUrns.executionEnv.codeOwner = I.codeOwner)
-    (hart : endFreeUrnArtWord out = ⟨0⟩)
-    (hink : (endFreeUrnInkWord out).toNat ≤ 2 ^ 255)
-    (hgrabCodeSize :
-      Reasoning.Theory.extCodeSizeWord evmUrns.accountMap
-        (endPackVatWord evmUrns.accountMap I) ≠ ⟨0⟩)
-    (hgrabCall :
-      typedCallViaEVM config evmUrns
-        (EVM.address (endPackVatAddr evmUrns.accountMap I)) "grab" 0
-        [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-          .address I.source,
-          .address I.source,
-          .address (endPackVowAddr evmUrns.accountMap I),
-          .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
-          .int 0]
-        (true, evmGrab, grabOut) true) :
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody config contract evm0 (endFreeStore I) freeTransition.body
-      (.returned { contract := contract, locals := endFreeStoreGrab I out } evmGrab none) :=
-  (endFreeBodyReturns_grabSuccessSplit
-    hwv hlive hcodeSize hcall hlo hsrc howner hart hink hgrabCodeSize hgrabCall).1
 
 theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
@@ -3382,17 +3321,6 @@ theorem endFreeX_grabLogReturnSplit {I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd563 := RD.jumpdest (pc := endFreeReturnPc) (stk := [sel]) rd562
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
-
-theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} {σ : AccountMap} {out ret : ByteArray}
-    {acc : AccountMap}
-    (hperm : I.perm = true)
-    (h : RD endBytecode I g s0 ⟨8177⟩
-      (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σ I ::
-        ⟨0⟩ :: endFreeUrnInkWord out :: endFreeIlkWord I :: endFreeReturnPc :: sel :: [])
-      (endFreeGrabPostCallMem σ I out ret) (UInt256.ofNat 11) ret acc k C) :
-    RDret endBytecode g s0 acc ByteArray.empty :=
-  permSplit_true hperm (endFreeX_grabLogReturnSplit h)
 
 theorem endDecode_free_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (freeTransition.params.map Param.name)

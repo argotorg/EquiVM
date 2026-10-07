@@ -1424,27 +1424,6 @@ theorem RD.dogDigsToSecondSubRoutineSplit {v : DogImmutables} {code : ByteArray}
     (dogPatchedJumpDest hpatch (by native_decide))
     (by evm_ov)⟩
 
-theorem RD.dogDigsToSecondSubRoutine {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {rad ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2025⟩ (rad :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hle : rad.toNat ≤ (solcSlotWordAt ⟨5⟩ σ ee).toNat)
-    (hov : R.length + 13 ≤ 1024) :
-    let dirt0 := solcSlotWordAt ⟨5⟩ σ ee
-    let dirtNew := UInt256.sub dirt0 rad
-    let σ1 := sstoreAccountMap ee.codeOwner σ ⟨5⟩ dirtNew
-    let slot := ⟨3⟩ + solcMappingSlot ⟨1⟩ ilk
-    let ilkDirt0 := solcSlotWordAt slot σ1 ee
-    ∃ k' C', RD code ee g s0 ⟨4542⟩
-      (rad :: ilkDirt0 :: ⟨2068⟩ :: rad :: ilk :: ret :: sel :: R)
-      (twoWordHashMem ilk ⟨1⟩ mem) (UInt256.ofNat 3) rdata σ1 k' C' :=
-  permSplit_true hperm (RD.dogDigsToSecondSubRoutineSplit hpatch h hmem hle hov)
-
 theorem RD.dogDigsSecondSubUnderflowSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {rad ilk ret sel : UInt256} {R : List UInt256}
@@ -1484,25 +1463,6 @@ theorem RD.dogDigsSecondSubUnderflowSplit {v : DogImmutables} {code : ByteArray}
           native_decide)
     (by simpa [dirt0, dirtNew, σ1, slot, ilkDirt0] using hIlkLt)
     (by simp only [List.length_cons]; omega)
-
-theorem RD.dogDigsSecondSubUnderflow {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {rad ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2025⟩ (rad :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hleDirt : rad.toNat ≤ (solcSlotWordAt ⟨5⟩ σ ee).toNat)
-    (hIlkLt :
-      (solcSlotWordAt (⟨3⟩ + solcMappingSlot ⟨1⟩ ilk)
-        (sstoreAccountMap ee.codeOwner σ ⟨5⟩
-          (UInt256.sub (solcSlotWordAt ⟨5⟩ σ ee) rad)) ee).toNat < rad.toNat)
-    (hov : R.length + 13 ≤ 1024) :
-    RDrev code g s0 :=
-  permSplit_true hperm
-    (RD.dogDigsSecondSubUnderflowSplit hpatch h hmem hleDirt hov) hIlkLt
 
 theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}

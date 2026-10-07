@@ -1353,22 +1353,6 @@ theorem endPackX_bagStoreAtHashSplit {σ σ' σ₀ A I} {g sel bagNew : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, rdStoredRaw⟩
 
-theorem endPackX_bagStoreAtHash {σ σ' σ₀ A I} {g sel bagNew : UInt256}
-    {out : ByteArray} {k C : ℕ}
-        (hperm : I.perm = true)
-    (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6618⟩
-      [⟨0⟩, ⟨64⟩, ⟨32⟩, ⟨64⟩, solcSourceWord I, bagNew, endPackWadWord I,
-        endPackReturnPc, sel]
-      (endPackBagStoreSlotMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
-      σ' k C) :
-    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6623⟩
-      [⟨64⟩, solcSourceWord I, ⟨32⟩, endPackWadWord I, endPackReturnPc, sel]
-      (endPackBagStoreSlotMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
-      (sstoreAccountMap I.codeOwner σ' (endPackBagSlot I) bagNew) k' C' :=
-  permSplit_true hperm (endPackX_bagStoreAtHashSplit h)
-
 theorem endPackX_bagStoreSplit {σ σ' σ₀ A I} {g sel : UInt256}
     {out : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
@@ -1389,22 +1373,6 @@ theorem endPackX_bagStoreSplit {σ σ' σ₀ A I} {g sel : UInt256}
     endPackX_bagStoreHash (bagNew := endPackBagWord σ' I + endPackWadWord I) h
   exact endPackX_bagStoreAtHashSplit
     (bagNew := endPackBagWord σ' I + endPackWadWord I) rdHash
-
-theorem endPackX_bagStore {σ σ' σ₀ A I} {g sel : UInt256}
-    {out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6599⟩
-      [endPackBagWord σ' I + endPackWadWord I, endPackWadWord I, endPackReturnPc, sel]
-      (endPackBagHashMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
-      σ' k C) :
-    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6623⟩
-      [⟨64⟩, solcSourceWord I, ⟨32⟩, endPackWadWord I, endPackReturnPc, sel]
-      (endPackBagStoreSlotMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
-      (sstoreAccountMap I.codeOwner σ' (endPackBagSlot I)
-        (endPackBagWord σ' I + endPackWadWord I)) k' C' :=
-  permSplit_true hperm (endPackX_bagStoreSplit h)
 
 theorem endPackX_bagLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σ : AccountMap} {out : ByteArray}
@@ -1482,21 +1450,6 @@ theorem endPackX_bagStoreReturnSplit {σ σ' σ₀ A I} {g sel : UInt256}
   refine permSplit_bind (endPackX_bagStoreSplit h) fun hperm hstore ↦ ?_
   obtain ⟨_, _, rdStored⟩ := hstore
   exact endPackX_bagLogReturn (σ := σ) (out := out) hperm rdStored
-
-theorem endPackX_bagStoreReturn {σ σ' σ₀ A I} {g sel : UInt256}
-    {out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6599⟩
-      [endPackBagWord σ' I + endPackWadWord I, endPackWadWord I, endPackReturnPc, sel]
-      (endPackBagHashMem σ I (endPackAmtWord I) out) (UInt256.ofNat 8) out
-      σ' k C) :
-    RDret endBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      (sstoreAccountMap I.codeOwner σ' (endPackBagSlot I)
-        (endPackBagWord σ' I + endPackWadWord I))
-      ByteArray.empty :=
-  permSplit_true hperm (endPackX_bagStoreReturnSplit h)
 
 theorem evalStorageRef_endPack_debt (evm : EVM.State) (I : ExecutionEnv) :
     evalStorageRef config { contract := contract, locals := endPackStore I } evm

@@ -300,15 +300,6 @@ theorem gemJoinCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   have rd255 := rd254.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd255 (by native_decide) (by evm_ov)
 
-theorem gemJoinCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD gemJoinBytecode I g s0 ⟨1284⟩ [⟨254⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret gemJoinBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (gemJoinCageX_storeAuthorizedSplit h)
-
 theorem gemJoinX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD gemJoinBytecode I g

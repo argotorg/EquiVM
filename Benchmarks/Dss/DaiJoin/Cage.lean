@@ -398,16 +398,6 @@ theorem daiJoinCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
     (by native_decide) (by evm_ov)
   exact RD.stop rd232' (by native_decide) (by evm_ov)
 
-theorem daiJoinCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD daiJoinBytecode I g s0 ⟨1029⟩
-      [⟨232⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiJoinBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (daiJoinCageX_storeAuthorizedSplit h)
-
 theorem daiJoinX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD daiJoinBytecode I g

@@ -1176,21 +1176,6 @@ theorem flipperKickX_toAdd48Split {σ I} {g : Sat256} {s0 : State}
   rw [hrawTau] at rd2234
   exact ⟨_, _, rd2234.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem flipperKickX_toAdd48 {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256}
-    (hperm : I.perm = true)
-    (hkicksLt : (kickKicksWord σ I).toNat < UInt256.size - 1)
-    (h : RD flipperBytecode I g s0 ⟨2074⟩
-      [⟨0⟩, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I, ⟨426⟩, sel]
-      (kickAuthMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
-      [kickTauWord (kickAfterGuyMap σ I) I, kickNow I, ⟨2235⟩,
-        kickIdWord σ I, kickBid I, kickLot I, kickTab I, kickGalKey I, kickUsrKey I,
-        ⟨426⟩, sel]
-      (kickBidHashMem σ I) (UInt256.ofNat 3) ByteArray.empty
-      (kickAfterGuyMap σ I) k' C' :=
-  permSplit_true hperm (flipperKickX_toAdd48Split hkicksLt h)
-
 theorem flipperKickX_add48Success {σ σtau I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hfit : (kickNow48 I).toNat + (kickTauWord σtau I).toNat < 2 ^ 48)

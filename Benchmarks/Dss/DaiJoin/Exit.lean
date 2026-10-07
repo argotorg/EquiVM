@@ -1544,22 +1544,6 @@ theorem daiJoinExitDaiMintSuccessTailSplit
     (by native_decide) (by evm_ov)
   simpa using RD.stop rd232' (by native_decide) (by evm_ov)
 
-theorem daiJoinExitDaiMintSuccessTail
-    {σ σ₀ σd A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ}
-    (hperm : I.perm = true)
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd1594 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
-      (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
-        exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
-  permSplit_true hperm (daiJoinExitDaiMintSuccessTailSplit hmem hread64 rd1594)
-
 theorem daiJoinDecode_exit_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (exitTransition.params.map Param.name)
       (transitionSignature exitTransition).paramTypes I.calldata = some (exitStore I) := by

@@ -711,16 +711,6 @@ theorem flapperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
 
-theorem flapperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
-    (htic : tickTicWord evm I = ⟨0⟩)
-    (haddFit : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 48) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
-      (.returned { contract := contract, locals := tickEndLocals evm I }
-        (tickPostState evm I) none) :=
-  (flapperTickBodyReturns_successSplit evm I hwv hendLt htic haddFit).1
-
 
 theorem flapperDecode_tick_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (tickTransition.params.map Param.name)
@@ -1407,24 +1397,6 @@ theorem flapperTickX_successSplit
   simpa [tickRuntimeSuccessAccountMap, oldPacked, packedSlot, addWord,
     tickRuntimeEndStoredRawWord, tickRuntimeEndShiftedWord, tickRuntimeEndClearMask, id]
     using RD.stop rd361 (by native_decide) (by evm_ov)
-
-theorem flapperTickX_success
-    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
-    (hendLt :
-      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
-        (UInt256.ofNat I.header.timestamp).toNat)
-    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
-    (haddFit :
-      (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
-        (tickRuntimeTauWord σ I).toNat < 2 ^ 48)
-    (rd4586 : ∃ k C, RD flapperBytecode I g
-      (initState σ σ₀ g A I) ⟨4586⟩
-      [tickIdWord I, ⟨360⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flapperBytecode g (initState σ σ₀ g A I)
-      (tickRuntimeSuccessAccountMap I.codeOwner σ I) ByteArray.empty :=
-  permSplit_true hperm (flapperTickX_successSplit hendLt htic haddFit rd4586)
 
 theorem tickRuntimeSuccessAccountMap_eq
     {σ σ₀ A I} {g : UInt256}

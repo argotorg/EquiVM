@@ -128,15 +128,6 @@ theorem initializerBeginSplit {I g s0 R mem aw rdata σ k C} (i : InitializerBod
       raw dup1 h9 (by evm_ov), raw iszero h10 (by evm_ov), raw push2 _ h11 (by evm_ov),
       raw jumpiT h12 ht hd (by evm_ov) ]⟩
 
-theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
-    (h : RD auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
-      R mem aw rdata σ k C)
-    (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
-      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata
-      (initializerEntered σ I) k' C' :=
-  (initializerBeginSplit i h hov).resolve_right (by rintro ⟨hp, _⟩; simp [hperm] at hp)
-
 theorem initializerEntered_ready_eq {σ : AccountMap} {I : ExecutionEnv}
     (hr : InitializerReady σ I) : initializerEntered σ I = σ := by
   rcases hr with hi | ha

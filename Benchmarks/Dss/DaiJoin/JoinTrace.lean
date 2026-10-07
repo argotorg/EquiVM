@@ -1261,22 +1261,6 @@ theorem daiJoinJoinDaiBurnSuccessTailSplit
     (by native_decide) (by evm_ov)
   simpa using RD.stop rd232' (by native_decide) (by evm_ov)
 
-theorem daiJoinJoinDaiBurnSuccessTail
-    {σ σ₀ σd A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ}
-    (hperm : I.perm = true)
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd705 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨705⟩
-      (⟨196⟩ :: joinBurnSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
-        joinWadWord I :: joinUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty :=
-  permSplit_true hperm (daiJoinJoinDaiBurnSuccessTailSplit hmem hread64 rd705)
-
 theorem daiJoinJoinMulReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hwad : joinWadWord I ≠ ⟨0⟩)

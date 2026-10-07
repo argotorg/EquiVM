@@ -1236,53 +1236,6 @@ theorem flipperYankSourceBodySuccessSplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
-theorem flipperYankSourceBodySuccess {σ σ₀ A I} {g : UInt256}
-    {evmCat evmVat evmMove : EVM.State} {outCat outVat outMove : ByteArray}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (hguy : bidGuyWord (yankId I) σ I ≠ ⟨0⟩)
-    (hbidLt :
-      (bidBidWord (yankId I) σ I).toNat < (bidTabWord (yankId I) σ I).toNat)
-    (hcatCode :
-      0 <
-        (UInt256.ofNat
-          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-            (flipperCatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
-    (hcallCat :
-      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (flipperCatAddress σ I)) "claw" 0
-        (yankClawArgVals (initState σ σ₀ (Sat256.ofUInt256 g) A I))
-        (true, evmCat, outCat) true)
-    (hvatCode :
-      0 <
-        (UInt256.ofNat
-          ((evmCat.lookupAccount (flipperVatAddress evmCat.accountMap evmCat.executionEnv)).option
-            0 (fun acc => acc.code.size))).toNat)
-    (hcallVat :
-      typedCallViaEVM config evmCat
-        (EVM.address (flipperVatAddress evmCat.accountMap evmCat.executionEnv)) "flux" 0
-        (yankFluxArgValsOf evmCat (yankId I)) (true, evmVat, outVat) true)
-    (hmoveCode :
-      0 <
-        (UInt256.ofNat
-          ((evmVat.lookupAccount
-            (flipperVatAddress evmVat.accountMap evmVat.executionEnv)).option
-            0 (fun acc => acc.code.size))).toNat)
-    (hcallMove :
-      typedCallViaEVM config evmVat
-        (EVM.address (flipperVatAddress evmVat.accountMap evmVat.executionEnv)) "move" 0
-        (yankMoveArgValsOf evmVat (yankId I)) (true, evmMove, outMove) true) :
-    let locals := yankLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let locals1 := (yankLocals I).insert "_clawRet" (collapseReturns [])
-    let locals2 := locals1.insert "_fluxRet" (collapseReturns [])
-    let locals3 := locals2.insert "_moveRet" (collapseReturns [])
-    let evmDeleted := bidDeletedEVM evmMove (yankId I)
-    ExecTransitionBody config contract evm0 locals yankTransition.body
-      (.returned { contract := contract, locals := locals3 } evmDeleted none) :=
-  (flipperYankSourceBodySuccessSplit hwv hauth hguy hbidLt hcatCode hcallCat
-    hvatCode hcallVat hmoveCode hcallMove).1
-
 theorem flipperYankX_vatCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
     {acc : AccountMap}
@@ -1855,16 +1808,6 @@ theorem flipperYankX_deleteReturnSplit {I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperYankX_deleteReturn {I} {g : Sat256} {s0 : State}
-    {σmem σflux σcall σ : AccountMap}
-    {k C : ℕ} {out : ByteArray} {target id sel : UInt256}
-    (hperm : I.perm = true)
-    (h : RD flipperBytecode I g s0 ⟨1635⟩
-      (target :: id :: ⟨323⟩ :: sel :: [])
-      (yankVatMoveCallMem σmem σflux σcall I) (UInt256.ofNat 9) out σ k C) :
-    RDret flipperBytecode g s0 (yankBidDeleteAccountMap I σ id) ByteArray.empty :=
-  permSplit_true hperm (flipperYankX_deleteReturnSplit h)
-
 theorem flipperYankX_deleteReturnFromPostCallSplit {σmem σflux σcall σ σ₀ A I}
     {g : UInt256} {k C : ℕ}
     {out : ByteArray}
@@ -1880,17 +1823,5 @@ theorem flipperYankX_deleteReturnFromPostCallSplit {σmem σflux σcall σ σ₀
         (initState σmem σ₀ (Sat256.ofUInt256 g) A I)) :=
   flipperYankX_deleteReturnSplit (target := flipperVatTargetWord σcall I)
     (id := yankId I) (sel := flipperSelWord I) h
-
-theorem flipperYankX_deleteReturnFromPostCall {σmem σflux σcall σ σ₀ A I}
-    {g : UInt256} {k C : ℕ}
-    {out : ByteArray} (hperm : I.perm = true)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState σmem σ₀ (Sat256.ofUInt256 g) A I) ⟨1635⟩
-      (flipperVatTargetWord σcall I :: yankId I :: ⟨323⟩ :: flipperSelWord I :: [])
-      (yankVatMoveCallMem σmem σflux σcall I) (UInt256.ofNat 9) out σ k C) :
-    RDret flipperBytecode (Sat256.ofUInt256 g)
-      (initState σmem σ₀ (Sat256.ofUInt256 g) A I)
-      (yankBidDeleteAccountMap I σ (yankId I)) ByteArray.empty :=
-  permSplit_true hperm (flipperYankX_deleteReturnFromPostCallSplit h)
 
 end Benchmarks.Dss.Flipper

@@ -583,21 +583,6 @@ theorem flopperDealX_mintCallSuccessDeleteSplit
     RD.flopperAuctionDeleteTailSplit
       (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
 
-theorem flopperDealX_mintCallSuccessDelete
-    {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
-    {σ' : AccountMap}
-    {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hstatus : status ≠ ⟨0⟩)
-    (rd1164 : RD flopperBytecode I g (initState σ σ₀ g A I) ⟨1164⟩
-      (status :: dealMintEndPtr :: dealMintSelectorWord ::
-        solcAddressSlotWord ⟨3⟩ σ I :: dealIdWord I :: ⟨334⟩ :: sel :: [])
-      mem (UInt256.ofNat 7) out σ' k C) :
-    RDret flopperBytecode g (initState σ σ₀ g A I)
-      (auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
-      ByteArray.empty :=
-  permSplit_true hperm (flopperDealX_mintCallSuccessDeleteSplit hstatus rd1164)
-
 theorem flopperDealBodyCoreNotLive
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flopperBytecode) (hsize : I.calldata.size < UInt256.size)

@@ -1039,33 +1039,6 @@ theorem fileIlkClipSuccessSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hclipPost hassign
         (by rw [typedCallViaEVM_executionEnv_eq hcall]; exact hperm))))
 
-theorem fileIlkClipSuccessSourceBody {v : DogImmutables} {σ σ₀ A I}
-    {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
-    (hwhat : fileIlkClipWhat I = fileIlkClipClipBytes)
-    (hcodePos :
-      0 < (UInt256.ofNat
-        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (fileIlkClipClip I)).option 0 (fun acc ↦ acc.code.size))).toNat)
-    (hcall :
-      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (fileIlkClipClip I)) "ilk" 0 []
-        (true, evmCall, out) false)
-    (hdec : (config v).externalABI.decode? "ilk" out = some [fileIlkClipIlkValue I]) :
-    let locals := fileIlkClipLocals I
-    let locals1 := fileIlkClipLocalsClipIlk I (fileIlkClipIlkValue I)
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evmCall evmCall.executionEnv.codeOwner
-      (fileIlkClipSlotFor I)
-      (setAddressOffset0Word
-        (Solm.EVM.storageLoad evmCall evmCall.executionEnv.codeOwner (fileIlkClipSlotFor I))
-        (fileIlkClipClipKey I))
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
-      (.returned { contract := contract v, locals := locals1 } evm1 none) :=
-  (fileIlkClipSuccessSourceBodySplit hwv hsz100 hauth hwhat hcodePos hcall hdec).1
-
 theorem fileIlkClipCallFailureSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
@@ -2954,26 +2927,6 @@ theorem RD.dogFileIlkClipStoreLogSplit {v : DogImmutables} {code : ByteArray}
           solcAddrMask from by decide] using rdStore⟩
   exact RD.dogFileIlkClipLogTail hpatch rdStore' hret hperm hhashSize hhashRead64 hov
 
-theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {clipKey what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨2705⟩ (clipKey :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 5) rdata σ k C)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      k' C' :=
-  permSplit_true hperm (RD.dogFileIlkClipStoreLogSplit hpatch h hret hmem hread64 hov)
-
 theorem RD.dogFileIlkClipSuccessToRetSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
@@ -3021,30 +2974,6 @@ theorem RD.dogFileIlkClipSuccessToRetSplit {v : DogImmutables} {code : ByteArray
     (by evm_ov)
   exact RD.dogFileIlkClipStoreLogSplit hpatch rd2705pre hret hmem hread64 hov
 
-theorem RD.dogFileIlkClipSuccessToRet {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {mem rdata : ByteArray} {k C : ℕ}
-    {retWord clipKey what ilk ret sel : UInt256} {R : List UInt256}
-    {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (rd : RD code ee g s0 ⟨2623⟩
-      (retWord :: clipKey :: what :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 5) rdata σ k C)
-    (hmatch : retWord = ilk)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 11 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 (UInt256.land clipKey solcAddrMask))
-      (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      k' C' :=
-  permSplit_true hperm
-    (RD.dogFileIlkClipSuccessToRetSplit hpatch rd hmatch hret hmem hread64 hov)
-
 theorem RD.dogFileIlkClipSuccessStopSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {mem rdata : ByteArray} {k C : ℕ}
@@ -3078,25 +3007,6 @@ theorem RD.dogFileIlkClipSuccessStopSplit {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
       native_decide)
     (by simp only [List.length_singleton]; omega)
-
-theorem RD.dogFileIlkClipSuccessStop {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {mem rdata : ByteArray} {k C : ℕ}
-    {retWord clipKey what ilk sel : UInt256}
-    {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (rd : RD code ee g s0 ⟨2623⟩
-      (retWord :: clipKey :: what :: ilk :: ⟨313⟩ :: sel :: [])
-      mem (UInt256.ofNat 5) rdata σ k C)
-    (hmatch : retWord = ilk)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 160)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret code g s0
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk)
-        (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
-      ByteArray.empty :=
-  permSplit_true hperm (RD.dogFileIlkClipSuccessStopSplit hpatch rd hmatch hmem hread64)
 
 theorem dogFileIlkClipBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}

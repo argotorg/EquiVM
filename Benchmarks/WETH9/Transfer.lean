@@ -543,18 +543,6 @@ theorem weth9TransferReturnTrueSplit {ee g s0 rdata σ k C} {src dst wad sel : U
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [hbool] using hret
 
-theorem weth9TransferReturnTrue {ee g s0 rdata σ k C} {src dst wad sel : UInt256}
-    {mem : ByteArray}
-    (h : RD weth9Bytecode ee g s0 ⟨1282⟩
-      (⟨0⟩ :: wad :: dst :: src :: ⟨1674⟩ :: ⟨0⟩ :: wad :: dst :: ⟨361⟩ :: [sel])
-      mem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
-    (hdst : dst.toNat < EVM.addressModulus)
-    (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
-      (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
-  permSplit_true hperm (weth9TransferReturnTrueSplit h hsrc hdst hmemsize hread64)
-
 /-- `callvalue ≠ 0`: the payable guard at pc 644 reverts. -/
 theorem weth9TransferGuardRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)

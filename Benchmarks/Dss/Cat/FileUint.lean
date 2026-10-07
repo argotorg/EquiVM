@@ -352,19 +352,6 @@ theorem RD.catFileUintStoreBoxSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
   have rd1147 := rd1146.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd1147.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.catFileUintStoreBox {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨1124⟩ (data :: what :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileUintBoxBytes)
-    (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨5⟩ data) k' C' :=
-  permSplit_true hperm (RD.catFileUintStoreBoxSplit h hmatch hret hov)
-
 theorem RD.catFileUintSkipBox {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -485,19 +472,6 @@ theorem RD.catFileUintBoxSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256
   refine Or.inl ⟨hperm, ?_⟩
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
-
-theorem RD.catFileUintBoxSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
-      ⟨304⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth :
-      solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hwhat : fileUintWhat I = fileUintBoxBytes) :
-    RDret catBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩ (fileUintData I)) ByteArray.empty :=
-  permSplit_true hperm (RD.catFileUintBoxSuccessSplit hreach hsz68 hsize hauth hwhat)
 
 theorem RD.catFileUintUnrecognizedParamRevert
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}

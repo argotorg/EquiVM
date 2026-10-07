@@ -149,17 +149,6 @@ theorem weth9DepositStoreSplit {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k
   obtain ⟨_, _, h789⟩ := h788.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, h789⟩
 
-theorem weth9DepositStore {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
-    (hperm : I.perm = true) (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨789⟩
-      (I.weiValue :: ⟨32⟩ :: ⟨64⟩ :: solcSourceWord I :: ⟨164⟩ :: R)
-      (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
-        (I.weiValue + solcSlotWord σ I (callerBalSlot I))) k' C' :=
-  permSplit_true hperm (weth9DepositStoreSplit hR h)
-
 /-- The Deposit LOG2 tail (789→STOP): terminates with empty output (the log is invisible to `RD`). -/
 theorem weth9DepositLog {σ σ₀ A I acc} {R : List UInt256} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true) (hR : R.length ≤ 1)
@@ -247,16 +236,6 @@ theorem weth9DepositXSplit {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C :
     ⟨hperm, _, _, h789⟩ | ⟨hperm, hstatic⟩
   · exact Or.inl ⟨hperm, weth9DepositLog hperm hR h789⟩
   · exact Or.inr ⟨hperm, hstatic⟩
-
-theorem weth9DepositX {σ σ₀ A I} {R : List UInt256} {g : Sat256} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hR : R.length ≤ 1)
-    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨156⟩ R
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret weth9Bytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
-        (I.weiValue + solcSlotWord σ I (callerBalSlot I))) ByteArray.empty :=
-  permSplit_true hperm (weth9DepositXSplit hR h)
 
 theorem weth9SelectorDispatchDeposit {I : ExecutionEnv} (hsel : selIs I (weth9SelBytes 9)) :
     selectorDispatchMsg contract I.calldata = some depositTransition := by

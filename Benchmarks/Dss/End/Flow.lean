@@ -2379,25 +2379,6 @@ theorem endFlowX_tailReturnsSplit {σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   exact RD.stop rdReturn (by native_decide) (by evm_ov)
 
-theorem endFlowX_tailReturns {σ σ' σ₀ A I} {g : Sat256}
-    {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hlo : 160 ≤ out.size)
-    (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
-    (hfitMul : (endFlowNum0Word σ' I out).toNat * endRayWord.toNat < UInt256.size)
-    (hden : endFlowDenWord σ' I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
-      (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
-        endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
-        (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out σ' k C) :
-    RDret endBytecode g (initState σ σ₀ g A I)
-      (endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out))
-      ByteArray.empty :=
-  permSplit_true hperm (endFlowX_tailReturnsSplit hsz36 hlo hleSub hfitMul hden h)
-
 theorem endFlowCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
@@ -3294,15 +3275,6 @@ theorem endFlowStmtAssignFixVSplit (evm : EVM.State) (I : ExecutionEnv)
       storageLocStore_uint256 evm (endFlowFixSlot I) (endFlowFixVWord σ I out)
   exact ⟨ExecStmt.assign hfixV hassign,
     fun hperm ↦ ExecStmt.assignStatic hfixV hassign hperm⟩
-
-theorem endFlowStmtAssignFixV (evm : EVM.State) (I : ExecutionEnv)
-    (σ : AccountMap) (out : ByteArray)
-    (hsz36 : 36 ≤ I.calldata.size) :
-    ExecStmt config { contract := contract, locals := endFlowStoreFixV σ I out } evm
-      (.assign .storage (fixRef (.var "ilk")) (.var "fixV"))
-      (.ok { contract := contract, locals := endFlowStoreFixV σ I out }
-        (endFlowPostState evm I (endFlowFixVWord σ I out))) :=
-  (endFlowStmtAssignFixVSplit evm I σ out hsz36).1
 
 theorem endFlowTailReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (out : ByteArray)

@@ -353,16 +353,6 @@ theorem spotDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   simpa [relyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd215 (by native_decide) (by evm_ov)
 
-theorem spotDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD spotBytecode I g s0 ⟨1756⟩
-      [relyGuyMaskedWord I, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (spotDenyX_storeAuthorizedSplit h)
-
 theorem spotX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)

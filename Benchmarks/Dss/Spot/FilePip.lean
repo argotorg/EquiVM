@@ -257,22 +257,6 @@ theorem spotFilePipSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hpip hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem spotFilePipSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hlive : spotLiveWord σ I = ⟨1⟩)
-    (hwhat : filePipWhatBytes I = filePipBytes) :
-    let locals := filePipLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (filePipSlotFor I)
-      (setAddressOffset0Word
-        (Solm.EVM.storageLoad evm0 I.codeOwner (filePipSlotFor I))
-        (filePipMaskedWord I))
-    ExecTransitionBody config contract evm0 locals filePipTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (spotFilePipSourceBodySplit hwv hsz36 hauth hlive hwhat).1
-
 theorem spotFilePipSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
@@ -775,18 +759,6 @@ theorem spotFilePipX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd215 (by native_decide) (by evm_ov)
-
-theorem spotFilePipX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
-    (hmatch : filePipWhatWord I = ABI.bytesToWord filePipBytes)
-    (h : RD spotBytecode I g s0 ⟨1993⟩
-      [filePipMaskedWord I, filePipWhatWord I, filePipIlkWord I, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (filePipSlotFor I)
-        (setAddressOffset0Word (solcSlotWordAt (filePipSlotFor I) σ I) (filePipMaskedWord I)))
-      ByteArray.empty :=
-  permSplit_true hperm (spotFilePipX_storeAuthorizedSplit hsz36 hmatch h)
 
 theorem spotFilePipX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}

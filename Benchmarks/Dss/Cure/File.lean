@@ -285,19 +285,6 @@ theorem RD.cureFileWaitStorePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : 
     simpa [hmatch, fileWaitShiftConst] using
       rd1212.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem RD.cureFileWaitStorePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {data what ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
-    (hmatch : what = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
-      (data :: what :: ret :: R) mem aw rdata σ k C)
-    (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
-      (data :: what :: ret :: R) mem aw rdata
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' :=
-  permSplit_true hperm (RD.cureFileWaitStorePrefixSplit hmatch h hov)
-
 theorem cureFileX_storeWaitPrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
@@ -313,21 +300,6 @@ theorem cureFileX_storeWaitPrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : �
         (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C') ∨
       (I.perm = false ∧ RDstatic cureBytecode g s0) := by
   exact RD.cureFileWaitStorePrefixSplit hmatch h (by simp)
-
-theorem cureFileX_storeWaitPrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256}
-    (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
-      [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
-      [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C' :=
-  permSplit_true hperm (cureFileX_storeWaitPrefixSplit hmatch h)
 
 abbrev cureFileEventTopic : UInt256 :=
   ⟨105627225169409785158710363763375725481095598661489361122320324215644262229191⟩
@@ -428,18 +400,6 @@ theorem cureFileX_storeWaitSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
   exact RD.cureFileEventTail h1290 hperm hmem hread64 (by simp)
-
-theorem cureFileX_storeWait {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256}
-    (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
-    (h : RD cureBytecode I g s0 ⟨1188⟩
-      [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret cureBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty :=
-  permSplit_true hperm (cureFileX_storeWaitSplit hmatch h)
 
 abbrev cureFileUnrecognizedRawWord : UInt256 :=
   ⟨30512471488687873977596731382547105769570624897107015348524753129233065181184⟩
@@ -684,18 +644,6 @@ theorem cureFileSourceBodyOkSplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic (hprefix (ExecBlock.consStatic
       (ExecStmt.iteTrue hcond (ExecBlock.consStatic
         (ExecStmt.assignStatic hdata hassign (by simpa [evm0, initState] using hperm))))))
-
-theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩)
-    (hwhat : fileWhat I = fileWaitBytes) :
-    let locals := fileLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (cureFileSourceBodyOkSplit hwv hauth hlive hwhat).1
 
 theorem cureFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)

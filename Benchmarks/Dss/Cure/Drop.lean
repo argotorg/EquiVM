@@ -912,27 +912,6 @@ theorem RD.cureDropNoSwapStoreAndLogReturnSplit {g : Sat256} {s0 : State}
   simpa [dropNoSwapFinalAccountMapFor] using
     RD.stop rdRetJd (by native_decide) (by evm_ov)
 
-theorem RD.cureDropNoSwapStoreAndLogReturn {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨2962⟩ (key :: ⟨484⟩ :: R) mem
-        (UInt256.ofNat 3) rdata σ k C)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
-    (hnoswap :
-      (solcSlotWord σ ee ⟨2⟩).toNat ≤
-        (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key)).toNat)
-    (hperm : ee.perm = true)
-    (hlenPos : 0 < (solcSlotWord σ ee ⟨2⟩).toNat)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 20 ≤ 1024) :
-    RDret cureBytecode g s0
-      (dropNoSwapFinalAccountMapFor σ ee key (solcSlotWord σ ee ⟨2⟩))
-      ByteArray.empty :=
-  permSplit_true hperm (RD.cureDropNoSwapStoreAndLogReturnSplit
-    h hcanonKey hpos hnoswap hlenPos hmem hread64 hov)
-
 theorem RD.cureDropNoSwapPopEmptyInvalid {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}

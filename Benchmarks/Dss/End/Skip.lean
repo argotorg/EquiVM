@@ -6290,31 +6290,6 @@ theorem endSkipX_artStoreAtHashSplit {σ σmem σcall σpost σ₀ A I}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSkipPostArtAccountMap, memStore] using rd4216raw⟩
 
-theorem endSkipX_artStoreAtHash {σ σmem σcall σpost σ₀ A I}
-    {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
-    (hloBid : 256 ≤ bidOut.size)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
-      (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
-        endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
-        endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
-        endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
-        endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
-      (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret σpost k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4216⟩
-      (⟨0⟩ :: endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
-        endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
-        endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
-        endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
-        endSkipReturnPc :: sel :: [])
-      (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (endSkipPostArtAccountMap σpost I
-        (endSkipArtNewWord σpost I vatOut bidOut)) k' C' :=
-  permSplit_true hperm (endSkipX_artStoreAtHashSplit hsz68 hloCat hloVat hloBid h)
-
 theorem endSkipX_artStoreIntGuardOkSplit {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)

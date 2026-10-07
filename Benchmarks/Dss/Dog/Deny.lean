@@ -321,21 +321,6 @@ theorem RD.dogDenyStoreZeroLogSplit {code : ByteArray} {g : Sat256} {s0 : State}
   have rdPop := rdLog.pop hd66 (by evm_ov)
   exact ⟨_, _, rdPop.jump hd67 hret (by evm_ov)⟩
 
-theorem RD.dogDenyStoreZeroLog {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : dogDenyStoreZeroLogWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3)
-      rdata (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' :=
-  permSplit_true hperm (RD.dogDenyStoreZeroLogSplit h hwf hret hmem hread64 hcanonKey hov)
-
 theorem dogDenyBodyCoreOk
     {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

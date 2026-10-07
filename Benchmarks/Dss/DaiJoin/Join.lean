@@ -739,36 +739,6 @@ theorem daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit (evm evmVat evmBurn : EVM.
       (hprefix (ExecBlock.consStatic
         (ExecStmt.emitStatic (evalExprs_daiJoinJoinEvent evmBurn I) hperm)))
 
-theorem daiJoinJoinDaiBurnSuccessAfterVatReturns (evm evmVat evmBurn : EVM.State)
-    (I : ExecutionEnv) (outMove outBurn : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size)
-    (hvatCode :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
-    (hcallMove :
-      typedCallViaEVM config evm
-        (EVM.address (daiJoinVatAddress evm.accountMap evm.executionEnv)) "move" 0
-        [.address evm.executionEnv.codeOwner,
-          .address (AccountAddress.ofUInt256 (joinUsrMaskedWord I)),
-          .int (Int.ofNat (daiJoinRadWord (joinWadWord I)).toNat)]
-        (true, evmVat, outMove) true)
-    (hdaiCode :
-      Reasoning.Theory.extCodeSizeWord evmVat.accountMap
-        (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
-    (hcallBurn :
-      typedCallViaEVM config evmVat
-        (EVM.address (daiJoinDaiAddress evmVat.accountMap evmVat.executionEnv)) "burn" 0
-        [.address evmVat.executionEnv.source, joinWadValue I]
-        (true, evmBurn, outBurn) true) :
-    ExecTransitionBody config contract evm (joinStore I) joinTransition.body
-      (.returned
-        { contract := contract,
-          locals := (joinAfterMoveStore I).insert "burnRet" (collapseReturns []) }
-        evmBurn none) :=
-  (daiJoinJoinDaiBurnSuccessAfterVatReturnsSplit
-    evm evmVat evmBurn I outMove outBurn hwv hfit hvatCode hcallMove hdaiCode hcallBurn).1
-
 theorem daiJoinJoinVatMoveCallFailedCore
     {σ σ' σ₀ A I} {g sel gasWord : UInt256}
     {Ain : Substate} {out : ByteArray} {k C : ℕ}

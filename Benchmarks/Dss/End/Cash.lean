@@ -2112,23 +2112,6 @@ theorem endCashX_outStoreAtHashSplit {σ σ' σ₀ A I}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endCashPostAccountMap] using rdStoredRaw⟩
 
-theorem endCashX_outStoreAtHash {σ σ' σ₀ A I}
-    {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9940⟩
-      [endCashOutSlot I, outNew, solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩,
-        ⟨32⟩, ⟨0⟩, outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
-      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
-      σ' k C) :
-    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9941⟩
-      [solcMappingSlot ⟨17⟩ (endCashIlkWord I), ⟨64⟩, ⟨32⟩, ⟨0⟩, outNew,
-        endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
-      (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
-      (endCashPostAccountMap σ' I outNew) k' C' :=
-  permSplit_true hperm (endCashX_outStoreAtHashSplit h)
-
 theorem endCashX_bagSlotReady {σ σ' σ₀ A I}
     {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
     (h : RD endBytecode I (Sat256.ofUInt256 g)
@@ -2280,22 +2263,6 @@ theorem endCashX_outStoreGuardSplit {σ σ' σ₀ A I} {g sel outNew : UInt256}
     fun _hperm hstore ↦ ?_
   obtain ⟨_, _, rdStored⟩ := hstore
   exact endCashX_bagLoadGuard (g := g) rdStored
-
-theorem endCashX_outStoreGuard {σ σ' σ₀ A I} {g sel outNew : UInt256}
-    {out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
-    (h : RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9911⟩
-      [outNew, endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
-      (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
-      σ' k C) :
-    ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9951⟩
-      [endCashPostBagWord σ' I outNew, outNew, endCashWadWord I, endCashIlkWord I,
-        endCashReturnPc, sel]
-      (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
-      (endCashPostAccountMap σ' I outNew) k' C' :=
-  permSplit_true hperm (endCashX_outStoreGuardSplit hsz68 h)
 
 theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σ : AccountMap} {out : ByteArray}

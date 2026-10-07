@@ -512,20 +512,6 @@ theorem RD.catFileAddressStoreVowSplit {g : Sat256} {s0 : State} {ee : Execution
   have rd1147 := rd1146.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd1147.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.catFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {dataKey what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD catBytecode ee g s0 ⟨3169⟩ (dataKey :: what :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileAddressVowBytes)
-    (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨4⟩
-        (setAddressOffset0Word (solcSlotWord σ ee ⟨4⟩) dataKey)) k' C' :=
-  permSplit_true hperm (RD.catFileAddressStoreVowSplit h hmatch hret hov)
-
 theorem RD.catFileAddressSkipVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {dataKey what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {acc : AccountMap}
@@ -647,20 +633,6 @@ theorem RD.catFileAddressVowSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt
   refine Or.inl ⟨hperm, ?_⟩
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
-
-theorem RD.catFileAddressVowSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
-      ⟨591⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
-    (hsz68 : 68 ≤ I.calldata.size)
-    (hsize : I.calldata.size < UInt256.size)
-    (hauth :
-      solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
-    (hwhat : fileAddressWhat I = fileAddressVowBytes) :
-    RDret catBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩
-        (setAddressOffset0Word (solcSlotWord σ I ⟨4⟩) (fileAddressDataKey I))) ByteArray.empty :=
-  permSplit_true hperm (RD.catFileAddressVowSuccessSplit hreach hsz68 hsize hauth hwhat)
 
 theorem RD.catFileAddressUnrecognizedParamRevert
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}

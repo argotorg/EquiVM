@@ -525,21 +525,6 @@ theorem fileIlkUintHoleSourceBodySplit {v : DogImmutables} {σ σ₀ A I}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem fileIlkUintHoleSourceBody {v : DogImmutables} {σ σ₀ A I}
-    {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz100 : 100 ≤ I.calldata.size)
-    (hauth : solcSlotWordAt (dogCallerWardsSlot I) σ I = ⟨1⟩)
-    (hnotChop : fileIlkUintWhat I ≠ fileIlkUintChopBytes)
-    (hwhat : fileIlkUintWhat I = fileIlkUintHoleBytes) :
-    let locals := fileIlkUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner
-      (fileIlkUintHoleSlotFor I) (fileIlkUintData I)
-    ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
-      (.returned { contract := contract v, locals := locals } evm1 none) :=
-  (fileIlkUintHoleSourceBodySplit hwv hsz100 hauth hnotChop hwhat).1
-
 theorem fileIlkUintUnrecognizedSourceBody {v : DogImmutables} {σ σ₀ A I}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1136,26 +1121,6 @@ theorem RD.dogFileIlkUintStoreChopLogSplit {v : DogImmutables} {code : ByteArray
     (ret := ret) (sel := sel) (R := R) hpatch
     (by simpa [hmatch, hconst] using rdTail) hret hperm hhashSize hhashRead64 hov
 
-theorem RD.dogFileIlkUintStoreChopLog {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨934⟩ (data :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hmatch : what = ABI.bytesToWord fileIlkUintChopBytes)
-    (hge : (1000000000000000000 : Nat) ≤ data.toNat)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C' :=
-  permSplit_true hperm
-    (RD.dogFileIlkUintStoreChopLogSplit hpatch h hmatch hge hret hmem hread64 hov)
-
 theorem RD.dogFileIlkUintStoreHoleLogSplit {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
@@ -1329,26 +1294,6 @@ theorem RD.dogFileIlkUintStoreHoleLogSplit {v : DogImmutables} {code : ByteArray
     (v := v) (code := code) (data := data) (what := what) (ilk := ilk)
     (ret := ret) (sel := sel) (R := R) hpatch
     (by simpa [hmatch, hconstHole] using rdTail) hret hperm hhashSize hhashRead64 hov
-
-theorem RD.dogFileIlkUintStoreHoleLog {v : DogImmutables} {code : ByteArray}
-    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code ee g s0 ⟨934⟩ (data :: what :: ilk :: ret :: sel :: R) mem
-      (UInt256.ofNat 3) rdata σ k C)
-    (hnotChop : what ≠ ABI.bytesToWord fileIlkUintChopBytes)
-    (hmatch : what = ABI.bytesToWord fileIlkUintHoleBytes)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret (sel :: R)
-      (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 data) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C' :=
-  permSplit_true hperm
-    (RD.dogFileIlkUintStoreHoleLogSplit hpatch h hnotChop hmatch hret hmem hread64 hov)
 
 theorem RD.dogFileIlkUintChopLtWadRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}

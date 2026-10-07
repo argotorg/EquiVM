@@ -211,17 +211,6 @@ theorem endRelyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
 
-theorem endRelyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hsrc : evm.executionEnv.source = I.source)
-    (hauth :
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endRelyAuthStorageSlot I) =
-        ⟨1⟩) :
-    ExecTransitionBody config contract evm (endRelyStore I) relyTransition.body
-      (.returned { contract := contract, locals := endRelyStore I }
-        (endRelyPostState evm I) none) :=
-  (endRelyBodyReturnsSplit evm I hwv hsrc hauth).1
-
 theorem endRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -685,16 +674,6 @@ theorem endRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   have hstop := RD.stop rdStopPc (by native_decide) (by evm_ov)
   simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
-theorem endRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD endBytecode I g s0 endRelyStorePc
-      [endRelyUsrMaskedWord I, endRelyReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (endRelyX_storeAuthorizedSplit h)
-
 theorem endX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
@@ -709,17 +688,6 @@ theorem endX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := endRelyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, hokPc⟩ := endRelyX_authorized (I := I) hauth hdecoded
   exact endRelyX_storeAuthorizedSplit hokPc
-
-theorem endX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD endBytecode I g
-      (initState σ σ₀ g A I) endRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨1⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (endX_rely_okSplit hsz36 hsize hauth hreach)
 
 theorem endX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

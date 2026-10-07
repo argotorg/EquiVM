@@ -137,18 +137,6 @@ theorem RD.catClawStoreLitterSplit {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have rd3365 := rd3364.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, rd3365.jump (by native_decide) hret (by evm_ov)⟩
 
-theorem RD.catClawStoreLitter {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {σ : AccountMap} {k C : ℕ}
-    (h : RD catBytecode ee g s0 ⟨3348⟩ (rad :: ret :: R) mem aw rdata σ k C)
-    (hret : (D_J catBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hle : rad.toNat ≤ (solcSlotWord σ ee ⟨6⟩).toNat)
-    (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD catBytecode ee g s0 ret R mem aw rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨6⟩ (UInt256.sub (solcSlotWord σ ee ⟨6⟩) rad)) k' C' :=
-  permSplit_true hperm (RD.catClawStoreLitterSplit h hret hle hov)
-
 theorem RD.catClawStoreLitterRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {σ : AccountMap} {k C : ℕ}

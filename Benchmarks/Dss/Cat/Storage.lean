@@ -54,18 +54,6 @@ theorem catStoreLiveZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdOut⟩ := rdStore.sstore hperm hd5 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd6 hret (by evm_ov)⟩
 
-theorem catStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : catStoreLiveZeroWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨2⟩ ⟨0⟩) k' C' :=
-  permSplit_true hperm (catStoreLiveZeroSplit h hwf hret hov)
-
 end Benchmarks.Dss.Cat.RD
 
 end

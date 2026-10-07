@@ -315,17 +315,6 @@ theorem flipperFileUintSourceBodyBegSplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem flipperFileUintSourceBodyBeg {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (hwhat : fileUintWhat I = fileUintBegBytes) :
-    let locals := fileUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨4⟩ (fileUintData I)
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flipperFileUintSourceBodyBegSplit hwv hauth hwhat).1
-
 theorem flipperFileUintSourceBodyTtlSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
@@ -391,20 +380,6 @@ theorem flipperFileUintSourceBodyTtlSplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
-
-theorem flipperFileUintSourceBodyTtl {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
-    (hwhat : fileUintWhat I = fileUintTtlBytes) :
-    let locals := fileUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩
-      (setUint48Offset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨5⟩)
-        (fileUintData48 I))
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flipperFileUintSourceBodyTtlSplit hwv hauth hnotBeg hwhat).1
 
 theorem flipperFileUintSourceBodyTauSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -480,21 +455,6 @@ theorem flipperFileUintSourceBodyTauSplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
-
-theorem flipperFileUintSourceBodyTau {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
-    (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
-    (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
-    (hwhat : fileUintWhat I = fileUintTauBytes) :
-    let locals := fileUintLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩
-      (setUint48Offset6Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨5⟩)
-        (fileUintData48 I))
-    ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flipperFileUintSourceBodyTauSplit hwv hauth hnotBeg hnotTtl hwhat).1
 
 theorem flipperFileUintSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -903,17 +863,6 @@ theorem flipperFileUintX_storeBegSplit {σ I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   simpa [solcSlotWord] using RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperFileUintX_storeBeg {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintBegBytes)
-    (h : RD flipperBytecode I g s0 ⟨1787⟩
-      [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileUintData I)) ByteArray.empty :=
-  permSplit_true hperm (flipperFileUintX_storeBegSplit hmatch h)
-
 theorem flipperFileUintX_storeTtlSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
@@ -1016,20 +965,6 @@ theorem flipperFileUintX_storeTtlSplit {σ I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setUint48Offset0Word, fileUintData48, hword] using
     RD.stop rd324 (by native_decide) (by evm_ov)
-
-theorem flipperFileUintX_storeTtl {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintTtlBytes)
-    (h : RD flipperBytecode I g s0 ⟨1787⟩
-      [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩
-        (setUint48Offset0Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
-      ByteArray.empty :=
-  permSplit_true hperm (flipperFileUintX_storeTtlSplit hnotBeg hmatch h)
 
 theorem flipperFileUintX_matchTauToSload {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
@@ -1134,18 +1069,6 @@ theorem flipperFileUintX_storeTauTailSplit {σ I} {g : Sat256} {s0 : State}
     RD.stop rd324 (by native_decide) (by evm_ov)
   simpa [σTau, hword] using hstop
 
-theorem flipperFileUintX_storeTauTail {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (h : RD flipperBytecode I g s0 ⟨1874⟩
-      [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩
-        (setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
-      ByteArray.empty :=
-  permSplit_true hperm (flipperFileUintX_storeTauTailSplit h)
-
 theorem flipperFileUintX_storeTauSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
@@ -1164,21 +1087,6 @@ theorem flipperFileUintX_storeTauSplit {σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd1855⟩ := flipperFileUintX_skipBegTtl hnotBeg hnotTtl h
   obtain ⟨_, _, rd1874⟩ := flipperFileUintX_matchTauToSload hmatch rd1855
   exact flipperFileUintX_storeTauTailSplit rd1874
-
-theorem flipperFileUintX_storeTau {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
-    (hnotTtl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintTtlBytes)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintTauBytes)
-    (h : RD flipperBytecode I g s0 ⟨1787⟩
-      [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flipperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩
-        (setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
-      ByteArray.empty :=
-  permSplit_true hperm (flipperFileUintX_storeTauSplit hnotBeg hnotTtl hmatch h)
 
 theorem flipperFileUintX_unrecognizedTau {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}

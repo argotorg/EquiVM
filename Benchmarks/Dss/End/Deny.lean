@@ -72,17 +72,6 @@ theorem endDenyBodyReturnsSplit (evm : EVM.State) (I : ExecutionEnv)
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hval hassign hperm)))
 
-theorem endDenyBodyReturns (evm : EVM.State) (I : ExecutionEnv)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hsrc : evm.executionEnv.source = I.source)
-    (hauth :
-      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endRelyAuthStorageSlot I) =
-        ⟨1⟩) :
-    ExecTransitionBody config contract evm (endRelyStore I) denyTransition.body
-      (.returned { contract := contract, locals := endRelyStore I }
-        (endDenyPostState evm I) none) :=
-  (endDenyBodyReturnsSplit evm I hwv hsrc hauth).1
-
 theorem endDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -347,16 +336,6 @@ theorem endDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   have hstop := RD.stop rdStopPc (by native_decide) (by evm_ov)
   simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
-theorem endDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD endBytecode I g s0 endDenyStorePc
-      [endRelyUsrMaskedWord I, endRelyReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (endDenyX_storeAuthorizedSplit h)
-
 theorem endX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
@@ -371,17 +350,6 @@ theorem endX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := endDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, hokPc⟩ := endDenyX_authorized (I := I) hauth hdecoded
   exact endDenyX_storeAuthorizedSplit hokPc
-
-theorem endX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hauth : endRelyAuthWord σ I = ⟨1⟩)
-    (hreach : ∃ k C, RD endBytecode I g
-      (initState σ σ₀ g A I) endDenyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret endBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ (endRelyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (endX_deny_okSplit hsz36 hsize hauth hreach)
 
 theorem endX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

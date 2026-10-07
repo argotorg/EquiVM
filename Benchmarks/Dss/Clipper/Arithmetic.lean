@@ -1553,17 +1553,6 @@ theorem RD.clipperUpchostStoreChostReturnSplit {code : ByteArray} (v : ClipperIm
     raw jumpdest (by clipper_runtime_decode) (by evm_ov)]
   exact RD.stop rd1811 (by clipper_runtime_decode) (by evm_ov)
 
-theorem RD.clipperUpchostStoreChostReturn {code : ByteArray} (v : ClipperImmutables)
-    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
-    {chost dust sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
-      σ k C)
-    (hperm : ee.perm = true) :
-    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty :=
-  permSplit_true hperm (RD.clipperUpchostStoreChostReturnSplit v hpatch h)
-
 end Reasoning.Reach
 
 end Benchmarks.Dss.Clipper

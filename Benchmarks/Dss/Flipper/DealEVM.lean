@@ -1901,16 +1901,6 @@ theorem flipperDealX_vatDeleteReturnSplit {I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
-    {σmem σcall σ : AccountMap}
-    {k C : ℕ} {out : ByteArray} {selector target id sel : UInt256}
-    (hperm : I.perm = true)
-    (h : RD flipperBytecode I g s0 ⟨1633⟩
-      (⟨260⟩ :: selector :: target :: id :: ⟨323⟩ :: sel :: [])
-      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out σ k C) :
-    RDret flipperBytecode g s0 (dealBidDeleteAccountMap I σ id) ByteArray.empty :=
-  permSplit_true hperm (flipperDealX_vatDeleteReturnSplit h)
-
 theorem flipperDealX_vatDeleteReturnFromPostCallSplit {σmem σcall σ σ₀ A I}
     {g : UInt256} {k C : ℕ}
     {out : ByteArray}
@@ -1928,18 +1918,5 @@ theorem flipperDealX_vatDeleteReturnFromPostCallSplit {σmem σcall σ σ₀ A I
   flipperDealX_vatDeleteReturnSplit
     (selector := ⟨1628552750⟩) (target := flipperVatTargetWord σcall I)
     (id := dealId I) (sel := flipperSelWord I) h
-
-theorem flipperDealX_vatDeleteReturnFromPostCall {σmem σcall σ σ₀ A I}
-    {g : UInt256} {k C : ℕ}
-    {out : ByteArray} (hperm : I.perm = true)
-    (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState σmem σ₀ (Sat256.ofUInt256 g) A I) ⟨1633⟩
-      (⟨260⟩ :: ⟨1628552750⟩ :: flipperVatTargetWord σcall I ::
-        dealId I :: ⟨323⟩ :: flipperSelWord I :: [])
-      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out σ k C) :
-    RDret flipperBytecode (Sat256.ofUInt256 g)
-      (initState σmem σ₀ (Sat256.ofUInt256 g) A I)
-      (dealBidDeleteAccountMap I σ (dealId I)) ByteArray.empty :=
-  permSplit_true hperm (flipperDealX_vatDeleteReturnFromPostCallSplit h)
 
 end Benchmarks.Dss.Flipper

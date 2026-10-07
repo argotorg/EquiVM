@@ -814,29 +814,6 @@ theorem flopperDealBodyReturns_mintCallSuccessSplit
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
-theorem flopperDealBodyReturns_mintCallSuccess
-    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨1⟩)
-    (htic : dealTicWord evm I ≠ ⟨0⟩)
-    (hfinished :
-      (dealTicWord evm I).toNat < (dealTimestampWord evm).toNat ∨
-      (dealEndWord evm I).toNat < (dealTimestampWord evm).toNat)
-    (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap (dealGemWord evm) ≠ ⟨0⟩)
-    (hcall :
-      typedCallViaEVM config evm
-        (EVM.address (AccountAddress.ofNat (dealGemWord evm).toNat))
-        "mint" 0
-        [.address (AccountAddress.ofNat (dealGuyWord evm I).toNat),
-          .int (Int.ofNat (dealLotWord evm I).toNat)]
-        (true, evm', out) true) :
-    ExecTransitionBody config contract evm (dealLocals I) dealTransition.body
-      (.returned { contract := contract, locals := dealMintLocals I }
-        (auctionDeletePostState (dealIdWord I) evm') none) :=
-  (flopperDealBodyReturns_mintCallSuccessSplit
-    evm evm' I out hwv hlive htic hfinished hcodeSize hcall).1
-
 theorem flopperDecode_deal_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)
       (transitionSignature dealTransition).paramTypes I.calldata = some (dealLocals I) := by

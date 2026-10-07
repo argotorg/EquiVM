@@ -529,16 +529,6 @@ theorem daiRelyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   simpa [relyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd687 (by native_decide) (by evm_ov)
 
-theorem daiRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD daiBytecode I g s0 ⟨2363⟩
-      [relyGuyMaskedWord I, ⟨686⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyGuyStorageSlot I) ⟨1⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (daiRelyX_storeAuthorizedSplit h)
-
 theorem daiX_rely_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)

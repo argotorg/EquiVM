@@ -664,19 +664,6 @@ theorem RD.cureCageLiveStoreSplit {code : ByteArray} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdStore⟩ := rdPrefix.sstore hperm hd5 (by evm_ov)
   exact ⟨_, _, by simpa [cureCageLiveStoreOutPc] using rdStore⟩
 
-theorem RD.cureCageLiveStore {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray}
-    {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : cureCageLiveStoreWf code pc)
-    (hperm : ee.perm = true)
-    (hov : R.length + 3 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 (cureCageLiveStoreOutPc pc) (ret :: R) mem
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨1⟩ ⟨0⟩) k' C' :=
-  permSplit_true hperm (RD.cureCageLiveStoreSplit h hwf hov)
-
 theorem cureCageReachAfterLiveStoreSplit {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
@@ -735,20 +722,6 @@ theorem cureCageReachAfterLiveStoreSplit {σ σ₀ A I} {g : UInt256}
   rcases hfirstWrite with ⟨hperm, _, _, hafterStore⟩ | hstatic
   · exact Or.inl ⟨hperm, _, _, by simpa [cureCageLiveStoreOutPc] using hafterStore⟩
   · exact Or.inr hstatic
-
-theorem cureCageReachAfterLiveStore {σ σ₀ A I} {g : UInt256}
-    (hcode : I.code = cureBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 1))
-    (hauth : solcSlotWordAt (cureCallerWardsSlot I) σ I = ⟨1⟩)
-    (hlive : solcSlotWordAt ⟨1⟩ σ I = ⟨1⟩) :
-    ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2742⟩
-      [⟨484⟩, cureSelWord I]
-      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩) k C :=
-  permSplit_true hperm (cureCageReachAfterLiveStoreSplit hcode hsize hwv hsel hauth hlive)
 
 abbrev cureCageEventTopic : UInt256 :=
   ⟨15846720854843032105251646702598932867924719938341352344186736728916659600346⟩

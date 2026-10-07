@@ -5337,22 +5337,6 @@ theorem flapperTendX_refundCallSuccessToPayStartSplit
   have rd2598 := rd2597.pop (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa [id] using rd2598⟩
 
-theorem flapperTendX_refundCallSuccessToPayStart
-    {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}
-    {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (rd2544 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2544⟩
-      (⟨1⟩ :: yankMoveEndPtr :: yankMoveSelectorWord ::
-        gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) out τ k C) :
-    let id := tendIdWord I
-    let memGuy := twoWordHashMem id ⟨1⟩ mem
-    let σGuy := tendRuntimeAfterGuyMap I.codeOwner τ I
-    ∃ k' C', RD flapperBytecode I g (initState σ σ₀ g A I) ⟨2598⟩
-      [tendBidWord I, tendLotWord I, id, ⟨360⟩, sel]
-      memGuy (UInt256.ofNat 8) out σGuy k' C' :=
-  permSplit_true hperm (flapperTendX_refundCallSuccessToPayStartSplit rd2544)
-
 set_option maxHeartbeats 1000000 in
 theorem flapperTendX_toCheckedAddStartFromTailAw8Split
     {σ τ σ₀ A I} {g : Sat256} {sel gem : UInt256}

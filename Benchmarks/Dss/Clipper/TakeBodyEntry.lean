@@ -274,27 +274,6 @@ theorem clipperTakeX_lockStoreSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd3610raw⟩
 
-theorem clipperTakeX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
-    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
-    (h : RD code I g s0 ⟨3604⟩
-      (clipperTakeDataLenWord I ::
-        (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
-        ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
-        clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
-        (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD code I g s0 ⟨3610⟩
-      (clipperTakeDataLenWord I ::
-        (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
-        ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
-        clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
-        (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' :=
-  permSplit_true hperm (clipperTakeX_lockStoreSplit v hpatch h)
-
 set_option maxHeartbeats 1000000 in
 theorem clipperTakeX_stoppedClosed {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}

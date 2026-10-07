@@ -413,16 +413,6 @@ theorem daiJoinDenyX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   have hstop := RD.stop rd166 (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
-theorem daiJoinDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD daiJoinBytecode I g s0 ⟨1176⟩
-      [relyUsrMaskedWord I, ⟨232⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret daiJoinBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (daiJoinDenyX_storeAuthorizedSplit h)
-
 theorem daiJoinX_deny_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)

@@ -263,15 +263,6 @@ theorem spotCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : �
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
 
-theorem spotCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
-    (h : RD spotBytecode I g s0 ⟨1661⟩ [⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (spotCageX_storeAuthorizedSplit h)
-
 theorem spotX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD spotBytecode I g

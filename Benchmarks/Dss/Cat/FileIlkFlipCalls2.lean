@@ -285,23 +285,6 @@ theorem RD.catFileIlkFlipStoreSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv
   obtain ⟨_, _, rd3625⟩ := rd3624.sstore hperm hstoreDec (by evm_ov)
   exact ⟨_, _, rd3625⟩
 
-theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {vatM flip ret sel : UInt256} {mem rdata : ByteArray}
-    {σ' : AccountMap}
-    (rd : RD catBytecode ee g s0 ⟨3582⟩
-      (vatM :: flip :: fileIlkFlipWhatWord ee :: fileIlkFlipIlkWord ee :: ret :: sel :: [])
-      mem (UInt256.ofNat 6) rdata σ' k C)
-    (hmem : mem.size = 164)
-    (hperm : ee.perm = true) :
-    ∃ k' C', RD catBytecode ee g s0 ⟨3626⟩
-      (UInt256.land flip solcAddrMask :: solcAddrMask :: ⟨64⟩ :: ⟨0⟩ :: vatM :: flip ::
-        fileIlkFlipWhatWord ee :: fileIlkFlipIlkWord ee :: ret :: sel :: [])
-      (twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem) (UInt256.ofNat 6) rdata
-      (sstoreAccountMap ee.codeOwner σ' (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))
-        (setAddressOffset0Word
-          (solcSlotWord σ' ee (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))) flip)) k' C' :=
-  permSplit_true hperm (RD.catFileIlkFlipStoreSplit rd hmem)
-
 
 /-! ### hope calldata coupling — kiss-style over an abstract 164-byte base (in-bounds writes) -/
 

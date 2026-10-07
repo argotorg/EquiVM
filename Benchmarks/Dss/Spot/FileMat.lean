@@ -312,19 +312,6 @@ theorem spotFileMatSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem spotFileMatSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hlive : spotLiveWord σ I = ⟨1⟩)
-    (hwhat : fileMatWhatBytes I = fileMatBytes) :
-    let locals := fileMatLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fileMatSlotFor I) (fileMatData I)
-    ExecTransitionBody config contract evm0 locals fileMatTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (spotFileMatSourceBodySplit hwv hsz36 hauth hlive hwhat).1
-
 theorem spotFileMatSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩) :
@@ -768,17 +755,6 @@ theorem spotFileMatX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C 
   have rd214 := rd1270.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   simpa [fileMatSlotFor_eq hsz36] using RD.stop rd215 (by native_decide) (by evm_ov)
-
-theorem spotFileMatX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
-    (hmatch : fileMatWhatWord I = ABI.bytesToWord fileMatBytes)
-    (h : RD spotBytecode I g s0 ⟨1149⟩
-      [fileMatData I, fileMatWhatWord I, fileMatIlkWord I, ⟨214⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (fileMatSlotFor I) (fileMatData I))
-      ByteArray.empty :=
-  permSplit_true hperm (spotFileMatX_storeAuthorizedSplit hsz36 hmatch h)
 
 theorem spotFileMatX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}

@@ -121,14 +121,4 @@ theorem initializerBeginSourceSplit (evm : EVM.State) (locals : Store)
     exact ExecStmt.iteTrue (by simpa only [htop] using hcond)
       (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm))
 
-theorem initializerBeginSource (evm : EVM.State) (locals : Store)
-    (hi : locals.get? "_initializing" = none) (hz : locals.get? "_initialized" = none)
-    (ht : locals.get? "isTopLevelCall" = some (.bool (initializeTop evm))) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
-      (.ite (.var "isTopLevelCall")
-        [.assign .storage initializingRef (.boolLit true),
-          .assign .storage initializedRef (.boolLit true)] [])
-      (.ok { contract := auctionContract, locals := locals } (initializerEnteredState evm)) :=
-  (initializerBeginSourceSplit evm locals hi hz ht).1
-
 end Auction

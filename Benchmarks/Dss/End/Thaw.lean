@@ -2449,18 +2449,6 @@ theorem endThawX_debtStoreLogReturnSplit {σ σ' σ₀ A I}
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
 
-theorem endThawX_debtStoreLogReturn {σ σ' σ₀ A I}
-    {g : Sat256} {sel debtNew : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hmem : mem.size = 164)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨5190⟩
-      (debtNew :: endThawReturnPc :: sel :: [])
-      mem (UInt256.ofNat 6) rdata σ' k C) :
-    RDret endBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ' ⟨11⟩ debtNew) ByteArray.empty :=
-  permSplit_true hperm (endThawX_debtStoreLogReturnSplit hmem hread64 h)
-
 theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
@@ -4546,19 +4534,6 @@ theorem endThawTailSubAssignSplit (evm : EVM.State) (out debtOut tellOut : ByteA
   · intro hperm
     exact ExecBlock.consNormal hsubStmt
       (ExecBlock.consStatic (ExecStmt.assignStatic hdebtNew hassign hperm))
-
-theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
-    (deadline : UInt256)
-    (hle : (endThawReturnWord tellOut).toNat ≤ (endThawReturnWord debtOut).toNat) :
-    let debtNew := UInt256.sub (endThawReturnWord debtOut) (endThawReturnWord tellOut)
-    let locals := endThawStoreCureTell out debtOut tellOut deadline
-    let postLocals := endThawStoreDebtNew out debtOut tellOut deadline debtNew
-    ExecBlock config { contract := contract, locals := locals } evm
-      [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
-        .assign .storage debtRef (.var "debtNew") ]
-      (.ok { contract := contract, locals := postLocals }
-        (endThawPostState evm debtNew)) :=
-  (endThawTailSubAssignSplit evm out debtOut tellOut deadline hle).1
 
 theorem endThawBodyBlock_daiOkTail {σ σ₀ A I} {g : UInt256}
     {fDai : Frame} {evmDai : EVM.State} {result : ExecResult}

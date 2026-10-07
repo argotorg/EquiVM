@@ -1856,26 +1856,6 @@ theorem endCageIlkX_spotIlksExtcodesizeGuardSplit {σ σ' σ₀ A I}
       solcSlotWordAt, solcSlotWord, solcAddrMask, hselectorShift, hspotMask, hinSize,
       hendPtr, u256_land_comm, key] using rd9201⟩
 
-theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
-    {g : Sat256} {sel : UInt256} {vatOut : ByteArray} {k C : ℕ}
-    (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
-    (hlo : 160 ≤ vatOut.size)
-    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨9122⟩
-      (endFlowVatIlkArtWord vatOut :: endCageIlkIlkWord I ::
-        endCageIlkReturnPc :: sel :: [])
-      (endCageIlkVatIlksPostCallMem I vatOut) (UInt256.ofNat 9)
-      vatOut σ' k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨9201⟩
-      (endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I ::
-        endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I ::
-        endFlowVatIlksOutPtr :: endFlowVatIlksInSize :: endFlowVatIlksOutPtr ::
-        ⟨64⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
-        endCageIlkSpotWord (endCageIlkPostArtAccountMap σ' I vatOut) I ::
-        ⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
-      (endCageIlkSpotIlksCalldataMem I vatOut) (UInt256.ofNat 9)
-      vatOut (endCageIlkPostArtAccountMap σ' I vatOut) k' C' :=
-  permSplit_true hperm (endCageIlkX_spotIlksExtcodesizeGuardSplit hsz36 hlo h)
-
 theorem endCageIlkX_spotIlksNoCodeSplit {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)

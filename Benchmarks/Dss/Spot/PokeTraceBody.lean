@@ -1171,18 +1171,4 @@ theorem RD.spotPokeVatFileLogReturnsSplit
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
 
-theorem RD.spotPokeVatFileLogReturns
-    {σ σ' σ₀ A I} {g : Sat256} {spot has val sel : UInt256}
-    {mem rdata : ByteArray} {acc : AccountMap}
-    {k C : ℕ}
-    (hperm : I.perm = true)
-    (hmem : mem.size = 228)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (rd920 : RD spotBytecode I g
-      (initState σ σ₀ g A I) ⟨920⟩
-      (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
-        spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty :=
-  permSplit_true hperm (RD.spotPokeVatFileLogReturnsSplit hmem hread64 rd920)
 end Benchmarks.Dss.Spot

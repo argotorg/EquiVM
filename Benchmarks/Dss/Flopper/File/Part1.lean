@@ -324,17 +324,6 @@ theorem flopperFileBegSourceBodySplit {σ σ₀ A I} {g : UInt256}
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
 
-theorem flopperFileBegSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hwhat : fileWhat I = fileBegBytes) :
-    let locals := fileLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := fileBegPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flopperFileBegSourceBodySplit hwv hauth hwhat).1
-
 theorem flopperFilePadSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -396,18 +385,6 @@ theorem flopperFilePadSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
-
-theorem flopperFilePadSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hbeg : fileWhat I ≠ fileBegBytes)
-    (hpad : fileWhat I = filePadBytes) :
-    let locals := fileLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := filePadPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flopperFilePadSourceBodySplit hwv hauth hbeg hpad).1
 
 theorem flopperFileTtlSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -478,19 +455,6 @@ theorem flopperFileTtlSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
-
-theorem flopperFileTtlSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hbeg : fileWhat I ≠ fileBegBytes)
-    (hpad : fileWhat I ≠ filePadBytes)
-    (httl : fileWhat I = fileTtlBytes) :
-    let locals := fileLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := fileTtlPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flopperFileTtlSourceBodySplit hwv hauth hbeg hpad httl).1
 
 set_option maxHeartbeats 1000000 in
 theorem flopperFileTauSourceBodySplit {σ σ₀ A I} {g : UInt256}
@@ -570,20 +534,6 @@ theorem flopperFileTauSourceBodySplit {σ σ₀ A I} {g : UInt256}
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hdata hassign
         (by simp only [evm0, initState]; exact hperm))))
-
-theorem flopperFileTauSourceBody {σ σ₀ A I} {g : UInt256}
-    (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ I = ⟨1⟩)
-    (hbeg : fileWhat I ≠ fileBegBytes)
-    (hpad : fileWhat I ≠ filePadBytes)
-    (httl : fileWhat I ≠ fileTtlBytes)
-    (htau : fileWhat I = fileTauBytes) :
-    let locals := fileLocals I
-    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    let evm1 := fileTauPostState evm0 I
-    ExecTransitionBody config contract evm0 locals fileTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) :=
-  (flopperFileTauSourceBodySplit hwv hauth hbeg hpad httl htau).1
 
 theorem flopperFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1055,17 +1005,6 @@ theorem flopperFileX_storeBegAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
   have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd335 (by native_decide) (by evm_ov)
 
-theorem flopperFileX_storeBegAuthorized {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileBegBytes)
-    (h : RD flopperBytecode I g s0 ⟨1308⟩
-      [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileData I))
-      ByteArray.empty :=
-  permSplit_true hperm (flopperFileX_storeBegAuthorizedSplit hmatch h)
-
 theorem flopperFileX_storePadAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hbeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes)
@@ -1136,18 +1075,6 @@ theorem flopperFileX_storePadAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
   have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd335 (by native_decide) (by evm_ov)
 
-theorem flopperFileX_storePadAuthorized {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hbeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord filePadBytes)
-    (h : RD flopperBytecode I g s0 ⟨1308⟩
-      [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨5⟩ (fileData I))
-      ByteArray.empty :=
-  permSplit_true hperm (flopperFileX_storePadAuthorizedSplit hbeg hmatch h)
-
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperFileStoreTtlTailSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {what sel : UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -1202,16 +1129,6 @@ theorem RD.flopperFileStoreTtlTailSplit {σ I} {g : Sat256} {s0 : State}
   have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
   simpa [-Std.ExtTreeMap.get?_eq_getElem?, fileTtlPostAccountMap, hword] using RD.stop rd335 (by native_decide) (by evm_ov)
-
-theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {what sel : UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
-    (h : RD flopperBytecode I g s0 ⟨1371⟩ [fileData I, what, ⟨334⟩, sel]
-      mem aw rdata σ k C) :
-    RDret flopperBytecode g s0
-      (fileTtlPostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (RD.flopperFileStoreTtlTailSplit h)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperFileStoreTauTailSplit {σ I} {g : Sat256} {s0 : State}
@@ -1278,16 +1195,6 @@ theorem RD.flopperFileStoreTauTailSplit {σ I} {g : Sat256} {s0 : State}
   have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
   rw [hword] at rd335
   simpa [fileTauPostAccountMap] using RD.stop rd335 (by native_decide) (by evm_ov)
-
-theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {what sel : UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
-    (h : RD flopperBytecode I g s0 ⟨1415⟩ [fileData I, what, ⟨334⟩, sel]
-      mem aw rdata σ k C) :
-    RDret flopperBytecode g s0
-      (fileTauPostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (RD.flopperFileStoreTauTailSplit h)
 
 set_option maxHeartbeats 1000000 in
 theorem flopperFileX_storeTtlAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
@@ -1364,19 +1271,6 @@ theorem flopperFileX_storeTtlAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
   have rd1371 := rd1370.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.flopperFileStoreTtlTailSplit rd1371
-
-theorem flopperFileX_storeTtlAuthorized {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hbeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes)
-    (hpad : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTtlBytes)
-    (h : RD flopperBytecode I g s0 ⟨1308⟩
-      [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (fileTtlPostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperFileX_storeTtlAuthorizedSplit hbeg hpad hmatch h)
 
 set_option maxHeartbeats 1000000 in
 theorem flopperFileX_storeTauAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
@@ -1475,19 +1369,5 @@ theorem flopperFileX_storeTauAuthorizedSplit {σ I} {g : Sat256} {s0 : State}
   have rd1415 := rd1414.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.flopperFileStoreTauTailSplit rd1415
-
-theorem flopperFileX_storeTauAuthorized {σ I} {g : Sat256} {s0 : State}
-    {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
-    (hbeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes)
-    (hpad : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes)
-    (httl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTtlBytes)
-    (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes)
-    (h : RD flopperBytecode I g s0 ⟨1308⟩
-      [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flopperBytecode g s0
-      (fileTauPostAccountMap I σ)
-      ByteArray.empty :=
-  permSplit_true hperm (flopperFileX_storeTauAuthorizedSplit hbeg hpad httl hmatch h)
 
 end Benchmarks.Dss.Flopper

@@ -441,18 +441,6 @@ theorem weth9TFDecrementAllowanceSplit {ee g s0 rdata σ k C} {src dst wad ret :
   obtain ⟨_, _, rd6⟩ := rd5.sstore hperm hstoreDec (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rd6⟩
 
-theorem weth9TFDecrementAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
-    {S : List UInt256} {mem : ByteArray}
-    (h : RD weth9Bytecode ee g s0 ⟨1239⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus) (hmemsize : mem.size = 96)
-    (hov : S.length + 16 ≤ 1024) :
-    ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (solcNestedMappingCallerHashMem ⟨4⟩ src ee mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
-        (UInt256.sub (solcSlotWord σ ee (wtfAllowSlot ee src)) wad)) k' C' :=
-  permSplit_true hperm (weth9TFDecrementAllowanceSplit h hsrc hmemsize hov)
-
 
 /-- Branch join, case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance ≥ wad` (pc 1186 → 1282):
     require the allowance, decrement it. -/
@@ -490,24 +478,6 @@ theorem weth9TFBranchSpendOkSplit {ee g s0 rdata σ k C} {src dst wad ret : UInt
         (by simp only [List.length_cons]; omega)
   exact weth9TFDecrementAllowanceSplit rd1239 hsrc
     (nestedHashMem_size ⟨4⟩ src ee (wtfAllowHashMem ee src) (wtfAllowHashMem_size ee src)) hov
-
-theorem weth9TFBranchSpendOk {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
-    {S : List UInt256}
-    (h : RD weth9Bytecode ee g s0 ⟨1186⟩
-      (UInt256.isZero (UInt256.eq (UInt256.lnot ⟨0⟩)
-          (solcSlotWord σ ee (wtfAllowSlot ee src))) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
-    (hnotMax : solcSlotWord σ ee (wtfAllowSlot ee src) ≠ UInt256.lnot ⟨0⟩)
-    (hallowEnough : wad.toNat ≤ (solcSlotWord σ ee (wtfAllowSlot ee src)).toNat)
-    (hov : S.length + 16 ≤ 1024) :
-    ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (solcNestedMappingCallerHashMem ⟨4⟩ src ee
-        (solcNestedMappingCallerHashMem ⟨4⟩ src ee (wtfAllowHashMem ee src)))
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
-        (UInt256.sub (solcSlotWord σ ee (wtfAllowSlot ee src)) wad)) k' C' :=
-  permSplit_true hperm (weth9TFBranchSpendOkSplit h hsrc hnotMax hallowEnough hov)
 
 /-- Branch join, revert case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance < wad` (pc 1186 → the
     `PUSH1 0; DUP1; REVERT` stub). -/
@@ -648,19 +618,5 @@ theorem weth9TFTailSplit {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S :
     pop, push1 ⟨1⟩, swap4, swap3, pop, pop, pop,
     jump hretDest]
   exact ⟨_, _, rdRet⟩
-
-theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List UInt256}
-    {mem : ByteArray}
-    (h : RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
-    (hdst : dst.toNat < EVM.addressModulus)
-    (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hretDest : (D_J weth9Bytecode 0).contains ret = true)
-    (hov : S.length + 16 ≤ 1024) :
-    ∃ k' C', RD weth9Bytecode ee g s0 ret (⟨1⟩ :: S)
-      (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad) (UInt256.ofNat 5)
-      rdata (wtfPostMap ee σ src dst wad) k' C' :=
-  permSplit_true hperm (weth9TFTailSplit h hsrc hdst hmemsize hread64 hretDest hov)
 
 end Benchmarks.WETH9

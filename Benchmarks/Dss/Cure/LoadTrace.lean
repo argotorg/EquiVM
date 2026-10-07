@@ -699,22 +699,6 @@ theorem RD.cureLoadStoreAmtSplit {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa using rdStore⟩
 
-theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD cureBytecode ee g s0 ⟨1643⟩
-      (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R) mem (UInt256.ofNat 5)
-      rdata σ k C)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hmem : mem.size = 160)
-    (hperm : ee.perm = true)
-    (hov : R.length + 8 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ⟨1670⟩
-      (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R)
-      (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 5) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨6⟩ key) newAmt) k' C' :=
-  permSplit_true hperm (RD.cureLoadStoreAmtSplit h hcanonKey hmem hov)
-
 theorem RD.cureLoadToSubRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}

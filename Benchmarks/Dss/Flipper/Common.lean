@@ -1617,20 +1617,6 @@ theorem RD.flipperMappingStoreOneSplit {code : ByteArray} {g : Sat256} {s0 : Sta
   ∧ decode code p24 = some (.SSTORE, .none)
   ∧ decode code p25 = some (.JUMP, .none)
 
-theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : flipperMappingStoreOneWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' :=
-  permSplit_true hperm (RD.flipperMappingStoreOneSplit h hwf hret hmem hcanonKey hov)
-
 theorem RD.flipperMappingStoreZeroSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
@@ -1689,19 +1675,5 @@ theorem RD.flipperMappingStoreZeroSplit {code : ByteArray} {g : Sat256} {s0 : St
   refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
-
-theorem RD.flipperMappingStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
-    (hwf : flipperMappingStoreZeroWf code pc)
-    (hret : (D_J code 0).contains ret = true)
-    (hperm : ee.perm = true)
-    (hmem : mem.size = 96)
-    (hcanonKey : key.toNat < EVM.addressModulus)
-    (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' :=
-  permSplit_true hperm (RD.flipperMappingStoreZeroSplit h hwf hret hmem hcanonKey hov)
 
 end Benchmarks.Dss.Flipper

@@ -691,28 +691,6 @@ theorem RD.flapperAuctionDeleteTailSplit
   simpa only [base, auctionBidSlot, auctionLotSlot_eq, auctionPackedSlot_eq,
     auctionBaseSlot_eq] using hstop
 
-theorem RD.flapperAuctionDeleteTail
-    {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
-    {σ : AccountMap}
-    {k C : ℕ} {drop0 drop1 drop2 scratch id : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
-    (hMstore0Aw : UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw)
-    (hMstore32Aw : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw)
-    (hKeccakAw : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
-    (hov : R.length + 10 ≤ 1024)
-    (h : RD flapperBytecode I g s0 ⟨1190⟩
-      (drop0 :: drop1 :: drop2 :: scratch :: id :: ⟨360⟩ :: R)
-      mem aw rdata σ k C) :
-    RDret flapperBytecode g s0
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ (auctionBidSlot id) ⟨0⟩)
-          (auctionLotSlot id) ⟨0⟩)
-        (auctionPackedSlot id) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (RD.flapperAuctionDeleteTailSplit hMstore0Aw hMstore32Aw hKeccakAw hov h)
-
 theorem evalExpr_yank_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
     (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩ = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := yankLocals I } evm
@@ -1224,33 +1202,6 @@ theorem flapperYankBodyReturns_moveCallSuccessSplit
       exact hperm
     exact ExecFuncBody.execBlockStatic
       (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
-
-theorem flapperYankBodyReturns_moveCallSuccess
-    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩ = ⟨0⟩)
-    (hguy : solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
-        evm.executionEnv ≠ ⟨0⟩)
-    (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord evm.accountMap
-        (solcAddressSlotWord ⟨3⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
-    (hcall :
-      typedCallViaEVM config evm
-        (EVM.address (AccountAddress.ofNat
-          (solcAddressSlotWord ⟨3⟩ evm.accountMap evm.executionEnv).toNat))
-        "move" 0
-        [.address evm.executionEnv.codeOwner,
-        .address (AccountAddress.ofNat
-          (solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
-            evm.executionEnv).toNat),
-        .int (Int.ofNat
-          (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
-            evm.executionEnv).toNat)]
-        (true, evm', out) true) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
-      (.returned { contract := contract, locals := yankMoveLocals I }
-        (yankDeletePostState evm' I) none) :=
-  (flapperYankBodyReturns_moveCallSuccessSplit evm evm' I out hwv hlive hguy hcodeSize hcall).1
 
 
 theorem flapperDecode_yank_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -2076,25 +2027,6 @@ theorem flapperYankX_moveCallSuccessDeleteSplit
   have rd1190 := rd1180pre.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
   exact RD.flapperAuctionDeleteTailSplit
     (by native_decide) (by native_decide) (by native_decide) (by simp) rd1190
-
-theorem flapperYankX_moveCallSuccessDelete
-    {σ σ₀ A I} {g : Sat256} {sel status : UInt256}
-    {σ' : AccountMap}
-    {mem out : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hstatus : status ≠ ⟨0⟩)
-    (rd1164 : RD flapperBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
-      (status :: yankMoveEndPtr :: yankMoveSelectorWord ::
-        solcAddressSlotWord ⟨3⟩ σ I :: yankIdWord I :: ⟨360⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) out σ' k C) :
-    RDret flapperBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner
-        (sstoreAccountMap I.codeOwner
-          (sstoreAccountMap I.codeOwner σ' (auctionBidSlot (yankIdWord I)) ⟨0⟩)
-          (auctionLotSlot (yankIdWord I)) ⟨0⟩)
-        (auctionPackedSlot (yankIdWord I)) ⟨0⟩)
-      ByteArray.empty :=
-  permSplit_true hperm (flapperYankX_moveCallSuccessDeleteSplit hstatus rd1164)
 
 theorem flapperYankBodyCoreStillLive
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
