@@ -15,19 +15,19 @@ theorem clipperListSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x0f 0x56 0x0c 0xd7 (clipperSelNat 15)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_list (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_list {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 15)) :
-    dispatchMsg (contract v) I.calldata = some listTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some listTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
         kicksTransition])
     (post :=
-      [redoTransition v, relyTransition, salesTransition, spotterTransition, stoppedTransition,
-        tailTransition, takeTransition v, tipTransition, upchostTransition v, vatTransition v,
-        vowTransition, wardsTransition, yankTransition v])
+      [redoTransition, relyTransition, salesTransition, spotterTransition, stoppedTransition,
+        tailTransition, takeTransition, tipTransition, upchostTransition, vatTransition,
+        vowTransition, wardsTransition, yankTransition])
     (ti := listTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -58,9 +58,9 @@ theorem clipperDispatch_list (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -68,29 +68,29 @@ theorem clipperDispatch_list (v : ClipperImmutables) {I : ExecutionEnv}
   · rw [selectorOf, listSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_list (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_list {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (listTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (listTransition.params.map Param.name)
       (transitionSignature listTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalActiveArray (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "active" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.storage activeRef) =
-      readStorage? (config v) evm ({ base := "active", steps := [] } : EvaledStorageRef)
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm (.storage activeRef) =
+      solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         (.dynamicArray uint256St) := by
   let er : EvaledStorageRef := { base := "active", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm activeRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm activeRef = .ok er := by
     unfold evalStorageRef activeRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.dynamicArray uint256St) := by
+  have hty : storageTypeAt? contract.storage er = some (.dynamicArray uint256St) := by
     simp [er, storageTypeAt?, contract, storageDecls]
   have hres :
-      resolveStorageRef? (config v)
-        { contract := contract v, locals := locals } evm activeRef =
+      resolveStorageRef? config
+        { contract := contract, locals := locals, immutables := immStore v } evm activeRef =
         .ok (er, .dynamicArray uint256St) :=
     resolveStorageRef?_ok hbase her hty
   rw [evalExpr?]
@@ -164,85 +164,89 @@ theorem clipperListReturnEquiv (evm : EVM.State) :
   rw [show listTransition.returnType = [uint256Array] from rfl]
   exact returnEquiv_of_encode (clipperActiveArrayReturnEncoding evm)
 
-theorem clipperReadActiveElemAt (v : ClipperImmutables) (evm : EVM.State) (k : Nat) :
-    readStorage? (config v) evm
+theorem clipperReadActiveElemAt (evm : EVM.State) (k : Nat) :
+    solidityReadStorage? storageLayoutRaw evm
       ({ base := "active", steps := [.aindex (.int (Int.ofNat k))] } : EvaledStorageRef)
       uint256St =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (activeSlot (.int (Int.ofNat k)))).toNat)) := by
-  simp [show wordLoc = uint256Loc from rfl, readStorage?, config, storageLayout,
-    solidityStorageLayout, storageLayoutRaw,
+  simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+    solidityReadStorage?, solidityLeafLoc?, EvalResult.ofOption,
     storageLocLoad_uint256, uint256St]
+  simp only [EvalResult.bind, bind, pure]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  rfl
 
 theorem clipperReadActiveArrayElemsFrom (v : ClipperImmutables) (evm : EVM.State) :
     ∀ k n,
-      readArrayElems? (config v) evm ({ base := "active", steps := [] } : EvaledStorageRef)
+      solidityReadArray? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         uint256St k n = .ok (clipperActiveArrayValuesFrom evm k n)
   | _k, 0 => by
-      rw [readArrayElems?]
-      rfl
+      change solidityReadArray? storageLayoutRaw evm
+        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St _k 0 =
+          .ok (clipperActiveArrayValuesFrom evm _k 0)
+      simp [solidityReadArray?, clipperActiveArrayValuesFrom]
   | k, n + 1 => by
-      rw [readArrayElems?]
-      simp only [List.nil_append]
+      change solidityReadArray? storageLayoutRaw evm
+        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St k (n + 1) =
+          .ok (clipperActiveArrayValuesFrom evm k (n + 1))
+      rw [solidityReadArray?]
       change (do
-          let elem ← readStorage? (config v) evm
+          let elem ← solidityReadStorage? storageLayoutRaw evm
             ({ base := "active",
                steps := [EvaledStorageRefStep.aindex (KeyValue.int (Int.ofNat k))] } :
               EvaledStorageRef)
             uint256St
-          let vrest ← readArrayElems? (config v) evm
+          let vrest ← solidityReadArray? storageLayoutRaw evm
             ({ base := "active", steps := [] } : EvaledStorageRef) uint256St (k + 1) n
           pure (elem :: vrest)) = .ok (clipperActiveArrayValuesFrom evm k (n + 1))
-      rw [clipperReadActiveElemAt v evm k]
+      have hread : solidityReadStorage? storageLayoutRaw evm
+          ({ base := "active", steps := [.aindex (.int (Int.ofNat k))] } : EvaledStorageRef)
+          uint256St =
+            .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+              (activeSlot (.int (Int.ofNat k)))).toNat)) := by
+        exact clipperReadActiveElemAt evm k
+      rw [hread]
       simp only [bind, EvalResult.bind, pure]
-      rw [clipperReadActiveArrayElemsFrom v evm (k + 1) n]
+      have hrest : solidityReadArray? storageLayoutRaw evm
+          ({ base := "active", steps := [] } : EvaledStorageRef) uint256St (k + 1) n =
+            .ok (clipperActiveArrayValuesFrom evm (k + 1) n) := by
+        exact clipperReadActiveArrayElemsFrom v evm (k + 1) n
+      rw [hrest]
       rfl
 
 theorem clipperReadActiveArray (v : ClipperImmutables) (evm : EVM.State) :
-    readStorage? (config v) evm ({ base := "active", steps := [] } : EvaledStorageRef)
+    solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
       (.dynamicArray uint256St) = .ok (.array (clipperActiveArrayValues evm)) := by
-  rw [readStorage?]
-  change (match (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int len => do
-            let vs <- readArrayElems? (config v) evm
-              ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0 len.toNat
-            pure (Value.array vs)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) =
-      .ok (Value.array (clipperActiveArrayValues evm))
-  rw [show (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm =
-        some (wordLoc ⟨11⟩) from rfl]
-  simp only [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, bind, EvalResult.bind]
-  change (do
-      let vs ← readArrayElems? (config v) evm
-        ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
-      pure (Value.array vs)) = .ok (Value.array (clipperActiveArrayValues evm))
-  rw [clipperReadActiveArrayElemsFrom v evm 0
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat]
-  rfl
+  change solidityReadStorage? storageLayoutRaw evm
+    ({ base := "active", steps := [] } : EvaledStorageRef) (.dynamicArray uint256St) =
+      .ok (.array (clipperActiveArrayValues evm))
+  rw [solidityReadStorage?, clipperActiveDynamicLength]
+  have harray : solidityReadArray? storageLayoutRaw evm
+      ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat =
+        .ok (clipperActiveArrayValues evm) := by
+    exact clipperReadActiveArrayElemsFrom v evm 0
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
+  simp only [harray, EvalResult.bind, bind, pure]
 
 theorem clipperListBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "active" = none)
     {value : Value}
     (hread :
-      readStorage? (config v) evm ({ base := "active", steps := [] } : EvaledStorageRef)
+      solidityReadStorage? storageLayoutRaw evm ({ base := "active", steps := [] } : EvaledStorageRef)
         (.dynamicArray uint256St) = .ok value) :
-    ExecTransitionBody (config v) (contract v) evm locals listTransition.body
-      (.returned { contract := contract v, locals := locals } evm (some [value])) := by
+    ExecTransitionBody config contract evm locals listTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm (some [value])) (immStore v) := by
   simpa [listTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       ((clipperEvalActiveArray v evm locals hbase).trans hread)
 
 theorem clipperListBodyReturnsActive (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "active" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals listTransition.body
-      (.returned { contract := contract v, locals := locals } evm
-        (some [(.array (clipperActiveArrayValues evm))])) := by
+    ExecTransitionBody config contract evm locals listTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
+        (some [(.array (clipperActiveArrayValues evm))])) (immStore v) := by
   exact clipperListBodyReturns v evm locals h hbase (clipperReadActiveArray v evm)
 
 set_option maxHeartbeats 1000000 in

@@ -879,7 +879,7 @@ theorem flopperX_noMatch {σ σ₀ A I} {g : Sat256}
 /-- `callvalue ≠ 0` is equivalent to every Solm transition reverting on the non-payable guard. -/
 theorem flopperNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (flopperX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -903,7 +903,7 @@ theorem flopperNonPayable {σ σ₀ A I} {g : UInt256}
 theorem flopperShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (flopperX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (flopperDispatch_none_short hsz)
@@ -912,10 +912,9 @@ theorem flopperShortRevert {σ σ₀ A I} {g : UInt256}
 theorem flopperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 20 → (flopperSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flopperX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (flopperDispatch_none_nomatch hnm)

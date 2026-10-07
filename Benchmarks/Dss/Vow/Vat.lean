@@ -84,7 +84,7 @@ theorem vowVatBodyCore
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨457⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vatTransition.body
@@ -113,9 +113,9 @@ theorem vowVatBodyCore
 
 theorem vowVatBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩ rfl hsel
   exact vowVatBodyCore hcode hwv (vowDispatch_vat hsel) (vowDecode_vat hsz)

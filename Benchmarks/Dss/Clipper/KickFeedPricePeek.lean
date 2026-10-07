@@ -380,7 +380,7 @@ theorem RD.clipperKickGetFeedPricePipPeekPostCall {code : ByteArray}
     (hcodeSize : extCodeSizeWord sigma target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hcalldata :
-      (config v).externalABI.encode? "peek" [] = some (mem.readWithPadding 128 4))
+      config.externalABI.encode? "peek" [] = some (mem.readWithPadding 128 4))
     (htarget : AccountAddress.ofUInt256 target = clipperSpotterIlksPipAddress rdata)
     (hov : R.length + 80 ≤ 1024) :
     ∃ (sigma' : AccountMap) (z : Bool)
@@ -390,7 +390,7 @@ theorem RD.clipperKickGetFeedPricePipPeekPostCall {code : ByteArray}
           target :: ⟨0⟩ :: ⟨0⟩ :: pipWord :: ret :: scratch :: lot :: tab :: R)
         (clipperPipPeekPostCallMem mem o) (UInt256.ofNat 6) o
         sigma' k' C'
-    ∧ typedCallViaEVM (config v)
+    ∧ typedCallViaEVM config
         {s0 with accountMap := sigma, executionEnv := I}
         (EVM.address (clipperSpotterIlksPipAddress rdata)) "peek" 0 []
         (z, { {s0 with accountMap := sigma, executionEnv := I} with
@@ -415,7 +415,7 @@ theorem RD.clipperKickGetFeedPricePipPeekPostCall {code : ByteArray}
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           128 4) 128 64) = UInt256.ofNat 6 := by native_decide
     simpa [clipperPipPeekPostCallMem] using haw ▸ rd8953raw
-  · refine callCoincides (cfg := config v)
+  · refine callCoincides (cfg := config)
       (evm := {s0 with accountMap := sigma, executionEnv := I})
       (name := "peek") (args := [])
       (tgt := EVM.address (clipperSpotterIlksPipAddress rdata))

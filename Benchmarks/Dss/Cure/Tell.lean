@@ -73,78 +73,72 @@ theorem evalExpr_tellLiveStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage liveRef) =
         .ok (.int (Int.ofNat (tellLiveWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar (er := tellLiveEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := tellLiveEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨1⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨1⟩)
   · exact hbase
   · simp [tellLiveEvaledRef, liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellLiveEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tellLiveEvaledRef]
 
 theorem evalExpr_tellWhenStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "when" = none) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage whenRef) =
         .ok (.int (Int.ofNat (tellWhenWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar (er := tellWhenEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := tellWhenEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨4⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨4⟩)
   · exact hbase
   · simp [tellWhenEvaledRef, whenRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellWhenEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tellWhenEvaledRef]
 
 theorem evalExpr_tellLCountStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "lCount" = none) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage lCountRef) =
         .ok (.int (Int.ofNat (tellLCountWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar (er := tellLCountEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := tellLCountEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨8⟩)
   · exact hbase
   · simp [tellLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellLCountEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tellLCountEvaledRef]
 
 theorem evalExpr_tellSayStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "say" = none) :
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage sayRef) =
         .ok (.int (Int.ofNat (tellSayWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar (er := tellSayEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := tellSayEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
   · exact congrArg EvalResult.ok (storageLocLoad_uint256 _ ⟨9⟩)
   · exact hbase
   · simp [tellSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellSayEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, tellSayEvaledRef]
 
 theorem evalExpr_tellSrcsLength {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ }
       (initState σ σ₀ g A I) (.arrayLength .storage srcsRef) =
         .ok (.int (Int.ofNat (tellSrcsLenWord σ I).toNat)) := by
   simp [evalExpr?, tellSrcsLenWord, solcSlotWordAt, initState, config, contract,
-    srcsRef, storageDecls, storageLayout, solidityStorageLayout, storageLayoutRaw,
-    readStorageArrayLength?, resolveStorageRef?, storageTypeAt?, evalStorageRef,
+    srcsRef, storageDecls, storageLayout, solidityStorageBackend, storageLayoutRaw,
+    resolveStorageRef?, storageTypeAt?, evalStorageRef,
     evalStorageRefSteps, wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
-  change
-    (match storageLocLoad
-      (initState σ σ₀ g A I) (wordLoc ⟨2⟩) with
-    | Value.int n => EvalResult.ok (Value.int n)
-    | _ => EvalResult.error EvalError.storageError) =
-      EvalResult.ok (Value.int ↑(solcSlotWordAt ⟨2⟩ σ I).toNat)
-  erw [storageLocLoad_uint256]
-  simp [solcSlotWordAt, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage]
+  rw [cureSrcsLength]
+  simp [storageLocLoad_uint256, solcSlotWordAt, solcSlotWord, initState,
+    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
 
 theorem evalExpr_tellTimestamp {σ σ₀ A I} {g : Sat256} {locals : Store} :
     evalExpr? config { contract := contract, locals := locals }
@@ -950,10 +944,9 @@ theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
 theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 16)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
   have hdispatch := cureDispatchTell hsel

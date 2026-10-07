@@ -37,19 +37,19 @@ abbrev clipperKickStore (I : ExecutionEnv) : Store :=
     (clipperKickLotValue I)).insert "usr" (clipperKickUsrValue I)).insert "kpr"
     (clipperKickKprValue I)
 
-theorem clipperDispatch_kick (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_kick {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 13)) :
-    dispatchMsg (contract v) I.calldata = some (kickTransition v) := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some kickTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v])
+        fileAddressTransition, getStatusTransition, ilkTransition])
     (post :=
-      [kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v, vowTransition, wardsTransition, yankTransition v])
-    (ti := kickTransition v) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
+      [kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition, vowTransition, wardsTransition, yankTransition])
+    (ti := kickTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
     simp only [List.mem_cons, List.mem_nil_iff] at ht
@@ -79,19 +79,19 @@ theorem clipperDispatch_kick (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · cases hfalse
-  · rw [selectorOf, kickSelectorBytes v]
+  · rw [selectorOf, kickSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
 
-theorem clipperDecode_kick_ok (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_kick_ok {I : ExecutionEnv}
     (hsz132 : 132 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((kickTransition v).params.map Param.name)
-      (transitionSignature (kickTransition v)).paramTypes I.calldata =
+    decodeCalldataWithMode config.abiDecodeMode (kickTransition.params.map Param.name)
+      (transitionSignature kickTransition).paramTypes I.calldata =
         some (clipperKickStore I) := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["tab", "lot", "usr", "kpr"]
+  show decodeCalldataWithMode config.abiDecodeMode ["tab", "lot", "usr", "kpr"]
     [uint256, uint256, addr, addr] I.calldata = _
   simpa [config, clipperKickStore, clipperKickTabValue, clipperKickLotValue,
     clipperKickUsrValue, clipperKickKprValue, clipperKickTabWord, clipperKickLotWord,
@@ -99,11 +99,11 @@ theorem clipperDecode_kick_ok (v : ClipperImmutables) {I : ExecutionEnv}
     decodeCalldata_legacyUint256_uint256_address_address_ok
       (cd := I.calldata) (w := "tab") (x := "lot") (y := "usr") (z := "kpr") hsz132
 
-theorem clipperDecode_kick_none_short (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_kick_none_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 132) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((kickTransition v).params.map Param.name)
-      (transitionSignature (kickTransition v)).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode (config v).abiDecodeMode ["tab", "lot", "usr", "kpr"]
+    decodeCalldataWithMode config.abiDecodeMode (kickTransition.params.map Param.name)
+      (transitionSignature kickTransition).paramTypes I.calldata = none := by
+  show decodeCalldataWithMode config.abiDecodeMode ["tab", "lot", "usr", "kpr"]
     [uint256, uint256, addr, addr] I.calldata = none
   simpa [config] using
     decodeCalldata_legacyUint256_uint256_address_address_none_short

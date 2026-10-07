@@ -13,7 +13,7 @@ theorem spotPokeBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨185⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1084,11 +1084,10 @@ theorem RD.spotPokeVatFileCallSucceeded
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.spotPokeVatFileLogReturns
+theorem RD.spotPokeVatFileLogReturnsSplit
     {σ σ' σ₀ A I} {g : Sat256} {spot has val sel : UInt256}
     {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd920 : RD spotBytecode I g
@@ -1096,7 +1095,9 @@ theorem RD.spotPokeVatFileLogReturns
       (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
         spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
-    RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g (initState σ σ₀ g A I) acc ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g (initState σ σ₀ g A I)) := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1141,7 +1142,7 @@ theorem RD.spotPokeVatFileLogReturns
       hmload64Log (by native_decide) (by evm_ov)]
   have rd976 := rd943.pushConst pokeEventTopic (width := 32) (op := .PUSH32)
     (by decide) (by native_decide) (by evm_ov)
-  have rd992 := evm_run rd976 with [
+  have rd987 := evm_run rd976 with [
     raw swap4 (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -1151,8 +1152,16 @@ theorem RD.spotPokeVatFileLogReturns
     raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw log1 0 (UInt256.ofNat 8) (by native_decide) hperm mem_cost
+    raw pop (by native_decide) (by evm_ov)]
+  have hlogDec : decode spotBytecode ⟨987⟩ = some (.LOG1, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd987.log1Static (by simpa using hperm) hlogDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  have rd992 := evm_run rd987 with [
+    raw log1 0 (UInt256.ofNat 8) hlogDec hperm mem_cost
       (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
     raw pop (by native_decide) (by evm_ov),
@@ -1161,4 +1170,5 @@ theorem RD.spotPokeVatFileLogReturns
   have rd214 := rd992.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
+
 end Benchmarks.Dss.Spot

@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Reasoning.EVMWord
 import Solm.Semantics
 import Solm.SolidityLayout
@@ -165,36 +166,36 @@ def sinSlot (usr : KeyValue) : Ethereum.UInt256 :=
 def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "can", steps := [.mindex src, .mindex usr] }, _ =>
-      some (wordLoc (canSlot src usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "Art"] }, _ =>
-      some (wordLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "rate"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "spot"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨2⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "line"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨3⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "dust"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨4⟩))
-  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "ink"] }, _ =>
-      some (wordLoc (urnsBase ilk usr))
-  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "art"] }, _ =>
-      some (wordLoc (urnsBase ilk usr + ⟨1⟩))
-  | { base := "gem", steps := [.mindex ilk, .mindex usr] }, _ =>
-      some (wordLoc (gemSlot ilk usr))
-  | { base := "dai", steps := [.mindex usr] }, _ => some (wordLoc (daiSlot usr))
-  | { base := "sin", steps := [.mindex usr] }, _ => some (wordLoc (sinSlot usr))
-  | { base := "debt", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "vice", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | { base := "Line", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "can", steps := [.mindex src, .mindex usr] } =>
+      some (.leaf (wordLoc (canSlot src usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "Art"] } =>
+      some (.leaf (wordLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "rate"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "spot"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨2⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "line"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨3⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "dust"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨4⟩)))
+  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "ink"] } =>
+      some (.leaf (wordLoc (urnsBase ilk usr)))
+  | { base := "urns", steps := [.mindex ilk, .mindex usr, .field "art"] } =>
+      some (.leaf (wordLoc (urnsBase ilk usr + ⟨1⟩)))
+  | { base := "gem", steps := [.mindex ilk, .mindex usr] } =>
+      some (.leaf (wordLoc (gemSlot ilk usr)))
+  | { base := "dai", steps := [.mindex usr] } => some (.leaf (wordLoc (daiSlot usr)))
+  | { base := "sin", steps := [.mindex usr] } => some (.leaf (wordLoc (sinSlot usr)))
+  | { base := "debt", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "vice", steps := [] } => some (.leaf (wordLoc ⟨8⟩))
+  | { base := "Line", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨10⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -669,7 +670,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

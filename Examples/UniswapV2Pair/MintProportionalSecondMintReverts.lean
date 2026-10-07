@@ -126,7 +126,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
     (hfail0 : reserve112Mask.toNat < balance0.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -363,7 +363,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
     (hfail1 : reserve112Mask.toNat < balance1.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -595,7 +595,7 @@ theorem uniswapMintProportionalSecondMintTotalSupplyOverflowFromAfterFeeCase
       UInt256.size ≤ (solcSlotWordAt ⟨0⟩ σFee I).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"
@@ -842,7 +842,7 @@ theorem uniswapMintProportionalSecondMintBalanceOverflowFromAfterFeeCase
           (uniswapInternalMintBalanceHashSlot toWord mem)).toNat + liquidity.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let afterTotalSupplyLocals :=
     nextLocals.insert "_totalSupply"

@@ -18,7 +18,6 @@ theorem stringStoreLiteSetNewLongRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -39,7 +38,7 @@ theorem stringStoreLiteSetNewLongRuntime
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩)
     (hnewShort :
       ¬ (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+    runtimeRefinementFor stringStoreLiteConfig stringStoreLiteContract
       σ σ₀ g A I := by
   have hsel' : ((⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ : ByteArray) == I.calldata.extract 0 4) =
       true := by
@@ -161,8 +160,8 @@ theorem stringStoreLiteSetNewLongRuntime
               ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
                 evmSolm1 := by
           simp [evmSolm1, evmSolm0, initState]
-        obtain ⟨evmEvm1, hState, hret⟩ :=
-          stringStoreLiteX_setLongValueShortValidPresentResidual hcode hsize hperm hwv hsel
+        have hsplit :=
+          stringStoreLiteX_setLongValueShortValidPresentResidual hcode hsize hwv hsel
             hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload
             hvalueNonempty hnewShort hflag hvalid accSolm0 haccSolm0
             evmSolm1 hdataWrite
@@ -176,9 +175,13 @@ theorem stringStoreLiteSetNewLongRuntime
             (value := setDecodedValueBytes I)
             hvalueSizeLong hload hpacked hflag rfl (by simpa [oldLen] using hvalid)
         have hwrite :
-            writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-              .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
+            stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] } .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .ok evmSolm1 := by
           simpa [evmSolm1, evmSolm0, initState] using hwrite₀
+        by_cases hperm : I.perm = true
+        swap
+        · have hpf : I.perm = false := by simpa using hperm
+          exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+        obtain ⟨evmEvm1, hState, hret⟩ := permSplit_true hperm hsplit
         exact setRuntimeOfWriteEVMStateEq hcode hwv hret hd hdec hwrite
           rfl hState.accountMap henc
       · have hmissingSolm0 :
@@ -200,8 +203,7 @@ theorem stringStoreLiteSetNewLongRuntime
         have hpacked : checkBytesPacked ⟨0⟩ evmSolm0 = true :=
           checkBytesPacked_of_storageLoad_land_one_zero hload hflag
         have hwrite :
-            writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-              .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm0 :=
+            stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] } .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .ok evmSolm0 :=
           writeCurrentLongPackedAbsent (evm := evmSolm0)
             (header := currentLengthHeaderWord σ I) (len := oldLen)
             (value := setDecodedValueBytes I)
@@ -220,13 +222,18 @@ theorem stringStoreLiteSetNewLongRuntime
             (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
             hnz hlenMaxLen hsrc rd1350 hflag rfl (by simpa [oldLen] using hvalid)
         by_cases hmod : len.toNat % 32 = 0
-        · obtain ⟨k261, C261, rd261₀⟩ :=
+        · have hsplit :=
             stringStoreLiteX_setWriteLongFrom1405NoTail
               (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
               (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
               (rdata := ByteArray.empty)
-              hperm hlong hmod rd1405
+              hlong hmod rd1405
               (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
+          by_cases hperm : I.perm = true
+          swap
+          · have hpf : I.perm = false := by simpa using hperm
+            exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+          obtain ⟨k261, C261, rd261₀⟩ := permSplit_true hperm hsplit
           have hawLoop :
               longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
                 (len.toNat / 32) =
@@ -311,17 +318,22 @@ theorem stringStoreLiteSetNewLongRuntime
             exact longDataWordsLoopMload_setHelper_decoded_tail_word
               (I := I) (len := len) (payloadStart := payloadStart)
               hnz hlenMaxLen hsrc hmod hlenAbi rfl hoffMax
-          obtain ⟨k261, C261, rd261₀⟩ :=
+          have hsplit :=
             stringStoreLiteX_setWriteLongFrom1405Tail
               (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
               (wordTail := wordTail) (awTail := clearCurrentHashAw (setHelperEntryAw len))
               (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
               (rdata := ByteArray.empty)
-              hperm hlong hmod rd1405
+              hlong hmod rd1405
               (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
               (longDataWordsLoopTailMloadCost_setHelper_zero (len := len) hlenMaxLen hmod)
               hmloadTail
               (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod)
+          by_cases hperm : I.perm = true
+          swap
+          · have hpf : I.perm = false := by simpa using hperm
+            exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+          obtain ⟨k261, C261, rd261₀⟩ := permSplit_true hperm hsplit
           have hreach261 :
               ∃ k C, RD stringStoreLiteBytecode I (Sat256.ofUInt256 g)
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨261⟩
@@ -391,8 +403,7 @@ theorem stringStoreLiteSetNewLongRuntime
       have hrev := stringStoreLiteX_setShortNonemptyWriteShortMalformed
         (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbad
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-            .string (.bytes (setDecodedValueBytes I)) = .revert :=
+          stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] } .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .revert :=
         writeCurrentMalformedShort (evm := evmSolm0)
           (header := currentLengthHeaderWord σ I)
           (value := setDecodedValueBytes I) hload hflag hbad
@@ -407,8 +418,7 @@ theorem stringStoreLiteSetNewLongRuntime
     · have hrev := stringStoreLiteX_setShortNonemptyWriteLongMalformed
         (payloadStart := payloadStart) (len := len) hnz hlenMaxLen hsrc rd1350 hflag hbadLong
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-            .string (.bytes (setDecodedValueBytes I)) = .revert :=
+          stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] } .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .revert :=
         writeCurrentMalformedLong (evm := evmSolm0)
           (header := currentLengthHeaderWord σ I)
           (value := setDecodedValueBytes I) hload hflag hbadLong
@@ -471,8 +481,8 @@ theorem stringStoreLiteSetNewLongRuntime
             ⟨0⟩ (solidityBytesHeaderWord (setDecodedValueBytes I).size) =
               evmSolm1 := by
         simp [evmSolm1, evmSolm0, oldLen, initState]
-      obtain ⟨evmEvm1, hState, hret⟩ :=
-        stringStoreLiteX_setLongValueLongValidResidual hcode hsize hperm hwv hsel
+      have hsplit :=
+        stringStoreLiteX_setLongValueLongValidResidual hcode hsize hwv hsel
           hsz36 hhi hoffMax hlenWord hsizeSign hlenMax hpayload hvalueNonempty
           hnewShort hflag hbadLong accSolm0 haccSolm0 evmSolm1
           (by simpa [oldLen] using hdataWrite)
@@ -482,9 +492,13 @@ theorem stringStoreLiteSetNewLongRuntime
           (value := setDecodedValueBytes I)
           hvalueSizeLong hload hflag rfl (by simpa [oldLen] using hbadLong)
       have hwrite :
-          writeStorage? stringStoreLiteConfig evmSolm0 { base := "current", steps := [] }
-            .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
+          stringStoreLiteConfig.storageBackend.write { base := "current", steps := [] } .string (.bytes (setDecodedValueBytes I)) evmSolm0 = .ok evmSolm1 := by
         simpa [evmSolm1, evmSolm0, oldLen, initState] using hwrite₀
+      by_cases hperm : I.perm = true
+      swap
+      · have hpf : I.perm = false := by simpa using hperm
+        exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+      obtain ⟨evmEvm1, hState, hret⟩ := permSplit_true hperm hsplit
       exact setRuntimeOfWriteEVMStateEq hcode hwv hret hd hdec hwrite
         rfl hState.accountMap henc
 

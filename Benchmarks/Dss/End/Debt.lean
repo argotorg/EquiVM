@@ -29,7 +29,7 @@ theorem endDebtBodyCore
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endDebtEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ debtTransition.body
@@ -63,9 +63,9 @@ theorem endDebtBodyCore
 
 theorem endDebtBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf debtTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I debtSelector := by
     simpa [endDebtSelectorBytes] using hsel
   have hsz : 4 ≤ I.calldata.size :=

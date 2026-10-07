@@ -93,9 +93,9 @@ theorem clipperSpotterParSelectorMem_read128_4 {mem : ByteArray}
     (by exact lt_usize _ (by omega))]
   exact clipperSpotterParSelectorPrefix
 
-theorem clipperSpotterParEncode_eq (v : ClipperImmutables) {mem : ByteArray}
+theorem clipperSpotterParEncode_eq {mem : ByteArray}
     (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "par" [] =
+    config.externalABI.encode? "par" [] =
       some ((clipperSpotterParSelectorMem mem).readWithPadding 128 4) := by
   rw [clipperSpotterParSelectorMem_read128_4 hmem]
   simp [config, externalABI]
@@ -494,7 +494,7 @@ theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
     (hcodeSize : extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hcalldata :
-      (config v).externalABI.encode? "par" [] = some (mem.readWithPadding 128 4))
+      config.externalABI.encode? "par" [] = some (mem.readWithPadding 128 4))
     (htarget : target = clipperSpotterTarget σ I)
     (hov : R.length + 100 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
@@ -504,7 +504,7 @@ theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
           target :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: scratch ::
           lot :: tab :: R)
         (clipperSpotterParPostCallMem mem o) (UInt256.ofNat 7) o σ' k' C'
-    ∧ typedCallViaEVM (config v)
+    ∧ typedCallViaEVM config
         {s0 with accountMap := σ, executionEnv := I}
         (EVM.address (clipperGetFeedPriceSpotterAddress
           {s0 with accountMap := σ, executionEnv := I}))
@@ -532,7 +532,7 @@ theorem RD.clipperGetFeedPriceParPostCall {code : ByteArray}
           UInt256.ofNat 7 := by
       native_decide
     simpa [clipperSpotterParPostCallMem] using haw ▸ rd9180raw
-  · refine callCoincides (cfg := config v)
+  · refine callCoincides (cfg := config)
       (evm := {s0 with accountMap := σ, executionEnv := I})
       (name := "par") (args := [])
       (tgt := EVM.address (clipperGetFeedPriceSpotterAddress

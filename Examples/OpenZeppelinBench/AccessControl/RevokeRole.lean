@@ -157,7 +157,7 @@ theorem evalExpr_revokeRole_admin (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := revokeRoleStore I } evm
       (.storage (roleAdminRef (.var "role"))) = .ok (revokeRoleAdminValue evm I) := by
-  rw [evalExpr_storage_scalar (t := .bytes bytes32Width)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bytes bytes32Width)
     (loc := bytes32Loc (revokeRoleAdminSlot I))
     (hbase := revokeRoleStore_roles I)
     (her := evalStorageRef_revokeRole_admin evm I hsz68)
@@ -186,7 +186,7 @@ theorem evalExpr_revokeRole_adminHasRole_true (evm : EVM.State) (I : ExecutionEn
         ⟨255⟩ ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleAdminHasRoleSlot evm I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_adminHasRole evm I)
@@ -203,7 +203,7 @@ theorem evalExpr_revokeRole_adminHasRole_false (evm : EVM.State) (I : ExecutionE
         ⟨255⟩ = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "adminRole") sender)) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleAdminHasRoleSlot evm I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_adminHasRole evm I)
@@ -239,7 +239,7 @@ theorem evalExpr_revokeRole_target_true (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool true) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleTargetSlot I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_target evm I hsz68)
@@ -257,7 +257,7 @@ theorem evalExpr_revokeRole_target_false (evm : EVM.State) (I : ExecutionEnv)
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) = .ok (.bool false) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (loc := boolLoc (revokeRoleTargetSlot I))
     (hbase := revokeRoleStoreWithAdmin_roles evm I)
     (her := evalStorageRef_revokeRole_target evm I hsz68)
@@ -274,7 +274,7 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
       .storage (roleHasRoleRef (.var "role") (.var "account")) (.bool false) =
         .ok ({ contract := contract, locals := revokeRoleStoreWithAdmin evm I },
           revokeRolePostState evm I) := by
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (er := revokeRoleTargetEvaledRef I) (ty := boolSt)
       (loc := boolLoc (revokeRoleTargetSlot I))
       (value := .bool false)
@@ -285,8 +285,9 @@ theorem revokeRoleAssignTarget (evm : EVM.State) (I : ExecutionEnv)
         simp [storageTypeAt?, revokeRoleTargetEvaledRef, contract, storageDecls, roleDataSt,
           boolSt, storageTypeStep?])
       (hloc := by
-        simp [config, storageLayout, revokeRoleTargetEvaledRef, revokeRoleTargetSlot])
-      (hscalar := by trivial)
+        simpa [config, revokeRoleTargetEvaledRef, revokeRoleTargetSlot] using
+          storageLayout_hasRole (revokeRoleRoleKey I) (revokeRoleAccountKey I))
+      (hleaf := Or.inl ⟨_, rfl⟩)
       (hstore := by
         simpa [boolLoc, boolOffset0Loc, revokeRoleClearLowByteWord] using
           storageLocStore_bool_false_offset0 evm (revokeRoleTargetSlot I))
@@ -317,6 +318,29 @@ theorem accessControlRevokeRoleBodyReturns_write (evm : EVM.State) (I : Executio
       (ExecStmt.assign (by simp [evalExpr?, pure]) (revokeRoleAssignTarget evm I hsz68)) ?_
     exact ExecBlock.nil
   exact ExecBlock.nil
+
+/-- Static mode: the body halts at the role write inside the `if`. -/
+theorem accessControlRevokeRoleBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hadmin : UInt256.land
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleAdminHasRoleSlot evm I))
+        ⟨255⟩ ≠ ⟨0⟩)
+    (htarget : UInt256.land
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (revokeRoleTargetSlot I)) ⟨255⟩ ≠
+        ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_revokeRole_adminHasRole_true evm I hadmin)) ?_
+  refine ExecBlock.consStatic
+    (ExecStmt.iteTrue (evalExpr_revokeRole_target_true evm I hsz68 htarget) ?_)
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (revokeRoleAssignTarget evm I hsz68) hperm)
 
 theorem accessControlRevokeRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1377,7 +1401,6 @@ theorem accessControlRevokeRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
 
 theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus)
     (htarget : UInt256.land (revokeRoleTargetStorageWord σ I) ⟨255⟩ ≠ ⟨0⟩)
@@ -1388,8 +1411,9 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (revokeRoleHasRoleSlotHashMemFrom (revokeRoleAdminStorageWord σ I)
         (revokeRoleSourceWord I) (revokeRoleBaseHashMem (revokeRoleRoleWord I)))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
-      (revokeRolePostMap σ I) ByteArray.empty := by
+    (I.perm = true ∧ RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+      (revokeRolePostMap σ I) ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic accessControlBenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd517⟩ := hreach
   have rd683 := evm_run rd517 with [
     jumpdest, push2 ⟨389⟩, dup4, dup4, push2 ⟨683⟩, jump (by jump_dest) ]
@@ -1520,7 +1544,12 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
       (revokeRoleTargetStorageWord σ I)
   have rd739pre := evm_run rd733 with [push1 ⟨255⟩, not, and, swap1]
   rw [hclearComm] at rd739pre
-  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd739pre.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hp, ?_⟩
+  obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hp (by decide) (by evm_ov)
   have rd740 :
       ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, revokeRoleAccountWord I, ⟨0⟩, ⟨0⟩, revokeRoleAccountWord I,
@@ -1548,7 +1577,7 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
   have rd745 := rd745pre.pushConst revokeRoleRevokedTopic (width := 32) (op := .PUSH32)
     (by decide) (by decide) (by evm_ov)
   have rd780 := evm_run rd745 with [swap2, swap1]
-  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
+  have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hp
     (by
       simp [M]
       native_decide)
@@ -1563,15 +1592,14 @@ theorem accessControlRevokeRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
 theorem accessControlRevokeRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd5, 0x47, 0x74, 0x1f]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨280⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := revokeRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_revokeRole (cd := I.calldata)
     (by simpa [selIs] using hsel)
@@ -1634,17 +1662,25 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
                     (revokeRoleTargetSlot I)) ⟨255⟩ ≠ ⟨0⟩ := by
               simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
                 revokeRoleTargetStorageWord, revokeRoleStorageWordAt] using htargetNonzero
-            have hbody := accessControlRevokeRoleBodyReturns_write evmS I
-              (by simp only [evmS, initState]; exact hwv) hsz68 hadminSolm htargetSolm
-            exact (accessControlRevokeRoleX_revoke_write (g := Sat256.ofUInt256 g)
-                hperm hsz68 hcanonAccount htargetNonzero rd517)
-              |>.reEquivExecutionGen hcode hd hdec hbody
-                (by
-                  simp [revokeRolePostState, revokeRolePostMap, evmS, initState,
-                    storageStore_accountMap,
-                    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                    revokeRoleTargetStorageWord, revokeRoleStorageWordAt])
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+            by_cases hperm : I.perm = true
+            · have hbody := accessControlRevokeRoleBodyReturns_write evmS I
+                (by simp only [evmS, initState]; exact hwv) hsz68 hadminSolm htargetSolm
+              exact (permSplit_true hperm (accessControlRevokeRoleX_revoke_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanonAccount htargetNonzero rd517))
+                |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by
+                    simp [revokeRolePostState, revokeRolePostMap, evmS, initState,
+                      storageStore_accountMap,
+                      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                      revokeRoleTargetStorageWord, revokeRoleStorageWordAt])
+                  (returnEquiv.fallthrough rfl rfl (by native_decide))
+            · have hpf : I.perm = false := by simpa using hperm
+              have hbody := accessControlRevokeRoleBodyStatic evmS I
+                (by simp only [evmS, initState]; exact hwv) hsz68 hadminSolm htargetSolm
+                (by simp only [evmS, initState]; exact hpf)
+              exact (permSplit_false hpf (accessControlRevokeRoleX_revoke_write
+                  (g := Sat256.ofUInt256 g) hsz68 hcanonAccount htargetNonzero rd517))
+                |>.reEquivStaticHalt hcode hd hdec hbody
       · have hdec := accessControlDecode_revokeRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (revokeRoleAccountWord I)

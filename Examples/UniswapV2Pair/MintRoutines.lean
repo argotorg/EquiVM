@@ -113,7 +113,8 @@ theorem evalExpr_mintFunction_totalSupply
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value } evm
       (.storage totalSupplyRef) = .ok (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by simp [totalSupplyRef])
     (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -168,7 +169,8 @@ theorem mintFunctionAssignTotalSupply
       evm .storage totalSupplyRef (mintFunctionTotalSupplyNewValue evm value) =
         .ok ({ contract := contract, locals := mintFunctionCallStore recipient value },
           mintFunctionAfterTotalSupplyState evm value) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
+      (loc := wordLoc ⟨0⟩)
       (hbase := by simp [totalSupplyRef])
       (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -197,7 +199,8 @@ theorem evalExpr_mintFunction_to_balance
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
       (mintFunctionAfterTotalSupplyState evm value) (.storage (balanceOfRef (.var "to"))) =
         .ok (uniswapUint256Value (mintFunctionToBalanceWord evm recipient value)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (mintFunctionToSlot recipient))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_mintFunction_to_balance
       (mintFunctionAfterTotalSupplyState evm value) recipient value)
@@ -264,7 +267,8 @@ theorem mintFunctionAssignToBalance
         .ok ({ contract := contract, locals := mintFunctionCallStore recipient value },
           mintFunctionPostState evm recipient value) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
+      (loc := wordLoc (mintFunctionToSlot recipient))
       (hbase := by simp [mintFunctionCallStore, balanceOfRef])
       (her := evalStorageRef_mintFunction_to_balance
         (mintFunctionAfterTotalSupplyState evm value) recipient value)
@@ -319,7 +323,8 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hargs : evalExprs? config caller evm args =
       .ok [mintFunctionToValue recipient, mintFunctionValueValue value])
     (hfitSupply : mintFunctionTotalSupplyNewNat evm value < UInt256.size)
-    (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size) :
+    (hfitBalance : mintFunctionToBalanceNewNat evm recipient value < UInt256.size)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_mint" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none)
         (mintFunctionPostState evm recipient value)) := by
@@ -332,10 +337,10 @@ theorem uniswapMintFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := mintFunctionCallStore recipient value })
     (value := none)
     hargs
-    (by simpa [hcontract] using uniswapLookupMintFunction)
+    (by simpa [hcontract, himm] using uniswapLookupMintFunction)
     (bindParams_mintFunction_call recipient value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapMintFunctionBody evm recipient value hfitSupply hfitBalance))
 
 end UniswapV2Pair

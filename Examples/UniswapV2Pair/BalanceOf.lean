@@ -70,7 +70,7 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (balanceOfStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar (t := .int uint256Int)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
         (er := ({ base := "balanceOf", steps := [.mindex (balanceOfOwnerKey I)] } :
           EvaledStorageRef))
         (loc := wordLoc (balanceOfStorageSlot I))
@@ -170,7 +170,7 @@ theorem uniswapBalanceOfBodyCoreOk
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1079⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -203,7 +203,7 @@ theorem uniswapBalanceOfBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1079⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := uniswapDecode_balanceOf_none_short (I := I) hsz4 hshort
   exact (uniswapBalanceOfX_shortarg (g := Sat256.ofUInt256 g)
       hsz4 hsize hshort hreach)
@@ -217,7 +217,7 @@ theorem uniswapBalanceOfBodyOk
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ rfl hsel
   exact uniswapBalanceOfBodyCoreOk hcode hsize hwv hsz36 hdispatch
@@ -232,7 +232,7 @@ theorem uniswapBalanceOfBodyDecodeFailed_short
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
     (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ rfl hsel
   exact uniswapBalanceOfBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hdispatch
@@ -243,7 +243,7 @@ theorem uniswapBalanceOfBody
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩)
     (hdispatch : dispatchMsg contract I.calldata = some balanceOfTransition) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact uniswapBalanceOfBodyOk hcode hsize hwv hsel hsz36 hdispatch
   · exact uniswapBalanceOfBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

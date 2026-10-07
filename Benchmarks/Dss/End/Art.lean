@@ -91,7 +91,7 @@ theorem endArtBodyCoreOk
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endArtEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let key := endBytes32ArgWord I
   let slot := solcMappingSlot ⟨14⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (endBytes32ArgValue I)
@@ -188,7 +188,7 @@ theorem endArtBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) endArtEntryPc [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -207,9 +207,9 @@ theorem endArtBodyCoreDecodeFailed_short
 
 theorem endArtBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf ArtTransition)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endArtConcreteSelector := by
     simpa [endArtSelectorBytes, endArtConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=

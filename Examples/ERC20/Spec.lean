@@ -1,13 +1,16 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.SolidityStorage
+import Solm.MetaSolidityLayout
 
 /-!
 # ERC20 — Solm specification for `ERC20.sol`
 
 This is the Solm-level specification for the core ERC20 surface:
 `totalSupply`, `balanceOf`, `allowance`, `approve`, `transfer`, and `transferFrom`.
-The Solidity contract emits the standard events, but the current Solm statement tracks storage and
-return values only.
+The mutating transitions `emit` the standard events where the runtime bytecode logs them; the log
+itself is not modelled.  The compiled constructor prefix used here logs nothing, so the spec
+constructor has no `emit`.
 -/
 
 open Solm ABI
@@ -74,35 +77,29 @@ ERC20's storage declarations are all full-word values, so their Solidity base sl
 their declaration indices: `balanceOf` at slot 0, `allowance` at slot 1, and `totalSupply` at slot 2.
 Mapping entries then use Solidity's standard `keccak256(key ++ baseSlot)` slot derivation.
 -/
-def erc20StorageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "balanceOf", [.mindex owner] => some (erc20Uint256Loc (erc20BalanceOfSlot owner))
-    | "allowance", [.mindex owner, .mindex spender] =>
-        some (erc20Uint256Loc (erc20AllowanceSlot owner spender))
-    | "totalSupply", [] => some (erc20Uint256Loc ⟨2⟩)
-    | _, _ => none
+def erc20StorageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [erc20StorageDecls]
 
 @[simp] theorem erc20StorageLayout_totalSupply :
-    erc20StorageLayout.layout { base := "totalSupply", steps := [] } = fun _ => some (erc20Uint256Loc ⟨2⟩) :=
+    erc20StorageLayout { base := "totalSupply", steps := [] } = some (.leaf (erc20Uint256Loc ⟨2⟩)) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [.mindex owner] } =
-      fun _ => some (erc20Uint256Loc (erc20BalanceOfSlot owner)) :=
+    erc20StorageLayout { base := "balanceOf", steps := [.mindex owner] } =
+      some (.leaf (erc20Uint256Loc (erc20BalanceOfSlot owner))) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance (owner spender : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      fun _ => some (erc20Uint256Loc (erc20AllowanceSlot owner spender)) :=
+    erc20StorageLayout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+      some (.leaf (erc20Uint256Loc (erc20AllowanceSlot owner spender))) :=
   rfl
 
 @[simp] theorem erc20StorageLayout_balanceOf_missingIndex :
-    erc20StorageLayout.layout { base := "balanceOf", steps := [] } = fun _ => none :=
+    erc20StorageLayout { base := "balanceOf", steps := [] } = none :=
   rfl
 
 @[simp] theorem erc20StorageLayout_allowance_missingSpender (owner : KeyValue) :
-    erc20StorageLayout.layout { base := "allowance", steps := [.mindex owner] } = fun _ => none :=
+    erc20StorageLayout { base := "allowance", steps := [.mindex owner] } = none :=
   rfl
 
 def constructorDecl : ConstructorDecl :=
@@ -143,6 +140,7 @@ def approveTransition : TransitionDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage (allowanceRef sender (.var "spender")) (.var "value"),
+        .emit "Approval" [sender, .var "spender", .var "value"],
         .return [(.boolLit true)] ] }
 
 def transferTransition : TransitionDecl :=
@@ -158,6 +156,7 @@ def transferTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .emit "Transfer" [sender, .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -180,6 +179,7 @@ def transferFromTransition : TransitionDecl :=
         .letDecl "newToBalance" (some uint256)
           (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
+        .emit "Transfer" [.var "from", .var "to", .var "value"],
         .return [(.boolLit true)] ] }
 
 def erc20Contract : ContractDecl :=
@@ -197,21 +197,21 @@ def erc20Contract : ContractDecl :=
 end ERC20
 
 def erc20Config : Config :=
-  { storage := ERC20.erc20StorageLayout
+  { storageBackend := solidityStorageBackend ERC20.erc20StorageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment ERC20.erc20Contract.ctor.params }
 
 @[simp] theorem erc20Config_storage_totalSupply :
-    erc20Config.storage.layout { base := "totalSupply", steps := [] } =
-      fun _ => some (ERC20.erc20Uint256Loc ⟨2⟩) :=
+    erc20Config.storageBackend.locate? { base := "totalSupply", steps := [] } =
+      some (.leaf (ERC20.erc20Uint256Loc ⟨2⟩)) :=
   rfl
 
 @[simp] theorem erc20Config_storage_balanceOf (owner : KeyValue) :
-    erc20Config.storage.layout { base := "balanceOf", steps := [.mindex owner] } =
-      fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner)) :=
+    erc20Config.storageBackend.locate? { base := "balanceOf", steps := [.mindex owner] } =
+      some (.leaf (ERC20.erc20Uint256Loc (ERC20.erc20BalanceOfSlot owner))) :=
   rfl
 
 @[simp] theorem erc20Config_storage_allowance (owner spender : KeyValue) :
-    erc20Config.storage.layout { base := "allowance", steps := [.mindex owner, .mindex spender] } =
-      fun _ => some (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender)) :=
+    erc20Config.storageBackend.locate? { base := "allowance", steps := [.mindex owner, .mindex spender] } =
+      some (.leaf (ERC20.erc20Uint256Loc (ERC20.erc20AllowanceSlot owner spender))) :=
   rfl

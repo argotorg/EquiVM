@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.Rely
 import Reasoning.Constructor
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Cure constructor correctness stub
@@ -222,16 +222,15 @@ theorem assign_cureCtorLiveStorage (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc ⟨1⟩) (.int 1) =
         some (cureCtorAfterLiveState evm) := by
     simpa [cureCtorAfterLiveState] using storageLocStore_uint256 evm ⟨1⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := { base := "live", steps := [] })
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_cureCtorWardsStorage (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
@@ -252,15 +251,14 @@ theorem assign_cureCtorWardsStorage (evm : EVM.State) (I : ExecutionEnv) {locals
         some (cureCtorAfterWardsState evm I) := by
     simpa [cureCtorAfterWardsState] using
       storageLocStore_uint256 evm (cureCtorWardsSlot I) ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := cureCtorWardsEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (cureCtorWardsSlot I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (cureCtorWardsSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         cureCtorWardsEvaledRef, cureCtorWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord, uInt256OfByteArray_eq])
     (hstore := hstore)
@@ -355,8 +353,7 @@ theorem cureCtorRDretXiResult
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem cureConstructorBodyCore :
-    constructorEquivalence config cureCreationBytecode contract cureBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config cureCreationBytecode contract (fun _ => cureBytecode) := by
   intro σ σ₀ g A I
       args deployedInitcode hdeploy hcode _hcalldata hperm
   obtain ⟨hargs, hdeployed⟩ := cureCtorDeployment_eq_initcode hdeploy
@@ -367,7 +364,7 @@ theorem cureConstructorBodyCore :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases cureCtorRDretXiResult hcode hrd with hOOG | hSuccess
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hSuccess with ⟨g', A', hXi⟩
       have hSolm := cureCtorSolmExecOk
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -389,22 +386,22 @@ theorem cureConstructorBodyCore :
                   (Sat256.ofUInt256 g) A I))
               I).accountMap := by
         rw [hmapSolm]
-      refine constructorEquivalenceFor.execution hXi hSolm ?_
+      refine typedConstructorRefinementFor.execution hXi hSolm ?_
       exact ctorResultEquiv.success rfl rfl hmap rfl
   · have hrd := cureCtorNonpayableRDrev
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | hRev
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.toUInt256] using hOOG)
     · rcases hRev with ⟨g', o, hXi⟩
       have hSolm := cureCtorSolmExecReverts_nonpayable
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) hwv
-      refine constructorEquivalenceFor.execution hXi hSolm ?_
+      refine typedConstructorRefinementFor.execution hXi hSolm ?_
       exact ctorResultEquiv.revert rfl rfl
 
 theorem cureConstructorCorrect :
-    constructorEquivalence config cureCreationBytecode contract cureBytecode :=
+    typedConstructorRefinement config cureCreationBytecode contract (fun _ => cureBytecode) :=
   cureConstructorBodyCore
 
 end Benchmarks.Dss.Cure

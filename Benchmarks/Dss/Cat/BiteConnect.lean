@@ -350,6 +350,40 @@ theorem catBiteReach1708to2073 {σ σ₀ A I} {g : UInt256}
 /-- `2300` (fess succeeded) → `2383`: the fess call-success guard + tail POPs (`Seg7h`), then
 `dartRate`/`tabBase`/`tab`/`litterNew` arithmetic and the `SSTORE litter@6` (`Seg7i`).  Ends with
 slot `6` updated to `litterNew` in the account map. -/
+theorem catBiteReach2300to2383Split {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
+    {status f0 f1 f2 dink dart q art ink iDust iSpot iRate urn : UInt256}
+    {milkChop dartRate tabBase tab litterNew : UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD catBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
+      (status :: f0 :: f1 :: f2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
+        ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+      mem aw o σ' k C)
+    (hstatus : status ≠ ⟨0⟩)
+    (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
+        = milkChop)
+    (haw : q.toNat + 64 ≤ aw.toNat * 32) (hqsz : q.toNat + 64 < UInt256.size)
+    (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
+    (hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size)
+    (hLitFit : (solcSlotWord σ' I ⟨6⟩).toNat + tab.toNat < UInt256.size)
+    (hDartRate : UInt256.mul dart iRate = dartRate)
+    (hTabBase : UInt256.mul dartRate milkChop = tabBase)
+    (hTab : UInt256.div tabBase ⟨1000000000000000000⟩ = tab)
+    (hLitterNew : solcSlotWord σ' I ⟨6⟩ + tab = litterNew) :
+    (I.perm = true ∧
+      ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+        (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
+          biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
+        mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C') ∨
+      (I.perm = false ∧ RDstatic catBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+  obtain ⟨_, _, rd2321⟩ := catBiteTraceSeg7h rd hstatus (by simp)
+  exact catBiteTraceSeg7iSplit rd2321 hChop haw hqsz hRateFit hChopFit hLitFit
+    hDartRate hTabBase hTab hLitterNew (by simp)
+
 theorem catBiteReach2300to2383 {σ σ₀ A I} {g : UInt256}
     {σ' : AccountMap}
     {status f0 f1 f2 dink dart q art ink iDust iSpot iRate urn : UInt256}
@@ -377,10 +411,9 @@ theorem catBiteReach2300to2383 {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' := by
-  obtain ⟨_, _, rd2321⟩ := catBiteTraceSeg7h rd hstatus (by simp)
-  exact catBiteTraceSeg7i rd2321 hChop haw hqsz hperm hRateFit hChopFit hLitFit
-    hDartRate hTabBase hTab hLitterNew (by simp)
+      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' :=
+  permSplit_true hperm (catBiteReach2300to2383Split rd hstatus hChop haw hqsz
+    hRateFit hChopFit hLitFit hDartRate hTabBase hTab hLitterNew)
 
 /-- `2532` (kick succeeded) → `RETURN`: the kick call-success guard + `id` extract + `dtab`
 checkedMul (`Seg8b1`), then the `Bite(...)` `LOG3` event and the shared `@419` uint256 return
@@ -468,7 +501,7 @@ theorem catBiteReachFessRegion {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)))
         "fess" 0 [.int (Int.ofNat dartRate.toNat)]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨_, _, rd2242⟩ := catBiteTraceSeg7f rd hstatus hRateFit hDartRate (by simp)
   obtain ⟨awF, _, _, rd2284⟩ :=
@@ -520,7 +553,7 @@ theorem catBiteReachGrabRegion {σ σ₀ A I} {g : UInt256}
            (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)).toNat),
          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨awF, _, _, rd2177⟩ :=
     catBiteTraceGrabBuild rd hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
@@ -553,7 +586,7 @@ theorem catBiteSuccessBodyCore {σ σ₀ A I} {g : UInt256}
       ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (biteLocals I) biteTransition.body (.returned cs evmKick (some [bw id])))
     (hAccountsFinal : acc = evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc : returnEquiv (UInt256.toByteArray id) (some [bw id]) biteTransition.returnType :=
     returnEquiv_of_encode (uint256ReturnEncoding id)
   exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
@@ -641,7 +674,7 @@ theorem catBiteSuccessLeaf {σ σ₀ A I} {g : UInt256}
           bw (biteDinkV I evmUrn iRate art ink), .int 0] (true, evmKick, kickOut) true)
     (hKickDec : config.externalABI.decode? "kick" kickOut = some [bw id])
     (hAccountsFinal : acc = evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hbody := catBiteSourceSuccess (σ := σ) hsz36 hwv hvatCode0 hIlksCall hIlksDec
     hvatCodeIlk hUrnsCall hUrnsDec hlive hfitInkSpot hfitArtRate hfitDunkRoomWad hfitInkDart
     hfitDartRate hfitTabBase hfitLitterNew hspotPos hratePos hartPos hmilkChopPos hunsafe hlitLtBox
@@ -726,7 +759,7 @@ theorem catBiteShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach := catReachBiteEntry (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by

@@ -79,11 +79,13 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
     (hfakeLookup : lookupNth? fakes a.idx.toNat = some (rawBoolWordValue word))
     (hsecretLookup :
       lookupNth? secrets a.idx.toNat =
-        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)))
-    (hperm : I.perm = true) :
+        some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))) :
     (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
         scratch_revealLoopBodyStmts .reverted ∧
       RDrev blindAuctionBytecode g s0) ∨
+    (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
+        scratch_revealLoopBodyStmts .staticViolation ∧
+      RDstatic blindAuctionBytecode g s0) ∨
     ∃ a' L1 evm1 L2 evm2 k' C',
       (ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L } evm
           scratch_revealLoopBodyStmts
@@ -110,6 +112,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
   rcases hInv with
     ⟨hiL, hlenL, hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
       hvariant, hidxLe, henv, hσ0, hsub, haccounts⟩
+  have hpermEvm : evm.executionEnv.perm = I.perm := by rw [henv]
   · have hfakeNorm :
         normalizeRawBoolWord? (rawBoolWordValue word) =
           .ok (.bool false) := by
@@ -248,7 +251,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           hboundBids hboundValues hboundFakes hboundSecrets
           hvalueLookup hfakeLookup hfakeNorm hsecretLookup
           hblindedSrc
-      exact Or.inr <|
+      exact Or.inr <| Or.inr <|
         scratch_revealLoopAdvance_secretStore_continue
           (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
           (v := v) (k := kNext) (C := CNext) (loopLen := loopLen)
@@ -317,7 +320,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       by_cases hfit :
           (refundOf a).toNat + deposit.toNat < UInt256.size
       · by_cases hdepositLt : deposit.toNat < value.toNat
-        · obtain ⟨hbodyOk, hrdNext⟩ :=
+        · rcases
             scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair
               (I := I) (g := g)
               (s0 := s0)
@@ -346,14 +349,17 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
               (by simpa [hashWord] using hhashPacked)
               hblindedEvm
               (by simpa [hashWord] using hflag1)
-              hdepositEvm hperm hbidsL hvaluesL hfakesL
+              hdepositEvm hpermEvm hbidsL hvaluesL hfakesL
               hsecretsL hiL hrefundL hlenSrc hboundBids
               hboundValues hboundFakes hboundSecrets hvalueLookup
               hfakeLookup hfakeNorm hsecretLookup hblindedSrc
               hdepositSrc (by simpa using hfakeZero) hfit
               (Or.inr hdepositLt)
+            with ⟨_, hbodyOk, hrdNext⟩ | ⟨_, hbodySt, hrdSt⟩
+          swap
+          · exact Or.inr (Or.inl ⟨hbodySt, hrdSt⟩)
           obtain ⟨kNext, CNext, rdNext⟩ := hrdNext
-          exact Or.inr <| by
+          exact Or.inr <| Or.inr <| by
             simpa [Inv, idx, refundOf, memOf, awOf, accOf] using
               scratch_revealLoopAdvance_refundAdded_zeroBlinded
                 (I := I) (g := g)
@@ -395,7 +401,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
               Account.lookupStorage, high, scratch_placeBidHighestBidWord,
               henv, haccounts, accOf]
           by_cases hplaceFalse : value.toNat ≤ high.toNat
-          · obtain ⟨hbodyOk, hrdNext⟩ :=
+          · rcases
               scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair
                 (I := I) (g := g)
                 (s0 := s0)
@@ -426,7 +432,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 (by simpa [hashWord] using hhashPacked)
                 hblindedEvm
                 (by simpa [hashWord] using hflag1)
-                hdepositEvm hperm hbidsL hvaluesL hfakesL
+                hdepositEvm hpermEvm hbidsL hvaluesL hfakesL
                 hsecretsL hiL hrefundL hlenSrc hboundBids
                 hboundValues hboundFakes hboundSecrets
                 hvalueLookup hfakeLookup hfakeNorm hsecretLookup
@@ -434,8 +440,11 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 (by simpa using hfakeZero) hfit hdepositGe
                 hplaceFalse
                 (by simpa [high] using hplaceFalse)
+              with ⟨_, hbodyOk, hrdNext⟩ | ⟨_, hbodySt, hrdSt⟩
+            swap
+            · exact Or.inr (Or.inl ⟨hbodySt, hrdSt⟩)
             obtain ⟨kNext, CNext, rdNext⟩ := hrdNext
-            exact Or.inr <| by
+            exact Or.inr <| Or.inr <| by
               simpa [Inv, idx, refundOf, memOf, awOf, accOf] using
                 scratch_revealLoopAdvance_refundAddedOk_zeroBlinded
                   (I := I) (g := g)
@@ -478,7 +487,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 henv, haccounts, accOf]
             by_cases hzero :
                 UInt256.land old solcAddrMask = ⟨0⟩
-            · obtain ⟨hbodyOk, hrdNext⟩ :=
+            · rcases
                 scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair
                   (I := I) (g := g)
                   (s0 := s0)
@@ -510,7 +519,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   (by simpa [hashWord] using hhashPacked)
                   hblindedEvm
                   (by simpa [hashWord] using hflag1)
-                  hdepositEvm hperm hbidsL hvaluesL hfakesL
+                  hdepositEvm hpermEvm hbidsL hvaluesL hfakesL
                   hsecretsL hiL hrefundL hlenSrc hboundBids
                   hboundValues hboundFakes hboundSecrets
                   hvalueLookup hfakeLookup hfakeNorm hsecretLookup
@@ -519,8 +528,11 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   hzero
                   (by simpa [high] using hlt)
                   (by simpa [old] using hzero)
+                with ⟨_, hbodyOk, hrdNext⟩ | ⟨_, hbodySt, hrdSt⟩
+              swap
+              · exact Or.inr (Or.inl ⟨hbodySt, hrdSt⟩)
               obtain ⟨kNext, CNext, rdNext⟩ := hrdNext
-              exact Or.inr <| by
+              exact Or.inr <| Or.inr <| by
                 simpa [Inv, idx, refundOf, memOf, awOf, accOf] using
                   scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero
                     (I := I) (g := g)
@@ -576,7 +588,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   hslotPending, accOf]
               by_cases hsum :
                   pending.toNat + high.toNat < UInt256.size
-              · obtain ⟨hbodyOk, hrdNext⟩ :=
+              · rcases
                   scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair
                     (I := I) (g := g)
                     (s0 := s0)
@@ -610,7 +622,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (by simpa [hashWord] using hhashPacked)
                     hblindedEvm
                     (by simpa [hashWord] using hflag1)
-                    hdepositEvm hperm hbidsL hvaluesL hfakesL
+                    hdepositEvm hpermEvm hbidsL hvaluesL hfakesL
                     hsecretsL hiL hrefundL hlenSrc hboundBids
                     hboundValues hboundFakes hboundSecrets
                     hvalueLookup hfakeLookup hfakeNorm hsecretLookup
@@ -620,8 +632,11 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (by simpa [high] using hlt)
                     (by simpa [old] using hzero)
                     (by simpa [high, pending] using hsum)
+                  with ⟨_, hbodyOk, hrdNext⟩ | ⟨_, hbodySt, hrdSt⟩
+                swap
+                · exact Or.inr (Or.inl ⟨hbodySt, hrdSt⟩)
                 obtain ⟨kNext, CNext, rdNext⟩ := hrdNext
-                exact Or.inr <| by
+                exact Or.inr <| Or.inr <| by
                   simpa [Inv, idx, refundOf, memOf, awOf, accOf] using
                     scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendingHash
                       (I := I) (g := g)

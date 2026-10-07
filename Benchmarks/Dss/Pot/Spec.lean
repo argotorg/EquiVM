@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -108,20 +109,20 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "pie", steps := [.mindex usr] }, _ => some (wordLoc (pieSlot usr))
-  | { base := "Pie", steps := [] }, _ => some (wordLoc ⟨2⟩)
-  | { base := "dsr", steps := [] }, _ => some (wordLoc ⟨3⟩)
-  | { base := "chi", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨5⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨6⟩)
-  | { base := "rho", steps := [] }, _ => some (wordLoc ⟨7⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "pie", steps := [.mindex usr] } => some (.leaf (wordLoc (pieSlot usr)))
+  | { base := "Pie", steps := [] } => some (.leaf (wordLoc ⟨2⟩))
+  | { base := "dsr", steps := [] } => some (.leaf (wordLoc ⟨3⟩))
+  | { base := "chi", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨5⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨6⟩))
+  | { base := "rho", steps := [] } => some (.leaf (wordLoc ⟨7⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨8⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -394,7 +395,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := potExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

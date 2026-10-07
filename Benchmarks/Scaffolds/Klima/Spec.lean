@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Scaffolds.Klima.StringLayout
@@ -126,30 +127,33 @@ def uint8Loc (slot : Ethereum.UInt256) : StorageLoc :=
 def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes bytes32Width }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "balances", steps := [.mindex usr] }, _ =>
-      some (wordLoc (balancesSlot usr) (.int uint256Int))
-  | { base := "allowances", steps := [.mindex owner, .mindex spender] }, _ =>
-      some (wordLoc (allowanceSlot owner spender) (.int uint256Int))
-  | { base := "totalSupply", steps := [] }, _ => some (wordLoc ⟨2⟩ (.int uint256Int))
-  | { base := "name", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨3⟩ evm)
-  | { base := "symbol", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨4⟩ evm)
-  | { base := "decimals", steps := [] }, _ => some (uint8Loc ⟨5⟩)
-  | { base := "nonces", steps := [.mindex usr] }, _ =>
-      some (wordLoc (noncesSlot usr) (.int uint256Int))
-  | { base := "DOMAIN_SEPARATOR", steps := [] }, _ => some (bytes32Loc ⟨7⟩)
-  | { base := "owner", steps := [] }, _ => some (addrLoc ⟨8⟩)
-  | { base := "vault", steps := [] }, _ => some (addrLoc ⟨9⟩)
-  | { base := "dexValues", steps := [.length] }, _ => some (wordLoc ⟨10⟩ (.int uint256Int))
-  | { base := "dexValues", steps := [.aindex i] }, _ => some (bytes32Loc (dexElemSlot i))
-  | { base := "dexIndexes", steps := [.mindex k] }, _ =>
-      some (wordLoc (dexIndexSlot k) (.int uint256Int))
-  | { base := "twapOracle", steps := [] }, _ => some (addrLoc ⟨12⟩)
-  | { base := "twapEpochPeriod", steps := [] }, _ => some (wordLoc ⟨13⟩ (.int uint256Int))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "balances", steps := [.mindex usr] } =>
+      some (.leaf (wordLoc (balancesSlot usr) (.int uint256Int)))
+  | { base := "allowances", steps := [.mindex owner, .mindex spender] } =>
+      some (.leaf (wordLoc (allowanceSlot owner spender) (.int uint256Int)))
+  | { base := "totalSupply", steps := [] } => some (.leaf (wordLoc ⟨2⟩ (.int uint256Int)))
+  | { base := "name", steps := [] } => some (.anchor ⟨3⟩)
+  | { base := "name", steps := [.length] } => some (.anchor ⟨3⟩)
+  | { base := "symbol", steps := [] } => some (.anchor ⟨4⟩)
+  | { base := "symbol", steps := [.length] } => some (.anchor ⟨4⟩)
+  | { base := "decimals", steps := [] } => some (.leaf (uint8Loc ⟨5⟩))
+  | { base := "nonces", steps := [.mindex usr] } =>
+      some (.leaf (wordLoc (noncesSlot usr) (.int uint256Int)))
+  | { base := "DOMAIN_SEPARATOR", steps := [] } => some (.leaf (bytes32Loc ⟨7⟩))
+  | { base := "owner", steps := [] } => some (.leaf (addrLoc ⟨8⟩))
+  | { base := "vault", steps := [] } => some (.leaf (addrLoc ⟨9⟩))
+  | { base := "dexValues", steps := [] } => some (.anchor ⟨10⟩)
+  | { base := "dexValues", steps := [.length] } => some (.anchor ⟨10⟩)
+  | { base := "dexValues", steps := [.aindex i] } => some (.leaf (bytes32Loc (dexElemSlot i)))
+  | { base := "dexIndexes", steps := [.mindex k] } =>
+      some (.leaf (wordLoc (dexIndexSlot k) (.int uint256Int)))
+  | { base := "twapOracle", steps := [] } => some (.leaf (addrLoc ⟨12⟩))
+  | { base := "twapEpochPeriod", steps := [] } => some (.leaf (wordLoc ⟨13⟩ (.int uint256Int)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  klimaStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## External ABI for `ITWAPOracle` -/
 
@@ -577,7 +581,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := klimaStorageBackend storageLayout
     externalABI := klimaExternalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

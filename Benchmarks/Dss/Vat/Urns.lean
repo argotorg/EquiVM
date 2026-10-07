@@ -296,7 +296,7 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "ink")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (urnsInkStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := urnsF (.var "arg0") (.var "arg1") "ink") (er := urnsInkEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (urnsInkStorageSlot I))
@@ -317,7 +317,7 @@ theorem vatUrnsBodyReturns {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (urnsF (.var "arg0") (.var "arg1") "art")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (urnsArtStorageSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := urnsF (.var "arg0") (.var "arg1") "art") (er := urnsArtEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (urnsArtStorageSlot I))
@@ -362,7 +362,7 @@ theorem vatUrnsBodyCoreOk
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let inkSlot := solcMappingSlot (solcMappingSlot ⟨3⟩ (urnsIlkWord I)) (urnsUsrMaskedWord I)
   let artSlot := inkSlot + ⟨1⟩
   let inkWord := solcSlotWordAt inkSlot σ I
@@ -441,7 +441,7 @@ theorem vatUrnsBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨570⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := vatDecode_urns_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -459,8 +459,8 @@ theorem vatUrnsBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatUrnsBodyCore : VatBodyTheorem 25 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatUrnsBodyCore : VatBodyTheoremAnyPerm 25 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 25) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some urnsTransition :=

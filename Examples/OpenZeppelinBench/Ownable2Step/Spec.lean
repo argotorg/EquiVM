@@ -1,5 +1,6 @@
 import Solm.Semantics
 import Solm.SolidityLayout
+import Solm.MetaSolidityLayout
 
 /-!
 # OpenZeppelin Ownable2Step benchmark spec
@@ -28,12 +29,8 @@ def storageDecls : List StorageDecl :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
-    match ref.base, ref.steps with
-    | "_owner", [] => some (addrLoc ⟨0⟩)
-    | "_pendingOwner", [] => some (addrLoc ⟨1⟩)
-    | _, _ => none
+def storageLayout : StorageLayout :=
+  solidityLayout! [([] : List StructDecl)] [storageDecls]
 
 def ownerTransition : TransitionDecl :=
   { name := "owner"
@@ -98,7 +95,7 @@ def contract : ContractDecl :=
         transferOwnershipTransition ] }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

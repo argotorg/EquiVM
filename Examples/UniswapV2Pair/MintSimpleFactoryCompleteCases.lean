@@ -141,7 +141,7 @@ theorem uniswapMintFeeOnKLastZeroCompleteFromFactoryCases
     (henv : evmFeeS.executionEnv = I)
     (htoWord : toWord = mintToMaskedWord I)
     (hperm : I.perm = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -369,7 +369,7 @@ theorem uniswapMintFeeOffKLastZeroCompleteFromFactoryCases
     (henv : evmFeeS.executionEnv = I)
     (htoWord : toWord = mintToMaskedWord I)
     (hperm : I.perm = true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -596,7 +596,7 @@ theorem uniswapMintFeeOffKLastNonzeroCompleteFromFactoryCases
         ⟨0⟩)
     (hkLastNonzero : mintFeeKLastSlotWord σFee I ≠ ⟨0⟩)
     (htoWord : toWord = mintToMaskedWord I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let evmAfterFee := mintFeeKLastClearedState evmFeeS

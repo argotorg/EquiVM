@@ -366,7 +366,7 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
           accountMap := σx }
         (AccountAddress.ofUInt256 target) "kick" 0 args
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2531⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
@@ -380,7 +380,7 @@ theorem catBiteKickGuardCallP {σ σ₀ A I} {g : UInt256}
   rw [hpc] at rd2532raw
   refine ⟨σ', z, o', A', _, k', C', rd2532raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm) (targetWord := target)
+    (callPerm := true) (targetWord := target)
     (mem := mem') (inOff := p) (inSize := ⟨164⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
     rfl hencode ?_
@@ -863,7 +863,7 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
         (seg8KickArgs σx I urn tab dink)
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A' }, o') I.perm
+              accountMap := σ', substate := A' }, o') true
     ∧ o'.size < UInt256.size
     ∧ (z = true → 32 ≤ o'.size →
         RDret catBytecode (Sat256.ofUInt256 g)
@@ -904,9 +904,9 @@ theorem catBiteReachKickC {σ σ₀ A I} {g : UInt256}
       (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord milkFlip)) "kick" 0
       (seg8KickArgs σx I urn tab dink)
       (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ', substate := A' }, o') I.perm := by
+            accountMap := σ', substate := A' }, o') true := by
     refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-      (callPerm := I.perm) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
+      (callPerm := true) (targetWord := UInt256.land biteAddrMaskWord milkFlip)
       (mem := kickCalldataMemP p (UInt256.land biteAddrMaskWord urn)
         (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
           (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)

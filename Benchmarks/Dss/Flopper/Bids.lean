@@ -101,7 +101,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "bid")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "bid") (er := bidsBidEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsBidSlotFor I))
@@ -121,7 +121,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "lot")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "lot") (er := bidsLotEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsLotSlotFor I))
@@ -142,7 +142,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "guy") (er := bidsGuyEvaledRef I)
       (t := .address) (loc := addrLoc (bidsPackedSlotFor I))
@@ -178,7 +178,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
           (UInt256.ofNat (256 ^ 20)))
         uint48Mask]
       rfl
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "tic") (er := bidsTicEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨20, by decide⟩ (by decide))
@@ -212,7 +212,7 @@ theorem flopperBidsBodyReturns {I : ExecutionEnv}
           (UInt256.ofNat (256 ^ 26)))
         uint48Mask]
       rfl
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "end") (er := bidsEndEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨26, by decide⟩ (by decide))
@@ -953,7 +953,7 @@ theorem flopperBidsBodyCoreOk
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨407⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let key := bidsArgWord I
   let baseSlot := solcMappingSlot ⟨1⟩ key
   let bidSlot := baseSlot
@@ -1093,7 +1093,7 @@ theorem flopperBidsBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨407⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1113,10 +1113,9 @@ theorem flopperBidsBodyCoreDecodeFailed_short
 theorem flopperBidsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 1)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flopperSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some bidsTransition :=

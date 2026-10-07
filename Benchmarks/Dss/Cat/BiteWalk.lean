@@ -110,7 +110,7 @@ theorem catBiteRevertUrnsDecode {σ σ₀ A I} {g : UInt256}
         UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
       (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨9⟩ ou σu ku Cu) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, _hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
@@ -138,9 +138,9 @@ each divergence to the imported business/call leaves, feeding the all-success ta
 set_option maxHeartbeats 4000000 in
 theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 68
@@ -594,7 +594,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                         (hDartLim.trans_eq (by native_decide)) hGrabCode hdepth
                                     cases zg with
                                     | false =>
-                                      exact catBiteRevertGrabFail hcode hdispatch hdecode hwv hperm hsz36 hdepth hurn
+                                      exact catBiteRevertGrabFail hcode hdispatch hdecode
+                                        hwv hsz36 hdepth hurn
                                         hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hIlksCall hUrnsCall hGrabCall
                                         (by simpa using rd2193) hoszg (by simp only [List.length_cons, List.length_nil]; omega)
                                         hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
@@ -650,7 +651,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                             (by native_decide) (le_trans (by native_decide) hGrabSz)
                                             (by rw [hawF]; native_decide) (by rw [hawF]; native_decide)
                                             (by native_decide) (by simp)
-                                        exact catBiteRevertFessNoCode hcode hdispatch hdecode hwv hperm hsz36 hdepth
+                                        exact catBiteRevertFessNoCode hcode hdispatch hdecode
+                                          hwv hsz36 hdepth
                                           hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hIlksCall
                                           hUrnsCall hGrabCall rd2284f
                                           (by simp only [List.length_cons, List.length_nil]; omega) hRateFit
@@ -671,7 +673,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                         by_cases hzf : zf = true
                                         swap
                                         · have hzff : zf = false := by simpa using hzf
-                                          exact catBiteRevertFessFail hcode hdispatch hdecode hwv hperm hsz36 hdepth hurn
+                                          exact catBiteRevertFessFail hcode hdispatch hdecode
+                                            hwv hsz36 hdepth hurn
                                             hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hIlksCall hUrnsCall
                                             hGrabCall hFessCall (by simpa [hzff] using rd2300) hoszf
                                             (by simp only [List.length_cons, List.length_nil]; omega) hzff hRateFit
@@ -732,7 +735,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                         by_cases hChopFit : milkChop.toNat * dartRate.toNat < UInt256.size
                                         swap
                                         · exact catBiteRevertTabBase hcode hdispatch hdecode
-                                            hwv hperm hsz36 hdepth hurn hilkslen hurnslen hlive hvatCode
+                                            hwv hsz36 hdepth hurn hilkslen hurnslen hlive hvatCode
                                             hUrnsVatCode hGrabCode hFessCode hIlksCall hUrnsCall hGrabCall
                                             hFessCall rd2300 (by decide)
                                             (by
@@ -768,7 +771,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                             (solcSlotWord σf I ⟨6⟩).toNat + tab.toNat < UInt256.size
                                         swap
                                         · -- litter + tab checkedAdd overflow → divergence
-                                          exact catBiteRevertLitterAdd hcode hdispatch hdecode hwv hperm hsz36 hdepth
+                                          exact catBiteRevertLitterAdd hcode hdispatch hdecode
+                                            hwv hsz36 hdepth
                                             hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hIlksCall
                                             hUrnsCall hGrabCall hFessCall rd2300 (by decide)
                                             (by
@@ -793,15 +797,17 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                       by native_decide
                                                     have := hpmemMilk; omega)] at hChop
                                               exact hChop)
-                                            (by native_decide) (by native_decide) hRateFit hChopFit hLitFit
+                                            (by native_decide) (by native_decide)
+                                            hRateFit hChopFit hLitFit
                                             hdartRateDef htabBaseDef htabDef
                                             hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef hmilkChopDef hdunkRoomDef
                                             hdunkRoomWadDef hdartDenomDef hdartCandDef hdartDef hinkDartDef hdinkCandDef hdinkDef
                                             hspotPos hfitArtRate hfitInkSpot hunsafe hlitterbox hroomdust hRatePos hChopPos
                                             hFitWad hArtPos hFitInkDart hDartPos hDinkPos hDartLim hDinkLim
                                         -- 2300 → 2383: fess-success guard + tab arithmetic + litter SSTORE.
-                                        obtain ⟨_, _, rd2383⟩ :=
-                                          catBiteReach2300to2383 (milkChop := milkChop) rd2300 (by decide)
+                                        have hfirstWrite :=
+                                          catBiteReach2300to2383Split (milkChop := milkChop)
+                                            rd2300 (by decide)
                                             (by
                                               rw [if_neg (by
                                                     have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
@@ -824,8 +830,28 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                       by native_decide
                                                     have := hpmemMilk; omega)] at hChop
                                               exact hChop)
-                                            (by native_decide) (by native_decide) hperm hRateFit hChopFit hLitFit
+                                            (by native_decide) (by native_decide)
+                                            hRateFit hChopFit hLitFit
                                             hdartRateDef.symm htabBaseDef.symm htabDef.symm hlitterNewDef.symm
+                                        rcases hfirstWrite with
+                                          ⟨hperm, _, _, rd2383⟩ | ⟨hperm, hstatic⟩
+                                        swap
+                                        · exact (catBiteRevertKickNoCodeSplit
+                                            hcode hdispatch hdecode hwv
+                                            hsz36 hdepth hurn hilkslen
+                                            hurnslen hlive hvatCode hUrnsVatCode
+                                            hGrabCode hFessCode hIlksCall hUrnsCall
+                                            hGrabCall hFessCall hRateFit hflipWDef
+                                            hdartRateDef htabBaseDef htabDef hlitterNewDef
+                                            hChopFit hLitFit hart hink
+                                            hiSpot hiRate hiDustDef hroomDef
+                                            hmilkDunkDef hmilkChopDef hdunkRoomDef hdunkRoomWadDef
+                                            hdartDenomDef hdartCandDef hdartDef hinkDartDef
+                                            hdinkCandDef hdinkDef hspotPos hfitArtRate
+                                            hfitInkSpot hunsafe hlitterbox hroomdust
+                                            hRatePos hChopPos hFitWad hArtPos
+                                            hFitInkDart hDartPos hDinkPos hDartLim
+                                            hDinkLim).2 hperm hstatic
                                         -- STEP C: kick CALL reach (2383 → 2532), all at free ptr `p`.
                                         by_cases hKickCode :
                                             Reasoning.Theory.extCodeSizeWord
@@ -881,7 +907,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                     exact hread64F))
                                               (by native_decide) (by native_decide) (by native_decide) hpmem_kick
                                               (by native_decide) hread64F (by simp)
-                                          exact catBiteRevertKickNoCode hcode hdispatch hdecode hwv hperm hsz36 hdepth
+                                          exact catBiteRevertKickNoCode hcode hdispatch hdecode
+                                            hwv hsz36 hdepth
                                             hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode
                                             hIlksCall hUrnsCall hGrabCall hFessCall rd2516k
                                             (by simp only [List.length_cons, List.length_nil]; omega) hRateFit
@@ -946,7 +973,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                           by_cases hzk : zk = true
                                           swap
                                           · have hzkf : zk = false := by simpa using hzk
-                                            exact catBiteRevertKickFail hcode hdispatch hdecode hwv hperm hsz36 hdepth hurn
+                                            exact catBiteRevertKickFail hcode hdispatch hdecode
+                                              hwv hsz36 hdepth hurn
                                               hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode hIlksCall
                                               hUrnsCall hGrabCall hFessCall hKickCall (by simpa [hzkf] using rd2532) hoszk
                                               (by simp only [List.length_cons, List.length_nil]; omega) hzkf hRateFit hflipWDef hdartRateDef
@@ -959,7 +987,8 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                           · -- kick return decode short (returndatasize < 32): all heavy work (free-ptr
                                             -- MLOAD facts + Solm mapping) is inside `catBiteRevertKickDecodeW` (own budget);
                                             -- the walk supplies rd2532/reads by cheap metavar assignment.
-                                            exact catBiteRevertKickDecodeW hcode hdispatch hdecode hwv hperm hsz36 hdepth
+                                            exact catBiteRevertKickDecodeW hcode hdispatch hdecode
+                                              hwv hsz36 hdepth
                                               hurn hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode
                                               hIlksCall hUrnsCall hGrabCall hFessCall hKickCall rd2532 hpmem_kick hread64F
                                               (by native_decide) (by native_decide) (by native_decide) hoszk
@@ -1216,7 +1245,6 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                   solcSlotWordAt, hmask]
                                               rw [heUam, ht]; exact hGrabCode)
                                             (hGrabCall := by
-                                              rw [hperm] at hGrabCall'
                                               have ht : EVM.address (biteVatAddr eUrn).val =
                                                   AccountAddress.ofUInt256
                                                     ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) := by
@@ -1259,7 +1287,6 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                   hmask, u256_land_comm]
                                                 simp only [biteVowAddrV, solcSlotWordAt, heGam,
                                                   heGee]
-                                              rw [hperm] at hFessCall'
                                               rw [haddr, show bw (biteDartRateV I eUrn iRate art) =
                                                 Value.int (Int.ofNat dartRate.toNat) from by rw [hdartrateB]]
                                               exact hFessCall')
@@ -1269,7 +1296,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                               simp only [storageStore_accountMap, heFam, heFee]
                                               rw [hlitternew]; exact hKickCode)
                                             (hKickCall := by
-                                              rw [hzk, hperm] at hKickCall'
+                                              rw [hzk] at hKickCall'
                                               have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress)
                                                   (k v : UInt256), Solm.EVM.storageStore ev aa k v =
                                                     { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by

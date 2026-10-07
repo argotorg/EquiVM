@@ -148,7 +148,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroLiquidityZeroFromFactoryCase
       minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
           ((amount1.mul totalSupply).div reserve1) =
         ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hzero with
     ⟨hfeeToNonzero, hkLastZero, htotalNonzero, hmulFit0, hmulFit1, hreserve0Nonzero,
       hreserve1Nonzero, hliqZero⟩
@@ -368,7 +368,7 @@ theorem uniswapMintProportionalKLastZeroLiquidityZeroFromFactoryCase
         minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
             ((amount1.mul totalSupply).div reserve1) =
           ⟨0⟩)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hzero with hzero | hzero
   · exact
       uniswapMintProportionalFeeOffKLastZeroLiquidityZeroFromFactoryCase
@@ -530,7 +530,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroLiquidityZeroFromFactoryCase
       minFunctionResultWord ((amount0.mul totalSupply).div reserve0)
           ((amount1.mul totalSupply).div reserve1) =
         ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hzero with
     ⟨hfeeToZero, hkLastNonzero, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliqZero⟩

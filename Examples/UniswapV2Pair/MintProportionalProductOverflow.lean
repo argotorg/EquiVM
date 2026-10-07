@@ -443,7 +443,7 @@ theorem uniswapMintProportionalProduct0OverflowAfterMintFeeCase
     (hover : UInt256.size ≤ amount0.toNat * totalSupply.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
@@ -560,7 +560,7 @@ theorem uniswapMintProportionalProduct1OverflowAfterMintFeeCase
     (hover : UInt256.size ≤ amount1.toNat * totalSupply.toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmS (mintStore I) mintTransition.body .reverted := by
@@ -722,7 +722,7 @@ theorem uniswapMintProportionalFeeOffKLastZeroProductOverflowFromFactoryCase
       UInt256.size ≤ amount0.toNat * totalSupply.toNat ∨
         amount0.toNat * totalSupply.toNat < UInt256.size ∧
           reserve0 ≠ ⟨0⟩ ∧ UInt256.size ≤ amount1.toNat * totalSupply.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -936,7 +936,7 @@ theorem uniswapMintProportionalFeeOnKLastZeroProductOverflowFromFactoryCase
       UInt256.size ≤ amount0.toNat * totalSupply.toNat ∨
         amount0.toNat * totalSupply.toNat < UInt256.size ∧
           reserve0 ≠ ⟨0⟩ ∧ UInt256.size ≤ amount1.toNat * totalSupply.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
@@ -1153,7 +1153,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroProductOverflowFromFactoryCase
       UInt256.size ≤ amount0.toNat * totalSupply.toNat ∨
         amount0.toNat * totalSupply.toNat < UInt256.size ∧
           reserve0 ≠ ⟨0⟩ ∧ UInt256.size ≤ amount1.toNat * totalSupply.toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -1390,7 +1390,7 @@ theorem uniswapMintProportionalProductOverflowFromFactoryCases
     (hcase :
       mintProportionalProductOverflowCase feeToWord totalSupply totalSupplyCleared amount0
         amount1 reserve0 reserve1 σFee I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with hfeeOff | hrest
   · rcases hfeeOff with ⟨hfeeToZero, hkLastZero, htotalNonzero, hover⟩
     exact uniswapMintProportionalFeeOffKLastZeroProductOverflowFromFactoryCase feeTo

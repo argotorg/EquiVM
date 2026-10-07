@@ -100,15 +100,14 @@ theorem pausableDecode_guardedWhenPaused {I : ExecutionEnv} (hsz : 4 ≤ I.calld
 theorem pausableGuardedWhenPausedBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xdd, 0xf7, 0x03, 0x09]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨141⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
   have hsz := pausableGuardedWhenPausedSelector_size hsel
   have hd := pausableDispatch_guardedWhenPaused (cd := I.calldata) hsel
   have hdec := pausableDecode_guardedWhenPaused (I := I) hsz

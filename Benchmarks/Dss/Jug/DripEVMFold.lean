@@ -307,11 +307,10 @@ theorem RD.jugDripVatFoldCallSucceeded
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem RD.jugDripVatFoldStoreRhoReturns
+theorem RD.jugDripVatFoldStoreRhoReturnsSplit
     {σ σ' σ₀ A I} {g targetWord prev rate sel : UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
-    (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd1669 : RD jugBytecode I (Sat256.ofUInt256 g)
@@ -319,11 +318,14 @@ theorem RD.jugDripVatFoldStoreRhoReturns
       (dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata σ' k C) :
+    (I.perm = true ∧
     RDret jugBytecode (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (sstoreAccountMap I.codeOwner σ' (fileDutyRhoSlotFor I)
         (UInt256.ofNat I.header.timestamp))
-      (UInt256.toByteArray rate) := by
+      (UInt256.toByteArray rate)) ∨
+      (I.perm = false ∧ RDstatic jugBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let hashMem := twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem
   let retMem := dripVatFoldReturnMem hashMem rate
   have hhashMemSize : hashMem.size = 228 := by
@@ -395,6 +397,12 @@ theorem RD.jugDripVatFoldStoreRhoReturns
     raw swap2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov)]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1696pre.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k1697, C1697, rd1697raw⟩ := rd1696pre.sstore hperm (by native_decide)
     (by evm_ov)
   have rd1697 : RD jugBytecode I (Sat256.ofUInt256 g)

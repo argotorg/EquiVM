@@ -721,6 +721,20 @@ theorem uniswapSkimBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
   exact uniswapSkimBodyReverts_of_lockEnterRevert
     (uniswapLockEnterLockedRevert evm (skimStore I) hwv (by simp [skimStore]) hlocked)
 
+theorem uniswapSkimBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (skimStore I) skimTransition.body
+      .staticViolation := by
+  have hbody : lockEnter ++ skimAfterLockBody = skimTransition.body := by
+    simp [skimTransition, skimAfterLockBody, List.append_assoc]
+  exact ExecFuncBody.execBlockStatic (by
+    rw [← hbody]
+    exact execBlock_append_term
+      (uniswapLockEnterStatic evm (skimStore I) hwv (by simp [skimStore]) hunlocked hperm)
+      (by intro f e h; cases h))
+
 theorem uniswapSkimBodyReverts_firstNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)

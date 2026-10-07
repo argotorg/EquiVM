@@ -376,14 +376,13 @@ theorem storageLocStore_uint48_offset6_word (evm : EVM.State) (slot data : UInt2
   rw [hclean]
   ring
 
-theorem clearStorage_uint256_zero {cfg : Config} {evm : EVM.State}
+theorem clearStorage_uint256_zero {layout : StorageLayout} {evm : EVM.State}
     {er : EvaledStorageRef} {slot : UInt256}
-    (hloc : cfg.storage.layout er evm = some (uint256Loc slot)) :
-    clearStorage? cfg evm er packedUInt256StorageType =
+    (hloc : layout er = some (.leaf (uint256Loc slot))) :
+    solidityClearStorage? layout evm er packedUInt256StorageType =
       .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot ⟨0⟩) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [packedUInt256StorageType]
-  rw [hloc]
+  simp only [solidityClearStorage?, packedUInt256StorageType, solidityLeafLoc?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
   change EvalResult.ofOption EvalError.storageError
       (storageLocStore evm (uint256Loc slot) (.int (Int.ofNat (⟨0⟩ : UInt256).toNat))) =
     .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot ⟨0⟩)
@@ -422,16 +421,15 @@ theorem storageLocStore_addr_zero (evm : EVM.State) (slot : UInt256) :
   rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]
   ring
 
-theorem clearStorage_addr_zero {cfg : Config} {evm : EVM.State}
+theorem clearStorage_addr_zero {layout : StorageLayout} {evm : EVM.State}
     {er : EvaledStorageRef} {slot : UInt256}
-    (hloc : cfg.storage.layout er evm = some (addressOffset0Loc slot)) :
-    clearStorage? cfg evm er packedAddressStorageType =
+    (hloc : layout er = some (.leaf (addressOffset0Loc slot))) :
+    solidityClearStorage? layout evm er packedAddressStorageType =
       .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩)) :=
           by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [packedAddressStorageType]
-  rw [hloc]
+  simp only [solidityClearStorage?, packedAddressStorageType, solidityLeafLoc?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
   change EvalResult.ofOption EvalError.storageError
       (storageLocStore evm (addressOffset0Loc slot) (.int (Int.ofNat (⟨0⟩ : UInt256).toNat))) =
     .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
@@ -883,17 +881,16 @@ theorem storageLocStore_uint48_offset20_word (evm : EVM.State) (slot data : UInt
   dsimp [old]
   ring_nf
 
-theorem clearStorage_uint48_offset20_zero {cfg : Config} {evm : EVM.State}
+theorem clearStorage_uint48_offset20_zero {layout : StorageLayout} {evm : EVM.State}
     {er : EvaledStorageRef} {slot : UInt256}
     (hloc :
-      cfg.storage.layout er evm = some (packedUInt48Loc slot ⟨20, by decide⟩ (by decide))) :
-    clearStorage? cfg evm er packedUInt48StorageType =
+      layout er = some (.leaf (packedUInt48Loc slot ⟨20, by decide⟩ (by decide)))) :
+    solidityClearStorage? layout evm er packedUInt48StorageType =
       .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (clearUint48Offset20Word
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [packedUInt48StorageType]
-  rw [hloc]
+  simp only [solidityClearStorage?, packedUInt48StorageType, solidityLeafLoc?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
   change EvalResult.ofOption EvalError.storageError
       (storageLocStore evm (packedUInt48Loc slot ⟨20, by decide⟩ (by decide)) (.int 0)) =
     .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
@@ -902,17 +899,16 @@ theorem clearStorage_uint48_offset20_zero {cfg : Config} {evm : EVM.State}
   rw [storageLocStore_uint48_offset20_zero]
   rfl
 
-theorem clearStorage_uint48_offset26_zero {cfg : Config} {evm : EVM.State}
+theorem clearStorage_uint48_offset26_zero {layout : StorageLayout} {evm : EVM.State}
     {er : EvaledStorageRef} {slot : UInt256}
     (hloc :
-      cfg.storage.layout er evm = some (packedUInt48Loc slot ⟨26, by decide⟩ (by decide))) :
-    clearStorage? cfg evm er packedUInt48StorageType =
+      layout er = some (.leaf (packedUInt48Loc slot ⟨26, by decide⟩ (by decide)))) :
+    solidityClearStorage? layout evm er packedUInt48StorageType =
       .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
         (clearUint48Offset26Word
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [packedUInt48StorageType]
-  rw [hloc]
+  simp only [solidityClearStorage?, packedUInt48StorageType, solidityLeafLoc?, hloc,
+    EvalResult.ofOption, EvalResult.bind, bind]
   change EvalResult.ofOption EvalError.storageError
       (storageLocStore evm (packedUInt48Loc slot ⟨26, by decide⟩ (by decide)) (.int 0)) =
     .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot

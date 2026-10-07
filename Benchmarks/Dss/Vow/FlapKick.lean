@@ -375,7 +375,6 @@ theorem RD.vowFlapKickPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord acc
         (solcAddressSlotWord ⟨2⟩ acc I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
     let target := solcAddressSlotWord ⟨2⟩ acc I
     let bump := solcSlotWordAt ⟨10⟩ acc I
@@ -417,7 +416,7 @@ theorem RD.vowFlapKickPostCall
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
       (by simpa [target] using flapKickAddress_eq_target acc I)
       (flapKickEncode_eq bump hmem) ?_
-    simpa [initState, target, hperm] using hΘ
+    simpa [initState, target] using hΘ
 
 theorem flapKickWrite_size (bump : UInt256) {mem : ByteArray} (o : ByteArray) (L : ℕ)
     (hmem : mem.size = 164) (hL : L ≤ 32) (hLo : L ≤ o.size) :

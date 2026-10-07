@@ -4,9 +4,8 @@ import Solm.Notation
 /-!
 # TinyImmutable spec in the Solidity-faithful Solm frontend
 
-The spec is parameterized by the immutable valuation `v : TinyImmutables`, so `contractSyntax` is
-too, and the immutable reads use the `${…}` expression escape.  The `unchecked` product in `quote`
-is the explicit `% 2^256` wrap, as in the AST spec.
+The immutables are declared as in Solidity and assigned in the constructor.  The `unchecked`
+product in `quote` is the explicit `% 2^256` wrap, as in the AST spec.
 -/
 
 open Solm Solm.Notation
@@ -14,31 +13,31 @@ open TinyImmutable.Immutables
 
 namespace TinyImmutable.Syntax
 
-def contractSyntax (v : TinyImmutables) : ContractDecl := solidity% contract TinyImmutable {
+def contractSyntax : ContractDecl := solidity% contract TinyImmutable {
+  address immutable owner;
+  uint256 immutable scale;
+
   constructor(address _owner, uint256 _scale, bool useScale) {
-    address imm_owner = _owner;
+    owner = _owner;
     if (useScale) {
-      uint256 imm_scale = _scale;
-    } else {
-      uint256 imm_scale = 0;
+      scale = _scale;
     }
   }
 
   function owner() external returns (address) {
-    return ${owner v};
+    return owner;
   }
 
   function quote(uint256 amount) external returns (uint256) {
-    require(msg.sender == ${owner v});
-    return (amount * ${scale v}) % #(Int.ofNat EVM.wordModulus);
+    require(msg.sender == owner);
+    return (amount * scale) % #(Int.ofNat EVM.wordModulus);
   }
 
   function scale() external returns (uint256) {
-    return ${scale v};
+    return scale;
   }
 }
 
-theorem contractSyntax_eq (v : TinyImmutables) :
-    contractSyntax v = TinyImmutable.contract v := by rfl
+theorem contractSyntax_eq : contractSyntax = TinyImmutable.contract := by rfl
 
 end TinyImmutable.Syntax

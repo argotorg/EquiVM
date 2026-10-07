@@ -6,7 +6,7 @@ import Benchmarks.Dss.StairstepExponentialDecrease.Price
 import Benchmarks.Dss.StairstepExponentialDecrease.Rely
 import Benchmarks.Dss.StairstepExponentialDecrease.Step
 import Benchmarks.Dss.StairstepExponentialDecrease.Wards
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS StairstepExponentialDecrease benchmark correctness stub
@@ -23,30 +23,31 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.StairstepExponentialDecrease
 
 theorem stairstepExponentialDecreaseCorrect :
-    runtimeEquivalence config stairstepExponentialDecreaseBytecode contract := by
-  refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+    runtimeRefinement config stairstepExponentialDecreaseBytecode contract := by
+  refine runtimeRefinement.intro ?_
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
-    · exact stairstepCutBody hcode hsize hperm hwv hcut
+    · exact stairstepCutBody hcode hsize hwv hcut
     · by_cases hdeny : selIs I (stairstepSelBytes 1)
-      · exact stairstepDenyBody hcode hsize hperm hwv hdeny
+      · exact stairstepDenyBodyAnyPerm hcode hsize hwv hdeny
       · by_cases hfile : selIs I (stairstepSelBytes 2)
-        · exact stairstepFileBody hcode hsize hperm hwv hfile
+        · exact stairstepFileBody hcode hsize hwv hfile
         · by_cases hprice : selIs I (stairstepSelBytes 3)
-          · exact stairstepPriceBody hcode hsize hperm hwv hprice
+          · exact stairstepPriceBody hcode hsize hwv hprice
           · by_cases hrely : selIs I (stairstepSelBytes 4)
-            · exact stairstepRelyBody hcode hsize hperm hwv hrely
+            · exact stairstepRelyBodyAnyPerm hcode hsize hwv hrely
             · by_cases hstep : selIs I (stairstepSelBytes 5)
-              · exact stairstepStepBody hcode hsize hperm hwv hstep
+              · exact stairstepStepBody hcode hsize hwv hstep
               · by_cases hwards : selIs I (stairstepSelBytes 6)
-                · exact stairstepWardsBody hcode hsize hperm hwv hwards
-                · exact stairstepNoDispatch hcode hsize hperm hwv
+                · exact stairstepWardsBody hcode hsize hwv hwards
+                · exact stairstepNoDispatch hcode hsize hwv
                     (stairstepNoSelectorMatches hcut hdeny hfile hprice hrely hstep hwards)
   · exact stairstepNonPayable hcode hwv
 
 theorem stairstepExponentialDecreaseContractCorrect :
-    contractEquivalence config stairstepExponentialDecreaseCreationBytecode stairstepExponentialDecreaseBytecode contract :=
-  contractEquivalence.intro stairstepExponentialDecreaseConstructorCorrect stairstepExponentialDecreaseCorrect
+    contractRefinement config stairstepExponentialDecreaseCreationBytecode contract :=
+  contractRefinement.of_constant stairstepExponentialDecreaseConstructorCorrect
+    stairstepExponentialDecreaseCorrect
 
 end Benchmarks.Dss.StairstepExponentialDecrease

@@ -230,10 +230,10 @@ theorem vowReachHealBody {σ σ₀ A I} {g : Sat256}
 
 theorem vowHealShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hreach :=
     vowReachHealBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1316,7 +1316,7 @@ theorem vowHealDaiNoCodeBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnoCode :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hnoCodeSolm :
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩ := hnoCode
   have hvatAddr :
@@ -1370,7 +1370,7 @@ theorem vowHealDaiCallFailureBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDaiCallFailure rd4719 hosz (by simp)
   have hbody := vowHealSourceDaiCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1414,7 +1414,7 @@ theorem vowHealDaiDecodeShortBodyCore
       0 < (UInt256.ofNat
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealDaiReturnDecodeShortReverts rd4737 hshort hosz hMload64Value
   have hbody := vowHealSourceDaiDecodeRevert
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1457,7 +1457,7 @@ theorem vowHealDaiSuccessInsufficientSurplusBodyCore
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hinsuff :
       (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))).toNat < (healRad I).toNat) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let vatDai : UInt256 := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 :=
     ctorMin32_toNat_of_ge ho32 hosz
@@ -1546,7 +1546,7 @@ theorem vowHealSinNoCodeBodyCore
       (UInt256.ofNat
         ((evmDai.lookupAccount (kissVatAddress σ I)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealSinNoCode rd4838 hmem hread64 hcodeSizeEvm
   have hbody := vowHealSourceSinNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -1592,7 +1592,7 @@ theorem vowHealSinCallFailureBodyCore
     (hcallSin :
       typedCallViaEVM config evmDai (EVM.address (kissVatAddress σ I)) "sin" 0
         [.address I.codeOwner] (false, evmSin, outSin) false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowHealSinCallFailure rd1277 hrdataSize (by simp)
   have hbody := vowHealSourceSinCallFailure
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)

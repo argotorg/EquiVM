@@ -71,14 +71,13 @@ theorem assign_potCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', potCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_potCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -86,7 +85,7 @@ private theorem assign_potCtorAddressStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -106,13 +105,13 @@ private theorem assign_potCtorAddressStorage (evm : EVM.State) (locals : Store)
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem assign_potCtorVatStorage (evm : EVM.State) (locals : Store)
@@ -126,8 +125,7 @@ theorem assign_potCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 /-! ### Scalar stores (`dsr`, `chi`, `rho`, `live`) -/
 
@@ -136,8 +134,8 @@ theorem assign_potCtorDsrStorage (evm : EVM.State) (locals : Store)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage dsrRef (.int one) =
         .ok ({ contract := contract, locals := locals }, potCtorAfterDsrState evm) := by
-  apply assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc ⟨3⟩) (er := { base := "dsr", steps := [] })
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (er := { base := "dsr", steps := [] })
     (hbase := by simpa [dsrRef] using hbaseAbsent)
     (her := by simp [dsrRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -150,8 +148,8 @@ theorem assign_potCtorChiStorage (evm : EVM.State) (locals : Store)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage chiRef (.int one) =
         .ok ({ contract := contract, locals := locals }, potCtorAfterChiState evm) := by
-  apply assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc ⟨4⟩) (er := { base := "chi", steps := [] })
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (er := { base := "chi", steps := [] })
     (hbase := by simpa [chiRef] using hbaseAbsent)
     (her := by simp [chiRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -165,8 +163,8 @@ theorem assign_potCtorRhoStorage (evm : EVM.State) (locals : Store)
       .storage rhoRef
         (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)) =
         .ok ({ contract := contract, locals := locals }, potCtorAfterRhoState evm) := by
-  apply assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc ⟨7⟩) (er := { base := "rho", steps := [] })
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (er := { base := "rho", steps := [] })
     (hbase := by simpa [rhoRef] using hbaseAbsent)
     (her := by simp [rhoRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -179,8 +177,8 @@ theorem assign_potCtorLiveStorage (evm : EVM.State) (locals : Store)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage liveRef (.int 1) =
         .ok ({ contract := contract, locals := locals }, potCtorAfterLiveState evm) := by
-  apply assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc ⟨8⟩) (er := { base := "live", steps := [] })
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (er := { base := "live", steps := [] })
     (hbase := by simpa [liveRef] using hbaseAbsent)
     (her := by simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

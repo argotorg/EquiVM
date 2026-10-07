@@ -14,7 +14,6 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hd : dispatchMsg blindAuctionContract I.calldata = some revealTransition)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
@@ -45,7 +44,7 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
         fakesLenWord ((⟨4⟩ + revealFakesOffsetWord I) + ⟨32⟩)
         secretsLenWord ((⟨4⟩ + revealSecretsOffsetWord I) + ⟨32⟩))
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+    runtimeRefinementFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨_, _, rd887⟩ := h887
   let evmSolm : EVM.State :=
@@ -90,7 +89,7 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
       (valuesLenWord := valuesLenWord)
       (fakesLenWord := fakesLenWord)
       (secretsLenWord := secretsLenWord)
-      hcode hperm hd hdec hwv
+      hcode hd hdec hwv
       hvaluesGet hfakesGet hsecretsGet
       hvaluesListLen hfakesListLen hsecretsListLen
       hafter hbefore hvaluesEq hfakesEq hsecretsEq hbidsZero
@@ -102,7 +101,7 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
       (valuesLenWord := valuesLenWord)
       (fakesLenWord := fakesLenWord)
       (secretsLenWord := secretsLenWord)
-      hcode hsize hperm hd hdec hstore hwv
+      hcode hsize hd hdec hstore hwv
       hvaluesGet hfakesGet hsecretsGet
       hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax
       hafter hbefore hvaluesEq hfakesEq hsecretsEq

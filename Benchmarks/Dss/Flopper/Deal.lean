@@ -234,7 +234,7 @@ theorem evalExpr_deal_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dealLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := dealLiveEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -298,7 +298,7 @@ theorem evalExpr_deal_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := dealTicEvaledRef I)
     (t := .int uint48Int)
@@ -332,7 +332,7 @@ theorem evalExpr_deal_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := dealEndEvaledRef I)
     (t := .int uint48Int)
@@ -354,7 +354,7 @@ theorem evalExpr_deal_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (dealGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := dealGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (dealIdWord I)))
@@ -377,7 +377,7 @@ theorem evalExpr_deal_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dealLotWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dealLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dealIdWord I)))
@@ -398,7 +398,7 @@ theorem evalExpr_deal_gem_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dealLocals I } evm (.storage gemRef) =
       .ok (.address (AccountAddress.ofNat (dealGemWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dealLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := gemRef) (er := dealGemEvaledRef)
     (t := .address) (loc := addrLoc ⟨3⟩)
@@ -732,7 +732,7 @@ theorem flopperDealBodyReverts_mintCallFailure
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       htail)
 
-theorem flopperDealBodyReturns_mintCallSuccess
+theorem flopperDealBodyReturns_mintCallSuccessSplit
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨1⟩)
@@ -749,9 +749,12 @@ theorem flopperDealBodyReturns_mintCallSuccess
         [.address (AccountAddress.ofNat (dealGuyWord evm I).toNat),
           .int (Int.ofNat (dealLotWord evm I).toNat)]
         (true, evm', out) true) :
-    ExecTransitionBody config contract evm (dealLocals I) dealTransition.body
+    (ExecTransitionBody config contract evm (dealLocals I) dealTransition.body
       (.returned { contract := contract, locals := dealMintLocals I }
-        (auctionDeletePostState (dealIdWord I) evm') none) := by
+        (auctionDeletePostState (dealIdWord I) evm') none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (dealLocals I)
+          dealTransition.body .staticViolation) := by
   have hgem := evalExpr_deal_gem_storage evm I
   have hcodeLookup :
       0 < (UInt256.ofNat
@@ -779,31 +782,37 @@ theorem flopperDealBodyReturns_mintCallSuccess
         (.ok { contract := contract, locals := dealMintLocals I } evm') := by
     simpa [checkedExternalCallStmts, dealMintLocals] using
       checkedExternalCallSuccess hguard hgem hargs hcall hdec
-  have hdelete :
-      ExecBlock config { contract := contract, locals := dealMintLocals I } evm'
-        [.delete (bidRef (.var "id"))]
-        (.ok { contract := contract, locals := dealMintLocals I }
-          (auctionDeletePostState (dealIdWord I) evm')) := by
-    exact ExecBlock.consNormal (ExecStmt.delete (deleteStorage_dealMint_bid evm' I))
-      ExecBlock.nil
-  have htail :
+  have hdelete := deleteStorage_dealMint_bid evm' I
+  have hprefix {result : ExecResult}
+      (hdelete : ExecBlock config { contract := contract, locals := dealMintLocals I } evm'
+        [.delete (bidRef (.var "id"))] result) :
       ExecBlock config { contract := contract, locals := dealLocals I } evm
-        (checkedExternalCallStmts (.storage gemRef) "mint" (.intLit 0)
-          [.storage (bidsF (.var "id") "guy"), .storage (bidsF (.var "id") "lot")]
-          "_mintRet" ++
-          [.delete (bidRef (.var "id"))])
-        (.ok { contract := contract, locals := dealMintLocals I }
-          (auctionDeletePostState (dealIdWord I) evm')) :=
-   execBlock_append hchecked hdelete
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
-    List.nil_append] using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_deal_live_one_true evm I hlive)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
-      htail)
+        dealTransition.body result := by
+    have htail :
+        ExecBlock config { contract := contract, locals := dealLocals I } evm
+          (checkedExternalCallStmts (.storage gemRef) "mint" (.intLit 0)
+            [.storage (bidsF (.var "id") "guy"), .storage (bidsF (.var "id") "lot")]
+            "_mintRet" ++
+            [.delete (bidRef (.var "id"))])
+          result :=
+     execBlock_append hchecked hdelete
+    simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
+      List.nil_append] using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_deal_live_one_true evm I hlive)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
+        htail)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete hdelete) ExecBlock.nil))
+  · intro hperm
+    have hp : evm'.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
 theorem flopperDecode_deal_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (dealTransition.params.map Param.name)

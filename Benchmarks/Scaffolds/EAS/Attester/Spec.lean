@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Scaffolds.EAS.Attester.Immutables
@@ -150,11 +151,11 @@ def attesterExternalABI : ExternalCallABI where
 
 def storageDecls : List StorageDecl := []
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -164,13 +165,13 @@ def nonpayable : List Stmt :=
 def abiEncodeUint256 (e : Expr) : Expr :=
   .bytesSlice (.abiEncodeCall "__abi_encode_uint256" [e]) (.intLit 4) (.intLit 36)
 
-def easCall (v : AttesterImmutables) (name : Ident) (args : List Expr) (retVar : Ident) : Stmt :=
-  .externalCall (easExpr v) name (.intLit 0) args retVar
+def easCall (name : Ident) (args : List Expr) (retVar : Ident) : Stmt :=
+  .externalCall easExpr name (.intLit 0) args retVar
 
-def checkedEASCallStmts (v : AttesterImmutables) (name : Ident)
+def checkedEASCallStmts (name : Ident)
     (args : List Expr) (retVar : Ident) : List Stmt :=
-  [ .require (.binary .gt (.extCodeSize (easExpr v)) (.intLit 0)),
-    easCall v name args retVar ]
+  [ .require (.binary .gt (.extCodeSize easExpr) (.intLit 0)),
+    easCall name args retVar ]
 
 def attestationData (input : Expr) : Expr :=
   .tupleLit [zeroAddr, .intLit 0, .boolLit true, zeroBytes32, abiEncodeUint256 input, .intLit 0]
@@ -191,28 +192,28 @@ def constructorDecl : ConstructorDecl :=
     body :=
       nonpayable ++
       [ .require (.binary .ne (.var "eas") zeroAddr),
-        .letDecl "imm_eas" (some addr) (.var "eas") ] }
+        .setImmutable "_eas" (.var "eas") ] }
 
 /-! ## Public ABI surface -/
 
-def attestTransition (v : AttesterImmutables) : TransitionDecl :=
+def attestTransition : TransitionDecl :=
   { name := "attest"
     params := [{ name := "schema", ty := bytes32 }, { name := "input", ty := uint256 }]
     returnType := [bytes32]
     body :=
       nonpayable ++
-      [ easCall v "attest" [attestationRequest (.var "schema") (.var "input")] "uid",
+      [ easCall "attest" [attestationRequest (.var "schema") (.var "input")] "uid",
         .return [.var "uid"] ] }
 
-def revokeTransition (v : AttesterImmutables) : TransitionDecl :=
+def revokeTransition : TransitionDecl :=
   { name := "revoke"
     params := [{ name := "schema", ty := bytes32 }, { name := "uid", ty := bytes32 }]
     returnType := []
     body :=
       nonpayable ++
-      checkedEASCallStmts v "revoke" [revocationRequest (.var "schema") (.var "uid")] "_revoke" }
+      checkedEASCallStmts "revoke" [revocationRequest (.var "schema") (.var "uid")] "_revoke" }
 
-def multiAttestTransition (v : AttesterImmutables) : TransitionDecl :=
+def multiAttestTransition : TransitionDecl :=
   { name := "multiAttest"
     params :=
       [ { name := "schemas", ty := bytes32Array },
@@ -241,10 +242,10 @@ def multiAttestTransition (v : AttesterImmutables) : TransitionDecl :=
             arrSet "multiRequests" (.var "i")
               (.tupleLit [arrGet "schemas" (.var "i"), .var "data"]),
             .assign .localVar (localRef "i") (add256 (.var "i") (.intLit 1)) ],
-        easCall v "multiAttest" [.var "multiRequests"] "uids",
+        easCall "multiAttest" [.var "multiRequests"] "uids",
         .return [.var "uids"] ] }
 
-def multiRevokeTransition (v : AttesterImmutables) : TransitionDecl :=
+def multiRevokeTransition : TransitionDecl :=
   { name := "multiRevoke"
     params :=
       [ { name := "schemas", ty := bytes32Array },
@@ -274,23 +275,24 @@ def multiRevokeTransition (v : AttesterImmutables) : TransitionDecl :=
               (.tupleLit [arrGet "schemas" (.var "i"), .var "data"]),
             .assign .localVar (localRef "i") (add256 (.var "i") (.intLit 1)) ],
       ] ++
-      checkedEASCallStmts v "multiRevoke" [.var "multiRequests"] "_multiRevoke" }
+      checkedEASCallStmts "multiRevoke" [.var "multiRequests"] "_multiRevoke" }
 
-def transitions (v : AttesterImmutables) : List TransitionDecl :=
-  [ attestTransition v,
-    multiAttestTransition v,
-    multiRevokeTransition v,
-    revokeTransition v ]
+def transitions : List TransitionDecl :=
+  [ attestTransition,
+    multiAttestTransition,
+    multiRevokeTransition,
+    revokeTransition ]
 
-def contract (v : AttesterImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "Attester"
     storage := storageDecls
+    immutables := [⟨"_eas", .address⟩]
     ctor := constructorDecl
     functions := []
-    transitions := transitions v }
+    transitions := transitions }
 
-def config (_v : AttesterImmutables) : Config :=
-  { storage := storageLayout
+def config : Config :=
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := attesterExternalABI
     selfDeployment := genSolidityConstructorDeployment constructorDecl.params }
 

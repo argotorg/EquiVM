@@ -1,6 +1,7 @@
 import EVM.Types
 import EVM.Lemmas
 import Solm.Value
+import Solm.Result
 
 -- TODO: get rid of these maybe
 import Ethereum.Semantics
@@ -40,14 +41,14 @@ def transientLoad (self : EVM.State) (a : EVM.Address) (key : EVM.Word) : EVM.Wo
   self.lookupAccount a |>.option ⟨0⟩ (Ethereum.Account.lookupTransientStorage (k := key))
 
 def transientStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : EVM.State :=
-  self.lookupAccount a |>.option self λ acc ↦
+  self.lookupAccount a |>.option self fun acc ↦
     self.setAccount a (Ethereum.Account.updateTransientStorage acc key value)
 
-/-- Swap the code owner's `storage` and `tstorage` so storage helpers hit transient storage. -/
+/-- Exchange the executing account's two storage maps to reuse persistent-storage operations. -/
 def swapCodeOwnerMaps (self : EVM.State) : EVM.State :=
-  let a := self.executionEnv.codeOwner
-  self.lookupAccount a |>.option self fun acc =>
-    self.setAccount a { acc with storage := acc.tstorage, tstorage := acc.storage }
+  let owner := self.executionEnv.codeOwner
+  self.lookupAccount owner |>.option self fun acc ↦
+    self.setAccount owner { acc with storage := acc.tstorage, tstorage := acc.storage }
 
 end EVM
 
@@ -66,12 +67,6 @@ structure StorageLoc where
                           -- proof that we are withing slot bounds
   bitOffset : Option (Fin 8) := .none -- offset within byte in bits; Needed for packed bytes
   type    : ElemType      -- A value to be loaded from storage must be a primitive
-  deriving Repr
-
-inductive StorageReadResult (α : Type) where
-  | ok : α -> StorageReadResult α
-  | revert : StorageReadResult α
-  | error : StorageReadResult α
   deriving Repr
 
 
@@ -164,29 +159,41 @@ def transientLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
 def transientLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State :=
   (storageLocStore (EVM.swapCodeOwnerMaps self) loc value).map EVM.swapCodeOwnerMaps
 
-structure StorageLayout where
-  layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
-  -- layouts that need representation-specific behavior can opt in at selected leaves.
-  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult Value) :=
-    fun _ _ _ => none
-  -- Optional high-level storage write hook. Used for representation-sensitive leaves such as
-  -- Solidity `bytes`/`string`, where slot-level byte locations are not the ABI boundary.
-  writeValue? : EvaledStorageRef -> StorageType -> Value -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ _ => none
-  -- Optional high-level storage clear hook, for the same representation-sensitive leaves.
-  clearValue? : EvaledStorageRef -> StorageType -> EVM.State ->
-      Option (StorageReadResult EVM.State) :=
-    fun _ _ _ => none
-  -- Optional layout-owned read for whole `bytes`/`string` lengths. This is needed for layouts
-  -- such as Solidity's packed short/long representation, where reading the length can validate
-  -- and revert on malformed encodings rather than merely loading a configured location.
-  readBytesLength : EvaledStorageRef -> EVM.State -> Option (StorageReadResult Nat) :=
-    fun _ _ => none
-  -- Note: The above definition may need to also carry some assumptions if
-  -- we want have a type system on top of these semantics,
-  -- e.g. access within array bounds returns `.some v`
+/-- Where a storage reference lives. This is a pure function of the reference: anything whose
+    physical position depends on the current state (the short/long encoding of Solidity bytes)
+    is left symbolic here and resolved by the backend. -/
+inductive StorageAddr where
+  /-- A primitive value at fixed bits of a fixed slot. -/
+  | leaf : StorageLoc -> StorageAddr
+  /-- The header slot of a dynamically-sized value (dynamic array length, bytes/string header). -/
+  | anchor : EVM.Word -> StorageAddr
+  /-- The `index`-th byte of the bytes/string value whose header is at slot `header`. -/
+  | byte : (header : EVM.Word) -> (index : Nat) -> StorageAddr
+  deriving Repr
+
+/-- Locate a storage reference. Representation-sensitive operations, including Solidity
+    bytes and strings, belong to `StorageBackend` rather than this locator. -/
+abbrev StorageLayout := EvaledStorageRef -> Option StorageAddr
+
+/-- Storage operations selected by a configuration. `locate?` is for proofs and diagnostics;
+    execution uses the operations themselves. -/
+structure StorageBackend where
+  read : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Value
+  write : EvaledStorageRef -> StorageType -> Value -> EVM.State -> EvalResult EVM.State
+  clear : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  length : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult Nat
+  push : EvaledStorageRef -> StorageType -> Option Value -> EVM.State -> EvalResult EVM.State
+  pop : EvaledStorageRef -> StorageType -> EVM.State -> EvalResult EVM.State
+  locate? : StorageLayout := fun _ => none
+
+/-- No storage declarations are configured. Accesses report an invalid storage reference. -/
+def StorageBackend.empty : StorageBackend where
+  read := fun _ _ _ ↦ .error .storageError
+  write := fun _ _ _ _ ↦ .error .storageError
+  clear := fun _ _ _ ↦ .error .storageError
+  length := fun _ _ _ ↦ .error .storageError
+  push := fun _ _ _ _ ↦ .error .storageError
+  pop := fun _ _ _ ↦ .error .storageError
 
 
 def intTypeSize (t : IntType) : Fin 33 :=
@@ -198,7 +205,3 @@ def fixedTypeSize (t : FixedType) : Fin 33 :=
   match t with
   | .ufixed ⟨bw,hbw⟩ _ => ⟨bw/8, by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
   | .fixed ⟨bw,hbw⟩ _ => ⟨bw/8,  by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
-
-/-- Layout that answers no slot. -/
-def emptyStorageLayout : StorageLayout where
-  layout := fun _ _ => none

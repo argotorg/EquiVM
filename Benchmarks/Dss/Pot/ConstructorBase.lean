@@ -3,7 +3,7 @@ import Reasoning.Memory
 import Benchmarks.Dss.Pot.Common
 import Reasoning.ExternalCall
 import Reasoning.Initcode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Pot constructor shared helpers

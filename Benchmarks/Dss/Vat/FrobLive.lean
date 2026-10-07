@@ -670,6 +670,77 @@ theorem hsourceRevertFromDebtAdd {evm : EVM.State} {I : ExecutionEnv}
         .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ])
     (by simp [frobTransition, List.append_assoc])
     hsrcPrefixRevert
+theorem hsourceStaticFromDebtStore {evm : EVM.State} {I : ExecutionEnv}
+    (hsrcPrefixStatic :
+      ExecBlock config { contract := contract, locals := frobStore I } evm
+        ((nonpayable ++ requireLive ++
+          [ .letDecl "urnInk" (some uint256)
+              (.storage (urnsF (.var "i") (.var "u") "ink")),
+            .letDecl "urnArt" (some uint256)
+              (.storage (urnsF (.var "i") (.var "u") "art")),
+            .letDecl "ilkArt" (some uint256) (.storage (ilksF (.var "i") "Art")),
+            .letDecl "ilkRate" (some uint256) (.storage (ilksF (.var "i") "rate")),
+            .letDecl "ilkSpot" (some uint256) (.storage (ilksF (.var "i") "spot")),
+            .letDecl "ilkLine" (some uint256) (.storage (ilksF (.var "i") "line")),
+            .letDecl "ilkDust" (some uint256) (.storage (ilksF (.var "i") "dust")),
+            .require (.binary .ne (.var "ilkRate") (.intLit 0)) ]) ++
+          checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
+          checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
+          checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
+          checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
+          checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
+          checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+          [ .assign .storage debtRef (.var "debtNew") ])
+        .staticViolation) :
+    ExecTransitionBody config contract evm (frobStore I) frobTransition.body
+      .staticViolation := by
+  have hblock := execBlock_append_term
+    (s2 :=
+      checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
+      checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
+      [ .require
+          (eitherExpr
+            (.binary .le (.var "dart") (.intLit 0))
+            (bothExpr
+              (.binary .le (.var "ceilingDebt") (.var "ilkLine"))
+              (.binary .le (.var "debtNew") (.storage LineRef)))),
+        .require
+          (eitherExpr
+            (bothExpr
+              (.binary .le (.var "dart") (.intLit 0))
+              (.binary .ge (.var "dink") (.intLit 0)))
+            (.binary .le (.var "tab") (.var "inkSpot"))) ] ++
+      [ .require
+          (eitherExpr
+            (bothExpr
+              (.binary .le (.var "dart") (.intLit 0))
+              (.binary .ge (.var "dink") (.intLit 0)))
+            (wishExpr (.var "u") sender)),
+        .require
+          (eitherExpr (.binary .le (.var "dink") (.intLit 0))
+            (wishExpr (.var "v") sender)),
+        .require
+          (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
+            (wishExpr (.var "w") sender)),
+        .require
+          (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
+            (.binary .ge (.var "tab") (.var "ilkDust"))) ] ++
+      checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
+        (.var "dink") ++
+      [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
+      checkedAddSignedInto "daiNew" (.storage (daiRef (.var "w"))) (.var "dtab") ++
+      [ .assign .storage (daiRef (.var "w")) (.var "daiNew"),
+        .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew"),
+        .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew"),
+        .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew"),
+        .assign .storage (ilksF (.var "i") "rate") (.var "ilkRate"),
+        .assign .storage (ilksF (.var "i") "spot") (.var "ilkSpot"),
+        .assign .storage (ilksF (.var "i") "line") (.var "ilkLine"),
+        .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ])
+    hsrcPrefixStatic (by intro f e h; cases h)
+  exact ExecFuncBody.execBlockStatic
+    (by simpa [frobTransition, List.append_assoc] using hblock)
+
 theorem hsourceRevertFromCeilingMul {evm : EVM.State} {I : ExecutionEnv}
     (hsrcPrefixRevert :
       ExecBlock config { contract := contract, locals := frobStore I } evm
@@ -1181,7 +1252,7 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -1834,6 +1905,146 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
   simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
     tab, List.append_assoc] using hfull
 
+theorem execFrobLoadedPrefixThroughDebtSplit {evm : EVM.State}
+    {I : ExecutionEnv} {pre : List Stmt}
+    (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
+    (dtab : Int) (debtOld debtNew dtabWord : UInt256)
+    (hprefix :
+      ExecBlock config { contract := contract, locals := frobStore I } evm pre
+        (.ok
+          { contract := contract,
+            locals := frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot
+              ilkLine ilkDust }
+          evm))
+    (hInkNeg : 0 ≤ frobDinkInt I ∨
+      (frobDinkWord I + urnInk).toNat ≤ urnInk.toNat)
+    (hInkPos : frobDinkInt I ≤ 0 ∨
+      urnInk.toNat ≤ (frobDinkWord I + urnInk).toNat)
+    (hArtNeg : 0 ≤ frobDartInt I ∨
+      (frobDartWord I + urnArt).toNat ≤ urnArt.toNat)
+    (hArtPos : frobDartInt I ≤ 0 ∨
+      urnArt.toNat ≤ (frobDartWord I + urnArt).toNat)
+    (hIlkNeg : 0 ≤ frobDartInt I ∨
+      (frobDartWord I + ilkArt).toNat ≤ ilkArt.toNat)
+    (hIlkPos : frobDartInt I ≤ 0 ∨
+      ilkArt.toNat ≤ (frobDartWord I + ilkArt).toNat)
+    (hdtab : dtab = Int.ofNat ilkRate.toNat * frobDartInt I)
+    (hRateMax : UInt256.slt ilkRate ⟨0⟩ = ⟨0⟩)
+    (hDtabMul :
+      frobDartWord I = ⟨0⟩ ∨
+        UInt256.eq
+          (UInt256.sdiv (UInt256.mul (frobDartWord I) ilkRate)
+            (frobDartWord I)) ilkRate ≠ ⟨0⟩)
+    (hTabMul :
+      (frobDartWord I + urnArt) = ⟨0⟩ ∨
+        UInt256.eq
+          (UInt256.div (UInt256.mul ilkRate (frobDartWord I + urnArt))
+            (frobDartWord I + urnArt)) ilkRate ≠ ⟨0⟩)
+    (hdebtLoad :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner foldDebtSlot = debtOld)
+    (hdtabMod : dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat)
+    (hnew : debtNew = dtabWord + debtOld)
+    (hDebtNeg :
+      UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨ UInt256.gt debtNew debtOld = ⟨0⟩)
+    (hDebtPos :
+      UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt debtNew debtOld = ⟨0⟩) :
+    let localsLoaded :=
+      frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
+    let urnInkNew := frobDinkWord I + urnInk
+    let urnArtNew := frobDartWord I + urnArt
+    let ilkArtNew := frobDartWord I + ilkArt
+    let localsIlk :=
+      (((localsLoaded.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).insert
+          "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).insert "ilkArtNew"
+        (.int (Int.ofNat ilkArtNew.toNat)))
+    let localsDtab := localsIlk.insert "dtab" (.int dtab)
+    let tab := UInt256.mul ilkRate urnArtNew
+    let localsTab := localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))
+    ExecBlock config { contract := contract, locals := frobStore I } evm
+      (pre ++
+        checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
+        checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
+        checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
+        checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
+        checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
+        checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+        [ .assign .storage debtRef (.var "debtNew") ])
+      (.ok
+        { contract := contract,
+          locals := localsTab.insert "debtNew" (.int (Int.ofNat debtNew.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot
+          debtNew)) ∧
+    (evm.executionEnv.perm = false →
+      ExecBlock config { contract := contract, locals := frobStore I } evm
+        (pre ++
+          checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
+          checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
+          checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
+          checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
+          checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
+          checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+          [ .assign .storage debtRef (.var "debtNew") ])
+        .staticViolation) := by
+  intro localsLoaded urnInkNew urnArtNew ilkArtNew localsIlk localsDtab tab localsTab
+  have hsourceTab :=
+    execFrobLoadedPrefixThroughTabOk
+      (evm := evm) (I := I) (pre := pre)
+      urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust dtab hprefix
+      hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hdtab hRateMax hDtabMul
+      hTabMul
+  have hdtabRange := frobDtabRangeOfMulGuard (I := I) hRateMax hDtabMul
+  have hdtabLo : -((2 : Int) ^ 255) ≤ dtab := by
+    rw [hdtab]
+    exact hdtabRange.1
+  have hdtabHi : dtab < (2 : Int) ^ 255 := by
+    rw [hdtab]
+    exact hdtabRange.2
+  have hbaseDebt : localsTab.get? "debt" = none := by
+    change (localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).get?
+      "debt" = none
+    rw [store_get_ne _ _ (by decide)]
+    change (localsIlk.insert "dtab" (.int dtab)).get? "debt" = none
+    rw [store_get_ne _ _ (by decide)]
+    change (((localsLoaded.insert "urnInkNew"
+      (.int (Int.ofNat urnInkNew.toNat))).insert "urnArtNew"
+      (.int (Int.ofNat urnArtNew.toNat))).insert "ilkArtNew"
+      (.int (Int.ofNat ilkArtNew.toNat))).get? "debt" = none
+    rw [store_get_ne _ _ (by decide)]
+    rw [store_get_ne _ _ (by decide)]
+    rw [store_get_ne _ _ (by decide)]
+    simp [localsLoaded, frobStoreIlkDust, frobStore]
+  have hdtabGet : localsTab.get? "dtab" = some (.int dtab) := by
+    change (localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).get? "dtab" =
+      some (.int dtab)
+    rw [store_get_ne _ _ (by decide)]
+    simp [localsDtab]
+  have hdebtBlock :=
+    execFrobDebtAddStoreSplit
+      (evm := evm) (locals := localsTab)
+      debtOld debtNew dtabWord dtab hbaseDebt hdtabGet hdebtLoad hdtabMod hnew
+      (signedAddGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hDebtNeg)
+      (signedAddGuardPosCond_of_word hdtabLo hdtabHi hdtabMod hDebtPos)
+  have hpre : ∀ r, ExecBlock config { contract := contract, locals := localsTab } evm
+      (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+        [ .assign .storage debtRef (.var "debtNew") ]) r →
+      ExecBlock config { contract := contract, locals := frobStore I } evm
+        (pre ++
+          checkedAddSignedInto "urnInkNew" (.var "urnInk") (.var "dink") ++
+          checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
+          checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
+          checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
+          checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
+          checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
+          [ .assign .storage debtRef (.var "debtNew") ]) r := by
+    intro r hrest
+    have hfull := execBlock_append
+      (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
+        localsDtab, tab, localsTab, List.append_assoc] using hsourceTab)
+      hrest
+    simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
+      tab, localsTab, List.append_assoc] using hfull
+  exact ⟨hpre _ hdebtBlock.1, fun hpf => hpre _ (hdebtBlock.2 hpf)⟩
+
 theorem execFrobLoadedPrefixThroughDebtOk {evm : EVM.State}
     {I : ExecutionEnv} {pre : List Stmt}
     (urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust : UInt256)
@@ -1902,60 +2113,10 @@ theorem execFrobLoadedPrefixThroughDebtOk {evm : EVM.State}
         { contract := contract,
           locals := localsTab.insert "debtNew" (.int (Int.ofNat debtNew.toNat)) }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot
-          debtNew)) := by
-  intro localsLoaded urnInkNew urnArtNew ilkArtNew localsIlk localsDtab tab localsTab
-  have hsourceTab :=
-    execFrobLoadedPrefixThroughTabOk
-      (evm := evm) (I := I) (pre := pre)
-      urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust dtab hprefix
-      hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hdtab hRateMax hDtabMul
-      hTabMul
-  have hdtabRange := frobDtabRangeOfMulGuard (I := I) hRateMax hDtabMul
-  have hdtabLo : -((2 : Int) ^ 255) ≤ dtab := by
-    rw [hdtab]
-    exact hdtabRange.1
-  have hdtabHi : dtab < (2 : Int) ^ 255 := by
-    rw [hdtab]
-    exact hdtabRange.2
-  have hbaseDebt : localsTab.get? "debt" = none := by
-    change (localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).get?
-      "debt" = none
-    rw [store_get_ne _ _ (by decide)]
-    change (localsIlk.insert "dtab" (.int dtab)).get? "debt" = none
-    rw [store_get_ne _ _ (by decide)]
-    change (((localsLoaded.insert "urnInkNew"
-      (.int (Int.ofNat urnInkNew.toNat))).insert "urnArtNew"
-      (.int (Int.ofNat urnArtNew.toNat))).insert "ilkArtNew"
-      (.int (Int.ofNat ilkArtNew.toNat))).get? "debt" = none
-    rw [store_get_ne _ _ (by decide)]
-    rw [store_get_ne _ _ (by decide)]
-    rw [store_get_ne _ _ (by decide)]
-    simp [localsLoaded, frobStoreIlkDust, frobStore]
-  have hdtabGet : localsTab.get? "dtab" = some (.int dtab) := by
-    change (localsDtab.insert "tab" (.int (Int.ofNat tab.toNat))).get? "dtab" =
-      some (.int dtab)
-    rw [store_get_ne _ _ (by decide)]
-    simp [localsDtab]
-  have hdebtBlock :
-      ExecBlock config { contract := contract, locals := localsTab } evm
-        (checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
-          [ .assign .storage debtRef (.var "debtNew") ])
-        (.ok
-          { contract := contract,
-            locals := localsTab.insert "debtNew" (.int (Int.ofNat debtNew.toNat)) }
-          (Solm.EVM.storageStore evm evm.executionEnv.codeOwner foldDebtSlot
-            debtNew)) := by
-    exact execFrobDebtAddStoreOk
-      (evm := evm) (locals := localsTab)
-      debtOld debtNew dtabWord dtab hbaseDebt hdtabGet hdebtLoad hdtabMod hnew
-      (signedAddGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hDebtNeg)
-      (signedAddGuardPosCond_of_word hdtabLo hdtabHi hdtabMod hDebtPos)
-  have hfull := execBlock_append
-    (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
-      localsDtab, tab, localsTab, List.append_assoc] using hsourceTab)
-    hdebtBlock
-  simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
-    tab, localsTab, List.append_assoc] using hfull
+          debtNew)) :=
+  (execFrobLoadedPrefixThroughDebtSplit urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
+    dtab debtOld debtNew dtabWord hprefix hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
+    hdtab hRateMax hDtabMul hTabMul hdebtLoad hdtabMod hnew hDebtNeg hDebtPos).1
 
 theorem execFrobLoadedPrefixDebtAddRevertGuardNeg {evm : EVM.State}
     {I : ExecutionEnv} {pre : List Stmt}
@@ -3608,7 +3769,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAddFail : ¬ frobLiveAddArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -4113,7 +4274,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hAdd : frobLiveAddArithmeticGuards σ I)
     (hMulFail : ¬ frobLiveMulArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -4470,7 +4631,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDust : frobLiveWishAuthDustGuards σ I)
     (hFinalArithmeticFail : ¬ frobLiveFinalArithmeticGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -5293,7 +5454,7 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmeticFail : ¬ frobLiveArithmeticPrefixGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   by_cases hAdd : frobLiveAddArithmeticGuards σ I
   · by_cases hMul : frobLiveMulArithmeticGuards σ I
@@ -5315,7 +5476,6 @@ set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
     (hsz196 : 196 ≤ I.calldata.size)
@@ -5332,8 +5492,8 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩)
     (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
-    (hDebtSafetyFail : ¬ frobLiveDebtCeilingSafetyGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    (hDebtSafetyFail : ¬ (I.perm = true ∧ frobLiveDebtCeilingSafetyGuards σ I)) :
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -5577,12 +5737,26 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
           UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.lt debtNew debtOld = ⟨0⟩ := by
         simpa [dtabWord, debtNew, debtOld, ilkRate, solcSlotWordAt] using hDebtPos
-      obtain ⟨_, _, hDebtDone⟩ :=
-        RD.vatFrobDebtAddStoreSuccess
+      rcases RD.vatFrobDebtAddStoreSplit
           (h := by simpa using hTabDone)
-          (hperm := hperm)
           (by simpa using hDebtNeg)
-          (by simpa using hDebtPos)
+          (by simpa using hDebtPos) with ⟨hperm, _, _, hDebtDone⟩ | ⟨hpf, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode (vatDispatchFrob hsel) hdecode
+          (hsourceStaticFromDebtStore
+            ((execFrobLoadedPrefixThroughDebtSplit
+              (evm := evm0) (I := I)
+              urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust
+              dtab debtOld debtNew dtabWord hsourcePrefix
+              (frobDinkAddGuardNegCond hInkNegSource)
+              (frobDinkAddGuardPosCond hInkPosSource)
+              (frobDartAddGuardNegCond hArtNegSource)
+              (frobDartAddGuardPosCond hArtPosSource)
+              (frobDartAddGuardNegCond hIlkNegSource)
+              (frobDartAddGuardPosCond hIlkPosSource)
+              (by rfl) hRateMaxSource hDtabMulSource hTabMulSource
+              hdebtLoad hdtabMod (by rfl) hDebtNegSource hDebtPosSource).2
+              (by simpa [evm0, initState] using hpf)))
       by_cases hCeilingMul :
           solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
             UInt256.eq
@@ -5661,7 +5835,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
                 unfold frobLiveDebtCeilingSafetyGuards
                 exact ⟨hDebtNeg, hDebtPos, hCeilingMul, hCeilingOk,
                   hDebtLoadStore, hInkMul, hSafetyOk⟩
-              exact False.elim (hDebtSafetyFail hDebtSafety)
+              exact False.elim (hDebtSafetyFail ⟨hperm, hDebtSafety⟩)
             · have hSafetyOkZero :
                   UInt256.lor
                     (UInt256.isZero
@@ -5940,7 +6114,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
     (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
     (hWishAuthDustFail : ¬ frobLiveWishAuthDustGuards σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
     (σ := σ) (σ₀ := σ₀)
@@ -6754,7 +6928,6 @@ theorem vatFrobBodyCoreLive
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
     (hsz196 : 196 ≤ I.calldata.size)
@@ -6769,7 +6942,7 @@ theorem vatFrobBodyCoreLive
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
           solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hlive : solcSlotWordAt ⟨10⟩ σ I = ⟨1⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   classical
   by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
   · exact vatFrobBodyCoreLiveRateZeroRevert
@@ -6778,8 +6951,9 @@ theorem vatFrobBodyCoreLive
       (hdecode := hdecode) (hdecoded := hdecoded) (hlive := hlive)
       (hrateZeroEvm := hrateZeroEvm)
   · by_cases hArithmetic : frobLiveArithmeticPrefixGuards σ I
-    · by_cases hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I
-      · by_cases hWishAuthDust : frobLiveWishAuthDustGuards σ I
+    · by_cases hDebtSafety : I.perm = true ∧ frobLiveDebtCeilingSafetyGuards σ I
+      · obtain ⟨hperm, hDebtSafety⟩ := hDebtSafety
+        by_cases hWishAuthDust : frobLiveWishAuthDustGuards σ I
         · by_cases hFinalArithmetic : frobLiveFinalArithmeticGuards σ I
           · have hSuccess : frobLiveSuccessGuards σ I :=
               frobLiveSuccessGuards_of_groups hArithmetic hDebtSafety hWishAuthDust
@@ -6804,7 +6978,7 @@ theorem vatFrobBodyCoreLive
             (hrateZeroEvm := hrateZeroEvm) (hArithmetic := hArithmetic)
             (hDebtSafety := hDebtSafety) (hWishAuthDustFail := hWishAuthDust)
       · exact vatFrobBodyCoreLiveDebtCeilingSafetyReverts
-          (hcode := hcode) (hperm := hperm) (hwv := hwv)
+          (hcode := hcode) (hwv := hwv)
           (hsel := hsel) (hsz196 := hsz196)
           (hdecode := hdecode) (hdecoded := hdecoded) (hlive := hlive)
           (hrateZeroEvm := hrateZeroEvm) (hArithmetic := hArithmetic)

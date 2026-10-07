@@ -81,9 +81,8 @@ theorem erc20TransferFromX_balanceDebitUnderflowFromEntry {σ σ₀ A I} {g : Sa
   have h492 := erc20X_transferFromBeforeAllowanceStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonFrom hallowance h445
-  have h493 := erc20X_transferFromAfterAllowanceStore
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hperm h492
+  have h493 := permSplit_true hperm (erc20X_transferFromAfterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h492)
   exact erc20TransferFromX_balanceDebitUnderflow
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hcanonFrom hltDebit h493
@@ -128,9 +127,8 @@ theorem erc20X_transferFromRuntimeEntry {σ σ₀ A I} {g : Sat256}
   have h492 := erc20X_transferFromBeforeAllowanceStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonFrom hallowance h445
-  have h493 := erc20X_transferFromAfterAllowanceStore
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hperm h492
+  have h493 := permSplit_true hperm (erc20X_transferFromAfterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h492)
   have h526 := erc20X_transferFromBeforeFromStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonFrom hbalanceDebit h493
@@ -190,9 +188,8 @@ theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256}
   have h492 := erc20X_transferFromBeforeAllowanceStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonFrom hallowance h445
-  have h493 := erc20X_transferFromAfterAllowanceStore
-    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
-    hperm h492
+  have h493 := permSplit_true hperm (erc20X_transferFromAfterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h492)
   have h526 := erc20X_transferFromBeforeFromStore
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hcanonFrom hbalanceDebit h493
@@ -254,10 +251,40 @@ theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256}
       simp only [List.length_cons, List.length_nil]
       omega)
 
+/-- Static mode: the run halts at the allowance `SSTORE`. -/
+theorem erc20X_transferFromStatic {σ σ₀ A I} {g : Sat256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hpf : I.perm = false)
+    (hsz100 : 100 ≤ I.calldata.size)
+    (hsize : I.calldata.size < UInt256.size)
+    (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
+    (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
+    (hallowance : (transferFromValueWord I).toNat ≤
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hbalance : (transferFromValueWord I).toNat ≤
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
+      [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
+      σ k C) :
+    RDstatic vyperERC20Bytecode g (initState σ σ₀ g A I) := by
+  have h412 := erc20X_transferFromAfterAllowanceLoad
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hwv hsz100 hsize hcanonFrom hcanonTo hreach
+  have h423 := erc20X_transferFromAfterAllowanceGuard
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hallowance h412
+  have h445 := erc20X_transferFromAfterBalanceGuard
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcanonFrom hbalance h423
+  have h492 := erc20X_transferFromBeforeAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    hcanonFrom hallowance h445
+  exact permSplit_false hpf (erc20X_transferFromAfterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) h492)
+
 theorem erc20TransferFromBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hd : dispatchMsg erc20Contract I.calldata = some ERC20.transferFromTransition)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
@@ -265,7 +292,7 @@ theorem erc20TransferFromBodyCore
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract
+    runtimeRefinementFor vyperERC20Config erc20Contract
       σ σ₀ g A I := by
   have hsz4 := erc20TransferFromSelector_size hsel
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -289,7 +316,21 @@ theorem erc20TransferFromBodyCore
             (transferFromCurrentAllowanceWord evmE I).toNat
         · by_cases hbalance : (transferFromValueWord I).toNat ≤
             (transferFromFromBalanceWord evmE I).toNat
-          · by_cases hbalanceDebit : (transferFromValueWord I).toNat ≤
+          · by_cases hperm : I.perm = true
+            swap
+            · -- static mode: both sides halt at the allowance debit
+              have hpf : I.perm = false := by simpa using hperm
+              have hbody := erc20TransferFromBodyStatic evmS I
+                (by simp only [evmS, evmE, initState]; exact hwv)
+                (by simpa [hAllowance] using hallowance)
+                (by simpa [hFromBalance] using hbalance)
+                (by simp only [evmS, evmE, initState]; exact hpf)
+              exact (erc20X_transferFromStatic (g := Sat256.ofUInt256 g)
+                  hwv hpf hsz100 hsize hcanonFrom hcanonTo
+                  (by simpa [evmE] using hallowance)
+                  (by simpa [evmE] using hbalance) hreach)
+                |>.reEquivStaticHalt hcode hd hdec hbody
+            by_cases hbalanceDebit : (transferFromValueWord I).toNat ≤
               (transferFromFromBalanceWord (transferFromAfterAllowanceState evmE I) I).toNat
             · by_cases hfit : transferFromNewToNat evmE I < UInt256.size
               · have hallowanceS :

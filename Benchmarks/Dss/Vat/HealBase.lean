@@ -276,7 +276,7 @@ theorem vatEvalExpr_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv) (locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage (sinRef sender)) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (healSinSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_heal_sin_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -288,7 +288,7 @@ theorem vatEvalExpr_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv) (locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage (daiRef sender)) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (healDaiSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_heal_dai_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -299,7 +299,7 @@ theorem vatEvalExpr_heal_vice (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage viceRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         healViceSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_heal_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -310,7 +310,7 @@ theorem vatEvalExpr_heal_debt (evm : EVM.State) (locals : Store)
     evalExpr? config { contract := contract, locals := locals } evm (.storage debtRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         healDebtSlot).toNat)) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_heal_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
@@ -325,8 +325,8 @@ theorem assign_heal_sin_sender (evm : EVM.State) (I : ExecutionEnv)
       .storage (sinRef sender) (.int (Int.ofNat sinNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (healSinSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (healSinSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_heal_sin_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -342,8 +342,8 @@ theorem assign_heal_dai_sender (evm : EVM.State) (I : ExecutionEnv)
       .storage (daiRef sender) (.int (Int.ofNat daiNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (healDaiSlot I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (healDaiSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_heal_dai_sender evm I locals hsrc)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -357,8 +357,8 @@ theorem assign_heal_vice (evm : EVM.State) (locals : Store) (viceNew : UInt256)
       .storage viceRef (.int (Int.ofNat viceNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc healViceSlot)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc healViceSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_heal_vice evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -372,8 +372,8 @@ theorem assign_heal_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
       .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc healDebtSlot)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc healDebtSlot) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := evalStorageRef_heal_debt evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -1007,6 +1007,43 @@ theorem vatHealSourceSinUnderflow (evm : EVM.State) (I : ExecutionEnv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc] using htail
   exact ExecFuncBody.execBlockRevert hblock
+
+theorem vatHealSourceStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hsinEnough : (healRad I).toNat ≤
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (healLocals I) healTransition.body
+      .staticViolation := by
+  let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)
+  let sinNew := UInt256.sub sinVal (healRad I)
+  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+    (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
+  have hassignSin :
+      ExecBlock config { contract := contract, locals := healLocalsSinNew I sinNew } evm
+        [ .assign .storage (sinRef sender) (.var "sinNew") ] .staticViolation := by
+    cases vatHealAssignSinOk (evm := evm) (I := I) (sinNew := sinNew) hsrc with
+    | consNormal hstmt _ => exact ExecBlock.consStatic (execStmt_assign_static hstmt hperm)
+  have htail :
+      ExecBlock config { contract := contract, locals := healLocals I } evm
+        healBodyTail .staticViolation := by
+    simpa [List.append_assoc] using
+      (execBlock_append_term (s2 :=
+        checkedSubUintInto "daiNew" (.storage (daiRef sender)) (.var "rad") ++
+        [ .assign .storage (daiRef sender) (.var "daiNew") ] ++
+        checkedSubUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+        [ .assign .storage viceRef (.var "viceNew") ] ++
+        checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+        [ .assign .storage debtRef (.var "debtNew") ])
+        (execBlock_append hsin hassignSin) (by intro f e h; cases h))
+  have hblock :
+      ExecBlock config { contract := contract, locals := healLocals I } evm
+        healTransition.body .staticViolation := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc]
+      using htail
+  exact ExecFuncBody.execBlockStatic hblock
 
 theorem vatHealSourceDaiUnderflow (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

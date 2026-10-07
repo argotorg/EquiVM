@@ -24,10 +24,9 @@ theorem clipperTakeLocalsDigsRet_locked
 theorem clipperEvalTakeVarIdAtDigsRet
     (v : ClipperImmutables) (evmLoc evmRead evmVat evmDog : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+          slice' tabNew lotNew) (immStore v))
       evmDog (.var "id") = .ok (clipperTakeIdValue I) := by
   simp only [evalExpr?]
   rw [clipperTakeLocalsDigsRet, store_get_ne _ _ (by decide),
@@ -57,10 +56,9 @@ theorem clipperEvalTakeVarIdAtDigsRet
 theorem clipperEvalTakeVarTabAtDigsRet
     (v : ClipperImmutables) (evmLoc evmRead evmVat evmDog : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+          slice' tabNew lotNew) (immStore v))
       evmDog (.var "tab") = .ok (.int (Int.ofNat tabNew.toNat)) := by
   simp only [evalExpr?]
   rw [clipperTakeLocalsDigsRet, store_get_ne _ _ (by decide),
@@ -74,10 +72,9 @@ theorem clipperEvalTakeVarTabAtDigsRet
 theorem clipperEvalTakeVarLotAtDigsRet
     (v : ClipperImmutables) (evmLoc evmRead evmVat evmDog : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    evalExpr? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+    evalExpr? config
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+          slice' tabNew lotNew) (immStore v))
       evmDog (.var "lot") = .ok (.int (Int.ofNat lotNew.toNat)) := by
   simp only [evalExpr?]
   rw [clipperTakeLocalsDigsRet, store_get_ne _ _ (by decide),
@@ -90,20 +87,18 @@ theorem clipperEvalTakeVarLotAtDigsRet
 theorem clipperTakeAssignSalesTabAtDigsRet
     (v : ClipperImmutables) (evmLoc evmRead evmVat evm : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    assignStorageRef? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+    assignStorageRef? config
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+          slice' tabNew lotNew) (immStore v))
       evm .storage (salesF (.var "id") "tab") (.int (Int.ofNat tabNew.toNat)) =
       .ok
-        (Frame.mk (contract v)
-          (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-            slice' tabNew lotNew),
+        (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+            slice' tabNew lotNew) (immStore v),
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperTakeSalesTabSlot I)
             tabNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesTabRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesTabSlot I))
+    (loc := wordLoc (clipperTakeSalesTabSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperTakeLocalsDigsRet, clipperTakeLocalsMoveRet,
       clipperTakeLocalsDogLoaded, clipperTakeLocalsFluxBuyerRet,
       clipperTakeLocalsLotAssigned, clipperTakeLocalsTabAssigned, clipperTakeLocalsLotNew,
@@ -126,20 +121,18 @@ theorem clipperTakeAssignSalesTabAtDigsRet
 theorem clipperTakeAssignSalesLotAtDigsRet
     (v : ClipperImmutables) (evmLoc evmRead evmVat evm : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256) :
-    assignStorageRef? (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-          slice' tabNew lotNew))
+    assignStorageRef? config
+      (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+          slice' tabNew lotNew) (immStore v))
       evm .storage (salesF (.var "id") "lot") (.int (Int.ofNat lotNew.toNat)) =
       .ok
-        (Frame.mk (contract v)
-          (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-            slice' tabNew lotNew),
+        (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+            slice' tabNew lotNew) (immStore v),
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperTakeSalesLotSlot I)
             lotNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperTakeSalesLotRef I) (ty := uint256St)
-    (loc := wordLoc (clipperTakeSalesLotSlot I))
+    (loc := wordLoc (clipperTakeSalesLotSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [salesF, clipperTakeLocalsDigsRet, clipperTakeLocalsMoveRet,
       clipperTakeLocalsDogLoaded, clipperTakeLocalsFluxBuyerRet,
       clipperTakeLocalsLotAssigned, clipperTakeLocalsTabAssigned, clipperTakeLocalsLotNew,
@@ -170,7 +163,7 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables)
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat)).option
             0 (fun acc => acc.code.size))).toNat)
     (hcallDog :
-      typedCallViaEVM (config v) evmMove
+      typedCallViaEVM config evmMove
         (EVM.address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
         "digs" 0
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
@@ -181,140 +174,136 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables)
     let evmLot :=
       Solm.EVM.storageStore evmTab evmTab.executionEnv.codeOwner
         (clipperTakeSalesLotSlot I) lotNew
-    ExecBlock (config v)
-      (Frame.mk (contract v)
-        (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
-          tabNew lotNew))
+    ExecBlock config
+      (Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+          tabNew lotNew) (immStore v))
       evmMove
       [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
             checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-              [ilkExpr v, .var "digsAmt"] "_digsRet")
+              [ilkExpr, .var "digsAmt"] "_digsRet")
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-            [ilkExpr v, .var "owe"] "_digsRet"),
+            [ilkExpr, .var "owe"] "_digsRet"),
         .ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite
               (.binary .eq (.var "tab") (.intLit 0))
-              (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-                [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+              (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
+                [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
                 [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
               [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
                 .assign .storage (salesF (.var "id") "lot") (.var "lot") ] ],
         .assign .storage lockedRef (.intLit 0) ]
       (.ok
-        (Frame.mk (contract v)
-          (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
-            slice' tabNew lotNew))
+        (Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe
+            slice' tabNew lotNew) (immStore v))
         (Solm.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
   intro evmTab evmLot
   let moveFrame : Frame :=
-    Frame.mk (contract v)
-      (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
-        tabNew lotNew)
+    Frame.mk contract (clipperTakeLocalsMoveRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        tabNew lotNew) (immStore v)
   let digsRetFrame : Frame :=
-    Frame.mk (contract v)
-      (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
-        tabNew lotNew)
+    Frame.mk contract (clipperTakeLocalsDigsRet evmLoc evmRead evmVat I price slice owe0 owe slice'
+        tabNew lotNew) (immStore v)
   have hdog :
-      ExecBlock (config v) moveFrame evmMove
+      ExecBlock config moveFrame evmMove
         [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           (wrappingAddInto "digsAmt" (.var "tab") (.var "owe") ++
             checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-              [ilkExpr v, .var "digsAmt"] "_digsRet")
+              [ilkExpr, .var "digsAmt"] "_digsRet")
           (checkedExternalCallStmts (.var "dog_") "digs" (.intLit 0)
-            [ilkExpr v, .var "owe"] "_digsRet") ]
+            [ilkExpr, .var "owe"] "_digsRet") ]
         (.ok digsRetFrame evmDog) := by
     simpa [moveFrame, digsRetFrame] using
       clipperTakeDogDigsOweCallSuccessBlock v evmLoc evmRead evmVat evmMove evmDog I
         price slice owe0 owe slice' tabNew lotNew hlotNew hdogCode hcallDog
   have hlotCond :
-      evalExpr? (config v) digsRetFrame evmDog
+      evalExpr? config digsRetFrame evmDog
         (.binary .eq (.var "lot") (.intLit 0)) = .ok (.bool false) := by
     simpa [digsRetFrame] using
       clipperEvalTakeLotEqZeroAtDigsRet_false v evmLoc evmRead evmVat evmDog I
         price slice owe0 owe slice' tabNew lotNew hlotNew
   have htabCond :
-      evalExpr? (config v) digsRetFrame evmDog
+      evalExpr? config digsRetFrame evmDog
         (.binary .eq (.var "tab") (.intLit 0)) = .ok (.bool false) := by
     simpa [digsRetFrame] using
       clipperEvalTakeTabEqZeroAtDigsRet_false v evmLoc evmRead evmVat evmDog I
         price slice owe0 owe slice' tabNew lotNew htabNew
   have htabEval :
-      evalExpr? (config v) digsRetFrame evmDog (.var "tab") =
+      evalExpr? config digsRetFrame evmDog (.var "tab") =
         .ok (.int (Int.ofNat tabNew.toNat)) := by
     simpa [digsRetFrame] using
       clipperEvalTakeVarTabAtDigsRet v evmLoc evmRead evmVat evmDog I price slice
         owe0 owe slice' tabNew lotNew
   have htabAssign :
-      assignStorageRef? (config v) digsRetFrame evmDog
+      assignStorageRef? config digsRetFrame evmDog
         .storage (salesF (.var "id") "tab") (.int (Int.ofNat tabNew.toNat)) =
         .ok (digsRetFrame, evmTab) := by
     simpa [digsRetFrame, evmTab] using
       clipperTakeAssignSalesTabAtDigsRet v evmLoc evmRead evmVat evmDog I price
         slice owe0 owe slice' tabNew lotNew
   have htabStmt :
-      ExecStmt (config v) digsRetFrame evmDog
+      ExecStmt config digsRetFrame evmDog
         (.assign .storage (salesF (.var "id") "tab") (.var "tab"))
         (.ok digsRetFrame evmTab) := by
     exact ExecStmt.assign htabEval htabAssign
   have hlotEval :
-      evalExpr? (config v) digsRetFrame evmTab (.var "lot") =
+      evalExpr? config digsRetFrame evmTab (.var "lot") =
         .ok (.int (Int.ofNat lotNew.toNat)) := by
     simpa [digsRetFrame] using
       clipperEvalTakeVarLotAtDigsRet v evmLoc evmRead evmVat evmTab I price slice
         owe0 owe slice' tabNew lotNew
   have hlotAssign :
-      assignStorageRef? (config v) digsRetFrame evmTab
+      assignStorageRef? config digsRetFrame evmTab
         .storage (salesF (.var "id") "lot") (.int (Int.ofNat lotNew.toNat)) =
         .ok (digsRetFrame, evmLot) := by
     simpa [digsRetFrame, evmLot] using
       clipperTakeAssignSalesLotAtDigsRet v evmLoc evmRead evmVat evmTab I price
         slice owe0 owe slice' tabNew lotNew
   have hlotStmt :
-      ExecStmt (config v) digsRetFrame evmTab
+      ExecStmt config digsRetFrame evmTab
         (.assign .storage (salesF (.var "id") "lot") (.var "lot"))
         (.ok digsRetFrame evmLot) := by
     exact ExecStmt.assign hlotEval hlotAssign
   have hstoreBlock :
-      ExecBlock (config v) digsRetFrame evmDog
+      ExecBlock config digsRetFrame evmDog
         [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
           .assign .storage (salesF (.var "id") "lot") (.var "lot") ]
         (.ok digsRetFrame evmLot) := by
     exact ExecBlock.consNormal htabStmt (ExecBlock.consNormal hlotStmt ExecBlock.nil)
   have htabIte :
-      ExecStmt (config v) digsRetFrame evmDog
+      ExecStmt config digsRetFrame evmDog
         (.ite
           (.binary .eq (.var "tab") (.intLit 0))
-          (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-            [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+          (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
+            [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
             [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
           [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
             .assign .storage (salesF (.var "id") "lot") (.var "lot") ])
         (.ok digsRetFrame evmLot) := by
     exact ExecStmt.iteFalse htabCond hstoreBlock
   have hlotIte :
-      ExecStmt (config v) digsRetFrame evmDog
+      ExecStmt config digsRetFrame evmDog
         (.ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite
               (.binary .eq (.var "tab") (.intLit 0))
-              (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-                [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+              (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
+                [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
                 [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
               [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
                 .assign .storage (salesF (.var "id") "lot") (.var "lot") ] ])
         (.ok digsRetFrame evmLot) := by
     exact ExecStmt.iteFalse hlotCond (ExecBlock.consNormal htabIte ExecBlock.nil)
   have hzero :
-      evalExpr? (config v) digsRetFrame evmLot (.intLit 0) = .ok (.int 0) := by
+      evalExpr? config digsRetFrame evmLot (.intLit 0) = .ok (.int 0) := by
     simp [evalExpr?, pure, digsRetFrame]
   have hassign :
-      assignStorageRef? (config v) digsRetFrame evmLot
+      assignStorageRef? config digsRetFrame evmLot
         .storage lockedRef (.int 0) =
         .ok (digsRetFrame,
           Solm.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩) := by
@@ -326,20 +315,20 @@ theorem clipperTakeDogDigsOweNonzeroStoreSourceOk (v : ClipperImmutables)
           owe slice' tabNew lotNew)
         ⟨0⟩
   have hunlock :
-      ExecStmt (config v) digsRetFrame evmLot
+      ExecStmt config digsRetFrame evmLot
         (.assign .storage lockedRef (.intLit 0))
         (.ok digsRetFrame
           (Solm.EVM.storageStore evmLot evmLot.executionEnv.codeOwner ⟨13⟩ ⟨0⟩)) := by
     exact ExecStmt.assign hzero hassign
   have htail :
-      ExecBlock (config v) digsRetFrame evmDog
+      ExecBlock config digsRetFrame evmDog
         [ .ite
           (.binary .eq (.var "lot") (.intLit 0))
           [ .internalCall "_remove" [.var "id"] "_removeRet" ]
           [ .ite
               (.binary .eq (.var "tab") (.intLit 0))
-              (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
-                [ilkExpr v, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
+              (checkedExternalCallStmts vatExpr "flux" (.intLit 0)
+                [ilkExpr, thisAddr, .var "usr", .var "lot"] "_fluxUsrRet" ++
                 [ .internalCall "_remove" [.var "id"] "_removeRet2" ])
               [ .assign .storage (salesF (.var "id") "tab") (.var "tab"),
                 .assign .storage (salesF (.var "id") "lot") (.var "lot") ] ],

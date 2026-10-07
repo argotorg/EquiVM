@@ -14,18 +14,18 @@ theorem clipperVowSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     solcSelectorWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 (clipperSelNat 26)
       (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
 
-theorem clipperDispatch_vow (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDispatch_vow {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 26)) :
-    dispatchMsg (contract v) I.calldata = some vowTransition := by
-  refine dispatchMsg_eq_some_of_split (contract := contract v)
+    dispatchMsg contract I.calldata = some vowTransition := by
+  refine dispatchMsg_eq_some_of_split (contract := contract)
     (pre :=
       [activeTransition, bufTransition, calcTransition, chipTransition, chostTransition,
         countTransition, cuspTransition, denyTransition, dogTransition, fileUintTransition,
-        fileAddressTransition, getStatusTransition, ilkTransition v, kickTransition v,
-        kicksTransition, listTransition, redoTransition v, relyTransition, salesTransition,
-        spotterTransition, stoppedTransition, tailTransition, takeTransition v, tipTransition,
-        upchostTransition v, vatTransition v])
-    (post := [wardsTransition, yankTransition v])
+        fileAddressTransition, getStatusTransition, ilkTransition, kickTransition,
+        kicksTransition, listTransition, redoTransition, relyTransition, salesTransition,
+        spotterTransition, stoppedTransition, tailTransition, takeTransition, tipTransition,
+        upchostTransition, vatTransition])
+    (post := [wardsTransition, yankTransition])
     (ti := vowTransition) (cd := I.calldata) (by rfl) ?_ ?_ ?_ (by rfl)
   · rfl
   · intro t ht
@@ -57,15 +57,15 @@ theorem clipperDispatch_vow (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, ilkSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, kickSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, redoSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
@@ -77,55 +77,54 @@ theorem clipperDispatch_vow (v : ClipperImmutables) {I : ExecutionEnv}
       native_decide
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, takeSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, takeSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · rw [selectorOf, tipSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, upchostSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, upchostSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
-    · rw [selectorOf, vatSelectorBytes v, ← byteArray_eq_of_beq hsel]
+    · rw [selectorOf, vatSelectorBytes, ← byteArray_eq_of_beq hsel]
       native_decide
     · cases hfalse
   · rw [selectorOf, vowSelectorBytes]
     simpa [clipperSelBytes] using hsel
 
-theorem clipperDecode_vow (v : ClipperImmutables) {I : ExecutionEnv}
+theorem clipperDecode_vow {I : ExecutionEnv}
     (hsz : 4 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode (vowTransition.params.map Param.name)
+    decodeCalldataWithMode config.abiDecodeMode (vowTransition.params.map Param.name)
       (transitionSignature vowTransition).paramTypes I.calldata = some ∅ := by
-  show decodeCalldataWithMode (config v).abiDecodeMode [] [] I.calldata = some ∅
+  show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldataWithMode_empty_ok hsz
 
 theorem clipperEvalVow (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "vow" = none) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm
+    evalExpr? config { contract := contract, locals := locals, immutables := immStore v } evm
       (.storage vowRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
           solcAddrMask).toNat)) := by
   let er : EvaledStorageRef := { base := "vow", steps := [] }
-  have her : evalStorageRef (config v)
-      { contract := contract v, locals := locals } evm vowRef = .ok er := by
+  have her : evalStorageRef config
+      { contract := contract, locals := locals, immutables := immStore v } evm vowRef = .ok er := by
     unfold evalStorageRef vowRef
     simp only [evalStorageRefSteps]
     rfl
-  have hty : storageTypeAt? (contract v).storage er = some (.elem .address) := by
+  have hty : storageTypeAt? contract.storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : (config v).storage.layout er = fun _ => some (addrLoc ⟨2⟩) := by
-    funext evm'
+  have hloc : config.storageBackend.locate? er = some (.leaf (addrLoc ⟨2⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (storageLocLoad_address_offset0 evm ⟨2⟩)
 
 theorem clipperVowBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "vow" = none) :
-    ExecTransitionBody (config v) (contract v) evm locals vowTransition.body
-      (.returned { contract := contract v, locals := locals } evm
+    ExecTransitionBody config contract evm locals vowTransition.body
+      (.returned { contract := contract, locals := locals, immutables := immStore v } evm
         (some [(.address (AccountAddress.ofNat
           (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)
-            solcAddrMask).toNat))])) := by
+            solcAddrMask).toNat))])) (immStore v) := by
   simpa [vowTransition] using
-    nonpayableReturnExprBodyReturns (cfg := config v) (contract := contract v) h
+    nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h
       (clipperEvalVow v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
@@ -344,18 +343,18 @@ theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 26)) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 26) (by native_decide) hsel
   have hbody :
-      ExecTransitionBody (config v) (contract v)
+      ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
-        (.returned { contract := contract v, locals := ∅ }
+        (.returned { contract := contract, locals := ∅, immutables := immStore v }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (UInt256.land (solcSlotWord σ I ⟨2⟩) solcAddrMask).toNat))])) := by
+            (UInt256.land (solcSlotWord σ I ⟨2⟩) solcAddrMask).toNat))])) (immStore v) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperVowBodyReturns v
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
@@ -370,7 +369,7 @@ theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (g := g) (sel := clipperSelWord I) (transition := vowTransition)
     (entry := (⟨829⟩ : UInt256)) (routine := (⟨3325⟩ : UInt256))
     (slot := (⟨2⟩ : UInt256)) (returnPc := (⟨716⟩ : UInt256))
-    hcode (clipperDispatch_vow v hsel) (clipperDecode_vow v hsz) hreach
+    hcode (clipperDispatch_vow hsel) (clipperDecode_vow hsz) hreach
     (clipperVowGetterEntryWf v hpatch) (clipperVowSlotGetterWf v hpatch) hroutine
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by native_decide))
     (clipperReturnAddress716Wf v hpatch) (by rfl) hbody

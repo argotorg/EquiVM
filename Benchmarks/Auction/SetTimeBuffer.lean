@@ -7,6 +7,22 @@ set_option maxRecDepth 100000
 
 namespace Auction
 
+theorem setTimeBufferBodySplit (evm : EVM.State) (value : UInt256)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
+    (ExecTransitionBody auctionConfig auctionContract evm
+      ((∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)))
+      setTimeBufferTransition.body
+      (.returned
+        { contract := auctionContract
+          locals := (∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨203⟩ value) none)) ∧
+      (evm.executionEnv.perm = false → ExecTransitionBody auctionConfig auctionContract evm
+      ((∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)))
+      setTimeBufferTransition.body .staticViolation) := by
+  exact ownerSetUint256Split evm _ "timeBuffer" "_timeBuffer" ⟨203⟩ value hwv ho
+    (by simp) (by simp) (by simp) (by native_decide) rfl
+
 theorem setTimeBufferBody (evm : EVM.State) (value : UInt256)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ho : solcSourceWord evm.executionEnv = ownerWord evm.accountMap evm.executionEnv) :
@@ -16,15 +32,14 @@ theorem setTimeBufferBody (evm : EVM.State) (value : UInt256)
       (.returned
         { contract := auctionContract
           locals := (∅ : Store).insert "_timeBuffer" (.int (Int.ofNat value.toNat)) }
-        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨203⟩ value) none) := by
-  exact ownerSetUint256 evm _ "timeBuffer" "_timeBuffer" ⟨203⟩ value hwv ho
-    (by simp) (by simp) (by simp) (by native_decide) rfl
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨203⟩ value) none) :=
+  (setTimeBufferBodySplit evm value hwv ho).1
 
 theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 7))
+    (hsel : selIs I (entryBytes 7))
     (hreach : EntryReached 7 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract
+    runtimeRefinementFor auctionConfig auctionContract
       σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 7 hsel
@@ -45,8 +60,14 @@ theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
         obtain ⟨_, _, rd1934⟩ := setterFromDecoder 0 rd545 (by evm_ov)
         by_cases ho : solcSourceWord I = ownerWord σ I
         · obtain ⟨_, _, rd1976⟩ := ownerAllowed 2 rd1934 ho (by evm_ov)
-          obtain ⟨_, _, rd413⟩ := setterStoreEvent 0 rd1976 hperm
-            (by jump_dest) (by evm_ov)
+          rcases setterStoreEventSplit 0 rd1976
+            (by jump_dest) (by evm_ov) with
+            ⟨_hperm, _, _, rd413⟩ | ⟨hperm, hstatic⟩
+          swap
+          · exact hstatic.reEquivStaticHalt hcode hd hdec
+              ((setTimeBufferBodySplit
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (calldataWord I.calldata 4) hwv ho).2 hperm)
           have hbody := setTimeBufferBody
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hwv ho

@@ -334,6 +334,34 @@ theorem potDripX_subReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel tm
 
 /-! ## Storage writes `chi := tmp`, `rho := now` (`@1950 → @1960`) -/
 
+theorem potDripX_storesSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
+    (h : RD potBytecode I g s0 ⟨1950⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+    ∃ k' C', RD potBytecode I g s0 ⟨1960⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner σ ⟨4⟩ tmp) ⟨7⟩ (UInt256.ofNat I.header.timestamp))
+      k' C') ∨
+      (I.perm = false ∧ RDstatic potBytecode g s0) := by
+  have rd1951 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd1953 := rd1951.push1 ⟨4⟩ (by native_decide) (by evm_ov)
+  have rd1954 := rd1953.dup4 (by native_decide) (by evm_ov)
+  have rd1955 := rd1954.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1955.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons, List.length_nil]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k1956, C1956, rd1956⟩ := rd1955.sstore hperm (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd1957 := RD.timestamp rd1956 (by native_decide) (by evm_ov)
+  have rd1959 := rd1957.push1 ⟨7⟩ (by native_decide) (by evm_ov)
+  obtain ⟨k1960, C1960, rd1960⟩ := rd1959.sstore hperm (by native_decide)
+    (by simp only [List.length_cons, List.length_nil]; omega)
+  exact ⟨_, _, rd1960⟩
+
 theorem potDripX_stores {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hperm : I.perm = true)
     (h : RD potBytecode I g s0 ⟨1950⟩ (chi_ :: ⟨0⟩ :: tmp :: ⟨341⟩ :: [sel])
@@ -342,18 +370,8 @@ theorem potDripX_stores {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ t
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ ⟨4⟩ tmp) ⟨7⟩ (UInt256.ofNat I.header.timestamp))
-      k' C' := by
-  have rd1951 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1953 := rd1951.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd1954 := rd1953.dup4 (by native_decide) (by evm_ov)
-  have rd1955 := rd1954.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨k1956, C1956, rd1956⟩ := rd1955.sstore hperm (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd1957 := RD.timestamp rd1956 (by native_decide) (by evm_ov)
-  have rd1959 := rd1957.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1960, C1960, rd1960⟩ := rd1959.sstore hperm (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  exact ⟨_, _, rd1960⟩
+      k' C' :=
+  permSplit_true hperm (potDripX_storesSplit h)
 
 /-! ## `_rpow` with `x = 0` (`rpowFunctionCoupled` only covers `x ≠ 0`) -/
 

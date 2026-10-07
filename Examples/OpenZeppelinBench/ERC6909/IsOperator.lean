@@ -137,13 +137,16 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
                   .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] } =
       some (.elem .bool) := by
     simp [storageTypeAt?, contract, storageDecls, boolSt, storageTypeStep?]
-  have hloc : config.storage.layout
+  have hloc : config.storageBackend.locate?
       { base := "_operatorApprovals",
         steps := [.mindex (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat)),
-                  .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] } =
-      fun _ => some (boolLoc (isOperatorSlot I)) := by
-    simp [config, storageLayout, isOperatorSlot, operatorApprovalSlot]
-  rw [evalExpr_storage_scalar (t := .bool)
+                  .mindex (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))] }
+      = some (.leaf (boolLoc (isOperatorSlot I))) := by
+    simpa [config, isOperatorSlot] using
+      storageLayout_operatorApproval
+        (.address (AccountAddress.ofNat (isOperatorOwnerWord I).toNat))
+        (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (hbase := isOperatorStore_operatorApprovals I)
     (her := her) (hty := hty) (hloc := hloc)]
   simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm (isOperatorSlot I)
@@ -736,7 +739,7 @@ theorem erc6909IsOperatorBodyCore
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨329⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   have hsz4 := erc6909IsOperatorSelector_size hsel
   have hd := erc6909Dispatch_isOperator (cd := I.calldata) hsel

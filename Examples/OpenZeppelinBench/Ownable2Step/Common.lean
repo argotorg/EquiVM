@@ -225,7 +225,7 @@ theorem ownable2StepX_noMatch {σ σ₀ A I} {g : Sat256}
 theorem ownable2StepNonPayable {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (ownable2StepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
@@ -248,8 +248,8 @@ theorem ownable2StepNonPayable {σ σ₀ A I}
 theorem ownable2StepShortRevert {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract
+    (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   exact (ownable2StepX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (ownable2StepDispatch_none_short hsz)
@@ -257,9 +257,9 @@ theorem ownable2StepShortRevert {σ σ₀ A I}
 theorem ownable2StepNoDispatch {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (ownable2StepSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (ownable2StepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)

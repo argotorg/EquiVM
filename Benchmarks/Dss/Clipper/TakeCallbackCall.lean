@@ -168,7 +168,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
               (UInt256.ofNat (164 + ABI.paddedSize dataLen.toNat)).toNat)
             128 0))
         outCb σ_cb k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address
@@ -205,7 +205,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
   · let evmCb : EVM.State :=
       { initState σStart σ₀ g A I with
         accountMap := σ }
-    refine callCoincides (cfg := config v)
+    refine callCoincides (cfg := config)
       (evm := evmCb) (name := "clipperCall")
       (args := [.address I.source, .int (Int.ofNat owe.toNat),
         .int (Int.ofNat slice.toNat), clipperTakeDataValue I])
@@ -232,7 +232,7 @@ theorem RD.clipperTakeClipperCallPostCall {σ₀ σStart σ I}
         omega
       simpa [show (⟨128⟩ : UInt256).toNat = 128 by decide,
         ulit_toNat' _ hinSizeLt] using
-        clipperTakeCallbackEncode_eq v I owe slice dataLen dataStart hbaseMem
+        clipperTakeCallbackEncode_eq I owe slice dataLen dataStart hbaseMem
           hdataLen hdataLenEq hdataStartEq hlenMax hpayload
     · simpa [evmCb, initState, hperm] using hΘ
 

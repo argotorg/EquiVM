@@ -1,7 +1,11 @@
 import Solm.Value
 
 /-!
-# Immutable / library reference patching
+# Immutable / library reference patching (legacy)
+
+Not part of the Solm semantics or the refinement statement, which only relate the constructor's
+immutables to *some* deployed code.  Kept for the benchmarks whose proofs build the deployed code
+by patching solc's runtime template.
 
 solc leaves each immutable reference as 32 zero bytes in the `--bin-runtime` *template*, and the
 constructor splices the concrete value in at each offset that solc reports under

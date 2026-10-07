@@ -10,9 +10,9 @@ namespace Auction
 
 theorem unpauseBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 3))
+    (hsel : selIs I (entryBytes 3))
     (hreach : EntryReached 3 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 3 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 3) (entryBytes_size 3) hsel
@@ -41,16 +41,28 @@ theorem unpauseBodyCore {σ σ₀ A I} {g : UInt256}
               (ExecBlock.consRevert (ExecStmt.requireFalse hpaused))))
         exact (unpauseRoutineRevert rd2853 hp (by evm_ov)).reEquivExecutionRevert
           hcode hd hdec hbody
-      · obtain ⟨_, _, rd1126⟩ := unpauseRoutineOk rd2853 hp hperm (by jump_dest) (by evm_ov)
-        have hpaused := readPausedTrue evm0 ∅ (by simp) hp
-        have hprefix : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm0
-            [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
-              .require (.storage pausedRef), .assign .storage pausedRef (.boolLit false)]
-            (.ok { contract := auctionContract, locals := ∅ } (unpauseState evm0)) :=
+      · have hpaused := readPausedTrue evm0 ∅ (by simp) hp
+        have hstoreSplit := unpauseStoreSourceSplit (evm := evm0) (locals := ∅) (by simp)
+        have hprefix {result : ExecResult}
+            (hwrite : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ }
+              evm0 [.assign .storage pausedRef (.boolLit false)] result) :
+            ExecBlock auctionConfig { contract := auctionContract, locals := ∅ } evm0
+              [nonpayable, .require (.binary .eq sender (.storage ownerRef)),
+                .require (.storage pausedRef), .assign .storage pausedRef (.boolLit false)]
+              result :=
           ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
             (ExecBlock.consNormal (ExecStmt.requireTrue howner)
-              (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
-                (ExecBlock.consNormal (unpauseStoreSource (by simp)) ExecBlock.nil)))
+              (ExecBlock.consNormal (ExecStmt.requireTrue hpaused) hwrite))
+        rcases unpauseRoutineOkSplit rd2853 hp (by jump_dest) (by evm_ov) with
+          ⟨hperm, _, _, rd1126⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
+              unpauseTransition.body .staticViolation := by
+            apply ExecFuncBody.execBlockStatic
+            exact execBlock_append_term
+              (hprefix (ExecBlock.consStatic (hstoreSplit.2 hperm))) (by intro _ _ h; cases h)
+          exact hstatic.reEquivStaticHalt hcode hd hdec hbody
+        have hprefixOK := hprefix (ExecBlock.consNormal hstoreSplit.1 ExecBlock.nil)
         rcases unpauseAfterRoutine rd1126 (SourceState.unpause hs0) hperm
             (addressEventHeap freshHeapMemory (solcSourceWord I) (by decide))
             (by jump_dest) (by evm_ov) with
@@ -58,14 +70,14 @@ theorem unpauseBodyCore {σ σ₀ A I} {g : UInt256}
         · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
               unpauseTransition.body
               (.returned { contract := auctionContract, locals := locals' } evm' none) :=
-            ExecFuncBody.execBlockOK (execBlock_append hprefix
+            ExecFuncBody.execBlockOK (execBlock_append hprefixOK
               (ExecBlock.consNormal hafter ExecBlock.nil))
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody hs'.accounts
             (.fallthrough rfl rfl (by native_decide))
         · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
               unpauseTransition.body .reverted :=
-            ExecFuncBody.execBlockRevert (execBlock_append hprefix (ExecBlock.consRevert hafter))
+            ExecFuncBody.execBlockRevert (execBlock_append hprefixOK (ExecBlock.consRevert hafter))
           exact hr.reEquivExecutionRevert hcode hd hdec hbody
     · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
           unpauseTransition.body .reverted := by

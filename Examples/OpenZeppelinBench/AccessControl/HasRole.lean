@@ -168,18 +168,19 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
         .ok (wordToElem .bool
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩)) := by
-  rw [evalExpr_storage_scalar (t := .bool)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .bool)
     (hbase := by simpa [roleHasRoleRef] using hasRoleStore_roles I)
     (her := evalStorageRef_hasRole evm I hsz68)
     (hty := by
       simp [storageTypeAt?, hasRoleEvaledRef, contract, storageDecls, roleDataSt, boolSt,
         storageTypeStep?])
     (hloc := by
-      show config.storage.layout (hasRoleEvaledRef I) =
-        fun _ => some (boolLoc (hasRoleSlot I))
-      simp [config, storageLayout, hasRoleEvaledRef, hasRoleSlot, roleHasRoleSlot,
-        roleDataSlot])]
-  erw [storageLocLoad_bool_offset0 evm (hasRoleSlot I)]
+      show config.storageBackend.locate? (hasRoleEvaledRef I) =
+        some (.leaf (boolLoc (hasRoleSlot I)))
+      simpa [config, hasRoleEvaledRef, hasRoleSlot] using
+        storageLayout_hasRole (hasRoleRoleKey I) (hasRoleAccountKey I))]
+  rw [show boolLoc (hasRoleSlot I) = boolOffset0Loc (hasRoleSlot I) from rfl,
+    storageLocLoad_bool_offset0 evm (hasRoleSlot I)]
 
 theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :
@@ -553,15 +554,14 @@ theorem accessControlHasRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
 theorem accessControlHasRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       σ k C) :
-    runtimeEquivalenceFor config contract
+    runtimeRefinementFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
   by_cases hsz68 : 68 ≤ I.calldata.size

@@ -33,6 +33,7 @@ theorem RD.invalidHalt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
       exact Ethereum.EVM.Xstep_X_X_except _ s _ _ hstep))
 
 theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDecl}
+    {immutables : Store}
     {t : TransitionDecl} {σ σ₀ A I} {g : UInt256}
     {code : ByteArray} {callargs}
     (hcode : I.code = code)
@@ -43,10 +44,10 @@ theorem RDinvalid.reEquivExecutionInvalid {cfg : Config} {contract : ContractDec
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-              callargs t.body .reverted)
+              callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I := by
+    runtimeRefinementFor cfg contract σ σ₀ g A I immutables := by
   rcases h with hoog | hinv
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g) (by
       rw [← hcode] at hoog

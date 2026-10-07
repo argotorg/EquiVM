@@ -286,7 +286,7 @@ theorem evalExpr_priceStep_zero {evm : EVM.State} {I : ExecutionEnv}
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int 0 := by
     rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hstep]
     native_decide
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨1⟩) (value := .int 0)
@@ -302,7 +302,7 @@ theorem evalExpr_priceStep_word {evm : EVM.State} {I : ExecutionEnv} {step : UIn
       .ok (.int (Int.ofNat step.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int (Int.ofNat step.toNat) := by
     rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hstep]
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨1⟩) (value := .int (Int.ofNat step.toNat))
@@ -319,7 +319,7 @@ theorem evalExpr_priceCut_word {evm : EVM.State} {locals : Store} {cut : UInt256
       .ok (.int (Int.ofNat cut.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨2⟩) = .int (Int.ofNat cut.toNat) := by
     rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256, hcut]
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := cutRef) (er := ({ base := "cut", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩) (value := .int (Int.ofNat cut.toNat))
@@ -706,7 +706,7 @@ theorem stairstepPriceSourceXZeroNNonzeroReturns {evm : EVM.State} {σ : Account
         (.ok { contract := contract, locals := priceLocalsOut σ I ⟨0⟩ ⟨0⟩ } evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsPow σ I ⟨0⟩))
+      (caller := Frame.mk contract (priceLocalsPow σ I ⟨0⟩) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "pow"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat), .int 0])
@@ -805,10 +805,10 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
   have hrmulReturn :
       ExecStmt config { contract := contract, locals := priceLocalsPow σ I stairstepRay } evm
         (.internalCall "rmul" [.var "top", .var "pow"] "out")
-        (.ok (Frame.mk contract (priceLocalsOut σ I stairstepRay (priceTop I))) evm) := by
+        (.ok (Frame.mk contract (priceLocalsOut σ I stairstepRay (priceTop I)) ∅) evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsPow σ I stairstepRay))
+      (caller := Frame.mk contract (priceLocalsPow σ I stairstepRay) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "pow"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat),
@@ -830,7 +830,7 @@ theorem stairstepPriceSourceNZeroReturns {evm : EVM.State} {σ : AccountMap}
           .internalCall "rpow" [.storage cutRef, .var "n", .intLit RAY] "pow",
           .internalCall "rmul" [.var "top", .var "pow"] "out",
           .return [.var "out"] ]
-        (.returned (Frame.mk contract (priceLocalsOut σ I stairstepRay (priceTop I)))
+        (.returned (Frame.mk contract (priceLocalsOut σ I stairstepRay (priceTop I)) ∅)
           evm (some [.int (Int.ofNat (priceTop I).toNat)])) := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
@@ -899,7 +899,7 @@ theorem stairstepPriceSourceNZeroRmulOverflowReverts {evm : EVM.State} {σ : Acc
         (.internalCall "rmul" [.var "top", .var "pow"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsPow σ I stairstepRay))
+      (caller := Frame.mk contract (priceLocalsPow σ I stairstepRay) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "pow"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat),
@@ -1056,7 +1056,7 @@ theorem stairstepPriceSourceRpowReturns {evm : EVM.State} {σ : AccountMap}
         (.ok { contract := contract, locals := priceLocalsOut σ I pow out } evm) := by
     have h := internalCallFunctionReturn
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsPow σ I pow))
+      (caller := Frame.mk contract (priceLocalsPow σ I pow) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "pow"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat), .int (Int.ofNat pow.toNat)])
@@ -1151,7 +1151,7 @@ theorem stairstepPriceSourceRpowReturnsRmulOverflowReverts
         (.internalCall "rmul" [.var "top", .var "pow"] "out") .reverted :=
     internalCallFunctionRevert
       (cfg := config)
-      (caller := Frame.mk contract (priceLocalsPow σ I pow))
+      (caller := Frame.mk contract (priceLocalsPow σ I pow) ∅)
       (evm := evm) (name := "rmul") (retVar := "out")
       (args := [.var "top", .var "pow"])
       (argVals := [.int (Int.ofNat (priceTop I).toNat), .int (Int.ofNat pow.toNat)])

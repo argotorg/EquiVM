@@ -96,7 +96,7 @@ theorem catBiteBodyIlksNoCode {σ σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hvatCode :
       Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine (g := Sat256.ofUInt256 g)
     hcode hwv hsz68 hsize hsel
   obtain ⟨k', C', rd1233⟩ := RD.catBiteIlksToStaticcallGuard (hR := by simp) rd1163
@@ -134,7 +134,7 @@ theorem catBiteBodyIlksFailCore {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (⟨0⟩ :: R) mem awi oi σi ki Ci)
     (hosz : oi.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨σs, As, hIlksSolm, _hEq⟩ := catBiteMapIlksCall hIlksFailCall
   have htw : catBiteVatTargetWord σ I = catBiteVatTargetWord σ I := rfl
   have htgt : (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I))
@@ -196,7 +196,7 @@ theorem catBiteReachGrabAw {σ σ₀ A I} {g : UInt256}
            (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)).toNat),
          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have e164 : (p + ⟨164⟩).toNat = p.toNat + 164 := by
@@ -242,7 +242,7 @@ theorem catBiteReachGrabAw {σ σ₀ A I} {g : UInt256}
   rw [hawEq] at rd2193raw
   refine ⟨σ'', z, o', A', k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm)
+    (callPerm := true)
     (targetWord := UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord)
     (mem := catBiteGrabCalldataMemP p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
       (solcSlotWord σ' I ⟨4⟩) dink dart mem)
@@ -291,7 +291,7 @@ theorem catBiteReachFessAw {σ σ₀ A I} {g : UInt256}
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)))
         "fess" 0 [.int (Int.ofNat dartRate.toNat)]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'' }, o') I.perm
+              accountMap := σ'', substate := A'' }, o') true
     ∧ o'.size < UInt256.size := by
   have e4 : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
     rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,
@@ -333,7 +333,7 @@ theorem catBiteReachFessAw {σ σ₀ A I} {g : UInt256}
   rw [hawEq] at rd2300
   refine ⟨σ'', z, o', A', k', C', rd2300, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := I.perm)
+    (callPerm := true)
     (targetWord := UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩))
     (mem := catBiteFessCalldataMemP p2 dartRate mem) (inOff := p2) (inSize := ⟨36⟩)
     (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))

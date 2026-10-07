@@ -116,7 +116,7 @@ theorem vatCanBodyCoreOk
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let slot := solcMappingSlot (solcMappingSlot ⟨1⟩ (canSrcMaskedWord I)) (canUsrMaskedWord I)
   have hslot : canStorageSlot I = slot := by
     simp [slot, canStorageSlot_eq]
@@ -209,7 +209,7 @@ theorem vatCanBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdec := vatDecode_can_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -227,8 +227,8 @@ theorem vatCanBodyCoreDecodeFailed_short
     (by native_decide) (by native_decide) (by native_decide) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
-theorem vatCanBodyCore : VatBodyTheorem 2 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatCanBodyCore : VatBodyTheoremAnyPerm 2 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some canTransition :=

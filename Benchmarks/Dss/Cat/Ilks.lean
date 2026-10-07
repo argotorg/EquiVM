@@ -1,6 +1,6 @@
 import Reasoning.ABIViews
 import Benchmarks.Dss.Cat.Common
-import Solm.Equiv
+import Solm.Refine
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -572,7 +572,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         .ok (.address (AccountAddress.ofNat
           (UInt256.land (solcSlotWordAt (ilksFlipSlotFor I) evm.accountMap evm.executionEnv)
             solcAddrMask).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "flip") (er := ilksFlipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksFlipSlotFor I))
@@ -595,7 +595,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "chop")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "chop") (er := ilksChopEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksChopSlotFor I))
@@ -617,7 +617,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "dunk")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDunkSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "dunk") (er := ilksDunkEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDunkSlotFor I))
@@ -667,7 +667,7 @@ theorem catIlksBodyCoreOk
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let flipSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let chopSlot := flipSlot + ⟨1⟩
   let dunkSlot := flipSlot + ⟨2⟩
@@ -779,7 +779,7 @@ theorem catIlksBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -799,10 +799,9 @@ theorem catIlksBodyCoreDecodeFailed_short
 theorem catIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=

@@ -451,7 +451,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintFromFactoryCase
                   liquidity)
                 balance0 balance1)) <
           UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToNonzero, hkLastNonzero, hrootCase, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliqNonzero, htotalFit, hbalanceFit,
@@ -772,7 +772,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityFromFactoryCase
                   liquidity)
                 balance0 balance1)) <
           UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToNonzero, hkLastNonzero, hrootCase, htotalNonzero, hmulFit0, hmulFit1,
       hreserve0Nonzero, hreserve1Nonzero, hliqNonzero, htotalFit, hbalanceFit,
@@ -1383,7 +1383,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityFromFactoryCase
           mintFeeOnKLastNonzeroPositiveWithLiquidityCaseData feeTo evmFeeS σFee I
             feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord memFee
             rootK rootKLast)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with ⟨hfeeToNonzero, hkLastNonzero, hcaseData⟩
   have hrootCase :
       ∀ (rootK rootKLast : Int),
@@ -1662,7 +1662,7 @@ theorem uniswapMintFeeOnKLastNonzeroSuccessFromFactoryCases
     (hcase :
       mintFeeOnKLastNonzeroSuccessFromFactoryCasesData feeTo feeToWord totalSupply amount0
         amount1 balance0 balance1 reserve0 reserve1 toWord liquidity σFee evmFeeS I memFee) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with hnoMint | hrest
   · exact
       uniswapMintFeeOnKLastNonzeroNoMintFromFactoryCase feeTo hcode hdispatch hsz36
@@ -1902,7 +1902,7 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintFromFactoryCase
                   liquidity)
                 balance0 balance1)) <
           UInt256.size) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   rcases hcase with
     ⟨hfeeToNonzero, hkLastNonzero, hprodSmall, hkLastSmall, hrootLeRuntime,
       htotalNonzero, hmulFit0, hmulFit1, hreserve0Nonzero, hreserve1Nonzero,

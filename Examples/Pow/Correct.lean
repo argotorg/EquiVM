@@ -852,7 +852,7 @@ private def powCallargs (I : Ethereum.ExecutionEnv) : Solm.Store :=
 theorem powReEquiv_callvalueZero {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = powBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) :
-    runtimeEquivalenceFor powConfig Pow.powContract σ σ₀ g.toUInt256 A I := by
+    runtimeRefinementFor powConfig Pow.powContract σ σ₀ g.toUInt256 A I := by
   by_cases hsz4 : I.calldata.size < 4
   · -- short calldata ⇒ noDispatch
     exact (powX_short hcode hwv hsz4).reEquivNoDispatch hcode (powDispatch.none_short hsz4)
@@ -907,8 +907,8 @@ theorem powXiSuccess {σ σ₀ A I} {g : Sat256}
   (powX_success hcode hwv hsz36 hsz255 hmatch hn).xiResult hcode
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
-theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+theorem powCorrect : runtimeRefinement powConfig powBytecode Pow.powContract := by
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling
@@ -990,12 +990,12 @@ theorem powInitcodeRun {σ σ₀ A I} {g : Sat256}
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem powConstructorCorrect :
-    constructorEquivalence powConfig powInitcode Pow.powContract powBytecode :=
+    typedConstructorRefinement powConfig powInitcode Pow.powContract (fun _ => powBytecode) :=
   emptyConstructorCorrect_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode)
 
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem powContractCorrect :
-    contractEquivalence powConfig powInitcode powBytecode Pow.powContract :=
+    contractRefinement powConfig powInitcode Pow.powContract :=
   emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => powInitcodeRun hcode) powCorrect
 
 end Pow

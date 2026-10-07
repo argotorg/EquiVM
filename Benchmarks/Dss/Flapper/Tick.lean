@@ -287,7 +287,7 @@ theorem evalExpr_tick_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := tickEndEvaledRef I)
     (t := .int uint48Int)
@@ -302,8 +302,7 @@ theorem evalExpr_tick_end_storage (evm : EVM.State) (I : ExecutionEnv) :
       simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionEndLayout evm' (tickIdWord I))
+      exact auctionEndLayout evm (tickIdWord I))
     hload
 
 theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
@@ -323,7 +322,7 @@ theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := tickTicEvaledRef I)
     (t := .int uint48Int)
@@ -338,8 +337,7 @@ theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
       simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionTicLayout evm' (tickIdWord I))
+      exact auctionTicLayout evm (tickIdWord I))
     hload
 
 theorem evalExpr_tick_tau_storage (evm : EVM.State) (I : ExecutionEnv) :
@@ -355,7 +353,7 @@ theorem evalExpr_tick_tau_storage (evm : EVM.State) (I : ExecutionEnv) :
       (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
         (UInt256.ofNat (256 ^ 6))) uint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := tauRef) (er := tickTauEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
@@ -581,10 +579,10 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "end")
         (.int (Int.ofNat (tickEndPostWord evm).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := tickEndLocals evm I }, tickPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := tickEndEvaledRef I)
-      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide))
+      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := tickEndLocals_get_bids evm I)
       (her := by
         simpa [tickEndEvaledRef, tickIdValue] using
@@ -594,8 +592,7 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
         simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint48St])
       (hloc := by
-        funext evm'
-        exact auctionEndLayout evm' (tickIdWord I))
+        exact auctionEndLayout evm (tickIdWord I))
   simpa [tickPostState, tickEndStoredWord, uint48Loc] using
     storageLocStore_uint48_offset26_word evm
       (auctionPackedSlot (tickIdWord I)) (tickEndPostWord evm)
@@ -674,30 +671,42 @@ theorem flapperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consRevert
         (ExecStmt.requireFalse (evalExpr_tick_end_guard_false_wrapped evm I haddOverflow)))
 
-theorem flapperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
+theorem flapperTickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hendLt : (tickEndWord evm I).toNat < (tickTimestampWord evm).toNat)
     (htic : tickTicWord evm I = ⟨0⟩)
     (haddFit : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 48) :
-    ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
+    (ExecTransitionBody config contract evm (tickLocals I) tickTransition.body
       (.returned { contract := contract, locals := tickEndLocals evm I }
-        (tickPostState evm I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [tickTransition, nonpayable, checkedAdd48Into, List.cons_append, List.nil_append]
-    using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_end_lt_timestamp_true evm I hendLt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tick_endAdd_ok evm I haddFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_tick_end_var evm I)
-          (assign_tickEndStorage_value evm I haddFit))
-        ExecBlock.nil)
+        (tickPostState evm I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (tickLocals I)
+          tickTransition.body .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := tickEndLocals evm I } evm
+        [.assign .storage (bidsF (.var "id") "end") (.var "end_")] result) :
+      ExecBlock config { contract := contract, locals := tickLocals I } evm
+        tickTransition.body result := by
+    simpa [tickTransition, nonpayable, checkedAdd48Into, List.cons_append, List.nil_append]
+      using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_end_lt_timestamp_true evm I hendLt)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
+        ExecBlock.consNormal
+          (ExecStmt.letDecl (evalExpr_tick_endAdd_ok evm I haddFit)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
+        hwrite)
+  have hvalue := evalExpr_tick_end_var evm I
+  have hassign := assign_tickEndStorage_value evm I haddFit
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hvalue hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm)))
 
 
 theorem flapperDecode_tick_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -1264,9 +1273,8 @@ theorem flapperTickX_addOverflow
     (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem flapperTickX_success
+theorem flapperTickX_successSplit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hendLt :
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
@@ -1278,8 +1286,10 @@ theorem flapperTickX_success
       (initState σ σ₀ g A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret flapperBytecode g (initState σ σ₀ g A I)
-      (tickRuntimeSuccessAccountMap I.codeOwner σ I) ByteArray.empty := by
+    (I.perm = true ∧
+      RDret flapperBytecode g (initState σ σ₀ g A I)
+        (tickRuntimeSuccessAccountMap I.codeOwner σ I) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic flapperBytecode g (initState σ σ₀ g A I)) := by
   let id := tickIdWord I
   let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memEnd
@@ -1371,8 +1381,14 @@ theorem flapperTickX_success
     raw swap2 (by native_decide) (by evm_ov),
     raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flapperBytecode ⟨4892⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4892pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k4893, C4893, rd4893raw⟩ := rd4892pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have rd360 := rd4893raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd361 := rd360.jumpdest (by native_decide) (by evm_ov)
   simpa [tickRuntimeSuccessAccountMap, oldPacked, packedSlot, addWord,
@@ -1442,7 +1458,7 @@ theorem flapperTickBodyCoreEndNotExpired
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeSolm :
       (tickTimestampWord evmSolm).toNat ≤ (tickEndWord evmSolm I).toNat := by
@@ -1470,7 +1486,7 @@ theorem flapperTickBodyCoreTicNonzero
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1506,7 +1522,7 @@ theorem flapperTickBodyCoreAddOverflow
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1531,7 +1547,7 @@ theorem flapperTickBodyCoreAddOverflow
 
 theorem flapperTickBodyCoreSuccess
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = flapperBytecode) (hperm : I.perm = true)
+    (hcode : I.code = flapperBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hendLt :
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
@@ -1548,7 +1564,7 @@ theorem flapperTickBodyCoreSuccess
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4586⟩
       [tickIdWord I, ⟨360⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
@@ -1560,19 +1576,24 @@ theorem flapperTickBodyCoreSuccess
   have haddFitSolm :
       (tickNow48Word evmSolm).toNat + (tickTauWord evmSolm).toNat < 2 ^ 48 := by
     simpa [evmSolm, tickNow48Word, tickTimestampWord, initState, htau] using haddFit
-  have hbody :
-      ExecTransitionBody config contract evmSolm (tickLocals I) tickTransition.body
+  have hbodySplit :
+      (ExecTransitionBody config contract evmSolm (tickLocals I) tickTransition.body
         (.returned { contract := contract, locals := tickEndLocals evmSolm I }
-          (tickPostState evmSolm I) none) := by
-    exact flapperTickBodyReturns_success evmSolm I
+          (tickPostState evmSolm I) none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evmSolm (tickLocals I)
+        tickTransition.body .staticViolation) := by
+    exact flapperTickBodyReturns_successSplit evmSolm I
       (by simpa [evmSolm, initState] using hwv) hendLtSolm hticSolm haddFitSolm
-  have hret := flapperTickX_success (g := Sat256.ofUInt256 g) hperm hendLt htic
-    haddFit rd4586
+  rcases flapperTickX_successSplit (g := Sat256.ofUInt256 g) hendLt htic
+    haddFit rd4586 with
+      ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
   have hpostAccounts :=
     tickRuntimeSuccessAccountMap_eq
       (σ₀ := σ₀) (A := A)
       (I := I) (g := g) haddFit
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simpa [evmSolm] using hpostAccounts)
     (by
       simpa [tickTransition] using
@@ -1587,7 +1608,7 @@ theorem flapperTickBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨855⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (flapperTickX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flapperDecode_tick_none_short hsz4 hshort)
@@ -1595,10 +1616,9 @@ theorem flapperTickBodyCoreDecodeFailed_short
 theorem flapperTickBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 15)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flapperSelBytes 15) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some tickTransition :=
@@ -1618,7 +1638,7 @@ theorem flapperTickBodyCore {σ σ₀ A I} {g : UInt256}
       · by_cases haddFit :
           (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
             (tickRuntimeTauWord σ I).toNat < 2 ^ 48
-        · exact flapperTickBodyCoreSuccess hcode hperm hwv
+        · exact flapperTickBodyCoreSuccess hcode hwv
             (by simpa [id, packedSlot] using hendLt)
             (by simpa [id, packedSlot] using htic)
             haddFit hdispatch (flapperDecode_tick_ok hsz36) rd4586

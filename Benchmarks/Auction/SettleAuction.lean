@@ -9,9 +9,9 @@ namespace Auction
 
 theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 13))
+    (hsel : selIs I (entryBytes 13))
     (hreach : EntryReached 13 σ σ₀ A I g) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 13 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 13) (entryBytes_size 13) hsel
@@ -48,9 +48,22 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           hcode hd hdec hbody
       · rw [decide_eq_true hentered] at hstatus
         obtain ⟨_, _, rd2458⟩ := reentrancyAllowed 1 rd2424 hentered (by evm_ov)
-        obtain ⟨_, _, rd4086⟩ := settleEnter rd2458 hperm (by evm_ov)
-        have hstore := statusStoreSource (evm := evm0) (locals := ∅) (word := ⟨2⟩)
+        have hstoreSplit := statusStoreSourceSplit (evm := evm0) (locals := ∅) (word := ⟨2⟩)
           (e := entered) (by simp) (by simp only [entered, evalExpr?, pure]; rfl)
+        have hprefix {result : ExecResult}
+            (htail : ExecBlock auctionConfig { contract := auctionContract, locals := ∅ }
+              evm0 (settleAuctionTransition.body.drop 3) result) :
+            ExecBlock auctionConfig { contract := auctionContract, locals := ∅ }
+              evm0 settleAuctionTransition.body result :=
+          ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+            (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
+              (ExecBlock.consNormal (ExecStmt.requireTrue hstatus) htail))
+        rcases settleEnterSplit rd2458 (by evm_ov) with
+          ⟨hperm, _, _, rd4086⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hd hdec
+            (ExecFuncBody.execBlockStatic (hprefix (ExecBlock.consStatic (hstoreSplit.2 hperm))))
+        have hstore := hstoreSplit.1
         have hargs : evalExprs? auctionConfig { contract := auctionContract, locals := ∅ }
             (statusState evm0 ⟨2⟩) [.intLit 128] = .ok [.int (Int.ofNat (⟨128⟩ :
               UInt256).toNat)] := by
@@ -72,11 +85,8 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
                   locals := (∅ : Store).insert "_s" (.int (Int.ofNat ptr'.toNat)) }
                 (statusState evm' ⟨1⟩) none) := by
             apply ExecFuncBody.execBlockOK
-            exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
-              (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
-                (ExecBlock.consNormal (ExecStmt.requireTrue hstatus)
-                  (ExecBlock.consNormal hstore (ExecBlock.consNormal hcall
-                    (ExecBlock.consNormal hexit ExecBlock.nil)))))
+            exact hprefix (ExecBlock.consNormal hstore (ExecBlock.consNormal hcall
+                    (ExecBlock.consNormal hexit ExecBlock.nil)))
           have hsFinal := (SourceState.status hs') ⟨1⟩
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody hsFinal.accounts
@@ -84,10 +94,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
         · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅
               settleAuctionTransition.body .reverted := by
             apply ExecFuncBody.execBlockRevert
-            exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
-              (ExecBlock.consNormal (ExecStmt.requireTrue hpaused)
-                (ExecBlock.consNormal (ExecStmt.requireTrue hstatus)
-                  (ExecBlock.consNormal hstore (ExecBlock.consRevert hcall))))
+            exact hprefix (ExecBlock.consNormal hstore (ExecBlock.consRevert hcall))
           exact hr.reEquivExecutionRevert hcode hd hdec hbody
   · exact entryNonpayableRevert 13 (by decide) hcode hsel hreach hwv
 

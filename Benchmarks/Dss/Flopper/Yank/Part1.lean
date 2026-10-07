@@ -87,47 +87,51 @@ theorem deleteStorage_yankSuck_bid (evm : EVM.State) (I : ExecutionEnv) :
   rw [deleteStorage?]
   rw [resolveStorageRef_yankSuck_bid]
   simp only [EvalResult.bind, bind]
-  rw [Solm.clearStorage?.eq_def]
-  simp only [BidStructTy]
-  rw [Solm.clearFields?.eq_def]
+  have hfields : config.storageBackend.clear
+      { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] } BidStructTy evm =
+      solidityClearFields? config.storageBackend.locate? evm
+        { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
+        [("bid", uint256St), ("lot", uint256St), ("guy", addrSt),
+          ("tic", uint48St), ("end", uint48St)] := by
+    simp only [config, solidityStorageBackend, BidStructTy, solidityClearStorage?]
+  rw [hfields]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint256_zero (slot := auctionBidSlot (yankIdWord I))
+  rw [solidityClearStorage_uint256_zero (slot := auctionBidSlot (yankIdWord I))
     (hloc := auctionBidLayout evm (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterBid evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterBid evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("lot", uint256St), ("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint256_zero (slot := auctionLotSlot (yankIdWord I))
+  rw [solidityClearStorage_uint256_zero (slot := auctionLotSlot (yankIdWord I))
     (hloc := auctionLotLayout (yankDeleteAfterBid evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterLot evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterLot evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_addr_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_addr_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionGuyLayout (yankDeleteAfterLot evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterGuy evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterGuy evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint48_offset20_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_uint48_offset20_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionTicLayout (yankDeleteAfterGuy evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterTic evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterTic evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  erw [clearStorage_uint48_offset26_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_uint48_offset26_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionEndLayout (yankDeleteAfterTic evm I) (yankIdWord I))]
-  simp only
-  rw [Solm.clearFields?.eq_def]
-  simp [yankDeletePostState]
+  simp [solidityClearFields?, yankDeletePostState, bind, EvalResult.bind]
 
 theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     clearUint48Offset26Word
@@ -501,7 +505,7 @@ theorem evalExpr_yank_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
   let frame : Frame := { contract := contract, locals := yankLocals I }
   have hstorage :
       evalExpr? config frame evm (.storage liveRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := liveRef) (er := yankLiveEvaledRef)
       (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -526,7 +530,7 @@ theorem evalExpr_yank_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config frame evm (.storage liveRef) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := liveRef) (er := yankLiveEvaledRef)
       (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -567,7 +571,7 @@ theorem evalExpr_yank_guy_ne_zero_false (evm : EVM.State) (I : ExecutionEnv)
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))
@@ -611,7 +615,7 @@ theorem evalExpr_yank_guy_ne_zero_true (evm : EVM.State) (I : ExecutionEnv)
   have hguy :
       evalExpr? config frame evm (.storage (bidsF (.var "id") "guy")) =
         .ok (.address (AccountAddress.ofNat guyWord.toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))
@@ -664,7 +668,7 @@ theorem evalExpr_yank_vat_storage (evm : EVM.State) (I : ExecutionEnv) :
       .ok (.address (AccountAddress.ofNat
         (solcAddressSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vatRef) (er := yankVatEvaledRef)
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -684,7 +688,7 @@ theorem evalExpr_yank_vow_storage (evm : EVM.State) (I : ExecutionEnv) :
       .ok (.address (AccountAddress.ofNat
         (solcAddressSlotWord ⟨9⟩ evm.accountMap evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vowRef) (er := yankVowEvaledRef)
     (t := .address) (loc := addrLoc ⟨9⟩)
@@ -706,7 +710,7 @@ theorem evalExpr_yank_bid_storage (evm : EVM.State) (I : ExecutionEnv) :
         (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
           evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := yankBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (yankIdWord I)))
@@ -745,7 +749,7 @@ theorem evalExprs_yank_suck_args (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.address (AccountAddress.ofNat
           (solcAddressSlotWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := { contract := contract, locals := yankLocals I }) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))
@@ -933,7 +937,7 @@ theorem flopperYankBodyReverts_suckCallFailure
         (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
       htail)
 
-theorem flopperYankBodyReturns_suckCallSuccess
+theorem flopperYankBodyReturns_suckCallSuccessSplit
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = ⟨0⟩)
@@ -956,9 +960,12 @@ theorem flopperYankBodyReturns_suckCallSuccess
           (solcSlotWordAt (auctionBidSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)]
         (true, evm', out) true) :
-    ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
+    (ExecTransitionBody config contract evm (yankLocals I) yankTransition.body
       (.returned { contract := contract, locals := yankSuckLocals I }
-        (yankDeletePostState evm' I) none) := by
+        (yankDeletePostState evm' I) none)) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (yankLocals I)
+          yankTransition.body .staticViolation) := by
   have hvat := evalExpr_yank_vat_storage evm I
   have hcodeLookup :
       0 < (UInt256.ofNat
@@ -989,31 +996,37 @@ theorem flopperYankBodyReturns_suckCallSuccess
         (.ok { contract := contract, locals := yankSuckLocals I } evm') := by
     simpa [checkedExternalCallStmts, yankSuckLocals] using
       checkedExternalCallSuccess hguard hvat hargs hcall hdec
-  have hdelete :
-      ExecBlock config { contract := contract, locals := yankSuckLocals I } evm'
-        [.delete (bidRef (.var "id"))]
-        (.ok { contract := contract, locals := yankSuckLocals I }
-          (yankDeletePostState evm' I)) := by
-    exact ExecBlock.consNormal (ExecStmt.delete (deleteStorage_yankSuck_bid evm' I))
-      ExecBlock.nil
-  have htail :
+  have hdelete := deleteStorage_yankSuck_bid evm' I
+  have hprefix {result : ExecResult}
+      (hdelete : ExecBlock config { contract := contract, locals := yankSuckLocals I } evm'
+        [.delete (bidRef (.var "id"))] result) :
       ExecBlock config { contract := contract, locals := yankLocals I } evm
-        (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
-          [.storage vowRef, .storage (bidsF (.var "id") "guy"),
-            .storage (bidsF (.var "id") "bid")] "_suckRet" ++
-          [.delete (bidRef (.var "id"))])
-        (.ok { contract := contract, locals := yankSuckLocals I }
-          (yankDeletePostState evm' I)) :=
-   execBlock_append hchecked hdelete
-  refine ExecFuncBody.execBlockOK ?_
-  simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
-    List.nil_append] using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_yank_live_zero_true evm I hlive)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
-      htail)
+        yankTransition.body result := by
+    have htail :
+        ExecBlock config { contract := contract, locals := yankLocals I } evm
+          (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
+            [.storage vowRef, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "bid")] "_suckRet" ++
+            [.delete (bidRef (.var "id"))])
+          result :=
+     execBlock_append hchecked hdelete
+    simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
+      List.nil_append] using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_yank_live_zero_true evm I hlive)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_yank_guy_ne_zero_true evm I hguy)) <|
+        htail)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.delete hdelete) ExecBlock.nil))
+  · intro hperm
+    have hp : evm'.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcall]
+      exact hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.deleteStatic hdelete hp)))
 
 theorem flopperDecode_yank_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (yankTransition.params.map Param.name)

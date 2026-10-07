@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -142,23 +143,23 @@ def rewardsClaimedCometSlot (comet : KeyValue) : Ethereum.UInt256 :=
 def rewardsClaimedSlot (comet account : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord account) (rewardsClaimedCometSlot comet)
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "governor", steps := [] }, _ =>
-      some (fieldLoc ⟨0⟩ 0 20 (by decide) .address)
-  | { base := "rewardConfig", steps := [.mindex comet, .field "token"] }, _ =>
-      some (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 0 20 (by decide) .address)
-  | { base := "rewardConfig", steps := [.mindex comet, .field "rescaleFactor"] }, _ =>
-      some (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 20 8 (by decide) (.int uint64Int))
-  | { base := "rewardConfig", steps := [.mindex comet, .field "shouldUpscale"] }, _ =>
-      some (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 28 1 (by decide) .bool)
-  | { base := "rewardConfig", steps := [.mindex comet, .field "multiplier"] }, _ =>
-      some (fieldLoc (slotAdd (rewardConfigSlot comet) 1) 0 32 (by decide) (.int uint256Int))
-  | { base := "rewardsClaimed", steps := [.mindex comet, .mindex account] }, _ =>
-      some (fieldLoc (rewardsClaimedSlot comet account) 0 32 (by decide) (.int uint256Int))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "governor", steps := [] } =>
+      some (.leaf (fieldLoc ⟨0⟩ 0 20 (by decide) .address))
+  | { base := "rewardConfig", steps := [.mindex comet, .field "token"] } =>
+      some (.leaf (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 0 20 (by decide) .address))
+  | { base := "rewardConfig", steps := [.mindex comet, .field "rescaleFactor"] } =>
+      some (.leaf (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 20 8 (by decide) (.int uint64Int)))
+  | { base := "rewardConfig", steps := [.mindex comet, .field "shouldUpscale"] } =>
+      some (.leaf (fieldLoc (slotAdd (rewardConfigSlot comet) 0) 28 1 (by decide) .bool))
+  | { base := "rewardConfig", steps := [.mindex comet, .field "multiplier"] } =>
+      some (.leaf (fieldLoc (slotAdd (rewardConfigSlot comet) 1) 0 32 (by decide) (.int uint256Int)))
+  | { base := "rewardsClaimed", steps := [.mindex comet, .mindex account] } =>
+      some (.leaf (fieldLoc (rewardsClaimedSlot comet account) 0 32 (by decide) (.int uint256Int)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -446,7 +447,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := compoundRewardsExternalABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

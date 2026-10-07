@@ -136,20 +136,35 @@ theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
   hwf
 
 
+theorem cureSrcsLength (evm : EVM.State) :
+    solidityStorageLength? storageLayoutRaw { base := "srcs" } (.dynamicArray addrSt) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  have hloc : solidityAnchorWordLoc ⟨2⟩ = wordLoc ⟨2⟩ := rfl
+  simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
+    solidityAnchor?, storageLayoutRaw, hloc, Option.map_some,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  simp
+
+theorem cureSrcsDynamicLength (evm : EVM.State) :
+    solidityDynamicLength? storageLayoutRaw evm { base := "srcs" } =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  simpa only [solidityStorageLength?] using cureSrcsLength evm
+
 theorem cureUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (storageLocLoad_uint256 evm slot))
 
 theorem cureUint256GetterBodyCore
@@ -175,7 +190,7 @@ theorem cureUint256GetterBodyCore
         (.returned { contract := contract, locals := ∅ }
           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))]))) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (solcSlotWordAt slot σ I))
         (some [(.int (Int.ofNat (solcSlotWordAt slot σ I).toNat))])
@@ -729,7 +744,7 @@ theorem cureHighUpperNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 theorem cureNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   exact (cureX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -830,10 +845,9 @@ theorem cureX_noMatch {σ σ₀ A I} {g : Sat256}
 theorem cureNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 20 → (cureSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (cureX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (cureDispatch_none_nomatch hnm)

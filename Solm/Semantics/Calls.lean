@@ -35,9 +35,11 @@ def defaultExternalCallABI : ExternalCallABI :=
 
 /-- A raw message call to `target` with the given `value` and `calldata`, bridged directly to the
     EVM `Θ`.  No ABI encoding — calldata is supplied verbatim — and the boolean result is the raw
-    call success flag.  The final optional parameter is the callee permission bit passed to `Θ`;
-    ordinary `CALL` uses the default `true`, while `STATICCALL` uses `false`.  Both the low-level
-    `.call` and (via `typedCallViaEVM`) typed external calls are built on this. -/
+    call success flag.  The final optional parameter is the opcode's own permission bit: `CALL`
+    uses the default `true`, `STATICCALL` uses `false`.  The callee runs with
+    `perm && evm.executionEnv.perm`, exactly as the EVM passes `I.perm` through `CALL` and a
+    literal `false` through `STATICCALL`.  Both the low-level `.call` and (via `typedCallViaEVM`)
+    typed external calls are built on this. -/
 inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
     (value : ℤ) (calldata : EVM.Bytes) :
     (Bool × EVM.State × EVM.Bytes) → (perm : Bool := true) → Prop where
@@ -67,8 +69,7 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
             evm.executionEnv.header
             evm.executionEnv.blobVersionedHashes
             evm.executionEnv.blocks
-            perm -- permission to modify state;
-                 -- true for call/delegatecall/callcode, false for staticcall
+            (perm && evm.executionEnv.perm) -- callee permission: inherited by CALL, cleared by STATICCALL
         )
 
       → evm' = { evm with accountMap := σ', substate := A' }
@@ -172,7 +173,7 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
             evm.executionEnv.header
             evm.executionEnv.blobVersionedHashes
             evm.executionEnv.blocks
-            true)                       -- permission to modify state
+            evm.executionEnv.perm)      -- CREATE passes the caller's permission through
       → evm' = { evm with accountMap := σ', substate := A' }
       → newViaEVM cfg evm name value args salt (addr, evm', z)
   | notCreated :

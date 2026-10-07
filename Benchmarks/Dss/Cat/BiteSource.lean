@@ -16,7 +16,7 @@ namespace Benchmarks.Dss.Cat
 Source-side refinement obligations for `bite`, proved with NO bytecode/RD.  The five external calls
 (`vat.ilks`, `vat.urns`, `vat.grab`, `vow.fess`, `milkFlip.kick`) are threaded via
 `ExecStmt.externalCallSuccess`/`Failure` over abstract `typedCallViaEVM` hypotheses; storage reads use
-the `evalExpr_storage_scalar_value` collapse (ported from `Ilks.lean`); the three `min` calls use the
+the `evalExpr_storage_scalar_value (hbackend := rfl)` collapse (ported from `Ilks.lean`); the three `min` calls use the
 `execMinFunctionReturnX/Y` facts from `Arithmetic.lean`; the inline `checkedMul`/`checkedSub`/
 `checkedAdd` reuse the `evalExpr_{mul,sub,add}256_{ok,revert}` facts; the divisions go through the
 raw `.binary .div` evaluator (which reverts on `/0`).
@@ -79,7 +79,7 @@ theorem biteFlipSlot_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
 
 /-! ## Storage-read helpers (parameterized over the accumulated frame + evm state)
 
-Each read is a scalar collapse via `evalExpr_storage_scalar_value`; layouts are the fixed
+Each read is a scalar collapse via `evalExpr_storage_scalar_value (hbackend := rfl)`; layouts are the fixed
 `storageLayoutRaw` slots (`vat @3`, `live @2`, `box @5`, `litter @6`, `ilks[ilk].{flip,chop,dunk}`).
 -/
 
@@ -90,7 +90,7 @@ theorem biteVatRead {evm : EVM.State} {locals : Store}
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (solcSlotWordAt ⟨3⟩ evm.accountMap evm.executionEnv) solcAddrMask).toNat)) :=
           by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨3⟩)
@@ -109,7 +109,7 @@ theorem biteVowRead {evm : EVM.State} {locals : Store}
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (solcSlotWordAt ⟨4⟩ evm.accountMap evm.executionEnv) solcAddrMask).toNat)) :=
           by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨4⟩)
@@ -126,7 +126,7 @@ theorem biteLiveRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "live" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (solcSlotWordAt ⟨2⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩)
@@ -142,7 +142,7 @@ theorem biteBoxRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "box" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage boxRef) =
       .ok (.int (Int.ofNat (solcSlotWordAt ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := boxRef) (er := ({ base := "box", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -158,7 +158,7 @@ theorem biteLitterRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "litter" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage litterRef) =
       .ok (.int (Int.ofNat (solcSlotWordAt ⟨6⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := litterRef) (er := ({ base := "litter", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -179,7 +179,7 @@ theorem biteFlipRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (solcSlotWordAt (biteFlipSlot I) evm.accountMap evm.executionEnv)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "flip") (er := biteFlipEvaledRef I)
     (t := .address) (loc := addrLoc (biteFlipSlot I))
@@ -212,7 +212,7 @@ theorem biteChopRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "chop")) =
       .ok (.int (Int.ofNat (solcSlotWordAt (biteChopSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "chop") (er := biteChopEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (biteChopSlot I))
@@ -244,7 +244,7 @@ theorem biteDunkRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "dunk")) =
       .ok (.int (Int.ofNat (solcSlotWordAt (biteDunkSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "dunk") (er := biteDunkEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (biteDunkSlot I))
@@ -1621,8 +1621,8 @@ theorem catBiteSourceTail {I : ExecutionEnv}
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess a r s l d ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess a r s l d ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess a r s l d ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St])
         rfl hLitStore)) ?_
@@ -2620,8 +2620,8 @@ theorem catBiteSourceKickFailRevert
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
   have hMilkFlipVal :
@@ -2711,8 +2711,8 @@ theorem catBiteSourceKickDecodeRevert
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
   have hMilkFlipVal :
@@ -2768,6 +2768,151 @@ theorem catBiteSourceFessNoCodeRevert
 `EXTCODESIZE(flip)` guard solc inserts before the `flip.kick(...)` CALL is *false* (empty code), so
 the `require(extcodesize(milkFlip) > 0)` reverts before any call. Distinct from
 `catBiteSourceKickFailRevert` (which needs `extcodesize(flip) > 0` and a failed call). -/
+theorem catBiteSourceKickNoCodeRevertSplit
+    (hfitDartRate : (biteDartV I evmUrn iRate art).toNat * iRate.toNat < UInt256.size)
+    (hfitTabBase :
+      (biteDartRateV I evmUrn iRate art).toNat * (biteChopW I evmUrn).toNat < UInt256.size)
+    (hfitLitterNew : (biteLitW evmFess).toNat + (biteTabV I evmUrn iRate art).toNat < UInt256.size)
+    (hGrabCall :
+      typedCallViaEVM config evmUrn (EVM.address (biteVatAddr evmUrn)) "grab" 0
+        [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
+          .address (biteVowAddrV evmUrn),
+          .int (-(Int.ofNat (biteDinkV I evmUrn iRate art ink).toNat)),
+          .int (-(Int.ofNat (biteDartV I evmUrn iRate art).toNat))] (true, evmGrab, grabOut) true)
+    (hGrabDec : config.externalABI.decode? "grab" grabOut = some [])
+    (hvowCode :
+      0 < (UInt256.ofNat
+        ((evmGrab.lookupAccount (biteVowAddrV evmGrab)).option 0 (fun acc ↦ acc.code.size))).toNat)
+    (hFessCall :
+      typedCallViaEVM config evmGrab (EVM.address (biteVowAddrV evmGrab)) "fess" 0
+        [bw (biteDartRateV I evmUrn iRate art)] (true, evmFess, fessOut) true)
+    (hFessDec : config.externalABI.decode? "fess" fessOut = some [])
+    (hLitStore :
+      storageLocStore evmFess (wordLoc ⟨6⟩)
+        (.int (Int.ofNat (biteLitterNewV I evmUrn evmFess iRate art).toNat)) = some evmLit) :
+    ((UInt256.ofNat
+        ((evmLit.lookupAccount (biteFlipAddrV I evmUrn)).option 0
+          (fun acc ↦ acc.code.size))).toNat = 0 →
+    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (biteLocals I) biteTransition.body .reverted) ∧
+    (evmFess.executionEnv.perm = false →
+    ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (biteLocals I) biteTransition.body .staticViolation) := by
+  have hprefix : ∀ result,
+      ExecBlock config
+        { contract := contract,
+          locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art } evmFess
+        ([.assign .storage litterRef (.var "litterNew")] ++
+          checkedExternalCallStmts (.var "milkFlip") "kick" (.intLit 0)
+            [.var "urn", vowAddr, .var "tab", .var "dink", .intLit 0] "id" ++
+          [.return [.var "id"]]) result →
+      ExecBlock config { contract := contract, locals := biteLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) biteTransition.body result := by
+    intro result hrest
+    rw [biteBody_split]
+    refine execBlock_append
+      (catBiteSourcePreLive hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall
+        hUrnsDec hlive) ?_
+    refine execBlock_append
+      (catBiteSourceArith1 hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
+        hroomGeDust) ?_
+    refine execBlock_append
+      (catBiteSourceArith2 hratePos hartPos hmilkChopPos hfitDunkRoomWad hfitInkDart hdartPos
+        hdinkPos hdartLim hdinkLim) ?_
+    simp only [biteTailStmts, checkedExternalCallStmts, checkedMulUintInto, checkedAddUintInto,
+      List.cons_append, List.nil_append]
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art)
+        hvatCodeMid)) ?_
+    refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_mul256_ok
+        (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
+        rfl hfitDartRate)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalExpr_checkedMulCheck_true
+        (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (btDartRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (btDartRate_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art)
+        rfl hfitDartRate hratePos)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (biteVowGuard_true (btDartRate_get_vow I evmUrn iArt iRate iSpot iLine iDust ink art)
+        hvowCode)) ?_
+    refine ExecBlock.consNormal (biteFessSuccessStmt hFessCall hFessDec) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_mul256_ok
+        (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
+        rfl hfitTabBase)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalExpr_checkedMulCheck_true
+        (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art)
+        rfl hfitTabBase hmilkChopPos)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_div256_ok
+        (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
+        evalExpr_wad wadU_pos)) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl (evalExpr_add256_ok
+        (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
+        (evalExpr_varUInt256 (btTab_get_tab I evmUrn iArt iRate iSpot iLine iDust ink art))
+        rfl hfitLitterNew)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalExpr_ge_uint256_true (evalExpr_varUInt256
+        (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
+        (biteLitterRead
+          (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
+        (by simp only [biteLitterNewV]; rw [uadd_toNat, Nat.mod_eq_of_lt hfitLitterNew];
+            exact Nat.le_add_right _ _))) ?_
+    simpa only [checkedExternalCallStmts, List.cons_append, List.nil_append] using hrest
+  have hassign : assignStorageRef? config
+      { contract := contract,
+        locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art }
+      evmFess .storage litterRef
+      (.int (Int.ofNat (biteLitterNewV I evmUrn evmFess iRate art).toNat)) =
+        .ok
+          ({ contract := contract,
+             locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art },
+            evmLit) :=
+    assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (er := { base := "litter", steps := [] }) (ty := uint256St)
+      (loc := wordLoc ⟨6⟩)
+      (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
+      (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore
+  constructor
+  · intro hflipCode0
+    apply ExecFuncBody.execBlockRevert
+    apply hprefix
+    refine ExecBlock.consNormal
+      (ExecStmt.assign (evalExpr_varUInt256
+        (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
+        hassign) ?_
+    have hMilkFlipVal :
+        evalExpr? config
+          { contract := contract,
+            locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art }
+          evmLit (.var "milkFlip") = .ok (.address (biteFlipAddrV I evmUrn)) :=
+      evalExpr_varAddr
+        (btLitterNew_get_milkFlip I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+    have hKickGuardFalse :
+        evalExpr? config
+          { contract := contract,
+            locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art }
+          evmLit (.binary .gt (.extCodeSize (.var "milkFlip")) (.intLit 0)) =
+            .ok (.bool false) := by
+      simp [evalExpr?, EvalResult.bind, bind, hMilkFlipVal, evalBinaryOp?, EVM.Word.ofNat,
+        hflipCode0]
+    exact ExecBlock.consRevert (ExecStmt.requireFalse hKickGuardFalse)
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix _ (ExecBlock.consStatic
+      (ExecStmt.assignStatic (evalExpr_varUInt256
+        (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
+        hassign hperm)))
+
 theorem catBiteSourceKickNoCodeRevert
     (hfitDartRate : (biteDartV I evmUrn iRate art).toNat * iRate.toNat < UInt256.size)
     (hfitTabBase :
@@ -2776,12 +2921,13 @@ theorem catBiteSourceKickNoCodeRevert
     (hGrabCall :
       typedCallViaEVM config evmUrn (EVM.address (biteVatAddr evmUrn)) "grab" 0
         [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
-          .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn iRate art ink).toNat)),
+          .address (biteVowAddrV evmUrn),
+          .int (-(Int.ofNat (biteDinkV I evmUrn iRate art ink).toNat)),
           .int (-(Int.ofNat (biteDartV I evmUrn iRate art).toNat))] (true, evmGrab, grabOut) true)
     (hGrabDec : config.externalABI.decode? "grab" grabOut = some [])
     (hvowCode :
       0 < (UInt256.ofNat
-        ((evmGrab.lookupAccount (biteVowAddrV evmGrab)).option 0 (fun acc => acc.code.size))).toNat)
+        ((evmGrab.lookupAccount (biteVowAddrV evmGrab)).option 0 (fun acc ↦ acc.code.size))).toNat)
     (hFessCall :
       typedCallViaEVM config evmGrab (EVM.address (biteVowAddrV evmGrab)) "fess" 0
         [bw (biteDartRateV I evmUrn iRate art)] (true, evmFess, fessOut) true)
@@ -2791,60 +2937,15 @@ theorem catBiteSourceKickNoCodeRevert
         (.int (Int.ofNat (biteLitterNewV I evmUrn evmFess iRate art).toNat)) = some evmLit)
     (hflipCode0 :
       (UInt256.ofNat
-        ((evmLit.lookupAccount (biteFlipAddrV I evmUrn)).option 0 (fun acc => acc.code.size))).toNat = 0) :
+        ((evmLit.lookupAccount (biteFlipAddrV I evmUrn)).option 0
+          (fun acc ↦ acc.code.size))).toNat = 0) :
     ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-      (biteLocals I) biteTransition.body .reverted := by
-  refine biteRevert_afterArith2 hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall hUrnsDec hlive
-    hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox hroomGeDust hfitDunkRoomWad
-    hmilkChopPos hfitInkDart hartPos hdartPos hdinkPos hdartLim hdinkLim ?_
-  simp only [biteTailStmts, checkedExternalCallStmts, checkedMulUintInto, checkedAddUintInto,
-    List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.requireTrue
-    (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue
-    (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (evalExpr_varUInt256 (btDartRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (btDartRate_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitDartRate hratePos)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue
-    (biteVowGuard_true (btDartRate_get_vow I evmUrn iArt iRate iSpot iLine iDust ink art) hvowCode)) ?_
-  refine ExecBlock.consNormal (biteFessSuccessStmt hFessCall hFessDec) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitTabBase)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue
-    (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitTabBase hmilkChopPos)) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
-      evalExpr_wad wadU_pos)) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
-      (evalExpr_varUInt256 (btTab_get_tab I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitLitterNew)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue
-    (evalExpr_ge_uint256_true (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (biteLitterRead (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (by simp only [biteLitterNewV]; rw [uadd_toNat, Nat.mod_eq_of_lt hfitLitterNew];
-          exact Nat.le_add_right _ _))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
-        (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
-        (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
-  have hMilkFlipVal :
-      evalExpr? config { contract := contract, locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art }
-        evmLit (.var "milkFlip") = .ok (.address (biteFlipAddrV I evmUrn)) :=
-    evalExpr_varAddr (btLitterNew_get_milkFlip I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
-  have hKickGuardFalse :
-      evalExpr? config { contract := contract, locals := btLitterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art }
-        evmLit (.binary .gt (.extCodeSize (.var "milkFlip")) (.intLit 0)) = .ok (.bool false) := by
-    simp [evalExpr?, EvalResult.bind, bind, hMilkFlipVal, evalBinaryOp?, EVM.Word.ofNat, hflipCode0]
-  exact ExecBlock.consRevert (ExecStmt.requireFalse hKickGuardFalse)
+      (biteLocals I) biteTransition.body .reverted :=
+  (catBiteSourceKickNoCodeRevertSplit hwv hvatCode0 hIlksCall hIlksDec hvatCodeIlk hUrnsCall
+    hUrnsDec hlive hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox hroomGeDust
+    hfitDunkRoomWad hmilkChopPos hfitInkDart hartPos hdartPos hdinkPos hdartLim hdinkLim
+    hvatCodeMid hfitDartRate hfitTabBase hfitLitterNew hGrabCall hGrabDec hvowCode
+    hFessCall hFessDec hLitStore).1 hflipCode0
 
 end Reverts
 

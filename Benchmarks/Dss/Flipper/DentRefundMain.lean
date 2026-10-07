@@ -16,7 +16,6 @@ theorem flipperDentBodyFrom4733Refund
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -61,7 +60,7 @@ theorem flipperDentBodyFrom4733Refund
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let memHash := twoWordHashMem (dentId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -147,7 +146,7 @@ theorem flipperDentBodyFrom4733Refund
       obtain ⟨σ_ref, zRefund, outRefund, A_ref, k4873, C4873, rd4873,
           hcallRefundEvmRaw, houtRefund⟩ :=
         flipperDentX_refundPostCall (Acur := A) hmemSize hmemRead64 hcallerEvm
-          hrefundZero hperm hdepthLt h
+          hrefundZero hdepthLt h
       let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundEvm : EVM.State :=
@@ -228,8 +227,17 @@ theorem flipperDentBodyFrom4733Refund
         have hrefundMemGe : 64 ≤ (dentVatRefundCallMem memHash σ I).size := by
           rw [hrefundMemSize]
           norm_num
-        obtain ⟨_, _, rd4927⟩ := flipperDentX_storeRefundGuyToFluxStart
-          hperm hrefundMemGe rd4893
+        rcases flipperDentX_storeRefundGuyToFluxStartSplit hrefundMemGe rd4893 with
+            ⟨hperm, _, _, rd4927⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hsource := ExecFuncBody.execBlockStatic
+            ((flipperDentSourceBlockAfterRefundSuccessTailSplit
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (evmRefund := evmRefundSolm) (outRefund := outRefund) (r := .staticViolation)
+              hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
+              hfitBeg hdec hcallerSolm hrefundCodeSolm
+              (by simpa [evm0Solm] using hcallRefundSolm)).2 hperm)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         let evmGuyEvm := Solm.EVM.storageStore evmRefundEvm
           evmRefundEvm.executionEnv.codeOwner (bidPackedSlotOfWord (dentId I))
           (setAddressOffset0Word

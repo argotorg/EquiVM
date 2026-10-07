@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.Dss.Dog.Immutables
@@ -164,24 +165,24 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "ilks", steps := [.mindex ilk, .field "clip"] }, _ =>
-      some (addrLoc (ilksBase ilk))
-  | { base := "ilks", steps := [.mindex ilk, .field "chop"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨1⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "hole"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨2⟩))
-  | { base := "ilks", steps := [.mindex ilk, .field "dirt"] }, _ =>
-      some (wordLoc (ilksBase ilk + ⟨3⟩))
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨3⟩)
-  | { base := "Hole", steps := [] }, _ => some (wordLoc ⟨4⟩)
-  | { base := "Dirt", steps := [] }, _ => some (wordLoc ⟨5⟩)
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "ilks", steps := [.mindex ilk, .field "clip"] } =>
+      some (.leaf (addrLoc (ilksBase ilk)))
+  | { base := "ilks", steps := [.mindex ilk, .field "chop"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨1⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "hole"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨2⟩)))
+  | { base := "ilks", steps := [.mindex ilk, .field "dirt"] } =>
+      some (.leaf (wordLoc (ilksBase ilk + ⟨3⟩)))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨3⟩))
+  | { base := "Hole", steps := [] } => some (.leaf (wordLoc ⟨4⟩))
+  | { base := "Dirt", steps := [] } => some (.leaf (wordLoc ⟨5⟩))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -217,7 +218,7 @@ def constructorDecl : ConstructorDecl :=
   { params := [{ name := "vat_", ty := addr }]
     body :=
       nonpayable ++
-      [ .letDecl "imm_vat" (some addr) (.var "vat_"),
+      [ .setImmutable "vat" (.var "vat_"),
         .assign .storage liveRef (.intLit 1),
         .assign .storage (wardsRef sender) (.intLit 1) ] }
 
@@ -286,9 +287,9 @@ def DirtTransition : TransitionDecl :=
   { name := "Dirt", params := [], returnType := [uint256],
     body := nonpayable ++ [ .return [.storage DirtRef] ] }
 
-def vatTransition (v : DogImmutables) : TransitionDecl :=
+def vatTransition : TransitionDecl :=
   { name := "vat", params := [], returnType := [addr],
-    body := nonpayable ++ [ .return [vatExpr v] ] }
+    body := nonpayable ++ [ .return [vatExpr] ] }
 
 def chopTransition : TransitionDecl :=
   { name := "chop"
@@ -364,9 +365,9 @@ def fileIlkClipTransition : TransitionDecl :=
               .assign .storage (ilksF (.var "ilk") "clip") (.var "clip") ])
           [ .require (.boolLit false) ] ] }
 
-def barkBodyRest (v : DogImmutables) : List Stmt :=
+def barkBodyRest : List Stmt :=
   [ .require (.binary .eq (.storage liveRef) (.intLit 1)) ] ++
-      checkedExternalCallStmts (vatExpr v) "urns" (.intLit 0)
+      checkedExternalCallStmts vatExpr "urns" (.intLit 0)
         [.var "ilk", .var "urn"] "vatUrn" (perm := false) ++
       [ .letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0),
         .letDecl "art" (some uint256) (.tupleGet (.var "vatUrn") 1),
@@ -374,7 +375,7 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
         .letDecl "milkChop" (some uint256) (.storage (ilksF (.var "ilk") "chop")),
         .letDecl "milkHole" (some uint256) (.storage (ilksF (.var "ilk") "hole")),
         .letDecl "milkDirt" (some uint256) (.storage (ilksF (.var "ilk") "dirt")) ] ++
-      checkedExternalCallStmts (vatExpr v) "ilks" (.intLit 0)
+      checkedExternalCallStmts vatExpr "ilks" (.intLit 0)
         [.var "ilk"] "vatIlk" (perm := false) ++
       [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
         .letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2),
@@ -414,7 +415,7 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
           (.binary .and
             (.binary .le (.var "dart") (.intLit int256Limit))
             (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
-      checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
+      checkedExternalCallStmts vatExpr "grab" (.intLit 0)
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
           asInt256 (.unary .neg (asInt256 (.var "dink"))),
           asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
@@ -430,13 +431,13 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
         [.var "tab", .var "dink", .var "urn", .var "kpr"] "id" ++
       [ .return [.var "id"] ]
 
-def barkTransition (v : DogImmutables) : TransitionDecl :=
+def barkTransition : TransitionDecl :=
   { name := "bark"
     params :=
       [ { name := "ilk", ty := bytes32 }, { name := "urn", ty := addr },
         { name := "kpr", ty := addr } ]
     returnType := [uint256]
-    body := nonpayable ++ barkBodyRest v }
+    body := nonpayable ++ barkBodyRest }
 
 def digsTransition : TransitionDecl :=
   { name := "digs"
@@ -455,10 +456,10 @@ def cageTransition : TransitionDecl :=
     returnType := []
     body := nonpayable ++ auth ++ [ .assign .storage liveRef (.intLit 0) ] }
 
-def transitions (v : DogImmutables) : List TransitionDecl :=
+def transitions : List TransitionDecl :=
   [DirtTransition,
    HoleTransition,
-   barkTransition v,
+   barkTransition,
    cageTransition,
    chopTransition,
    denyTransition,
@@ -470,20 +471,21 @@ def transitions (v : DogImmutables) : List TransitionDecl :=
    ilksTransition,
    liveTransition,
    relyTransition,
-   vatTransition v,
+   vatTransition,
    vowTransition,
    wardsTransition]
 
-def contract (v : DogImmutables) : ContractDecl :=
+def contract : ContractDecl :=
   { name := "Dog"
     storage := storageDecls
+    immutables := [⟨"vat", .address⟩]
     ctor := constructorDecl
     structs := structs
     functions := functions
-    transitions := transitions v }
+    transitions := transitions }
 
-def config (_v : DogImmutables) : Config :=
-  { storage := storageLayout
+def config : Config :=
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment constructorDecl.params }

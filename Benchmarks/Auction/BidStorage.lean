@@ -39,14 +39,14 @@ theorem bidStoresSource {evm locals} (ha : locals.get? "auction" = none) :
     evm.executionEnv.weiValue.toNat))
     (by simp only [evalExpr?, envValue, pure]; rfl)
     (auctionFieldWrite evm _ locals "amount" (.elem (.int uint256Int)) (auctionUint256Loc ⟨208⟩)
-      _ ha (by native_decide) rfl (by trivial)
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
       (storageLocStore_uint256 evm ⟨208⟩ evm.executionEnv.weiValue)))
   change ExecBlock _ _ (bidAmountState evm) _ _
   apply ExecBlock.consNormal (ExecStmt.assign
     (value := .address (bidAmountState evm).executionEnv.source)
     (by simp only [sender, evalExpr?, envValue, pure])
     (auctionFieldWrite _ _ locals "bidder" (.elem .address) (auctionAddrLoc ⟨211⟩)
-      _ ha (by native_decide) rfl (by trivial) (by
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (by
         have hw := storageLocStore_address_offset0 (bidAmountState evm) ⟨211⟩
           (solcSourceWord (bidAmountState evm).executionEnv)
           (solcSourceWord_canonical (bidAmountState evm).executionEnv)

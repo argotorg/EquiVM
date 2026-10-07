@@ -202,7 +202,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
             stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
         (clipperTakeVatFluxCalldataMem v I packed lotNew baseMem) aw outVat
         σ_vat k' C' ∧
-      typedCallViaEVM (config v)
+      typedCallViaEVM config
         { initState σStart σ₀ g A I with
           accountMap := σ }
         (EVM.address v.vat) "flux" 0
@@ -259,7 +259,7 @@ theorem RD.clipperTakePostDogFluxPostCallWF {σ₀ σStart σ I}
   · let evmVat : EVM.State :=
       { initState σStart σ₀ g A I with
         accountMap := σ }
-    refine callCoincides (cfg := config v) (evm := evmVat) (name := "flux")
+    refine callCoincides (cfg := config) (evm := evmVat) (name := "flux")
       (args := [v.ilk, .address I.codeOwner,
         .address (AccountAddress.ofNat packed.toNat), .int (Int.ofNat lotNew.toNat)])
       (tgt := EVM.address v.vat) (targetWord := clipperTakeVatTarget v)

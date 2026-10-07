@@ -27,7 +27,7 @@ theorem vowFlapSin0CallDepthLimitBody
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hdepthEq : I.depth = 1024) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, rd937⟩ :=
     RD.vowFlapSin0CallDepthLimit hreach hcodeSizeSinNE hdepthEq
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -284,11 +284,11 @@ theorem vowFlapBodyPrefix
             solcSlotWordAt slot σ_sin I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSinSolm.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
@@ -566,11 +566,11 @@ theorem vowFlapBodyToSin1
             solcSlotWordAt slot σ_dai I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmDaiSolm.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -586,7 +586,7 @@ theorem vowFlapBodyToSin1
         hBumpLoad hBumpSolm hsurplus0 hfit0 hHumpLoad hsurplusNeed hfitNeed hvatLoadSin
         hdepthLt hσ0Sin henvSin hAccountsSin hslotLoad
         hSlotSinStatic =>
-      ?_) hcode hsize hperm hwv hsel
+      ?_) hcode hsize hwv hsel
   have hslotVatSin :
       solcSlotWordAt ⟨1⟩ σ_sin I = solcSlotWordAt ⟨1⟩ σ I := by
     rw [← hslotLoad ⟨1⟩]
@@ -853,11 +853,11 @@ theorem vowFlapBodyToSub
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -874,7 +874,7 @@ theorem vowFlapBodyToSub
         hsurplus0 hfit0 hHumpLoad hsurplusNeed hfitNeed hvatLoadSin hvatCodeDai hcallDaiSolm
         hdecDai henough hvatLoadDai hdepthLt hσ0Dai henvDai hAccountsDai
         hslotDaiLoad hSlotDaiStatic => ?_)
-    hcode hsize hperm hwv hsel
+    hcode hsize hwv hsel
   have hownerDai : evmDaiSolm.executionEnv.codeOwner = I.codeOwner := by
     simp [henvDai]
   have hTargetDaiSolm :
@@ -1129,11 +1129,11 @@ theorem vowFlapBodyToKick
             solcSlotWordAt slot σ_sin1 I) →
         (∀ slot : UInt256,
           solcSlotWordAt slot evmSin1.accountMap I = solcSlotWordAt slot σ I) →
-        runtimeEquivalenceFor config contract σ σ₀ g A I)
+        runtimeRefinementFor config contract σ σ₀ g A I)
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1151,7 +1151,7 @@ theorem vowFlapBodyToKick
         hvatCodeDai hcallDai hdecDai hownerDai henough hvatLoadDai hvatCodeSin1
         hcallSin1 hdecSin1 hdepthLt hσ0Sin1 henvSin1 hAccountsSin1
         hslotSin1Load hSlotSin1Static => ?_)
-    hcode hsize hperm hwv hsel
+    hcode hsize hwv hsel
   let SinVal : UInt256 := solcSlotWordAt ⟨5⟩ σ_sin1 I
   let AshVal : UInt256 := solcSlotWordAt ⟨6⟩ σ_sin1 I
   have hSinLoad :
@@ -1218,9 +1218,9 @@ theorem vowFlapBodyToKick
 
 theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hdispatch : dispatchMsg contract I.calldata = some flapTransition :=
     vowDispatch_flap hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -1239,7 +1239,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
         hdecSin1 hSinLoad hfree hfreeOk hAshLoad hdebt hdebtOk hdebtZero hdepthLt
         hσ0Sin1 henvSin1 hAccountsSin1
         hslotSin1Load hSlotSin1Static => ?_)
-    hcode hsize hperm hwv hsel
+    hcode hsize hwv hsel
   have hBumpSin1 : solcSlotWordAt ⟨10⟩ σ_sin1 I = BumpVal := by
     calc
       solcSlotWordAt ⟨10⟩ σ_sin1 I =
@@ -1286,7 +1286,7 @@ theorem vowFlapBody {σ σ₀ A I} {g : UInt256}
     flapFlapperCode_pos_of_codeSize_ne evmSin1 I hownerSin1 hcodeSizeKickSolmNE
   obtain ⟨σ_kick, zKick, outKick, A_kick, k1498, C1498, rd1498,
       hcallKickEvmRaw, houtKickSize⟩ :=
-    RD.vowFlapKickPostCall rd1403 hmemSin1 hread64Sin1 hcodeSizeKickNE hperm hdepthLt
+    RD.vowFlapKickPostCall rd1403 hmemSin1 hread64Sin1 hcodeSizeKickNE hdepthLt
   let evmKickEvmIn :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σ_sin1 }

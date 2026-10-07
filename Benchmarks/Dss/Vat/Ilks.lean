@@ -712,11 +712,11 @@ private theorem evalIlksField
       evalStorageRef config { contract := contract, locals := ilksStore I } evm
         (ilksF (.var "arg0") field) = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     evalExpr? config { contract := contract, locals := ilksStore I } evm
         (.storage (ilksF (.var "arg0") field)) =
       .ok (.int (Int.ofNat (solcSlotWordAt slot evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := ilksStore I }) (evm := evm)
     (slot := ilksF (.var "arg0") field) (er := er)
     (t := .int uint256Int) (loc := wordLoc slot)
@@ -854,7 +854,7 @@ theorem vatIlksBodyCoreOk
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let artSlot := solcMappingSlot ⟨2⟩ (ilksArgWord I)
   let rateSlot := artSlot + ⟨1⟩
   let spotSlot := artSlot + ⟨2⟩
@@ -956,7 +956,7 @@ theorem vatIlksBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -973,8 +973,8 @@ theorem vatIlksBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_ilks_none_short hsz4 hshort)
 
-theorem vatIlksBodyCore : VatBodyTheorem 16 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatIlksBodyCore : VatBodyTheoremAnyPerm 16 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 16) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=

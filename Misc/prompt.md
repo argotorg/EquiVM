@@ -23,17 +23,32 @@ You are given a working directory, which is named after the contract
 - A correctness file stating the top-level theorem with a `sorry`
   placeholder. (file `Correct.lean`)
 
-The top-level theorem bundles the correctness of the constructor:
+The top-level theorem is the contract refinement
 
 ```lean
-constructorEquivalence <config> <initcode> <contract> <runtimeBytecode>
+contractRefinement <config> <initcode> <contract>
+```
+
+which, for a contract without immutables, is assembled with `contractRefinement.of_constant` from
+the correctness of the constructor (it returns one runtime bytecode):
+
+```lean
+typedConstructorRefinement <config> <initcode> <contract> (fun _ => <runtimeBytecode>)
 ```
 
 and the correctness of the runtime code:
 
 ```lean
-runtimeEquivalence <config> <runtimeBytecode> <contract>
+runtimeRefinement <config> <runtimeBytecode> <contract>
 ```
+
+It has no `I.perm = true` precondition, so it also covers calls entered
+with STATICCALL: at a path's first SSTORE / LOG / value-carrying CALL
+both sides halt with a static-mode violation (see
+`Misc/Template/Function.lean`).
+
+For a contract with immutables, the deployed runtime depends on the values the constructor sets,
+and the theorem is assembled with `contractRefinement.of_runtime` instead (Section 7).
 
 Your goal is to complete the proof. The proof must be correct,
 modular, fast enough to work on, and axiom-clean except for the
@@ -145,21 +160,27 @@ The proof of each function follows, roughly, four phases:
    branches early.
 
 4. EVM reachability. Thread the bytecode trace from the body entry PC
-   to `RDret` (success) or `RDrev` (revert) using `evm_run … with [ …
-   ]` cooked-step chains and factored `RD.*` routine lemmas. Never
-   write one giant `evm_run`; split into named `have`s, one per
-   phase/routine.
+   to `RDret` (success) or `RDrev` (revert). Advance with whichever
+   proved lemma covers the next segment: a library `RD.*` lemma where
+   one exists (solc prologue and guards, dispatch, ABI decode/encode,
+   mapping hashes, external calls, …), otherwise the provided block
+   summaries (Section 9) and the routine lemmas you build from them.
+   Write single opcode steps (`evm_run … with [ … ]`) only where
+   neither applies. Use one named `have` per block or routine; never
+   one giant chain.
 
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
-   `runtimeEquivalenceFor`.
+   `runtimeRefinementFor`; `RDstatic.reEquivStaticHalt` does the same
+   for a static-mode halt.
 
 ---
 
 ### Phase 3: Prove the constructor
 
-In a similar manner, prove correct the constructor body.
+In a similar manner, prove correct the constructor body, threading the
+initcode trace with the creation summaries (Section 9).
 
 ---
 
@@ -213,6 +234,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 | `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
 | `<Fn>.lean` | one file per interface (public/external) function — its decode, source body, EVM trace, and `…BodyCore` refinement. |
 | `Constructor.lean` | the equivalence proof of the contract's constructor. |
+| `RuntimeBlocks_NNN.lean` | provided: proved `RD` summaries of the runtime blocks (sharded). Never edit. |
+| `CreationBlocks_NNN.lean` | provided: proved `RD` summaries of the initcode blocks (sharded). Never edit. |
+| `Immutables.lean` (with immutables) | the solc `immutableReferences` table and the immutables valuation. |
+| `ImmutableCode.lean` (with immutables) | the `Layout` of the runtime template's immutable sites. |
 | `Correct.lean` | thin top-level: dispatcher driver + per-function routing + revert paths + constructor packaging + the final `theorem <name>Correct`. |
 
 
@@ -377,7 +402,15 @@ Function calls should be proven modularly. In particular:
 
   All external calls are proved correct by showing the bytecode and
   the source semantics make to the same opaque Ethereum.EVM.Θ
-  invocation. Runtime RD lemmas produce the Θ witness; calldata/target
+  invocation. The generated summaries do not cover the call
+  instruction itself (`CALL`, `STATICCALL`, `DELEGATECALL`, `CREATE*`):
+  they stop before it, and the next summary resumes at the following
+  pc from a fresh symbolic state. Step over the call with the
+  library's RD call lemmas (`RD.call`, `RD.callValueMade`,
+  `RD.solcStaticcall`, their `…DepthLimit`/`…InsufficientBalance`
+  siblings, …), which produce the Θ witness, then continue with the
+  summary that resumes after the call. That witness is what you carry
+  over to the Solm side: calldata/target
   lemmas prove the bytecode memory slice matches the source ABI call;
   then callCoincides or direct callViaEVM.callMade turns that into the
   source-side call relation, with account-map transport handled by
@@ -416,7 +449,86 @@ Function calls should be proven modularly. In particular:
   iterations, on both the Solm side and the bytecode trace.
 ---
 
-## 7. Build discipline, tactics, proof engineering, efficiency
+## 7. Immutables
+
+Follow `Examples/TinyImmutable`. Do not copy the Dog/Clipper style (a
+`patchRuntime … = some code` hypothesis, hand-transported decodes, valuations holding `Value`s):
+those proofs were migrated mechanically and predate this approach.
+
+The top-level theorem is
+
+```lean
+theorem <name>ContractCorrect : contractRefinement config <initcode> contract :=
+  .of_runtime <name>ConstructorCorrect <name>RuntimeCorrect
+```
+
+(`contractRefinementWF <wf> …` with a storage precondition), with
+`runtimeCodeOf := immutableLayout.deployed <template>` from `Reasoning/Immutables.lean`: the
+template with every immutable site patched with `wordsOf imms`, each immutable's word under Solm's
+`valueToWord`. Never define a contract-specific `runtimeCodeOf`, word map, or patch function.
+
+**Layout.**
+- `Immutables.lean`: `immutableReferences : List (Ident × List Nat)`, each immutable's Solm name
+  and its offsets copied verbatim from solc's `evm.deployedBytecode.immutableReferences`, listed
+  in the order the constructor writes them; and a valuation `structure <Name>Immutables` with
+  EVM-level fields (`EVM.Address`, `EVM.Word`, …), used by the runtime proofs.
+- `ImmutableCode.lean`: `immutableLayout : Layout`, derived from the table (width 32, key = the
+  Solm name).
+- `Common.lean`: `immStore v : Store`; `@[simp] wordsOf_immStore_<x>` for each immutable (via
+  `wordsOf_of_get`); `deployedRuntime v := immutableLayout.deployed <template> (immStore v)`;
+  `evalImmutable_<x>`; `immutableLayout_keys` (every site key is a declared immutable, by
+  `decide`); and `restrictImmutables_of_fit : immutablesFit contract imms →
+  ∃ v, restrictImmutables contract imms = immStore v`.
+
+**Runtime.**
+1. Prove the runtime for every valuation: `<name>Correct (v) : runtimeRefinement config
+   (deployedRuntime v) contract (immStore v)`. Never fix immutable values, and never take the code
+   as a parameter.
+2. Use the runtime summaries (Section 9); they are stated over the template patched by the
+   layout. Every summary quantifies `immWords`; instantiate `immWords := wordsOf (immStore v)`,
+   and an immutable site pushes `wordsOf (immStore v) "<x>"`, which `wordsOf_immStore_<x>`
+   rewrites to its value (it does not reduce definitionally, so `rw` it before a `change`).
+   Compose the summaries into dispatch, body and revert paths (see
+   `Examples/TinyImmutable/BlocksProof.lean`: `tinyBlocksReachSelector`, `tinyOwnerX`). Never
+   reprove that the patched code decodes like the template.
+3. Jump destinations: the summaries need `(D_J (deployedRuntime v) 0).contains pc`. The patched
+   runtime has the template's jump destinations, since the `D_J` scan skips push payloads:
+   `D_J (deployedRuntime v) 0 = D_J <template> 0 := Layout.D_J_runtime (by native_decide)
+   (by native_decide)` (see `tinyPatchedValidJumps`). Rewrite with it, and each jump
+   destination is a `native_decide` on the template.
+4. Bridge, in `Correct.lean`:
+   ```lean
+   theorem <name>RuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
+       runtimeRefinement config (immutableLayout.deployed <template> imms) contract
+         (restrictImmutables contract imms) := by
+     obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+     rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv]
+     exact <name>Correct v
+   ```
+
+**Constructor** (`typedConstructorRefinement config <initcode> contract
+(immutableLayout.deployed <template>)`).
+1. Deployment shape: `config.selfDeployment <initcode> args = some d → ∃ <typed args>,
+   args = [...] ∧ <range facts> ∧ d = <initcode> ++ <encoded args>`.
+2. The final immutables of each source path, built from `initialImmutables contract` by `insert`
+   (an immutable a path does not assign keeps its zero value), with `get?` lemmas. The Solm body
+   assigns them with `ExecStmt.setImmutable` (value, declared type, `elemValueFits`).
+3. The EVM trace, chained from the creation summaries, ends in `RDret … (deployedRuntime {…})`:
+   the template `CODECOPY` puts the template
+   in memory, each patch `MSTORE` is a `writeWord`, and together they form a `writeCascade`. Prove
+   the cascade `= deployedRuntime {…}` by unfolding `Layout.deployed`/`Layout.runtime`/
+   `Layout.writes` with the `wordsOf_immStore_<x>` lemmas (`tinyCtorPatchedRuntime_eq_deployedRuntime`);
+   listing the table in write order keeps this a `rfl`.
+4. Tie the final immutables to that code: two stores deploy the same code when they agree on each
+   immutable's word (`deployed_eq_deployedRuntime`, by `Layout.runtime_congr` and
+   `immutableLayout_keys`); per path, `wordsOf_of_get (<…>_get_<x> …) rfl` gives each word.
+5. Close each success case with
+   `.execution hΞ hsolm (ctorResultEquiv.success rfl rfl rfl (<deployed lemma>).symm) (<…>_fit …)`,
+   and each revert with `.execution hΞ hsolm (ctorResultEquiv.revert rfl rfl) trivial`.
+
+---
+
+## 8. Build discipline, tactics, proof engineering, efficiency
 
 - Every file should compile and should be validated by the build
   system.
@@ -444,7 +556,8 @@ Function calls should be proven modularly. In particular:
   into its proper file and delete the scratch.
 
 - Decode obligations use `native_decide`, not `decide` (~20× faster on
-  big bytecode). `evm_run` cooked steps auto-supply it; raw steps
+  big bytecode). The generated summaries discharge their own; in hand
+  steps, `evm_run` cooked steps auto-supply it; raw steps
   write `(by native_decide)` for decode, `(by decide)` for small side
   conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
   for stack-overflow bounds. Keep these — the resulting `native_decide`
@@ -455,57 +568,82 @@ Function calls should be proven modularly. In particular:
 
 ---
 
-## 8. Routine-lemma discipline
+## 9. Block summaries and routine lemmas
 
-Every repeated bytecode segment becomes one `RD`-combinator lemma,
-proved once, applied many times:
+**Advance the bytecode with proved lemmas, not hand-written traces.** Two sources are
+available, and they combine freely in one trace: the `Reasoning/` library's `RD.*` lemmas,
+which cover standard solc segments in one step (prefer them where they apply; Section 4), and
+the block summaries provided with your working directory, proved `RD` summaries of every basic
+block, generated from the bytecode. There are two sets of summaries, each split into shards of
+at most 20.
 
-- A straight-line bytecode segment `pc_in → pc_out` over a stack tail
-  `R` becomes a theorem of the form `RD code … pc_in (args ++ R) … → ∃
-  k' C', RD code … pc_out (results ++ R) …` (or `→ RDret` / `→ RDrev`
-  for terminal segments). See `RD.routine9c`, `RD.routinebb`,
-  `RD.routinecf`, `RD.erc20DecodeAddrMask`,
-  `RD.erc20MappingHashSuffix`, `RD.erc20RoutineEncodeUint256`.
+- **Runtime summaries** (`RuntimeBlocks_NNN.lean`) run over the deployed
+  runtime bytecode; for a contract with immutables, over the patched template
+  `layout.runtime template immWords` with `immWords` quantified (Section 7). Use them for the
+  dispatcher, every runtime function, and the shared revert paths.
+- **Creation summaries** (`CreationBlocks_NNN.lean`) run over
+  `initcode ++ tail` for an arbitrary `tail`, the ABI-encoded constructor arguments: every
+  summary quantifies `tail`, and decodes and jump destinations come from the fixed initcode
+  prefix. Instantiate `tail` with the deployment's encoded arguments (from the
+  deployment-shape lemma) and use them for the constructor trace: the prologue, argument
+  decoding, the constructor body, and the final runtime copy and `RETURN`.
 
-- These chain directly: `rd |>.routineA … |>.routineB …` (call as
-  `RD.foo rd …`, not `rd.foo` — the `RD` type whnf's to an
-  `Or`). Factor over a generic tail `R` so the lemma is reused at
-  every call site regardless of what else is on the stack.
+Never edit or regenerate the summaries. If one is missing, fails to build, or looks wrong, stop
+and report it. (`Examples/TinyImmutable` has a single unsharded runtime file, `BlocksAuto.lean`,
+only because its bytecode is tiny, and its constructor trace predates the creation summaries.)
 
-- Before writing a trace, scan the bytecode for segments solc shares
-  (decoders, the address mask/cleanup, the mapping-hash `keccak`
-  suffix, the uint256 ABI encoder, identity `cleanup_t_*`
-  routines). solc emits these once; prove them once. If you find
-  yourself writing the same `evm_run [...]` block in two functions,
-  stop and extract a lemma.
+- **Summary shape.** `<name>_block_<pc>` runs one block from `pc` over an arbitrary stack tail
+  `R`, to the next block's pc, `RDret`, or `RDrev`. A block ending in `JUMPI` gives
+  `…_taken` and `…_fallthrough`, each with the branch condition as a hypothesis. `…_packed`
+  siblings make the final step/gas counters and active words existential; blocks with warm/cold
+  accesses always do. The resulting stack (and memory, when the block writes it) is a named
+  definition, `…_stack`/`…_memory`, unfolded with `simp`/`simpa`. An opcode's side conditions
+  (stack bounds, jump-destination validity `(D_J code 0).contains pc`, the branch condition,
+  arithmetic facts) are hypotheses of the summary, so the chain is: discharge the hypotheses,
+  apply, move on.
+- **Unsupported instructions.** The generator marks each instruction it cannot summarize with
+  a comment `Unsupported instruction boundary at pc N: <op>`. External calls are the main case
+  (Section 6); a few rarer opcodes are too. Step over the instruction with the library's
+  `RD.*` lemma for it (or an `evm_run … with [ … ]` raw step), then continue with the summary
+  that starts at the next pc.
 
-- Generalize hard-coded constants (PCs, widths, types, stack tails)
-  into lemma parameters wherever possible, so the lemma is reusable
-  across functions. If a lemma is truly contract-independent, flag it
-  for promotion to `Reasoning/`.
+**Compose summaries into routine lemmas.** Every repeated bytecode segment becomes one
+`RD`-combinator lemma, proved once from the summaries, applied many times:
 
-- Split traces into `have`s, one per sub-trace / routine. A single
-  giant `evm_run` over a compound tail blows the heartbeat/`whnf`
-  budget. Factoring a routine over a generic tail `R` needs
+- A segment `pc_in → pc_out` over a stack tail `R` becomes a theorem of the form
+  `RD code … pc_in (args ++ R) … → ∃ k' C', RD code … pc_out (results ++ R) …` (or `→ RDret` /
+  `→ RDrev` for terminal segments). Existing examples: `RD.routine9c`, `RD.routinebb`,
+  `RD.routinecf`, `RD.erc20DecodeAddrMask`, `RD.erc20MappingHashSuffix`,
+  `RD.erc20RoutineEncodeUint256`; summary composition: `Examples/TinyImmutable/BlocksProof.lean`.
+
+- These chain directly: `rd |>.routineA … |>.routineB …` (call as `RD.foo rd …`, not
+  `rd.foo` — the `RD` type whnf's to an `Or`). Factor over a generic tail `R` so the lemma is
+  reused at every call site regardless of what else is on the stack.
+
+- Before writing a trace, scan the bytecode for segments solc shares (decoders, the address
+  mask/cleanup, the mapping-hash `keccak` suffix, the uint256 ABI encoder, identity
+  `cleanup_t_*` routines). solc emits these once; prove them once. If you find yourself
+  chaining the same summaries in two functions, stop and extract a lemma.
+
+- Generalize hard-coded constants (PCs, widths, types, stack tails) into lemma parameters
+  wherever possible, so the lemma is reusable across functions. If a lemma is truly
+  contract-independent, flag it for promotion to `Reasoning/`.
+
+- Split traces into `have`s, one per block or routine. A long chain over a compound tail blows
+  the heartbeat/`whnf` budget. Factoring a routine over a generic tail `R` may need
   `set_option maxHeartbeats 1000000 in` and intermediate `have`s — see
-  the note in `Reasoning/GUIDE.md` and `RD.erc20DecodeAddrMask`.
+  `RD.erc20DecodeAddrMask`.
 
-Disassemble — never guess PCs, opcodes, or jump-dests. The biggest
-failure mode in these proofs is guessing contract-specific constants:
-the exact `evm_run … with [push2 ⟨71⟩, dup1, …]` opcode sequence for a
-basic block, the entry/exit PCs, the jump-dest set, the selector
-bytes, the stack shapes. These are a pure function of the bytecode —
-one wrong token fails late and opaquely and wastes a whole cycle. Read
-them off the actual bytecode: disassemble `Bytecode.lean` (a short
-script, `evmasm`/`solc --asm`, or by decoding the byte array) to get
-each block's exact cooked-step list, its PCs, and the jump-dest array
-before writing the trace. Treat the trace as "fill in the
-side-conditions of a known opcode list," not "invent the opcode list."
-When a step fails, re-check it against the disassembly first.
+Never guess PCs, opcodes, jump destinations, or stack shapes. They are a pure function of the
+bytecode and the summaries already encode them: read entry PCs from the summary name, exit PCs
+from the conclusion, and stack shapes from the `…_stack` definitions. For any hand step, disassemble
+`Bytecode.lean` (a short script, `evmasm`/`solc --asm`, or by decoding the byte array) and treat the
+step as "fill in the side conditions of a known opcode," not "invent the opcode." When a step fails,
+re-check it against the disassembly first.
 
 ---
 
-## 9. Hard rules
+## 10. Hard rules
 
 - Do not make changes outside of your working directory.
 
@@ -531,7 +669,7 @@ When a step fails, re-check it against the disassembly first.
 
 ---
 
-## 10. Finish checklist
+## 11. Finish checklist
 
 Run, and report results verbatim:
 

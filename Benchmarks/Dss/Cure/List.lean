@@ -1337,55 +1337,69 @@ theorem storageLocLoad_addrLoc (evm : EVM.State) (slot : UInt256) :
 
 theorem readStorage_srcsElem_address_ok
     {σ σ₀ A I} {g : Sat256} (idx : Nat) :
-    readStorage? config (initState σ σ₀ g A I)
+    solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
       (.elem .address) =
         .ok (.address (AccountAddress.ofNat
           (UInt256.land
             (solcSlotWord σ I (srcElemSlot (.int (Int.ofNat idx)))) solcAddrMask).toNat)) := by
-  simp [readStorage?, config, storageLayout, storageLayoutRaw, solidityStorageLayout,
+  simp [config, storageLayout, storageLayoutRaw, solidityStorageBackend,
+    solidityReadStorage?, solidityLeafLoc?, EvalResult.ofOption,
     storageLocLoad_addrLoc, solcSlotWord, initState, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
+  simp [EvalResult.bind, bind, pure, storageLocLoad_addrLoc, solcSlotWord, initState,
+    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
 
 theorem readArrayElems_srcs_address_ok
     {σ σ₀ A I} {g : Sat256} (idx n : Nat) :
-    readArrayElems? config (initState σ σ₀ g A I)
+    solidityReadArray? storageLayoutRaw (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) idx n =
         .ok (listSrcsValuesFrom σ I idx n) := by
+  change solidityReadArray? storageLayoutRaw (initState σ σ₀ g A I)
+    ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) idx n =
+      .ok (listSrcsValuesFrom σ I idx n)
   induction n generalizing idx with
   | zero =>
-      simp [readArrayElems?, listSrcsValuesFrom]
+      simp [solidityReadArray?, listSrcsValuesFrom]
   | succ n ih =>
-      rw [readArrayElems?]
-      change
-        (do
-          let v ← readStorage? config (initState σ σ₀ g A I)
-            ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
-            (.elem .address)
-          let vrest ← readArrayElems? config (initState σ σ₀ g A I)
-            ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) (idx + 1) n
-          pure (v :: vrest)) = .ok (listSrcsValuesFrom σ I idx (n + 1))
-      rw [readStorage_srcsElem_address_ok
-        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) idx]
+      rw [solidityReadArray?]
+      change (do
+        let value ← solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I)
+          ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
+          (.elem .address)
+        let values ← solidityReadArray? storageLayoutRaw (initState σ σ₀ g A I)
+          ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) (idx + 1) n
+        pure (value :: values)) = .ok (listSrcsValuesFrom σ I idx (n + 1))
+      have hread : solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I)
+          ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
+          (.elem .address) =
+            .ok (.address (AccountAddress.ofNat
+              (UInt256.land
+                (solcSlotWord σ I (srcElemSlot (.int (Int.ofNat idx)))) solcAddrMask).toNat)) := by
+        exact readStorage_srcsElem_address_ok
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) idx
+      rw [hread]
       rw [ih (idx + 1)]
       rfl
 
 theorem readStorage_srcs_ok {σ σ₀ A I} {g : Sat256} :
-    readStorage? config (initState σ σ₀ g A I)
+    solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [] } : EvaledStorageRef) (.dynamicArray (.elem .address)) =
         .ok (.array (listSrcsValues σ I)) := by
-  rw [readStorage?]
-  simp [show wordLoc = uint256Loc from rfl, config, storageLayout, storageLayoutRaw,
-    solidityStorageLayout,
-    storageLocLoad_uint256, initState]
-  change
-    (do
-      let vs ← readArrayElems? config (initState σ σ₀ g A I)
-        ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) 0
-        (solcSlotWordAt ⟨2⟩ σ I).toNat
-      pure (Value.array vs)) = .ok (Value.array (listSrcsValues σ I))
-  rw [readArrayElems_srcs_address_ok]
-  rfl
+  change solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I)
+    ({ base := "srcs", steps := [] } : EvaledStorageRef) (.dynamicArray (.elem .address)) =
+      .ok (.array (listSrcsValues σ I))
+  rw [solidityReadStorage?, cureSrcsDynamicLength]
+  have harray : solidityReadArray? storageLayoutRaw (initState σ σ₀ g A I)
+      ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) 0
+      (Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩).toNat =
+        .ok (listSrcsValues σ I) := by
+    simpa [listSrcsValues, solcSlotWordAt, solcSlotWord, initState,
+      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using
+      (readArrayElems_srcs_address_ok (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (g := g) 0 (solcSlotWordAt ⟨2⟩ σ I).toNat)
+  simp only [harray, EvalResult.bind, bind, pure]
 
 theorem evalExpr_listSrcs_ok {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ }
@@ -1501,11 +1515,10 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
 theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 7))
     (_hStorageWF : cureStorageWF σ I) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some listTransition :=

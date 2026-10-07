@@ -70,7 +70,7 @@ theorem entryNonpayableRevert {σ σ₀ A I} {g : UInt256}
     (i : Entry) (hi : i ≠ 6) (hcode : I.code = auctionBytecode)
     (hsel : selIs I (entryBytes i)) (hreach : EntryReached i σ σ₀ A I g)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
+    runtimeRefinementFor auctionConfig auctionContract σ σ₀ g A I := by
   obtain ⟨_, _, rd⟩ := hreach
   have hrev := entryGuardNonzero i hi rd hwv
   have hd := dispatchEntry i hsel

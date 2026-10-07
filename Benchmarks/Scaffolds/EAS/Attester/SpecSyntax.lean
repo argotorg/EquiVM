@@ -4,11 +4,11 @@ import Solm.Notation
 /-!
 # EAS Attester spec in the Solidity-faithful Solm frontend
 
-The whole Attester spec written with `solidity%`, parameterized by the immutable valuation
-`v : AttesterImmutables`, and proven definitionally equal to the AST spec.
+The whole Attester spec written with `solidity%`, with the immutable `_eas` declared and assigned
+as in Solidity, and proven definitionally equal to the AST spec.
 
 Escapes: the EAS calls (`${easCall …}`/`${checkedEASCallStmts …}` splices — the receiver is the
-immutable `easExpr v`, not an identifier) with their binders read back via `${Expr.var …}`, and
+immutable `easExpr`, not an identifier) with their binders read back via `${Expr.var …}`, and
 `${zeroBytes32}` (the AST models it as a cast, while surface `bytes32(0)` is the fixed-bytes
 literal).  The EAS request payloads are surface ABI tuples (`tuple(…)` literals with
 `(bytes32, (address, uint64, bool, bytes32, bytes, uint256)[])[]`-typed locals).
@@ -19,14 +19,15 @@ open Benchmarks.EAS.Attester Benchmarks.EAS.Attester.Immutables
 
 namespace Benchmarks.EAS.Attester.Syntax
 
-def contractSyntax (v : AttesterImmutables) : ContractDecl := solidity% contract Attester {
+def contractSyntax : ContractDecl := solidity% contract Attester {
+  address immutable _eas;
   constructor(address eas) {
     require(eas != address(0));
-    address imm_eas = eas;
+    _eas = eas;
   }
 
   function attest(bytes32 schema, uint256 input) external returns (bytes32) {
-    ${[easCall v "attest" [attestationRequest (.var "schema") (.var "input")] "uid"]}
+    ${[easCall "attest" [attestationRequest (.var "schema") (.var "input")] "uid"]}
     return ${Expr.var "uid"};
   }
 
@@ -51,7 +52,7 @@ def contractSyntax (v : AttesterImmutables) : ContractDecl := solidity% contract
       multiRequests[i] = tuple(schemas[i], data);
       i = (i + 1) as uint256;
     }
-    ${[easCall v "multiAttest" [.var "multiRequests"] "uids"]}
+    ${[easCall "multiAttest" [.var "multiRequests"] "uids"]}
     return ${Expr.var "uids"};
   }
 
@@ -74,15 +75,15 @@ def contractSyntax (v : AttesterImmutables) : ContractDecl := solidity% contract
       multiRequests[i] = tuple(schemas[i], data);
       i = (i + 1) as uint256;
     }
-    ${checkedEASCallStmts v "multiRevoke" [.var "multiRequests"] "_multiRevoke"}
+    ${checkedEASCallStmts "multiRevoke" [.var "multiRequests"] "_multiRevoke"}
   }
 
   function revoke(bytes32 schema, bytes32 uid) external {
-    ${checkedEASCallStmts v "revoke" [revocationRequest (.var "schema") (.var "uid")] "_revoke"}
+    ${checkedEASCallStmts "revoke" [revocationRequest (.var "schema") (.var "uid")] "_revoke"}
   }
 }
 
-theorem contractSyntax_eq (v : AttesterImmutables) :
-    contractSyntax v = Benchmarks.EAS.Attester.contract v := by rfl
+theorem contractSyntax_eq :
+    contractSyntax = Benchmarks.EAS.Attester.contract := by rfl
 
 end Benchmarks.EAS.Attester.Syntax

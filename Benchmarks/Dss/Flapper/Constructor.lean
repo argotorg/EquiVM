@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Flapper.ConstructorSource
 import Benchmarks.Dss.Flapper.ConstructorTrace
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Flapper constructor correctness
@@ -239,8 +240,7 @@ private theorem flapperCtorStateEquiv
 
 set_option maxHeartbeats 2000000 in
 theorem flapperConstructorCorrect :
-    constructorEquivalence config flapperCreationBytecode contract flapperBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config flapperCreationBytecode contract (fun _ => flapperBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases flapperCtorDeployment_shape hdeploy with ⟨vat, gem, hargs, hdeployed⟩
@@ -252,7 +252,7 @@ theorem flapperConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -305,7 +305,7 @@ theorem flapperConstructorCorrect :
       have hMapFinal :
           flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem =
             evm8s.accountMap := hMapE.symm.trans hstate
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, evm7s, evm8s] using
             flapperSolmCtorExecSuccess
@@ -317,8 +317,8 @@ theorem flapperConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (flapperSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat gem hwv)

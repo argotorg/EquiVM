@@ -14,6 +14,37 @@ def initializePrefixStatements : List Stmt :=
       [.assign .storage initializingRef (.boolLit true),
         .assign .storage initializedRef (.boolLit true)] []]
 
+theorem initializePrefixSourceSplit (evm : EVM.State) (args : InitializeArgs)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
+      initializedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
+    (ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
+      initializePrefixStatements
+      (.ok { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) }
+        (initializerEnteredState evm))) ∧
+      (evm.executionEnv.perm = false → initializeTop evm = true →
+        ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
+          initializePrefixStatements .staticViolation) := by
+  have hbegin := initializerBeginSourceSplit evm (args.bodyLocals (initializeTop evm))
+    (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
+    (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
+    (by simp [InitializeArgs.bodyLocals])
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock auctionConfig
+        { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) } evm
+        (initializePrefixStatements.drop 3) result) :
+      ExecBlock auctionConfig { contract := auctionContract, locals := args.locals }
+        evm initializePrefixStatements result := by
+    apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+    apply ExecBlock.consNormal (ExecStmt.requireTrue
+      (evalInitializerGuardTrue evm args.locals
+        (by simp [InitializeArgs.locals]) (by simp [InitializeArgs.locals]) hg))
+    apply ExecBlock.consNormal (ExecStmt.letDecl
+      (readNotInitializing evm args.locals (by simp [InitializeArgs.locals])))
+    exact htail
+  exact ⟨hprefix (ExecBlock.consNormal hbegin.1 ExecBlock.nil),
+    fun hperm htop ↦ hprefix (ExecBlock.consStatic (hbegin.2 hperm htop))⟩
+
 theorem initializePrefixSource (evm : EVM.State) (args : InitializeArgs)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
@@ -21,18 +52,8 @@ theorem initializePrefixSource (evm : EVM.State) (args : InitializeArgs)
     ExecBlock auctionConfig { contract := auctionContract, locals := args.locals } evm
       initializePrefixStatements
       (.ok { contract := auctionContract, locals := args.bodyLocals (initializeTop evm) }
-        (initializerEnteredState evm)) := by
-  apply ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
-  apply ExecBlock.consNormal (ExecStmt.requireTrue
-    (evalInitializerGuardTrue evm args.locals
-      (by simp [InitializeArgs.locals]) (by simp [InitializeArgs.locals]) hg))
-  apply ExecBlock.consNormal (ExecStmt.letDecl
-    (readNotInitializing evm args.locals (by simp [InitializeArgs.locals])))
-  exact ExecBlock.consNormal
-    (initializerBeginSource evm (args.bodyLocals (initializeTop evm))
-      (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
-      (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
-      (by simp [InitializeArgs.bodyLocals])) ExecBlock.nil
+        (initializerEnteredState evm)) :=
+  (initializePrefixSourceSplit evm args hwv hg).1
 
 theorem initializeBody (evm : EVM.State) (args : InitializeArgs)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hc : args.canonical)
@@ -73,6 +94,31 @@ theorem initializeBody (evm : EVM.State) (args : InitializeArgs)
   rw [initializeFinalState, hPfull, hA]
   exact ExecFuncBody.execBlockOK
     (execBlock_append hp (execBlock_append hs (execBlock_append hpa (execBlock_append ha he))))
+
+theorem initializeBodyStatic (evm : EVM.State) (args : InitializeArgs)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hg : initializingWord evm.accountMap evm.executionEnv ≠ ⟨0⟩ ∨
+      initializedWord evm.accountMap evm.executionEnv = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody auctionConfig auctionContract evm args.locals
+      initializeTransition.body .staticViolation := by
+  have hp := initializePrefixSourceSplit evm args hwv hg
+  apply ExecFuncBody.execBlockStatic
+  change ExecBlock _ _ _
+    (initializePrefixStatements ++ initializeTransition.body.drop 4) .staticViolation
+  by_cases htop : initializeTop evm = true
+  · exact execBlock_append_term (hp.2 hperm htop) (by intro _ _ h; cases h)
+  · apply execBlock_append hp.1
+    have hs := initializeSetupSourceSplit (initializerEnteredState evm)
+      (args.bodyLocals (initializeTop evm))
+      (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
+      (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
+      (by simp [InitializeArgs.bodyLocals, InitializeArgs.locals])
+    have hstatic := hs.2 (by rw [initializerEnteredState, if_neg htop]; exact hperm)
+    change ExecBlock _ _ _
+      ([.assign .storage pausedRef (.boolLit false), .assign .storage statusRef notEntered,
+        .assign .storage ownerRef sender] ++ initializeTransition.body.drop 7) .staticViolation
+    exact execBlock_append_term hstatic (by intro _ _ h; cases h)
 
 theorem initializeBodyReverts (evm : EVM.State) (args : InitializeArgs)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

@@ -8,7 +8,7 @@ The whole `CometWithExtendedAssetList` benchmark spec, written with `solidity%` 
 definitionally equal to the AST spec in `Benchmarks/CompoundIII/Comet/Spec.lean`.
 
 Notes mirroring the AST spec:
-* The 25 immutable reads splice the spec's `Immutables` exprs (`${Immutables.governor v}`, …);
+* The 25 immutables are declared and assigned as in Solidity and read by name (`governor`, …);
   Int constants (`maxUint40`, `baseIndexScale`, `factorScale`, `10 ^ 15`) splice via `#`.
 * Principal/present-value math and the interest-rate kink formulas are written out in surface
   form (`(…) as uint256` for the spec's `u256`/`u104`/`u64`/`u40`/`u8` range wraps).
@@ -25,12 +25,36 @@ Notes mirroring the AST spec:
 -/
 
 open Solm Solm.Notation
-open Benchmarks.CompoundIII.Comet.Immutables (CometImmutables)
 
 namespace Benchmarks.CompoundIII.Comet.Syntax
 
-def contractSyntax (v : CometImmutables) : ContractDecl :=
+def contractSyntax : ContractDecl :=
   solidity% contract CometWithExtendedAssetList {
+  address immutable governor;
+  address immutable pauseGuardian;
+  address immutable baseToken;
+  address immutable baseTokenPriceFeed;
+  address immutable extensionDelegate;
+  uint256 immutable supplyKink;
+  uint256 immutable supplyPerSecondInterestRateSlopeLow;
+  uint256 immutable supplyPerSecondInterestRateSlopeHigh;
+  uint256 immutable supplyPerSecondInterestRateBase;
+  uint256 immutable borrowKink;
+  uint256 immutable borrowPerSecondInterestRateSlopeLow;
+  uint256 immutable borrowPerSecondInterestRateSlopeHigh;
+  uint256 immutable borrowPerSecondInterestRateBase;
+  uint256 immutable storeFrontPriceFactor;
+  uint256 immutable baseScale;
+  uint256 immutable trackingIndexScale;
+  uint256 immutable baseTrackingSupplySpeed;
+  uint256 immutable baseTrackingBorrowSpeed;
+  uint256 immutable baseMinForRewards;
+  uint256 immutable baseBorrowMin;
+  uint256 immutable targetReserves;
+  uint8 immutable decimals;
+  uint8 immutable numAssets;
+  uint256 immutable accrualDescaleFactor;
+  address immutable assetList;
     struct LiquidatorPoints {
       uint32 numAbsorbs;
       uint64 numAbsorbed;
@@ -75,35 +99,39 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
         uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64, uint64,
         uint64, uint104, uint104, uint104,
         (address, address, uint8, uint64, uint64, uint64, uint128)[]) config) {
-      var imm_governor = config.0;
-      var imm_pauseGuardian = config.1;
-      var imm_baseToken = config.2;
-      var imm_baseTokenPriceFeed = config.3;
-      var imm_extensionDelegate = config.4;
-      var imm_storeFrontPriceFactor = config.13;
-      var imm_trackingIndexScale = config.14;
-      var imm_baseMinForRewards = config.17;
-      var imm_baseTrackingSupplySpeed = config.15;
-      var imm_baseTrackingBorrowSpeed = config.16;
-      var imm_baseBorrowMin = config.18;
-      var imm_targetReserves = config.19;
-      var imm_supplyKink = config.5;
-      var imm_borrowKink = config.9;
-      var imm_supplyPerSecondInterestRateSlopeLow = config.6 / 31536000;
-      var imm_supplyPerSecondInterestRateSlopeHigh = config.7 / 31536000;
-      var imm_supplyPerSecondInterestRateBase = config.8 / 31536000;
-      var imm_borrowPerSecondInterestRateSlopeLow = config.10 / 31536000;
-      var imm_borrowPerSecondInterestRateSlopeHigh = config.11 / 31536000;
-      var imm_borrowPerSecondInterestRateBase = config.12 / 31536000;
-      var imm_decimals = imm_baseToken.decimals{view}();
-      var imm_baseScale = 10 ** imm_decimals;
-      var imm_accrualDescaleFactor = imm_baseScale / #(10 ^ 15);
-      var imm_numAssets = 0;
-      var imm_assetList = imm_extensionDelegate.createAssetList();
+      governor = config.0;
+      pauseGuardian = config.1;
+      baseToken = config.2;
+      baseTokenPriceFeed = config.3;
+      extensionDelegate = config.4;
+      storeFrontPriceFactor = config.13;
+      trackingIndexScale = config.14;
+      baseMinForRewards = config.17;
+      baseTrackingSupplySpeed = config.15;
+      baseTrackingBorrowSpeed = config.16;
+      baseBorrowMin = config.18;
+      targetReserves = config.19;
+      supplyKink = config.5;
+      borrowKink = config.9;
+      supplyPerSecondInterestRateSlopeLow = config.6 / 31536000;
+      supplyPerSecondInterestRateSlopeHigh = config.7 / 31536000;
+      supplyPerSecondInterestRateBase = config.8 / 31536000;
+      borrowPerSecondInterestRateSlopeLow = config.10 / 31536000;
+      borrowPerSecondInterestRateSlopeHigh = config.11 / 31536000;
+      borrowPerSecondInterestRateBase = config.12 / 31536000;
+      ${[Stmt.externalCall (.immutable "baseToken") "decimals" (.intLit 0) [] "decimals_"
+          (perm := false)]}
+      decimals = ${.var "decimals_"};
+      baseScale = 10 ** decimals;
+      accrualDescaleFactor = baseScale / #(10 ^ 15);
+      numAssets = 0;
+      ${[Stmt.externalCall (.immutable "extensionDelegate") "createAssetList" (.intLit 0) []
+          "assetList_"]}
+      assetList = ${.var "assetList_"};
     }
 
     fallback(bytes calldata) external payable returns (bytes) {
-      ${[Stmt.delegateCall (Immutables.extensionDelegate v) (.var "calldata") "ok" "returndata"]}
+      ${[Stmt.delegateCall (.immutable "extensionDelegate") (.var "calldata") "ok" "returndata"]}
       require(${Expr.var "ok"});
       return ${Expr.var "returndata"};
     }
@@ -115,7 +143,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     function approveThis(address manager, address asset, uint256 amount) external { }
 
     function assetList() external returns (address) {
-      return ${Immutables.assetList v};
+      return assetList;
     }
 
     function balanceOf(address account) external returns (uint256) {
@@ -125,31 +153,31 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function baseBorrowMin() external returns (uint256) {
-      return ${Immutables.baseBorrowMin v};
+      return baseBorrowMin;
     }
 
     function baseMinForRewards() external returns (uint256) {
-      return ${Immutables.baseMinForRewards v};
+      return baseMinForRewards;
     }
 
     function baseScale() external returns (uint256) {
-      return ${Immutables.baseScale v};
+      return baseScale;
     }
 
     function baseToken() external returns (address) {
-      return ${Immutables.baseToken v};
+      return baseToken;
     }
 
     function baseTokenPriceFeed() external returns (address) {
-      return ${Immutables.baseTokenPriceFeed v};
+      return baseTokenPriceFeed;
     }
 
     function baseTrackingBorrowSpeed() external returns (uint256) {
-      return ${Immutables.baseTrackingBorrowSpeed v};
+      return baseTrackingBorrowSpeed;
     }
 
     function baseTrackingSupplySpeed() external returns (uint256) {
-      return ${Immutables.baseTrackingSupplySpeed v};
+      return baseTrackingSupplySpeed;
     }
 
     function borrowBalanceOf(address account) external returns (uint256) {
@@ -160,30 +188,30 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function borrowKink() external returns (uint256) {
-      return ${Immutables.borrowKink v};
+      return borrowKink;
     }
 
     function borrowPerSecondInterestRateBase() external returns (uint256) {
-      return ${Immutables.borrowPerSecondInterestRateBase v};
+      return borrowPerSecondInterestRateBase;
     }
 
     function borrowPerSecondInterestRateSlopeHigh() external returns (uint256) {
-      return ${Immutables.borrowPerSecondInterestRateSlopeHigh v};
+      return borrowPerSecondInterestRateSlopeHigh;
     }
 
     function borrowPerSecondInterestRateSlopeLow() external returns (uint256) {
-      return ${Immutables.borrowPerSecondInterestRateSlopeLow v};
+      return borrowPerSecondInterestRateSlopeLow;
     }
 
     function buyCollateral(address asset, uint256 minAmount, uint256 baseAmount,
         address recipient) external { }
 
     function decimals() external returns (uint8) {
-      return ${Immutables.decimals v};
+      return decimals;
     }
 
     function extensionDelegate() external returns (address) {
-      return ${Immutables.extensionDelegate v};
+      return extensionDelegate;
     }
 
     function getAssetInfo(uint8 i) external
@@ -197,15 +225,15 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function getBorrowRate(uint256 utilization) external returns (uint64) {
-      return (utilization <= ${Immutables.borrowKink v} ?
-          (${Immutables.borrowPerSecondInterestRateBase v} +
-            (((${Immutables.borrowPerSecondInterestRateSlopeLow v} * utilization) as uint256) /
+      return (utilization <= borrowKink ?
+          (borrowPerSecondInterestRateBase +
+            (((borrowPerSecondInterestRateSlopeLow * utilization) as uint256) /
               #factorScale)) as uint256 :
-          (((${Immutables.borrowPerSecondInterestRateBase v} +
-              (((${Immutables.borrowPerSecondInterestRateSlopeLow v} *
-                ${Immutables.borrowKink v}) as uint256) / #factorScale)) as uint256) +
-            (((${Immutables.borrowPerSecondInterestRateSlopeHigh v} *
-              ((utilization - ${Immutables.borrowKink v}) as uint256)) as uint256) /
+          (((borrowPerSecondInterestRateBase +
+              (((borrowPerSecondInterestRateSlopeLow *
+                borrowKink) as uint256) / #factorScale)) as uint256) +
+            (((borrowPerSecondInterestRateSlopeHigh *
+              ((utilization - borrowKink) as uint256)) as uint256) /
               #factorScale)) as uint256) as uint64;
     }
 
@@ -222,15 +250,15 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function getSupplyRate(uint256 utilization) external returns (uint64) {
-      return (utilization <= ${Immutables.supplyKink v} ?
-          (${Immutables.supplyPerSecondInterestRateBase v} +
-            (((${Immutables.supplyPerSecondInterestRateSlopeLow v} * utilization) as uint256) /
+      return (utilization <= supplyKink ?
+          (supplyPerSecondInterestRateBase +
+            (((supplyPerSecondInterestRateSlopeLow * utilization) as uint256) /
               #factorScale)) as uint256 :
-          (((${Immutables.supplyPerSecondInterestRateBase v} +
-              (((${Immutables.supplyPerSecondInterestRateSlopeLow v} *
-                ${Immutables.supplyKink v}) as uint256) / #factorScale)) as uint256) +
-            (((${Immutables.supplyPerSecondInterestRateSlopeHigh v} *
-              ((utilization - ${Immutables.supplyKink v}) as uint256)) as uint256) /
+          (((supplyPerSecondInterestRateBase +
+              (((supplyPerSecondInterestRateSlopeLow *
+                supplyKink) as uint256) / #factorScale)) as uint256) +
+            (((supplyPerSecondInterestRateSlopeHigh *
+              ((utilization - supplyKink) as uint256)) as uint256) /
               #factorScale)) as uint256) as uint64;
     }
 
@@ -244,7 +272,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function governor() external returns (address) {
-      return ${Immutables.governor v};
+      return governor;
     }
 
     function hasPermission(address owner, address manager) external returns (bool) {
@@ -297,13 +325,13 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function numAssets() external returns (uint8) {
-      return ${Immutables.numAssets v};
+      return numAssets;
     }
 
     function pause(bool supplyPaused, bool transferPaused, bool withdrawPaused,
         bool absorbPaused, bool buyPaused) external {
-      require(msg.sender == ${Immutables.governor v} ||
-        msg.sender == ${Immutables.pauseGuardian v});
+      require(msg.sender == governor ||
+        msg.sender == pauseGuardian);
       pauseFlags = (((supplyPaused ? 1 : 0) <<[uint8] 0) |[uint8]
         (((transferPaused ? 1 : 0) <<[uint8] 1) |[uint8]
           (((withdrawPaused ? 1 : 0) <<[uint8] 2) |[uint8]
@@ -312,7 +340,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function pauseGuardian() external returns (address) {
-      return ${Immutables.pauseGuardian v};
+      return pauseGuardian;
     }
 
     function quoteCollateral(address asset, uint256 baseAmount) external returns (uint256) {
@@ -320,7 +348,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function storeFrontPriceFactor() external returns (uint256) {
-      return ${Immutables.storeFrontPriceFactor v};
+      return storeFrontPriceFactor;
     }
 
     function supply(address asset, uint256 amount) external { }
@@ -328,25 +356,25 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     function supplyFrom(address «from», address dst, address asset, uint256 amount) external { }
 
     function supplyKink() external returns (uint256) {
-      return ${Immutables.supplyKink v};
+      return supplyKink;
     }
 
     function supplyPerSecondInterestRateBase() external returns (uint256) {
-      return ${Immutables.supplyPerSecondInterestRateBase v};
+      return supplyPerSecondInterestRateBase;
     }
 
     function supplyPerSecondInterestRateSlopeHigh() external returns (uint256) {
-      return ${Immutables.supplyPerSecondInterestRateSlopeHigh v};
+      return supplyPerSecondInterestRateSlopeHigh;
     }
 
     function supplyPerSecondInterestRateSlopeLow() external returns (uint256) {
-      return ${Immutables.supplyPerSecondInterestRateSlopeLow v};
+      return supplyPerSecondInterestRateSlopeLow;
     }
 
     function supplyTo(address dst, address asset, uint256 amount) external { }
 
     function targetReserves() external returns (uint256) {
-      return ${Immutables.targetReserves v};
+      return targetReserves;
     }
 
     function totalBorrow() external returns (uint256) {
@@ -362,7 +390,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function trackingIndexScale() external returns (uint256) {
-      return ${Immutables.trackingIndexScale v};
+      return trackingIndexScale;
     }
 
     function transfer(address dst, uint256 amount) external returns (bool) {
@@ -400,7 +428,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     function withdrawTo(address «to», address asset, uint256 amount) external { }
   }
 
-theorem contractSyntax_eq (v : CometImmutables) :
-    contractSyntax v = Benchmarks.CompoundIII.Comet.contract v := by rfl
+theorem contractSyntax_eq :
+    contractSyntax = Benchmarks.CompoundIII.Comet.contract := by rfl
 
 end Benchmarks.CompoundIII.Comet.Syntax

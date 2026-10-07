@@ -221,7 +221,8 @@ theorem evalExpr_burnFunction_from_balance (evm : EVM.State) (holder : AccountAd
     evalExpr? config { contract := contract, locals := burnFunctionCallStore holder value } evm
       (.storage (balanceOfRef (.var "from"))) =
         .ok (burnFunctionFromBalanceValue evm holder) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc (burnFunctionFromSlot holder))
     (hbase := by simp [balanceOfRef])
     (her := evalStorageRef_burnFunction_from_balance evm holder value)
     (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
@@ -273,7 +274,8 @@ theorem burnFunctionAssignBalance (evm : EVM.State) (holder : AccountAddress)
         .ok ({ contract := contract, locals := burnFunctionAfterBalanceStore evm holder value },
           burnFunctionAfterBalanceState evm holder value) := by
   simp only [balanceOfRef]
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc (burnFunctionFromSlot holder))
       (hbase := by simp [balanceOfRef])
       (her := evalStorageRef_burnFunction_from_balance_afterBalance evm evm holder value)
       (hty := by simp [storageTypeAt?, burnFunctionFromEvaledRef, contract, storageDecls,
@@ -313,7 +315,8 @@ theorem evalExpr_burnFunction_totalSupply (evm : EVM.State)
       { contract := contract, locals := burnFunctionAfterBalanceStore evm holder value }
       (burnFunctionAfterBalanceState evm holder value) (.storage totalSupplyRef) =
         .ok (burnFunctionTotalSupplyValue evm holder value) := by
-  rw [evalExpr_storage_scalar (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int)
+    (loc := wordLoc ⟨0⟩)
     (hbase := by simp [totalSupplyRef])
     (her := evalStorageRef_burnFunction_totalSupply evm holder value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -373,7 +376,8 @@ theorem burnFunctionAssignTotalSupply (evm : EVM.State) (holder : AccountAddress
             { contract := contract,
               locals := burnFunctionAfterTotalSupplyStore evm holder value }),
           burnFunctionPostState evm holder value) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (hleaf := Or.inl ⟨_, rfl⟩)
+      (ty := uint256St) (loc := wordLoc ⟨0⟩)
       (hbase := by simp [totalSupplyRef])
       (her := evalStorageRef_burnFunction_totalSupply_afterTotalSupply evm holder value)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -436,7 +440,8 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (hargs : evalExprs? config caller evm args =
       .ok [burnFunctionFromValue holder, burnFunctionValueValue value])
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
-    (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat) :
+    (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_burn" args retVar)
       (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) := by
   exact internalCallFunctionReturn
@@ -448,10 +453,10 @@ theorem uniswapBurnFunctionCallSuccess {caller : Frame} {evm : EVM.State}
     (calleeSolm := { contract := contract, locals := burnFunctionAfterTotalSupplyStore evm holder value })
     (value := none)
     hargs
-    (by simpa [hcontract] using uniswapLookupBurnFunction)
+    (by simpa [hcontract, himm] using uniswapLookupBurnFunction)
     (bindParams_burnFunction_call holder value)
     (by
-      simpa [hcontract] using
+      simpa [hcontract, himm] using
         (uniswapBurnFunctionBody evm holder value hbalance hsupply))
 
 end UniswapV2Pair

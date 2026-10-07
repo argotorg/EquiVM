@@ -14,23 +14,31 @@ theorem assignOwner (evm : EVM.State) (locals : Store) (value : UInt256)
           (setAddressOffset0Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨151⟩) value)) := by
   exact scalarWrite evm _ locals "_owner" (.elem .address) (auctionAddrLoc ⟨151⟩) _
-    hbase (by native_decide) rfl (by trivial) (storageLocStore_address_offset0 evm ⟨151⟩ value hc)
+    hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_address_offset0 evm ⟨151⟩ value hc)
 
-theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
+theorem transferOwnerRoutineSplit {I g s0 value ret R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
       solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
-        (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+        rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
+          (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   have rd3578 := evm_run h with [jumpdest, push1 ⟨151⟩, dup1]
   obtain ⟨_, _, rd3579⟩ := rd3578.sload (by native_decide) (by evm_ov)
   have rd3590 := evm_run rd3579 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and ]
   have rd3605 := evm_run rd3590 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, dup4, and, dup2, or, swap1, swap4 ]
-  obtain ⟨_, _, rd3606⟩ := rd3605.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode auctionBytecode ⟨3605⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3605.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd3606⟩ := rd3605.sstore hperm hstoreDec (by evm_ov)
   have rd3615 := evm_run rd3606 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -51,6 +59,16 @@ theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
   rw [u256_land_comm solcAddrMask value, u256_lor_comm (UInt256.land value solcAddrMask)]
     at rdRet
   exact ⟨_, _, rdRet⟩
+
+theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hov : R.length + 12 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
+      rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
+        (setAddressOffset0Word (solcSlotWord σ I ⟨151⟩) value)) k' C' :=
+  permSplit_true hperm (transferOwnerRoutineSplit h hret hov)
 
 theorem auctionInternalReturn {I g s0 ret R mem aw rdata acc k C}
     (h : RD auctionBytecode I g s0 ⟨1163⟩ (ret :: R) mem aw rdata acc k C)

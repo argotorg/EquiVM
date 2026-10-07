@@ -158,9 +158,9 @@ private theorem clipperCtorArgs_shape {args : List Value} {encoded : List UInt8}
                           ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
                           ABI.isDynamicABIType, ABI.zeroBytes, List.append_assoc] at henc
 
-theorem clipperCtorDeployment_shape (v : ClipperImmutables) {args : List Value}
+theorem clipperCtorDeployment_shape {args : List Value}
     {deployedInitcode : ByteArray}
-    (hdeploy : (config v).selfDeployment clipperCreationBytecode args = some deployedInitcode) :
+    (hdeploy : config.selfDeployment clipperCreationBytecode args = some deployedInitcode) :
     ∃ (vat spotter dog : AccountAddress) (ilk : List UInt8),
       ilk.length = 32 ∧
       args = [.address vat, .address spotter, .address dog,

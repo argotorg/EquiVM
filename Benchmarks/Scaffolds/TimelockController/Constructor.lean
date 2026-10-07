@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.TimelockController.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # OpenZeppelin TimelockController constructor correctness stub
@@ -14,8 +14,8 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace OpenZeppelinBench.TimelockController
 
 theorem timelockControllerBenchConstructorCorrect :
-    constructorEquivalence config timelockControllerBenchCreationBytecode contract
-      timelockControllerBenchBytecode := by
+    typedConstructorRefinement config timelockControllerBenchCreationBytecode contract
+      (fun _ => timelockControllerBenchBytecode) := by
   sorry
 
 end OpenZeppelinBench.TimelockController

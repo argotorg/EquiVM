@@ -798,6 +798,26 @@ theorem RD.uniswapTransferInternalStoreDebit {g : Sat256} {s0 : State}
   simpa [uniswapTransferDebitHashMem] using RD.uniswapTransferInternalStoreDebitMem
     (mem := solcFreePtrMem) h solcFreePtrMem_size hperm hcanonSrc hov
 
+set_option maxHeartbeats 4000000 in
+theorem RD.uniswapTransferInternalStoreDebitStatic {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {debit value toWord src ret : UInt256}
+    {R : List UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7551⟩
+        (debit :: value :: toWord :: src :: ret :: R)
+        (twoWordHashMem src ⟨1⟩ mem) (UInt256.ofNat 3) rdata σ k C)
+    (hmem : mem.size = 96)
+    (hperm : ee.perm = false)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hov : R.length + 16 ≤ 1024) :
+    RDstatic UniswapV2Pair.uniswapV2PairBytecode g s0 :=
+  permSplit_false hperm
+    (RD.solcSingleMappingStoreDebitMemSplit (pc := ⟨7551⟩) (baseSlot := ⟨1⟩) h
+      (by
+        unfold solcSingleMappingStoreDebitMemWf
+        repeat' first | apply And.intro | native_decide)
+      hmem hcanonSrc hov)
+
 abbrev uniswapTransferToHashMemOf (src toWord : UInt256) (mem : ByteArray) :
     ByteArray :=
   wordAt0Mem toWord (uniswapTransferDebitHashMemOf src mem)
@@ -1496,6 +1516,26 @@ theorem RD.uniswapApproveInternalStore {g : Sat256} {s0 : State} {ee : Execution
         repeat' first | apply And.intro | native_decide)
       (twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size)
       hperm hcanonSpender hov
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapApproveInternalStoreStatic {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {value spender owner ret : UInt256} {R : List UInt256} {rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7441⟩
+      (mapSlot owner ⟨2⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ :: owner :: solcAddrMask ::
+        value :: spender :: owner :: ret :: R)
+      (twoWordHashMem owner ⟨2⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) rdata σ k C)
+    (hperm : ee.perm = false)
+    (hcanonSpender : spender.toNat < EVM.addressModulus)
+    (hov : R.length + 13 ≤ 1024) :
+    RDstatic UniswapV2Pair.uniswapV2PairBytecode g s0 :=
+  permSplit_false hperm
+    (RD.solcNestedMappingStoreOuterSstoreSplit (pc := ⟨7441⟩) h
+      (by
+        unfold solcNestedMappingStoreOuterSstoreWf
+        repeat' first | apply And.intro | native_decide)
+      (twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size) hcanonSpender hov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapApproveInternalEmitAndJump {g : Sat256} {s0 : State} {ee : ExecutionEnv}

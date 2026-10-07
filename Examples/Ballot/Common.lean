@@ -37,6 +37,19 @@ def ballotPanicMem0 (mem : ByteArray) : ByteArray :=
 def ballotPanicMem (panicCode : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray panicCode).write 0 (ballotPanicMem0 mem) 4 32
 
+theorem ballotProposalsLength (evm : EVM.State) :
+    ballotConfig.storageBackend.length { base := "proposals" }
+      (.dynamicArray proposalStructTy) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  change solidityStorageLength? ballotStorageLayout { base := "proposals" }
+    (.dynamicArray proposalStructTy) evm = _
+  have hloc : solidityAnchorWordLoc ⟨2⟩ = wordLoc ⟨2⟩ := rfl
+  simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
+    solidityAnchor?, ballotStorageLayout, hloc, Option.map_some,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [show wordLoc = uint256Loc from rfl, storageLocLoad_uint256]
+  simp
+
 end Ballot
 
 namespace Reasoning.Reach

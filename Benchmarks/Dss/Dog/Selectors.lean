@@ -25,8 +25,8 @@ theorem holeSelectorBytes :
       dogSelBytes 1 := by decide +kernel
 
 /-- `keccak("bark(bytes32,address,address)")[0:4] = 0xed998908`. -/
-theorem barkSelectorBytes (v : DogImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (barkTransition v)))).extract 0 4 =
+theorem barkSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr barkTransition))).extract 0 4 =
       dogSelBytes 2 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, barkTransition, bytes32, addr]; decide +kernel
 
@@ -95,8 +95,8 @@ theorem relySelectorBytes :
   simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, relyTransition, addr]; decide +kernel
 
 /-- `keccak("vat()")[0:4] = 0x36569e77`. -/
-theorem vatSelectorBytes (v : DogImmutables) :
-    (KEC (String.toByteArray (transitionSigStr (vatTransition v)))).extract 0 4 =
+theorem vatSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr vatTransition))).extract 0 4 =
       dogSelBytes 14 := by
   simp [transitionSigStr, transitionSignature, ABI.printSignature, vatTransition]; decide +kernel
 

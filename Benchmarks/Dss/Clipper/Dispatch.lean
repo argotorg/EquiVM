@@ -107,11 +107,11 @@ theorem clipperNoSelectorMatches {I : ExecutionEnv}
   · simpa [clipperSelBytes, selIs] using hwards
   · simpa [clipperSelBytes, selIs] using hyank
 
-theorem clipperDispatch_none_short (v : ClipperImmutables) {cd : ByteArray}
+theorem clipperDispatch_none_short {cd : ByteArray}
     (h : cd.size < 4) :
-    dispatchMsg (contract v) cd = none := by
-  rw [dispatchMsg_eq_dispatchList (contract v) cd (by rfl) (by rfl)]
-  change dispatchList (transitions v) cd = none
+    dispatchMsg contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList contract cd (by rfl) (by rfl)]
+  change dispatchList transitions cd = none
   exact dispatchList_none_short _ (by
     intro t ht
     simp [transitions] at ht
@@ -122,9 +122,9 @@ theorem clipperDispatch_none_short (v : ClipperImmutables) {cd : ByteArray}
       simp [selectorOf]
       native_decide) h
 
-theorem clipperDispatch_none_nomatch (v : ClipperImmutables) {cd : ByteArray}
+theorem clipperDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == cd.extract 0 4) = false) :
-    dispatchMsg (contract v) cd = none := by
+    dispatchMsg contract cd = none := by
   apply dispatchMsg_none_of_all_ne (hfallback := by rfl) (hreceive := by rfl)
   intro t ht
   simp [contract, transitions] at ht
@@ -155,15 +155,15 @@ theorem clipperDispatch_none_nomatch (v : ClipperImmutables) {cd : ByteArray}
     simpa [clipperSelBytes] using hnm 10 (by omega)
   · rw [selectorOf, getStatusSelectorBytes]
     simpa [clipperSelBytes] using hnm 11 (by omega)
-  · rw [selectorOf, ilkSelectorBytes v]
+  · rw [selectorOf, ilkSelectorBytes]
     simpa [clipperSelBytes] using hnm 12 (by omega)
-  · rw [selectorOf, kickSelectorBytes v]
+  · rw [selectorOf, kickSelectorBytes]
     simpa [clipperSelBytes] using hnm 13 (by omega)
   · rw [selectorOf, kicksSelectorBytes]
     simpa [clipperSelBytes] using hnm 14 (by omega)
   · rw [selectorOf, listSelectorBytes]
     simpa [clipperSelBytes] using hnm 15 (by omega)
-  · rw [selectorOf, redoSelectorBytes v]
+  · rw [selectorOf, redoSelectorBytes]
     simpa [clipperSelBytes] using hnm 16 (by omega)
   · rw [selectorOf, relySelectorBytes]
     simpa [clipperSelBytes] using hnm 17 (by omega)
@@ -175,19 +175,19 @@ theorem clipperDispatch_none_nomatch (v : ClipperImmutables) {cd : ByteArray}
     simpa [clipperSelBytes] using hnm 20 (by omega)
   · rw [selectorOf, tailSelectorBytes]
     simpa [clipperSelBytes] using hnm 21 (by omega)
-  · rw [selectorOf, takeSelectorBytes v]
+  · rw [selectorOf, takeSelectorBytes]
     simpa [clipperSelBytes] using hnm 22 (by omega)
   · rw [selectorOf, tipSelectorBytes]
     simpa [clipperSelBytes] using hnm 23 (by omega)
-  · rw [selectorOf, upchostSelectorBytes v]
+  · rw [selectorOf, upchostSelectorBytes]
     simpa [clipperSelBytes] using hnm 24 (by omega)
-  · rw [selectorOf, vatSelectorBytes v]
+  · rw [selectorOf, vatSelectorBytes]
     simpa [clipperSelBytes] using hnm 25 (by omega)
   · rw [selectorOf, vowSelectorBytes]
     simpa [clipperSelBytes] using hnm 26 (by omega)
   · rw [selectorOf, wardsSelectorBytes]
     simpa [clipperSelBytes] using hnm 27 (by omega)
-  · rw [selectorOf, yankSelectorBytes v]
+  · rw [selectorOf, yankSelectorBytes]
     simpa [clipperSelBytes] using hnm 28 (by omega)
 
 end Benchmarks.Dss.Clipper

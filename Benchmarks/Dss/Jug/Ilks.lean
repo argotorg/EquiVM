@@ -387,7 +387,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "duty")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "duty") (er := ilksDutyEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDutySlotFor I))
@@ -409,7 +409,7 @@ theorem jugIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       evalExpr? config frame evm (.storage (ilksF (.var "arg0") "rho")) =
         .ok (.int (Int.ofNat
           (solcSlotWordAt (ilksRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "rho") (er := ilksRhoEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksRhoSlotFor I))
@@ -480,7 +480,7 @@ theorem jugIlksBodyCoreOk
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨549⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   let dutySlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let rhoSlot := dutySlot + ⟨1⟩
   let dutyWord := solcSlotWordAt dutySlot σ I
@@ -568,7 +568,7 @@ theorem jugIlksBodyCoreDecodeFailed_short
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨549⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -588,10 +588,9 @@ theorem jugIlksBodyCoreDecodeFailed_short
 theorem jugIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 6)) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=

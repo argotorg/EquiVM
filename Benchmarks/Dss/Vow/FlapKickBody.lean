@@ -289,7 +289,7 @@ theorem vowFlapKickNoCodeBodyCore
       (UInt256.ofNat
         ((evmSin1.lookupAccount (flapFlapperAddressOf evmSin1)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapKickNoCode rd1403 hmem hread64 hflapperNoCodeEvm
   let locals := (∅ : Store)
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -544,7 +544,7 @@ theorem vowFlapKickCallFailureBodyCore
       typedCallViaEVM config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
         "kick" 0 [.int (Int.ofNat BumpVal.toNat), .int 0]
         (false, evmKick, outKick) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapKickCallFailure rd1498 houtKickSize (by simp)
   have hkick :
       let locals7 := flapLocalsVatSin0Surplus0NeedDaiSin1FreeDebt
@@ -685,7 +685,7 @@ theorem vowFlapKickDecodeShortBodyCore
       typedCallViaEVM config evmSin1 (EVM.address (flapFlapperAddressOf evmSin1))
         "kick" 0 [.int (Int.ofNat BumpVal.toNat), .int 0]
         (true, evmKick, outKick) true) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapKickReturnDecodeShortReverts rd1516 hshort hosz hmload64
   have hdecKick : config.externalABI.decode? "kick" outKick = none :=
     flapKickDecode_none_short hshort
@@ -804,7 +804,7 @@ theorem vowFlapKickSuccessBodyCore
         "kick" 0 [.int (Int.ofNat BumpVal.toNat), .int 0]
         (true, evmKick, outKick) true)
     (hAccountsFinal : Eq acc evmKick.accountMap) :
-    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I := by
   have hret := RD.vowFlapKickSuccess rd1498 hmem hread64 ho32 hosz hid
   have hdecKick :
       config.externalABI.decode? "kick" outKick =

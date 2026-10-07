@@ -28,7 +28,8 @@ theorem safeTransferInternalCallReverts_depthLimit (caller : Frame) (evm : EVM.S
     (token recipient : AccountAddress) (value : UInt256)
     (hcaller : caller.contract = contract)
     (hargs : evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] = .ok (safeTransferArgs token recipient value))
-    (hdepth : evm.executionEnv.depth = 1024) :
+    (hdepth : evm.executionEnv.depth = 1024)
+    (himm : caller.immutables = ∅ := by first | rfl | assumption) :
     ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar) .reverted := by
   have hcall : callViaEVM evm (EVM.address token) 0
       ((transferCalldataMem (UInt256.ofNat recipient.val) value).readWithPadding 128 68)

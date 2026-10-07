@@ -758,6 +758,36 @@ theorem RD.uniswapTransferFromAllowanceFiniteToInternal {g : Sat256} {s0 : State
     (R := R) rd3071 (by omega)
   exact ⟨_, _, rd7510⟩
 
+set_option maxHeartbeats 4000000 in
+/-- Static-call twin of `RD.uniswapTransferFromAllowanceFiniteToInternal`: halts at the
+    allowance `SSTORE`. -/
+theorem RD.uniswapTransferFromAllowanceFiniteStatic {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {value toWord src ret : UInt256}
+    {R : List UInt256} {rdata : ByteArray}
+    {σ : AccountMap}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2938⟩
+      (value :: toWord :: src :: ret :: R)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hperm : ee.perm = false)
+    (hcanonSrc : src.toNat < EVM.addressModulus)
+    (hnotMax :
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat ≠
+        UInt256.size - 1)
+    (hallowance : value.toNat ≤
+      (uniswapCodeOwnerStorageWord ee σ
+        (mapSlot (uniswapSourceWord ee) (mapSlot src ⟨2⟩))).toNat)
+    (hov : R.length + 16 ≤ 1024) :
+    RDstatic UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  obtain ⟨_, _, rd3034⟩ := RD.uniswapTransferFromAllowanceFiniteBranch
+    h hcanonSrc hnotMax hallowance hov
+  exact permSplit_false hperm
+    (RD.solcNestedMappingCallerStoreMemSplit (pc := ⟨3034⟩) (baseSlot := ⟨2⟩) rd3034
+      (by
+        unfold solcNestedMappingCallerStoreMemWf
+        repeat' first | apply And.intro | native_decide)
+      (uniswapTransferFromAllowanceStoreMem_size src (uniswapSourceWord ee)) hcanonSrc hov)
+
 -- Reusable Uniswap-local chain from the finite-allowance store continuation into the shared
 -- internal `_transfer` routine setup.
 set_option maxHeartbeats 1000000 in

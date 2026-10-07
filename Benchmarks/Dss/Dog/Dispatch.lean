@@ -32,18 +32,18 @@ attribute [local simp]
   vowSelectorBytes
   wardsSelectorBytes
 
-theorem dogDispatchDirt {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchDirt {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 0)) :
-    dispatchMsg (contract v) I.calldata = some DirtTransition := by
+    dispatchMsg contract I.calldata = some DirtTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 0 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre := [])
     (ti := DirtTransition)
     (post :=
-      [HoleTransition, barkTransition v, cageTransition, chopTransition, denyTransition,
+      [HoleTransition, barkTransition, cageTransition, chopTransition, denyTransition,
         digsTransition, fileIlkUintTransition, fileUintTransition, fileAddressTransition,
-        fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition v,
+        fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition,
         vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -53,18 +53,18 @@ theorem dogDispatchDirt {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchHole {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchHole {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 1)) :
-    dispatchMsg (contract v) I.calldata = some HoleTransition := by
+    dispatchMsg contract I.calldata = some HoleTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 1 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre := [DirtTransition])
     (ti := HoleTransition)
     (post :=
-      [barkTransition v, cageTransition, chopTransition, denyTransition, digsTransition,
+      [barkTransition, cageTransition, chopTransition, denyTransition, digsTransition,
         fileIlkUintTransition, fileUintTransition, fileAddressTransition, fileIlkClipTransition,
-        ilksTransition, liveTransition, relyTransition, vatTransition v, vowTransition,
+        ilksTransition, liveTransition, relyTransition, vatTransition, vowTransition,
         wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -79,18 +79,18 @@ theorem dogDispatchHole {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchBark {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchBark {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 2)) :
-    dispatchMsg (contract v) I.calldata = some (barkTransition v) := by
+    dispatchMsg contract I.calldata = some barkTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 2 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre := [DirtTransition, HoleTransition])
-    (ti := barkTransition v)
+    (ti := barkTransition)
     (post :=
       [cageTransition, chopTransition, denyTransition, digsTransition, fileIlkUintTransition,
         fileUintTransition, fileAddressTransition, fileIlkClipTransition, ilksTransition,
-        liveTransition, relyTransition, vatTransition v, vowTransition, wardsTransition])
+        liveTransition, relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -102,22 +102,22 @@ theorem dogDispatchBark {v : DogImmutables} {I : ExecutionEnv}
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide)
     (hhit := by
-      rw [selectorOf, barkSelectorBytes v, hcd]
+      rw [selectorOf, barkSelectorBytes, hcd]
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchCage {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchCage {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 3)) :
-    dispatchMsg (contract v) I.calldata = some cageTransition := by
+    dispatchMsg contract I.calldata = some cageTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 3 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
-    (pre := [DirtTransition, HoleTransition, barkTransition v])
+    (contract := contract)
+    (pre := [DirtTransition, HoleTransition, barkTransition])
     (ti := cageTransition)
     (post :=
       [chopTransition, denyTransition, digsTransition, fileIlkUintTransition,
         fileUintTransition, fileAddressTransition, fileIlkClipTransition, ilksTransition,
-        liveTransition, relyTransition, vatTransition v, vowTransition, wardsTransition])
+        liveTransition, relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -128,25 +128,25 @@ theorem dogDispatchCage {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide)
     (hhit := by
       rw [selectorOf, cageSelectorBytes, hcd]
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchChop {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchChop {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 4)) :
-    dispatchMsg (contract v) I.calldata = some chopTransition := by
+    dispatchMsg contract I.calldata = some chopTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 4 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
-    (pre := [DirtTransition, HoleTransition, barkTransition v, cageTransition])
+    (contract := contract)
+    (pre := [DirtTransition, HoleTransition, barkTransition, cageTransition])
     (ti := chopTransition)
     (post :=
       [denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
-        relyTransition, vatTransition v, vowTransition, wardsTransition])
+        relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -157,7 +157,7 @@ theorem dogDispatchChop {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide
       · rw [selectorOf, cageSelectorBytes, hcd]
         native_decide)
@@ -166,17 +166,17 @@ theorem dogDispatchChop {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchDeny {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchDeny {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 5)) :
-    dispatchMsg (contract v) I.calldata = some denyTransition := by
+    dispatchMsg contract I.calldata = some denyTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 5 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
-    (pre := [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition])
+    (contract := contract)
+    (pre := [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition])
     (ti := denyTransition)
     (post :=
       [digsTransition, fileIlkUintTransition, fileUintTransition, fileAddressTransition,
-        fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition v,
+        fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition,
         vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -188,7 +188,7 @@ theorem dogDispatchDeny {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide
       · rw [selectorOf, cageSelectorBytes, hcd]
         native_decide
@@ -199,19 +199,19 @@ theorem dogDispatchDeny {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchDigs {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchDigs {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 6)) :
-    dispatchMsg (contract v) I.calldata = some digsTransition := by
+    dispatchMsg contract I.calldata = some digsTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 6 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition])
     (ti := digsTransition)
     (post :=
       [fileIlkUintTransition, fileUintTransition, fileAddressTransition, fileIlkClipTransition,
-        ilksTransition, liveTransition, relyTransition, vatTransition v, vowTransition,
+        ilksTransition, liveTransition, relyTransition, vatTransition, vowTransition,
         wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -223,7 +223,7 @@ theorem dogDispatchDigs {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide
       · rw [selectorOf, cageSelectorBytes, hcd]
         native_decide
@@ -236,19 +236,19 @@ theorem dogDispatchDigs {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchFileIlkUint {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchFileIlkUint {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 7)) :
-    dispatchMsg (contract v) I.calldata = some fileIlkUintTransition := by
+    dispatchMsg contract I.calldata = some fileIlkUintTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 7 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition])
     (ti := fileIlkUintTransition)
     (post :=
       [fileUintTransition, fileAddressTransition, fileIlkClipTransition, ilksTransition,
-        liveTransition, relyTransition, vatTransition v, vowTransition, wardsTransition])
+        liveTransition, relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -259,7 +259,7 @@ theorem dogDispatchFileIlkUint {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide
       · rw [selectorOf, cageSelectorBytes, hcd]
         native_decide
@@ -274,19 +274,19 @@ theorem dogDispatchFileIlkUint {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchFileUint {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchFileUint {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 8)) :
-    dispatchMsg (contract v) I.calldata = some fileUintTransition := by
+    dispatchMsg contract I.calldata = some fileUintTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 8 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition])
     (ti := fileUintTransition)
     (post :=
       [fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
-        relyTransition, vatTransition v, vowTransition, wardsTransition])
+        relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -297,7 +297,7 @@ theorem dogDispatchFileUint {v : DogImmutables} {I : ExecutionEnv}
         native_decide
       · rw [selectorOf, holeSelectorBytes, hcd]
         native_decide
-      · rw [selectorOf, barkSelectorBytes v, hcd]
+      · rw [selectorOf, barkSelectorBytes, hcd]
         native_decide
       · rw [selectorOf, cageSelectorBytes, hcd]
         native_decide
@@ -314,18 +314,18 @@ theorem dogDispatchFileUint {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchFileAddress {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchFileAddress {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 9)) :
-    dispatchMsg (contract v) I.calldata = some fileAddressTransition := by
+    dispatchMsg contract I.calldata = some fileAddressTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 9 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition])
     (ti := fileAddressTransition)
     (post :=
-      [fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition v,
+      [fileIlkClipTransition, ilksTransition, liveTransition, relyTransition, vatTransition,
         vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -337,7 +337,7 @@ theorem dogDispatchFileAddress {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -350,19 +350,19 @@ theorem dogDispatchFileAddress {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchFileIlkClip {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchFileIlkClip {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 10)) :
-    dispatchMsg (contract v) I.calldata = some fileIlkClipTransition := by
+    dispatchMsg contract I.calldata = some fileIlkClipTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 10 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition])
     (ti := fileIlkClipTransition)
     (post :=
-      [ilksTransition, liveTransition, relyTransition, vatTransition v, vowTransition,
+      [ilksTransition, liveTransition, relyTransition, vatTransition, vowTransition,
         wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -374,7 +374,7 @@ theorem dogDispatchFileIlkClip {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -388,18 +388,18 @@ theorem dogDispatchFileIlkClip {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchIlks {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchIlks {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 11)) :
-    dispatchMsg (contract v) I.calldata = some ilksTransition := by
+    dispatchMsg contract I.calldata = some ilksTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 11 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition])
     (ti := ilksTransition)
-    (post := [liveTransition, relyTransition, vatTransition v, vowTransition, wardsTransition])
+    (post := [liveTransition, relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -411,7 +411,7 @@ theorem dogDispatchIlks {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -426,18 +426,18 @@ theorem dogDispatchIlks {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchLive {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchLive {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 12)) :
-    dispatchMsg (contract v) I.calldata = some liveTransition := by
+    dispatchMsg contract I.calldata = some liveTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 12 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition])
     (ti := liveTransition)
-    (post := [relyTransition, vatTransition v, vowTransition, wardsTransition])
+    (post := [relyTransition, vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -449,7 +449,7 @@ theorem dogDispatchLive {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -465,18 +465,18 @@ theorem dogDispatchLive {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchRely {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchRely {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 13)) :
-    dispatchMsg (contract v) I.calldata = some relyTransition := by
+    dispatchMsg contract I.calldata = some relyTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 13 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition])
     (ti := relyTransition)
-    (post := [vatTransition v, vowTransition, wardsTransition])
+    (post := [vatTransition, vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
     (hpre := by
@@ -488,7 +488,7 @@ theorem dogDispatchRely {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -505,18 +505,18 @@ theorem dogDispatchRely {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchVat {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchVat {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 14)) :
-    dispatchMsg (contract v) I.calldata = some (vatTransition v) := by
+    dispatchMsg contract I.calldata = some vatTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 14 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
         relyTransition])
-    (ti := vatTransition v)
+    (ti := vatTransition)
     (post := [vowTransition, wardsTransition])
     (hfallback := by rfl)
     (htr := by rfl)
@@ -530,7 +530,7 @@ theorem dogDispatchVat {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -544,21 +544,21 @@ theorem dogDispatchVat {v : DogImmutables} {I : ExecutionEnv}
         | rw [selectorOf, relySelectorBytes, hcd]
       all_goals native_decide)
     (hhit := by
-      rw [selectorOf, vatSelectorBytes v, hcd]
+      rw [selectorOf, vatSelectorBytes, hcd]
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchVow {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchVow {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 15)) :
-    dispatchMsg (contract v) I.calldata = some vowTransition := by
+    dispatchMsg contract I.calldata = some vowTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 15 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
-        relyTransition, vatTransition v])
+        relyTransition, vatTransition])
     (ti := vowTransition)
     (post := [wardsTransition])
     (hfallback := by rfl)
@@ -573,7 +573,7 @@ theorem dogDispatchVow {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -585,24 +585,24 @@ theorem dogDispatchVow {v : DogImmutables} {I : ExecutionEnv}
         | rw [selectorOf, ilksSelectorBytes, hcd]
         | rw [selectorOf, liveSelectorBytes, hcd]
         | rw [selectorOf, relySelectorBytes, hcd]
-        | rw [selectorOf, vatSelectorBytes v, hcd]
+        | rw [selectorOf, vatSelectorBytes, hcd]
       all_goals native_decide)
     (hhit := by
       rw [selectorOf, vowSelectorBytes, hcd]
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatchWards {v : DogImmutables} {I : ExecutionEnv}
+theorem dogDispatchWards {I : ExecutionEnv}
     (_hsel : selIs I (dogSelBytes 16)) :
-    dispatchMsg (contract v) I.calldata = some wardsTransition := by
+    dispatchMsg contract I.calldata = some wardsTransition := by
   have hcd : I.calldata.extract 0 4 = dogSelBytes 16 := (byteArray_eq_of_beq _hsel).symm
   exact dispatchMsg_eq_some_of_split
-    (contract := contract v)
+    (contract := contract)
     (pre :=
-      [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+      [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
         denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
         fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
-        relyTransition, vatTransition v, vowTransition])
+        relyTransition, vatTransition, vowTransition])
     (ti := wardsTransition)
     (post := [])
     (hfallback := by rfl)
@@ -617,7 +617,7 @@ theorem dogDispatchWards {v : DogImmutables} {I : ExecutionEnv}
         first
         | rw [selectorOf, dirtSelectorBytes, hcd]
         | rw [selectorOf, holeSelectorBytes, hcd]
-        | rw [selectorOf, barkSelectorBytes v, hcd]
+        | rw [selectorOf, barkSelectorBytes, hcd]
         | rw [selectorOf, cageSelectorBytes, hcd]
         | rw [selectorOf, chopSelectorBytes, hcd]
         | rw [selectorOf, denySelectorBytes, hcd]
@@ -629,7 +629,7 @@ theorem dogDispatchWards {v : DogImmutables} {I : ExecutionEnv}
         | rw [selectorOf, ilksSelectorBytes, hcd]
         | rw [selectorOf, liveSelectorBytes, hcd]
         | rw [selectorOf, relySelectorBytes, hcd]
-        | rw [selectorOf, vatSelectorBytes v, hcd]
+        | rw [selectorOf, vatSelectorBytes, hcd]
         | rw [selectorOf, vowSelectorBytes, hcd]
       all_goals native_decide)
     (hhit := by
@@ -637,14 +637,14 @@ theorem dogDispatchWards {v : DogImmutables} {I : ExecutionEnv}
       native_decide)
     (hreceive := by rfl)
 
-theorem dogDispatch_none_short (v : DogImmutables) {cd : ByteArray} (_h : cd.size < 4) :
-    dispatchMsg (contract v) cd = none := by
-  rw [dispatchMsg_eq_dispatchList (contract v) cd (by rfl)]
+theorem dogDispatch_none_short {cd : ByteArray} (_h : cd.size < 4) :
+    dispatchMsg contract cd = none := by
+  rw [dispatchMsg_eq_dispatchList contract cd (by rfl)]
   change dispatchList
-    [DirtTransition, HoleTransition, barkTransition v, cageTransition, chopTransition,
+    [DirtTransition, HoleTransition, barkTransition, cageTransition, chopTransition,
       denyTransition, digsTransition, fileIlkUintTransition, fileUintTransition,
       fileAddressTransition, fileIlkClipTransition, ilksTransition, liveTransition,
-      relyTransition, vatTransition v, vowTransition, wardsTransition] cd = none
+      relyTransition, vatTransition, vowTransition, wardsTransition] cd = none
   exact dispatchList_none_short _ (by
     intro t ht
     simp at ht
@@ -655,9 +655,9 @@ theorem dogDispatch_none_short (v : DogImmutables) {cd : ByteArray} (_h : cd.siz
       simp [selectorOf, dogSelBytes]
       native_decide) _h
 
-theorem dogDispatch_none_nomatch (v : DogImmutables) {cd : ByteArray}
+theorem dogDispatch_none_nomatch {cd : ByteArray}
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == cd.extract 0 4) = false) :
-    dispatchMsg (contract v) cd = none := by
+    dispatchMsg contract cd = none := by
   apply dispatchMsg_none_of_all_ne (hfallback := by rfl)
   intro t ht
   simp [contract, transitions] at ht
@@ -668,7 +668,7 @@ theorem dogDispatch_none_nomatch (v : DogImmutables) {cd : ByteArray}
     simpa [dogSelBytes] using _hnm 0 (by omega)
   · rw [selectorOf, holeSelectorBytes]
     simpa [dogSelBytes] using _hnm 1 (by omega)
-  · rw [selectorOf, barkSelectorBytes v]
+  · rw [selectorOf, barkSelectorBytes]
     simpa [dogSelBytes] using _hnm 2 (by omega)
   · rw [selectorOf, cageSelectorBytes]
     simpa [dogSelBytes] using _hnm 3 (by omega)
@@ -692,7 +692,7 @@ theorem dogDispatch_none_nomatch (v : DogImmutables) {cd : ByteArray}
     simpa [dogSelBytes] using _hnm 12 (by omega)
   · rw [selectorOf, relySelectorBytes]
     simpa [dogSelBytes] using _hnm 13 (by omega)
-  · rw [selectorOf, vatSelectorBytes v]
+  · rw [selectorOf, vatSelectorBytes]
     simpa [dogSelBytes] using _hnm 14 (by omega)
   · rw [selectorOf, vowSelectorBytes]
     simpa [dogSelBytes] using _hnm 15 (by omega)
@@ -701,20 +701,20 @@ theorem dogDispatch_none_nomatch (v : DogImmutables) {cd : ByteArray}
 
 theorem dogBodyReverts_of_nonpayable {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {rest : List Stmt} (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm locals (nonpayable ++ rest) .reverted := by
+    ExecTransitionBody config contract evm locals (nonpayable ++ rest) .reverted (immStore v) := by
   simpa only [nonpayable, List.singleton_append] using
-    (bodyReverts_nonPayable (cfg := config v) (contract := contract v) (evm := evm)
+    (bodyReverts_nonPayable (cfg := config) (contract := contract) (evm := evm)
       (locals := locals) (rest := rest) h)
 
 theorem dogBodyReverts_nonPayable (v : DogImmutables) (t : TransitionDecl)
-    (_ht : t ∈ (contract v).transitions) (evm : EVM.State) (locals : Store)
+    (_ht : t ∈ contract.transitions) (evm : EVM.State) (locals : Store)
     (_h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
-    ExecTransitionBody (config v) (contract v) evm locals t.body .reverted := by
+    ExecTransitionBody config contract evm locals t.body .reverted (immStore v) := by
   simp [contract, transitions] at _ht
   rcases _ht with
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl <;>
-    (change ExecTransitionBody (config v) (contract v) evm locals (nonpayable ++ _) .reverted
+    (change ExecTransitionBody config contract evm locals (nonpayable ++ _) .reverted (immStore v)
      exact dogBodyReverts_of_nonpayable _h)
 
 theorem dogX_callvalue_ne {v : DogImmutables} {code : ByteArray}
@@ -1811,16 +1811,16 @@ theorem dogNonPayable {v : DogImmutables} {code : ByteArray}
     {σ σ₀ A I} {g : UInt256}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code) (_hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   exact (dogX_callvalue_ne (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv).reEquivElim
     _hcode fun _ _ hrev => by
-      by_cases hdisp : dispatchMsg (contract v) I.calldata = none
+      by_cases hdisp : dispatchMsg contract I.calldata = none
       · exact reEquiv_noDispatch hdisp hrev
       · obtain ⟨t, ht⟩ := Option.ne_none_iff_exists'.mp hdisp
-        have htmem : t ∈ (contract v).transitions := by
-          rw [dispatchMsg_eq_dispatchList (contract v) I.calldata (by rfl)] at ht
+        have htmem : t ∈ contract.transitions := by
+          rw [dispatchMsg_eq_dispatchList contract I.calldata (by rfl)] at ht
           exact dispatchList_some_mem ht
-        by_cases hdec : decodeCalldataWithMode (config v).abiDecodeMode
+        by_cases hdec : decodeCalldataWithMode config.abiDecodeMode
             (t.params.map Param.name) (transitionSignature t).paramTypes I.calldata = none
         · exact reEquiv_decodingFailed ht hdec hrev
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
@@ -1835,15 +1835,14 @@ theorem dogNoDispatch {v : DogImmutables} {code : ByteArray}
     (_hpatch : patchRuntime dogBytecode (patches v) = some code)
     (_hcode : I.code = code)
     (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (_hwv : I.weiValue = ⟨0⟩)
     (_hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+    runtimeRefinementFor config contract σ σ₀ g A I (immStore v) := by
   by_cases hshort : I.calldata.size < 4
   · exact (dogX_short (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hshort)
-      |>.reEquivNoDispatch _hcode (dogDispatch_none_short v hshort)
+      |>.reEquivNoDispatch _hcode (dogDispatch_none_short hshort)
   · have _hsz : 4 ≤ I.calldata.size := by omega
     exact (dogX_noMatch (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv _hsz _hsize _hnm)
-      |>.reEquivNoDispatch _hcode (dogDispatch_none_nomatch v _hnm)
+      |>.reEquivNoDispatch _hcode (dogDispatch_none_nomatch _hnm)
 
 end Benchmarks.Dss.Dog

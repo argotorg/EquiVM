@@ -1,4 +1,5 @@
-import Solm.SolidityLayout
+import Solm.SolidityStorage
+import Solm.Refine
 
 /-!
 # KlimaToken per-contract `bytes`/`string` storage read/write hook (solc 0.7.5, pre-0.8 total decode)
@@ -34,21 +35,21 @@ def klimaDecodeBytesLengthHeader (header : EVM.Word) : StorageReadResult Nat :=
 
 /-- Base data slot + decoded length for a `bytes`/`string` leaf, via the total decode. -/
 def klimaBytesBaseSlotAndLength?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult (EVM.Word × Nat) :=
-  match layout { er with steps := er.steps ++ [.length] } evm with
-  | some lenLoc =>
+  match layout { er with steps := er.steps ++ [.length] } with
+  | some (.anchor slot) =>
       match klimaDecodeBytesLengthHeader
-          (EVM.storageLoad evm evm.executionEnv.codeOwner lenLoc.slot) with
-      | .ok len => .ok (lenLoc.slot, len)
+          (EVM.storageLoad evm evm.executionEnv.codeOwner slot) with
+      | .ok len => .ok (slot, len)
       | .revert => .revert
       | .error => .error
-  | none => .error
+  | _ => .error
 
 /-- Read a `bytes`/`string` value: form chosen by `len < 32` (inline header bytes vs keccak data
     words).  Never reverts. -/
 def klimaReadBytesValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult Value :=
   match klimaBytesBaseSlotAndLength? layout er evm with
   | .ok (baseSlot, len) =>
@@ -65,7 +66,7 @@ def klimaReadBytesValue?
 /-- Klima `readValue?` hook: total compact-string read for `bytes`/`string`, `none` (fall through to
     `.layout`) for every scalar/structured leaf — so non-string reads are definitionally unchanged. -/
 def klimaReadValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
     Option (StorageReadResult Value) :=
   match ty with
@@ -74,13 +75,13 @@ def klimaReadValue?
 
 /-- Write a `bytes`/`string` value the pre-0.8 way.  The short-value store clears `ceil(oldLen/32)`
     keccak-data words **unconditionally** (no ≥0.8 "old value was packed, skip the clear" guard).  The
-    old length is read via the **total** decode.  Since `constructorEquivalence` quantifies over
-    arbitrary σ, an old short nonempty header with a nonzero `keccak(slot)` word is a legal input where
+    old length is read via the **total** decode.  Since `typedConstructorRefinement` quantifies over
+    (fun _ => arbitrary) σ, an old short nonempty header with a nonzero `keccak(slot)` word is a legal input where
     the guarded (≥0.8) default would leave that word intact while the runtime zeroes it.  The
     long-value branch is unexercised by Klima (both `name`/`symbol` are short) and mirrors the Solidity
     default. -/
 def klimaWriteBytesValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (bytes : ByteArray) (evm : EVM.State) :
     StorageReadResult EVM.State :=
   match klimaBytesBaseSlotAndLength? layout er evm with
@@ -108,7 +109,7 @@ def klimaWriteBytesValue?
 /-- Klima `writeValue?` hook: pre-0.8 string/bytes write for `bytes`/`string`, `none` for scalars
     (so non-string writes are definitionally unchanged). -/
 def klimaWriteValue?
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
+    (layout : StorageLayout)
     (er : EvaledStorageRef) (ty : StorageType) (value : Value) (evm : EVM.State) :
     Option (StorageReadResult EVM.State) :=
   match ty, value with
@@ -121,10 +122,17 @@ def klimaWriteValue?
     unconditional-clear store.  `.layout`, `clearValue?`, `readBytesLength` are inherited verbatim;
     scalar/mapping leaves are definitionally unchanged (both hooks return `none` for non-string
     types). -/
-def klimaStorageLayout
-    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout :=
-  { solidityStorageLayout layout with
-    readValue? := klimaReadValue? layout
-    writeValue? := klimaWriteValue? layout }
+def klimaStorageBackend (layout : StorageLayout) : StorageBackend :=
+  let base := solidityStorageBackend layout
+  { base with
+    read := fun er ty evm =>
+      match ty with
+      | .bytes | .string => solidityValueResultToEval (klimaReadBytesValue? layout er evm)
+      | _ => base.read er ty evm
+    write := fun er ty value evm =>
+      match ty, value with
+      | .bytes, .bytes bytes => solidityStateResultToEval (klimaWriteBytesValue? layout er bytes evm)
+      | .string, .bytes bytes => solidityStateResultToEval (klimaWriteBytesValue? layout er bytes evm)
+      | _, _ => base.write er ty value evm }
 
 end Benchmarks.Klima

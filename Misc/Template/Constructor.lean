@@ -1,4 +1,5 @@
 import Benchmarks.Xxx.Common
+import Solm.Refine
 
 /-!
 # Xxx constructor correctness (TEMPLATE)
@@ -13,8 +14,7 @@ Shape of the capstone piece:
 
 ```
 theorem xxxConstructorCorrect :
-    constructorEquivalence config xxxCreationBytecode contract xxxBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config xxxCreationBytecode contract (fun _ => xxxBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode hcalldata hperm
   -- 1. shape of the deployment payload (initcode ++ ABI-encoded args)

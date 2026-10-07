@@ -542,6 +542,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {σ σ₀ A I} {g : Sat256
       (her := her)
       (hty := by
         simp [storageTypeAt?, contract, storageDecls, bytes32St])
+      (hbackend := rfl)
       (hloc := by rfl)
       (hload := by
         erw [storageLocLoad_bytes32, hloadNonce]
@@ -800,7 +801,9 @@ theorem permitApproveAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage (allowanceRef (.var "owner") (.var "spender")) (permitValueValue I) =
         .ok ({ contract := contract, locals := permitApproveCallStore I },
           permitApprovePostState evm I) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St)
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
+      (hleaf := Or.inl ⟨_, rfl⟩) (ty := uint256St)
+      (loc := wordLoc (permitApproveStorageSlot I))
       (hbase := permitApproveCallStore_allowance I)
       (her := evalStorageRef_permit_approve_allowance evm I)
       (hty := by
@@ -1161,13 +1164,13 @@ theorem storageTypeAt_permit_domainSeparator :
   simp [storageTypeAt?, contract, storageDecls, bytes32St]
 
 theorem storageLayout_permit_nonce (I : ExecutionEnv) :
-    config.storage.layout (permitNonceEvaledRef I) =
-      fun _ => some (wordLoc (permitNonceStorageSlot I)) := by
+    storageLayout (permitNonceEvaledRef I) =
+      some (.leaf (wordLoc (permitNonceStorageSlot I))) := by
   rfl
 
 theorem storageLayout_permit_domainSeparator :
-    config.storage.layout ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef) =
-      fun _ => some (bytes32Loc ⟨3⟩) := by
+    storageLayout ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef) =
+      some (.leaf (bytes32Loc ⟨3⟩)) := by
   rfl
 
 theorem resolveStorageRef_permit_domainSeparator (evm : EVM.State) (I : ExecutionEnv) :
@@ -1207,6 +1210,7 @@ theorem evalExpr_permit_domainSeparator_storage (evm : EVM.State) (I : Execution
       (hbase := permitStore_domainSeparatorRef I)
       (her := evalStorageRef_permit_domainSeparator evm I)
       (hty := storageTypeAt_permit_domainSeparator)
+      (hbackend := rfl)
       (hloc := storageLayout_permit_domainSeparator)
       (hload := by
         erw [storageLocLoad_bytes32]
@@ -1221,6 +1225,7 @@ theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
       (hbase := permitStore_nonces I)
       (her := evalStorageRef_permit_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
+      (hbackend := rfl)
       (hloc := storageLayout_permit_nonce I)
       (hload := by
         erw [storageLocLoad_uint256])
@@ -1234,6 +1239,7 @@ theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : Executi
       (hbase := permitAfterDomainLoadStore_nonces evm I)
       (her := evalStorageRef_permit_afterDomain_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
+      (hbackend := rfl)
       (hloc := storageLayout_permit_nonce I)
       (hload := by
         erw [storageLocLoad_uint256])
@@ -1258,10 +1264,19 @@ theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := permitAfterNonceLoadStore evm I },
           permitAfterNonceState evm I) := by
   rw [assignStorageRef?]
-  simp only [resolveStorageRef_permit_afterNonce_nonce, EvalResult.bind, bind,
-    EvalResult.ofOption, storageLayout_permit_nonce I, pure]
-  erw [storageLocStore_uint256]
-  simp [permitAfterNonceState]
+  simp only [resolveStorageRef_permit_afterNonce_nonce, EvalResult.bind, bind]
+  unfold uint256St
+  rw [show config.storageBackend = solidityStorageBackend storageLayout from rfl,
+    solidityStorageBackend_write_elem
+      (layout := storageLayout) (er := permitNonceEvaledRef I)
+      (ty := .int uint256Int) (value := permitNonceNextLoadedValue evm I)
+      (evm := evm) (evm' := permitAfterNonceState evm I)
+      (loc := wordLoc (permitNonceStorageSlot I))
+      (hloc := storageLayout_permit_nonce I)
+      (hstore := by simpa [permitNonceNextLoadedValue, permitAfterNonceState] using
+        (storageLocStore_uint256 evm (permitNonceStorageSlot I)
+          (permitNonceNextLoadedWord evm I)))]
+  rfl
 
 theorem permitNonceLoadedWord_initState {σ σ₀ A I} {g : Sat256} :
     permitNonceLoadedWord (initState σ σ₀ g A I) I = permitNonceWord σ I := by

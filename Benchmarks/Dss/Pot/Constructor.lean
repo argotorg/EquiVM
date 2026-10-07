@@ -1,5 +1,6 @@
 import Benchmarks.Dss.Pot.ConstructorSource
 import Benchmarks.Dss.Pot.ConstructorTraceReturn
+import Solm.Refine
 
 /-!
 # MakerDAO/Sky DSS Pot constructor correctness
@@ -18,8 +19,7 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem potConstructorCorrect :
-    constructorEquivalence config potCreationBytecode contract potBytecode := by
-  refine constructorEquivalence.intro ?_
+    typedConstructorRefinement config potCreationBytecode contract (fun _ => potBytecode) := by
   intro σ σ₀ g A I args deployedInitcode
     hdeploy hcode _hcalldata hperm
   rcases potCtorDeployment_shape hdeploy with ⟨vat, hargs, hdeployed⟩
@@ -31,7 +31,7 @@ theorem potConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
-    · exact constructorEquivalenceFor.outOfGas
+    · exact typedConstructorRefinementFor.outOfGas
         (Xi_error_of_X (g := g) (by
           rw [← hcodeCtor] at hOOG
           simpa [Sat256.ofUInt256] using hOOG))
@@ -91,7 +91,7 @@ theorem potConstructorCorrect :
         simp [evm5s, potCtorAfterRhoState, storageStore_accountMap, σRho, hMapChi, hee4]
       have hMapLive : evm6s.accountMap = σLive := by
         simp [evm6s, potCtorAfterLiveState, storageStore_accountMap, σLive, hMapRho, hee5]
-      refine constructorEquivalenceFor.execution hsuccess
+      refine typedConstructorRefinementFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, potCtorPostState] using
             potSolmCtorExecSuccess
@@ -103,8 +103,8 @@ theorem potConstructorCorrect :
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
-    · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-    · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
+    · exact typedConstructorRefinementFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
+    · refine typedConstructorRefinementFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (potSolmCtorExecReverts_nonpayable
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat hwv)

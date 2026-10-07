@@ -11,10 +11,10 @@ Escapes used, mirroring the AST spec exactly:
 * Storage-alias *reads* are var-style in the spec (`.field (.var x) f`), so every alias field
   read goes through `${vf "x" "f"}`; alias *writes* are storage-style (`{base := alias, …}`) and
   stay in surface syntax (`info.liquidityGross = …;`).
-* Immutables: `${Reasoning.Theory.addressLiteral v.…}` for addresses, `#(v.fee)` / `#(v.tickSpacing)` /
-  `#(v.maxLiquidityPerTick)` for the integer ones.
+* Immutables: declared and assigned as in Solidity and read by name (`factory`, `fee`,
+  `tickSpacing`, …); inside Lean splices they are `.immutable "name"`.
 * List-`Stmt` spec helpers whose receivers are immutable `Expr`s are spliced:
-  `${safeTransfer …}`, `${balanceOfInto …}`, `${onlyFactoryOwner v}`, `${checkedWordAddLe …}`;
+  `${safeTransfer …}`, `${balanceOfInto …}`, `${onlyFactoryOwner}`, `${checkedWordAddLe …}`;
   their binders are read back via `${Expr.var "…"}` where needed (`flash` `paid0`/`paid1`).
 * `${int56Wrap …}` splices for the signed-wrap shape (with `sdivTowardZeroE` inside for
   `observeSingle`); unsigned wraps are the surface `… % #(2 ^ N)`.
@@ -32,7 +32,14 @@ namespace Benchmarks.UniswapV3Pool.Syntax
     not as storage references. -/
 def vf (x f : Ident) : Expr := .field (.var x) f
 
-def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract UniswapV3Pool {
+def contractSyntax : ContractDecl := solidity% contract UniswapV3Pool {
+  address immutable factory;
+  address immutable token0;
+  address immutable token1;
+  uint24 immutable fee;
+  int24 immutable tickSpacing;
+  uint128 immutable maxLiquidityPerTick;
+  address immutable original;
   struct Slot0 {
     uint160 sqrtPriceX96;
     int24 tick;
@@ -87,13 +94,13 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
 
   constructor() {
     var r = msg.sender.parameters{view}();
-    var imm_factory = r.0;
-    var imm_token0 = r.1;
-    var imm_token1 = r.2;
-    var imm_fee = r.3;
-    var imm_tickSpacing = r.4;
-    var imm_original = this;
-    var imm_maxLiquidityPerTick = #(2 ^ 128 - 1) / (2 * (887272 / imm_tickSpacing) + 1);
+    factory = r.0;
+    token0 = r.1;
+    token1 = r.2;
+    fee = r.3;
+    tickSpacing = r.4;
+    original = this;
+    maxLiquidityPerTick = #(2 ^ 128 - 1) / (2 * (887272 / tickSpacing) + 1);
   }
 
   function getSqrtRatioAtTick(int24 tick) internal returns (uint160) {
@@ -602,7 +609,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
 
   function modifyPosition(address owner, int24 tickLower, int24 tickUpper,
       int128 liquidityDelta) internal returns (bytes32, int256, int256) {
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     require(tickLower < tickUpper);
     require(tickLower >= #(-887272));
     require(tickUpper <= 887272);
@@ -623,17 +630,17 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         liquidity, slot0.observationCardinality);
       var flippedLowerCall = tickUpdate(tickLower, _slot0tick, liquidityDelta,
         _feeGrowthGlobal0X128, _feeGrowthGlobal1X128, observedForUpdate.1,
-        observedForUpdate.0, time, false, #(v.maxLiquidityPerTick));
+        observedForUpdate.0, time, false, maxLiquidityPerTick);
       flippedLower = flippedLowerCall;
       var flippedUpperCall = tickUpdate(tickUpper, _slot0tick, liquidityDelta,
         _feeGrowthGlobal0X128, _feeGrowthGlobal1X128, observedForUpdate.1,
-        observedForUpdate.0, time, true, #(v.maxLiquidityPerTick));
+        observedForUpdate.0, time, true, maxLiquidityPerTick);
       flippedUpper = flippedUpperCall;
       if (flippedLower) {
-        var _flipLower = tickBitmapFlip(tickLower, #(v.tickSpacing));
+        var _flipLower = tickBitmapFlip(tickLower, tickSpacing);
       }
       if (flippedUpper) {
-        var _flipUpper = tickBitmapFlip(tickUpper, #(v.tickSpacing));
+        var _flipUpper = tickBitmapFlip(tickUpper, tickSpacing);
       }
     }
     var feeGrowthInside = tickGetFeeGrowthInside(tickLower, tickUpper, _slot0tick,
@@ -1046,13 +1053,11 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       positions[positionKey].tokensOwed1 : amount1Requested;
     if (amount0 > 0) {
       positions[positionKey].tokensOwed0 = positions[positionKey].tokensOwed0 - amount0;
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient") (.var "amount0")
-        "collect0"}
+      ${safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "collect0"}
     }
     if (amount1 > 0) {
       positions[positionKey].tokensOwed1 = positions[positionKey].tokensOwed1 - amount1;
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient") (.var "amount1")
-        "collect1"}
+      ${safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "collect1"}
     }
     slot0.unlocked = true;
     return amount0, amount1;
@@ -1062,7 +1067,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       uint128 amount1Requested) external returns (uint128, uint128) {
     require(slot0.unlocked);
     slot0.unlocked = false;
-    ${onlyFactoryOwner v}
+    ${onlyFactoryOwner}
     uint128 amount0 = amount0Requested > protocolFees.token0 ?
       protocolFees.token0 : amount0Requested;
     uint128 amount1 = amount1Requested > protocolFees.token1 ?
@@ -1072,27 +1077,25 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         amount0 = amount0 - 1;
       }
       protocolFees.token0 = protocolFees.token0 - amount0;
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient") (.var "amount0")
-        "collectProtocol0"}
+      ${safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "collectProtocol0"}
     }
     if (amount1 > 0) {
       if (amount1 == protocolFees.token1) {
         amount1 = amount1 - 1;
       }
       protocolFees.token1 = protocolFees.token1 - amount1;
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient") (.var "amount1")
-        "collectProtocol1"}
+      ${safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "collectProtocol1"}
     }
     slot0.unlocked = true;
     return amount0, amount1;
   }
 
   function factory() external returns (address) {
-    return ${Reasoning.Theory.addressLiteral v.factory};
+    return factory;
   }
 
   function fee() external returns (uint24) {
-    return #(v.fee);
+    return fee;
   }
 
   function feeGrowthGlobal0X128() external returns (uint256) {
@@ -1106,38 +1109,34 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) external {
     require(slot0.unlocked);
     slot0.unlocked = false;
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     uint128 _liquidity = liquidity;
     require(_liquidity > 0);
     require(1000000 > 0);
-    uint256 fee0 = amount0 * #(v.fee) / 1000000;
+    uint256 fee0 = amount0 * fee / 1000000;
     require(fee0 <= type(uint256).max);
-    if (amount0 * #(v.fee) % 1000000 > 0) {
+    if (amount0 * fee % 1000000 > 0) {
       require(fee0 < type(uint256).max);
       fee0 = fee0 + 1;
     }
     require(1000000 > 0);
-    uint256 fee1 = amount1 * #(v.fee) / 1000000;
+    uint256 fee1 = amount1 * fee / 1000000;
     require(fee1 <= type(uint256).max);
-    if (amount1 * #(v.fee) % 1000000 > 0) {
+    if (amount1 * fee % 1000000 > 0) {
       require(fee1 < type(uint256).max);
       fee1 = fee1 + 1;
     }
-    ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
-      "flashBalance0Before"}
-    ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
-      "flashBalance1Before"}
+    ${balanceOfInto (.immutable "token0") "balance0Before" "flashBalance0Before"}
+    ${balanceOfInto (.immutable "token1") "balance1Before" "flashBalance1Before"}
     if (amount0 > 0) {
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient") (.var "amount0")
-        "flashTransfer0"}
+      ${safeTransfer (.immutable "token0") (.var "recipient") (.var "amount0") "flashTransfer0"}
     }
     if (amount1 > 0) {
-      ${safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient") (.var "amount1")
-        "flashTransfer1"}
+      ${safeTransfer (.immutable "token1") (.var "recipient") (.var "amount1") "flashTransfer1"}
     }
     var _flashCallback = msg.sender.uniswapV3FlashCallback{value: 0}(fee0, fee1, data);
-    ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After" "flashBalance0After"}
-    ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After" "flashBalance1After"}
+    ${balanceOfInto (.immutable "token0") "balance0After" "flashBalance0After"}
+    ${balanceOfInto (.immutable "token1") "balance1After" "flashBalance1After"}
     ${checkedWordAddLe (.var "balance0Before") (.var "fee0") (.var "balance0After")}
     ${checkedWordAddLe (.var "balance1Before") (.var "fee1") (.var "balance1After")}
     uint256 paid0 = ${Expr.var "balance0After"} - ${Expr.var "balance0Before"};
@@ -1171,7 +1170,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function increaseObservationCardinalityNext(uint16 observationCardinalityNext) external {
     require(slot0.unlocked);
     slot0.unlocked = false;
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     uint16 observationCardinalityNextOld = slot0.observationCardinalityNext;
     uint16 observationCardinalityNextNew = observationCardinalityNext;
     require(observationCardinalityNextOld > 0);
@@ -1210,7 +1209,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   }
 
   function maxLiquidityPerTick() external returns (uint128) {
-    return #(v.maxLiquidityPerTick);
+    return maxLiquidityPerTick;
   }
 
   function mint(address recipient, int24 tickLower, int24 tickUpper, uint128 amount,
@@ -1223,22 +1222,18 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint256 amount0 = modified.1 % #(2 ^ 256);
     uint256 amount1 = modified.2 % #(2 ^ 256);
     if (amount0 > 0) {
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
-        "mintBalance0Before"}
+      ${balanceOfInto (.immutable "token0") "balance0Before" "mintBalance0Before"}
     }
     if (amount1 > 0) {
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
-        "mintBalance1Before"}
+      ${balanceOfInto (.immutable "token1") "balance1Before" "mintBalance1Before"}
     }
     var _mintCallback = msg.sender.uniswapV3MintCallback{value: 0}(amount0, amount1, data);
     if (amount0 > 0) {
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After"
-        "mintBalance0After" ++
+      ${balanceOfInto (.immutable "token0") "balance0After" "mintBalance0After" ++
         checkedWordAddLe (.var "balance0Before") (.var "amount0") (.var "balance0After")}
     }
     if (amount1 > 0) {
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After"
-        "mintBalance1After" ++
+      ${balanceOfInto (.immutable "token1") "balance1After" "mintBalance1After" ++
         checkedWordAddLe (.var "balance1Before") (.var "amount1") (.var "balance1After")}
     }
     slot0.unlocked = true;
@@ -1253,7 +1248,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   }
 
   function observe(uint32[] secondsAgos) external returns (int56[], uint160[]) {
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     var observed = observeBody(block.timestamp % #(2 ^ 32), secondsAgos, slot0.tick,
       slot0.observationIndex, liquidity, slot0.observationCardinality);
     return observed.0, observed.1;
@@ -1273,7 +1268,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function setFeeProtocol(uint8 feeProtocol0, uint8 feeProtocol1) external {
     require(slot0.unlocked);
     slot0.unlocked = false;
-    ${onlyFactoryOwner v}
+    ${onlyFactoryOwner}
     require((feeProtocol0 == 0 || (feeProtocol0 >= 4 && feeProtocol0 <= 10)) &&
       (feeProtocol1 == 0 || (feeProtocol1 >= 4 && feeProtocol1 <= 10)));
     uint8 feeProtocolOld = slot0.feeProtocol;
@@ -1289,7 +1284,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
 
   function snapshotCumulativesInside(int24 tickLower, int24 tickUpper)
       external returns (int56, uint160, uint32) {
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     require(tickLower < tickUpper);
     require(tickLower >= #(-887272));
     require(tickUpper <= 887272);
@@ -1325,7 +1320,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
 
   function swap(address recipient, bool zeroForOne, int256 amountSpecified,
       uint160 sqrtPriceLimitX96, bytes data) external returns (int256, int256) {
-    require(this == ${Reasoning.Theory.addressLiteral v.original});
+    require(this == original);
     require(amountSpecified != 0);
     uint160 slot0StartSqrtPriceX96 = slot0.sqrtPriceX96;
     int24 slot0StartTick = slot0.tick;
@@ -1358,7 +1353,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint128 stateLiquidity = cacheLiquidityStart;
     while (stateAmountSpecifiedRemaining != 0 && stateSqrtPriceX96 != sqrtPriceLimitX96) {
       uint160 stepSqrtPriceStartX96 = stateSqrtPriceX96;
-      var nextTick = tickBitmapNextInitializedTickWithinOneWord(stateTick, #(v.tickSpacing),
+      var nextTick = tickBitmapNextInitializedTickWithinOneWord(stateTick, tickSpacing,
         zeroForOne);
       int24 stepTickNext = nextTick.0;
       bool stepInitialized = nextTick.1;
@@ -1375,7 +1370,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
           stepSqrtPriceNextX96 > sqrtPriceLimitX96) ?
         sqrtPriceLimitX96 : stepSqrtPriceNextX96;
       var stepResult = computeSwapStep(stateSqrtPriceX96, stepTargetSqrtPriceX96,
-        stateLiquidity, stateAmountSpecifiedRemaining, #(v.fee));
+        stateLiquidity, stateAmountSpecifiedRemaining, fee);
       stateSqrtPriceX96 = stepResult.0;
       uint256 stepAmountIn = stepResult.1;
       uint256 stepAmountOut = stepResult.2;
@@ -1470,26 +1465,22 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     }
     if (zeroForOne) {
       if (amount1 < 0) {
-        ${safeTransfer (Reasoning.Theory.addressLiteral v.token1) (.var "recipient")
+        ${safeTransfer (.immutable "token1") (.var "recipient")
           (uint256Wrap (subE (.intLit 0) (.var "amount1"))) "swapTransfer1"}
       }
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0Before"
-        "swapBalance0Before"}
+      ${balanceOfInto (.immutable "token0") "balance0Before" "swapBalance0Before"}
       var _swapCallback = msg.sender.uniswapV3SwapCallback{value: 0}(amount0, amount1, data);
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token0) "balance0After"
-        "swapBalance0After"}
+      ${balanceOfInto (.immutable "token0") "balance0After" "swapBalance0After"}
       ${checkedWordAddLe (.var "balance0Before") (uint256Wrap (.var "amount0"))
         (.var "balance0After")}
     } else {
       if (amount0 < 0) {
-        ${safeTransfer (Reasoning.Theory.addressLiteral v.token0) (.var "recipient")
+        ${safeTransfer (.immutable "token0") (.var "recipient")
           (uint256Wrap (subE (.intLit 0) (.var "amount0"))) "swapTransfer0"}
       }
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1Before"
-        "swapBalance1Before"}
+      ${balanceOfInto (.immutable "token1") "balance1Before" "swapBalance1Before"}
       var _swapCallback = msg.sender.uniswapV3SwapCallback{value: 0}(amount0, amount1, data);
-      ${balanceOfInto (Reasoning.Theory.addressLiteral v.token1) "balance1After"
-        "swapBalance1After"}
+      ${balanceOfInto (.immutable "token1") "balance1After" "swapBalance1After"}
       ${checkedWordAddLe (.var "balance1Before") (uint256Wrap (.var "amount1"))
         (.var "balance1After")}
     }
@@ -1502,7 +1493,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   }
 
   function tickSpacing() external returns (int24) {
-    return #(v.tickSpacing);
+    return tickSpacing;
   }
 
   function ticks(int24 arg0)
@@ -1514,15 +1505,15 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   }
 
   function token0() external returns (address) {
-    return ${Reasoning.Theory.addressLiteral v.token0};
+    return token0;
   }
 
   function token1() external returns (address) {
-    return ${Reasoning.Theory.addressLiteral v.token1};
+    return token1;
   }
 }
 
-theorem contractSyntax_eq (v : PoolImmutables) :
-    contractSyntax v = contract v := by rfl
+theorem contractSyntax_eq :
+    contractSyntax = contract := by rfl
 
 end Benchmarks.UniswapV3Pool.Syntax

@@ -1,5 +1,5 @@
 import Benchmarks.Scaffolds.VestingWallet.Bytecode
-import Solm.Equiv
+import Solm.Refine
 
 /-!
 # OpenZeppelin VestingWallet constructor correctness stub
@@ -13,7 +13,7 @@ open Solm ABI Ethereum Ethereum.EVM
 namespace OpenZeppelinBench.VestingWallet
 
 theorem vestingWalletBenchConstructorCorrect :
-    constructorEquivalence config vestingWalletBenchCreationBytecode contract vestingWalletBenchBytecode := by
+    typedConstructorRefinement config vestingWalletBenchCreationBytecode contract (fun _ => vestingWalletBenchBytecode) := by
   sorry
 
 end OpenZeppelinBench.VestingWallet
