@@ -51,6 +51,14 @@ def keccakWord (a b : UInt256) (m : ByteArray) : UInt256 :=
 def memExpansionCost (aw start size : UInt256) : ℕ :=
   Cₘ (M aw start size) - Cₘ aw
 
+/-- `MachineState.M` for `MCOPY`, whose expansion covers the destination and the source range:
+    `max dst src`. -/
+abbrev Mmcopy (aw dst src len : UInt256) : UInt256 :=
+  UInt256.ofNat (MachineState.M aw.toNat (max dst.toNat src.toNat) len.toNat)
+
+def mcopyExpansionCost (aw dst src len : UInt256) : ℕ :=
+  Cₘ (Mmcopy aw dst src len) - Cₘ aw
+
 set_option maxRecDepth 10000
 
 /-- The reached-or-out-of-gas segment invariant.  `mem`/`aw`/`acc` are carried as
@@ -1925,6 +1933,23 @@ theorem RD.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
       · exact hee
       · exact hσ₀
 
+theorem RD.genMcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : AccountMap} {k C : ℕ}
+    {a b c : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MCOPY, .none))
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t
+      (mem.write b.toNat mem a.toNat c.toNat)
+      (Mmcopy aw a b c)
+      rdata acc (k + 1)
+      (C + (mcopyExpansionCost aw a b c + (3 + 3 * ((c.toNat + 31) / 32)))) := by
+  simpa only [GasConstants.Gverylow, GasConstants.Gcopy] using
+    (RD.mcopy (mcopyExpansionCost aw a b c)
+      (mem.write b.toNat mem a.toNat c.toNat) (Mmcopy aw a b c)
+      h hdec rfl rfl rfl hov)
+
 /-- `MLOAD`: pops `a` (offset), pushes the 32-byte word at `mem[a]`, grows active words. -/
 theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -2664,6 +2689,19 @@ theorem RD.log0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · simp only [stLog0]; exact hacc
       · simp only [stLog0]; exact hee
       · simp only [stLog0]; exact hσ₀
+
+theorem RD.genLog0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256}
+    (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.LOG0, .none))
+    (hperm : ee.perm = true)
+    (hov : t.length ≤ 1024) :
+    RD code ee g s0 (pc + ⟨1⟩) t mem (M aw a b) rdata acc (k + 1)
+      (C + (memExpansionCost aw a b + (375 + 8 * b.toNat))) := by
+  simpa only [GasConstants.Glog, GasConstants.Glogdata] using
+    (RD.log0 (memExpansionCost aw a b) (M aw a b) h hdec hperm rfl rfl hov)
 
 /-- **LOG1**: pop `[offset, size, t1]`, append a log over `mem[offset..offset+size]` with one topic
     (cost `memExp + Glog + Glogdata·size + Glogtopic`, pc += 1).  Requires `ee.perm` (aborts in
