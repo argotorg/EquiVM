@@ -3951,7 +3951,7 @@ This is the `RD.whileLoopCarryFull` analogue used when the source loop body may 
 variant reaches zero.  The caller supplies the bytecode transitions for the false-condition exit
 and the true-condition body entry, plus a body step that either reverts both sides or produces the
 next carried state. -/
-theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl}
+theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl} {imms : Store}
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {α : Type}
     (header bodyHeader exit : UInt256) (condExpr : Expr) (post body : List Stmt)
@@ -3960,36 +3960,36 @@ theorem RD.execForLoopOrRevertCarryFull {cfg : Config} {contract : ContractDecl}
     (acc : α → AccountMap)
     (exitStk : α → List UInt256)
     (hfalse : ∀ a L evm, Inv 0 a L evm →
-      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool false))
+      evalExpr? cfg { contract := contract, locals := L, immutables := imms } evm condExpr = .ok (.bool false))
     (hexit : ∀ a L evm, Inv 0 a L evm → ∀ k C,
       RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       ∃ k' C', RD code ee g s0 exit (exitStk a) (mem a) (aw a) rdata (acc a) k' C')
     (htrue : ∀ v a L evm, Inv (v + 1) a L evm →
-      evalExpr? cfg { contract := contract, locals := L } evm condExpr = .ok (.bool true))
+      evalExpr? cfg { contract := contract, locals := L, immutables := imms } evm condExpr = .ok (.bool true))
     (henter : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
       RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       ∃ k' C', RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k' C')
     (hbody : ∀ v a L evm, Inv (v + 1) a L evm → ∀ k C,
       RD code ee g s0 bodyHeader (stk a) (mem a) (aw a) rdata (acc a) k C →
-      (ExecBlock cfg { contract := contract, locals := L } evm body .reverted ∧
+      (ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body .reverted ∧
         RDrev code g s0) ∨
       ∃ a' L1 evm1 L2 evm2 k' C',
-        (ExecBlock cfg { contract := contract, locals := L } evm body
-            (.ok { contract := contract, locals := L1 } evm1) ∨
-          ExecBlock cfg { contract := contract, locals := L } evm body
-            (.continue { contract := contract, locals := L1 } evm1)) ∧
-        ExecBlock cfg { contract := contract, locals := L1 } evm1 post
-          (.ok { contract := contract, locals := L2 } evm2) ∧
+        (ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body
+            (.ok { contract := contract, locals := L1, immutables := imms } evm1) ∨
+          ExecBlock cfg { contract := contract, locals := L, immutables := imms } evm body
+            (.continue { contract := contract, locals := L1, immutables := imms } evm1)) ∧
+        ExecBlock cfg { contract := contract, locals := L1, immutables := imms } evm1 post
+          (.ok { contract := contract, locals := L2, immutables := imms } evm2) ∧
         Inv v a' L2 evm2 ∧
         RD code ee g s0 header (stk a') (mem a') (aw a') rdata (acc a') k' C') :
     ∀ v a L evm, Inv v a L evm → ∀ k C,
       RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
       (∃ a' L' evm' k' C',
-        ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body
-          (.ok { contract := contract, locals := L' } evm') ∧
+        ExecForLoop cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body
+          (.ok { contract := contract, locals := L', immutables := imms } evm') ∧
         Inv 0 a' L' evm' ∧
         RD code ee g s0 exit (exitStk a') (mem a') (aw a') rdata (acc a') k' C') ∨
-      (ExecForLoop cfg { contract := contract, locals := L } evm condExpr post body .reverted ∧
+      (ExecForLoop cfg { contract := contract, locals := L, immutables := imms } evm condExpr post body .reverted ∧
         RDrev code g s0) := by
   intro v
   induction v with
@@ -4208,9 +4208,9 @@ namespace Reasoning.Theory
 /-! ## Coverage helpers — build a `runtimeEquivalenceFor` case from a `Ξ` outcome -/
 
 /-- `Ξ` runs out of gas ⇒ the `outOfGas` case. -/
-theorem reEquiv_outOfGas {cfg contract σ σ₀ g A I}
+theorem reEquiv_outOfGas {immutables : Store} {cfg contract σ σ₀ g A I}
     (h : Ξ σ σ₀ g A I = .error .OutOfGass) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
   .outOfGas h
 
 /-- When a contract has no `receive`/`fallback`, a successful `dispatchMsg` is a successful
@@ -4235,15 +4235,15 @@ theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
 
 /-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case. This path never runs
     `solmExec`. -/
-theorem reEquiv_noDispatch {cfg contract σ σ₀ g A I} {g' o}
+theorem reEquiv_noDispatch {immutables : Store} {cfg contract σ σ₀ g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
     (h : Ξ σ σ₀ g A I = .ok (.revert g' o)) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
   .noDispatch hd h
 
 /-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. The Solm body does
     not execute. -/
-theorem reEquiv_decodingFailed
+theorem reEquiv_decodingFailed {immutables : Store}
     {cfg contract σ σ₀ g A I} {t g' o}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
@@ -4251,41 +4251,41 @@ theorem reEquiv_decodingFailed
     (h : Ξ σ σ₀ g A I = .ok (.revert g' o))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
   .decodingFailed (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
     rfl hdec h
 
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
     Both executions start from `σ`; `hequiv` carries their result coupling, including account-map
     equality on success. -/
-theorem reEquiv_execution
+theorem reEquiv_execution {immutables : Store}
     {cfg contract σ σ₀ A I} {t callargs actRes}
     {g : UInt256}
     (hd : dispatchMsg contract I.calldata = some t)
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes)
+              (initState σ σ₀ (.ofUInt256 g) A I) callargs t.body actRes immutables)
     (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi t.returnType))
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
   .execution rfl
     (.intro (selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some hreceive hfallback hd)
       rfl hdec rfl hbody)
     hequiv
 
 /-- The receive transition executes without selector ABI decoding and `Ξ`'s result matches. -/
-theorem reEquiv_receiveExecution
+theorem reEquiv_receiveExecution {immutables : Store}
     {cfg contract σ σ₀ A I} {t actRes}
     {g : UInt256}
     (hreceive : receiveDispatchMsg contract I.calldata = some t)
     (hparams : t.params = [])
     (hreturn : t.returnType = [])
     (hbody : ExecTransitionBody cfg contract
-              (initState σ σ₀ (.ofUInt256 g) A I) ∅ t.body actRes)
+              (initState σ σ₀ (.ofUInt256 g) A I) ∅ t.body actRes immutables)
     (hequiv : execResultsEquiv (Ξ σ σ₀ g A I) actRes (.abi [])) :
-    runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
+    runtimeEquivalenceFor cfg contract σ σ₀ g A I immutables :=
   .execution rfl (.receive hreceive hparams hreturn rfl hbody) hequiv
 
 end Reasoning.Theory
@@ -4306,7 +4306,7 @@ eliminators carry that halting fact across the `X → Ξ` bridge (`Xi_*_of_X`) a
 
 /-- Eliminate an `RDrev` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
     `outOfGas` case automatically, and the continuation `k` receives the `Ξ`-level revert. -/
-theorem RDrev.reEquivElim
+theorem RDrev.reEquivElim {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray}
     (hcode : I.code = code)
@@ -4314,26 +4314,26 @@ theorem RDrev.reEquivElim
     (k : ∀ g' o,
           Ξ σ σ₀ g.toUInt256 A I = .ok (.revert g' o) →
           runtimeEquivalenceFor cfg contract σ σ₀
-            g.toUInt256 A I) :
+            g.toUInt256 A I immutables) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I := by
+      g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨g', o, hX⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact k g' o (Xi_revert_of_X_sat (by rw [← hcode] at hX; exact hX))
 
 /-- `RDrev ⇒ noDispatch`: revert with Act failing to dispatch; the Solm body does not run. -/
-theorem RDrev.reEquivNoDispatch
+theorem RDrev.reEquivNoDispatch {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray}
     (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
     (hd : dispatchMsg contract I.calldata = none) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
+      g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
 /-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails; the Solm body
     does not run. -/
-theorem RDrev.reEquivDecodingFailed
+theorem RDrev.reEquivDecodingFailed {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {t}
     (hcode : I.code = code) (h : RDrev code g (initState σ σ₀ g A I))
@@ -4343,13 +4343,13 @@ theorem RDrev.reEquivDecodingFailed
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
+      g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_decodingFailed hd hdec hrev hfallback hreceive
 
 /-- Eliminate an `RDret` into a `runtimeEquivalenceFor`: the OOG alternative becomes the
     `outOfGas` case automatically; the continuation `k` receives the `Ξ`-level success, with
     the account map projected back to the carried `σ`. -/
-theorem RDret.reEquivElim
+theorem RDret.reEquivElim {immutables : Store}
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code o : ByteArray}
     (hcode : I.code = code)
@@ -4357,9 +4357,9 @@ theorem RDret.reEquivElim
     (k : ∀ (g' : UInt256) (A' : Substate),
           Ξ σ σ₀ g.toUInt256 A I = .ok (.success (σ, g', A') o) →
           runtimeEquivalenceFor cfg contract σ σ₀
-            g.toUInt256 A I) :
+            g.toUInt256 A I immutables) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I := by
+      g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · have hσ : s.accountMap = σ := hacc

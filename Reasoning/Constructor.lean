@@ -69,7 +69,8 @@ theorem emptySolmCtorExec
     (hself : cfg.selfDeployment = genSolidityConstructorDeployment contract.ctor.params)
     (hparams : contract.ctor.params = [])
     (hbody : contract.ctor.body = [])
-    (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode) :
+    (hdeploy : cfg.selfDeployment initcode args = some deployedInitcode)
+    (himm : contract.immutables = [] := by rfl) :
     solmCtorExec cfg contract args σ σ₀ g A I
       (.returned
         { contract := contract
@@ -81,7 +82,8 @@ theorem emptySolmCtorExec
     (argsStore := Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args))
     ?_ (emptyCtorDeployment_args_length hself hparams hdeploy) rfl ?_
   · rfl
-  · exact emptyCtorBodyReturns _ _ hbody
+  · rw [initialImmutables_noImmutables himm]
+    exact emptyCtorBodyReturns _ _ hbody
 
 /-- Generic constructor-equivalence wrapper for empty constructors.
 
@@ -99,7 +101,8 @@ theorem emptyConstructorCorrect_of_RDret
         {I : Ethereum.ExecutionEnv}
         {g : Sat256},
       I.code = initcode →
-      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode) :
+      RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
+    (himm : contract.immutables = [] := by rfl) :
     constructorEquivalence cfg initcode contract runtimeCode := by
   refine constructorEquivalence.intro ?_
   intro σ σ₀ g A I
@@ -114,7 +117,7 @@ theorem emptyConstructorCorrect_of_RDret
       (emptySolmCtorExec (cfg := cfg) (contract := contract)
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         (args := args) (initcode := initcode) (deployedInitcode := deployedInitcode)
-        hself hparams hbody hdeploy) ?_
+        hself hparams hbody hdeploy himm) ?_
     exact ctorResultEquiv.success rfl rfl rfl rfl
 
 theorem emptyContractCorrect_of_RDret
@@ -129,10 +132,11 @@ theorem emptyContractCorrect_of_RDret
         {g : Sat256},
       I.code = initcode →
       RDret initcode g (initState σ σ₀ g A I) σ runtimeCode)
-    (hruntime : runtimeEquivalence cfg runtimeCode contract) :
+    (hruntime : runtimeEquivalence cfg runtimeCode contract)
+    (himm : contract.immutables = [] := by rfl) :
     contractEquivalence cfg initcode runtimeCode contract :=
   contractEquivalence.intro
-    (emptyConstructorCorrect_of_RDret hself hparams hbody hrun)
-    hruntime
+    (emptyConstructorCorrect_of_RDret hself hparams hbody hrun himm)
+    hruntime himm
 
 end Reasoning.Theory

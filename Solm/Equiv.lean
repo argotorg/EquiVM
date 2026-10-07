@@ -14,15 +14,9 @@ The statement of Solm/EVM refinement, layered bottom-up:
   fixed transaction inputs.
 * **∀-closures** — `runtimeEquivalence` (and the precondition-carrying
   `runtimeEquivalenceWithWF`) and `constructorEquivalence` quantify over all inputs.
-* **Top level** — `contractEquivalence` = constructor + runtime, for some map from immutable
-  values to deployed code; `contractEquivalence.deployed_refines` states the consequence:
-  whatever runtime a successful deployment returns refines the spec run with the immutables that
-  constructor run produced.
-
-Immutables are part of the Solm semantics (`Frame.immutables`), so the spec is one
-`ContractDecl`.  How the compiler embeds them in the code is not: the relation quantifies over
-`runtimeCodeOf : Store → ByteArray` and only ties it to the compiler's `runtimeCode`, the code for
-the zero immutables.
+* **Top level** — `contractEquivalence` = constructor + runtime, for contracts without
+  immutables.  Contracts with immutables use `contractRefinement`
+  (`Solm/ImmutableEquiv.lean`), which ties the constructor's immutables to the runtime.
 
 The `*With` family at the bottom of the file is the legacy encoding of immutables as constructor
 locals, kept until the benchmarks using it migrate.
@@ -110,64 +104,35 @@ inductive execResultsEquiv
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
 
-/-- Whether `immutables` gives every declared immutable a value of its declared type. -/
-def immutablesFit (contract : ContractDecl) (immutables : Store) : Bool :=
-  contract.immutables.all fun d =>
-    match immutables.get? d.name with
-    | some v => elemValueFits d.ty v
-    | none => false
-
-/-- The immutables a deployed contract runs with: the declared ones only. -/
-def restrictImmutables (contract : ContractDecl) (immutables : Store) : Store :=
-  contract.immutables.foldl (fun acc d =>
-    match immutables.get? d.name with
-    | some v => acc.insert d.name v
-    | none => acc) ∅
-
-/-- The runtime code deployed for the immutables a constructor run leaves, under the compiler's
-    `runtimeCodeOf`; `none` if they are not well typed. -/
-def deployedRuntime? (contract : ContractDecl) (runtimeCodeOf : Store → ByteArray)
-    (immutables : Store) : Option ByteArray :=
-  if immutablesFit contract immutables then some (runtimeCodeOf immutables) else none
-
-theorem deployedRuntime?_noImmutables {contract : ContractDecl} {runtimeCode : ByteArray}
-    {immutables : Store} (h : contract.immutables = []) :
-    deployedRuntime? contract (fun _ => runtimeCode) immutables = some runtimeCode := by
-  simp [deployedRuntime?, immutablesFit, h]
-
-theorem restrictImmutables_noImmutables {contract : ContractDecl} {immutables : Store}
-    (h : contract.immutables = []) : restrictImmutables contract immutables = ∅ := by
-  simp [restrictImmutables, h]
-
-/-- Constructor result equivalence.  `deployed imms` is the runtime code deployed for the
-    immutables `imms` (`deployedRuntime?`); on success the EVM must return exactly the code for the
-    immutables in the constructor's final frame. -/
+/-- Constructor result equivalence.  On success the final account maps agree and the returned
+    bytes are `runtimeCodeOf` of the immutables in the constructor's final frame (the constant
+    `runtimeCode` for `constructorEquivalence`). -/
 inductive ctorResultEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
-  (solmRes : ExecResult) (deployed : Store → Option ByteArray) : Prop where
+  (solmRes : ExecResult) (runtimeCodeOf : Store → ByteArray) : Prop where
   | success :
     evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned solmFrame solmState .none →
     σ' = solmState.accountMap →
-    deployed solmFrame.immutables = some o →
-    ctorResultEquiv evmRes solmRes deployed
+    o = runtimeCodeOf solmFrame.immutables →
+    ctorResultEquiv evmRes solmRes runtimeCodeOf
   -- Twin of `success` for a ctor body ending in a bare `return` (explicit void return `some []`);
   -- kept separate so existing `.success` (fall-through `.none`) proofs are unchanged.
   | successVoidReturn :
     evmRes = .ok (.success (σ', g', A') o) →
     solmRes = .returned solmFrame solmState (some []) →
     σ' = solmState.accountMap →
-    deployed solmFrame.immutables = some o →
-    ctorResultEquiv evmRes solmRes deployed
+    o = runtimeCodeOf solmFrame.immutables →
+    ctorResultEquiv evmRes solmRes runtimeCodeOf
   | revert :
     evmRes = .ok (.revert g o) →
     solmRes = .reverted →
-    ctorResultEquiv evmRes solmRes deployed
+    ctorResultEquiv evmRes solmRes runtimeCodeOf
   -- `INVALID` (`0xFE`) refines a Solm `.reverted`, as in `execResultsEquiv.invalidHalt`.
   | invalidHalt :
     evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
-    ctorResultEquiv evmRes solmRes deployed
+    ctorResultEquiv evmRes solmRes runtimeCodeOf
 
 /-- Runtime equivalence of a single message call at fixed transaction inputs: couples the EVM
     execution of the bytecode (`Ethereum.EVM.Ξ`) with the Solm execution of the spec (`solmExec`),
@@ -295,9 +260,8 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
     Holds in one of two ways:
     * `execution` — the Solm constructor runs to `solmRes`; the EVM result is
       `ctorResultEquiv`-related: on success the final account maps are equal
-      **and the EVM's returned bytes are exactly `runtimeCodeOf` of the constructor's final
-      immutables** (`deployedRuntime?`; by default the constant `runtimeCode`, as for a contract
-      without immutables); reverts and `INVALID` halts pair with a Solm revert.
+      **and the EVM's returned bytes are exactly `runtimeCode`** (the deployed runtime bytecode);
+      reverts and `INVALID` halts pair with a Solm revert.
     * `outOfGas` — the EVM exhausts its gas; the spec side is unconstrained. (same
       termination caveat as `runtimeEquivalenceFor`) -/
 
@@ -310,7 +274,6 @@ inductive constructorEquivalenceFor (cfg : Config)
     (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) /- contains the EVM bytecode -/
     (runtimeCode : ByteArray)
-    (runtimeCodeOf : Store → ByteArray := fun _ => runtimeCode)
 : Prop where
   | execution {Ξ_res solmRes} : /- Both executions return -/
     /- Execute EVM transaction-/
@@ -318,17 +281,16 @@ inductive constructorEquivalenceFor (cfg : Config)
     /- Solm constructor + execution -/
     solmCtorExec cfg contract args σ σ₀ g A I solmRes →
     /- Resulting states must be equivalent, and the EVM return bytes should equal the runtime code -/
-    ctorResultEquiv Ξ_res solmRes (deployedRuntime? contract runtimeCodeOf) →
-    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode runtimeCodeOf
+    ctorResultEquiv Ξ_res solmRes (fun _ => runtimeCode) →
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
   | outOfGas : /- EVM runs out of gas -/
     /- TODO: non-terminating EVM programs are currently equivalent to any spec -/
     Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
-    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode runtimeCodeOf
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
 
 
 inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
-    (runtimeCode : ByteArray) (runtimeCodeOf : Store → ByteArray := fun _ => runtimeCode) :
-    Prop where
+    (runtimeCode : ByteArray) : Prop where
   | intro :
     (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
@@ -352,42 +314,10 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
     -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
     -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
     I.perm = true →
-    -- Every successful execution path returns the runtime code for its final immutables
-    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode runtimeCodeOf
+    -- We need to enforce that all successful execution paths return the same runtime code
+    constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
     ) →
-    constructorEquivalence cfg initcode contract runtimeCode runtimeCodeOf
-
-/-- Runtime equivalence of every runtime the constructor could deploy: for each well-typed
-    assignment of the immutables, `runtimeCodeOf` of it refines the spec run with it. -/
-def deployedRuntimeEquivalence (cfg : Config) (contract : ContractDecl)
-    (runtimeCodeOf : Store → ByteArray) : Prop :=
-  ∀ immutables, immutablesFit contract immutables = true →
-    runtimeEquivalence cfg (runtimeCodeOf immutables) contract
-      (restrictImmutables contract immutables)
-
-/-- `deployedRuntimeEquivalence` under a storage well-formedness precondition. -/
-def deployedRuntimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (contract : ContractDecl)
-    (runtimeCodeOf : Store → ByteArray) : Prop :=
-  ∀ immutables, immutablesFit contract immutables = true →
-    runtimeEquivalenceWithWF wf cfg (runtimeCodeOf immutables) contract
-      (restrictImmutables contract immutables)
-
-/-- Without immutables the deployed runtime is `runtimeCode`, run with no immutables. -/
-theorem deployedRuntimeEquivalence.ofNoImmutables {cfg : Config} {runtimeCode : ByteArray}
-    {contract : ContractDecl} (himm : contract.immutables = [])
-    (h : runtimeEquivalence cfg runtimeCode contract) :
-    deployedRuntimeEquivalence cfg contract (fun _ => runtimeCode) := by
-  intro immutables _
-  rw [restrictImmutables_noImmutables himm]
-  exact h
-
-theorem deployedRuntimeEquivalenceWithWF.ofNoImmutables {wf : StorageWF} {cfg : Config}
-    {runtimeCode : ByteArray} {contract : ContractDecl} (himm : contract.immutables = [])
-    (h : runtimeEquivalenceWithWF wf cfg runtimeCode contract) :
-    deployedRuntimeEquivalenceWithWF wf cfg contract (fun _ => runtimeCode) := by
-  intro immutables _
-  rw [restrictImmutables_noImmutables himm]
-  exact h
+    constructorEquivalence cfg initcode contract runtimeCode
 
 -- Technically could give only initcode and derive runtime code from it, but lets be explicit.
 -- Note: right now we are only comparing code execution i.e. EVM.Ξ with solmExec.
@@ -395,123 +325,23 @@ theorem deployedRuntimeEquivalenceWithWF.ofNoImmutables {wf : StorageWF} {cfg : 
 -- If it were implemented however it would likely exactly mirror the EVM version except for calling solmExec
 -- instead of EVM.Ξ, so on the equivalence checking level it is uninteresting
 
-/-- Top-level contract equivalence.  The map `runtimeCodeOf` from immutable values to deployed
-    code is existentially quantified, so the spec is not tied to one encoding of immutables; it
-    must give the compiler's `runtimeCode` for the zero immutables (solc's runtime template has
-    zeros where the immutables go).  Contracts without immutables use `contractEquivalence.intro`. -/
-inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes)
-    (contract : ContractDecl) : Prop where
-  | mk (runtimeCodeOf : Store → ByteArray) :
-    runtimeCodeOf (initialImmutables contract) = runtimeCode →
-    constructorEquivalence cfg initcode contract runtimeCode runtimeCodeOf →
-    deployedRuntimeEquivalence cfg contract runtimeCodeOf →
+/-- Top-level contract equivalence, for a contract without immutables: the constructor returns
+    `runtimeCode`, which refines the spec.  (With immutables, the deployed code and the runtime
+    spec depend on the constructor's immutables; see `contractRefinement`.) -/
+inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalence cfg runtimeCode contract →
+    (noImmutables : contract.immutables = [] := by rfl) →
     contractEquivalence cfg initcode runtimeCode contract
 
 inductive contractEquivalenceWF (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
     (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
-  | mk (runtimeCodeOf : Store → ByteArray) :
-    runtimeCodeOf (initialImmutables contract) = runtimeCode →
-    constructorEquivalence cfg initcode contract runtimeCode runtimeCodeOf →
-    deployedRuntimeEquivalenceWithWF wf cfg contract runtimeCodeOf →
+  | intro :
+    constructorEquivalence cfg initcode contract runtimeCode →
+    runtimeEquivalenceWithWF wf cfg runtimeCode contract →
+    (noImmutables : contract.immutables = [] := by rfl) →
     contractEquivalenceWF wf cfg initcode runtimeCode contract
-
-/-- Contract equivalence for a contract without immutables: the constructor returns exactly
-    `runtimeCode`, which refines the spec. -/
-theorem contractEquivalence.intro {cfg : Config} {initcode runtimeCode : EVM.Bytes}
-    {contract : ContractDecl}
-    (hctor : constructorEquivalence cfg initcode contract runtimeCode)
-    (hrt : runtimeEquivalence cfg runtimeCode contract)
-    (himm : contract.immutables = [] := by rfl) :
-    contractEquivalence cfg initcode runtimeCode contract :=
-  .mk (fun _ => runtimeCode) rfl hctor (.ofNoImmutables himm hrt)
-
-theorem contractEquivalenceWF.intro {wf : StorageWF} {cfg : Config}
-    {initcode runtimeCode : EVM.Bytes} {contract : ContractDecl}
-    (hctor : constructorEquivalence cfg initcode contract runtimeCode)
-    (hrt : runtimeEquivalenceWithWF wf cfg runtimeCode contract)
-    (himm : contract.immutables = [] := by rfl) :
-    contractEquivalenceWF wf cfg initcode runtimeCode contract :=
-  .mk (fun _ => runtimeCode) rfl hctor (.ofNoImmutables himm hrt)
-
-/-- A successful EVM deployment at fixed inputs, returning runtime code `o` with final accounts
-    `σ'`, is matched by a successful Solm constructor run with the same final accounts, and `o`
-    satisfies `runtimeOk` for the immutables that run left. -/
-def deploymentRefines (cfg : Config) (contract : ContractDecl) (args : List Value)
-    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-    (I : Ethereum.ExecutionEnv) (σ' : Ethereum.AccountMap) (o : ByteArray)
-    (runtimeOk : ByteArray → Store → Prop) : Prop :=
-  ∃ solmFrame solmState ret,
-    solmCtorExec cfg contract args σ σ₀ g A I (.returned solmFrame solmState ret) ∧
-    σ' = solmState.accountMap ∧
-    runtimeOk o (restrictImmutables contract solmFrame.immutables)
-
-private theorem deployedRuntime?_runtimeOk {contract : ContractDecl}
-    {runtimeCodeOf : Store → ByteArray} {runtimeOk : ByteArray → Store → Prop}
-    (hrt : ∀ immutables, immutablesFit contract immutables = true →
-      runtimeOk (runtimeCodeOf immutables) (restrictImmutables contract immutables))
-    {immutables : Store} {o : ByteArray}
-    (h : deployedRuntime? contract runtimeCodeOf immutables = some o) :
-    runtimeOk o (restrictImmutables contract immutables) := by
-  unfold deployedRuntime? at h
-  split at h
-  · cases h; exact hrt _ (by assumption)
-  · cases h
-
-private theorem deploymentRefines_of_ctor {cfg : Config} {contract : ContractDecl}
-    {args : List Value} {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256}
-    {A : Ethereum.Substate} {I : Ethereum.ExecutionEnv} {runtimeCode : ByteArray}
-    {runtimeCodeOf : Store → ByteArray} {runtimeOk : ByteArray → Store → Prop}
-    (hrt : ∀ immutables, immutablesFit contract immutables = true →
-      runtimeOk (runtimeCodeOf immutables) (restrictImmutables contract immutables))
-    (hctor : constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode runtimeCodeOf)
-    {σ' : Ethereum.AccountMap} {g' : Ethereum.UInt256} {A' : Ethereum.Substate} {o : ByteArray}
-    (hΞ : Ethereum.EVM.Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
-    deploymentRefines cfg contract args σ σ₀ g A I σ' o runtimeOk := by
-  cases hctor with
-  | outOfGas hoog => rw [hΞ] at hoog; cases hoog
-  | execution hres hsolm hequiv =>
-      subst hres
-      cases hequiv with
-      | success hevm hsolmRes hσ hcode =>
-          rw [hΞ] at hevm; cases hevm; subst hsolmRes
-          exact ⟨_, _, _, hsolm, hσ, deployedRuntime?_runtimeOk hrt hcode⟩
-      | successVoidReturn hevm hsolmRes hσ hcode =>
-          rw [hΞ] at hevm; cases hevm; subst hsolmRes
-          exact ⟨_, _, _, hsolm, hσ, deployedRuntime?_runtimeOk hrt hcode⟩
-      | revert hevm _ => rw [hΞ] at hevm; cases hevm
-      | invalidHalt hevm _ => rw [hΞ] at hevm; cases hevm
-
-/-- **Deployment refinement.**  Whatever runtime code a successful deployment returns refines the
-    spec run with the immutables its constructor produced. -/
-theorem contractEquivalence.deployed_refines {cfg : Config} {initcode runtimeCode : EVM.Bytes}
-    {contract : ContractDecl} (h : contractEquivalence cfg initcode runtimeCode contract)
-    {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
-    {I : Ethereum.ExecutionEnv} {args : List Value} {deployedInitcode : ByteArray}
-    (hdeploy : cfg.selfDeployment initcode args = .some deployedInitcode)
-    (hcode : I.code = deployedInitcode) (hcalldata : I.calldata = .empty) (hperm : I.perm = true)
-    {σ' : Ethereum.AccountMap} {g' : Ethereum.UInt256} {A' : Ethereum.Substate} {o : ByteArray}
-    (hΞ : Ethereum.EVM.Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
-    deploymentRefines cfg contract args σ σ₀ g A I σ' o
-      (runtimeEquivalence cfg · contract ·) := by
-  obtain ⟨_, _, ⟨hctor⟩, hrt⟩ := h
-  exact deploymentRefines_of_ctor (runtimeOk := (runtimeEquivalence cfg · contract ·)) hrt
-    (hctor σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm) hΞ
-
-theorem contractEquivalenceWF.deployed_refines {wf : StorageWF} {cfg : Config}
-    {initcode runtimeCode : EVM.Bytes} {contract : ContractDecl}
-    (h : contractEquivalenceWF wf cfg initcode runtimeCode contract)
-    {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
-    {I : Ethereum.ExecutionEnv} {args : List Value} {deployedInitcode : ByteArray}
-    (hdeploy : cfg.selfDeployment initcode args = .some deployedInitcode)
-    (hcode : I.code = deployedInitcode) (hcalldata : I.calldata = .empty) (hperm : I.perm = true)
-    {σ' : Ethereum.AccountMap} {g' : Ethereum.UInt256} {A' : Ethereum.Substate} {o : ByteArray}
-    (hΞ : Ethereum.EVM.Ξ σ σ₀ g A I = .ok (.success (σ', g', A') o)) :
-    deploymentRefines cfg contract args σ σ₀ g A I σ' o
-      (runtimeEquivalenceWithWF wf cfg · contract ·) := by
-  obtain ⟨_, _, ⟨hctor⟩, hrt⟩ := h
-  exact deploymentRefines_of_ctor (runtimeOk := (runtimeEquivalenceWithWF wf cfg · contract ·))
-    hrt
-    (hctor σ σ₀ g A I args deployedInitcode hdeploy hcode hcalldata hperm) hΞ
 
 /-! ## Legacy: immutables as constructor locals
 

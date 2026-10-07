@@ -458,12 +458,12 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
       match comps, steps with
       | cs, [] =>
           if let some v := envVarOf? cs then return ← mkEnvVar v
-          else if let [x] := cs then
-            if env.isImmutable x then return ← `(Solm.Expr.immutable $(quote x))
-            else if env.isConstant x then return ← `(Solm.Expr.const $(quote x))
-            else Macro.throwErrorAt head s!"solm: unknown identifier '{x}'"
           else if cs == ["true"] then return ← `(Solm.Expr.boolLit true)
           else if cs == ["false"] then return ← `(Solm.Expr.boolLit false)
+          else if cs.length == 1 && env.isImmutable cs.head! then
+            return ← `(Solm.Expr.immutable $(quote cs.head!))
+          else if cs.length == 1 && env.isConstant cs.head! then
+            return ← `(Solm.Expr.const $(quote cs.head!))
           else Macro.throwErrorAt head s!"solm: unknown identifier '{".".intercalate cs}'"
       | _, _ => Macro.throwErrorAt stx "solm: cannot resolve path"
   match stx with

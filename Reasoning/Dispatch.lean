@@ -261,6 +261,7 @@ namespace Reasoning.Reach
     `reEquivElim`, and the Solm side is dispatched abstractly into `noDispatch` / `decodingFailed` /
     `execution`-with-revert.  Each example's `callvalue ≠ 0` branch is a single call to this. -/
 theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transition : TransitionDecl}
+    {immutables : Store}
     {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     (hcode : I.code = code)
     (hfallback : contract.fallback = none := by rfl)
@@ -268,10 +269,10 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
     (h : RDrev code g (initState σ σ₀ g A I))
     (hbody : ∀ callargs, ExecTransitionBody cfg contract
               (initState σ σ₀ g A I)
-              callargs transition.body .reverted)
+              callargs transition.body .reverted immutables)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
+      g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     by_cases hdisp : dispatchMsg contract I.calldata = none
     · exact reEquiv_noDispatch hdisp hrev
@@ -287,6 +288,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
 /-- Successful execution with a possibly changed account map. The EVM result map and the Solm
     post-state map must be equal as extensional `ExtTreeMap`s. -/
 theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
+    {immutables : Store}
     {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
@@ -298,13 +300,13 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState σ σ₀ g A I) callargs t.body
-              (.returned cs evm'' retVal))
+              (.returned cs evm'' retVal) immutables)
     (hAccounts : acc = evm''.accountMap)
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I := by
+      g.toUInt256 A I immutables := by
   rcases h with hoog | ⟨s, hX, hsacc⟩
   · exact reEquiv_outOfGas (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
@@ -315,7 +317,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
     have hbody' :
         ExecTransitionBody cfg contract
           (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
-          callargs t.body (.returned cs evm'' retVal) := by
+          callargs t.body (.returned cs evm'' retVal) immutables := by
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
     refine reEquiv_execution hd hdec hbody' ?_ hfallback hreceive
     rw [hxi]
@@ -328,6 +330,7 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
     `retVal` leaving the EVM state at `initState`, and `henc` relates `o` to that return value.
     The non-mutating special case of `RDret.reEquivExecutionGen` (`evm'' = initState …`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {immutables : Store}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
     (hcode : I.code = code)
@@ -337,12 +340,12 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState σ σ₀ g A I) callargs t.body
-              (.returned cs (initState σ σ₀ g A I) retVal))
+              (.returned cs (initState σ σ₀ g A I) retVal) immutables)
     (henc : returnEquiv o retVal t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
+      g.toUInt256 A I immutables :=
   h.reEquivExecutionGen hcode hd hdec hbody
     (by simp [initState]) henc hfallback hreceive
 
@@ -351,6 +354,7 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     `hval : rvSolm = rvEvm`, so the body can be passed with its natural return expression
     without restating it using `rvEvm`. -/
 theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {immutables : Store}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs rvSolm rvEvm}
     (hcode : I.code = code)
@@ -360,18 +364,19 @@ theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl}
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
               (initState σ σ₀ g A I) callargs t.body
-              (.returned cs (initState σ σ₀ g A I) rvSolm))
+              (.returned cs (initState σ σ₀ g A I) rvSolm) immutables)
     (hval : rvSolm = rvEvm)
     (henc : returnEquiv o rvEvm t.returnType)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I := by
+      g.toUInt256 A I immutables := by
   subst rvEvm
   exact h.reEquivExecution hcode hd hdec hbody henc hfallback hreceive
 
 /-- `RDrev ⇒ execution` (revert): the run reverts and the dispatched Solm body reverts too. -/
 theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
+    {immutables : Store}
     {σ σ₀ A I} {g : Sat256} {code : ByteArray}
     {callargs}
     (hcode : I.code = code)
@@ -380,11 +385,11 @@ theorem RDrev.reEquivExecutionRevert {cfg : Config} {contract : ContractDecl} {t
     (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
               (transitionSignature t).paramTypes I.calldata = some callargs)
     (hbody : ExecTransitionBody cfg contract
-              (initState σ σ₀ g A I) callargs t.body .reverted)
+              (initState σ σ₀ g A I) callargs t.body .reverted immutables)
     (hfallback : contract.fallback = none := by rfl)
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
+      g.toUInt256 A I immutables :=
   h.reEquivElim hcode fun _ _ hrev => by
     refine reEquiv_execution hd hdec hbody ?_ hfallback hreceive
     rw [hrev]; exact execResultsEquiv.revert rfl rfl
