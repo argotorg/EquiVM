@@ -3,6 +3,7 @@ import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
+open Reasoning.Immutables (wordsOf)
 
 namespace TinyImmutable
 
@@ -41,12 +42,12 @@ theorem tinyOwnerX {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
   have rd106 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨106⟩
       [EVM.Word.ofNat (↑v.owner : Nat), ⟨106⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 5) (C + 18) := by
-    have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+    have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
         (UInt256.ofNat 106) = true := by
       exact tinyContains106 v
-    have h := tinyImmutableBlocks.tinyImmutable_block_67 (immWords := immutableWords v)
+    have h := tinyImmutableBlocks.tinyImmutable_block_67 (immWords := wordsOf (immStore v))
       (by simp) hvalid rd67
-    simpa [tinyImmutableBlocks.tinyImmutable_block_67_stack, immutableWords,
+    simpa [tinyImmutableBlocks.tinyImmutable_block_67_stack, wordsOf_immStore_owner, wordsOf_immStore_scale,
       patchedRuntime] using h
   have hret := RD.tinyBlocksReturnAddress106 (v := v) (R := [solcSelectorWord I]) rd106
     (by simp only [List.length_singleton]; omega)

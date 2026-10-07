@@ -5,6 +5,7 @@ import Reasoning.Dispatch
 import Reasoning.Initcode
 import Reasoning.MemCascade
 import Reasoning.Solc
+import Reasoning.ImmutableWords
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Immutables
@@ -31,14 +32,6 @@ set_option maxRecDepth 10000
     tinyImmutableCreationBytecode.size = 634 := by
   native_decide +revert
 
-def runtimeWrites (v : TinyImmutables) : List (Nat × UInt256) :=
-  immutableLayout.writes (immutableWords v)
-
-def patchedRuntime (v : TinyImmutables) : ByteArray :=
-  immutableLayout.runtime tinyImmutableBytecode (immutableWords v)
-
-abbrev tinyFirstArmPc : UInt256 := ⟨30⟩
-
 /-- The immutables a contract deployed with `v` runs with. -/
 def immStore (v : TinyImmutables) : Store :=
   ((∅ : Store).insert "owner" (.address v.owner)).insert "scale" (.int (Int.ofNat v.scale.toNat))
@@ -50,6 +43,23 @@ def immStore (v : TinyImmutables) : Store :=
 @[simp] theorem immStore_get_scale (v : TinyImmutables) :
     (immStore v).get? "scale" = some (.int (Int.ofNat v.scale.toNat)) := by
   grind [immStore]
+
+@[simp] theorem wordsOf_immStore_owner (v : TinyImmutables) :
+    wordsOf (immStore v) "owner" = EVM.Word.ofNat (↑v.owner : Nat) :=
+  wordsOf_of_get (immStore_get_owner v) rfl
+
+@[simp] theorem wordsOf_immStore_scale (v : TinyImmutables) :
+    wordsOf (immStore v) "scale" = EVM.wordOfInt (Int.ofNat v.scale.toNat) :=
+  wordsOf_of_get (immStore_get_scale v) rfl
+
+def runtimeWrites (v : TinyImmutables) : List (Nat × UInt256) :=
+  immutableLayout.writes (wordsOf (immStore v))
+
+/-- The runtime deployed with the immutables `v`. -/
+def patchedRuntime (v : TinyImmutables) : ByteArray :=
+  immutableLayout.deployed tinyImmutableBytecode (immStore v)
+
+abbrev tinyFirstArmPc : UInt256 := ⟨30⟩
 
 theorem evalImmutable_owner (cfg : Config) (C : ContractDecl) (locals : Store) (evm : EVM.State)
     (v : TinyImmutables) :
@@ -63,22 +73,14 @@ theorem evalImmutable_scale (cfg : Config) (C : ContractDecl) (locals : Store) (
       (.immutable "scale") = .ok (.int (Int.ofNat v.scale.toNat)) := by
   simp only [evalExpr?, immStore_get_scale, EvalResult.ofOption]
 
-/-- The valuation an immutables store holds (zero for a missing or ill-typed entry). -/
-def immsOf (imms : Store) : TinyImmutables :=
-  { owner := match imms.get? "owner" with
-      | some (.address a) => a
-      | _ => AccountAddress.ofNat 0
-    scale := match imms.get? "scale" with
-      | some (.int i) => EVM.word i.toNat
-      | _ => ⟨0⟩ }
+/-- Every patch site is a declared immutable. -/
+theorem immutableLayout_keys :
+    ∀ site ∈ immutableLayout.sites, site.2.2 ∈ contract.immutables.map (·.name) := by
+  decide
 
-/-- The runtime code deployed for an immutables store: solc's template, patched. -/
-def deployedRuntime (imms : Store) : ByteArray :=
-  patchedRuntime (immsOf imms)
-
-/-- A well-typed immutables store runs as the store of the valuation it holds. -/
+/-- A well-typed immutables store runs as the store of some valuation. -/
 theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imms) :
-    restrictImmutables contract imms = immStore (immsOf imms) := by
+    ∃ v, restrictImmutables contract imms = immStore v := by
   obtain ⟨vo, hvo, hfo⟩ := h ⟨"owner", .address⟩ (by simp [contract])
   obtain ⟨vs, hvs, hfs⟩ := h ⟨"scale", .int uint256Int⟩ (by simp [contract])
   simp only at hvo hvs
@@ -88,7 +90,8 @@ theorem restrictImmutables_of_fit {imms : Store} (h : immutablesFit contract imm
   have hword : (EVM.word i.toNat).toNat = i.toNat :=
     constructorUInt256Word_toNat i hfs.1 (by simpa [EVM.twoPow] using hfs.2)
   have hi : Int.ofNat i.toNat = i := Int.toNat_of_nonneg hfs.1
-  simp only [restrictImmutables, contract, List.foldl, immStore, immsOf, hvo, hvs, hword, hi]
+  exact ⟨⟨a, EVM.word i.toNat⟩,
+    by simp only [restrictImmutables, contract, List.foldl, immStore, hvo, hvs, hword, hi]⟩
 
 theorem ownerSelBytes_size : ownerSelBytes.size = 4 := rfl
 theorem quoteSelBytes_size : quoteSelBytes.size = 4 := rfl
@@ -105,128 +108,8 @@ theorem accountAddress_ofNat_val (a : AccountAddress) :
     AccountAddress.ofNat (↑a : Nat) = a :=
   accountAddress_ofNat_toNat a
 
-theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat) (w : UInt256)
-    (h : off + 32 ≤ mem.size) :
-    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
-  unfold spliceBytes? Reasoning.Theory.writeWord
-  rw [toByteArray_size, if_pos h]
-  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
-  rw [toByteArray_extract_all]
-
-theorem patchRuntime_eq_patchedRuntime (v : TinyImmutables) :
-    patchRuntime tinyImmutableBytecode (patches v) = some (patchedRuntime v) := by
-  simp [patchedRuntime, patchRuntime, patches, patchesFrom, offsets, immutableReferences,
-    immutableLayout, Reasoning.Immutables.Layout.runtime, Reasoning.Immutables.Layout.writes,
-    immutableWords, immValues, wordBytes?, valueToWord, List.lookup_cons]
-  rw [spliceBytes_toByteArray_eq_writeWord tinyImmutableBytecode 186]
-  · simp
-    have hgap186 : 186 - tinyImmutableBytecode.size < USize.size := by
-      rw [tinyImmutableBytecode_size]
-      norm_num
-    have hsize186 :
-        (writeWord tinyImmutableBytecode 186
-          (EVM.wordOfInt (Int.ofNat v.scale.toNat))).size = 432 := by
-      rw [writeWord_size _ _ _ hgap186]
-      rw [tinyImmutableBytecode_size]
-      norm_num
-    have h361 := spliceBytes_toByteArray_eq_writeWord
-      (writeWord tinyImmutableBytecode 186 (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-      (EVM.wordOfInt (Int.ofNat v.scale.toNat))
-      (by rw [hsize186]; norm_num)
-    cases hsp361 : spliceBytes?
-        (writeWord tinyImmutableBytecode 186 (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-        (UInt256.toByteArray (EVM.wordOfInt (Int.ofNat v.scale.toNat))) with
-    | none =>
-        rw [hsp361] at h361
-        cases h361
-    | some p361 =>
-        rw [hsp361] at h361
-        cases h361
-        dsimp [Option.bind]
-        have hgap361 :
-            361 - (writeWord tinyImmutableBytecode 186
-              (EVM.wordOfInt (Int.ofNat v.scale.toNat))).size < USize.size := by
-          rw [hsize186]
-          norm_num
-        have hsize361 :
-            (writeWord
-              (writeWord tinyImmutableBytecode 186
-                (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-              (EVM.wordOfInt (Int.ofNat v.scale.toNat))).size = 432 := by
-          rw [writeWord_size _ _ _ hgap361]
-          rw [hsize186]
-          norm_num
-        have h72 := spliceBytes_toByteArray_eq_writeWord
-          (writeWord
-            (writeWord tinyImmutableBytecode 186 (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-            (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 72
-          (EVM.Word.ofNat (↑v.owner : Nat))
-          (by rw [hsize361]; norm_num)
-        cases hsp72 : spliceBytes?
-            (writeWord
-              (writeWord tinyImmutableBytecode 186 (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-              (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 72
-            (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) with
-        | none =>
-            rw [hsp72] at h72
-            cases h72
-        | some p72 =>
-            rw [hsp72] at h72
-            cases h72
-            dsimp [Option.bind]
-            have hgap72 :
-                72 - (writeWord
-                  (writeWord tinyImmutableBytecode 186
-                    (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-                  (EVM.wordOfInt (Int.ofNat v.scale.toNat))).size < USize.size := by
-              rw [hsize361]
-              norm_num
-            have hsize72 :
-                (writeWord
-                  (writeWord
-                    (writeWord tinyImmutableBytecode 186
-                      (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-                    (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 72
-                  (EVM.Word.ofNat (↑v.owner : Nat))).size = 432 := by
-              rw [writeWord_size _ _ _ hgap72]
-              rw [hsize361]
-              norm_num
-            have h245 := spliceBytes_toByteArray_eq_writeWord
-              (writeWord
-                (writeWord
-                  (writeWord tinyImmutableBytecode 186
-                    (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-                  (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 72
-                (EVM.Word.ofNat (↑v.owner : Nat))) 245
-              (EVM.Word.ofNat (↑v.owner : Nat))
-              (by rw [hsize72]; norm_num)
-            cases hsp245 : spliceBytes?
-                (writeWord
-                  (writeWord
-                    (writeWord tinyImmutableBytecode 186
-                      (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 361
-                    (EVM.wordOfInt (Int.ofNat v.scale.toNat))) 72
-                  (EVM.Word.ofNat (↑v.owner : Nat))) 245
-                (UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat))) with
-            | none =>
-                rw [hsp245] at h245
-                cases h245
-            | some p245 =>
-                rw [hsp245] at h245
-                cases h245
-                rfl
-  · rw [tinyImmutableBytecode_size]
-    norm_num
-
-theorem code_eq_patchedRuntime_of_patch {v : TinyImmutables} {code : ByteArray}
-    (hcode : patchRuntime tinyImmutableBytecode (patches v) = some code) :
-    code = patchedRuntime v := by
-  rw [patchRuntime_eq_patchedRuntime] at hcode
-  cases hcode
-  rfl
-
 theorem patchedRuntime_size (v : TinyImmutables) : (patchedRuntime v).size = 432 := by
-  unfold patchedRuntime
+  unfold patchedRuntime Layout.deployed
   exact writeCascade_size_of_base tinyImmutableBytecode (runtimeWrites v) (base := 432) (out := 432)
     (by native_decide)
     (by simp [runtimeWrites, Layout.writes, immutableLayout, immutableReferences, WriteGapsOk])
@@ -250,7 +133,7 @@ theorem patchedRuntime_extract_preserved_len (v : TinyImmutables) (read len : Na
     (hpos : 0 < len) (hlen64 : len < 2 ^ 64) (hin : read + len ≤ 432) :
     (patchedRuntime v).extract read (read + len) =
       tinyImmutableBytecode.extract read (read + len) := by
-  unfold patchedRuntime
+  unfold patchedRuntime Layout.deployed
   exact writeCascade_extract_preserved_len tinyImmutableBytecode (runtimeWrites v) read len
     (by simpa [tinyImmutableBytecode_size] using hwin) hpos hlen64
     (by change read + len ≤ (patchedRuntime v).size; rw [patchedRuntime_size v]; exact hin)

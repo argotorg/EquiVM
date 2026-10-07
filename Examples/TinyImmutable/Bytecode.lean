@@ -17,7 +17,7 @@ solc --standard-json
 Settings: Solidity 0.8.35, optimizer enabled, optimizer runs = 800, EVM version = Shanghai,
 metadata bytecode hash disabled. The deployed runtime bytecode below is 432 bytes. The
 creation bytecode is 634 bytes. The runtime is solc's immutable template, with zero words at
-the offsets in `TinyImmutable.Immutables.offsets`.
+the offsets in `TinyImmutable.Immutables.immutableReferences`.
 -/
 
 def tinyImmutableBytecode : ByteArray :=

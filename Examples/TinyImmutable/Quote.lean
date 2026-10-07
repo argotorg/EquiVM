@@ -3,6 +3,7 @@ import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
+open Reasoning.Immutables (wordsOf)
 
 namespace TinyImmutable
 
@@ -113,10 +114,10 @@ theorem tinyQuoteX_toDecoder {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨162⟩, ⟨167⟩, solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd148⟩ := hreach
-  have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 396) = true := by
     exact tinyContains396 v
-  have h := tinyImmutableBlocks.tinyImmutable_block_148 (immWords := immutableWords v)
+  have h := tinyImmutableBlocks.tinyImmutable_block_148 (immWords := wordsOf (immStore v))
     (by simp) hvalid rd148
   exact ⟨k + 7, C + 23, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_148_stack,
@@ -136,27 +137,27 @@ theorem tinyQuoteX_decoded {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
-  have hvalid412 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid412 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 412) = true := by
     exact tinyContains412 v
-  have hvalid162 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid162 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 162) = true := by
     exact tinyContains162 v
-  have hvalid220 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid220 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 220) = true := by
     exact tinyContains220 v
   have rd412 := tinyImmutableBlocks.tinyImmutable_block_396_taken
-    (immWords := immutableWords v) (by simp) (by
+    (immWords := wordsOf (immStore v)) (by simp) (by
       change UInt256.isZero (UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size)
         ⟨4⟩) ⟨32⟩) ≠ ⟨0⟩
       rw [hslt]
       decide) hvalid412 rd396
   have rd162 := tinyImmutableBlocks.tinyImmutable_block_412
-    (immWords := immutableWords v)
+    (immWords := wordsOf (immStore v))
     (by simp [tinyImmutableBlocks.tinyImmutable_block_396_taken_stack])
     hvalid162 rd412
   have rd220 := tinyImmutableBlocks.tinyImmutable_block_162
-    (immWords := immutableWords v)
+    (immWords := wordsOf (immStore v))
     (by simp [tinyImmutableBlocks.tinyImmutable_block_412_stack]) hvalid220 rd162
   exact ⟨_, _, by
     simpa [tinyImmutableBlocks.tinyImmutable_block_396_taken_stack,
@@ -172,13 +173,13 @@ theorem tinyQuoteX_decodeRevert {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd396⟩ := tinyQuoteX_toDecoder (v := v) hreach
   have rd409 := tinyImmutableBlocks.tinyImmutable_block_396_fallthrough
-    (immWords := immutableWords v) (by simp)
+    (immWords := wordsOf (immStore v)) (by simp)
     (by
       change UInt256.isZero (UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size)
         ⟨4⟩) ⟨32⟩) = ⟨0⟩
       rw [hslt]
       decide) rd396
-  have hrev := tinyImmutableBlocks.tinyImmutable_block_409 (immWords := immutableWords v)
+  have hrev := tinyImmutableBlocks.tinyImmutable_block_409 (immWords := wordsOf (immStore v))
     (by simp [tinyImmutableBlocks.tinyImmutable_block_396_fallthrough_stack]) rd409
   simpa using hrev
 
@@ -221,26 +222,27 @@ theorem tinyQuoteX_success {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       (solcSourceWord I) = ⟨1⟩ := by
     rw [tinyOwnerWord_eq_source_of_caller hcaller]
     exact u256_eq_refl (solcSourceWord I)
-  have hvalid358 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid358 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 358) = true := by
     exact tinyContains358 v
   have rd358 := tinyImmutableBlocks.tinyImmutable_block_220_taken
-    (immWords := immutableWords v) (by simp) (by
+    (immWords := wordsOf (immStore v)) (by simp) (by
+      rw [wordsOf_immStore_owner]
       change UInt256.eq (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
         (solcSourceWord I) ≠ ⟨0⟩
       rw [heq]
       decide) hvalid358 rd220
-  have hvalid167 : (D_J (immutableLayout.runtime tinyImmutableBytecode (immutableWords v)) 0).contains
+  have hvalid167 : (D_J (immutableLayout.runtime tinyImmutableBytecode (wordsOf (immStore v))) 0).contains
       (UInt256.ofNat 167) = true := by
     exact tinyContains167 v
-  have rd167' := tinyImmutableBlocks.tinyImmutable_block_358 (immWords := immutableWords v)
+  have rd167' := tinyImmutableBlocks.tinyImmutable_block_358 (immWords := wordsOf (immStore v))
     (by simp) hvalid167 rd358
   have rd167 : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨167⟩
       [EVM.wordOfInt (Int.ofNat v.scale.toNat) * calldataWord I.calldata 4,
         solcSelectorWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ (k + 9 + 6) (C + 30 + 22) := by
     simpa [tinyImmutableBlocks.tinyImmutable_block_358_stack,
-      tinyImmutableBlocks.tinyImmutable_block_220_taken_stack, immutableWords,
+      tinyImmutableBlocks.tinyImmutable_block_220_taken_stack, wordsOf_immStore_owner, wordsOf_immStore_scale,
       patchedRuntime] using rd167'
   have hret := RD.tinyBlocksReturnWord167 (v := v) (R := [solcSelectorWord I]) rd167
     (by simp)
@@ -264,11 +266,12 @@ theorem tinyQuoteX_unauthorized {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       (solcSourceWord I) = ⟨0⟩ := by
     exact u256_eq_of_ne (tinyOwnerWord_ne_source_of_caller_ne hcaller)
   have rd283 := tinyImmutableBlocks.tinyImmutable_block_220_fallthrough
-    (immWords := immutableWords v) (by simp) (by
+    (immWords := wordsOf (immStore v)) (by simp) (by
+      rw [wordsOf_immStore_owner]
       change UInt256.eq (UInt256.land (EVM.Word.ofNat (↑v.owner : Nat)) solcAddrMask)
         (solcSourceWord I) = ⟨0⟩
       exact heq) rd220
-  have hrev := tinyImmutableBlocks.tinyImmutable_block_283 (immWords := immutableWords v)
+  have hrev := tinyImmutableBlocks.tinyImmutable_block_283 (immWords := wordsOf (immStore v))
     (by simp [tinyImmutableBlocks.tinyImmutable_block_220_fallthrough_stack]) rd283
   simpa using hrev
 

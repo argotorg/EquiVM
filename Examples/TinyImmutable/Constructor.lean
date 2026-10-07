@@ -8,11 +8,12 @@ import Solm.Refine
 The constructor has two source paths for `scale`: one assigns `_scale`, and the other leaves the
 immutable at its zero value. The constructor returns a runtime whose bytes depend on the final
 `owner` and `scale`; `typedConstructorRefinement` checks that the EVM-returned runtime is
-`deployedRuntime` of the Solm constructor's final immutables, and that those are well typed.
+`immutableLayout.deployed` of the Solm constructor's final immutables, and that those are well typed.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open TinyImmutable.Immutables
+open Reasoning.Immutables (wordsOf wordsOf_of_get)
 
 namespace TinyImmutable
 
@@ -505,9 +506,11 @@ theorem tinyCtorRuntime_codecopy_mem (owner : AccountAddress) (scale : UInt256)
 
 theorem tinyCtorPatchedRuntime_eq_patchedRuntime (owner : AccountAddress) (scale : UInt256) :
     tinyCtorPatchedRuntime owner scale = patchedRuntime { owner := owner, scale := scale } := by
-  simp only [tinyCtorPatchedRuntime, patchedRuntime, Reasoning.Immutables.Layout.runtime,
-    Reasoning.Immutables.Layout.writes, immutableLayout, immutableReferences, immutableWords,
-    wordOfInt_ofNat_toNat]
+  simp only [tinyCtorPatchedRuntime, patchedRuntime, Reasoning.Immutables.Layout.deployed,
+    Reasoning.Immutables.Layout.runtime, Reasoning.Immutables.Layout.writes, immutableLayout,
+    immutableReferences, List.flatMap_cons, List.flatMap_nil, List.map_cons, List.map_nil,
+    List.cons_append, List.nil_append, List.append_nil, wordsOf_immStore_owner,
+    wordsOf_immStore_scale, wordOfInt_ofNat_toNat]
   rfl
 
 theorem tinyCtorPatchedRuntime_read (owner : AccountAddress) (scale : UInt256) :
@@ -691,15 +694,40 @@ theorem tinyCtorFinalImms_fit (owner : AccountAddress) (scaleInt : Int) (useScal
     · exact ⟨_, tinyCtorFinalImms_get_scale_true owner scaleInt,
         by simp [elemValueFits, uint256Int, h0]; exact lt_of_lt_of_eq hlt' (by norm_num)⟩
 
-theorem tinyCtorFinalImms_true (owner : AccountAddress) (scaleInt : Int) :
-    immsOf (tinyCtorFinalImms owner scaleInt true) =
-      { owner := owner, scale := EVM.word scaleInt.toNat } := by
-  simp only [immsOf, tinyCtorFinalImms_get_owner, tinyCtorFinalImms_get_scale_true]
+/-- The runtime deployed for `imms` is `patchedRuntime v` when they agree on every word. -/
+theorem deployed_eq_patchedRuntime {imms : Store} {v : TinyImmutables}
+    (ho : wordsOf imms "owner" = wordsOf (immStore v) "owner")
+    (hs : wordsOf imms "scale" = wordsOf (immStore v) "scale") :
+    immutableLayout.deployed tinyImmutableBytecode imms = patchedRuntime v := by
+  unfold patchedRuntime Reasoning.Immutables.Layout.deployed
+  refine Reasoning.Immutables.Layout.runtime_congr fun site hsite => ?_
+  have hk := immutableLayout_keys site hsite
+  simp only [contract, List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil,
+    or_false] at hk
+  rcases hk with h | h <;> rw [h] <;> assumption
 
-theorem tinyCtorFinalImms_false (owner : AccountAddress) (scaleInt : Int) :
-    immsOf (tinyCtorFinalImms owner scaleInt false) = { owner := owner, scale := ⟨0⟩ } := by
-  simp only [immsOf, tinyCtorFinalImms_get_owner, tinyCtorFinalImms_get_scale_false]
-  rfl
+theorem tinyCtorFinalImms_deployed_true (owner : AccountAddress) (scaleInt : Int)
+    (h0 : 0 ≤ scaleInt) (hlt : scaleInt < Int.ofNat (EVM.twoPow 256)) :
+    immutableLayout.deployed tinyImmutableBytecode (tinyCtorFinalImms owner scaleInt true) =
+      patchedRuntime { owner := owner, scale := EVM.word scaleInt.toNat } := by
+  refine deployed_eq_patchedRuntime ?_ ?_
+  · rw [wordsOf_of_get (tinyCtorFinalImms_get_owner owner scaleInt true) rfl,
+      wordsOf_immStore_owner]
+    rfl
+  · rw [wordsOf_of_get (tinyCtorFinalImms_get_scale_true owner scaleInt) rfl,
+      wordsOf_immStore_scale, constructorUInt256Word_toNat scaleInt h0 hlt,
+      Int.ofNat_eq_natCast, Int.toNat_of_nonneg h0]
+
+theorem tinyCtorFinalImms_deployed_false (owner : AccountAddress) (scaleInt : Int) :
+    immutableLayout.deployed tinyImmutableBytecode (tinyCtorFinalImms owner scaleInt false) =
+      patchedRuntime { owner := owner, scale := ⟨0⟩ } := by
+  refine deployed_eq_patchedRuntime ?_ ?_
+  · rw [wordsOf_of_get (tinyCtorFinalImms_get_owner owner scaleInt false) rfl,
+      wordsOf_immStore_owner]
+    rfl
+  · rw [wordsOf_of_get (tinyCtorFinalImms_get_scale_false owner scaleInt) rfl,
+      wordsOf_immStore_scale]
+    rfl
 
 theorem tinyCtorBodyReturns (evm : EVM.State)
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
@@ -1119,7 +1147,8 @@ theorem tinyCtorInitcodeNonpayableRevert
     (by simp)
 
 theorem tinyImmutableConstructorCorrect :
-    typedConstructorRefinement config tinyImmutableCreationBytecode contract deployedRuntime := by
+    typedConstructorRefinement config tinyImmutableCreationBytecode contract
+      (immutableLayout.deployed tinyImmutableBytecode) := by
   intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata _hperm
   rcases tinyCtorDeployment_shape hdeploy with
     ⟨owner, scaleInt, useScale, hargs, h0, hlt, hdeployed⟩
@@ -1140,7 +1169,7 @@ theorem tinyImmutableConstructorCorrect :
             owner scaleInt false h0 hlt hwv)
           (ctorResultEquiv.success rfl rfl rfl ?_)
           (tinyCtorFinalImms_fit owner scaleInt false h0 hlt)
-        simp [deployedRuntime, tinyCtorFinalImms_false]
+        exact (tinyCtorFinalImms_deployed_false owner scaleInt).symm
     · have hcodeCtor :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) true := by
         simpa [tinyCtorCode] using hcode
@@ -1154,7 +1183,7 @@ theorem tinyImmutableConstructorCorrect :
             owner scaleInt true h0 hlt hwv)
           (ctorResultEquiv.success rfl rfl rfl ?_)
           (tinyCtorFinalImms_fit owner scaleInt true h0 hlt)
-        simp [deployedRuntime, tinyCtorFinalImms_true]
+        exact (tinyCtorFinalImms_deployed_true owner scaleInt h0 hlt).symm
   · have hrd := tinyCtorInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g)

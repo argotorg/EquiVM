@@ -10,8 +10,9 @@ import Solm.Refine
 # TinyImmutable correctness
 
 The contract refines its spec in the immutable-aware sense (`contractRefinement`): every
-deployment returns solc's runtime template patched with the immutables the constructor set, and
-that code refines the spec run with those immutables.  The runtime half is proved for every
+deployment returns solc's runtime template patched with the words of the immutables the
+constructor set (`immutableLayout.deployed`), and that code refines the spec run with those
+immutables.  The runtime half is proved for every
 valuation `v` (`tinyImmutableCorrect`); the constructor passes on that its immutables are well
 typed (`immutablesFit`).
 -/
@@ -77,10 +78,11 @@ theorem tinyImmutableCorrect (v : TinyImmutables) :
   · exact tinyNonPayable v hIcode hwv
 
 theorem tinyImmutableRuntimeCorrect (imms : Store) (hfit : immutablesFit contract imms) :
-    runtimeRefinement config (deployedRuntime imms) contract
+    runtimeRefinement config (immutableLayout.deployed tinyImmutableBytecode imms) contract
       (restrictImmutables contract imms) := by
-  rw [restrictImmutables_of_fit hfit]
-  exact tinyImmutableCorrect (immsOf imms)
+  obtain ⟨v, hv⟩ := restrictImmutables_of_fit hfit
+  rw [← Reasoning.Immutables.Layout.deployed_restrict immutableLayout_keys, hv]
+  exact tinyImmutableCorrect v
 
 theorem tinyImmutableContractCorrect :
     contractRefinement config tinyImmutableCreationBytecode contract :=
