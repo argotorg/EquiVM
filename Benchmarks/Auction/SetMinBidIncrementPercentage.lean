@@ -31,7 +31,7 @@ theorem setMinBidBody (evm : EVM.State) (value : UInt256)
   · simp [evalExpr?, EvalResult.ofOption]
   · exact scalarWrite evm _ _ "minBidIncrementPercentage" (.elem (.int (.uint ⟨8, by decide⟩)))
       (auctionUint8LocAt ⟨205⟩ 0) _ (by simp) (by native_decide) rfl
-      (by trivial) (storageLocStore_uint8 evm ⟨205⟩ value hc)
+      (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint8 evm ⟨205⟩ value hc)
 
 theorem setMinBidStore {I g s0 value ret R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨1003⟩ (value :: ret :: R)

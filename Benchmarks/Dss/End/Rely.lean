@@ -105,7 +105,7 @@ theorem evalExpr_endRely_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endRelyStore I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endRelyStore I })
       (slot := wardsRef sender)
@@ -135,7 +135,7 @@ theorem evalExpr_endRely_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (endRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endRelyStore I })
       (slot := wardsRef sender)
@@ -173,9 +173,9 @@ theorem endRelyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := endRelyStore I } evm
       .storage (wardsRef (.var "usr")) (.int 1) =
         .ok ({ contract := contract, locals := endRelyStore I }, endRelyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endRelyUsrStorageSlot I))
+      (loc := wordLoc (endRelyUsrStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := endRelyStore_wards I)
       (her := evalStorageRef_endRely_usr evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

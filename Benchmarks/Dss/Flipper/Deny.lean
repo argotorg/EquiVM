@@ -112,14 +112,13 @@ theorem flipperDenyBodyCoreOk
         have hstore :
             storageLocStore evm0 (wordLoc (flipperUsrSlotFor I)) (.int 0) = some evm1 := by
           simpa [evm1] using flipperStorageLocStore_uint256 evm0 (flipperUsrSlotFor I) ⟨0⟩
-        exact assignStorageRef_storage_scalar
-          (ty := .elem (.int uint256Int)) (loc := wordLoc (flipperUsrSlotFor I))
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (ty := .elem (.int uint256Int)) (loc := wordLoc (flipperUsrSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
           (hbase := by simp [locals, flipperUsrStore, wardsRef])
           (her := her)
           (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               flipperUsrEvaledRef, flipperUsrSlotFor])
           (hstore := hstore)
       have hblock := nonpayableRequireAssignStorageBlock

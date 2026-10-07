@@ -1334,14 +1334,13 @@ theorem assign_vowCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm
       (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_vowCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -1349,7 +1348,7 @@ private theorem assign_vowCtorAddressStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -1369,13 +1368,13 @@ private theorem assign_vowCtorAddressStorage (evm : EVM.State) (locals : Store)
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem assign_vowCtorVatStorage (evm : EVM.State) (locals : Store)
@@ -1391,8 +1390,7 @@ theorem assign_vowCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_vowCtorFlapperStorage (evm : EVM.State) (locals : Store)
     (flapper : AccountAddress) (hbase : locals.get? "flapper" = none) :
@@ -1408,8 +1406,7 @@ theorem assign_vowCtorFlapperStorage (evm : EVM.State) (locals : Store)
     (by simp [flapperRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_vowCtorFlopperStorage (evm : EVM.State) (locals : Store)
     (flopper : AccountAddress) (hbase : locals.get? "flopper" = none) :
@@ -1425,8 +1422,7 @@ theorem assign_vowCtorFlopperStorage (evm : EVM.State) (locals : Store)
     (by simp [flopperRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_vowCtorLiveStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "live" = none) :
@@ -1441,14 +1437,13 @@ theorem assign_vowCtorLiveStorage (evm : EVM.State) {locals : Store}
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   have hstore : storageLocStore evm (wordLoc ⟨12⟩) (.int 1) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨12⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨12⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨12⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 abbrev vowCtorVatAddressOf (evm : EVM.State) : AccountAddress :=
@@ -1460,14 +1455,14 @@ theorem evalExpr_vowCtorVatStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (vowCtorVatAddressOf evm)) := by
-  rw [evalExpr_storage_scalar (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨1⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 _ ⟨1⟩)
   · exact hbase
   · simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 theorem evalExpr_vowCtorVatCodeGuard_true {evm : EVM.State} {locals : Store}
     {target : AccountAddress}

@@ -30,9 +30,9 @@ theorem denyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := relyStore I } evm
       .storage (wardsRef (.var "guy")) (.int 0) =
         .ok ({ contract := contract, locals := relyStore I }, denyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (relyGuyStorageSlot I))
+      (loc := wordLoc (relyGuyStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := relyStore_wards I)
       (her := evalStorageRef_rely_guy evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

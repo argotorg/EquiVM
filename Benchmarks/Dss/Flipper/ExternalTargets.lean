@@ -138,7 +138,7 @@ theorem evalExpr_flipperStorageVatOfLocals {evm : EVM.State} {locals : Store}
     (hvat : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (flipperVatAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -155,7 +155,7 @@ theorem evalExpr_flipperStorageCatOfLocals {evm : EVM.State} {locals : Store}
     (hcat : locals.get? "cat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage catRef) =
       .ok (.address (flipperCatAddress evm.accountMap evm.executionEnv)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := catRef) (er := ({ base := "cat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨7⟩)

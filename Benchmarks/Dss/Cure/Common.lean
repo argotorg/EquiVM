@@ -141,20 +141,35 @@ theorem cureStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
+theorem cureSrcsLength (evm : EVM.State) :
+    solidityStorageLength? storageLayoutRaw { base := "srcs" } (.dynamicArray addrSt) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  have hloc : solidityAnchorWordLoc ⟨2⟩ = wordLoc ⟨2⟩ := rfl
+  simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
+    solidityAnchor?, storageLayoutRaw, hloc, Option.map_some,
+    EvalResult.ofOption, EvalResult.bind, bind]
+  rw [cureStorageLocLoad_uint256]
+  simp
+
+theorem cureSrcsDynamicLength (evm : EVM.State) :
+    solidityDynamicLength? storageLayoutRaw evm { base := "srcs" } =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat := by
+  simpa only [solidityStorageLength?] using cureSrcsLength evm
+
 theorem cureUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
     (h : evm.executionEnv.weiValue = ⟨0⟩)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm slot))
 
 theorem cureUint256GetterBodyCore

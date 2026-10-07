@@ -603,7 +603,7 @@ theorem evalExpr_yankIlk_ofLocals {evm : EVM.State} {locals : Store}
       (.storage ilkRef) =
         .ok (.fixedBytes bytes32Width
           (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .bytes bytes32Width)
     (er := ({ base := "ilk", steps := [] } : EvaledStorageRef))
     (loc := bytes32Loc ⟨3⟩)
@@ -612,8 +612,7 @@ theorem evalExpr_yankIlk_ofLocals {evm : EVM.State} {locals : Store}
       simp [evalStorageRef, evalStorageRefSteps, ilkRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, ilkRef])]
   exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm ⟨3⟩)
 
 abbrev yankFluxArgValsOf (evm : EVM.State) (id : UInt256) : List Value :=

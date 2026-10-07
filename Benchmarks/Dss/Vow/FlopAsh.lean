@@ -39,14 +39,14 @@ theorem evalExpr_flopFlopperStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "flopper" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage flopperRef) =
       .ok (.address (flopFlopperAddressOf evm)) := by
-  rw [evalExpr_storage_scalar (er := ({ base := "flopper", steps := [] } : EvaledStorageRef))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "flopper", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨3⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 evm ⟨3⟩)
   · exact hbase
   · simp [flopperRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 abbrev flopDumpEvaledRef : EvaledStorageRef :=
   { base := "dump", steps := [] }
@@ -56,15 +56,15 @@ theorem evalExpr_flopDumpStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage dumpRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flopDumpEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flopDumpEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨8⟩)
   · exact hbase
   · simp [flopDumpEvaledRef, dumpRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flopDumpEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flopDumpEvaledRef]
 
 -- LIBRARY CANDIDATE: generic source-side checked external-call code guard.
 theorem evalExpr_extCodeGuard_true {evm : EVM.State} {locals : Store}

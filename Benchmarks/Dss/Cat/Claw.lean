@@ -269,13 +269,12 @@ theorem catClawBodyCore
     have hlitterExpr :
         evalExpr? config { contract := contract, locals := clawLocals I } evm0 (.storage litterRef) =
           .ok (.int (Int.ofNat (solcSlotWord σ I ⟨6⟩).toNat)) := by
-      rw [evalExpr_storage_scalar (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
+      rw [evalExpr_storage_scalar (hbackend := rfl) (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
         (hbase := by simp [clawLocals, litterRef])
         (her := hlitterRef)
         (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
         (hloc := by
-          funext evm
-          simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+          simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
       rw [catStorageLocLoad_uint256]
       simp [evm0, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord]
@@ -352,15 +351,14 @@ theorem catClawBodyCore
                   (some [.int (Int.ofNat diff.toNat)])) evm0 litterRef =
                 .ok ({ base := "litter", steps := [] } : EvaledStorageRef) := by
             simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
-          exact assignStorageRef_storage_scalar
-            (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+          exact assignStorageRef_storage_scalar (hbackend := rfl)
+            (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
             (hbase := by simp [resumeAfterInternalCall, collapseReturns, clawLocals, litterRef])
             (her := hassignRef)
             (hty := by
               simp [storageTypeAt?, resumeAfterInternalCall, contract, storageDecls, uint256St])
             (hloc := by
-              funext evm
-              simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+              simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
             (hstore := hstore)
         have hblock :
             ExecBlock config { contract := contract, locals := clawLocals I } evm0

@@ -322,6 +322,15 @@ theorem dropStorageLocStore_uint256_pred (evm : EVM.State) (slot len : UInt256)
     List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
     List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
 
+theorem dropStorageLocStore_uint256_pred_nat (evm : EVM.State) (slot len : UInt256)
+    (hpos : 0 < len.toNat) :
+    storageLocStore evm (wordLoc slot) (.int (↑(len.toNat - 1) : Int)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.ofNat (len.toNat - 1))) := by
+  have hle : 1 ≤ len.toNat := by omega
+  rw [show (↑(len.toNat - 1) : Int) = Int.ofNat len.toNat - 1 from Nat.cast_sub hle]
+  exact dropStorageLocStore_uint256_pred evm slot len hpos
+
 theorem dropStorageLocStore_address_offset0_zero (evm : EVM.State) (slot : UInt256) :
     storageLocStore evm (addressOffset0Loc slot) (.int 0) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
@@ -394,7 +403,7 @@ theorem evalExpr_dropPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (posRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (dropPosSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := dropPosEvaledRef I) (t := .int uint256Int) (loc := wordLoc (dropPosSlotFor I))]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (dropPosSlotFor I))
   · simp [dropLocals, posRef]
@@ -402,8 +411,8 @@ theorem evalExpr_dropPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, dropLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       dropPosEvaledRef, dropPosSlotFor]
 
 theorem evalExpr_dropPosGtZero_false (evm : EVM.State) (I : ExecutionEnv)
@@ -488,16 +497,10 @@ theorem evalExpr_dropSrcsLength (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)) := by
   simp [evalExpr?, dropLocals, srcsRef, config, contract, storageDecls, storageLayout,
-    solidityStorageLayout, storageLayoutRaw, readStorageArrayLength?, resolveStorageRef?,
+    solidityStorageBackend, storageLayoutRaw, resolveStorageRef?,
     storageTypeAt?, evalStorageRef, evalStorageRefSteps, wordLoc, EvalResult.ofOption,
     EvalResult.bind, pure, bind]
-  change
-    (match storageLocLoad evm (wordLoc ⟨2⟩) with
-    | Value.int n => EvalResult.ok (Value.int n)
-    | _ => EvalResult.error EvalError.storageError) =
-      EvalResult.ok (Value.int ↑(Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
-  rw [cureStorageLocLoad_uint256]
-  rfl
+  rw [cureSrcsLength]
 
 theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
     {idx len : UInt256}
@@ -512,7 +515,7 @@ theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (dropSrcsSlotForIndex idx))
             solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (er := { base := "srcs", steps := [.aindex (.int (Int.ofNat idx.toNat))] })
     (t := .address) (loc := addrLoc (dropSrcsSlotForIndex idx))]
   · exact hbase
@@ -528,10 +531,9 @@ theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
         rfl]
       simp only [EvalResult.bind, bind, pure, valueToKey?, EvalResult.ofOption]
       simp [arrayIndexInBounds?, storageTypeAt?, storageTypeStep?, contract,
-        storageDecls, config, storageLayout, solidityStorageLayout, storageLayoutRaw]
-      rw [cureStorageLocLoad_uint256, hlen]
-      simp only [EvalResult.bind, bind, pure]
-      rw [if_pos (by exact Int.ofNat_lt.mpr hidxLt)]
+        storageDecls, config, storageLayout, solidityStorageBackend, storageLayoutRaw]
+      rw [cureSrcsLength, hlen]
+      simp [hidxLt]
     unfold evalStorageRef srcElemRef
     rw [show evalStorageRefSteps config { contract := contract, locals := locals } evm
         "srcs" [] [.aindex (.var "lastIndex")] =
@@ -539,8 +541,8 @@ theorem evalExpr_dropSrcElemStorage_lastIndex (evm : EVM.State) {locals : Store}
         simp only [evalStorageRefSteps, hstep, EvalResult.bind, bind, pure]]
     rfl
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, addrSt]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       dropSrcsSlotForIndex]
   · exact dropStorageLocLoad_addrLoc evm (dropSrcsSlotForIndex idx)
 
@@ -578,27 +580,22 @@ theorem dropPopArray_ok (evm : EVM.State) (locals : Store) (len : UInt256)
       .ok (dropAfterPopState evm len) := by
   unfold popArray? resolveStorageRef? evalStorageRef evalStorageRefSteps srcsRef
     storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterPopState
+    solidityStorageBackend solidityPopStorage? dropAfterPopState
     dropAfterPopClearState dropSrcsLastSlot
   simp [hbase, EvalResult.bind, bind, pure, EvalResult.ofOption, wordLoc, addrSt]
-  have hlenLoad :
-      storageLocLoad evm
-        { slot := (⟨2⟩ : UInt256), offset := 0, size := 32, hbound := by decide,
-          type := .int uint256Int } =
-        .int (Int.ofNat len.toNat) := by
-    change storageLocLoad evm (wordLoc ⟨2⟩) = .int (Int.ofNat len.toNat)
-    rw [cureStorageLocLoad_uint256, hlen]
-  rw [hlenLoad]
+  rw [cureSrcsDynamicLength, hlen]
   simp [Nat.ne_of_gt hpos]
+  simp only [solidityClearStorage?, solidityLeafLoc?, storageLayoutRaw,
+    EvalResult.ofOption, EvalResult.bind, bind]
   rw [show ∀ slot, addrLoc slot = addressOffset0Loc slot by intro slot; rfl]
   rw [dropStorageLocStore_address_offset0_zero]
-  change
-      (match storageLocStore (dropAfterPopClearState evm len) (wordLoc ⟨2⟩)
-          (.int (Int.ofNat len.toNat - 1)) with
-        | some a => EvalResult.ok a
-        | none => EvalResult.error EvalError.storageError) =
-        EvalResult.ok (dropAfterPopState evm len)
-  rw [dropStorageLocStore_uint256_pred _ _ _ hpos]
+  rw [show solidityLengthLoc? storageLayoutRaw { base := "srcs" } =
+    some (wordLoc ⟨2⟩) from rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
+  rw [dropStorageLocStore_uint256_pred_nat _ _ _ hpos]
+  have hle : 1 ≤ len.toNat := by omega
+  have hcast : (↑(len.toNat - 1) : Int) = Int.ofNat len.toNat - 1 := Nat.cast_sub hle
+  simp [hcast]
 
 theorem dropPopArray_revert_zero (evm : EVM.State) (locals : Store)
     (hbase : locals["srcs"]? = none)
@@ -606,17 +603,9 @@ theorem dropPopArray_revert_zero (evm : EVM.State) (locals : Store)
     popArray? config { contract := contract, locals := locals } evm srcsRef = .revert := by
   unfold popArray? resolveStorageRef? evalStorageRef evalStorageRefSteps srcsRef
     storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage?
+    solidityStorageBackend solidityPopStorage?
   simp [hbase, EvalResult.bind, bind, pure, EvalResult.ofOption, wordLoc, addrSt]
-  have hlenLoad :
-      storageLocLoad evm
-        { slot := (⟨2⟩ : UInt256), offset := 0, size := 32, hbound := by decide,
-          type := .int uint256Int } =
-        .int 0 := by
-    change storageLocLoad evm (wordLoc ⟨2⟩) = .int 0
-    rw [cureStorageLocLoad_uint256, hlen]
-    rfl
-  rw [hlenLoad]
+  rw [cureSrcsDynamicLength, hlen]
   simp
 
 theorem dropAssignMoveElem_ok (evm : EVM.State) {locals : Store} (pos len : UInt256)
@@ -651,10 +640,9 @@ theorem dropAssignMoveElem_ok (evm : EVM.State) {locals : Store} (pos len : UInt
         rfl]
       simp only [EvalResult.bind, bind, pure, valueToKey?, EvalResult.ofOption]
       simp [arrayIndexInBounds?, storageTypeAt?, contract, storageDecls, config,
-        storageLayout, solidityStorageLayout, storageLayoutRaw]
-      rw [cureStorageLocLoad_uint256, hlen]
-      simp only [EvalResult.bind, bind, pure]
-      rw [if_pos (by exact Int.ofNat_lt.mpr hdstLt)]
+        storageLayout, solidityStorageBackend, storageLayoutRaw]
+      rw [cureSrcsLength, hlen]
+      simp [hdstLt]
     unfold evalStorageRef srcElemRef
     rw [show evalStorageRefSteps config { contract := contract, locals := locals } evm
         "srcs" [] [.aindex (.var "dstIndex")] =
@@ -668,17 +656,16 @@ theorem dropAssignMoveElem_ok (evm : EVM.State) {locals : Store} (pos len : UInt
     simpa [addrLoc, dropAfterMoveElemState, dropMoveAddr] using
       storageLocStore_address_offset0 evm
         (dropSrcsSlotForIndex (dropDstIndex pos)) (dropMoveWord evm len) hcanonMove
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc (dropSrcsSlotForIndex (dropDstIndex pos)))
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc (dropSrcsSlotForIndex (dropDstIndex pos))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (value := .address (dropMoveAddr evm len))
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, addrSt])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         dropSrcsSlotForIndex])
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem dropAssignMovePos_ok (evm0 evm : EVM.State) {locals : Store} (pos len : UInt256)
@@ -731,15 +718,14 @@ theorem dropAssignMovePos_ok (evm0 evm : EVM.State) {locals : Store} (pos len : 
         some (dropAfterMovePosState evm0 evm pos len) := by
     simpa [dropAfterMovePosState] using
       storageLocStore_uint256 evm (solcMappingSlot ⟨5⟩ (dropMoveWord evm0 len)) pos
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc (solcMappingSlot ⟨5⟩ (dropMoveWord evm0 len)))
+    (loc := wordLoc (solcMappingSlot ⟨5⟩ (dropMoveWord evm0 len))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, hslot])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, hslot])
     (hstore := hstore)
 
 theorem dropDeletePos_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
@@ -749,7 +735,7 @@ theorem dropDeletePos_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
       .ok (dropAfterDeletePosState evm I) := by
   unfold deleteStorage? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
     posRef storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterDeletePosState dropPosSlotFor
+    solidityStorageBackend storageLayoutRaw solidityClearStorage? solidityLeafLoc? dropAfterDeletePosState dropPosSlotFor
   simp [hbase, hsrc, evalExpr?, EvalResult.bind, bind, pure, EvalResult.ofOption, valueToKey?,
     wordLoc]
   change
@@ -771,7 +757,7 @@ theorem dropDeleteAmt_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
       .ok (dropAfterDeleteAmtState evm I) := by
   unfold deleteStorage? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
     amtRef storageTypeAt? storageTypeStep? contract storageDecls config storageLayout
-    solidityStorageLayout storageLayoutRaw clearStorage? dropAfterDeleteAmtState dropAmtSlotFor
+    solidityStorageBackend storageLayoutRaw solidityClearStorage? solidityLeafLoc? dropAfterDeleteAmtState dropAmtSlotFor
   simp [hbase, hsrc, evalExpr?, EvalResult.bind, bind, pure, EvalResult.ofOption, valueToKey?,
     wordLoc]
   change

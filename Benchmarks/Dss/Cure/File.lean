@@ -633,15 +633,14 @@ theorem assign_fileWaitStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage waitRef (.int (Int.ofNat (fileData I).toNat)) =
         .ok ({ contract := contract, locals := fileLocals I }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨3⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
     (hbase := fileLocals_get_wait I)
     (her := by simp [waitRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨3⟩ (fileData I))
 
 theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}

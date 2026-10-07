@@ -6,6 +6,7 @@ namespace Benchmarks.Dss.Vat
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
+set_option maxHeartbeats 0
 
 /-! ## `slip(bytes32,address,int256)` -/
 
@@ -182,9 +183,8 @@ theorem slipStorageType_gem (I : ExecutionEnv) :
   simp [slipEvaledRef, storageTypeAt?, storageTypeStep?, storageDecls, uint256St]
 
 theorem slipStorageLayout_gem (I : ExecutionEnv) :
-    config.storage.layout (slipEvaledRef I) = fun _ => some (wordLoc (slipStorageSlot I)) := by
-  funext evm
-  change storageLayoutRaw (slipEvaledRef I) evm = some (wordLoc (slipStorageSlot I))
+    config.storageBackend.locate? (slipEvaledRef I) = some (.leaf (wordLoc (slipStorageSlot I))) := by
+  change storageLayoutRaw (slipEvaledRef I) = some (.leaf (wordLoc (slipStorageSlot I)))
   simp [storageLayoutRaw, slipEvaledRef, slipStorageSlot]
 
 theorem slipWadInt_mod_word (I : ExecutionEnv) :
@@ -231,7 +231,7 @@ theorem evalExpr_slip_gem_old {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "usr"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (slipStorageSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (hbase := slipStore_gem I)
     (her := evalStorageRef_slip_gem evm I hsz100)
     (hty := slipStorageType_gem I)
@@ -245,7 +245,7 @@ theorem evalExpr_slip_gem_old_after_let {evm : EVM.State} {I : ExecutionEnv}
       (.storage (gemRef (.var "ilk") (.var "usr"))) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (slipStorageSlot I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (hbase := slipStoreGemNew_gem I gemNew)
     (her := evalStorageRef_slip_gemNew evm I gemNew hsz100)
     (hty := slipStorageType_gem I)
@@ -290,7 +290,8 @@ theorem assignStorageRef_slip_gemNew {evm evm' : EVM.State} {I : ExecutionEnv}
         some evm' := by
     rw [hevm']
     exact vatStorageLocStore_uint256 evm (slipStorageSlot I) gemNew
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := slipStoreGemNew_gem I gemNew)
     (her := evalStorageRef_slip_gemNew evm I gemNew hsz100)
     (hty := slipStorageType_gem I)

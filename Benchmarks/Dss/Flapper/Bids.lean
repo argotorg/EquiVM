@@ -141,7 +141,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "bid")) =
         .ok (.int (Int.ofNat
           (flapperSlotWord (bidsBidSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "bid") (er := bidsBidEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsBidSlotFor I))
@@ -161,7 +161,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
       evalExpr? config frame evm (.storage (bidsF (.var "arg0") "lot")) =
         .ok (.int (Int.ofNat
           (flapperSlotWord (bidsLotSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "lot") (er := bidsLotEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (bidsLotSlotFor I))
@@ -182,7 +182,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
         .ok (.address (AccountAddress.ofNat
           (flapperAddressReturnWord (bidsPackedSlotFor I) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "guy") (er := bidsGuyEvaledRef I)
       (t := .address) (loc := addrLoc (bidsPackedSlotFor I))
@@ -218,7 +218,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
           (UInt256.ofNat (256 ^ 20)))
         flapperUint48Mask]
       rfl
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "tic") (er := bidsTicEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨20, by decide⟩ (by decide))
@@ -252,7 +252,7 @@ theorem flapperBidsBodyReturns {I : ExecutionEnv}
           (UInt256.ofNat (256 ^ 26)))
         flapperUint48Mask]
       rfl
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "arg0") "end") (er := bidsEndEvaledRef I)
       (t := .int uint48Int) (loc := uint48Loc (bidsPackedSlotFor I) ⟨26, by decide⟩ (by decide))

@@ -270,14 +270,13 @@ theorem assign_fileUintWaitStorage (evm : EVM.State) {locals : Store} (data : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨7⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨7⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨7⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_fileUintBumpStorage (evm : EVM.State) {locals : Store} (data : UInt256)
@@ -294,14 +293,13 @@ theorem assign_fileUintBumpStorage (evm : EVM.State) {locals : Store} (data : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨10⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨10⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨10⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_fileUintSumpStorage (evm : EVM.State) {locals : Store} (data : UInt256)
@@ -318,14 +316,13 @@ theorem assign_fileUintSumpStorage (evm : EVM.State) {locals : Store} (data : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨9⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨9⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_fileUintDumpStorage (evm : EVM.State) {locals : Store} (data : UInt256)
@@ -342,14 +339,13 @@ theorem assign_fileUintDumpStorage (evm : EVM.State) {locals : Store} (data : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨8⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨8⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_fileUintHumpStorage (evm : EVM.State) {locals : Store} (data : UInt256)
@@ -366,14 +362,13 @@ theorem assign_fileUintHumpStorage (evm : EVM.State) {locals : Store} (data : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨11⟩) (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨11⟩ data
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨11⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨11⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem fileUintWaitSourceBody {σ σ₀ A I} {g : UInt256}

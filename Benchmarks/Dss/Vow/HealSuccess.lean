@@ -67,15 +67,15 @@ theorem evalExpr_healSinCapitalStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage SinRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := healSinCapitalEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := healSinCapitalEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨5⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨5⟩)
   · exact hbase
   · simp [healSinCapitalEvaledRef, SinRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       healSinCapitalEvaledRef]
 
 theorem healSinWrite_size (I : ExecutionEnv) (mem o : ByteArray) (L : ℕ)

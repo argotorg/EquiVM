@@ -71,21 +71,21 @@ theorem clipperEvalActiveLength (v : ClipperImmutables) (evm : EVM.State) (local
     resolveStorageRef?_ok hbase her hty
   rw [evalExpr?]
   simp only [hres, bind, EvalResult.bind]
-  change readStorageArrayLength? (config v) evm er (.dynamicArray uint256St) =
+  change (do
+    let len ← (config v).storageBackend.length er (.dynamicArray uint256St) evm
+    pure (Value.int (Int.ofNat len))) =
     .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
-  change (match (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
-    | some lenLoc =>
-        match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
-        | _ => EvalResult.error .storageError
-    | none => EvalResult.error .storageError) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))
-  rw [show (config v).storage.layout
-      ({ base := "active", steps := [.length] } : EvaledStorageRef) evm =
-        some (wordLoc ⟨11⟩) from rfl]
-  simp [clipperStorageLocLoad_uint256]
-  rfl
+  have hlength : solidityStorageLength? storageLayoutRaw { base := "active" }
+      (.dynamicArray uint256St) evm =
+        .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+    have hloc : solidityAnchorWordLoc ⟨11⟩ = wordLoc ⟨11⟩ := rfl
+    simp only [solidityStorageLength?, solidityDynamicLength?, solidityLengthLoc?,
+      solidityAnchor?, storageLayoutRaw, hloc, Option.map_some,
+      EvalResult.ofOption, EvalResult.bind, bind]
+    rw [clipperStorageLocLoad_uint256]
+    simp
+  simp [config, solidityStorageBackend, storageLayout, er, hlength]
+  simp only [EvalResult.bind, bind, pure]
 
 theorem clipperCountBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hbase : locals.get? "active" = none) :

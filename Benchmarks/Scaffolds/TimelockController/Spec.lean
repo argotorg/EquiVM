@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -150,17 +151,16 @@ def uint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
 def bytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes bytes32Width }
 
-def storageLayout : StorageLayout where
-  layout ref _ :=
+def storageLayout : StorageLayout := fun ref =>
     match ref.base, ref.steps with
     | "_roles", [.mindex role, .field "hasRole", .mindex account] =>
-        some (boolLoc (roleHasRoleSlot role account))
+        some (.leaf (boolLoc (roleHasRoleSlot role account)))
     | "_roles", [.mindex role, .field "adminRole"] =>
-        some (bytes32Loc (roleAdminSlot role))
+        some (.leaf (bytes32Loc (roleAdminSlot role)))
     | "_timestamps", [.mindex id] =>
-        some (uint256Loc (timestampSlot id))
+        some (.leaf (uint256Loc (timestampSlot id)))
     | "_minDelay", [] =>
-        some (uint256Loc ⟨2⟩)
+        some (.leaf (uint256Loc ⟨2⟩))
     | _, _ => none
 
 def nonpayable : List Stmt :=
@@ -598,7 +598,7 @@ def contract : ContractDecl :=
     receive := some receiveTransition }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := timelockExternalABI
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }
 

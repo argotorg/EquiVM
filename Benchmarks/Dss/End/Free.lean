@@ -1163,7 +1163,7 @@ theorem evalExpr_endFree_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFreeStore I } evm
         (.storage liveRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFreeStore I })
       (slot := liveRef)
@@ -1188,7 +1188,7 @@ theorem evalExpr_endFree_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFreeStore I })
       (slot := liveRef)

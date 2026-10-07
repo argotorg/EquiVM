@@ -312,7 +312,7 @@ theorem evalExpr_tick_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       flapperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := tickEndEvaledRef I)
     (t := .int uint48Int)
@@ -327,8 +327,7 @@ theorem evalExpr_tick_end_storage (evm : EVM.State) (I : ExecutionEnv) :
       simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionEndLayout evm' (tickIdWord I))
+      exact auctionEndLayout evm (tickIdWord I))
     hload
 
 theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
@@ -348,7 +347,7 @@ theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       flapperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := tickTicEvaledRef I)
     (t := .int uint48Int)
@@ -363,8 +362,7 @@ theorem evalExpr_tick_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
       simp [frame, auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, uint48St])
     (by
-      funext evm'
-      exact auctionTicLayout evm' (tickIdWord I))
+      exact auctionTicLayout evm (tickIdWord I))
     hload
 
 theorem evalExpr_tick_tau_storage (evm : EVM.State) (I : ExecutionEnv) :
@@ -380,7 +378,7 @@ theorem evalExpr_tick_tau_storage (evm : EVM.State) (I : ExecutionEnv) :
       (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
         (UInt256.ofNat (256 ^ 6))) flapperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := tauRef) (er := tickTauEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
@@ -606,10 +604,10 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "end")
         (.int (Int.ofNat (tickEndPostWord evm).toNat % uint48Modulus)) =
       .ok ({ contract := contract, locals := tickEndLocals evm I }, tickPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := tickEndEvaledRef I)
-      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide))
+      (loc := uint48Loc (auctionPackedSlot (tickIdWord I)) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := tickEndLocals_get_bids evm I)
       (her := by
         simpa [tickEndEvaledRef, tickIdValue] using
@@ -619,8 +617,7 @@ theorem assign_tickEndStorage (evm : EVM.State) (I : ExecutionEnv) :
         simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
           BidStructTy, uint48St])
       (hloc := by
-        funext evm'
-        exact auctionEndLayout evm' (tickIdWord I))
+        exact auctionEndLayout evm (tickIdWord I))
   simpa [tickPostState, tickEndStoredWord, uint48Loc] using
     storageLocStore_uint48_offset26_word evm
       (auctionPackedSlot (tickIdWord I)) (tickEndPostWord evm)

@@ -50,14 +50,13 @@ theorem assign_jugCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', jugCtorAfterWardsState] using
       storageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_jugCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -65,7 +64,7 @@ private theorem assign_jugCtorAddressStorage (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -85,13 +84,13 @@ private theorem assign_jugCtorAddressStorage (evm : EVM.State) (locals : Store)
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem assign_jugCtorVatStorage (evm : EVM.State) (locals : Store)
@@ -105,8 +104,7 @@ theorem assign_jugCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem jugCtorCallerWardsSlot_eq (I : ExecutionEnv) :
     wardsSlot (.address I.source) = jugCtorCallerWardsSlot I := by

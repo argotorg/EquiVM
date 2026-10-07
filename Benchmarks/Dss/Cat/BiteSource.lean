@@ -15,7 +15,7 @@ namespace Benchmarks.Dss.Cat
 Source-side refinement obligations for `bite`, proved with NO bytecode/RD.  The five external calls
 (`vat.ilks`, `vat.urns`, `vat.grab`, `vow.fess`, `milkFlip.kick`) are threaded via
 `ExecStmt.externalCallSuccess`/`Failure` over abstract `typedCallViaEVM` hypotheses; storage reads use
-the `evalExpr_storage_scalar_value` collapse (ported from `Ilks.lean`); the three `min` calls use the
+the `evalExpr_storage_scalar_value (hbackend := rfl)` collapse (ported from `Ilks.lean`); the three `min` calls use the
 `execMinFunctionReturnX/Y` facts from `Arithmetic.lean`; the inline `checkedMul`/`checkedSub`/
 `checkedAdd` reuse the `evalExpr_{mul,sub,add}256_{ok,revert}` facts; the divisions go through the
 raw `.binary .div` evaluator (which reverts on `/0`).
@@ -83,7 +83,7 @@ theorem biteFlipSlot_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
 
 /-! ## Storage-read helpers (parameterized over the accumulated frame + evm state)
 
-Each read is a scalar collapse via `evalExpr_storage_scalar_value`; layouts are the fixed
+Each read is a scalar collapse via `evalExpr_storage_scalar_value (hbackend := rfl)`; layouts are the fixed
 `storageLayoutRaw` slots (`vat @3`, `live @2`, `box @5`, `litter @6`, `ilks[ilk].{flip,chop,dunk}`).
 -/
 
@@ -93,7 +93,7 @@ theorem biteVatRead {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (catSlotWord ⟨3⟩ evm.accountMap evm.executionEnv) solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨3⟩)
@@ -111,7 +111,7 @@ theorem biteVowRead {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage vowRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (catSlotWord ⟨4⟩ evm.accountMap evm.executionEnv) solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨4⟩)
@@ -128,7 +128,7 @@ theorem biteLiveRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "live" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (catSlotWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩)
@@ -144,7 +144,7 @@ theorem biteBoxRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "box" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage boxRef) =
       .ok (.int (Int.ofNat (catSlotWord ⟨5⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := boxRef) (er := ({ base := "box", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨5⟩)
@@ -160,7 +160,7 @@ theorem biteLitterRead {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "litter" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage litterRef) =
       .ok (.int (Int.ofNat (catSlotWord ⟨6⟩ evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := litterRef) (er := ({ base := "litter", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -181,7 +181,7 @@ theorem biteFlipRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (catSlotWord (biteFlipSlot I) evm.accountMap evm.executionEnv)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "flip") (er := biteFlipEvaledRef I)
     (t := .address) (loc := addrLoc (biteFlipSlot I))
@@ -213,7 +213,7 @@ theorem biteChopRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "chop")) =
       .ok (.int (Int.ofNat (catSlotWord (biteChopSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "chop") (er := biteChopEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (biteChopSlot I))
@@ -243,7 +243,7 @@ theorem biteDunkRead {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     evalExpr? config { contract := contract, locals := locals } evm
       (.storage (ilksF (.var "ilk") "dunk")) =
       .ok (.int (Int.ofNat (catSlotWord (biteDunkSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "dunk") (er := biteDunkEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (biteDunkSlot I))
@@ -1617,8 +1617,8 @@ theorem catBiteSourceTail {I : ExecutionEnv}
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess a r s l d ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess a r s l d ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess a r s l d ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St])
         rfl hLitStore)) ?_
@@ -2616,8 +2616,8 @@ theorem catBiteSourceKickFailRevert
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
   have hMilkFlipVal :
@@ -2707,8 +2707,8 @@ theorem catBiteSourceKickDecodeRevert
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
   have hMilkFlipVal :
@@ -2828,8 +2828,8 @@ theorem catBiteSourceKickNoCodeRevert
           exact Nat.le_add_right _ _))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
-      (assignStorageRef_storage_scalar (er := { base := "litter", steps := [] }) (ty := uint256St)
-        (loc := wordLoc ⟨6⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
+      (assignStorageRef_storage_scalar (hbackend := rfl) (er := { base := "litter", steps := [] }) (ty := uint256St)
+        (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) (btLitterNew_get_litter I evmUrn evmFess iArt iRate iSpot iLine iDust ink art)
         (by simp [litterRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
         (by simp [storageTypeAt?, contract, storageDecls, uint256St]) rfl hLitStore)) ?_
   have hMilkFlipVal :

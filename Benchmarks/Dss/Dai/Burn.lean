@@ -1988,7 +1988,7 @@ theorem evalExpr_burn_usr_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (.storage (balanceOfRef (.var "usr"))) =
         .ok (burnUsrBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := burnStore I })
     (slot := balanceOfRef (.var "usr"))
@@ -2010,7 +2010,7 @@ theorem evalExpr_burn_allowance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (.storage (allowanceRef (.var "usr") sender)) =
         .ok (burnAllowanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := burnStore I })
     (slot := allowanceRef (.var "usr") sender)
@@ -2032,7 +2032,7 @@ theorem evalExpr_burn_allowance (evm : EVM.State) (I : ExecutionEnv) :
 theorem evalExpr_burn_totalSupply (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (.storage totalSupplyRef) = .ok (burnTotalSupplyValue evm) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := burnStore I })
     (slot := totalSupplyRef)
@@ -2408,11 +2408,11 @@ theorem burnAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := burnStore I } evm
       .storage (allowanceRef (.var "usr") sender) (burnAllowanceDebitValue evm I) =
         .ok ({ contract := contract, locals := burnStore I }, burnAfterAllowanceState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := allowanceRef (.var "usr") sender)
       (er := burnAllowanceRef evm I)
       (ty := uint256St)
-      (loc := wordLoc (burnAllowanceSlot evm I) (.int uint256Int))
+      (loc := wordLoc (burnAllowanceSlot evm I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [allowanceRef] using burnStore_allowance I)
       (her := evalStorageRef_burn_allowance evm I)
@@ -2429,11 +2429,11 @@ theorem burnAssignUsr (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := burnStore I } evm
       .storage (balanceOfRef (.var "usr")) (burnUsrDebitValue evm I) =
         .ok ({ contract := contract, locals := burnStore I }, burnAfterUsrDebitState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "usr"))
       (er := burnUsrBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (burnUsrSlot I) (.int uint256Int))
+      (loc := wordLoc (burnUsrSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using burnStore_balanceOf I)
       (her := evalStorageRef_burn_usr_balance evm I)
@@ -2451,11 +2451,11 @@ theorem burnAssignSupply (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := burnStore I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner burnTotalSupplySlot
             (burnSupplyDebitWord evm I)) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := totalSupplyRef)
       (er := burnTotalSupplyRef)
       (ty := uint256St)
-      (loc := wordLoc burnTotalSupplySlot (.int uint256Int))
+      (loc := wordLoc burnTotalSupplySlot (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [totalSupplyRef] using burnStore_totalSupply I)
       (her := evalStorageRef_burn_totalSupply evm I)

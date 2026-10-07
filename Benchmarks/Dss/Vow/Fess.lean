@@ -132,7 +132,7 @@ theorem evalExpr_fessSinStorage
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.storage (sinRef (.env .timestamp))) =
         .ok (.int (Int.ofNat (vowSlotWord (fessSinSlotFor I) σ I).toNat)) := by
-  rw [evalExpr_storage_scalar (er := fessSinEvaledRef I) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := fessSinEvaledRef I) (t := .int uint256Int)
     (loc := wordLoc (fessSinSlotFor I))]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ (fessSinSlotFor I))
   · exact hbase
@@ -140,8 +140,8 @@ theorem evalExpr_fessSinStorage
       evalStorageRefStep, evalExpr?, envValue, valueToKey?, EvalResult.ofOption,
       EvalResult.bind, pure, bind, initState]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, fessSinEvaledRef,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, fessSinEvaledRef,
       fessSinSlotFor]
 
 theorem evalExpr_sinCapitalStorage (evm : EVM.State) {locals : Store}
@@ -149,15 +149,15 @@ theorem evalExpr_sinCapitalStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage SinRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := sinCapitalEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := sinCapitalEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨5⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨5⟩)
   · exact hbase
   · simp [sinCapitalEvaledRef, SinRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, sinCapitalEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, sinCapitalEvaledRef]
 
 theorem assign_fessSinStorage
     {σ σ₀ A I} {g : UInt256} {locals : Store} (sinNew : UInt256)
@@ -178,14 +178,13 @@ theorem assign_fessSinStorage
       storageLocStore evm0 (wordLoc (fessSinSlotFor I)) (.int (Int.ofNat sinNew.toNat)) =
         some evm1 := by
     simpa [evm1, evm0] using storageLocStore_uint256 evm0 (fessSinSlotFor I) sinNew
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (fessSinSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (fessSinSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         fessSinEvaledRef, fessSinSlotFor])
     (hstore := hstore)
 
@@ -204,14 +203,13 @@ theorem assign_sinCapitalStorage (evm : EVM.State) {locals : Store} (SinNew : UI
   have hstore :
       storageLocStore evm (wordLoc ⟨5⟩) (.int (Int.ofNat SinNew.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨5⟩ SinNew
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, sinCapitalEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, sinCapitalEvaledRef])
     (hstore := hstore)
 
 /-! ### `fess` bytecode helpers -/

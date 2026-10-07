@@ -348,7 +348,7 @@ theorem evalExpr_fileDutyStorageDuty (evm : EVM.State) (I : ExecutionEnv)
       (.storage (ilksF (.var "ilk") "duty")) =
         .ok (.int (Int.ofNat
           (jugSlotWord (fileDutyDutySlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := fileDutyLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "duty") (er := fileDutyDutyEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyDutySlotFor I))
@@ -374,7 +374,7 @@ theorem evalExpr_fileDutyStorageRho (evm : EVM.State) (I : ExecutionEnv)
       (.storage (ilksF (.var "ilk") "rho")) =
         .ok (.int (Int.ofNat
           (jugSlotWord (fileDutyRhoSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := fileDutyLocals I }) (evm := evm)
     (slot := ilksF (.var "ilk") "rho") (er := fileDutyRhoEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (fileDutyRhoSlotFor I))
@@ -440,10 +440,10 @@ theorem assign_fileDutyStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "duty") (.int (Int.ofNat (fileDutyData I).toNat)) =
         .ok ({ contract := contract, locals := fileDutyLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := fileDutyDutyEvaledRef I)
-      (loc := wordLoc (fileDutyDutySlotFor I))
+      (loc := wordLoc (fileDutyDutySlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileDutyLocals_get_ilks I)
       (her := by
         have hkeyLen : (fileDutyIlkBytes I).length = ↑bytes32Width + 1 := by

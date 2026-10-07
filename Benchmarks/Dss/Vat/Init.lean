@@ -90,7 +90,7 @@ theorem evalExpr_initStorageRate (evm : EVM.State) (I : ExecutionEnv)
       (.storage (ilksF (.var "ilk") "rate")) =
         .ok (.int (Int.ofNat
           (vatSlotWord (initRateSlot I) evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := initStore I }) (evm := evm)
     (slot := ilksF (.var "ilk") "rate") (er := initRateEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (initRateSlot I))
@@ -149,10 +149,10 @@ theorem assign_initRateStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "rate") (.int (Int.ofNat initRayWord.toNat)) =
         .ok ({ contract := contract, locals := initStore I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := initRateEvaledRef I)
-      (loc := wordLoc (initRateSlot I))
+      (loc := wordLoc (initRateSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := initStore_get_ilks I)
       (her := by
         have hkeyLen : ((I.calldata.toList.drop 4).take 32).length =

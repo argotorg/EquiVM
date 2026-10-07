@@ -23,7 +23,7 @@ theorem evalExpr_clipperTakeStopped_lt_three_false (v : ClipperImmutables)
         (.storage stoppedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := stoppedRef)
@@ -53,7 +53,7 @@ theorem evalExpr_clipperTakeStopped_lt_three_true (v : ClipperImmutables)
         (.storage stoppedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := stoppedRef)

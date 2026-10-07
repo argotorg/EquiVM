@@ -661,7 +661,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "clip")) =
         .ok (.address (AccountAddress.ofNat
           (dogAddressReturnWord (ilksClipSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "clip") (er := ilksClipEvaledRef I)
       (t := .address) (loc := addrLoc (ilksClipSlotFor I))
@@ -681,7 +681,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "chop")) =
         .ok (.int (Int.ofNat
           (dogSlotWord (ilksChopSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "chop") (er := ilksChopEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksChopSlotFor I))
@@ -700,7 +700,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "hole")) =
         .ok (.int (Int.ofNat
           (dogSlotWord (ilksHoleSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "hole") (er := ilksHoleEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksHoleSlotFor I))
@@ -719,7 +719,7 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       evalExpr? (config v) frame evm (.storage (ilksF (.var "arg0") "dirt")) =
         .ok (.int (Int.ofNat
           (dogSlotWord (ilksDirtSlotFor I) evm.accountMap evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := frame) (evm := evm)
       (slot := ilksF (.var "arg0") "dirt") (er := ilksDirtEvaledRef I)
       (t := .int uint256Int) (loc := wordLoc (ilksDirtSlotFor I))

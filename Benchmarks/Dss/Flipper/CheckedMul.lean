@@ -32,7 +32,7 @@ theorem evalExpr_flipperBeg_of_get {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage begRef) =
         .ok (.int (Int.ofNat (flipperSlotWord ⟨4⟩ σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (slot := begRef)
     (er := ({ base := "beg", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int)
@@ -41,8 +41,7 @@ theorem evalExpr_flipperBeg_of_get {σ σ₀ A I} {g : Sat256} {locals : Store}
     (her := by simp [begRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok
     (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I) ⟨4⟩)
 

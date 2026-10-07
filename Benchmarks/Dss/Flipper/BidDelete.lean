@@ -103,12 +103,11 @@ theorem resolveStorageRef_bidRef_of_get_id {evm : EVM.State} {locals : Store} {i
     EvalResult.ofOption, pure]
 
 theorem clearStorage_bid_bid {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "bid"] }
       uint256St =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidBaseOfWord id) ⟨0⟩) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [uint256St, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [uint256St, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (wordLoc (bidBaseOfWord id))
       (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -117,12 +116,11 @@ theorem clearStorage_bid_bid {evm : EVM.State} {id : UInt256} :
   rw [flipperStorageLocStore_uint256]
 
 theorem clearStorage_bid_lot {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "lot"] }
       uint256St =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨1⟩) ⟨0⟩) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [uint256St, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [uint256St, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (wordLoc (bidBaseOfWord id + ⟨1⟩))
       (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -132,15 +130,14 @@ theorem clearStorage_bid_lot {evm : EVM.State} {id : UInt256} :
   rw [flipperStorageLocStore_uint256]
 
 theorem clearStorage_bid_guy {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "guy"] }
       addrSt =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
           (setAddressOffset0Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
             ⟨0⟩)) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [addrSt, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [addrSt, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (addrLoc (bidBaseOfWord id + ⟨2⟩))
       (.address (AccountAddress.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -153,15 +150,14 @@ theorem clearStorage_bid_guy {evm : EVM.State} {id : UInt256} :
     (by decide : (⟨0⟩ : UInt256).toNat < EVM.addressModulus)]
 
 theorem clearStorage_bid_tic {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "tic"] }
       uint48St =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
           (setUint48Offset20Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
             ⟨0⟩)) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [uint48St, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [uint48St, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (uint48Loc (bidBaseOfWord id + ⟨2⟩)
       ⟨20, by decide⟩ (by decide)) (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -172,15 +168,14 @@ theorem clearStorage_bid_tic {evm : EVM.State} {id : UInt256} :
     (by decide : (⟨0⟩ : UInt256).toNat < 2 ^ 48)]
 
 theorem clearStorage_bid_end {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "end"] }
       uint48St =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
           (setUint48Offset26Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
             ⟨0⟩)) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [uint48St, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [uint48St, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (uint48Loc (bidBaseOfWord id + ⟨2⟩)
       ⟨26, by decide⟩ (by decide)) (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -191,15 +186,14 @@ theorem clearStorage_bid_end {evm : EVM.State} {id : UInt256} :
     (by decide : (⟨0⟩ : UInt256).toNat < 2 ^ 48)]
 
 theorem clearStorage_bid_usr {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "usr"] }
       addrSt =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨3⟩)
           (setAddressOffset0Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨3⟩))
             ⟨0⟩)) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [addrSt, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [addrSt, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (addrLoc (bidBaseOfWord id + ⟨3⟩))
       (.address (AccountAddress.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -212,15 +206,14 @@ theorem clearStorage_bid_usr {evm : EVM.State} {id : UInt256} :
     (by decide : (⟨0⟩ : UInt256).toNat < EVM.addressModulus)]
 
 theorem clearStorage_bid_gal {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "gal"] }
       addrSt =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨4⟩)
           (setAddressOffset0Word
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨4⟩))
             ⟨0⟩)) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [addrSt, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [addrSt, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (addrLoc (bidBaseOfWord id + ⟨4⟩))
       (.address (AccountAddress.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -233,12 +226,11 @@ theorem clearStorage_bid_gal {evm : EVM.State} {id : UInt256} :
     (by decide : (⟨0⟩ : UInt256).toNat < EVM.addressModulus)]
 
 theorem clearStorage_bid_tab {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm
+    solidityClearStorage? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "tab"] }
       uint256St =
         .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨5⟩) ⟨0⟩) := by
-  rw [Solm.clearStorage?.eq_def]
-  simp only [uint256St, config, storageLayout, solidityStorageLayout, EvalResult.ofOption]
+  simp only [uint256St, config, storageLayout, solidityStorageBackend, solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
   simp only [storageLayoutRaw, bidsBase_intOfNatWord]
   change (match storageLocStore evm (wordLoc (bidBaseOfWord id + ⟨5⟩))
       (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) with
@@ -413,49 +405,120 @@ theorem bidDeleteCollapsedAccountMap_eq_bidDeletedEVM
   rw [bidDeletedEVM_accountMap]
   exact bidDeleteCollapsedAccountMap_eq_source evm.executionEnv.codeOwner evm.accountMap id
 
+theorem solidityClearStorage_bid_bid {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "bid"] }
+      uint256St =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidBaseOfWord id) ⟨0⟩) := by
+  exact clearStorage_bid_bid (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_lot {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "lot"] }
+      uint256St =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨1⟩) ⟨0⟩) := by
+  exact clearStorage_bid_lot (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_guy {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "guy"] }
+      addrSt =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
+          (setAddressOffset0Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
+            ⟨0⟩)) := by
+  exact clearStorage_bid_guy (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_tic {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "tic"] }
+      uint48St =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
+          (setUint48Offset20Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
+            ⟨0⟩)) := by
+  exact clearStorage_bid_tic (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_end {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "end"] }
+      uint48St =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩)
+          (setUint48Offset26Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨2⟩))
+            ⟨0⟩)) := by
+  exact clearStorage_bid_end (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_usr {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "usr"] }
+      addrSt =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨3⟩)
+          (setAddressOffset0Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨3⟩))
+            ⟨0⟩)) := by
+  exact clearStorage_bid_usr (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_gal {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "gal"] }
+      addrSt =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨4⟩)
+          (setAddressOffset0Word
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨4⟩))
+            ⟨0⟩)) := by
+  exact clearStorage_bid_gal (evm := evm) (id := id)
+
+theorem solidityClearStorage_bid_tab {evm : EVM.State} {id : UInt256} :
+    solidityClearStorage? config.storageBackend.locate? evm
+      { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat)), .field "tab"] }
+      uint256St =
+        .ok (Solm.EVM.storageStore evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨5⟩) ⟨0⟩) := by
+  exact clearStorage_bid_tab (evm := evm) (id := id)
+
 theorem clearStorage_bid_struct {evm : EVM.State} {id : UInt256} :
-    clearStorage? config evm (bidEvaledBaseRefOfWord id) BidStructTy =
+    solidityClearStorage? storageLayoutRaw evm (bidEvaledBaseRefOfWord id) BidStructTy =
       .ok (bidDeletedEVM evm id) := by
-  rw [Solm.clearStorage?.eq_def]
+  rw [Solm.solidityClearStorage?.eq_def]
   simp only [BidStructTy]
-  change clearFields? config evm
+  change solidityClearFields? storageLayoutRaw evm
       { base := "bids", steps := [.mindex (.int (Int.ofNat id.toNat))] }
       [("bid", uint256St), ("lot", uint256St), ("guy", addrSt), ("tic", uint48St),
         ("end", uint48St), ("usr", addrSt), ("gal", addrSt), ("tab", uint256St)] =
     .ok (bidDeletedEVM evm id)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_bid (evm := evm) (id := id)]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_lot]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_guy]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_tic]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_end]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_usr]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_gal]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  rw [solidityClearFields?]
   simp only [List.singleton_append]
   rw [clearStorage_bid_tab]
-  simp only
-  rw [Solm.clearFields?.eq_def]
+  simp only [EvalResult.bind, bind]
+  simp [solidityClearFields?, bind, EvalResult.bind]
 
 theorem deleteStorage_bidRef_of_get_id {evm : EVM.State} {locals : Store} {id : UInt256}
     (hid : locals.get? "id" = some (.int (Int.ofNat id.toNat)))

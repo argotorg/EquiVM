@@ -35,7 +35,7 @@ theorem daiTotalSupplyBodyReturns (evm : EVM.State)
             totalSupplyStorageSlot).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := totalSupplyStore })
         (slot := totalSupplyRef)

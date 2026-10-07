@@ -135,7 +135,7 @@ theorem evalExpr_clipperStopped_lt_one (v : ClipperImmutables)
         (.storage stoppedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := stoppedRef)
@@ -167,7 +167,7 @@ theorem evalExpr_clipperStopped_lt_one_false (v : ClipperImmutables)
         (.storage stoppedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := locals })
       (slot := stoppedRef)
@@ -286,7 +286,7 @@ theorem clipperEvalKickIdExpr (v : ClipperImmutables) (evm : EVM.State)
         (.storage kicksRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v) (solm := { contract := contract v, locals := clipperKickStore I })
       (slot := kicksRef) (er := { base := "kicks", steps := [] })
       (t := .int uint256Int) (loc := wordLoc ⟨10⟩)
@@ -322,9 +322,9 @@ theorem clipperKickAssignId (v : ClipperImmutables) (evm : EVM.State)
       evm .storage kicksRef (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) =
       .ok ({ contract := contract v, locals := clipperKickLocalsId evm I },
         clipperKickSourceIdState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := { base := "kicks", steps := [] }) (ty := uint256St)
-    (loc := wordLoc ⟨10⟩)
+    (loc := wordLoc ⟨10⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [kicksRef, clipperKickLocalsId, clipperKickStore]
   · simp only [kicksRef, evalStorageRef, evalStorageRefSteps]
     rfl
@@ -390,27 +390,27 @@ theorem clipperKickPushActive (v : ClipperImmutables) (evm : EVM.State)
     simp [resolveStorageRef?, evalStorageRef, activeRef, hactiveElem, config,
       storageTypeAt?, contract, storageDecls, EvalResult.bind, bind, pure]
     rfl
-  have hlenLoc :
-      (config v).storage.layout
-        ({ base := "active", steps := [.length] } : EvaledStorageRef) evmId =
-      some (wordLoc ⟨11⟩) := by
-    rfl
   have hlenLoad : storageLocLoad evmId (wordLoc ⟨11⟩) =
       .int (Int.ofNat len.toNat) := by
     simpa [len, evmId, clipperKickSourceIdState, storageStore_executionEnv] using
       clipperStorageLocLoad_uint256 evmId ⟨11⟩
+  have hlenNat :
+      (Solm.EVM.storageLoad evmId evmId.executionEnv.codeOwner ⟨11⟩).toNat =
+        len.toNat := by
+    rw [clipperStorageLocLoad_uint256] at hlenLoad
+    exact Int.ofNat.inj (Value.int.inj hlenLoad)
   have hinc : (len + ⟨1⟩).toNat = len.toNat + 1 := by
     rw [uadd_toNat, show (⟨1⟩ : UInt256).toNat = 1 by native_decide,
       Nat.mod_eq_of_lt hlen]
   have hstoreLen :
-      storageLocStore evmId (wordLoc ⟨11⟩) (.int (Int.ofNat len.toNat + 1)) =
+      storageLocStore evmId (wordLoc ⟨11⟩) (.int ((len.toNat : Int) + 1)) =
       some evmLen := by
-    rw [show Int.ofNat len.toNat + 1 = Int.ofNat (len.toNat + 1) by simp, ← hinc]
+    rw [show (len.toNat : Int) + 1 = Int.ofNat (len.toNat + 1) by simp, ← hinc]
     dsimp [evmLen, clipperKickSourceActiveLengthState]
     simpa [evmId, len, wordLoc, uint256Loc]
       using storageLocStore_uint256 evmId ⟨11⟩ (len + ⟨1⟩)
   have hwrite :
-      writeStorage? (config v) evmLen
+      solidityWriteStorage? storageLayoutRaw evmLen
         ({ base := "active", steps := [.aindex (.int (Int.ofNat len.toNat))] } :
           EvaledStorageRef)
         uint256St (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) =
@@ -428,21 +428,30 @@ theorem clipperKickPushActive (v : ClipperImmutables) (evm : EVM.State)
         len, wordLoc, uint256Loc]
         using storageLocStore_uint256 evmLen
           (activeDataSlot + len) (clipperKickSourceIdWord evm)
-    unfold writeStorage?
-    change (match some (wordLoc (activeSlot (.int (Int.ofNat len.toNat)))) with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evmLen loc
-          (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)))
-      | none => .error .storageError) = _
-    simp only [hstore, EvalResult.ofOption]
+    change solidityWriteStorage? storageLayoutRaw evmLen
+      { base := "active", steps := [.aindex (.int (Int.ofNat len.toNat))] }
+      uint256St (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) = _
+    simp [uint256St, solidityWriteStorage?, solidityLeafLoc?, storageLayoutRaw,
+      EvalResult.ofOption, EvalResult.bind, bind, hstore]
+    change (match storageLocStore evmLen
+        (wordLoc (activeSlot (.int (Int.ofNat len.toNat))))
+        (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) with
+      | some a => EvalResult.ok a
+      | none => EvalResult.error EvalError.storageError) = _
+    rw [hstore]
   unfold pushArray?
   rw [hresolve]
+  change solidityPushStorage? storageLayoutRaw
+    { base := "active", steps := [] } (.dynamicArray uint256St)
+      (some (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat))) evmId = _
+  simp only [solidityPushStorage?]
+  rw [clipperActiveDynamicLength, hlenNat]
   simp only [EvalResult.bind, bind]
-  simp only [List.nil_append]
-  rw [hlenLoc]
-  simp only [EvalResult.ofOption]
-  rw [hlenLoad]
-  simp only
+  rw [show solidityLengthLoc? storageLayoutRaw { base := "active", steps := [] } =
+    some (wordLoc ⟨11⟩) from rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
   rw [hstoreLen]
+  simp only [EvalResult.bind, bind, List.nil_append]
   exact hwrite
 
 theorem clipperEvalKickActiveLengthAfterPush (v : ClipperImmutables)
@@ -539,9 +548,9 @@ theorem clipperKickAssignSalesPos (v : ClipperImmutables)
         (clipperKickSourceSalesPosState evm)) := by
   apply ExecStmt.assign
     (clipperEvalKickVarActivePos v evm (clipperKickSourceActiveState evm) I)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperKickSourceSalesRef evm "pos") (ty := uint256St)
-    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm))
+    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact clipperKickLocalsActivePos_get_sales evm I
   · simp [salesF, clipperKickSourceSalesRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep,
@@ -565,9 +574,9 @@ theorem clipperKickAssignSalesTab (v : ClipperImmutables)
   apply ExecStmt.assign (by
     simpa [clipperKickTabValue] using
       clipperEvalKickVarTab v evm (clipperKickSourceSalesPosState evm) I)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperKickSourceSalesRef evm "tab") (ty := uint256St)
-    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm + ⟨1⟩))
+    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm + ⟨1⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact clipperKickLocalsActivePos_get_sales evm I
   · simp [salesF, clipperKickSourceSalesRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep,
@@ -591,9 +600,9 @@ theorem clipperKickAssignSalesLot (v : ClipperImmutables)
   apply ExecStmt.assign (by
     simpa [clipperKickLotValue] using
       clipperEvalKickVarLot v evm (clipperKickSourceSalesTabState evm I) I)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperKickSourceSalesRef evm "lot") (ty := uint256St)
-    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm + ⟨2⟩))
+    (loc := wordLoc (clipperKickSourceSalesBaseSlot evm + ⟨2⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact clipperKickLocalsActivePos_get_sales evm I
   · simp [salesF, clipperKickSourceSalesRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep,
@@ -649,9 +658,9 @@ theorem clipperKickAssignSalesUsr (v : ClipperImmutables)
   have husr := clipperEvalKickVarUsr v evm (clipperKickSourceSalesLotState evm I) I
   rw [clipperKickUsrValue_masked I] at husr
   apply ExecStmt.assign husr
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
     (er := clipperKickSourceSalesRef evm "usr") (ty := addrSt)
-    (loc := addrLoc (clipperKickSourceSalesBaseSlot evm + ⟨3⟩))
+    (loc := addrLoc (clipperKickSourceSalesBaseSlot evm + ⟨3⟩)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact clipperKickLocalsActivePos_get_sales evm I
   · simp [salesF, clipperKickSourceSalesRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep,
@@ -660,7 +669,6 @@ theorem clipperKickAssignSalesUsr (v : ClipperImmutables)
   · simp [clipperKickSourceSalesRef, storageTypeAt?, storageTypeStep?, contract,
       storageDecls, SaleStructTy, addrSt]
   · rfl
-  · trivial
   · simpa [clipperKickSourceSalesUsrState, addrLoc] using
       storageLocStore_address_offset0 (clipperKickSourceSalesLotState evm I)
         (clipperKickSourceSalesBaseSlot evm + ⟨3⟩) (clipperKickUsrMaskedWord I)
@@ -699,10 +707,10 @@ theorem clipperKickAssignSalesTic (v : ClipperImmutables)
     simpa [evmUsr] using
       clipperEvalRedoTimestamp96 v evmUsr (clipperKickLocalsActivePos evm I)
   apply ExecStmt.assign hrhs
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperKickSourceSalesRef evm "tic") (ty := uint96St)
     (loc := uint96Loc (clipperKickSourceSalesBaseSlot evm + ⟨3⟩)
-      ⟨20, by decide⟩ (by decide))
+      ⟨20, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · exact clipperKickLocalsActivePos_get_sales evm I
   · simp [salesF, clipperKickSourceSalesRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, clipperEvalKickVarId v evm evmUsr I, valueToKey?,

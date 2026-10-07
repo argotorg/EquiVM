@@ -495,7 +495,7 @@ theorem evalExpr_endCage_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := ∅ } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := wardsRef sender)
@@ -525,7 +525,7 @@ theorem evalExpr_endCage_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (endRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := wardsRef sender)
@@ -572,7 +572,7 @@ theorem evalExpr_endCage_live_true (evm : EVM.State)
   have hstorage :
       evalExpr? config { contract := contract, locals := ∅ } evm
         (.storage liveRef) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := liveRef)
@@ -597,7 +597,7 @@ theorem evalExpr_endCage_live_false (evm : EVM.State)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := ∅ })
       (slot := liveRef)
@@ -658,10 +658,10 @@ theorem endCageAssignLive (evm : EVM.State) :
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := ∅ },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := endLiveEvaledRef)
-      (loc := wordLoc ⟨8⟩)
+      (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [liveRef])
       (her := evalStorageRef_endCage_live evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -673,10 +673,10 @@ theorem endCageAssignWhen (evm : EVM.State) :
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩)
       .storage whenRef (.int (Int.ofNat (endCageTimestampWord evm).toNat)) =
         .ok ({ contract := contract, locals := ∅ }, endCagePostStoresState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "when", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨9⟩)
+      (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [whenRef])
       (her := by simp [whenRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
         pure, bind])
@@ -2863,10 +2863,10 @@ theorem evalExpr_endCage_storageAddr {evm : EVM.State} {locals : Store}
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage ref) =
       .ok (.address (endCageCallTargetAddr slot evm.accountMap evm.executionEnv)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := ref)
@@ -2886,7 +2886,7 @@ theorem endCageCheckedCallNoCode {evm : EVM.State} {locals : Store}
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot)))
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endCageCallTargetWord slot evm.accountMap evm.executionEnv) = ⟨0⟩) :
@@ -2920,7 +2920,7 @@ theorem endCageCheckedCallFailed {evm evm' : EVM.State} {locals : Store}
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot)))
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endCageCallTargetWord slot evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
@@ -2963,7 +2963,7 @@ theorem endCageCheckedCallSuccess {evm evm' : EVM.State} {locals : Store}
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot))
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot)))
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endCageCallTargetWord slot evm.accountMap evm.executionEnv) ≠ ⟨0⟩)

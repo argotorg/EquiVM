@@ -572,14 +572,13 @@ theorem assign_flipperCtorBegStorage (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc ⟨4⟩) (.int defaultBeg) = some evm' := by
     simpa [evm', wordLoc, defaultBeg, uint256Int] using
       storageLocStore_uint256 evm ⟨4⟩ (⟨1050000000000000000⟩ : UInt256)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [begRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorTtlStorage (evm : EVM.State) {locals : Store}
@@ -601,14 +600,13 @@ theorem assign_flipperCtorTtlStorage (evm : EVM.State) {locals : Store}
     simpa [evm', defaultTtl] using
       flipperStorageLocStore_uint48_offset0 evm ⟨5⟩ (⟨10800⟩ : UInt256)
         (by native_decide)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [ttlRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorTauStorage (evm : EVM.State) {locals : Store}
@@ -630,14 +628,13 @@ theorem assign_flipperCtorTauStorage (evm : EVM.State) {locals : Store}
     simpa [evm', defaultTau] using
       flipperStorageLocStore_uint48_offset6 evm ⟨5⟩ (⟨172800⟩ : UInt256)
         (by native_decide)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [tauRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_flipperCtorKicksStorage (evm : EVM.State) {locals : Store}
@@ -654,14 +651,13 @@ theorem assign_flipperCtorKicksStorage (evm : EVM.State) {locals : Store}
   have hstore : storageLocStore evm (wordLoc ⟨6⟩) (.int 0) = some evm' := by
     simpa [evm', wordLoc, uint256Int] using
       storageLocStore_uint256 evm ⟨6⟩ (⟨0⟩ : UInt256)
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [kicksRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -669,7 +665,7 @@ private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -689,13 +685,13 @@ private theorem assign_flipperCtorAddressStorage (evm : EVM.State) (locals : Sto
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 theorem assign_flipperCtorVatStorage (evm : EVM.State) (locals : Store)
@@ -711,8 +707,7 @@ theorem assign_flipperCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_flipperCtorCatStorage (evm : EVM.State) (locals : Store)
     (cat : AccountAddress) (hbase : locals.get? "cat" = none) :
@@ -727,8 +722,7 @@ theorem assign_flipperCtorCatStorage (evm : EVM.State) (locals : Store)
     (by simp [catRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem valueToWord_flipperIlk (ilk : List UInt8) (hilk : ilk.length = 32) :
     valueToWord (.fixedBytes bytes32Width ilk) = some (flipperIlkWord ilk) := by
@@ -752,15 +746,14 @@ theorem assign_flipperCtorIlkStorage (evm : EVM.State) {locals : Store}
     simpa [evm', bytes32Loc, Reasoning.Theory.bytes32Loc, bytes32Width] using
       storageLocStore_bytes32 evm ⟨3⟩ (flipperIlkWord ilk)
         (.fixedBytes bytes32Width ilk) (valueToWord_flipperIlk ilk hilk)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem (.bytes bytes32Width)) (loc := bytes32Loc ⟨3⟩)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem (.bytes bytes32Width)) (loc := bytes32Loc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := by simpa [ilkRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
 theorem assign_flipperCtorWardsCaller (evm : EVM.State) {locals : Store}
@@ -782,14 +775,13 @@ theorem assign_flipperCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm
       (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 abbrev flipperCtorAfterBegState (evm : EVM.State) : EVM.State :=

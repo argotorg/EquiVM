@@ -21,10 +21,10 @@ theorem dogCageAssignLive {v : DogImmutables} (evm : EVM.State) :
     assignStorageRef? (config v) { contract := contract v, locals := ∅ } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract v, locals := ∅ }, dogCagePostState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨3⟩)
+      (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [liveRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

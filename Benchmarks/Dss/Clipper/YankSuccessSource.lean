@@ -95,7 +95,7 @@ theorem clipperEvalYankRemoveSalesPos_moveStore (v : ClipperImmutables)
     rw [hgetIdElem] at hsome
     injection hsome with hval
     exact hval.symm
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "pos") (er := clipperYankSalesPosRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesPosSlot I))
@@ -153,8 +153,9 @@ theorem clipperYankRemoveAssignActiveRevert (v : ClipperImmutables) (evm : EVM.S
     clipperEvalYankRemoveIndex_indexStore v evm I lastIndex move idx
   unfold assignStorageRef? resolveStorageRef? evalStorageRef evalStorageRefSteps evalStorageRefStep
   simp only [hidxEval, EvalResult.ofOption, EvalResult.bind, bind, pure, valueToKey?, activeElemRef]
-  simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, storageTypeAt?, contract,
+  simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, storageTypeAt?, contract,
     storageDecls, clipperStorageLocLoad_uint256, hnot]
+  simp [clipperActiveLength, hnot, EvalResult.bind, bind]
 
 theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store)
@@ -177,20 +178,11 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
       EvalResult.ok (({ base := "active", steps := [] } : EvaledStorageRef),
         uint256St.dynamicArray)
     rfl
-  have hlenLoad :
-      storageLocLoad evm (wordLoc ⟨11⟩) = .int 0 := by
-    simpa [hlen] using clipperStorageLocLoad_uint256 evm ⟨11⟩
-  have hlenLoc :
-      (config v).storage.layout ({ base := "active", steps := [.length] } :
-        EvaledStorageRef) evm = some (wordLoc ⟨11⟩) := by
-    rfl
   unfold popArray?
   rw [hresolve]
-  simp [EvalResult.bind, bind]
-  rw [hlenLoc]
-  simp only [EvalResult.ofOption]
-  rw [hlenLoad]
-  simp
+  change solidityPopStorage? storageLayoutRaw
+    { base := "active", steps := [] } (.dynamicArray uint256St) evm = _
+  simp [solidityPopStorage?, clipperActiveDynamicLength, hlen, EvalResult.bind, bind]
 
 set_option maxHeartbeats 1000000 in
 theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State)

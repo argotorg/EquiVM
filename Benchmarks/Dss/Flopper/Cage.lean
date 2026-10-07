@@ -39,10 +39,10 @@ theorem cageAssignLive (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := ∅ }, cageLivePostState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨8⟩)
+      (loc := wordLoc ⟨8⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := by simp [liveRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -58,15 +58,15 @@ theorem cageAssignVow (evm : EVM.State) (I : ExecutionEnv)
     rw [hsrc]
     simpa [relySourceWord, solcSourceWord] using solcSource_ofNat I
   rw [← haddr]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨9⟩)
+      (loc := addrLoc ⟨9⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := by simp [vowRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, vowRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [cagePostState, addrLoc, relySourceWord, solcSourceWord] using
     storageLocStore_address_offset0 (cageLivePostState evm) ⟨9⟩ (relySourceWord I)
       (by simpa [relySourceWord, solcSourceWord] using solcSourceWord_canonical I)

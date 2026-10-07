@@ -190,7 +190,7 @@ theorem tfEvalSrcBal (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (balanceOfRef (.var "src"))) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfBalSlot (tfSrcMasked I))).toNat)) := by
-  refine evalExpr_storage_scalar_value (cfg := config)
+  refine evalExpr_storage_scalar_value
     (solm := { contract := contract, locals := tfStore I }) (slot := balanceOfRef (.var "src"))
     (er := { base := "balanceOf",
              steps := [.mindex (.address (AccountAddress.ofNat (tfSrcWord I).toNat))] })
@@ -211,7 +211,7 @@ theorem tfEvalDstBal (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (balanceOfRef (.var "dst"))) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfBalSlot (tfDstMasked I))).toNat)) := by
-  refine evalExpr_storage_scalar_value (cfg := config)
+  refine evalExpr_storage_scalar_value
     (solm := { contract := contract, locals := tfStore I }) (slot := balanceOfRef (.var "dst"))
     (er := { base := "balanceOf",
              steps := [.mindex (.address (AccountAddress.ofNat (tfDstWord I).toNat))] })
@@ -232,7 +232,7 @@ theorem tfEvalAllow (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEn
       (.storage (allowanceRef (.var "src") sender)) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfAllowSlot I (tfSrcMasked I))).toNat)) := by
-  refine evalExpr_storage_scalar_value (cfg := config)
+  refine evalExpr_storage_scalar_value
     (solm := { contract := contract, locals := tfStore I })
     (slot := allowanceRef (.var "src") sender)
     (er := { base := "allowance",
@@ -417,7 +417,7 @@ theorem tfAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfBalSlot (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfSrcSt evm I) := by
-  refine assignStorageRef_storage_scalar_value
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
     (er := { base := "balanceOf",
              steps := [.mindex (.address (AccountAddress.ofNat (tfSrcWord I).toNat))] })
     (ty := uint256St)
@@ -437,7 +437,7 @@ theorem tfAssignDst (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfBalSlot (tfDstMasked I))).toNat + Int.ofNat (tfWadWord I).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfDstSt evm I) := by
-  refine assignStorageRef_storage_scalar_value
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
     (er := { base := "balanceOf",
              steps := [.mindex (.address (AccountAddress.ofNat (tfDstWord I).toNat))] })
     (ty := uint256St)
@@ -457,7 +457,7 @@ theorem tfAssignAllow (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.execution
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (wtfAllowSlot I (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfAllowSt evm I) := by
-  refine assignStorageRef_storage_scalar_value
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
     (er := { base := "allowance",
              steps := [.mindex (.address (AccountAddress.ofNat (tfSrcWord I).toNat)),
                        .mindex (.address I.source)] })

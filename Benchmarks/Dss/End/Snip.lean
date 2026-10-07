@@ -5957,7 +5957,7 @@ theorem evalExpr_endSnip_tag (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (endSnipTagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endSnipStore I })
     (slot := tagRef (.var "ilk"))
@@ -6044,7 +6044,7 @@ theorem evalExpr_endSnip_dog {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := dogRef)

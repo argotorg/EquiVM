@@ -259,7 +259,7 @@ theorem evalExpr_fileDsr_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := fileDsrLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileDsrLocals I })
       (slot := wardsRef sender)
@@ -287,7 +287,7 @@ theorem evalExpr_fileDsr_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileDsrLocals I })
       (slot := wardsRef sender)
@@ -336,7 +336,7 @@ theorem evalExpr_fileDsrLiveEq_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := fileDsrLocals I } evm
         (.storage liveRef) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileDsrLocals I })
       (slot := liveRef)
@@ -361,7 +361,7 @@ theorem evalExpr_fileDsrLiveEq_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileDsrLocals I })
       (slot := liveRef)
@@ -396,7 +396,7 @@ theorem evalExpr_fileDsrStorageRho (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := fileDsrLocals I } evm (.storage rhoRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := fileDsrLocals I })
     (slot := rhoRef)
@@ -447,10 +447,10 @@ theorem assign_fileDsrStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage dsrRef (.int (Int.ofNat (fileDsrData I).toNat)) =
         .ok ({ contract := contract, locals := fileDsrLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "dsr", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨3⟩)
+      (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileDsrLocals_get_dsr I)
       (her := by simp [dsrRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

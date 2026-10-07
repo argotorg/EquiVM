@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -105,23 +106,23 @@ def noncesSlot (usr : KeyValue) : Ethereum.UInt256 :=
 def wordLoc (slot : Ethereum.UInt256) (ty : ElemType) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := ty }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ =>
-      some (wordLoc (wardsSlot usr) (.int uint256Int))
-  | { base := "totalSupply", steps := [] }, _ =>
-      some (wordLoc ⟨1⟩ (.int uint256Int))
-  | { base := "balanceOf", steps := [.mindex usr] }, _ =>
-      some (wordLoc (balanceOfSlot usr) (.int uint256Int))
-  | { base := "allowance", steps := [.mindex owner, .mindex spender] }, _ =>
-      some (wordLoc (allowanceSlot owner spender) (.int uint256Int))
-  | { base := "nonces", steps := [.mindex usr] }, _ =>
-      some (wordLoc (noncesSlot usr) (.int uint256Int))
-  | { base := "DOMAIN_SEPARATOR", steps := [] }, _ =>
-      some (wordLoc ⟨5⟩ (.bytes bytes32Width))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } =>
+      some (.leaf (wordLoc (wardsSlot usr) (.int uint256Int)))
+  | { base := "totalSupply", steps := [] } =>
+      some (.leaf (wordLoc ⟨1⟩ (.int uint256Int)))
+  | { base := "balanceOf", steps := [.mindex usr] } =>
+      some (.leaf (wordLoc (balanceOfSlot usr) (.int uint256Int)))
+  | { base := "allowance", steps := [.mindex owner, .mindex spender] } =>
+      some (.leaf (wordLoc (allowanceSlot owner spender) (.int uint256Int)))
+  | { base := "nonces", steps := [.mindex usr] } =>
+      some (.leaf (wordLoc (noncesSlot usr) (.int uint256Int)))
+  | { base := "DOMAIN_SEPARATOR", steps := [] } =>
+      some (.leaf (wordLoc ⟨5⟩ (.bytes bytes32Width)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source expressions -/
 
@@ -426,7 +427,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

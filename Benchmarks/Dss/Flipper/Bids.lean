@@ -164,7 +164,7 @@ theorem evalExpr_bidsBid {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "bid")) =
         .ok (.int (Int.ofNat (bidsBidWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I))
     (hbase := bidsLocals_get_bids I)
@@ -174,8 +174,7 @@ theorem evalExpr_bidsBid {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -187,7 +186,7 @@ theorem evalExpr_bidsLot {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "lot")) =
         .ok (.int (Int.ofNat (bidsLotWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I + ⟨1⟩))
     (hbase := bidsLocals_get_bids I)
@@ -197,8 +196,7 @@ theorem evalExpr_bidsLot {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -211,7 +209,7 @@ theorem evalExpr_bidsGuy {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "guy")) =
         .ok (.address (AccountAddress.ofNat (bidsGuyWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidsPackedSlot I))
     (hbase := bidsLocals_get_bids I)
@@ -221,8 +219,7 @@ theorem evalExpr_bidsGuy {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsPackedSlot, bidPackedSlotOfWord, bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -235,7 +232,7 @@ theorem evalExpr_bidsTic {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tic")) =
         .ok (.int (Int.ofNat (bidsTicWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (bidsPackedSlot I) ⟨20, by decide⟩ (by decide))
     (hbase := bidsLocals_get_bids I)
@@ -245,8 +242,7 @@ theorem evalExpr_bidsTic {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsPackedSlot, bidPackedSlotOfWord, bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -260,7 +256,7 @@ theorem evalExpr_bidsEnd {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "end")) =
         .ok (.int (Int.ofNat (bidsEndWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint48Int)
     (loc := uint48Loc (bidsPackedSlot I) ⟨26, by decide⟩ (by decide))
     (hbase := bidsLocals_get_bids I)
@@ -270,8 +266,7 @@ theorem evalExpr_bidsEnd {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, uint48St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsPackedSlot, bidPackedSlotOfWord, bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -285,7 +280,7 @@ theorem evalExpr_bidsUsr {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "usr")) =
         .ok (.address (AccountAddress.ofNat (bidsUsrWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidsBaseWord I + ⟨3⟩))
     (hbase := bidsLocals_get_bids I)
@@ -295,8 +290,7 @@ theorem evalExpr_bidsUsr {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -309,7 +303,7 @@ theorem evalExpr_bidsGal {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "gal")) =
         .ok (.address (AccountAddress.ofNat (bidsGalWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidsBaseWord I + ⟨4⟩))
     (hbase := bidsLocals_get_bids I)
@@ -319,8 +313,7 @@ theorem evalExpr_bidsGal {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]
@@ -333,7 +326,7 @@ theorem evalExpr_bidsTab {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
       (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tab")) =
         .ok (.int (Int.ofNat (bidsTabWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I + ⟨5⟩))
     (hbase := bidsLocals_get_bids I)
@@ -343,8 +336,7 @@ theorem evalExpr_bidsTab {σ σ₀ A I} {g : Sat256} :
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
         BidStructTy, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, bidsEvaledRef,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, bidsEvaledRef,
         bidsBaseWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]

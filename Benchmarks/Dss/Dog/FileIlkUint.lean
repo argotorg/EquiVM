@@ -388,9 +388,9 @@ theorem assign_fileIlkUintChopStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc (fileIlkUintChopSlotFor I))
           (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm (fileIlkUintChopSlotFor I) data
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := fileIlkUintChopEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (fileIlkUintChopSlotFor I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (fileIlkUintChopSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [fileIlkUintChopEvaledRef, fileIlkUintIlkKey, fileIlkUintIlkValue,
@@ -426,9 +426,9 @@ theorem assign_fileIlkUintHoleStorage {v : DogImmutables} (evm : EVM.State)
       storageLocStore evm (wordLoc (fileIlkUintHoleSlotFor I))
           (.int (Int.ofNat data.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm (fileIlkUintHoleSlotFor I) data
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := fileIlkUintHoleEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (fileIlkUintHoleSlotFor I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (fileIlkUintHoleSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [fileIlkUintHoleEvaledRef, fileIlkUintIlkKey, fileIlkUintIlkValue,

@@ -99,7 +99,6 @@ theorem weth9AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
       rw [evalExpr_storage_scalar_value
-        (cfg := config)
         (solm := { contract := contract, locals := allowanceStore I })
         (slot := allowanceRef (.var "owner") (.var "guy"))
         (er := allowanceEvaledRef I)

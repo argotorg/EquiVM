@@ -1018,7 +1018,7 @@ theorem evalExpr_dent_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (dentLiveWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := dentLiveEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -1034,7 +1034,7 @@ theorem evalExpr_dent_vat_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage vatRef) =
       .ok (.address (AccountAddress.ofNat (dentVatWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vatRef) (er := dentVatEvaledRef)
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -1052,7 +1052,7 @@ theorem evalExpr_dent_beg_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLocals I } evm (.storage begRef) =
       .ok (.int (Int.ofNat (dentBegWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := begRef) (er := dentBegEvaledRef)
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
@@ -1073,7 +1073,7 @@ theorem evalExpr_dent_ttl_storage (evm : EVM.State) (I : ExecutionEnv) :
         .int (Int.ofNat (dentTtlWord evm).toNat) := by
     simpa [dentTtlWord, flopperUint48Offset0Word, flopperSlotWord] using
       flopperStorageLocLoad_uint48_offset0 evm ⟨6⟩
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := ttlRef) (er := dentTtlEvaledRef)
     (t := .int uint48Int) (loc := uint48Loc ⟨6⟩ ⟨0, by decide⟩ (by decide))
@@ -1090,7 +1090,7 @@ theorem evalExpr_dent_bid_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "bid")) =
       .ok (.int (Int.ofNat (dentBidStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := dentBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (dentIdWord I)))
@@ -1111,7 +1111,7 @@ theorem evalExpr_dent_lot_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "lot")) =
       .ok (.int (Int.ofNat (dentLotStoredWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "lot") (er := dentLotEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionLotSlot (dentIdWord I)))
@@ -1132,7 +1132,7 @@ theorem evalExpr_dent_guy_storage (evm : EVM.State) (I : ExecutionEnv) :
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (dentGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := dentLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := dentGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (dentIdWord I)))
@@ -1166,7 +1166,7 @@ theorem evalExpr_dent_tic_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 20)))
       flopperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := dentTicEvaledRef I)
     (t := .int uint48Int)
@@ -1199,7 +1199,7 @@ theorem evalExpr_dent_end_storage (evm : EVM.State) (I : ExecutionEnv) :
         (UInt256.ofNat (256 ^ 26)))
       flopperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "end") (er := dentEndEvaledRef I)
     (t := .int uint48Int)
@@ -1221,7 +1221,7 @@ theorem evalExpr_dent_vat_storage_of_locals
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (AccountAddress.ofNat (dentVatWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vatRef) (er := dentVatEvaledRef)
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -1243,7 +1243,7 @@ theorem evalExpr_dent_guy_storage_of_locals
         (.storage (bidsF (.var "id") "guy")) =
       .ok (.address (AccountAddress.ofNat (dentGuyWord evm I).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "guy") (er := dentGuyEvaledRef I)
     (t := .address) (loc := addrLoc (auctionPackedSlot (dentIdWord I)))
@@ -1279,7 +1279,7 @@ theorem evalExpr_dent_tic_storage_of_locals
         (UInt256.ofNat (256 ^ 20)))
       flopperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "tic") (er := dentTicEvaledRef I)
     (t := .int uint48Int)

@@ -266,7 +266,7 @@ theorem evalExpr_fileVow_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := fileVowLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileVowLocals I })
       (slot := wardsRef sender)
@@ -294,7 +294,7 @@ theorem evalExpr_fileVow_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileVowLocals I })
       (slot := wardsRef sender)
@@ -335,15 +335,15 @@ theorem assign_fileVowStorage (evm : EVM.State) (I : ExecutionEnv) :
         .ok ({ contract := contract, locals := fileVowLocals I }, evm') := by
   intro evm'
   rw [fileVowData_value_masked I]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
-      (loc := addrLoc ⟨6⟩)
+      (loc := addrLoc ⟨6⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := fileVowLocals_get_vow I)
       (her := by simp [vowRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [addrLoc, evm'] using
     storageLocStore_address_offset0 evm ⟨6⟩ (fileVowDataMaskedWord I)
       (fileVowDataMaskedWord_canonical I)

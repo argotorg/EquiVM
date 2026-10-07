@@ -156,10 +156,10 @@ theorem cageAssignLive (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := cageLocals I } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := cageLocals I }, cageLivePostState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨7⟩)
+      (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [liveRef, cageLocals])
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -790,7 +790,7 @@ theorem evalExpr_cage_vat_storage_of_locals
       .ok (.address (AccountAddress.ofNat
         (flapperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := locals }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vatRef) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)

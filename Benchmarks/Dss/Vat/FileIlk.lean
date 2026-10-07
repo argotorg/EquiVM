@@ -262,11 +262,11 @@ theorem assign_fileIlkSpotStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "spot") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "spot"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkSpotSlotFor I))
+      (loc := wordLoc (fileIlkSpotSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "spot") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
@@ -282,11 +282,11 @@ theorem assign_fileIlkLineStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "line") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "line"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkLineSlotFor I))
+      (loc := wordLoc (fileIlkLineSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "line") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
@@ -302,11 +302,11 @@ theorem assign_fileIlkDustStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "dust") (.int (Int.ofNat (fileIlkData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "ilks", steps := [.mindex (fileIlkIlkKey I), .field "dust"] } :
         EvaledStorageRef))
-      (loc := wordLoc (fileIlkDustSlotFor I))
+      (loc := wordLoc (fileIlkDustSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileIlkLocals_get_ilks I)
       (her := evalStorageRef_fileIlkField (I := I) (field := "dust") hsz100 rfl)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,

@@ -120,7 +120,7 @@ theorem evalExpr_potDsrOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "dsr" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage dsrRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := dsrRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := dsrRef)
     (er := ({ base := "dsr", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)
     hbase
@@ -133,7 +133,7 @@ theorem evalExpr_potChiOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "chi" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage chiRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := chiRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := chiRef)
     (er := ({ base := "chi", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨4⟩)
     hbase
@@ -146,7 +146,7 @@ theorem evalExpr_potPieOfLocals {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "Pie" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage PieRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)) :=
-  evalExpr_storage_scalar_value (slot := PieRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := PieRef)
     (er := ({ base := "Pie", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩)
     hbase
@@ -163,7 +163,7 @@ theorem evalExpr_potVatOfLocals {evm : EVM.State} {locals : Store}
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
           solcAddrMask).toNat)) :=
-  evalExpr_storage_scalar_value (slot := vatRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := vatRef)
     (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨5⟩)
     hbase
@@ -178,7 +178,7 @@ theorem evalExpr_potVowOfLocals {evm : EVM.State} {locals : Store}
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨6⟩)
           solcAddrMask).toNat)) :=
-  evalExpr_storage_scalar_value (slot := vowRef)
+  evalExpr_storage_scalar_value (hbackend := rfl) (slot := vowRef)
     (er := ({ base := "vow", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨6⟩)
     hbase
@@ -205,7 +205,7 @@ theorem dripAssignChi (evm : EVM.State) {locals : Store} (tmp : UInt256)
         .storage chiRef (.int (Int.ofNat tmp.toNat)) =
       .ok ({ contract := contract, locals := locals },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨4⟩ tmp) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St) (loc := wordLoc ⟨4⟩)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_drip_chi evm)
     (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
   exact potStorageLocStore_uint256 evm ⟨4⟩ tmp
@@ -216,7 +216,7 @@ theorem dripAssignRho (evm : EVM.State) {locals : Store} (now : UInt256)
         .storage rhoRef (.int (Int.ofNat now.toNat)) =
       .ok ({ contract := contract, locals := locals },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨7⟩ now) := by
-  apply assignStorageRef_storage_scalar (ty := uint256St) (loc := wordLoc ⟨7⟩)
+  apply assignStorageRef_storage_scalar (hbackend := rfl) (ty := uint256St) (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase (evalStorageRef_drip_rho evm)
     (by simp [storageTypeAt?, contract, storageDecls, uint256St]) (by rfl)
   exact potStorageLocStore_uint256 evm ⟨7⟩ now

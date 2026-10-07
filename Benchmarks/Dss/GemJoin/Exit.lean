@@ -1752,7 +1752,7 @@ theorem evalExprs_exit_slipArgs (evm : EVM.State) (I : ExecutionEnv)
 theorem evalExpr_exit_gem_afterSlip (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := exitLocalsAfterSlip I } evm
       (.storage gemRef) = .ok (.address (joinGemAddressOf evm)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := exitLocalsAfterSlip I })
     (slot := gemRef)

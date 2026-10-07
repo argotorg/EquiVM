@@ -466,27 +466,27 @@ theorem evalExpr_fileAddressVatStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "vat" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
       .ok (.address (fileAddressVatAddressOf evm)) := by
-  rw [evalExpr_storage_scalar (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "vat", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨1⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 _ ⟨1⟩)
   · exact hbase
   · simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 theorem evalExpr_fileAddressFlapperStorage (evm : EVM.State) {locals : Store}
     (hbase : locals.get? "flapper" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage flapperRef) =
       .ok (.address (fileAddressFlapperAddressOf evm)) := by
-  rw [evalExpr_storage_scalar (er := ({ base := "flapper", steps := [] } : EvaledStorageRef))
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := ({ base := "flapper", steps := [] } : EvaledStorageRef))
     (t := .address) (loc := addrLoc ⟨2⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_address_offset0 _ ⟨2⟩)
   · exact hbase
   · simp [flapperRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 theorem evalExpr_fileAddressVatCodeGuard_true {evm : EVM.State} {locals : Store}
     {target : AccountAddress}
@@ -539,15 +539,14 @@ theorem assign_fileAddressFlopperStorage (evm : EVM.State) {locals : Store} (dat
       storageLocStore_address_offset0 evm ⟨3⟩ (UInt256.land solcAddrMask data) (by
         rw [u256_land_comm solcAddrMask data]
         exact solcAddrMask_result_canonical data)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc ⟨3⟩)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc ⟨3⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
 theorem assign_fileAddressFlapperStorage (evm : EVM.State) {locals : Store} (data : UInt256)
@@ -576,15 +575,14 @@ theorem assign_fileAddressFlapperStorage (evm : EVM.State) {locals : Store} (dat
       storageLocStore_address_offset0 evm ⟨2⟩ (UInt256.land solcAddrMask data) (by
         rw [u256_land_comm solcAddrMask data]
         exact solcAddrMask_result_canonical data)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc ⟨2⟩)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc ⟨2⟩) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
-    (hscalar := by trivial)
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
+
     (hstore := hstore)
 
 theorem fileAddressFlapperSourceSuccess

@@ -248,7 +248,7 @@ theorem evalExpr_file_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := fileLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileLocals I })
       (slot := wardsRef sender)
@@ -277,7 +277,7 @@ theorem evalExpr_file_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := fileLocals I })
       (slot := wardsRef sender)
@@ -317,10 +317,10 @@ theorem assign_fileTauStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage tauRef (.int (Int.ofNat (fileData I).toNat)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileTauPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "tau", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨1⟩)
+      (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_tau I)
       (her := by simp [tauRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

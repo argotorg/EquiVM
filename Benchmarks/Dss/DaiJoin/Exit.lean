@@ -88,7 +88,7 @@ theorem evalExpr_daiJoinLiveStorage {evm : EVM.State} {locals : Store}
     (hlive : locals.get? "live" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (exitLiveWord evm.accountMap evm.executionEnv).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)

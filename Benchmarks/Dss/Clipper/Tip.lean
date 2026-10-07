@@ -107,11 +107,10 @@ theorem clipperEvalTip (v : ClipperImmutables) (evm : EVM.State) (locals : Store
   have hty : storageTypeAt? (contract v).storage er = some (.elem (.int uint192Int)) := by
     simp [er, storageTypeAt?, contract, storageDecls, uint192St]
   have hloc :
-      (config v).storage.layout er =
-        fun _ => some (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide)) := by
-    funext evm'
+      (config v).storageBackend.locate? er =
+        some (.leaf (uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide))) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (clipperStorageLocLoad_uint192 evm ⟨8⟩)
 
 theorem clipperTipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

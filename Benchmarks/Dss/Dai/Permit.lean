@@ -635,7 +635,7 @@ theorem evalExpr_permit_domainSeparator (evm : EVM.State) (I : ExecutionEnv) :
     .ok (.fixedBytes bytes32Width
       (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         domainSeparatorStorageSlot))) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitStore I })
     (slot := domainSeparatorRef)
@@ -1146,7 +1146,7 @@ theorem evalExpr_permitRecoveredStore_nonce_storage
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner
           (permitNonceStorageSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitRecoveredStore evm I out recovered })
     (slot := noncesRef (.var "holder"))
@@ -1407,8 +1407,8 @@ theorem permitAssignNonce (evm evm' : EVM.State) (I : ExecutionEnv)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       permitNonceEvaledRef, permitHolderKey, uint256St]
   have hloc :
-      config.storage.layout (permitNonceEvaledRef I) =
-        fun _ => some (wordLoc (permitNonceStorageSlot I) (.int uint256Int)) := by
+      config.storageBackend.locate? (permitNonceEvaledRef I) =
+        some (.leaf (wordLoc (permitNonceStorageSlot I) (.int uint256Int))) := by
     rfl
   have hstore :
       storageLocStore evm' (wordLoc (permitNonceStorageSlot I) (.int uint256Int))
@@ -1430,12 +1430,12 @@ theorem permitAssignNonce (evm evm' : EVM.State) (I : ExecutionEnv)
           rfl]
     unfold permitPostNonceState
     rw [← hmatch, hword]
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitRecoveredStore evm I out recovered })
     (evm := evm') (evm' := permitPostNonceState evm' I)
     (slot := noncesRef (.var "holder")) (er := permitNonceEvaledRef I)
-    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase her hty hloc hstore
 
 theorem evalExpr_permitRecoveredStore_wad
@@ -1568,8 +1568,8 @@ theorem permitAssignAllowance (evm evm' : EVM.State) (I : ExecutionEnv)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
       permitAllowanceEvaledRef, permitHolderKey, permitSpenderKey, uint256St]
   have hloc :
-      config.storage.layout (permitAllowanceEvaledRef I) =
-        fun _ => some (wordLoc (permitAllowanceStorageSlot I) (.int uint256Int)) := by
+      config.storageBackend.locate? (permitAllowanceEvaledRef I) =
+        some (.leaf (wordLoc (permitAllowanceStorageSlot I) (.int uint256Int))) := by
     rfl
   have hstore :
       storageLocStore (permitPostNonceState evm' I)
@@ -1584,13 +1584,13 @@ theorem permitAssignAllowance (evm evm' : EVM.State) (I : ExecutionEnv)
         evm'.executionEnv.codeOwner by
       unfold permitPostNonceState
       rw [storageStore_executionEnv]]
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := permitWadStore evm I out recovered })
     (evm := permitPostNonceState evm' I) (evm' := permitPostState evm' I)
     (slot := allowanceRef (.var "holder") (.var "spender"))
     (er := permitAllowanceEvaledRef I) (ty := uint256St)
-    (loc := wordLoc (permitAllowanceStorageSlot I) (.int uint256Int))
+    (loc := wordLoc (permitAllowanceStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     hbase her hty hloc hstore
 
 theorem permitHolderMaskedWord_eq_zero_of_address_zero (I : ExecutionEnv)

@@ -46,10 +46,9 @@ theorem clipperEvalGetFeedPriceSpotterTarget (v : ClipperImmutables) (evm : EVM.
     rfl
   have hty : storageTypeAt? (contract v).storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : (config v).storage.layout er = fun _ => some (addrLoc ⟨3⟩) := by
-    funext evm'
+  have hloc : (config v).storageBackend.locate? er = some (.leaf (addrLoc ⟨3⟩)) := by
     rfl
-  have hload := evalExpr_storage_scalar_value hbase her hty hloc
+  have hload := evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (clipperStorageLocLoad_address evm ⟨3⟩)
   simpa [clipperGetFeedPriceSpotterAddress, clipperSpotterTarget,
     accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm] using hload

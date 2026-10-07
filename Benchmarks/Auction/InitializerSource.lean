@@ -88,7 +88,7 @@ theorem assignInitializing (evm : EVM.State) (locals : Store) (value : Bool)
       .storage initializingRef (.bool value) =
       .ok ({ contract := auctionContract, locals := locals }, setInitializingState evm value) :=
   scalarWrite evm _ locals "_initializing" (.elem .bool) (auctionBoolLocAt ⟨0⟩ 1) _
-    hbase (by native_decide) rfl (by trivial) (storageLocStore_initializing evm ⟨0⟩ value)
+    hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_initializing evm ⟨0⟩ value)
 
 theorem assignInitialized (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_initialized" = none) :
@@ -96,7 +96,7 @@ theorem assignInitialized (evm : EVM.State) (locals : Store)
       .storage initializedRef (.bool true) =
       .ok ({ contract := auctionContract, locals := locals }, setInitializedState evm) :=
   scalarWrite evm _ locals "_initialized" (.elem .bool) (auctionBoolLoc ⟨0⟩) _
-    hbase (by native_decide) rfl (by trivial) (storageLocStore_bool_true_offset0 evm ⟨0⟩)
+    hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_true_offset0 evm ⟨0⟩)
 
 theorem initializerBeginSource (evm : EVM.State) (locals : Store)
     (hi : locals.get? "_initializing" = none) (hz : locals.get? "_initialized" = none)

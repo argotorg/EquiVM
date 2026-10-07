@@ -72,7 +72,7 @@ theorem clipperEvalYankRemoveSalesPos (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesPosSlot I)).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankRemoveStore I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "pos") (er := clipperYankSalesPosRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesPosSlot I))
@@ -144,7 +144,7 @@ theorem clipperEvalYankRemoveActiveElem (v : ClipperImmutables) (evm : EVM.State
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankActiveSlot idx)).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankRemoveLastIndexStore I idx }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := activeElemRef (.var "lastIndex"))
     (er := ({ base := "active", steps := [.aindex (.int (Int.ofNat idx.toNat))] } :
@@ -157,8 +157,8 @@ theorem clipperEvalYankRemoveActiveElem (v : ClipperImmutables) (evm : EVM.State
       simp [frame, clipperYankRemoveLastIndexStore, clipperYankRemoveStore, activeElemRef,
         evalStorageRef, evalStorageRefStep, evalExpr?, valueToKey?,
         EvalResult.bind, EvalResult.ofOption, bind, pure, config, storageLayout,
-        solidityStorageLayout, storageLayoutRaw, storageTypeAt?, contract, storageDecls,
-        clipperStorageLocLoad_uint256, hbound])
+        solidityStorageBackend, storageLayoutRaw, storageTypeAt?, contract, storageDecls,
+        clipperStorageLocLoad_uint256, clipperActiveLength, hbound])
     (by simp [frame, storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (by rfl)
     (by simpa [wordLoc, uint256Loc] using
@@ -266,17 +266,17 @@ theorem clipperYankRemoveAssignActive (v : ClipperImmutables) (evm : EVM.State)
       .storage (activeElemRef (.var "_index")) (.int (Int.ofNat move.toNat)) =
       .ok ({ contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner (clipperYankActiveSlot idx) move) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := ({ base := "active", steps := [.aindex (.int (Int.ofNat idx.toNat))] } :
       EvaledStorageRef))
-    (ty := uint256St) (loc := wordLoc (clipperYankActiveSlot idx))
+    (ty := uint256St) (loc := wordLoc (clipperYankActiveSlot idx)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [clipperYankRemoveIndexStore, clipperYankRemoveMoveStore,
       clipperYankRemoveLastIndexStore, clipperYankRemoveStore, activeElemRef]
   · simp [clipperYankRemoveIndexStore, clipperYankRemoveMoveStore,
       clipperYankRemoveLastIndexStore, clipperYankRemoveStore, activeElemRef, evalStorageRef,
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind,
-      pure, config, storageLayout, solidityStorageLayout, storageLayoutRaw, storageTypeAt?,
-      contract, storageDecls, clipperStorageLocLoad_uint256, hbound]
+      pure, config, storageLayout, solidityStorageBackend, storageLayoutRaw, storageTypeAt?,
+      contract, storageDecls, clipperStorageLocLoad_uint256, clipperActiveLength, hbound]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
   · rfl
   · simpa [wordLoc, uint256Loc] using
@@ -290,9 +290,9 @@ theorem clipperYankRemoveAssignMovePos (v : ClipperImmutables) (evm : EVM.State)
       .ok ({ contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner
           (clipperYankSalesMovePosSlot move) idx) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
     (er := clipperYankSalesMovePosRef move)
-    (ty := uint256St) (loc := wordLoc (clipperYankSalesMovePosSlot move))
+    (ty := uint256St) (loc := wordLoc (clipperYankSalesMovePosSlot move)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
   · simp [clipperYankRemoveIndexStore, clipperYankRemoveMoveStore,
       clipperYankRemoveLastIndexStore, clipperYankRemoveStore, salesF]
   · have hmoveEval :
@@ -433,7 +433,7 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
     simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, SaleStructTy,
       EvalResult.bind, EvalResult.ofOption, bind, pure]
   have hclear :
-      clearStorage? (config v) evm (clipperYankSalesDeleteRef I) SaleStructTy =
+      solidityClearStorage? storageLayoutRaw evm (clipperYankSalesDeleteRef I) SaleStructTy =
         .ok (clipperYankDeleteSaleState evm I) := by
     let base := clipperYankSalesBaseSlot I
     let evm0 := Solm.EVM.storageStore evm evm.executionEnv.codeOwner base ⟨0⟩
@@ -482,56 +482,86 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
           some (Solm.EVM.storageStore evm3 evm3.executionEnv.codeOwner (base + ⟨4⟩) ⟨0⟩) := by
       simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm3 (base + ⟨4⟩) ⟨0⟩
     have hclearPos :
-        clearStorage? (config v) evm
+        solidityClearStorage? storageLayoutRaw evm
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "pos"] }
           uint256St = .ok evm0 := by
-      unfold clearStorage?
-      simp [uint256St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption, base, hpos]
+      simp [uint256St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, base, hpos]
+      simp [EvalResult.bind, bind, hpos]
+      rw [show salesBase (clipperYankArgKey I) = base by rfl, hpos]
     have hclearTab :
-        clearStorage? (config v) evm0
+        solidityClearStorage? storageLayoutRaw evm0
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "tab"] }
           uint256St = .ok evm1 := by
-      unfold clearStorage?
-      simp [uint256St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption, base, htab]
+      simp [uint256St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, base, htab]
+      simp [EvalResult.bind, bind, htab]
+      rw [show salesBase (clipperYankArgKey I) = base by rfl, htab]
     have hclearLot :
-        clearStorage? (config v) evm1
+        solidityClearStorage? storageLayoutRaw evm1
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "lot"] }
           uint256St = .ok evm2 := by
-      unfold clearStorage?
-      simp [uint256St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption, base, hlot]
+      simp [uint256St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, base, hlot]
+      simp [EvalResult.bind, bind, hlot]
+      rw [show salesBase (clipperYankArgKey I) = base by rfl, hlot]
     have hclearUsr :
-        clearStorage? (config v) evm2
+        solidityClearStorage? storageLayoutRaw evm2
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "usr"] }
           addrSt = .ok evmUsr := by
-      unfold clearStorage?
-      simp [addrSt, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption, base, husr]
+      simp [addrSt, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, base, husr]
+      simp [EvalResult.bind, bind, husr]
+      rw [show salesBase (clipperYankArgKey I) = base by rfl, husr]
     have hclearTic :
-        clearStorage? (config v) evmUsr
+        solidityClearStorage? storageLayoutRaw evmUsr
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "tic"] }
           uint96St = .ok evm3 := by
-      have htic' := htic
-      simp at htic'
-      unfold clearStorage?
-      simp [uint96St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption]
-      rw [htic']
+      simp [uint96St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption]
+      simp [EvalResult.bind, bind, htic]
+      change (match storageLocStore evmUsr
+          (uint96Loc (base + ⟨3⟩) ⟨20, by decide⟩ (by decide)) (.int 0) with
+        | some a => EvalResult.ok a
+        | none => EvalResult.error EvalError.storageError) = .ok evm3
+      rw [htic]
     have hclearTop :
-        clearStorage? (config v) evm3
+        solidityClearStorage? storageLayoutRaw evm3
           { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "top"] }
           uint256St =
             .ok (Solm.EVM.storageStore evm3 evm3.executionEnv.codeOwner (base + ⟨4⟩) ⟨0⟩) := by
-      unfold clearStorage?
-      simp [uint256St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-        EvalResult.ofOption, base, clipperYankSalesBaseSlot, htop]
-    simp [clearStorage?, clearFields?, SaleStructTy, clipperYankSalesDeleteRef,
-      hclearPos, hclearTab, hclearLot, hclearUsr, hclearTic, hclearTop]
-    simp [clipperYankDeleteSaleState, base, evm0, evm1, evm2, evmUsr, evm3,
-      storageStore_executionEnv]
-  simp [deleteStorage?, hresolve, hclear, EvalResult.bind, bind]
+      simp [uint256St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+        solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, base, clipperYankSalesBaseSlot, htop]
+      simp [EvalResult.bind, bind, htop]
+      rw [show salesBase (clipperYankArgKey I) = base by rfl, htop]
+    have hclearPos' : solidityClearStorage? storageLayoutRaw evm
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "pos"] }
+        uint256St = .ok evm0 := hclearPos
+    have hclearTab' : solidityClearStorage? storageLayoutRaw evm0
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "tab"] }
+        uint256St = .ok evm1 := hclearTab
+    have hclearLot' : solidityClearStorage? storageLayoutRaw evm1
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "lot"] }
+        uint256St = .ok evm2 := hclearLot
+    have hclearUsr' : solidityClearStorage? storageLayoutRaw evm2
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "usr"] }
+        addrSt = .ok evmUsr := hclearUsr
+    have hclearTic' : solidityClearStorage? storageLayoutRaw evmUsr
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "tic"] }
+        uint96St = .ok evm3 := hclearTic
+    have hclearTop' : solidityClearStorage? storageLayoutRaw evm3
+        { base := "sales", steps := [.mindex (clipperYankArgKey I), .field "top"] }
+        uint256St = .ok (Solm.EVM.storageStore evm3 evm3.executionEnv.codeOwner (base + ⟨4⟩) ⟨0⟩) := hclearTop
+    change solidityClearStorage? storageLayoutRaw evm (clipperYankSalesDeleteRef I)
+      SaleStructTy = .ok (clipperYankDeleteSaleState evm I)
+    simp only [SaleStructTy, solidityClearStorage?, solidityClearFields?,
+      clipperYankSalesDeleteRef, List.singleton_append, hclearPos', hclearTab',
+      hclearLot', hclearUsr', hclearTic', hclearTop', EvalResult.bind, bind]
+    rfl
+  unfold deleteStorage?
+  rw [hresolve]
+  simp only [EvalResult.bind, bind]
+  exact hclear
 
 abbrev clipperYankRemovePopState (evm : EVM.State) (lastIndex : UInt256) : EVM.State :=
   Solm.EVM.storageStore
@@ -587,20 +617,11 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
       EvalResult.ok (({ base := "active", steps := [] } : EvaledStorageRef),
         uint256St.dynamicArray)
     rfl
-  have hlenLoad :
-      storageLocLoad evm (wordLoc ⟨11⟩) =
-        .int (Int.ofNat
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat) :=
-    clipperStorageLocLoad_uint256 evm ⟨11⟩
-  have hlenLoc :
-      (config v).storage.layout ({ base := "active", steps := [.length] } :
-        EvaledStorageRef) evm = some (wordLoc ⟨11⟩) := by
-    rfl
   have hlenNatNe :
       ¬ (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat = 0 :=
     Nat.ne_of_gt hpos
   have hclear :
-      clearStorage? (config v) evm
+      solidityClearStorage? storageLayoutRaw evm
           ({ base := "active", steps := [.aindex (.int (Int.ofNat lastIndex.toNat))] } :
             EvaledStorageRef)
           uint256St =
@@ -612,10 +633,9 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
             (activeSlot (.int (lastIndex.toNat : Int))) ⟨0⟩) := by
       simpa [wordLoc, uint256Loc] using
         storageLocStore_uint256 evm (activeSlot (.int (Int.ofNat lastIndex.toNat))) ⟨0⟩
-    unfold clearStorage?
-    simp [uint256St, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
-      EvalResult.ofOption, clipperYankActiveSlot]
-    rw [hstoreActive]
+    simp [uint256St, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
+      solidityClearStorage?, solidityLeafLoc?, EvalResult.ofOption, clipperYankActiveSlot]
+    simp [EvalResult.bind, bind, hstoreActive]
   let evmClear :=
     Solm.EVM.storageStore evm evm.executionEnv.codeOwner
       (clipperYankActiveSlot lastIndex) ⟨0⟩
@@ -625,15 +645,22 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
     simpa using storageLocStore_uint256 evmClear ⟨11⟩ lastIndex
   unfold popArray?
   rw [hresolve]
-  simp [EvalResult.bind, bind]
-  rw [hlenLoc]
-  simp only [EvalResult.ofOption]
-  rw [hlenLoad]
-  simp
+  change solidityPopStorage? storageLayoutRaw
+    { base := "active", steps := [] } (.dynamicArray uint256St) evm = _
+  simp only [solidityPopStorage?]
+  rw [clipperActiveDynamicLength]
+  simp only [EvalResult.bind, bind]
   rw [if_neg hlenNatNe]
-  rw [hlastIntCast]
-  rw [hclear]
-  simp
+  rw [← hlastNat]
+  simp only [List.nil_append]
+  have hclear' : solidityClearStorage? storageLayoutRaw evm
+      { base := "active", steps := [.aindex (.int (lastIndex.toNat : Int))] }
+      uint256St = .ok evmClear := by
+    exact hclear
+  simp only [hclear', EvalResult.bind, bind]
+  rw [show solidityLengthLoc? storageLayoutRaw { base := "active", steps := [] } =
+    some (wordLoc ⟨11⟩) from rfl]
+  simp only [EvalResult.ofOption, EvalResult.bind, bind]
   rw [hstoreLen]
   simp [clipperYankRemovePopState, evmClear, storageStore_executionEnv]
 
@@ -753,7 +780,7 @@ theorem clipperEvalYankSalesUsr (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesUsrSlot I)) solcAddrMask).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankStore I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "usr") (er := clipperYankSalesUsrRef I)
     (t := .address) (loc := addrLoc (clipperYankSalesUsrSlot I))
@@ -901,7 +928,7 @@ theorem clipperEvalYankSalesTab (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesTabSlot I)).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankStore I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "tab") (er := clipperYankSalesTabRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesTabSlot I))
@@ -928,7 +955,7 @@ theorem clipperEvalYankSalesLot (v : ClipperImmutables) (evm : EVM.State)
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesLotSlot I)).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankStore I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "lot") (er := clipperYankSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesLotSlot I))
@@ -986,7 +1013,7 @@ theorem clipperEvalYankSalesLotAfterDog (v : ClipperImmutables) (evm : EVM.State
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (clipperYankSalesLotSlot I)).toNat)) := by
   let frame : Frame := { contract := contract v, locals := clipperYankDogRetStore I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v) (solm := frame) (evm := evm)
     (slot := salesF (.var "id") "lot") (er := clipperYankSalesLotRef I)
     (t := .int uint256Int) (loc := wordLoc (clipperYankSalesLotSlot I))

@@ -2645,7 +2645,7 @@ theorem evalExpr_endThaw_vat {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := vatRef)
@@ -2664,7 +2664,7 @@ theorem evalExpr_endThaw_vow {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := vowRef)
@@ -2683,7 +2683,7 @@ theorem evalExpr_endThaw_cure {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := cureRef)
@@ -2700,7 +2700,7 @@ theorem evalExpr_endThaw_when {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "when" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage whenRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := whenRef)
@@ -2717,7 +2717,7 @@ theorem evalExpr_endThaw_wait {locals : Store} (evm : EVM.State)
     (hbase : locals.get? "wait" = none) :
     evalExpr? config { contract := contract, locals := locals } evm (.storage waitRef) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := waitRef)
@@ -2744,7 +2744,7 @@ theorem evalExpr_endThaw_live_zero_false (evm : EVM.State)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := (∅ : Store) })
       (slot := liveRef)
@@ -2824,7 +2824,7 @@ theorem evalExpr_endThaw_debt_zero_false (evm : EVM.State)
         (.storage debtRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := (∅ : Store) })
       (slot := debtRef)
@@ -2868,7 +2868,7 @@ theorem endThawBodyReverts_debtNonzero {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -2923,7 +2923,7 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -2947,7 +2947,7 @@ theorem endThawBodyReverts_daiNoCode {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage debtRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := debtRef)
@@ -3056,7 +3056,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -3080,7 +3080,7 @@ theorem endThawBodyReverts_daiCallFailed {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage debtRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := debtRef)
@@ -3198,7 +3198,7 @@ theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -3222,7 +3222,7 @@ theorem endThawBodyReverts_daiBlockReverted {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage debtRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := debtRef)
@@ -3373,7 +3373,7 @@ theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -3397,7 +3397,7 @@ theorem endThawBodyReverts_daiOkTailReverted {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage debtRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := debtRef)
@@ -4051,10 +4051,10 @@ theorem endThawAssignDebt {locals : Store} (evm : EVM.State) (debtNew : UInt256)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage debtRef (.int (Int.ofNat debtNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endThawPostState evm debtNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := endThawDebtEvaledRef)
-      (loc := wordLoc ⟨11⟩)
+      (loc := wordLoc ⟨11⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endThaw_debt_of_locals hbase evm)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -4543,7 +4543,7 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage liveRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := liveRef)
@@ -4567,7 +4567,7 @@ theorem endThawBodyReturns_daiOkTail {σ σ₀ A I} {g : UInt256}
     have hstorage :
         evalExpr? config { contract := contract, locals := (∅ : Store) } evm0
           (.storage debtRef) = .ok (.int 0) := by
-        rw [evalExpr_storage_scalar_value
+        rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := (∅ : Store) })
         (slot := debtRef)

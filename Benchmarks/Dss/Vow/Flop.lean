@@ -56,15 +56,15 @@ theorem evalExpr_flopSumpStorage (evm : EVM.State) {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage sumpRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := flopSumpEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := flopSumpEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
   · exact congrArg EvalResult.ok (vowStorageLocLoad_uint256 _ ⟨9⟩)
   · exact hbase
   · simp [flopSumpEvaledRef, sumpRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, flopSumpEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, flopSumpEvaledRef]
 
 theorem vowDispatch_flop {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩) :

@@ -44,7 +44,7 @@ theorem evalExpr_cage_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := (∅ : Store) } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := (∅ : Store) })
       (slot := wardsRef sender)
@@ -73,7 +73,7 @@ theorem evalExpr_cage_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (relyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := (∅ : Store) })
       (slot := wardsRef sender)
@@ -124,9 +124,9 @@ theorem cageLiveAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := (∅ : Store) },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨8⟩)
+      (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp)
       (her := evalStorageRef_cage_live evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -138,9 +138,9 @@ theorem cageDsrAssign (evm : EVM.State) (I : ExecutionEnv) :
       .storage dsrRef (.int one) =
         .ok ({ contract := contract, locals := (∅ : Store) },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨3⟩ potRay) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨3⟩)
+      (loc := wordLoc ⟨3⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp)
       (her := evalStorageRef_cage_dsr evm I)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

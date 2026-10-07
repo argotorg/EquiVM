@@ -1438,7 +1438,7 @@ theorem evalExpr_endPack_debt (evm : EVM.State) (I : ExecutionEnv) :
       (.storage debtRef) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := endPackStore I })
     (slot := debtRef)
@@ -1496,7 +1496,7 @@ theorem evalExpr_endPack_vat {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := vatRef)
@@ -1530,7 +1530,7 @@ theorem evalExpr_endPack_vow {locals : Store} (evm : EVM.State)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨4⟩)
           solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := vowRef)
@@ -1567,7 +1567,7 @@ theorem evalExpr_endPack_bag {locals : Store} (evm : EVM.State) (I : ExecutionEn
     evalExpr? config { contract := contract, locals := locals } evm (.storage (bagRef sender)) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (endPackBagSlot I)).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := locals })
     (slot := bagRef sender)
@@ -1587,9 +1587,9 @@ theorem endPackAssignBag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (bagRef sender) (.int (Int.ofNat bagNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endPackPostState evm I bagNew) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (endPackBagSlot I))
+      (loc := wordLoc (endPackBagSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := hbase)
       (her := evalStorageRef_endPack_bag evm I hbase hsrc)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

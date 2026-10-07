@@ -95,7 +95,7 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     constructor
     · exact Int.natCast_nonneg _
     · exact Int.ofNat_lt.mpr hbound
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config v)
     (solm := { contract := contract v, locals := clipperActiveStore I })
     (slot := activeElemRef (.var "arg0"))
@@ -110,8 +110,8 @@ theorem clipperEvalActiveElem_ok (v : ClipperImmutables) (evm : EVM.State)
     (her := by
       simp [evalStorageRef, evalStorageRefStep, activeElemRef, clipperActiveStore,
         clipperActiveArgValue, clipperActiveArgKey, valueToKey?, EvalResult.bind,
-        EvalResult.ofOption, bind, pure, evalExpr?, config, storageLayout, solidityStorageLayout,
-        storageLayoutRaw, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
+        EvalResult.ofOption, bind, pure, evalExpr?, config, storageLayout, solidityStorageBackend,
+        clipperActiveLength, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
         hbound])
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, clipperActiveArgKey,
@@ -143,8 +143,8 @@ theorem clipperEvalActiveElem_revert (v : ClipperImmutables) (evm : EVM.State)
     Nat.not_lt_of_ge hbound
   simp [evalExpr?, resolveStorageRef?, evalStorageRef, evalStorageRefStep, activeElemRef,
     clipperActiveStore, clipperActiveArgValue, valueToKey?,
-    EvalResult.bind, EvalResult.ofOption, bind, pure, config, storageLayout, solidityStorageLayout,
-    storageLayoutRaw, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
+    EvalResult.bind, EvalResult.ofOption, bind, pure, config, storageLayout, solidityStorageBackend,
+    clipperActiveLength, storageTypeAt?, contract, storageDecls, clipperStorageLocLoad_uint256,
     hnot]
 
 theorem clipperActiveBodyReturns (v : ClipperImmutables) (evm : EVM.State)

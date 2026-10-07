@@ -1473,7 +1473,7 @@ theorem evalExpr_kickKicks {σ σ₀ A I} {g : Sat256} {locals : Store}
     evalExpr? config { contract := contract, locals := locals }
       (initState σ σ₀ g A I) (.storage kicksRef) =
         .ok (.int (Int.ofNat (kickKicksWord σ I).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int)
     (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
     (loc := wordLoc ⟨6⟩)
@@ -1482,8 +1482,7 @@ theorem evalExpr_kickKicks {σ σ₀ A I} {g : Sat256} {locals : Store}
       simp [evalStorageRef, evalStorageRefSteps, kicksRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])]
   exact congrArg EvalResult.ok
     (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I) ⟨6⟩)
 

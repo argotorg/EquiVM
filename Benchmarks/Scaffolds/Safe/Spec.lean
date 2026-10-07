@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -215,28 +216,28 @@ def wordLoc (slot : Ethereum.UInt256) (ty : ElemType) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   loc slot ⟨0, by decide⟩ ⟨20, by decide⟩ (by decide) .address
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "singleton", steps := [] }, _ => some (addrLoc ⟨0⟩)
-  | { base := "modules", steps := [.mindex module] }, _ => some (addrLoc (modulesSlot module))
-  | { base := "owners", steps := [.mindex owner] }, _ => some (addrLoc (ownersSlot owner))
-  | { base := "ownerCount", steps := [] }, _ => some (wordLoc ⟨3⟩ (.int uint256Int))
-  | { base := "threshold", steps := [] }, _ => some (wordLoc ⟨4⟩ (.int uint256Int))
-  | { base := "nonce", steps := [] }, _ => some (wordLoc ⟨5⟩ (.int uint256Int))
-  | { base := "_deprecatedDomainSeparator", steps := [] }, _ =>
-      some (wordLoc ⟨6⟩ (.bytes bytes32Width))
-  | { base := "signedMessages", steps := [.mindex messageHash] }, _ =>
-      some (wordLoc (signedMessagesSlot messageHash) (.int uint256Int))
-  | { base := "approvedHashes", steps := [.mindex owner, .mindex messageHash] }, _ =>
-      some (wordLoc (approvedHashesSlot owner messageHash) (.int uint256Int))
-  | { base := "_fallbackHandler", steps := [] }, _ => some (addrLoc fallbackHandlerSlot)
-  | { base := "_guard", steps := [] }, _ => some (addrLoc guardSlot)
-  | { base := "_moduleGuard", steps := [] }, _ => some (addrLoc moduleGuardSlot)
-  | { base := "_rawStorage", steps := [.mindex slot] }, _ =>
-      some (wordLoc (keyValueToWord slot) (.int uint256Int))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "singleton", steps := [] } => some (.leaf (addrLoc ⟨0⟩))
+  | { base := "modules", steps := [.mindex module] } => some (.leaf (addrLoc (modulesSlot module)))
+  | { base := "owners", steps := [.mindex owner] } => some (.leaf (addrLoc (ownersSlot owner)))
+  | { base := "ownerCount", steps := [] } => some (.leaf (wordLoc ⟨3⟩ (.int uint256Int)))
+  | { base := "threshold", steps := [] } => some (.leaf (wordLoc ⟨4⟩ (.int uint256Int)))
+  | { base := "nonce", steps := [] } => some (.leaf (wordLoc ⟨5⟩ (.int uint256Int)))
+  | { base := "_deprecatedDomainSeparator", steps := [] } =>
+      some (.leaf (wordLoc ⟨6⟩ (.bytes bytes32Width)))
+  | { base := "signedMessages", steps := [.mindex messageHash] } =>
+      some (.leaf (wordLoc (signedMessagesSlot messageHash) (.int uint256Int)))
+  | { base := "approvedHashes", steps := [.mindex owner, .mindex messageHash] } =>
+      some (.leaf (wordLoc (approvedHashesSlot owner messageHash) (.int uint256Int)))
+  | { base := "_fallbackHandler", steps := [] } => some (.leaf (addrLoc fallbackHandlerSlot))
+  | { base := "_guard", steps := [] } => some (.leaf (addrLoc guardSlot))
+  | { base := "_moduleGuard", steps := [] } => some (.leaf (addrLoc moduleGuardSlot))
+  | { base := "_rawStorage", steps := [.mindex slot] } =>
+      some (.leaf (wordLoc (keyValueToWord slot) (.int uint256Int)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## External ABI for guard, token, and signature calls -/
 
@@ -1221,7 +1222,7 @@ def contract : ContractDecl :=
     fallback := some fallbackTransition }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := safeExternalABI
     abiDecodeMode := safeDecodeMode
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

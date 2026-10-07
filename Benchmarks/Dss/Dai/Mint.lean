@@ -190,7 +190,7 @@ theorem evalExpr_mint_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := mintStore I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := mintStore I })
       (slot := wardsRef sender)
@@ -222,7 +222,7 @@ theorem evalExpr_mint_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (mintAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := mintStore I })
       (slot := wardsRef sender)
@@ -263,7 +263,7 @@ theorem evalExpr_mint_usr_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (.storage (balanceOfRef (.var "usr"))) =
         .ok (.int (Int.ofNat (mintUsrBalanceWord evm I).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := mintStore I })
     (slot := balanceOfRef (.var "usr"))
@@ -285,7 +285,7 @@ theorem evalExpr_mint_totalSupply (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (.storage totalSupplyRef) =
         .ok (.int (Int.ofNat (mintTotalSupplyWord evm).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := mintStore I })
     (slot := totalSupplyRef)
@@ -447,11 +447,11 @@ theorem mintAssignUsr (evm : EVM.State) (I : ExecutionEnv)
       .storage (balanceOfRef (.var "usr")) (mintUsrCreditValue evm I) =
         .ok ({ contract := contract, locals := mintStore I },
           mintAfterUsrCreditState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "usr"))
       (er := mintUsrBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (mintUsrStorageSlot I) (.int uint256Int))
+      (loc := wordLoc (mintUsrStorageSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using mintStore_balanceOf I)
       (her := evalStorageRef_mint_usr_balance evm I)
@@ -474,11 +474,11 @@ theorem mintAssignSupply (evm : EVM.State) (I : ExecutionEnv)
         .ok ({ contract := contract, locals := mintStore I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner mintTotalSupplySlot
             (mintSupplyCreditWord evm I)) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := totalSupplyRef)
       (er := mintTotalSupplyEvaledRef)
       (ty := uint256St)
-      (loc := wordLoc mintTotalSupplySlot (.int uint256Int))
+      (loc := wordLoc mintTotalSupplySlot (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [totalSupplyRef] using mintStore_totalSupply I)
       (her := evalStorageRef_mint_totalSupply evm I)

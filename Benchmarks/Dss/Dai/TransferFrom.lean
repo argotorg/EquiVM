@@ -1012,7 +1012,7 @@ theorem evalExpr_transferFrom_src_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (balanceOfRef (.var "src"))) =
         .ok (transferFromSrcBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromStore I })
     (slot := balanceOfRef (.var "src"))
@@ -1035,7 +1035,7 @@ theorem evalExpr_transferFrom_dst_balance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (balanceOfRef (.var "dst"))) =
         .ok (transferFromDstBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromStore I })
     (slot := balanceOfRef (.var "dst"))
@@ -1058,7 +1058,7 @@ theorem evalExpr_transferFrom_allowance (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (.storage (allowanceRef (.var "src") sender)) =
         .ok (transferFromAllowanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromStore I })
     (slot := allowanceRef (.var "src") sender)
@@ -1419,11 +1419,11 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) =
         .ok ({ contract := contract, locals := transferFromStore I },
           transferFromAfterAllowanceState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := allowanceRef (.var "src") sender)
       (er := transferFromAllowanceRef evm I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromAllowanceSlot evm I) (.int uint256Int))
+      (loc := wordLoc (transferFromAllowanceSlot evm I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [allowanceRef] using transferFromStore_allowance I)
       (her := evalStorageRef_transferFrom_allowance evm I)
@@ -1442,11 +1442,11 @@ theorem transferFromAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (transferFromSrcDebitWord evm I).toNat)) =
         .ok ({ contract := contract, locals := transferFromStore I },
           transferFromAfterSrcDebitState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "src"))
       (er := transferFromSrcBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromSrcSlot I) (.int uint256Int))
+      (loc := wordLoc (transferFromSrcSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using transferFromStore_balanceOf I)
       (her := evalStorageRef_transferFrom_src_balance evm I)
@@ -1466,11 +1466,11 @@ theorem transferFromAssignDst (evm : EVM.State) (I : ExecutionEnv)
       (transferFromDstCreditValue (transferFromAfterSrcDebitState evm I) I) =
         .ok ({ contract := contract, locals := transferFromStore I },
           transferFromPostStateFrom evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "dst"))
       (er := transferFromDstBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromDstSlot I) (.int uint256Int))
+      (loc := wordLoc (transferFromDstSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using transferFromStore_balanceOf I)
       (her := evalStorageRef_transferFrom_dst_balance (transferFromAfterSrcDebitState evm I) I)
@@ -1867,7 +1867,7 @@ theorem evalExpr_transferFromCall_src_balance (evm : EVM.State) (I : ExecutionEn
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (.storage (balanceOfRef (.var "src"))) =
         .ok (transferFromSrcBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromCallStore I })
     (slot := balanceOfRef (.var "src"))
@@ -1890,7 +1890,7 @@ theorem evalExpr_transferFromCall_dst_balance (evm : EVM.State) (I : ExecutionEn
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (.storage (balanceOfRef (.var "dst"))) =
         .ok (transferFromDstBalanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromCallStore I })
     (slot := balanceOfRef (.var "dst"))
@@ -1913,7 +1913,7 @@ theorem evalExpr_transferFromCall_allowance (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (.storage (allowanceRef (.var "src") sender)) =
         .ok (transferFromAllowanceValue evm I) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config)
     (solm := { contract := contract, locals := transferFromCallStore I })
     (slot := allowanceRef (.var "src") sender)
@@ -2274,11 +2274,11 @@ theorem transferFromCallAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) =
         .ok ({ contract := contract, locals := transferFromCallStore I },
           transferFromAfterAllowanceState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := allowanceRef (.var "src") sender)
       (er := transferFromAllowanceRef evm I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromAllowanceSlot evm I) (.int uint256Int))
+      (loc := wordLoc (transferFromAllowanceSlot evm I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [allowanceRef] using transferFromCallStore_allowance I)
       (her := evalStorageRef_transferFromCall_allowance evm I)
@@ -2297,11 +2297,11 @@ theorem transferFromCallAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
       (.int (Int.ofNat (transferFromSrcDebitWord evm I).toNat)) =
         .ok ({ contract := contract, locals := transferFromCallStore I },
           transferFromAfterSrcDebitState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "src"))
       (er := transferFromSrcBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromSrcSlot I) (.int uint256Int))
+      (loc := wordLoc (transferFromSrcSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using transferFromCallStore_balanceOf I)
       (her := evalStorageRef_transferFromCall_src_balance evm I)
@@ -2321,11 +2321,11 @@ theorem transferFromCallAssignDst (evm : EVM.State) (I : ExecutionEnv)
       (transferFromDstCreditValue (transferFromAfterSrcDebitState evm I) I) =
         .ok ({ contract := contract, locals := transferFromCallStore I },
           transferFromPostStateFrom evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (slot := balanceOfRef (.var "dst"))
       (er := transferFromDstBalanceRef I)
       (ty := uint256St)
-      (loc := wordLoc (transferFromDstSlot I) (.int uint256Int))
+      (loc := wordLoc (transferFromDstSlot I) (.int uint256Int)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         simpa [balanceOfRef] using transferFromCallStore_balanceOf I)
       (her := evalStorageRef_transferFromCall_dst_balance (transferFromAfterSrcDebitState evm I) I)

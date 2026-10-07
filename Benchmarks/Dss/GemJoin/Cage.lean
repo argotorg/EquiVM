@@ -19,10 +19,10 @@ theorem cageAssignLive (evm : EVM.State) :
     assignStorageRef? config { contract := contract, locals := ∅ } evm
       .storage liveRef (.int 0) =
         .ok ({ contract := contract, locals := ∅ }, cagePostState evm) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨5⟩)
+      (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [liveRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, liveRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

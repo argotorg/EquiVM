@@ -474,7 +474,7 @@ theorem evalExpr_dentIlk_ofLocals {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage ilkRef) =
       .ok (.fixedBytes bytes32Width
         (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩))) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .bytes bytes32Width)
     (loc := bytes32Loc ⟨3⟩)
     (er := ({ base := "ilk", steps := [] } : EvaledStorageRef))
@@ -482,8 +482,7 @@ theorem evalExpr_dentIlk_ofLocals {evm : EVM.State} {locals : Store}
     (her := by simp [evalStorageRef, evalStorageRefSteps, ilkRef, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, bytes32St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, ilkRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, ilkRef])]
   exact congrArg EvalResult.ok (flipperStorageLocLoad_bytes32 evm ⟨3⟩)
 
 theorem evalExpr_bidUsr_of_get_id_evm {evm : EVM.State} {locals : Store}
@@ -496,7 +495,7 @@ theorem evalExpr_bidUsr_of_get_id_evm {evm : EVM.State} {locals : Store}
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidSlotOfWord id ⟨3⟩))
             solcAddrMask).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .address)
     (loc := addrLoc (bidSlotOfWord id ⟨3⟩))
     (hbase := hbids)
@@ -506,8 +505,7 @@ theorem evalExpr_bidUsr_of_get_id_evm {evm : EVM.State} {locals : Store}
       simp [storageTypeAt?, storageTypeStep?, bidEvaledRefOfWord, contract, storageDecls,
         BidStructTy, addrSt])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         bidEvaledRefOfWord, bidSlotOfWord, bidBaseOfWord]
       unfold bidsBase mapSlot solcMappingSlot
       rw [keyValueToWord_uint256_natCast])]

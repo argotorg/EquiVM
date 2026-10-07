@@ -29,31 +29,31 @@ theorem createStoresSource {evm locals noun start finish}
   apply ExecBlock.consNormal (ExecStmt.assign (value := .int (Int.ofNat noun.toNat))
     (by simp only [evalExpr?, hn, EvalResult.ofOption])
     (auctionFieldWrite evm _ locals "nounId" (.elem (.int uint256Int)) (auctionUint256Loc ⟨207⟩)
-      _ ha (by native_decide) rfl (by trivial) (storageLocStore_uint256 evm ⟨207⟩ noun)))
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm ⟨207⟩ noun)))
   apply ExecBlock.consNormal (ExecStmt.assign (value := .int 0)
     (by simp only [evalExpr?, pure])
     (auctionFieldWrite _ _ locals "amount" (.elem (.int uint256Int)) (auctionUint256Loc ⟨208⟩)
-      _ ha (by native_decide) rfl (by trivial) (storageLocStore_uint256 _ ⟨208⟩ ⟨0⟩)))
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨208⟩ ⟨0⟩)))
   apply ExecBlock.consNormal (ExecStmt.assign (value := .int (Int.ofNat start.toNat))
     (by simp only [evalExpr?, ht, EvalResult.ofOption])
     (auctionFieldWrite _ _ locals "startTime" (.elem (.int uint256Int)) (auctionUint256Loc ⟨209⟩)
-      _ ha (by native_decide) rfl (by trivial) (storageLocStore_uint256 _ ⟨209⟩ start)))
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨209⟩ start)))
   apply ExecBlock.consNormal (ExecStmt.assign (value := .int (Int.ofNat finish.toNat))
     (by simp only [evalExpr?, he, EvalResult.ofOption])
     (auctionFieldWrite _ _ locals "endTime" (.elem (.int uint256Int)) (auctionUint256Loc ⟨210⟩)
-      _ ha (by native_decide) rfl (by trivial) (storageLocStore_uint256 _ ⟨210⟩ finish)))
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 _ ⟨210⟩ finish)))
   simp only [storageStore_executionEnv]
   change ExecBlock auctionConfig _ (createdScalarState evm noun start finish) _ _
   apply ExecBlock.consNormal (ExecStmt.assign (value := .address (.ofNat 0))
     (by simp only [zeroAddr, evalExpr?, pure, bind, EvalResult.bind, castValue?, addrSt,
         EvalResult.ofOption]; rfl)
     (auctionFieldWrite _ _ locals "bidder" (.elem .address) (auctionAddrLoc ⟨211⟩)
-      _ ha (by native_decide) rfl (by trivial)
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩)
       (storageLocStore_address_offset0 _ ⟨211⟩ ⟨0⟩ (by decide))))
   apply ExecBlock.consNormal (ExecStmt.assign (value := .bool false)
     (by simp only [evalExpr?, pure])
     (auctionFieldWrite _ _ locals "settled" (.elem .bool) (auctionBoolLocAt ⟨211⟩ 20)
-      _ ha (by native_decide) rfl (by trivial) (storageLocStore_settledFalse _ ⟨211⟩)))
+      _ ha (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_settledFalse _ ⟨211⟩)))
   exact ExecBlock.nil
 
 theorem durationSourceRead {s0 I σ evm locals}

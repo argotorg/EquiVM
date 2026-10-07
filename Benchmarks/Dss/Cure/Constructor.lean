@@ -222,16 +222,15 @@ theorem assign_cureCtorLiveStorage (evm : EVM.State) {locals : Store}
       storageLocStore evm (wordLoc ⟨1⟩) (.int 1) =
         some (cureCtorAfterLiveState evm) := by
     simpa [cureCtorAfterLiveState] using storageLocStore_uint256 evm ⟨1⟩ ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := { base := "live", steps := [] })
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := by
       simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem assign_cureCtorWardsStorage (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
@@ -252,15 +251,14 @@ theorem assign_cureCtorWardsStorage (evm : EVM.State) (I : ExecutionEnv) {locals
         some (cureCtorAfterWardsState evm I) := by
     simpa [cureCtorAfterWardsState] using
       storageLocStore_uint256 evm (cureCtorWardsSlot I) ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (er := cureCtorWardsEvaledRef I)
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (cureCtorWardsSlot I))
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (cureCtorWardsSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         cureCtorWardsEvaledRef, cureCtorWardsSlot, wardsSlot, mapSlot, solcMappingSlot,
         keyValueToWord_address, solcSourceWord, uInt256OfByteArray_eq])
     (hstore := hstore)

@@ -353,14 +353,13 @@ theorem dogRelyBodyCoreOk
         have hstore :
             storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 1) = some evm1 := by
           simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨1⟩
-        exact assignStorageRef_storage_scalar
-          (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
+        exact assignStorageRef_storage_scalar (hbackend := rfl)
+          (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
           (hbase := by simp [locals, relyLocals, wardsRef])
           (her := her)
           (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
           (hloc := by
-            funext evm
-            simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+            simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
               relyEvaledRef, relySlotFor])
           (hstore := hstore)
       have hblock := nonpayableRequireAssignStorageBlock

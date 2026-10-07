@@ -60,7 +60,7 @@ theorem daiWardsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (wardsStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := wardsStore I })
         (slot := wardsRef (.var "arg0"))

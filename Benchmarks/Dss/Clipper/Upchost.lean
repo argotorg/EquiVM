@@ -2620,9 +2620,9 @@ theorem clipperUpchostAssignChost (v : ClipperImmutables) (evm : EVM.State)
       .ok ({ contract := contract v, locals := clipperUpchostChostLocals out outDog },
         Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨9⟩
           (clipperUpchostChostWord out outDog)) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨9⟩)
+      (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := clipperUpchostChostLocals_get_chost out outDog)
       (her := evalStorageRef_clipperUpchost_chost v evm out outDog)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])

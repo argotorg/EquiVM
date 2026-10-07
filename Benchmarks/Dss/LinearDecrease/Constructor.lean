@@ -99,15 +99,14 @@ theorem assign_stairstepCtorWardsCaller (evm : EVM.State) {locals : Store}
     simpa [stairstepCtorAfterWardsState] using
       stairstepStorageLocStore_uint256 evm
         (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
     (ty := .elem (.int uint256Int))
-    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+    (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem stairstepCtorBodySuccess

@@ -26,21 +26,21 @@ def symbolEvaledRef : EvaledStorageRef := { base := "symbol", steps := [] }
 theorem weth9SymbolStorageRead {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
       (.storage symbolRef)
-    = storageValueResultToEval (weth9ReadBytesValue? storageLayoutRaw
+    = solidityValueResultToEval (weth9ReadBytesValue? storageLayoutRaw
         symbolEvaledRef (initState σ σ₀ g A I)) := by
   rw [evalExpr?, resolveStorageRef?_ok (er := symbolEvaledRef) (ty := .string)
     (by simp [symbolRef])
     (by simp [evalStorageRef, symbolRef, symbolEvaledRef, EvalResult.bind, bind, pure])
     (by simp [storageTypeAt?, contract, storageDecls, symbolEvaledRef])]
-  simp only [bind, EvalResult.bind, readStorage?, config, storageLayout, weth9StorageLayout,
+  simp only [bind, EvalResult.bind, config, storageLayout, weth9StorageBackend,
     weth9ReadValue?]
 
 theorem weth9SymbolBaseSlotLen {σ σ₀ A I} {g : Sat256} :
     weth9BytesBaseSlotAndLength? storageLayoutRaw symbolEvaledRef (initState σ σ₀ g A I) =
       .ok ((⟨1⟩ : UInt256), (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)).toNat) := by
   unfold weth9BytesBaseSlotAndLength?
-  simp only [symbolEvaledRef, List.nil_append, storageLayoutRaw, bytesLikeLengthLoc,
-    apply_ite StorageLoc.slot, ite_self, weth9Header, weth9DecodeBytesLengthHeader_stringLen]
+  simp only [symbolEvaledRef, List.nil_append, storageLayoutRaw,
+    weth9Header, weth9DecodeBytesLengthHeader_stringLen]
 
 /-- The `.bytes` value the Solm `symbol()` body returns: the decoded compact string. -/
 theorem weth9SymbolReadValue {σ σ₀ A I} {g : Sat256} :

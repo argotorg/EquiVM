@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 
@@ -218,29 +219,29 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def addrLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 20, hbound := by decide, type := .address }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "wards", steps := [.mindex usr] }, _ => some (wordLoc (wardsSlot usr))
-  | { base := "vat", steps := [] }, _ => some (addrLoc ⟨1⟩)
-  | { base := "cat", steps := [] }, _ => some (addrLoc ⟨2⟩)
-  | { base := "dog", steps := [] }, _ => some (addrLoc ⟨3⟩)
-  | { base := "vow", steps := [] }, _ => some (addrLoc ⟨4⟩)
-  | { base := "pot", steps := [] }, _ => some (addrLoc ⟨5⟩)
-  | { base := "spot", steps := [] }, _ => some (addrLoc ⟨6⟩)
-  | { base := "cure", steps := [] }, _ => some (addrLoc ⟨7⟩)
-  | { base := "live", steps := [] }, _ => some (wordLoc ⟨8⟩)
-  | { base := "when", steps := [] }, _ => some (wordLoc ⟨9⟩)
-  | { base := "wait", steps := [] }, _ => some (wordLoc ⟨10⟩)
-  | { base := "debt", steps := [] }, _ => some (wordLoc ⟨11⟩)
-  | { base := "tag", steps := [.mindex ilk] }, _ => some (wordLoc (tagSlot ilk))
-  | { base := "gap", steps := [.mindex ilk] }, _ => some (wordLoc (gapSlot ilk))
-  | { base := "Art", steps := [.mindex ilk] }, _ => some (wordLoc (ArtSlot ilk))
-  | { base := "fix", steps := [.mindex ilk] }, _ => some (wordLoc (fixSlot ilk))
-  | { base := "bag", steps := [.mindex usr] }, _ => some (wordLoc (bagSlot usr))
-  | { base := "out", steps := [.mindex ilk, .mindex usr] }, _ => some (wordLoc (outSlot ilk usr))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "wards", steps := [.mindex usr] } => some (.leaf (wordLoc (wardsSlot usr)))
+  | { base := "vat", steps := [] } => some (.leaf (addrLoc ⟨1⟩))
+  | { base := "cat", steps := [] } => some (.leaf (addrLoc ⟨2⟩))
+  | { base := "dog", steps := [] } => some (.leaf (addrLoc ⟨3⟩))
+  | { base := "vow", steps := [] } => some (.leaf (addrLoc ⟨4⟩))
+  | { base := "pot", steps := [] } => some (.leaf (addrLoc ⟨5⟩))
+  | { base := "spot", steps := [] } => some (.leaf (addrLoc ⟨6⟩))
+  | { base := "cure", steps := [] } => some (.leaf (addrLoc ⟨7⟩))
+  | { base := "live", steps := [] } => some (.leaf (wordLoc ⟨8⟩))
+  | { base := "when", steps := [] } => some (.leaf (wordLoc ⟨9⟩))
+  | { base := "wait", steps := [] } => some (.leaf (wordLoc ⟨10⟩))
+  | { base := "debt", steps := [] } => some (.leaf (wordLoc ⟨11⟩))
+  | { base := "tag", steps := [.mindex ilk] } => some (.leaf (wordLoc (tagSlot ilk)))
+  | { base := "gap", steps := [.mindex ilk] } => some (.leaf (wordLoc (gapSlot ilk)))
+  | { base := "Art", steps := [.mindex ilk] } => some (.leaf (wordLoc (ArtSlot ilk)))
+  | { base := "fix", steps := [.mindex ilk] } => some (.leaf (wordLoc (fixSlot ilk)))
+  | { base := "bag", steps := [.mindex usr] } => some (.leaf (wordLoc (bagSlot usr)))
+  | { base := "out", steps := [.mindex ilk, .mindex usr] } => some (.leaf (wordLoc (outSlot ilk usr)))
+  | _ => none
 
 def storageLayout : StorageLayout :=
-  solidityStorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared source patterns -/
 
@@ -664,7 +665,7 @@ def contract : ContractDecl :=
     transitions := transitions }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := solidityStorageBackend storageLayout
     externalABI := externalABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment constructorDecl.params }

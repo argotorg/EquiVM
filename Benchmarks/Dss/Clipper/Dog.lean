@@ -74,10 +74,9 @@ theorem clipperEvalDog (v : ClipperImmutables) (evm : EVM.State) (locals : Store
     rfl
   have hty : storageTypeAt? (contract v).storage er = some (.elem .address) := by
     simp [er, storageTypeAt?, contract, storageDecls, addrSt]
-  have hloc : (config v).storage.layout er = fun _ => some (addrLoc ⟨1⟩) := by
-    funext evm'
+  have hloc : (config v).storageBackend.locate? er = some (.leaf (addrLoc ⟨1⟩)) := by
     rfl
-  exact evalExpr_storage_scalar_value hbase her hty hloc
+  exact evalExpr_storage_scalar_value (hbackend := rfl) hbase her hty hloc
     (clipperStorageLocLoad_address evm ⟨1⟩)
 
 theorem clipperDogBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals : Store)

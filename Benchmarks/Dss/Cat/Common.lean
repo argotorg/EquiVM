@@ -206,14 +206,14 @@ theorem catUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (catStorageLocLoad_uint256 evm slot))
 
 theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
@@ -222,7 +222,7 @@ theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
@@ -230,7 +230,7 @@ theorem catAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
             solcAddrMask).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (catStorageLocLoad_address_offset0 evm slot))
 
 theorem catUint256GetterBodyCore

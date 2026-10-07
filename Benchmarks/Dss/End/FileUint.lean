@@ -220,7 +220,7 @@ theorem evalExpr_endFileUint_auth_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFileUintLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileUintLocals I })
       (slot := wardsRef sender)
@@ -250,7 +250,7 @@ theorem evalExpr_endFileUint_auth_false (evm : EVM.State) (I : ExecutionEnv)
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (endRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileUintLocals I })
       (slot := wardsRef sender)
@@ -300,7 +300,7 @@ theorem evalExpr_endFileUint_live_true (evm : EVM.State) (I : ExecutionEnv)
   have hstorage :
       evalExpr? config { contract := contract, locals := endFileUintLocals I } evm
         (.storage liveRef) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileUintLocals I })
       (slot := liveRef)
@@ -325,7 +325,7 @@ theorem evalExpr_endFileUint_live_false (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config)
       (solm := { contract := contract, locals := endFileUintLocals I })
       (slot := liveRef)
@@ -366,10 +366,10 @@ theorem endFileUintAssignWait (evm : EVM.State) (I : ExecutionEnv) :
       .storage waitRef (.int (Int.ofNat (endFileUintData I).toNat)) =
         .ok ({ contract := contract, locals := endFileUintLocals I },
           endFileUintPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨10⟩)
+      (loc := wordLoc ⟨10⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := endFileUintLocals_get_wait I)
       (her := by simp [waitRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
         pure, bind])

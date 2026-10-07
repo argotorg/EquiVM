@@ -64,7 +64,7 @@ theorem evalCallerBal (evm : EVM.State) (I : ExecutionEnv) (locals : Store)
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (callerBalSlot I)).toNat)) := by
   refine evalExpr_storage_scalar_value
-    (cfg := config) (solm := { contract := contract, locals := locals })
+    (solm := { contract := contract, locals := locals })
     (slot := balanceOfRef sender) (er := callerBalRef I) (t := .int uint256Int)
     (loc := wordLoc (callerBalSlot I))
     (value := .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner

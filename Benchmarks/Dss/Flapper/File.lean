@@ -565,10 +565,10 @@ theorem assign_fileBegStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage begRef (.int (Int.ofNat (fileData I).toNat)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileBegPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "beg", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨4⟩)
+      (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_beg I)
       (her := by simp [begRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -580,10 +580,10 @@ theorem assign_fileLidStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage lidRef (.int (Int.ofNat (fileData I).toNat)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileLidPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "lid", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨8⟩)
+      (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_lid I)
       (her := by simp [lidRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -595,10 +595,10 @@ theorem assign_fileTtlStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage ttlRef (.int (Int.ofNat (fileData I).toNat % uint48Modulus)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileTtlPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := ({ base := "ttl", steps := [] } : EvaledStorageRef))
-      (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
+      (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_ttl I)
       (her := by simp [ttlRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])
@@ -610,10 +610,10 @@ theorem assign_fileTauStorage (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := fileLocals I } evm
       .storage tauRef (.int (Int.ofNat (fileData I).toNat % uint48Modulus)) =
         .ok ({ contract := contract, locals := fileLocals I }, fileTauPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := ({ base := "tau", steps := [] } : EvaledStorageRef))
-      (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
+      (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileLocals_get_tau I)
       (her := by simp [tauRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint48St])

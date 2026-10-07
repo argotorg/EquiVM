@@ -33,7 +33,7 @@ theorem fifFlipRead {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size)
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (catSlotWord (ilksBase (fileIlkFlipIlkKey I))
           evm.accountMap evm.executionEnv) solcAddrMask).toNat)) := by
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := ilksF (.var "ilk") "flip")
     (er := { base := "ilks", steps := [.mindex (fileIlkFlipIlkKey I), .field "flip"] })
@@ -189,15 +189,15 @@ theorem assign_fileIlkFlipStorage (evm : EVM.State) {I : ExecutionEnv} {locals :
         (UInt256.land solcAddrMask data) (by
           rw [u256_land_comm solcAddrMask data]
           exact solcAddrMask_result_canonical data)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc (ilksBase (fileIlkFlipIlkKey I)))
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc (ilksBase (fileIlkFlipIlkKey I))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by
       simp [fileIlkFlipIlkKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         IlkStructTy, addrSt, uint256St])
     (hloc := by rfl)
-    (hscalar := by trivial)
+
     (hstore := hstore)
 
 /-! ### vat address / code-guard bridges (Solm side) -/

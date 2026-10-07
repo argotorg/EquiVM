@@ -974,6 +974,20 @@ theorem clipperStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [wordLoc, uint256Loc] using storageLocLoad_uint256 evm slot
 
+theorem clipperActiveDynamicLength (evm : EVM.State) :
+    solidityDynamicLength? storageLayoutRaw evm { base := "active" } =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+  have hloc : solidityAnchorWordLoc ⟨11⟩ = wordLoc ⟨11⟩ := rfl
+  simp only [solidityDynamicLength?, solidityLengthLoc?, solidityAnchor?,
+    storageLayoutRaw, hloc, Option.map_some, EvalResult.ofOption, EvalResult.bind, bind]
+  rw [clipperStorageLocLoad_uint256]
+  simp
+
+theorem clipperActiveLength (evm : EVM.State) :
+    solidityStorageLength? storageLayoutRaw { base := "active" } (.dynamicArray uint256St) evm =
+      .ok (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+  simpa only [solidityStorageLength?] using clipperActiveDynamicLength evm
+
 theorem clipperStorageLocLoad_address (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (addrLoc slot) =
       .address (AccountAddress.ofNat

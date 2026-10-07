@@ -42,7 +42,7 @@ theorem weth9DepositBodyReturns {σ σ₀ A I} {g : Sat256} :
     simp only [evalExpr?, hlhs, envValue, hcv, EvalResult.bind, bind, pure, evalBinaryOp?]
     rfl
   · -- assign: storageLocStore truncates the raw sum to the wrapping word
-    refine assignStorageRef_storage_scalar_value
+    refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
       (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
       (hbase := by simp [balanceOfRef]) ?_ ?_ (by rfl) (by trivial) ?_
     · simp only [balanceOfRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,

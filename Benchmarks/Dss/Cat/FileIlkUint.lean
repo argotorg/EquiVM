@@ -353,9 +353,9 @@ theorem assign_fileIlkChopStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "chop") (.int (Int.ofNat (fileIlkUintData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkUintLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St) (er := fileIlkUintChopEvaledRef I)
-      (loc := wordLoc (fileIlkUintChopSlotFor I))
+      (loc := wordLoc (fileIlkUintChopSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileIlkUintLocals_get_ilks I)
       (her := by
         have hkeyLen : (fileIlkUintIlk I).length = ↑bytes32Width + 1 := by
@@ -378,9 +378,9 @@ theorem assign_fileIlkDunkStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "dunk") (.int (Int.ofNat (fileIlkUintData I).toNat)) =
         .ok ({ contract := contract, locals := fileIlkUintLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St) (er := fileIlkUintDunkEvaledRef I)
-      (loc := wordLoc (fileIlkUintDunkSlotFor I))
+      (loc := wordLoc (fileIlkUintDunkSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileIlkUintLocals_get_ilks I)
       (her := by
         have hkeyLen : (fileIlkUintIlk I).length = ↑bytes32Width + 1 := by

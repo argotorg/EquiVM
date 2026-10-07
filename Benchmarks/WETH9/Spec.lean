@@ -1,3 +1,4 @@
+import Solm.SolidityStorage
 import Solm.Semantics
 import Solm.SolidityLayout
 import Benchmarks.WETH9.StringLayout
@@ -75,20 +76,22 @@ def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
 def uint8Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .int uint8Int }
 
-def storageLayoutRaw : EvaledStorageRef -> EVM.State -> Option StorageLoc
-  | { base := "name", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨0⟩ evm)
-  | { base := "symbol", steps := [.length] }, evm => some (bytesLikeLengthLoc ⟨1⟩ evm)
-  | { base := "decimals", steps := [] }, _ => some (uint8Loc ⟨2⟩)
-  | { base := "balanceOf", steps := [.mindex owner] }, _ =>
-      some (wordLoc (balanceOfSlot owner))
-  | { base := "allowance", steps := [.mindex owner, .mindex spender] }, _ =>
-      some (wordLoc (allowanceSlot owner spender))
-  | _, _ => none
+def storageLayoutRaw : EvaledStorageRef -> Option StorageAddr
+  | { base := "name", steps := [] } => some (.anchor ⟨0⟩)
+  | { base := "name", steps := [.length] } => some (.anchor ⟨0⟩)
+  | { base := "symbol", steps := [] } => some (.anchor ⟨1⟩)
+  | { base := "symbol", steps := [.length] } => some (.anchor ⟨1⟩)
+  | { base := "decimals", steps := [] } => some (.leaf (uint8Loc ⟨2⟩))
+  | { base := "balanceOf", steps := [.mindex owner] } =>
+      some (.leaf (wordLoc (balanceOfSlot owner)))
+  | { base := "allowance", steps := [.mindex owner, .mindex spender] } =>
+      some (.leaf (wordLoc (allowanceSlot owner spender)))
+  | _ => none
 
 -- solc 0.5.16 compact-string semantics (total header decode + unconditional data-word clear on
 -- write) differ from the shared ≥0.8-faithful `solidityStorageLayout` defaults; see StringLayout.lean.
 def storageLayout : StorageLayout :=
-  weth9StorageLayout storageLayoutRaw
+  storageLayoutRaw
 
 /-! ## Shared expressions and source bodies -/
 
@@ -232,7 +235,7 @@ def contract : ContractDecl :=
     fallback := some fallbackTransition }
 
 def config : Config :=
-  { storage := storageLayout
+  { storageBackend := weth9StorageBackend storageLayout
     externalABI := defaultExternalCallABI
     abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment contract.ctor.params }

@@ -65,16 +65,15 @@ theorem settleStoreSource {evm locals} (ha : locals.get? "auction" = none) :
       (.assign .storage (aField "settled") (.boolLit true))
       (.ok { contract := auctionContract, locals := locals } (settledState evm)) := by
   apply ExecStmt.assign (value := .bool true) (by simp only [evalExpr?, pure])
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
     (er := { base := "auction", steps := [.field "settled"] })
-    (ty := .elem .bool) (loc := auctionBoolLocAt ⟨211⟩ 20) ha
+    (ty := .elem .bool) (loc := auctionBoolLocAt ⟨211⟩ 20) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩) ha
   · simp [aField, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,
       pure, bind, EvalResult.bind]
   · change storageTypeAt? auctionContract.storage
       { base := "auction", steps := [.field "settled"] } = some (.elem .bool)
     native_decide
   · rfl
-  · trivial
   · exact storageLocStore_settled evm ⟨211⟩
 
 -- LIBRARY CANDIDATE: transport the source/RD relation across a storage write.

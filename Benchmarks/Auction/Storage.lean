@@ -13,10 +13,10 @@ theorem scalarRead (evm : EVM.State) (locals : Store) (name : Ident)
     (ty : ABI.ElemType) (loc : StorageLoc)
     (hbase : locals.get? name = none)
     (hty : storageTypeAt? auctionContract.storage { base := name } = some (.elem ty))
-    (hloc : auctionConfig.storage.layout { base := name } = fun _ => some loc) :
+    (hloc : auctionConfig.storageBackend.locate? { base := name } = some (.leaf loc)) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage { base := name }) = .ok (storageLocLoad evm loc) := by
-  apply evalExpr_storage_scalar hbase _ hty hloc
+  apply evalExpr_storage_scalar (hbackend := rfl) hbase _ hty hloc
   simp [evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
 theorem loadUint256 (evm : EVM.State) (slot : UInt256) :
@@ -29,11 +29,11 @@ theorem auctionFieldRead (evm : EVM.State) (locals : Store) (name : Ident)
     (hbase : locals.get? "auction" = none)
     (hty : storageTypeAt? auctionContract.storage
       { base := "auction", steps := [.field name] } = some (.elem ty))
-    (hloc : auctionConfig.storage.layout
-      { base := "auction", steps := [.field name] } = fun _ => some loc) :
+    (hloc : auctionConfig.storageBackend.locate?
+      { base := "auction", steps := [.field name] } = some (.leaf loc)) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage (aField name)) = .ok (storageLocLoad evm loc) := by
-  apply evalExpr_storage_scalar hbase _ hty hloc
+  apply evalExpr_storage_scalar (hbackend := rfl) hbase _ hty hloc
   simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, aField,
     EvalResult.bind, pure, bind]
 

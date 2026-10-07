@@ -112,14 +112,13 @@ theorem assign_daiJoinCtorWardsCaller (evm : EVM.State) {locals : Store}
         some evm' := by
     simpa [evm', daiJoinCtorAfterWardsState] using
       daiJoinStorageLocStore_uint256 evm (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
-  exact assignStorageRef_storage_scalar
-    (ty := uint256St) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source)))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := uint256St) (loc := wordLoc (wardsSlot (.address evm.executionEnv.source))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := by simpa [wardsRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 private theorem assign_daiJoinCtorAddressStorage (evm : EVM.State) (locals : Store)
@@ -127,7 +126,7 @@ private theorem assign_daiJoinCtorAddressStorage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
       (setAddressOffset0Word (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
         (EVM.word addrValue.val))
@@ -147,13 +146,12 @@ private theorem assign_daiJoinCtorAddressStorage (evm : EVM.State) (locals : Sto
     simpa [addrLoc, evm'] using
       storageLocStore_address_offset0 evm slot (EVM.word addrValue.val)
         (daiJoin_word_val_addr_canonical addrValue)
-  exact assignStorageRef_storage_scalar_value
-    (ty := .elem .address) (loc := addrLoc slot)
+  exact assignStorageRef_storage_scalar_value (hbackend := rfl)
+    (ty := .elem .address) (loc := addrLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := hty)
     (hloc := hloc)
-    (hscalar := by trivial)
     (hstore := hstore)
 
 private theorem assign_daiJoinCtorUint256Storage (evm : EVM.State) (locals : Store)
@@ -161,16 +159,16 @@ private theorem assign_daiJoinCtorUint256Storage (evm : EVM.State) (locals : Sto
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some uint256St)
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot value
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage ref (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := er)
-      (loc := wordLoc slot)
+      (loc := wordLoc slot) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := hbase)
       (her := her)
       (hty := hty)
@@ -190,8 +188,7 @@ theorem assign_daiJoinCtorLiveStorage (evm : EVM.State) (locals : Store)
       (by simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
       (by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (by
-        funext evm
-        simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+        simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_daiJoinCtorVatStorage (evm : EVM.State) (locals : Store)
     (vat : AccountAddress) (hbase : locals.get? "vat" = none) :
@@ -204,8 +201,7 @@ theorem assign_daiJoinCtorVatStorage (evm : EVM.State) (locals : Store)
     (by simp [vatRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem assign_daiJoinCtorDaiStorage (evm : EVM.State) (locals : Store)
     (dai : AccountAddress) (hbase : locals.get? "dai" = none) :
@@ -218,8 +214,7 @@ theorem assign_daiJoinCtorDaiStorage (evm : EVM.State) (locals : Store)
     (by simp [daiRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind])
     (by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
 
 theorem daiJoinCtorCallerWardsSlot_eq (I : ExecutionEnv) :
     wardsSlot (.address I.source) = mapSlot (UInt256.ofNat I.source.val) ⟨0⟩ := by

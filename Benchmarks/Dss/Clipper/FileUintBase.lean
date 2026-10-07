@@ -480,7 +480,7 @@ theorem evalExpr_clipperFileUint_auth_true (v : ClipperImmutables) (evm : EVM.St
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := clipperFileUintLocals I } evm
         (.storage (wardsRef sender)) = .ok (.int 1) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileUintLocals I })
       (slot := wardsRef sender)
@@ -512,7 +512,7 @@ theorem evalExpr_clipperFileUint_auth_false (v : ClipperImmutables) (evm : EVM.S
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               (clipperRelyAuthStorageSlot I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileUintLocals I })
       (slot := wardsRef sender)
@@ -562,7 +562,7 @@ theorem evalExpr_clipperFileUint_locked_zero_true (v : ClipperImmutables) (evm :
   have hstorage :
       evalExpr? (config v) { contract := contract v, locals := clipperFileUintLocals I } evm
         (.storage lockedRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileUintLocals I })
       (slot := lockedRef)
@@ -589,7 +589,7 @@ theorem evalExpr_clipperFileUint_locked_zero_false (v : ClipperImmutables) (evm 
         (.storage lockedRef) =
           .ok (.int (Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨13⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config v)
       (solm := { contract := contract v, locals := clipperFileUintLocals I })
       (slot := lockedRef)
@@ -629,9 +629,9 @@ theorem assign_clipperFileUint_locked (v : ClipperImmutables) (evm : EVM.State)
       .storage lockedRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileUintLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ value) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨13⟩)
+      (loc := wordLoc ⟨13⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_locked v evm I)
@@ -651,9 +651,9 @@ theorem assign_clipperFileUint_buf (v : ClipperImmutables) (evm : EVM.State)
       .storage bufRef (.int (Int.ofNat data.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileUintLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨5⟩ data) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨5⟩)
+      (loc := wordLoc ⟨5⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_buf v evm I)
@@ -673,9 +673,9 @@ theorem assign_clipperFileUint_tail (v : ClipperImmutables) (evm : EVM.State)
       .storage tailRef (.int (Int.ofNat data.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileUintLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨6⟩ data) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨6⟩)
+      (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_tail v evm I)
@@ -695,9 +695,9 @@ theorem assign_clipperFileUint_cusp (v : ClipperImmutables) (evm : EVM.State)
       .storage cuspRef (.int (Int.ofNat data.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileUintLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨7⟩ data) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨7⟩)
+      (loc := wordLoc ⟨7⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_cusp v evm I)
@@ -717,9 +717,9 @@ theorem assign_clipperFileUint_stopped (v : ClipperImmutables) (evm : EVM.State)
       .storage stoppedRef (.int (Int.ofNat data.toNat)) =
         .ok ({ contract := contract v, locals := clipperFileUintLocals I },
           Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨14⟩ data) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc ⟨14⟩)
+      (loc := wordLoc ⟨14⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_stopped v evm I)
@@ -925,9 +925,9 @@ theorem assign_clipperFileUint_chip (v : ClipperImmutables) (evm : EVM.State)
             (clipperFileUintChipWord
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
               (clipperFileUintData I))) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint64St)
-      (loc := uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide))
+      (loc := uint64Loc ⟨8⟩ ⟨0, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_chip v evm I)
@@ -962,9 +962,9 @@ theorem assign_clipperFileUint_tip (v : ClipperImmutables) (evm : EVM.State)
             (clipperFileUintTipWord
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
               (clipperFileUintData I))) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint192St)
-      (loc := uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide))
+      (loc := uint192Loc ⟨8⟩ ⟨8, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         exact clipperFileUintLocals_get_base_none I (by native_decide) (by native_decide))
       (her := evalStorageRef_clipperFileUint_tip v evm I)

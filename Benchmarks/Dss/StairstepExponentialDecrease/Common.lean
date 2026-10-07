@@ -58,14 +58,14 @@ theorem stairstepUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (stairstepStorageLocLoad_uint256 evm slot))
 
 theorem stairstepUint256GetterBodyCore

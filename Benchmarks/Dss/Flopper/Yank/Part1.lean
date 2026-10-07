@@ -86,47 +86,51 @@ theorem deleteStorage_yankSuck_bid (evm : EVM.State) (I : ExecutionEnv) :
   rw [deleteStorage?]
   rw [resolveStorageRef_yankSuck_bid]
   simp only [EvalResult.bind, bind]
-  rw [Solm.clearStorage?.eq_def]
-  simp only [BidStructTy]
-  rw [Solm.clearFields?.eq_def]
+  have hfields : config.storageBackend.clear
+      { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] } BidStructTy evm =
+      solidityClearFields? config.storageBackend.locate? evm
+        { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
+        [("bid", uint256St), ("lot", uint256St), ("guy", addrSt),
+          ("tic", uint48St), ("end", uint48St)] := by
+    simp only [config, solidityStorageBackend, BidStructTy, solidityClearStorage?]
+  rw [hfields]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  rw [clearStorage_uint256_zero (slot := auctionBidSlot (yankIdWord I))
+  rw [solidityClearStorage_uint256_zero (slot := auctionBidSlot (yankIdWord I))
     (hloc := auctionBidLayout evm (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterBid evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterBid evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("lot", uint256St), ("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  rw [clearStorage_uint256_zero (slot := auctionLotSlot (yankIdWord I))
+  rw [solidityClearStorage_uint256_zero (slot := auctionLotSlot (yankIdWord I))
     (hloc := auctionLotLayout (yankDeleteAfterBid evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterLot evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterLot evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("guy", addrSt), ("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  rw [clearStorage_addr_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_addr_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionGuyLayout (yankDeleteAfterLot evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterGuy evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterGuy evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("tic", uint48St), ("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  rw [clearStorage_uint48_offset20_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_uint48_offset20_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionTicLayout (yankDeleteAfterGuy evm I) (yankIdWord I))]
-  change clearFields? config (yankDeleteAfterTic evm I)
+  change solidityClearFields? config.storageBackend.locate? (yankDeleteAfterTic evm I)
       { base := "bids", steps := [.mindex (auctionIdKey (yankIdWord I))] }
       [("end", uint48St)] =
     .ok (yankDeletePostState evm I)
-  rw [Solm.clearFields?.eq_def]
+  rw [solidityClearFields?]
   simp only [List.cons_append, List.nil_append]
-  rw [clearStorage_uint48_offset26_zero (slot := auctionPackedSlot (yankIdWord I))
+  rw [solidityClearStorage_uint48_offset26_zero (slot := auctionPackedSlot (yankIdWord I))
     (hloc := auctionEndLayout (yankDeleteAfterTic evm I) (yankIdWord I))]
-  simp only
-  rw [Solm.clearFields?.eq_def]
-  simp [yankDeletePostState]
+  simp [solidityClearFields?, yankDeletePostState, bind, EvalResult.bind]
 
 theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     clearUint48Offset26Word
@@ -521,7 +525,7 @@ theorem evalExpr_yank_live_zero_true (evm : EVM.State) (I : ExecutionEnv)
   let frame : Frame := { contract := contract, locals := yankLocals I }
   have hstorage :
       evalExpr? config frame evm (.storage liveRef) = .ok (.int 0) := by
-    rw [evalExpr_storage_scalar_value
+    rw [evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := liveRef) (er := yankLiveEvaledRef)
       (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -546,7 +550,7 @@ theorem evalExpr_yank_live_zero_false (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config frame evm (.storage liveRef) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := liveRef) (er := yankLiveEvaledRef)
       (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -587,7 +591,7 @@ theorem evalExpr_yank_guy_ne_zero_false (evm : EVM.State) (I : ExecutionEnv)
         .ok (.address (AccountAddress.ofNat
           (flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))
@@ -642,7 +646,7 @@ theorem evalExpr_yank_guy_ne_zero_true (evm : EVM.State) (I : ExecutionEnv)
   have hguy :
       evalExpr? config frame evm (.storage (bidsF (.var "id") "guy")) =
         .ok (.address (AccountAddress.ofNat guyWord.toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))
@@ -695,7 +699,7 @@ theorem evalExpr_yank_vat_storage (evm : EVM.State) (I : ExecutionEnv) :
       .ok (.address (AccountAddress.ofNat
         (flopperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vatRef) (er := yankVatEvaledRef)
     (t := .address) (loc := addrLoc ⟨2⟩)
@@ -715,7 +719,7 @@ theorem evalExpr_yank_vow_storage (evm : EVM.State) (I : ExecutionEnv) :
       .ok (.address (AccountAddress.ofNat
         (flopperAddressReturnWord ⟨9⟩ evm.accountMap evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := vowRef) (er := yankVowEvaledRef)
     (t := .address) (loc := addrLoc ⟨9⟩)
@@ -737,7 +741,7 @@ theorem evalExpr_yank_bid_storage (evm : EVM.State) (I : ExecutionEnv) :
         (flopperSlotWord (auctionBidSlot (yankIdWord I)) evm.accountMap
           evm.executionEnv).toNat)) := by
   let frame : Frame := { contract := contract, locals := yankLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := bidsF (.var "id") "bid") (er := yankBidEvaledRef I)
     (t := .int uint256Int) (loc := wordLoc (auctionBidSlot (yankIdWord I)))
@@ -776,7 +780,7 @@ theorem evalExprs_yank_suck_args (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.address (AccountAddress.ofNat
           (flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
             evm.executionEnv).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := { contract := contract, locals := yankLocals I }) (evm := evm)
       (slot := bidsF (.var "id") "guy") (er := yankGuyEvaledRef I)
       (t := .address) (loc := addrLoc (auctionPackedSlot (yankIdWord I)))

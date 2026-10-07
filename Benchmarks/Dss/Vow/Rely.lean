@@ -45,14 +45,13 @@ theorem vowLiveGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
       pure, bind]
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨12⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, liveEvaledRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, liveEvaledRef])]
   rw [vowStorageLocLoad_uint256]
   simp only [initState] at hload ⊢
   rw [hload]
@@ -76,14 +75,13 @@ theorem vowLiveGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
       pure, bind]
   rw [evalExpr?]
   simp only [EvalResult.bind, bind]
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (t := .int uint256Int) (loc := wordLoc ⟨12⟩)
     (hbase := by simpa [liveRef] using hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, liveEvaledRef])]
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, liveEvaledRef])]
   rw [vowStorageLocLoad_uint256]
   simp only [initState] at hload ⊢
   simp [evalExpr?, evalBinaryOp?]
@@ -432,14 +430,13 @@ theorem vowRelyBodyCore
           have hstore :
               storageLocStore evm0 (wordLoc (relySlotFor I)) (.int 1) = some evm1 := by
             simpa [evm1] using storageLocStore_uint256 evm0 (relySlotFor I) ⟨1⟩
-          exact assignStorageRef_storage_scalar
-            (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I))
+          exact assignStorageRef_storage_scalar (hbackend := rfl)
+            (ty := .elem (.int uint256Int)) (loc := wordLoc (relySlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
             (hbase := by simp [locals, wardsRef])
             (her := her)
             (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
             (hloc := by
-              funext evm
-              simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+              simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
                 relyEvaledRef, relySlotFor])
             (hstore := hstore)
         have hblock :

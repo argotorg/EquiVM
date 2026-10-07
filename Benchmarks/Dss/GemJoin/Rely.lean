@@ -68,9 +68,9 @@ theorem relyAssign (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := relyStore I } evm
       .storage (wardsRef (.var "usr")) (.int 1) =
         .ok ({ contract := contract, locals := relyStore I }, relyPostState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
-      (loc := wordLoc (relyUsrStorageSlot I))
+      (loc := wordLoc (relyUsrStorageSlot I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := relyStore_wards I)
       (her := evalStorageRef_rely_usr evm I)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])

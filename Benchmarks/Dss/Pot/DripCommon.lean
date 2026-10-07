@@ -182,7 +182,7 @@ theorem evalExpr_dripStorageRho (evm : EVM.State) :
     evalExpr? config { contract := contract, locals := (∅ : Store) } evm (.storage rhoRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨7⟩).toNat)) := by
-  rw [evalExpr_storage_scalar_value
+  rw [evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := (∅ : Store) })
     (slot := rhoRef) (er := ({ base := "rho", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)

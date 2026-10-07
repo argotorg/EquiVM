@@ -59,7 +59,7 @@ theorem daiNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             (noncesStorageSlot I)).toNat))])) := by
   exact ExecFuncBody.execBlockRet <|
     (ABlock.start.requireStep (evalCallvalueEq_true h)).returns (by
-      rw [evalExpr_storage_scalar_value
+      rw [evalExpr_storage_scalar_value (hbackend := rfl)
         (cfg := config)
         (solm := { contract := contract, locals := noncesStore I })
         (slot := noncesRef (.var "arg0"))

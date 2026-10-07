@@ -199,7 +199,7 @@ theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executio
       (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (callerBalSlot I)).toNat - Int.ofNat (withdrawWadWord I).toNat)) =
       .ok ({ contract := contract, locals := withdrawStore I }, withdrawStoreState evm I) := by
-  refine assignStorageRef_storage_scalar_value
+  refine assignStorageRef_storage_scalar_value (hleaf := by simp [uint256St, uint8St])
     (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
     (hbase := by simp [balanceOfRef, withdrawStore_balanceOf_get I]) ?_ ?_ (by rfl) (by trivial) ?_
   · simp only [balanceOfRef, sender, evalStorageRef, evalStorageRefSteps, evalStorageRefStep,

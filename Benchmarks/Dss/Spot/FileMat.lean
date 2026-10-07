@@ -228,10 +228,10 @@ theorem assign_fileMatStorage (evm : EVM.State) (I : ExecutionEnv)
       .storage (ilksF (.var "ilk") "mat") (.int (Int.ofNat (fileMatData I).toNat)) =
         .ok ({ contract := contract, locals := fileMatLocals I }, evm') := by
   intro evm'
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := fileMatEvaledRef I)
-      (loc := wordLoc (fileMatSlotFor I))
+      (loc := wordLoc (fileMatSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := fileMatLocals_get_ilks I)
       (her := by
         have hkeyLen : (fileMatIlkBytes I).length = ↑bytes32Width + 1 := by

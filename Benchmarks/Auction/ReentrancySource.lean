@@ -47,7 +47,7 @@ theorem statusStoreSource {evm locals e word}
       (.ok { contract := auctionContract, locals := locals } (statusState evm word)) := by
   apply ExecStmt.assign he
   exact scalarWrite evm _ locals "_status" (.elem (.int uint256Int)) (auctionUint256Loc ⟨101⟩)
-    _ hl (by native_decide) rfl (by trivial) (storageLocStore_uint256 evm ⟨101⟩ word)
+    _ hl (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_uint256 evm ⟨101⟩ word)
 
 theorem SourceState.status {s0 I σ evm} (hs : SourceState s0 I σ evm) (word : UInt256) :
     SourceState s0 I (sstoreAccountMap I.codeOwner σ ⟨101⟩ word) (statusState evm word) := by

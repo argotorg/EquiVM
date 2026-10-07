@@ -29,6 +29,6 @@ theorem unpauseStoreSource {evm : EVM.State} {locals : Store}
       (.ok { contract := auctionContract, locals := locals } (unpauseState evm)) := by
   apply ExecStmt.assign (value := .bool false) (by simp only [evalExpr?, pure])
   exact scalarWrite evm _ locals "_paused" (.elem .bool) (auctionBoolLoc ⟨51⟩) (.bool false)
-    hb (by native_decide) rfl (by trivial) (storageLocStore_bool_false_offset0 evm ⟨51⟩)
+    hb (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_false_offset0 evm ⟨51⟩)
 
 end Auction

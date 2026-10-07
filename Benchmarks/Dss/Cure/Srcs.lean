@@ -118,29 +118,27 @@ theorem evalExpr_srcsStorage_inBounds {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
         .ok (srcsAddressValue σ I) := by
   intro locals
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := srcsEvaledRef I) (t := .address) (loc := addrLoc (srcsSlotFor I))]
   · rw [show addrLoc (srcsSlotFor I) = addressOffset0Loc (srcsSlotFor I) by rfl]
     rw [storageLocLoad_address_offset0]
     simp [srcsAddressValue, srcsRawWord, cureSlotWord, solcSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   · simp [locals, srcElemRef]
-  · have hlenLoad :
-        storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
-          .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-      rw [cureStorageLocLoad_uint256]
+  ·
+    have hlength : Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩ = srcsLenWord σ I := by
       simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount, Account.lookupStorage]
-    simp only [wordLoc] at hlenLoad
     simp [srcsEvaledRef, srcElemRef, evalStorageRef, evalStorageRefSteps,
       evalStorageRefStep, evalExpr?, EvalResult.ofOption, EvalResult.bind, pure, bind,
-      valueToKey?, locals, arrayIndexInBounds?, config, storageLayout, solidityStorageLayout,
+      valueToKey?, locals, arrayIndexInBounds?, config, storageLayout, solidityStorageBackend,
       storageLayoutRaw, storageTypeAt?, contract, storageDecls, wordLoc]
-    rw [hlenLoad]
+    rw [cureSrcsLength, hlength]
     simp [hlt]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, addrSt]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, srcsEvaledRef,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, srcsEvaledRef,
       srcsSlotFor, srcElemSlot, srcsIndex]
 
 theorem cureSrcsSourceBodyOk {σ σ₀ A I} {g : UInt256}
@@ -177,27 +175,24 @@ theorem evalExpr_srcsStorage_oob {σ σ₀ A I} {g : Sat256}
       (initState σ σ₀ g A I) (.storage (srcElemRef (.var "arg0"))) =
         .revert := by
   intro locals
-  have hlenLoad :
-      storageLocLoad (initState σ σ₀ g A I) (wordLoc ⟨2⟩) =
-        .int (Int.ofNat (srcsLenWord σ I).toNat) := by
-    rw [cureStorageLocLoad_uint256]
-    simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage]
-  simp only [wordLoc] at hlenLoad
   have her :
       evalStorageRef config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) (srcElemRef (.var "arg0")) = .revert := by
+    have hlength : Solm.EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner ⟨2⟩ = srcsLenWord σ I := by
+      simp [srcsLenWord, cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad,
+        State.lookupAccount, Account.lookupStorage]
     simp [srcElemRef, evalStorageRef, evalStorageRefSteps, evalStorageRefStep, evalExpr?,
       EvalResult.ofOption, EvalResult.bind, pure, bind, valueToKey?, locals,
-      arrayIndexInBounds?, config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      arrayIndexInBounds?, config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       storageTypeAt?, contract, storageDecls, wordLoc]
-    rw [hlenLoad]
+    rw [cureSrcsLength, hlength]
     simp [Nat.not_lt.mpr hle]
   simp only [evalExpr?]
   change (do
       let __discr ← resolveStorageRef? config { contract := contract, locals := locals }
         (initState σ σ₀ g A I) (srcElemRef (.var "arg0"))
-      readStorage? config (initState σ σ₀ g A I) __discr.1 __discr.2) =
+      solidityReadStorage? storageLayoutRaw (initState σ σ₀ g A I) __discr.1 __discr.2) =
     EvalResult.revert
   have hresolve :
       resolveStorageRef? config { contract := contract, locals := locals }

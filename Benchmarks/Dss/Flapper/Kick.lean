@@ -472,7 +472,7 @@ theorem evalExpr_kick_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := kickLocals I } evm (.storage liveRef) =
       .ok (.int (Int.ofNat (kickLiveWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := kickLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨7⟩)
@@ -515,7 +515,7 @@ theorem evalExpr_kick_kicks_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := kickLocals I } evm (.storage kicksRef) =
       .ok (.int (Int.ofNat (kickKicksWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := kickLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := kicksRef) (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -560,7 +560,7 @@ theorem evalExpr_kick_fill_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := kickLocals I } evm (.storage fillRef) =
       .ok (.int (Int.ofNat (kickFillWord evm).toNat)) := by
   let frame : Frame := { contract := contract, locals := kickLocals I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := fillRef) (er := ({ base := "fill", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨9⟩)
@@ -643,7 +643,7 @@ theorem evalExpr_kick_fill_guard_true (evm : EVM.State) (I : ExecutionEnv)
   have hfill :
       evalExpr? config frame evm (.storage fillRef) =
         .ok (.int (Int.ofNat (kickFillWord evm).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := evm)
       (slot := fillRef) (er := ({ base := "fill", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨9⟩)
@@ -669,10 +669,10 @@ theorem assign_kickFillStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage fillRef (.int (Int.ofNat (kickFillNewWord evm I).toNat)) =
         .ok ({ contract := contract, locals := kickFillLocals evm I },
           kickAfterFillState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "fill", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨9⟩)
+      (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [kickFillLocals, kickLocals, fillRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, fillRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -684,7 +684,7 @@ theorem evalExpr_kick_lid_storage_at_fill (evm : EVM.State) (I : ExecutionEnv) :
         (kickAfterFillState evm I) (.storage lidRef) =
       .ok (.int (Int.ofNat (kickLidWord (kickAfterFillState evm I)).toNat)) := by
   let frame : Frame := { contract := contract, locals := kickFillLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
     (slot := lidRef) (er := ({ base := "lid", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨8⟩)
@@ -708,7 +708,7 @@ theorem evalExpr_kick_fill_le_lid_true (evm : EVM.State) (I : ExecutionEnv)
   have hfill :
       evalExpr? config frame (kickAfterFillState evm I) (.storage fillRef) =
         .ok (.int (Int.ofNat (kickFillWord (kickAfterFillState evm I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
       (slot := fillRef) (er := ({ base := "fill", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨9⟩)
@@ -743,7 +743,7 @@ theorem evalExpr_kick_fill_le_lid_false (evm : EVM.State) (I : ExecutionEnv)
   have hfill :
       evalExpr? config frame (kickAfterFillState evm I) (.storage fillRef) =
         .ok (.int (Int.ofNat (kickFillWord (kickAfterFillState evm I)).toNat)) := by
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
       (slot := fillRef) (er := ({ base := "fill", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨9⟩)
@@ -782,7 +782,7 @@ theorem evalExpr_kick_kicks_storage_afterFill (evm : EVM.State) (I : ExecutionEn
         (kickAfterFillState evm I) (.storage kicksRef) =
       .ok (.int (Int.ofNat (kickKicksWord (kickAfterFillState evm I)).toNat)) := by
   let frame : Frame := { contract := contract, locals := kickFillLocals evm I }
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
     (slot := kicksRef) (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -841,7 +841,7 @@ theorem evalExpr_kick_id_guard_true (evm : EVM.State) (I : ExecutionEnv)
         .ok (.int (Int.ofNat (kickKicksWord (kickAfterFillState evm I)).toNat)) := by
     let frame : Frame :=
       { contract := contract, locals := kickIdLocals (kickAfterFillState evm I) I }
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
       (slot := kicksRef) (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -871,10 +871,10 @@ theorem assign_kickKicksStorage (evm : EVM.State) (I : ExecutionEnv) :
           Solm.EVM.storageStore (kickAfterFillState evm I)
             (kickAfterFillState evm I).executionEnv.codeOwner ⟨6⟩
             (kickIdWord (kickAfterFillState evm I))) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨6⟩)
+      (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [kickIdLocals, kickFillLocals, kickLocals, kicksRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, kicksRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -924,7 +924,7 @@ theorem evalExpr_kick_id_guard_true_orig (evm : EVM.State) (I : ExecutionEnv)
           (kickAfterFillState evm I) (.storage kicksRef) =
         .ok (.int (Int.ofNat (kickKicksWord (kickAfterFillState evm I)).toNat)) := by
     let frame : Frame := { contract := contract, locals := kickIdLocals evm I }
-    exact evalExpr_storage_scalar_value
+    exact evalExpr_storage_scalar_value (hbackend := rfl)
       (cfg := config) (solm := frame) (evm := kickAfterFillState evm I)
       (slot := kicksRef) (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨6⟩)
@@ -954,10 +954,10 @@ theorem assign_kickKicksStorage_orig (evm : EVM.State) (I : ExecutionEnv) :
       .storage kicksRef (.int (Int.ofNat (kickIdWord evm).toNat)) =
         .ok ({ contract := contract, locals := kickIdLocals evm I },
           kickAfterKicksState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := ({ base := "kicks", steps := [] } : EvaledStorageRef))
-      (loc := wordLoc ⟨6⟩)
+      (loc := wordLoc ⟨6⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by simp [kickIdLocals, kickFillLocals, kickLocals, kicksRef])
       (her := by simp [evalStorageRef, evalStorageRefSteps, kicksRef, EvalResult.bind, pure, bind])
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
@@ -980,10 +980,10 @@ theorem assign_kickBidStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "bid") (.int (Int.ofNat (kickBidWord I).toNat)) =
         .ok ({ contract := contract, locals := kickIdLocals evm I },
           kickAfterBidState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := { base := "bids", steps := [.mindex (auctionIdKey (kickIdWord evm)), .field "bid"] })
-      (loc := wordLoc (auctionBidSlot (kickIdWord evm)))
+      (loc := wordLoc (auctionBidSlot (kickIdWord evm))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         change (kickIdLocals evm I).get? "bids" = none
         exact kickIdLocals_get_bids evm I)
@@ -1004,10 +1004,10 @@ theorem assign_kickLotStorage (evm : EVM.State) (I : ExecutionEnv) :
       .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (kickLotWord I).toNat)) =
         .ok ({ contract := contract, locals := kickIdLocals evm I },
           kickAfterLotState evm I) := by
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint256St)
       (er := { base := "bids", steps := [.mindex (auctionIdKey (kickIdWord evm)), .field "lot"] })
-      (loc := wordLoc (auctionLotSlot (kickIdWord evm)))
+      (loc := wordLoc (auctionLotSlot (kickIdWord evm))) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         change (kickIdLocals evm I).get? "bids" = none
         exact kickIdLocals_get_bids evm I)
@@ -1034,10 +1034,10 @@ theorem assign_kickGuyStorage (evm : EVM.State) (I : ExecutionEnv) :
     rw [show AccountAddress.ofNat (kickSenderWord I).toNat = I.source by
       simpa [kickSenderWord, solcSourceWord] using solcSource_ofNat I]
   rw [hsenderValue]
-  apply assignStorageRef_storage_scalar_value
+  apply assignStorageRef_storage_scalar_value (hbackend := rfl)
       (ty := addrSt)
       (er := { base := "bids", steps := [.mindex (auctionIdKey (kickIdWord evm)), .field "guy"] })
-      (loc := addrLoc (auctionPackedSlot (kickIdWord evm)))
+      (loc := addrLoc (auctionPackedSlot (kickIdWord evm))) (hleaf := by exact Or.inl ⟨_, rfl⟩)
       (hbase := by
         change (kickIdLocals evm I).get? "bids" = none
         exact kickIdLocals_get_bids evm I)
@@ -1048,7 +1048,7 @@ theorem assign_kickGuyStorage (evm : EVM.State) (I : ExecutionEnv) :
       (hty := by simp [auctionIdKey, storageTypeAt?, storageTypeStep?, contract, storageDecls,
         BidStructTy, addrSt])
       (hloc := by rfl)
-      (hscalar := by trivial)
+
   simpa [kickAfterGuyState, kickGuyStoredWord, addrLoc, kickSenderWord] using
     storageLocStore_address_offset0 (kickAfterLotState evm I)
       (auctionPackedSlot (kickIdWord evm)) (kickSenderWord I)
@@ -1067,7 +1067,7 @@ theorem evalExpr_kick_tau_storage (evm0 evm : EVM.State) (I : ExecutionEnv) :
       (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)
         (UInt256.ofNat (256 ^ 6))) flapperUint48Mask]
     rfl
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := frame) (evm := evm)
     (slot := tauRef) (er := ({ base := "tau", steps := [] } : EvaledStorageRef))
     (t := .int uint48Int) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
@@ -1268,10 +1268,10 @@ theorem assign_kickEndStorage_value (evm : EVM.State) (I : ExecutionEnv)
       (by
         change Int.ofNat (kickEndPostWord evm I).toNat < Int.ofNat (2 ^ 48)
         exact Int.ofNat_lt.mpr hendLt)
-  apply assignStorageRef_storage_scalar
+  apply assignStorageRef_storage_scalar (hbackend := rfl)
       (ty := uint48St)
       (er := { base := "bids", steps := [.mindex (auctionIdKey (kickIdWord evm)), .field "end"] })
-      (loc := uint48Loc (auctionPackedSlot (kickIdWord evm)) ⟨26, by decide⟩ (by decide))
+      (loc := uint48Loc (auctionPackedSlot (kickIdWord evm)) ⟨26, by decide⟩ (by decide)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
       (hbase := by
         change (kickEndLocals evm I).get? "bids" = none
         exact kickEndLocals_get_bids evm I)

@@ -55,7 +55,7 @@ theorem pauseBlock (evm : EVM.State) (locals : Store)
   apply ExecBlock.consNormal (ExecStmt.requireTrue (readNotPausedTrue evm locals hbase hp))
   exact assignStorageBlock (by simp [evalExpr?, pure])
     (scalarWrite evm _ locals "_paused" (.elem .bool) (auctionBoolLoc ⟨51⟩) (.bool true)
-      hbase (by native_decide) rfl (by trivial) (storageLocStore_bool_true_offset0 evm ⟨51⟩))
+      hbase (by native_decide) rfl (by exact Or.inl ⟨_, rfl⟩) (storageLocStore_bool_true_offset0 evm ⟨51⟩))
 
 theorem pauseBlockReverts (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_paused" = none)

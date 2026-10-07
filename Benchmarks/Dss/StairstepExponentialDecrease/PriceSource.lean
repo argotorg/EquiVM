@@ -310,7 +310,7 @@ theorem evalExpr_priceStep_zero {evm : EVM.State} {I : ExecutionEnv}
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int 0 := by
     rw [stairstepStorageLocLoad_uint256, hstep]
     native_decide
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨1⟩) (value := .int 0)
@@ -326,7 +326,7 @@ theorem evalExpr_priceStep_word {evm : EVM.State} {I : ExecutionEnv} {step : UIn
       .ok (.int (Int.ofNat step.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int (Int.ofNat step.toNat) := by
     rw [stairstepStorageLocLoad_uint256, hstep]
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨1⟩) (value := .int (Int.ofNat step.toNat))
@@ -343,7 +343,7 @@ theorem evalExpr_priceCut_word {evm : EVM.State} {locals : Store} {cut : UInt256
       .ok (.int (Int.ofNat cut.toNat)) := by
   have hload : storageLocLoad evm (wordLoc ⟨2⟩) = .int (Int.ofNat cut.toNat) := by
     rw [stairstepStorageLocLoad_uint256, hcut]
-  exact evalExpr_storage_scalar_value
+  exact evalExpr_storage_scalar_value (hbackend := rfl)
     (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
     (slot := cutRef) (er := ({ base := "cut", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨2⟩) (value := .int (Int.ofNat cut.toNat))

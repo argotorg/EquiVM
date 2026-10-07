@@ -80,7 +80,7 @@ theorem evalExpr_loadLiveEqZero_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool true) := by
   rw [evalExpr?]
   · simp only [EvalResult.bind, bind]
-    rw [evalExpr_storage_scalar
+    rw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨1⟩)]
     · rw [cureStorageLocLoad_uint256]
@@ -90,8 +90,8 @@ theorem evalExpr_loadLiveEqZero_true (evm : EVM.State) (I : ExecutionEnv)
     · simp [loadLocals, liveRef]
     · simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
-    · funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+    ·
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
   · native_decide
   · native_decide
 
@@ -101,7 +101,7 @@ theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
       (.binary .eq (.storage liveRef) (.intLit 0)) = .ok (.bool false) := by
   rw [evalExpr?]
   · simp only [EvalResult.bind, bind]
-    rw [evalExpr_storage_scalar
+    rw [evalExpr_storage_scalar (hbackend := rfl)
       (er := ({ base := "live", steps := [] } : EvaledStorageRef))
       (t := .int uint256Int) (loc := wordLoc ⟨1⟩)]
     · rw [cureStorageLocLoad_uint256]
@@ -120,8 +120,8 @@ theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
     · simp [loadLocals, liveRef]
     · simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
-    · funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+    ·
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
   · native_decide
   · native_decide
 
@@ -130,7 +130,7 @@ theorem evalExpr_loadPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (posRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadPosSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadPosEvaledRef I) (t := .int uint256Int) (loc := wordLoc (loadPosSlotFor I))]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadPosSlotFor I))
   · simp [loadLocals, posRef]
@@ -138,8 +138,8 @@ theorem evalExpr_loadPosStorage (evm : EVM.State) (I : ExecutionEnv) :
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadPosEvaledRef, loadPosSlotFor]
 
 theorem evalExpr_loadAmtStorage (evm : EVM.State) (I : ExecutionEnv) :
@@ -147,7 +147,7 @@ theorem evalExpr_loadAmtStorage (evm : EVM.State) (I : ExecutionEnv) :
       (.storage (amtRef (.var "src"))) =
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadAmtSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadAmtEvaledRef I) (t := .int uint256Int) (loc := wordLoc (loadAmtSlotFor I))]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadAmtSlotFor I))
   · simp [loadLocals, amtRef]
@@ -155,8 +155,8 @@ theorem evalExpr_loadAmtStorage (evm : EVM.State) (I : ExecutionEnv) :
       evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadLocals]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadAmtEvaledRef, loadAmtSlotFor]
 
 theorem evalExpr_loadSayStorage {evm : EVM.State} {locals : Store}
@@ -164,15 +164,15 @@ theorem evalExpr_loadSayStorage {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage sayRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨9⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := loadSayEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := loadSayEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm ⟨9⟩)
   · exact hbase
   · simp [loadSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind,
       pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadSayEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadSayEvaledRef]
 
 theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
     (hbase : locals.get? "loaded" = none)
@@ -182,7 +182,7 @@ theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Execu
         .ok (.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (loadLoadedSlotFor I)).toNat)) := by
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := loadLoadedEvaledRef I) (t := .int uint256Int)
     (loc := wordLoc (loadLoadedSlotFor I))]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm (loadLoadedSlotFor I))
@@ -199,8 +199,8 @@ theorem evalExpr_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Execu
       evalStorageRefStep, hvar, valueToKey?, EvalResult.ofOption, EvalResult.bind,
       pure, bind, loadSrc]
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
       loadLoadedEvaledRef, loadLoadedSlotFor]
 
 theorem evalExpr_loadLoadedEqZero_true {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
@@ -249,15 +249,15 @@ theorem evalExpr_loadLCountStorage {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm (.storage lCountRef) =
       .ok (.int (Int.ofNat
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩).toNat)) := by
-  rw [evalExpr_storage_scalar (er := loadLCountEvaledRef) (t := .int uint256Int)
+  rw [evalExpr_storage_scalar (hbackend := rfl) (er := loadLCountEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
   · exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm ⟨8⟩)
   · exact hbase
   · simp [loadLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm'
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadLCountEvaledRef]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadLCountEvaledRef]
 
 theorem evalExpr_incUncheckedLCount {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "lCount" = none) :
@@ -297,8 +297,8 @@ theorem assign_loadAmtStorage {evm : EVM.State} {locals : Store} (I : ExecutionE
       .storage (amtRef (.var "src")) (.int (Int.ofNat newAmt.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadAmtSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadAmtSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadAmtEvaledRef I)
     (hbase := hbase)
     (her := by
@@ -314,8 +314,7 @@ theorem assign_loadAmtStorage {evm : EVM.State} {locals : Store} (I : ExecutionE
       simp [hvar, valueToKey?, EvalResult.ofOption, EvalResult.bind, pure, bind, loadSrc])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         loadAmtEvaledRef, loadAmtSlotFor])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (loadAmtSlotFor I) newAmt)
 
@@ -326,16 +325,15 @@ theorem assign_loadSayStorage {evm : EVM.State} {locals : Store} (sayNew : UInt2
       .storage sayRef (.int (Int.ofNat sayNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨9⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadSayEvaledRef)
     (hbase := hbase)
     (her := by simp [loadSayEvaledRef, sayRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadSayEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadSayEvaledRef])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨9⟩ sayNew)
 
 theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
@@ -348,8 +346,8 @@ theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Executi
       .storage (loadedRef (.var "src")) (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadLoadedSlotFor I))
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc (loadLoadedSlotFor I)) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadLoadedEvaledRef I)
     (hbase := hbase)
     (her := by
@@ -366,8 +364,7 @@ theorem assign_loadLoadedStorage {evm : EVM.State} {locals : Store} (I : Executi
         pure, bind, loadSrc])
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw,
         loadLoadedEvaledRef, loadLoadedSlotFor])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm (loadLoadedSlotFor I) value)
 
@@ -378,16 +375,15 @@ theorem assign_loadLCountStorage {evm : EVM.State} {locals : Store} (value : UIn
       .storage lCountRef (.int (Int.ofNat value.toNat)) =
         .ok ({ contract := contract, locals := locals }, evm') := by
   intro evm'
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨8⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (er := loadLCountEvaledRef)
     (hbase := hbase)
     (her := by simp [loadLCountEvaledRef, lCountRef, evalStorageRef, evalStorageRefSteps,
       EvalResult.bind, pure, bind])
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm'
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, loadLCountEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, loadLCountEvaledRef])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨8⟩ value)
 
 theorem execLoadLoadedZeroTail {evm : EVM.State} {locals : Store} (I : ExecutionEnv)

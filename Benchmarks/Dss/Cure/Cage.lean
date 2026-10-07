@@ -373,14 +373,13 @@ theorem assign_cageLiveStorage (evm : EVM.State) {locals : Store} (value : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨1⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨1⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨1⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cureLiveEvaledRef])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw, cureLiveEvaledRef])
     (hstore := hstore)
 
 theorem cureCageSourceLiveStorePrefix {σ σ₀ A I} {g : UInt256}
@@ -440,7 +439,7 @@ theorem evalExpr_cageWaitAfterLiveStore {σ σ₀ A I} {g : Sat256}
     evalExpr? config { contract := contract, locals := locals } evmLive (.storage waitRef) =
       .ok (.int (Int.ofNat (cageWaitWord σ I).toNat)) := by
   intro evm0 evmLive
-  rw [evalExpr_storage_scalar
+  rw [evalExpr_storage_scalar (hbackend := rfl)
     (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
     (t := .int uint256Int) (loc := wordLoc ⟨3⟩)]
   · rw [cureStorageLocLoad_uint256]
@@ -456,8 +455,8 @@ theorem evalExpr_cageWaitAfterLiveStore {σ σ₀ A I} {g : Sat256}
   · exact hbase
   · simp [waitRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
   · simp [storageTypeAt?, contract, storageDecls, uint256St]
-  · funext evm
-    simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
+  ·
+    simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw]
 
 theorem assign_cageWhenStorage (evm : EVM.State) {locals : Store} (value : UInt256)
     (hbase : locals.get? "when" = none) :
@@ -473,14 +472,13 @@ theorem assign_cageWhenStorage (evm : EVM.State) {locals : Store} (value : UInt2
   have hstore :
       storageLocStore evm (wordLoc ⟨4⟩) (.int (Int.ofNat value.toNat)) = some evm' := by
     simpa [evm'] using storageLocStore_uint256 evm ⟨4⟩ value
-  exact assignStorageRef_storage_scalar
-    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩)
+  exact assignStorageRef_storage_scalar (hbackend := rfl)
+    (ty := .elem (.int uint256Int)) (loc := wordLoc ⟨4⟩) (hleaf := by first | exact Or.inl ⟨_, rfl⟩ | exact Or.inr ⟨_, rfl⟩)
     (hbase := hbase)
     (her := her)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by
-      funext evm
-      simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
+      simp [config, storageLayout, solidityStorageBackend, storageLayoutRaw])
     (hstore := hstore)
 
 theorem cureCageSourceBodyOk {σ σ₀ A I} {g : UInt256}

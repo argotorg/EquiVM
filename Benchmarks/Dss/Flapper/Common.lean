@@ -173,7 +173,7 @@ theorem flapperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem .address))
-    (hloc : config.storage.layout er = fun _ => some (addrLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (addrLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.address (AccountAddress.ofNat
@@ -181,7 +181,7 @@ theorem flapperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
             solcAddrMask).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (flapperStorageLocLoad_address_offset0 evm slot))
 
 theorem flapperUint48GetterBodyReturns_offset0 (evm : EVM.State) (locals : Store)
@@ -191,15 +191,15 @@ theorem flapperUint48GetterBodyReturns_offset0 (evm : EVM.State) (locals : Store
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint48Int)))
     (hloc :
-      config.storage.layout er =
-        fun _ => some (uint48Loc slot ⟨0, by decide⟩ (by decide))) :
+      config.storageBackend.locate? er =
+        some (.leaf (uint48Loc slot ⟨0, by decide⟩ (by decide)))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (flapperUint48Offset0Word slot evm.accountMap evm.executionEnv).toNat))])) := by
   simpa [nonpayable, flapperUint48Offset0Word, flapperSlotWord] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (flapperStorageLocLoad_uint48_offset0 evm slot))
 
 theorem flapperUint48GetterBodyReturns_offset6 (evm : EVM.State) (locals : Store)
@@ -209,15 +209,15 @@ theorem flapperUint48GetterBodyReturns_offset6 (evm : EVM.State) (locals : Store
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint48Int)))
     (hloc :
-      config.storage.layout er =
-        fun _ => some (uint48Loc slot ⟨6, by decide⟩ (by decide))) :
+      config.storageBackend.locate? er =
+        some (.leaf (uint48Loc slot ⟨6, by decide⟩ (by decide)))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (flapperUint48Offset6Word slot evm.accountMap evm.executionEnv).toNat))])) := by
   simpa [nonpayable, flapperUint48Offset6Word, flapperSlotWord] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       have hload :
           storageLocLoad evm (uint48Loc slot ⟨6, by decide⟩ (by decide)) =
             .int (Int.ofNat (UInt256.land flapperUint48Mask
@@ -236,14 +236,14 @@ theorem flapperUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
     (hbase : locals.get? ref.base = none)
     (her : evalStorageRef config { contract := contract, locals := locals } evm ref = .ok er)
     (hty : storageTypeAt? contract.storage er = some (.elem (.int uint256Int)))
-    (hloc : config.storage.layout er = fun _ => some (wordLoc slot)) :
+    (hloc : config.storageBackend.locate? er = some (.leaf (wordLoc slot))) :
     ExecTransitionBody config contract evm locals (nonpayable ++ [ .return [(.storage ref)] ])
       (.returned { contract := contract, locals := locals } evm
         (some [(.int (Int.ofNat
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat))])) := by
   simpa [nonpayable] using
     nonpayableReturnExprBodyReturns (cfg := config) (contract := contract) h (by
-      rw [evalExpr_storage_scalar (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
+      rw [evalExpr_storage_scalar (hbackend := rfl) (hbase := hbase) (her := her) (hty := hty) (hloc := hloc)]
       exact congrArg EvalResult.ok (flapperStorageLocLoad_uint256 evm slot))
 
 theorem flapperUint256GetterBodyCore
