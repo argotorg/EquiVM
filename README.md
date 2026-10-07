@@ -197,7 +197,8 @@ theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contrac
 ```
 
 It quantifies over every initial state: any account map, block environment,
-calldata, call value, and gas, provided the deployed code is `erc20Bytecode`.
+calldata, call value, gas, and permission mode (the contract may be entered through
+`STATICCALL`), provided the deployed code is `erc20Bytecode`.
 For each such state it relates one full execution of the bytecode to one
 execution of the specification: either the bytecode execution runs out of gas
 (in which case the specification side is unconstrained), or both revert (no

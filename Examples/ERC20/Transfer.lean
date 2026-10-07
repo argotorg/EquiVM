@@ -186,6 +186,10 @@ theorem transferStoreNewToBalance_to_getElem? (evm : EVM.State) (I : ExecutionEn
     (transferStoreNewToBalance evm I)["to"]? = some (transferToValue I) := by
   rw [← Std.HashMap.get?_eq_getElem?, transferStoreNewToBalance_to]
 
+theorem transferStoreNewToBalance_value (evm : EVM.State) (I : ExecutionEnv) :
+    (transferStoreNewToBalance evm I).get? "value" = some (transferValueValue I) := by
+  rw [transferStoreNewToBalance, store_get_ne _ _ (by decide), transferStoreToBalance_value]
+
 theorem transferStoreNewToBalance_balanceOf (evm : EVM.State) (I : ExecutionEnv) :
     (transferStoreNewToBalance evm I).get? "balanceOf" = none := by
   rw [transferStoreNewToBalance, store_get_ne _ _ (by decide), transferStoreToBalance,
@@ -221,6 +225,21 @@ theorem evalExpr_transfer_value (evm : EVM.State) (I : ExecutionEnv) :
       (.var "value") = .ok (transferValueValue I) := by
   simp only [evalExpr?, EvalResult.ofOption]
   rw [transferStore_value]
+
+theorem evalExpr_transfer_value_newToBalance (evm evm' : EVM.State) (I : ExecutionEnv) :
+    evalExpr? erc20Config
+      { contract := erc20Contract, locals := transferStoreNewToBalance evm I } evm'
+      (.var "value") = .ok (transferValueValue I) := by
+  simp only [evalExpr?, EvalResult.ofOption]
+  rw [transferStoreNewToBalance_value]
+
+/-- The `Transfer(msg.sender, to, value)` event arguments evaluate at the final frame. -/
+theorem evalExprs_transfer_event (evm evm' : EVM.State) (I : ExecutionEnv) :
+    evalExprs? erc20Config { contract := erc20Contract, locals := transferStoreNewToBalance evm I }
+      evm' [sender, .var "to", .var "value"]
+      = .ok [.address evm'.executionEnv.source, transferToValue I, transferValueValue I] := by
+  simp [evalExprs?, evalExpr_transfer_to_newToBalance, evalExpr_transfer_value_newToBalance,
+    sender, evalExpr?, envValue, EvalResult.bind, bind, pure]
 
 def transferSenderEvaledRef (evm : EVM.State) : EvaledStorageRef :=
   { base := "balanceOf", steps := [.mindex (.address evm.executionEnv.source)] }
@@ -431,7 +450,25 @@ theorem erc20TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transfer_newToBalance_var evm I)
       (transferAssignTo evm I hfit)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.emit (evalExprs_transfer_event evm (transferPostState evm I) I)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- Static mode: the body halts at its first storage write (the sender debit). -/
+theorem erc20TransferBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (henough : (transferValueWord I).toNat ≤ (transferFromBalanceWord evm).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody erc20Config erc20Contract evm (transferStore I)
+      transferTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_require_from_true evm I henough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transfer_debit evm I henough) (transferAssignSender evm I)
+      hperm)
 
 theorem erc20TransferBodyReverts_insufficient (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1361,21 +1398,23 @@ theorem erc20RoutineCheckedAdd_overflow {g : Sat256} {s0 : State} {ee : Executio
     push2 ⟨2647⟩, push2 ⟨2507⟩, jump erc20_jd ]
   exact rd2507.erc20PanicOverflowRevert (by evm_ov)
 
+/-- Up to and through the sender-debit `SSTORE` (the path's first forbidden opcode): with write
+    permission the store happens; in static mode the run halts there. -/
 theorem erc20TransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hperm : I.perm = true)
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus)
     (henough : (transferValueWord I).toNat ≤
       (transferFromBalanceWord (initState σ σ₀ g A I)).toNat)
     (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨274⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1576⟩
+    (I.perm = true ∧ ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1576⟩
         [⟨0⟩, transferValueWord I, transferToWord I, ⟨300⟩, sel]
         (balanceOfHashMem (transferSenderWord I)) (UInt256.ofNat 3)
         ByteArray.empty
         (sstoreAccountMap I.codeOwner σ (transferSenderSlotI I)
-          (transferDebitWord (initState σ σ₀ g A I) I)) k C := by
+          (transferDebitWord (initState σ σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd1493⟩ := erc20TransferX_afterRequire
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonTo henough hreach
@@ -1420,8 +1459,11 @@ theorem erc20TransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   rw [hdebit] at rd1568
   have rd1575 := evm_run rd1568 with [
     jumpdest, swap3, pop, pop, dup2, swap1 ]
-  obtain ⟨k3, C3, rd1575s⟩ := rd1575.sstore hperm (by decide) (by evm_ov)
-  exact ⟨_, _, evm_run rd1575s with [ pop ]⟩
+  by_cases hp : I.perm = true
+  · obtain ⟨k3, C3, rd1575s⟩ := rd1575.sstore hp (by decide) (by evm_ov)
+    exact Or.inl ⟨hp, _, _, evm_run rd1575s with [ pop ]⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1575.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1441,9 +1483,9 @@ theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
           (sstoreAccountMap I.codeOwner σ (transferSenderSlotI I)
             (transferDebitWord (initState σ σ₀ g A I) I))
           (transferToSlot I) (transferNewToWord (initState σ σ₀ g A I) I)) k C := by
-  obtain ⟨k, C, rd1576⟩ := erc20TransferX_afterDebit
+  obtain ⟨k, C, rd1576⟩ := permSplit_true hperm (erc20TransferX_afterDebit
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz68 hsize hszhi hperm hcanonTo henough hreach
+    hsz68 hsize hszhi hcanonTo henough hreach)
   have htoCleanL : UInt256.land erc20AddrMask (transferToWord I) = transferToWord I :=
     solcAddrMask_clean_left hcanonTo
   have hslot := transferToKeccakSlot I hcanonTo
@@ -1499,9 +1541,9 @@ theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨274⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨k, C, rd1576⟩ := erc20TransferX_afterDebit
+  obtain ⟨k, C, rd1576⟩ := permSplit_true hperm (erc20TransferX_afterDebit
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz68 hsize hszhi hperm hcanonTo henough hreach
+    hsz68 hsize hszhi hcanonTo henough hreach)
   have htoCleanL : UInt256.land erc20AddrMask (transferToWord I) = transferToWord I :=
     solcAddrMask_clean_left hcanonTo
   have hslot := transferToKeccakSlot I hcanonTo
@@ -1683,7 +1725,7 @@ theorem erc20Dispatch_transfer {cd : ByteArray}
 theorem erc20TransferBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨274⟩ [sel]
@@ -1700,7 +1742,17 @@ theorem erc20TransferBodyCore
         by_cases henough : (transferValueWord I).toNat ≤
             (transferFromBalanceWord
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)).toNat
-        · by_cases hfit :
+        · by_cases hperm : I.perm = true
+          swap
+          · -- static mode: both sides halt at the sender debit
+            have hpf : I.perm = false := by simpa using hperm
+            have hbody := erc20TransferBodyStatic evmS I
+              (by simp only [evmS, initState]; exact hwv) (by simpa [evmS] using henough)
+              (by simp only [evmS, initState]; exact hpf)
+            exact (permSplit_false hpf (erc20TransferX_afterDebit (g := Sat256.ofUInt256 g)
+                hsz68 hsize hbig hcanonTo henough hreach))
+              |>.reEquivStaticHalt hcode hd hdec hbody
+          by_cases hfit :
             transferNewToNat
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) I <
               UInt256.size

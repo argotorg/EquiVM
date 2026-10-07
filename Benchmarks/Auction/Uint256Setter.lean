@@ -112,18 +112,25 @@ theorem setterFromDecoder {I g s0 value R mem aw rdata acc k C} (i : Uint256Sett
     raw jumpdest h0 (by evm_ov), raw push2 (ownerPc (setterOwner i)) h1 (by evm_ov),
     raw jump h2 hd (by evm_ov) ]⟩
 
-theorem setterStoreEvent {I g s0 value ret R rdata σ k C} (i : Uint256Setter)
+theorem setterStoreEventSplit {I g s0 value ret R rdata σ k C} (i : Uint256Setter)
     (h : RD auctionBytecode I g s0 (ownerSuccessPc (setterOwner i))
       (value :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
-    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
-      rdata (sstoreAccountMap I.codeOwner σ (setterSlot i) value) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
+        rdata (sstoreAccountMap I.codeOwner σ (setterSlot i) value) k' C') ∨
+      (I.perm = false ∧ RDstatic auctionBytecode g s0) := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ :=
     setterWriteWfAll i
   have rdStore := evm_run h with [
     raw jumpdest h0 (by evm_ov), raw push1 (setterSlot i) h1 (by evm_ov),
     raw dup2 h2 (by evm_ov), raw swap1 h3 (by evm_ov) ]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStore.sstoreStatic (by simpa using hperm) h4 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdMemory⟩ := rdStore.sstore hperm h4 (by evm_ov)
   have rdTopic := evm_run rdMemory with [
     raw push1 ⟨64⟩ h5 (by evm_ov),
@@ -138,5 +145,14 @@ theorem setterStoreEvent {I g s0 value ret R rdata σ k C} (i : Uint256Setter)
     raw swap1 h11 (by evm_ov), raw push1 ⟨32⟩ h12 (by evm_ov), raw add h13 (by evm_ov),
     raw push2 ⟨1065⟩ h14 (by evm_ov), raw jump h15 (by jump_dest) (by evm_ov) ]
   exact wordEventReturn rd1065 hperm hret hov
+
+theorem setterStoreEvent {I g s0 value ret R rdata σ k C} (i : Uint256Setter)
+    (h : RD auctionBytecode I g s0 (ownerSuccessPc (setterOwner i))
+      (value :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
+    (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
+    (hov : R.length + 7 ≤ 1024) :
+    ∃ k' C', RD auctionBytecode I g s0 ret R (solcReturnMem value) (UInt256.ofNat 5)
+      rdata (sstoreAccountMap I.codeOwner σ (setterSlot i) value) k' C' :=
+  permSplit_true hperm (setterStoreEventSplit i h hret hov)
 
 end Auction

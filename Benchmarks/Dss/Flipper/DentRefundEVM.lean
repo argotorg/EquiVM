@@ -356,7 +356,6 @@ theorem flipperDentX_refundPostCall
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
       (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
@@ -426,7 +425,7 @@ theorem flipperDentX_refundPostCall
         bidGuyWord, bidPackedSlotOfWord, solcAddressSlotWord]
         using dentVatRefundCallMem_encode (mem := twoWordHashMem (dentId I) ⟨1⟩ mem)
           (σ := σ) (I := I) hhashSize
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 theorem flipperDentX_refundCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
@@ -462,17 +461,18 @@ theorem flipperDentX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4893⟩
 
-theorem flipperDentX_storeRefundGuyToFluxStart {σ I} {g : Sat256} {s0 : State}
+theorem flipperDentX_storeRefundGuyToFluxStartSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
-    (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
     (h : RD flipperBytecode I g s0 ⟨4893⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨4927⟩
-      [dentBid I, dentLot I, dentId I, ret, sel]
-      (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (dentAfterRefundMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flipperBytecode I g s0 ⟨4927⟩
+        [dentBid I, dentLot I, dentId I, ret, sel]
+        (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
+        (dentAfterRefundMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
   let mem1 := wordAt0Mem (dentId I) mem
   let mem2 := twoWordHashMem (dentId I) ⟨1⟩ mem
   let slot := bidPackedSlotOfWord (dentId I)
@@ -540,7 +540,13 @@ theorem flipperDentX_storeRefundGuyToFluxStart {σ I} {g : Sat256} {s0 : State}
     raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredRaw] at rd4925
-  obtain ⟨k4926, C4926, rd4926raw⟩ := rd4925.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode flipperBytecode ⟨4925⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4925.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k4926, C4926, rd4926raw⟩ := rd4925.sstore hperm hstoreDec (by evm_ov)
   have rd4926 : RD flipperBytecode I g s0 ⟨4926⟩
       [target, dentBid I, dentLot I, dentId I, ret, sel]
       mem2 (UInt256.ofNat 8) out (dentAfterRefundMap σ I) k4926 C4926 := by

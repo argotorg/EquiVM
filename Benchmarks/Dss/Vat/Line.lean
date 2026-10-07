@@ -48,8 +48,8 @@ theorem vatReachLineBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms163Body 3 (by omega) ⟨1295⟩ hcode hwv hsz hsize
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatLineBodyCore : VatBodyTheorem 0 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatLineBodyCore : VatBodyTheoremAnyPerm 0 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 0) rfl hsel
   have hbody :

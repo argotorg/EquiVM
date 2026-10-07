@@ -14,7 +14,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 22))
     (hStorageWF : clipperStorageWF σ I) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
@@ -86,10 +86,14 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                 (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (sel := clipperSelWord I) (v := v) hpatch hlockedEvm rd3527
-              obtain ⟨_, _, rd3610⟩ := clipperTakeX_lockStore
+              have hfirstWrite := clipperTakeX_lockStoreSplit
                 (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
                 (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                (sel := clipperSelWord I) (v := v) hpatch hperm rd3604
+                (sel := clipperSelWord I) (v := v) hpatch rd3604
+              rcases hfirstWrite with ⟨hperm, _, _, rd3610⟩ | ⟨hperm, hstatic⟩
+              swap
+              · exact hstatic.reEquivStaticHalt hcode hdispatch hdec
+                  ((clipperTakeStoppedSourceRevertsSplit v hwv hlockedEvm).2 hperm)
               let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
               by_cases hstoppedLt : (solcSlotWord σLock I ⟨14⟩).toNat < 3
               · obtain ⟨_, _, rd3694⟩ := clipperTakeX_stoppedOpen (v := v)

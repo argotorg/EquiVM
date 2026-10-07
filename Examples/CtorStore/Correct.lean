@@ -46,7 +46,7 @@ theorem ctorStoreRuntimeRevert {σ σ₀ A I} {g : Sat256}
 
 theorem ctorStoreRuntimeCorrect :
     runtimeEquivalence ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
-  refine ⟨fun σ σ₀ g A I hcode _hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode _hsize => ?_⟩
   exact (ctorStoreRuntimeRevert (σ := σ)
     (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode).reEquivNoDispatch hcode

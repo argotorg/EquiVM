@@ -696,6 +696,45 @@ theorem ballotDelegateBodyReturns_tailNotVoted_general (evm : EVM.State)
         (delegateTailAfterSenderState evm I w) I w L hL hfit)
       (delegateAssignTailVoterWeight_general evm I w L)) ExecBlock.nil
 
+/-- Static mode (after the delegation chain): the body halts at `sender.voted = true`. -/
+theorem ballotDelegateBodyStatic_tail_general (evm : EVM.State)
+    (I : ExecutionEnv) (w : UInt256) (L : Store)
+    (hL : delegateLoopLocals I w L)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
+    (hweight : delegateSenderWeightCurrent evm I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByteCurrent evm I = ⟨0⟩)
+    (hnotself : delegateToWord I ≠ delegateSourceWord I)
+    (hwhile :
+      ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I } evm
+        (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
+          [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
+            .require (.binary .ne (.var "to") sender) ])
+        (.ok { contract := ballotContract, locals := L } evm))
+    (hdelegateWeight : delegateTailVoterWeightCurrent evm w ≠ ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody ballotConfig ballotContract evm (delegateStore I)
+      delegateTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letStorage (resolveStorageRef_delegate_sender evm I hsrc)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_sender_weight_zero_false evm I hweight)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_sender_not_voted_true evm I hvoted)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_delegate_to_ne_sender_true evm I hsrc hcanonInit hnotself)) ?_
+  refine ExecBlock.consNormal hwhile ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letStorage (resolveStorageRef_delegate_tail_voter_general evm I w L hL)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_delegate_tail_delegate_weight_ge_true_general evm I w L hdelegateWeight)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (delegateAssignTailVoted_general evm I w L hL)
+      hperm)
+
 theorem ballotDelegateBodyReverts_tailNotVotedOverflow_general
     (evm : EVM.State) (I : ExecutionEnv) (w : UInt256) (L : Store)
     (hL : delegateLoopLocals I w L)

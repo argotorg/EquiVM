@@ -1478,6 +1478,33 @@ theorem daiTransferFromBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv)
     exact ExecBlock.consReturn
       (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
 
+theorem daiTransferFromBodyStatic_spend (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (hne : AccountAddress.ofNat (transferFromSrcWord I).toNat ≠ evm.executionEnv.source)
+    (hnotMax : (transferFromAllowanceWord evm I).toNat ≠ UInt256.size - 1)
+    (hallowEnough : (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consStatic (ExecStmt.iteTrue
+    (evalExpr_transferFrom_allowanceNeedsSpend_true evm I hne hnotMax) ?_)
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_allowance_ge_true evm I hallowEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFrom_allowance_checkedSub_true evm I hallowEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_allowance_debit evm I hallowEnough)
+      (transferFromAssignAllowance evm I) hperm)
+
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromBodyReturns_skipSender (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1513,6 +1540,31 @@ theorem daiTransferFromBodyReturns_skipSender (evm : EVM.State) (I : ExecutionEn
       (transferFromAssignDst evm I hfit)) ?_
   exact ExecBlock.consReturn
     (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+
+theorem daiTransferFromBodyStatic_skipSender (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (heq : AccountAddress.ofNat (transferFromSrcWord I).toNat = evm.executionEnv.source)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse
+      (result := .ok { contract := contract, locals := transferFromStore I } evm)
+      (evalExpr_transferFrom_allowanceNeedsSpend_false_sender evm I heq) ExecBlock.nil) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_checkedSub_true evm I hsrcEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_src_debit evm I hsrcEnough)
+      (transferFromAssignSrc evm I) hperm)
 
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromBodyReturns_skipMax (evm : EVM.State) (I : ExecutionEnv)
@@ -1550,6 +1602,32 @@ theorem daiTransferFromBodyReturns_skipMax (evm : EVM.State) (I : ExecutionEnv)
       (transferFromAssignDst evm I hfit)) ?_
   exact ExecBlock.consReturn
     (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+
+theorem daiTransferFromBodyStatic_skipMax (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (hne : AccountAddress.ofNat (transferFromSrcWord I).toNat ≠ evm.executionEnv.source)
+    (hmax : (transferFromAllowanceWord evm I).toNat = UInt256.size - 1)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse
+      (result := .ok { contract := contract, locals := transferFromStore I } evm)
+      (evalExpr_transferFrom_allowanceNeedsSpend_false_max evm I hne hmax) ExecBlock.nil) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFrom_src_checkedSub_true evm I hsrcEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFrom_src_debit evm I hsrcEnough)
+      (transferFromAssignSrc evm I) hperm)
 
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromBodyReverts_initialBalance (evm : EVM.State) (I : ExecutionEnv)
@@ -2333,6 +2411,33 @@ theorem daiTransferFromCallBodyReturns_spend (evm : EVM.State) (I : ExecutionEnv
     exact ExecBlock.consReturn
       (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
 
+theorem daiTransferFromCallBodyStatic_spend (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (hne : AccountAddress.ofNat (transferFromSrcWord I).toNat ≠ evm.executionEnv.source)
+    (hnotMax : (transferFromAllowanceWord evm I).toNat ≠ UInt256.size - 1)
+    (hallowEnough : (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromCallStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consStatic (ExecStmt.iteTrue
+    (evalExpr_transferFromCall_allowanceNeedsSpend_true evm I hne hnotMax) ?_)
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFromCall_allowance_ge_true evm I hallowEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_transferFromCall_allowance_checkedSub_true evm I hallowEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFromCall_allowance_debit evm I hallowEnough)
+      (transferFromCallAssignAllowance evm I) hperm)
+
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromCallBodyReturns_skipSender (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -2368,6 +2473,31 @@ theorem daiTransferFromCallBodyReturns_skipSender (evm : EVM.State) (I : Executi
       (transferFromCallAssignDst evm I hfit)) ?_
   exact ExecBlock.consReturn
     (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+
+theorem daiTransferFromCallBodyStatic_skipSender (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (heq : AccountAddress.ofNat (transferFromSrcWord I).toNat = evm.executionEnv.source)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromCallStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse
+      (result := .ok { contract := contract, locals := transferFromCallStore I } evm)
+      (evalExpr_transferFromCall_allowanceNeedsSpend_false_sender evm I heq) ExecBlock.nil) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_checkedSub_true evm I hsrcEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFromCall_src_debit evm I hsrcEnough)
+      (transferFromCallAssignSrc evm I) hperm)
 
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromCallBodyReturns_skipMax (evm : EVM.State) (I : ExecutionEnv)
@@ -2405,6 +2535,32 @@ theorem daiTransferFromCallBodyReturns_skipMax (evm : EVM.State) (I : ExecutionE
       (transferFromCallAssignDst evm I hfit)) ?_
   exact ExecBlock.consReturn
     (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
+
+theorem daiTransferFromCallBodyStatic_skipMax (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrcEnough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat)
+    (hne : AccountAddress.ofNat (transferFromSrcWord I).toNat ≠ evm.executionEnv.source)
+    (hmax : (transferFromAllowanceWord evm I).toNat = UInt256.size - 1)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferFromCallStore I)
+      transferFromTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [transferFromTransition, nonpayable, spendAllowance, debitBalance, creditBalance,
+    checkedSub, checkedAdd, List.append_assoc, List.singleton_append]
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.iteFalse
+      (result := .ok { contract := contract, locals := transferFromCallStore I } evm)
+      (evalExpr_transferFromCall_allowanceNeedsSpend_false_max evm I hne hmax) ExecBlock.nil) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_balance_ge_true evm I hsrcEnough)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transferFromCall_src_checkedSub_true evm I hsrcEnough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transferFromCall_src_debit evm I hsrcEnough)
+      (transferFromCallAssignSrc evm I) hperm)
 
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromCallBodyReverts_initialBalance (evm : EVM.State) (I : ExecutionEnv)
@@ -3195,25 +3351,24 @@ theorem daiTransferFromX_allowanceSpendCheckOk {σ I} {g : Sat256} {s0 : State}
     (by simpa using h)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
-    (hperm : I.perm = true)
+theorem daiTransferFromX_tailAfterSrcStoreSplit {σ I} {g : Sat256} {s0 : State}
+    {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
     (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hSlen : S.length + 16 ≤ 1024)
-    (hretDest : (D_J daiBytecode 0).contains ret = true)
     (hsrcEnough :
       (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat)
-    (hfit :
-      (transferFromEvmTailDstBalanceWord σ I).toNat + (transferFromWadWord I).toNat <
-        UInt256.size)
     (h : RD daiBytecode I g s0 ⟨1785⟩
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
-      (solcScratchReturnMem (transferFromTailDstStoreMem mem I) (transferFromWadWord I))
-      (UInt256.ofNat 5) rdata (transferFromEvmTailPostAccountMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g s0 ⟨1851⟩
+        (⟨0⟩ :: UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ :: ⟨64⟩ :: ⟨0⟩ ::
+          transferFromWadWord I :: transferFromDstMaskedWord I ::
+          transferFromSrcMaskedWord I :: ret :: S)
+        (transferFromTailSrcStoreMem mem I) (UInt256.ofNat 3) rdata
+        (transferFromEvmTailAfterSrcAccountMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
   have hsrcMaskLiteral :
       UInt256.land (transferFromSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3221,13 +3376,6 @@ theorem daiTransferFromX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C :
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
-  have hdstMaskLiteral :
-      UInt256.land (transferFromDstMaskedWord I)
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
-        transferFromDstMaskedWord I := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact solcAddrMask_clean (transferFromDstMaskedWord_canonical I)
   have hsrcSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
@@ -3328,11 +3476,67 @@ theorem daiTransferFromX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C :
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterSrcSstoreRaw⟩ := rdBeforeSrcSstore.sstore hperm
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdAfterSrcSstore := by
+  have hstoreDec : decode daiBytecode ⟨1850⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeSrcSstore.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdAfterSrcSstoreRaw⟩ := rdBeforeSrcSstore.sstore hperm hstoreDec
+    (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, by
     simpa [transferFromEvmTailAfterSrcAccountMap, transferFromEvmTailSrcDebitWord,
-      transferFromEvmSrcSlot] using rdAfterSrcSstoreRaw
+      transferFromEvmSrcSlot] using rdAfterSrcSstoreRaw⟩
+
+theorem daiTransferFromX_tailAfterSrcStore {σ I} {g : Sat256} {s0 : State}
+    {k C : ℕ} {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
+    (hperm : I.perm = true)
+    (hmem : mem.size = 96)
+    (hSlen : S.length + 16 ≤ 1024)
+    (hsrcEnough :
+      (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat)
+    (h : RD daiBytecode I g s0 ⟨1785⟩
+      (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
+        transferFromSrcMaskedWord I :: ret :: S)
+      mem (UInt256.ofNat 3) rdata σ k C) :
+    ∃ k' C', RD daiBytecode I g s0 ⟨1851⟩
+      (⟨0⟩ :: UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ :: ⟨64⟩ :: ⟨0⟩ ::
+        transferFromWadWord I :: transferFromDstMaskedWord I ::
+        transferFromSrcMaskedWord I :: ret :: S)
+      (transferFromTailSrcStoreMem mem I) (UInt256.ofNat 3) rdata
+      (transferFromEvmTailAfterSrcAccountMap σ I) k' C' :=
+  permSplit_true hperm (daiTransferFromX_tailAfterSrcStoreSplit hmem hSlen hsrcEnough h)
+
+set_option maxHeartbeats 1000000 in
+theorem daiTransferFromX_tailSuccessJump {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {ret : UInt256} {S : List UInt256} {mem rdata : ByteArray}
+    (hperm : I.perm = true)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hSlen : S.length + 16 ≤ 1024)
+    (hretDest : (D_J daiBytecode 0).contains ret = true)
+    (hsrcEnough :
+      (transferFromWadWord I).toNat ≤ (transferFromEvmTailSrcBalanceWord σ I).toNat)
+    (hfit :
+      (transferFromEvmTailDstBalanceWord σ I).toNat + (transferFromWadWord I).toNat <
+        UInt256.size)
+    (h : RD daiBytecode I g s0 ⟨1785⟩
+      (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
+        transferFromSrcMaskedWord I :: ret :: S)
+      mem (UInt256.ofNat 3) rdata σ k C) :
+    ∃ k' C', RD daiBytecode I g s0 ret (⟨1⟩ :: S)
+      (solcScratchReturnMem (transferFromTailDstStoreMem mem I) (transferFromWadWord I))
+      (UInt256.ofNat 5) rdata (transferFromEvmTailPostAccountMap σ I) k' C' := by
+  obtain ⟨_, _, rdAfterSrcSstore⟩ :=
+    daiTransferFromX_tailAfterSrcStore hperm hmem hSlen hsrcEnough h
+  have hdstMaskLiteral :
+      UInt256.land (transferFromDstMaskedWord I)
+          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
+        transferFromDstMaskedWord I := by
+    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+      solcAddrMask from by decide]
+    exact solcAddrMask_clean (transferFromDstMaskedWord_canonical I)
   have rdDstMasked := evm_run rdAfterSrcSstore with [
     raw swap1 (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -4031,13 +4235,8 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {σ I} {g : Sat256} {s0 : Sta
         transferFromSrcMaskedWord I :: ret :: S)
       mem (UInt256.ofNat 3) rdata σ k C) :
     RDrev daiBytecode g s0 := by
-  have hsrcMaskLiteral :
-      UInt256.land (transferFromSrcMaskedWord I)
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
-        transferFromSrcMaskedWord I := by
-    rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide]
-    exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
+  obtain ⟨_, _, rdAfterSrcSstore⟩ :=
+    daiTransferFromX_tailAfterSrcStore hperm hmem hSlen hsrcEnough h
   have hdstMaskLiteral :
       UInt256.land (transferFromDstMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -4045,111 +4244,6 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {σ I} {g : Sat256} {s0 : Sta
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     exact solcAddrMask_clean (transferFromDstMaskedWord_canonical I)
-  have hsrcSlot :
-      UInt256.ofNat (fromByteArrayBigEndian
-          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
-            0 64))) =
-        transferFromEvmSrcSlot I := by
-    simpa [transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
-      twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I) hmem
-  have rdSrcMasked := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
-  rw [hsrcMaskLiteral] at rdSrcMasked
-  have rdSrcMstore0Prefix := evm_run rdSrcMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rdSrcKey := rdSrcMstore0Prefix.mstore 0
-    (wordAt0Mem (transferFromSrcMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdSrcSlotPrefix := evm_run rdSrcKey with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
-  have rdSrcHashMem := rdSrcSlotPrefix.mstore 0
-    (twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdSrcHashPrefix := evm_run rdSrcHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rdSrcSlot := rdSrcHashPrefix.keccak256 0 (transferFromEvmSrcSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hsrcSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdSrcLoadedRaw⟩ := rdSrcSlot.sload (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSrcLoaded := by
-    simpa [transferFromEvmTailSrcBalanceWord, transferFromEvmSrcSlot] using rdSrcLoadedRaw
-  have rdSubRoutinePre := evm_run rdSrcLoaded with [
-    raw push2 ⟨1820⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨3966⟩ (by native_decide) (by evm_ov)]
-  have rdSubRoutine := rdSubRoutinePre.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have hsubWf : solcCheckedSubSuccessWf daiBytecode ⟨3966⟩ ⟨1399⟩ := by
-    unfold solcCheckedSubSuccessWf
-    repeat' first | apply And.intro | native_decide
-  obtain ⟨_, _, rdAfterSubRaw⟩ := RD.solcCheckedSubSuccess
-    (pc := ⟨3966⟩) (okPc := ⟨1399⟩)
-    (a := transferFromEvmTailSrcBalanceWord σ I) (b := transferFromWadWord I)
-    (ret := ⟨1820⟩)
-    (R := ⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
-      transferFromSrcMaskedWord I :: ret :: S)
-    rdSubRoutine hsubWf hsrcEnough (by jump_dest) (by jump_dest)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdAfterSub := by
-    simpa [transferFromEvmTailSrcDebitWord] using rdAfterSubRaw
-  have rdSrcStoreMasked := evm_run rdAfterSub with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
-  rw [hsrcMaskLiteral] at rdSrcStoreMasked
-  have rdSrcStoreKeyPrefix := evm_run rdSrcStoreMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rdSrcStoreKey := rdSrcStoreKeyPrefix.mstore 0
-    (wordAt0Mem (transferFromSrcMaskedWord I)
-      (twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rdSrcStoreSlotPrefix := evm_run rdSrcStoreKey with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
-  have rdSrcStoreMem := rdSrcStoreSlotPrefix.mstore 0 (transferFromTailSrcStoreMem mem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have hsrcStoreSlot :
-      UInt256.ofNat (fromByteArrayBigEndian
-          (KEC ((transferFromTailSrcStoreMem mem I).readWithPadding 0 64))) =
-        transferFromEvmSrcSlot I := by
-    simpa [transferFromTailSrcStoreMem, transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
-      twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I)
-        (twoWordHashMem_size_96 (transferFromSrcMaskedWord I) ⟨2⟩ hmem)
-  have rdSrcStoreHashPrefix := evm_run rdSrcStoreMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
-  have rdSrcStoreSlot := rdSrcStoreHashPrefix.keccak256 0 (transferFromEvmSrcSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hsrcStoreSlot
-    (by native_decide) (by evm_ov)
-  have rdBeforeSrcSstore := evm_run rdSrcStoreSlot with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterSrcSstoreRaw⟩ := rdBeforeSrcSstore.sstore hperm
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdAfterSrcSstore := by
-    simpa [transferFromEvmTailAfterSrcAccountMap, transferFromEvmTailSrcDebitWord,
-      transferFromEvmSrcSlot] using rdAfterSrcSstoreRaw
   have rdDstMasked := evm_run rdAfterSrcSstore with [
     raw swap1 (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -4276,9 +4370,8 @@ theorem transferFromAllowancePostStoreHashMem_read64 (I : ExecutionEnv) :
     (transferFromAllowanceStoreHashMem_size I) (transferFromAllowanceStoreHashMem_read64 I)
 
 set_option maxHeartbeats 1000000 in
-theorem daiTransferFromX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiTransferFromX_spendToTailContSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {ret : UInt256} {S : List UInt256}
-    (hperm : I.perm = true)
     (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
     (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
     (hallowEnough : (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ I).toNat)
@@ -4287,11 +4380,13 @@ theorem daiTransferFromX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C :
       (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
         transferFromSrcMaskedWord I :: ret :: S)
       (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
-      (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
-        transferFromSrcMaskedWord I :: ret :: S)
-      (transferFromAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (transferFromEvmAfterAllowanceAccountMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
+        (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
+          transferFromSrcMaskedWord I :: ret :: S)
+        (transferFromAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (transferFromEvmAfterAllowanceAccountMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g s0) := by
   obtain ⟨_, _, rd1702⟩ :=
     daiTransferFromX_allowanceSpendCheckOkCont (I := I) (ret := ret) (S := S)
       hne hnotMax hallowEnough hSlen h
@@ -4400,19 +4495,38 @@ theorem daiTransferFromX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C :
   have hstoreWf : solcNestedMappingCallerStoreMemWf daiBytecode ⟨1748⟩ ⟨3⟩ := by
     unfold solcNestedMappingCallerStoreMemWf
     repeat' first | apply And.intro | native_decide
-  obtain ⟨_, _, rd1785Raw⟩ := RD.solcNestedMappingCallerStoreMem
+  refine permSplit_bind (RD.solcNestedMappingCallerStoreMemSplit
     (pc := ⟨1748⟩) (baseSlot := ⟨3⟩)
     (newValue := transferFromEvmAllowanceDebitWord σ I)
     (discard := ⟨0⟩) (value := transferFromWadWord I)
     (aux := transferFromDstMaskedWord I) (owner := transferFromSrcMaskedWord I)
     (ret := ret) (R := S)
     rdAfterSub hstoreWf (transferFromAllowanceStoreHashMem_size I)
-    hperm (transferFromSrcMaskedWord_canonical I)
-    (by omega)
+    (transferFromSrcMaskedWord_canonical I)
+    (by omega)) fun _ hstore ↦ ?_
+  obtain ⟨_, _, rd1785Raw⟩ := hstore
   exact ⟨_, _, by
     simpa [transferFromEvmAfterAllowanceAccountMap, transferFromEvmAllowanceDebitWord,
       transferFromEvmAllowanceSlot, transferFromAllowancePostStoreHashMem, mapSlot,
       solcMappingSlot] using rd1785Raw⟩
+
+theorem daiTransferFromX_spendToTailCont {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {ret : UInt256} {S : List UInt256}
+    (hperm : I.perm = true)
+    (hne : transferFromSrcMaskedWord I ≠ solcSourceWord I)
+    (hnotMax : (transferFromEvmAllowanceWord σ I).toNat ≠ UInt256.size - 1)
+    (hallowEnough : (transferFromWadWord I).toNat ≤ (transferFromEvmAllowanceWord σ I).toNat)
+    (hSlen : S.length + 16 ≤ 1024)
+    (h : RD daiBytecode I g s0 ⟨1515⟩
+      (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
+        transferFromSrcMaskedWord I :: ret :: S)
+      (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD daiBytecode I g s0 ⟨1785⟩
+      (⟨0⟩ :: transferFromWadWord I :: transferFromDstMaskedWord I ::
+        transferFromSrcMaskedWord I :: ret :: S)
+      (transferFromAllowancePostStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
+      (transferFromEvmAfterAllowanceAccountMap σ I) k' C' :=
+  permSplit_true hperm (daiTransferFromX_spendToTailContSplit hne hnotMax hallowEnough hSlen h)
 
 set_option maxHeartbeats 1000000 in
 theorem daiTransferFromX_spendToTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -4885,7 +4999,7 @@ theorem daiTransferFromInternalCallRuntimeCore
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (t.params.map Param.name)
         (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hSlen : S.length + 16 ≤ 1024)
     (hretDest : (D_J daiBytecode 0).contains ret = true)
     (rd1411 : RD daiBytecode I (Sat256.ofUInt256 g)
@@ -4918,6 +5032,13 @@ theorem daiTransferFromInternalCallRuntimeCore
       ExecTransitionBody config contract
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         callargs t.body .reverted)
+    (hwrapStatic :
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (transferFromCallStore I) transferFromTransition.body .staticViolation →
+      ExecTransitionBody config contract
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        callargs t.body .staticViolation)
     (henc : returnEquiv out retVal t.returnType) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -4942,6 +5063,19 @@ theorem daiTransferFromInternalCallRuntimeCore
         AccountAddress.ofNat (transferFromSrcWord I).toNat = I.source
     · have heqWord :=
         transferFromSrcMaskedWord_eq_solcSourceWord_of_address_eq I hsrcIsSender
+      by_cases hperm : I.perm = true
+      swap
+      · have hstatic : I.perm = false := by simpa using hperm
+        have hbody := daiTransferFromCallBodyStatic_skipSender evmSolm I
+          (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+          (by simpa [evmSolm, initState] using hsrcIsSender)
+          (by simpa [evmSolm, initState] using hstatic)
+        obtain ⟨_, _, rd1785⟩ :=
+          daiTransferFromX_allowanceSkipSenderCont heqWord hSlen rd1515
+        exact (permSplit_false hstatic (daiTransferFromX_tailAfterSrcStoreSplit
+          (transferFromSrcHashMem_size I) hSlen hsrcEnough rd1785))
+          |>.reEquivStaticHalt hcode hdispatch hdecode
+            (hwrapStatic (by simpa only [evmSolm] using hbody))
       by_cases hfit :
           (transferFromEvmTailDstBalanceWord σ I).toNat +
               (transferFromWadWord I).toNat < UInt256.size
@@ -5011,6 +5145,19 @@ theorem daiTransferFromInternalCallRuntimeCore
       · have hmaxBody : (transferFromAllowanceWord evmSolm I).toNat = UInt256.size - 1 := by
           rw [← hallowWord]
           exact hmax
+        by_cases hperm : I.perm = true
+        swap
+        · have hstatic : I.perm = false := by simpa using hperm
+          have hbody := daiTransferFromCallBodyStatic_skipMax evmSolm I
+            (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+            (by simpa [evmSolm, initState] using hsrcIsSender) hmaxBody
+            (by simpa [evmSolm, initState] using hstatic)
+          obtain ⟨_, _, rd1785⟩ :=
+            daiTransferFromX_allowanceSkipMaxCont hneWord hmax hSlen rd1515
+          exact (permSplit_false hstatic (daiTransferFromX_tailAfterSrcStoreSplit
+            (transferFromAllowanceHashMem_size I) hSlen hsrcEnough rd1785))
+            |>.reEquivStaticHalt hcode hdispatch hdecode
+              (hwrapStatic (by simpa only [evmSolm] using hbody))
         by_cases hfit :
             (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat < UInt256.size
@@ -5081,6 +5228,17 @@ theorem daiTransferFromInternalCallRuntimeCore
               (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evmSolm I).toNat := by
             rw [← hallowWord]
             exact hallowEnough
+          by_cases hperm : I.perm = true
+          swap
+          · have hstatic : I.perm = false := by simpa using hperm
+            have hbody := daiTransferFromCallBodyStatic_spend evmSolm I
+              (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+              (by simpa [evmSolm, initState] using hsrcIsSender) hnotMaxBody hallowEnoughBody
+              (by simpa [evmSolm, initState] using hstatic)
+            exact (permSplit_false hstatic (daiTransferFromX_spendToTailContSplit
+              hneWord hmax hallowEnough hSlen rd1515))
+              |>.reEquivStaticHalt hcode hdispatch hdecode
+                (hwrapStatic (by simpa only [evmSolm] using hbody))
           have hallowAcc :=
             transferFromAfterAllowanceAccountMapEq
               (σ := σ) (evm := evmSolm) (I := I)
@@ -5251,7 +5409,7 @@ theorem daiTransferFromInternalCallRuntimeCore
 /-- `transferFrom(address,address,uint256)` body refines its Solm transition. -/
 theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 19)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -5285,6 +5443,20 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
           AccountAddress.ofNat (transferFromSrcWord I).toNat = I.source
       · have heqWord :=
           transferFromSrcMaskedWord_eq_solcSourceWord_of_address_eq I hsrcIsSender
+        by_cases hperm : I.perm = true
+        swap
+        · have hstatic : I.perm = false := by simpa using hperm
+          have hbody := daiTransferFromBodyStatic_skipSender evmSolm I
+            (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+            (by simpa [evmSolm, initState] using hsrcIsSender)
+            (by simpa [evmSolm, initState] using hstatic)
+          obtain ⟨_, _, rd1785⟩ :=
+            daiTransferFromX_allowanceSkipSenderCont heqWord
+              (by simp only [List.length_cons, List.length_nil]; omega) rd1515
+          exact (permSplit_false hstatic (daiTransferFromX_tailAfterSrcStoreSplit
+            (transferFromSrcHashMem_size I)
+              (by simp only [List.length_cons, List.length_nil]; omega) hsrcEnough rd1785))
+            |>.reEquivStaticHalt hcode hdispatch hdecode hbody
         by_cases hfit :
             (transferFromEvmTailDstBalanceWord σ I).toNat +
                 (transferFromWadWord I).toNat < UInt256.size
@@ -5342,6 +5514,20 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
         · have hmaxBody : (transferFromAllowanceWord evmSolm I).toNat = UInt256.size - 1 := by
             rw [← hallowWord]
             exact hmax
+          by_cases hperm : I.perm = true
+          swap
+          · have hstatic : I.perm = false := by simpa using hperm
+            have hbody := daiTransferFromBodyStatic_skipMax evmSolm I
+              (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+              (by simpa [evmSolm, initState] using hsrcIsSender) hmaxBody
+              (by simpa [evmSolm, initState] using hstatic)
+            obtain ⟨_, _, rd1785⟩ :=
+              daiTransferFromX_allowanceSkipMaxCont hneWord hmax
+                (by simp only [List.length_cons, List.length_nil]; omega) rd1515
+            exact (permSplit_false hstatic (daiTransferFromX_tailAfterSrcStoreSplit
+              (transferFromAllowanceHashMem_size I)
+                (by simp only [List.length_cons, List.length_nil]; omega) hsrcEnough rd1785))
+              |>.reEquivStaticHalt hcode hdispatch hdecode hbody
           by_cases hfit :
               (transferFromEvmTailDstBalanceWord σ I).toNat +
                   (transferFromWadWord I).toNat < UInt256.size
@@ -5400,6 +5586,17 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                 (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evmSolm I).toNat := by
               rw [← hallowWord]
               exact hallowEnough
+            by_cases hperm : I.perm = true
+            swap
+            · have hstatic : I.perm = false := by simpa using hperm
+              have hbody := daiTransferFromBodyStatic_spend evmSolm I
+                (by simpa [evmSolm, initState] using hwv) hsrcEnoughSolm
+                (by simpa [evmSolm, initState] using hsrcIsSender) hnotMaxBody hallowEnoughBody
+                (by simpa [evmSolm, initState] using hstatic)
+              exact (permSplit_false hstatic (daiTransferFromX_spendToTailContSplit
+                hneWord hmax hallowEnough
+                  (by simp only [List.length_cons, List.length_nil]; omega) rd1515))
+                |>.reEquivStaticHalt hcode hdispatch hdecode hbody
             have hallowAcc :=
               transferFromAfterAllowanceAccountMapEq
                 (σ := σ) (evm := evmSolm) (I := I)

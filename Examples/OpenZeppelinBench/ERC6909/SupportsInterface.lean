@@ -491,7 +491,7 @@ theorem erc6909SupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
 theorem erc6909SupportsInterfaceBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 1))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
@@ -499,7 +499,6 @@ theorem erc6909SupportsInterfaceBodyCore
       σ k C) :
     runtimeEquivalenceFor config contract
       σ σ₀ g A I := by
-  have _hperm : I.perm = true := hperm
   have hselSupports : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ := by
     simpa [erc6909SelBytes] using hsel
   have hsz4 := erc6909SupportsInterfaceSelector_size (by simpa [selIs] using hselSupports)

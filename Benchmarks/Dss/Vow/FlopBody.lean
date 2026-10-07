@@ -106,7 +106,7 @@ theorem RD.vowFlopSin0CallDepthLimit
 set_option maxHeartbeats 0 in
 theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -489,6 +489,40 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                 solcAddressSlotWord ⟨3⟩ σAshEvm I =
                   solcAddressSlotWord ⟨3⟩ evmAshSolm.accountMap I := by
               exact congrArg (fun accounts => solcAddressSlotWord ⟨3⟩ accounts I) rflAsh
+            let memDai :=
+              outDai.write 0
+                (vatDaiCalldataMem I
+                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32))
+                128 32
+            have hmemDai : memDai.size = 164 := by
+              simpa [memDai] using
+                vatDaiWrite_size I outDai 32 hmemSin (by omega) ho32Dai
+            have hread64Dai :
+                memDai.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+              simpa [memDai] using
+                vatDaiWrite_read64 I outDai 32 hmemSin hread64Sin (by omega) ho32Dai
+            have hfitEvm :
+                (solcSlotWordAt ⟨6⟩ σ_dai I).toNat +
+                    (solcSlotWordAt ⟨9⟩ σ_dai I).toNat <
+                  UInt256.size := by
+              simpa [AshValDai, SumpValDai] using hfit
+            obtain ⟨k3959, C3959, rd3959Raw⟩ :=
+              RD.vowFlopToKickStart rd3832True hmemSin hread64Sin ho32Dai
+                hoszDai (by simp [vatDai]) hvatDaiZero hfitEvm
+            have rd3959 : RD vowBytecode I (Sat256.ofUInt256 g)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
+                (AshNew :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
+                memDai (UInt256.ofNat 6) outDai σ_dai k3959 C3959 := by
+              simpa [memDai, AshNew, AshValDai, SumpValDai] using rd3959Raw
+            rcases RD.vowFlopToKickExtcodesizeGuardSplit rd3959 hmemDai hread64Dai with
+              ⟨hperm, -⟩ | ⟨hpf, hstatic⟩
+            swap
+            · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                (vowFlopSourceStatic (g := g) hwv hvatCodeSolm hcallSinSolm hdecSin hSinLoad
+                  (by simp [freeSin, SinVal]) hfreeOk hAshLoad
+                  (by simp [flopDebt, freeSin, AshVal]) hdebtOk hSumpLoad henough hvatLoadSin
+                  hvatCodeDai hcallDaiSolmTrue hdecDai hvatDaiZero hAshLoadDai hSumpLoadDai rfl
+                  hfit hpf)
             by_cases hcodeSizeKick :
                 Reasoning.Theory.extCodeSizeWord σAshEvm
                   (solcAddressSlotWord ⟨3⟩ σAshEvm I) = ⟨0⟩
@@ -519,31 +553,6 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                 Reasoning.Theory.extCodeSizeWord σAshEvm
                   (solcAddressSlotWord ⟨3⟩ σAshEvm I) ≠ ⟨0⟩ :=
               hcodeSizeKick
-            let memDai :=
-              outDai.write 0
-                (vatDaiCalldataMem I
-                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32))
-                128 32
-            have hmemDai : memDai.size = 164 := by
-              simpa [memDai] using
-                vatDaiWrite_size I outDai 32 hmemSin (by omega) ho32Dai
-            have hread64Dai :
-                memDai.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-              simpa [memDai] using
-                vatDaiWrite_read64 I outDai 32 hmemSin hread64Sin (by omega) ho32Dai
-            have hfitEvm :
-                (solcSlotWordAt ⟨6⟩ σ_dai I).toNat +
-                    (solcSlotWordAt ⟨9⟩ σ_dai I).toNat <
-                  UInt256.size := by
-              simpa [AshValDai, SumpValDai] using hfit
-            obtain ⟨k3959, C3959, rd3959Raw⟩ :=
-              RD.vowFlopToKickStart rd3832True hmemSin hread64Sin ho32Dai
-                hoszDai (by simp [vatDai]) hvatDaiZero hfitEvm
-            have rd3959 : RD vowBytecode I (Sat256.ofUInt256 g)
-                (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3959⟩
-                (AshNew :: ⟨0⟩ :: ⟨357⟩ :: vowSelWord I :: [])
-                memDai (UInt256.ofNat 6) outDai σ_dai k3959 C3959 := by
-              simpa [memDai, AshNew, AshValDai, SumpValDai] using rd3959Raw
             have hcodeSizeKickSolmNE :
                 Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
                   (solcAddressSlotWord ⟨3⟩ evmAshSolm.accountMap I) ≠ ⟨0⟩ := by

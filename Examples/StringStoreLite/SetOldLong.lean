@@ -1084,16 +1084,17 @@ theorem stringStoreLiteX_setClearDataWordsLoopReachStoreHelper {σinit σ₀ A I
 theorem stringStoreLiteX_setStoreHelperZero {σinit σ₀ A I} {g : Sat256}
     {τ : AccountMap} {slot idx base count ret : UInt256} {rest : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1138⟩
       (slot :: ⟨0⟩ :: ⟨1184⟩ :: idx :: base :: count :: ret :: rest)
       mem aw rdata τ k C)
     (hov : rest.length + 64 ≤ 1024) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1184⟩
       (idx :: base :: count :: ret :: rest) mem aw rdata
-      (sstoreAccountMap I.codeOwner τ slot ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner τ slot ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   obtain ⟨_, _, rd1138⟩ := hreach
   have rd1118pre := evm_run rd1138 with [
     jumpdest, push2 ⟨1146⟩, push2 ⟨1131⟩, jump (by jump_dest),
@@ -1132,6 +1133,11 @@ theorem stringStoreLiteX_setStoreHelperZero {σinit σ₀ A I} {g : Sat256}
     and, dup5, or, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
     jump (by jump_dest),
     jumpdest, dup3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1123.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1126₀⟩ := rd1123.sstore hperm (by native_decide) (by evm_ov)
   have hstored :
       (UInt256.lor
@@ -1179,20 +1185,21 @@ theorem stringStoreLiteX_setStoreHelperZero {σinit σ₀ A I} {g : Sat256}
 theorem stringStoreLiteX_setClearDataWordsLoopStep {σinit σ₀ A I} {g : Sat256}
     {τ : AccountMap} {idx base count ret : UInt256} {rest : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1164⟩
       (idx :: base :: count :: ret :: rest) mem aw rdata τ k C)
     (hcontinue : UInt256.isZero (UInt256.lt idx count) = ⟨0⟩)
     (hov : rest.length + 64 ≤ 1024) :
+    (I.perm = true ∧
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1164⟩
       (((⟨1⟩ : UInt256) + idx) :: base :: count :: ret :: rest) mem aw rdata
-      (sstoreAccountMap I.codeOwner τ (base + idx) ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner τ (base + idx) ⟨0⟩) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hhelper := stringStoreLiteX_setClearDataWordsLoopReachStoreHelper
     (g := g) hreach hcontinue (by omega)
-  have hstored := stringStoreLiteX_setStoreHelperZero
-    (g := g) (slot := base + idx) hperm hhelper (by omega)
+  refine permSplit_bind (stringStoreLiteX_setStoreHelperZero
+    (g := g) (slot := base + idx) hhelper (by omega)) fun _ hstored => ?_
   obtain ⟨_, _, rd1184⟩ := hstored
   have rd1164 := evm_run rd1184 with [
     jumpdest, push1 ⟨1⟩, dup2, add, swap1, pop, push2 ⟨1164⟩, jump (by jump_dest)]
@@ -1201,7 +1208,6 @@ theorem stringStoreLiteX_setClearDataWordsLoopStep {σinit σ₀ A I} {g : Sat25
 theorem stringStoreLiteX_setClearDataWordsLoopGenerated {σinit σ₀ A I}
     {g : Sat256} {τ : AccountMap} {idx base count ret : UInt256}
     {rest : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {fuel : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1164⟩
       (idx :: base :: count :: ret :: rest) mem aw rdata τ k C)
@@ -1210,23 +1216,27 @@ theorem stringStoreLiteX_setClearDataWordsLoopGenerated {σinit σ₀ A I}
     (hdone : UInt256.lt (clearDataWordsLoopIndex idx fuel) count = ⟨0⟩)
     (hret : (D_J stringStoreLiteBytecode 0).contains ret = true)
     (hov : rest.length + 64 ≤ 1024) :
-    ∃ k C, RD stringStoreLiteBytecode I g
+    (∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ret rest mem aw rdata
-      (clearDataWordsForwardFrom I.codeOwner τ base idx fuel) k C := by
+      (clearDataWordsForwardFrom I.codeOwner τ base idx fuel) k C) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   induction fuel generalizing idx τ with
   | zero =>
+      refine Or.inl ?_
       simpa [clearDataWordsLoopIndex, clearDataWordsForwardFrom] using
         stringStoreLiteX_setClearDataWordsLoopDone
           (σinit := σinit) (τ := τ) (idx := idx) (base := base) (count := count)
           (ret := ret) (rest := rest) (mem := mem) (aw := aw) (rdata := rdata)
           hreach hdone hret (by omega)
   | succ n ih =>
-      have hstep := stringStoreLiteX_setClearDataWordsLoopStep
+      rcases stringStoreLiteX_setClearDataWordsLoopStep
         (σinit := σinit) (τ := τ) (idx := idx) (base := base) (count := count)
         (ret := ret) (rest := rest) (mem := mem) (aw := aw) (rdata := rdata)
-        hperm hreach
+        hreach
         (by simpa [clearDataWordsLoopIndex] using hcontinue 0 (Nat.zero_lt_succ n))
-        hov
+        hov with ⟨_, hstep⟩ | hst
+      swap
+      · exact Or.inr hst
       have hcontinueTail : ∀ i, i < n →
           UInt256.isZero
             (UInt256.lt (clearDataWordsLoopIndex ((⟨1⟩ : UInt256) + idx) i) count) =
@@ -1247,17 +1257,18 @@ theorem stringStoreLiteX_setClearDataWordsLoopGenerated {σinit σ₀ A I}
 theorem stringStoreLiteX_setEmptyWriteZeroFrom1405 {σinit σ₀ A I}
     {g : Sat256} {τ : AccountMap} {payloadStart len : UInt256} {mem rdata : ByteArray}
     {aw : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1405⟩
       [len, ⟨0⟩, ⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩,
         payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       mem aw rdata τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
         [⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
-        mem aw rdata (sstoreAccountMap I.codeOwner τ ⟨0⟩ ⟨0⟩) k' C' := by
+        mem aw rdata (sstoreAccountMap I.codeOwner τ ⟨0⟩ ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have rd1436 := evm_run hreach with [
     jumpdest, push0, push1 ⟨32⟩, swap1, pop,
     push1 ⟨31⟩, dup4, gt, push1 ⟨1⟩, dup2, eq, push2 ⟨1454⟩,
@@ -1277,6 +1288,11 @@ theorem stringStoreLiteX_setEmptyWriteZeroFrom1405 {σinit σ₀ A I}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1448pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftRight ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
@@ -1448,7 +1464,6 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart word aw awLoad : UInt256}
     {mem rdata : ByteArray} {mloadCost : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -1461,6 +1476,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
        else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (ptr + stride).toNat 32))) = word)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32) = awLoad) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨1470⟩
@@ -1468,7 +1484,8 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
           (⟨32⟩ : UInt256) + stride, oldLen, len, ⟨0⟩, ptr, ret,
           ⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         mem awLoad rdata
-        (sstoreAccountMap I.codeOwner τ slot word) k' C' := by
+        (sstoreAccountMap I.codeOwner τ slot word) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   obtain ⟨_, _, rd1470⟩ := hreach
   have rd1479 := evm_run rd1470 with [
     jumpdest, dup3, dup2, lt, iszero, push2 ⟨1507⟩,
@@ -1479,6 +1496,11 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
   have rd1483 := RD.mload mloadCost word awLoad rd1482pre
     (by native_decide) hmloadCost hmload hawLoad (by evm_ov)
   have rd1484pre := evm_run rd1483 with [dup3]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1484pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1485₀⟩ := rd1484pre.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1485⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -2010,7 +2032,6 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart aw : UInt256}
     {mem rdata : ByteArray} {fuel : Nat} {mloadCost : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -2020,20 +2041,22 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
       UInt256.isZero
         (UInt256.lt (longDataWordsLoopIndex idx i) cutoff) = ⟨0⟩)
     (hmloadCost : ∀ i, i < fuel → Cₘ (M (longDataWordsLoopAw aw ptr stride i) (ptr + longDataWordsLoopStride stride i) ⟨32⟩) - Cₘ (longDataWordsLoopAw aw ptr stride i) = mloadCost) :
-    ∃ k' C',
+    (∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨1470⟩
         [longDataWordsLoopIndex idx fuel, longDataWordsLoopSlot slot fuel, cutoff,
           gtFlag, longDataWordsLoopStride stride fuel, oldLen, len, ⟨0⟩, ptr, ret,
           ⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         mem (longDataWordsLoopAw aw ptr stride fuel) rdata
-        (longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel) k' C' := by
+        (longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   induction fuel generalizing idx slot stride aw τ with
   | zero =>
+      refine Or.inl ?_
       simpa [longDataWordsLoopIndex, longDataWordsLoopSlot, longDataWordsLoopStride,
         longDataWordsLoopAw, longDataWordsForwardFrom] using hreach
   | succ n ih =>
-      have hstep := stringStoreLiteX_setLongDataWordsLoopStep
+      rcases stringStoreLiteX_setLongDataWordsLoopStep
         (σinit := σinit) (τ := τ) (idx := idx) (slot := slot) (cutoff := cutoff)
         (gtFlag := gtFlag) (stride := stride) (oldLen := oldLen) (len := len)
         (ptr := ptr) (ret := ret) (payloadStart := payloadStart)
@@ -2041,14 +2064,16 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
         (aw := aw)
         (awLoad := UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
         (mem := mem) (rdata := rdata) (mloadCost := mloadCost)
-        hperm hreach
+        hreach
         (by simpa [longDataWordsLoopIndex] using hcontinue 0 (Nat.zero_lt_succ n))
         (by
           simpa [longDataWordsLoopIndex, longDataWordsLoopSlot,
             longDataWordsLoopStride, longDataWordsLoopAw] using
             hmloadCost 0 (Nat.zero_lt_succ n))
         (by simp [longDataWordsLoopWord, longDataWordsLoopStride])
-        rfl
+        rfl with ⟨_, hstep⟩ | hst
+      swap
+      · exact Or.inr hst
       have hcontinueTail : ∀ i, i < n →
           UInt256.isZero
             (UInt256.lt (longDataWordsLoopIndex ((⟨32⟩ : UInt256) + idx) i) cutoff) =
@@ -2081,7 +2106,6 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneNoTail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart aw : UInt256}
     {mem rdata : ByteArray}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -2090,13 +2114,15 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneNoTail
     (hdone : UInt256.lt idx cutoff = ⟨0⟩)
     (hnoTail : UInt256.lt cutoff len = ⟨0⟩)
     (hret : (D_J stringStoreLiteBytecode 0).contains ret = true) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ret
         [⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
         mem aw rdata
         (sstoreAccountMap I.codeOwner τ ⟨0⟩
-          (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   obtain ⟨_, _, rd1470⟩ := hreach
   have hdoneCond : UInt256.isZero (UInt256.lt idx cutoff) ≠ ⟨0⟩ := by
     rw [hdone]
@@ -2114,6 +2140,11 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneNoTail
   have rd1543 := RD.dup9 rd1542pre (by native_decide) (by evm_ov)
   have rd1545pre₀ := evm_run rd1543 with [mul, add]
   have rd1545pre := RD.dup9 rd1545pre₀ (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1545pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1546₀⟩ := rd1545pre.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1546⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -2215,7 +2246,6 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart word aw awLoad : UInt256}
     {mem rdata : ByteArray} {mloadCost : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -2230,6 +2260,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
         (mem.readWithPadding (ptr + stride).toNat 32))) = word)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32) = awLoad)
     (hret : (D_J stringStoreLiteBytecode 0).contains ret = true) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ret
@@ -2237,7 +2268,8 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
         mem awLoad rdata
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner τ slot (longDataTailMaskedWord word len))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   obtain ⟨_, _, rd1470⟩ := hreach
   have hdoneCond : UInt256.isZero (UInt256.lt idx cutoff) ≠ ⟨0⟩ := by
     rw [hdone]
@@ -2264,6 +2296,11 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest)]
   have rd1534pre := evm_run rd1532 with [jumpdest, dup4]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1534pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1535₀⟩ := rd1534pre.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1535⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -2297,7 +2334,6 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedNoTail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart aw : UInt256}
     {mem rdata : ByteArray} {fuel : Nat} {mloadCost : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -2310,6 +2346,7 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedNoTail
     (hnoTail : UInt256.lt cutoff len = ⟨0⟩)
     (hmloadCost : ∀ i, i < fuel → Cₘ (M (longDataWordsLoopAw aw ptr stride i) (ptr + longDataWordsLoopStride stride i) ⟨32⟩) - Cₘ (longDataWordsLoopAw aw ptr stride i) = mloadCost)
     (hret : (D_J stringStoreLiteBytecode 0).contains ret = true) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ret
@@ -2317,13 +2354,14 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedNoTail
         mem (longDataWordsLoopAw aw ptr stride fuel) rdata
         (sstoreAccountMap I.codeOwner
           (longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel)
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
-  have hloop := stringStoreLiteX_setLongDataWordsLoopGenerated
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
+  refine staticOr_bind (stringStoreLiteX_setLongDataWordsLoopGenerated
     (σinit := σinit) (τ := τ) (idx := idx) (slot := slot) (cutoff := cutoff)
     (gtFlag := gtFlag) (stride := stride) (oldLen := oldLen) (len := len)
     (ptr := ptr) (ret := ret) (payloadStart := payloadStart) (aw := aw)
     (mem := mem) (rdata := rdata) (fuel := fuel) (mloadCost := mloadCost)
-    hperm hreach hcontinue hmloadCost
+    hreach hcontinue hmloadCost) fun hloop => ?_
   exact stringStoreLiteX_setLongDataWordsLoopDoneNoTail
     (σinit := σinit) (τ := longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel)
     (idx := longDataWordsLoopIndex idx fuel)
@@ -2332,13 +2370,12 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedNoTail
     (ptr := ptr) (ret := ret) (payloadStart := payloadStart)
     (aw := longDataWordsLoopAw aw ptr stride fuel)
     (mem := mem) (rdata := rdata)
-    hperm hloop hdone hnoTail hret
+    hloop hdone hnoTail hret
 
 theorem stringStoreLiteX_setLongDataWordsGeneratedTail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {idx slot cutoff gtFlag stride oldLen len ptr ret payloadStart aw awTail wordTail : UInt256}
     {mem rdata : ByteArray} {fuel : Nat} {mloadCost loopMloadCost : Nat}
-    (hperm : I.perm = true)
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1470⟩
       [idx, slot, cutoff, gtFlag, stride, oldLen, len, ⟨0⟩, ptr, ret,
@@ -2361,6 +2398,7 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedTail
         (MachineState.M (longDataWordsLoopAw aw ptr stride fuel).toNat
           (ptr + longDataWordsLoopStride stride fuel).toNat 32) = awTail)
     (hret : (D_J stringStoreLiteBytecode 0).contains ret = true) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ret
@@ -2370,13 +2408,14 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedTail
           (sstoreAccountMap I.codeOwner
             (longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel)
             (longDataWordsLoopSlot slot fuel) (longDataTailMaskedWord wordTail len))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
-  have hloop := stringStoreLiteX_setLongDataWordsLoopGenerated
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
+  refine staticOr_bind (stringStoreLiteX_setLongDataWordsLoopGenerated
     (σinit := σinit) (τ := τ) (idx := idx) (slot := slot) (cutoff := cutoff)
     (gtFlag := gtFlag) (stride := stride) (oldLen := oldLen) (len := len)
     (ptr := ptr) (ret := ret) (payloadStart := payloadStart) (aw := aw)
     (mem := mem) (rdata := rdata) (fuel := fuel) (mloadCost := loopMloadCost)
-    hperm hreach hcontinue hloopMloadCost
+    hreach hcontinue hloopMloadCost) fun hloop => ?_
   exact stringStoreLiteX_setLongDataWordsLoopDoneTail
     (σinit := σinit) (τ := longDataWordsForwardFrom I.codeOwner τ slot stride ptr aw mem fuel)
     (idx := longDataWordsLoopIndex idx fuel)
@@ -2385,13 +2424,12 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedTail
     (ptr := ptr) (ret := ret) (payloadStart := payloadStart) (word := wordTail)
     (aw := longDataWordsLoopAw aw ptr stride fuel) (awLoad := awTail)
     (mem := mem) (rdata := rdata) (mloadCost := mloadCost)
-    hperm hloop hdone htail hmloadCost hmload hawTail hret
+    hloop hdone htail hmloadCost hmload hawTail hret
 
 theorem stringStoreLiteX_setWriteLongFrom1405NoTailWithLoopSchedule
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen : UInt256} {mem rdata : ByteArray}
     {aw : UInt256} {k C fuel mloadCost : Nat}
-    (hperm : I.perm = true)
     (hlong : ¬ len.toNat < 32)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1405⟩
@@ -2407,6 +2445,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailWithLoopSchedule
         (UInt256.land len (UInt256.lnot ⟨31⟩)) = ⟨0⟩)
     (hnoTail : UInt256.lt (UInt256.land len (UInt256.lnot ⟨31⟩)) len = ⟨0⟩)
     (hmloadCost : ∀ i, i < fuel → Cₘ (M (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ i) (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ i) ⟨32⟩) - Cₘ (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ i) = mloadCost) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2416,7 +2455,8 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailWithLoopSchedule
         (sstoreAccountMap I.codeOwner
           (longDataWordsForwardFrom I.codeOwner τ clearCurrentBaseWord ⟨32⟩ ⟨128⟩
             (clearCurrentHashAw aw) (clearCurrentBaseMemFrom mem) fuel)
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hloopStart := stringStoreLiteX_setWriteLongReachLoopFrom1405
     (τ := τ) (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
     (mem := mem) (rdata := rdata) (aw := aw) hlong hreach
@@ -2428,13 +2468,12 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailWithLoopSchedule
     (payloadStart := payloadStart) (aw := clearCurrentHashAw aw)
     (mem := clearCurrentBaseMemFrom mem) (rdata := rdata)
     (fuel := fuel) (mloadCost := mloadCost)
-    hperm hloopStart hcontinue hdone hnoTail hmloadCost (by jump_dest)
+    hloopStart hcontinue hdone hnoTail hmloadCost (by jump_dest)
 
 theorem stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen wordTail awTail : UInt256} {mem rdata : ByteArray}
     {aw : UInt256} {k C fuel mloadCost loopMloadCost : Nat}
-    (hperm : I.perm = true)
     (hlong : ¬ len.toNat < 32)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σinit σ₀ g A I) ⟨1405⟩
@@ -2464,6 +2503,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
         (MachineState.M
           (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ fuel).toNat
           (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ fuel).toNat 32) = awTail) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2475,7 +2515,8 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
               (clearCurrentHashAw aw) (clearCurrentBaseMemFrom mem) fuel)
             (longDataWordsLoopSlot clearCurrentBaseWord fuel)
             (longDataTailMaskedWord wordTail len))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hloopStart := stringStoreLiteX_setWriteLongReachLoopFrom1405
     (τ := τ) (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
     (mem := mem) (rdata := rdata) (aw := aw) hlong hreach
@@ -2487,14 +2528,13 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
     (payloadStart := payloadStart) (aw := clearCurrentHashAw aw) (awTail := awTail)
     (wordTail := wordTail) (mem := clearCurrentBaseMemFrom mem) (rdata := rdata)
     (fuel := fuel) (mloadCost := mloadCost) (loopMloadCost := loopMloadCost)
-    hperm hloopStart hcontinue hdone htail hloopMloadCost hmloadCost hmload hawTail
+    hloopStart hcontinue hdone htail hloopMloadCost hmloadCost hmload hawTail
     (by jump_dest)
 
 theorem stringStoreLiteX_setWriteLongFrom1405NoTail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen aw : UInt256} {mem rdata : ByteArray}
     {k C mloadCost : Nat}
-    (hperm : I.perm = true)
     (hlong : ¬ len.toNat < 32)
     (hnoTailMod : len.toNat % 32 = 0)
     (hreach : RD stringStoreLiteBytecode I g
@@ -2503,6 +2543,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTail
         payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       mem aw rdata τ k C)
     (hmloadCost : ∀ i, i < len.toNat / 32 → Cₘ (M (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ i) (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ i) ⟨32⟩) - Cₘ (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ i) = mloadCost) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2512,12 +2553,13 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTail
         (sstoreAccountMap I.codeOwner
           (longDataWordsForwardFrom I.codeOwner τ clearCurrentBaseWord ⟨32⟩ ⟨128⟩
             (clearCurrentHashAw aw) (clearCurrentBaseMemFrom mem) (len.toNat / 32))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   exact stringStoreLiteX_setWriteLongFrom1405NoTailWithLoopSchedule
     (σinit := σinit) (τ := τ) (payloadStart := payloadStart) (len := len)
     (oldLen := oldLen) (mem := mem) (rdata := rdata) (aw := aw)
     (fuel := len.toNat / 32) (mloadCost := mloadCost)
-    hperm hlong hreach
+    hlong hreach
     (fun i hi => longDataLoopContinue len hi)
     (longDataLoopDone len)
     (longDataNoTail len hnoTailMod)
@@ -2527,7 +2569,6 @@ theorem stringStoreLiteX_setWriteLongFrom1405Tail
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen wordTail awTail : UInt256} {mem rdata : ByteArray}
     {aw : UInt256} {k C mloadCost loopMloadCost : Nat}
-    (hperm : I.perm = true)
     (hlong : ¬ len.toNat < 32)
     (htailMod : len.toNat % 32 ≠ 0)
     (hreach : RD stringStoreLiteBytecode I g
@@ -2549,6 +2590,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405Tail
         (MachineState.M
           (longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ (len.toNat / 32)).toNat
           (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)).toNat 32) = awTail) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2560,14 +2602,15 @@ theorem stringStoreLiteX_setWriteLongFrom1405Tail
               (clearCurrentHashAw aw) (clearCurrentBaseMemFrom mem) (len.toNat / 32))
             (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
             (longDataTailMaskedWord wordTail len))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   exact stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
     (σinit := σinit) (τ := τ) (payloadStart := payloadStart) (len := len)
     (oldLen := oldLen) (wordTail := wordTail) (awTail := awTail)
     (mem := mem) (rdata := rdata) (aw := aw)
     (fuel := len.toNat / 32) (mloadCost := mloadCost)
     (loopMloadCost := loopMloadCost)
-    hperm hlong hreach
+    hlong hreach
     (fun i hi => longDataLoopContinue len hi)
     (longDataLoopDone len)
     (longDataTail len htailMod)
@@ -2576,7 +2619,6 @@ theorem stringStoreLiteX_setWriteLongFrom1405Tail
 theorem stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : len.toNat ≠ 0)
     (hlong : ¬ len.toNat < 32)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
@@ -2588,6 +2630,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
         payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
       (clearCurrentHashAw (setHelperEntryAw len)) ByteArray.empty τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2599,7 +2642,8 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
             (clearCurrentHashAw (setHelperEntryAw len))
             (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
             (len.toNat / 32))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
     have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
     omega
@@ -2615,19 +2659,20 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
           (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) =
         clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart) :=
     clearCurrentBaseMemFrom_idem hmemGe
-  obtain ⟨k', C', rd⟩ :=
+  refine permSplit_bind (
     stringStoreLiteX_setWriteLongFrom1405NoTail
       (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
       (aw := clearCurrentHashAw (setHelperEntryAw len))
       (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
       (rdata := ByteArray.empty)
-      hperm hlong hnoTailMod hreach
+      hlong hnoTailMod hreach
       (by
         intro i hi
         simpa [hawEq] using
           longDataWordsLoopMloadCost_setHelper_zero
             (len := len)
-            hlenMax i hi)
+            hlenMax i hi)) fun _ hrd => ?_
+  obtain ⟨k', C', rd⟩ := hrd
   have hawLoop :
       longDataWordsLoopAw (setHelperEntryAw len)
           ⟨128⟩ ⟨32⟩ (len.toNat / 32) =
@@ -2640,7 +2685,6 @@ theorem stringStoreLiteX_setWriteLongFrom1405NoTailAfterClearBase
 theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen wordTail : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : len.toNat ≠ 0)
     (hlong : ¬ len.toNat < 32)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
@@ -2661,6 +2705,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
         payloadStart, ⟨93⟩, stringStoreLiteSelWord I]
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
       (clearCurrentHashAw (setHelperEntryAw len)) ByteArray.empty τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -2675,7 +2720,8 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
               (len.toNat / 32))
             (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
             (longDataTailMaskedWord wordTail len))
-          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C' := by
+          ⟨0⟩ (len * (⟨2⟩ : UInt256) + ⟨1⟩)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
     have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
     omega
@@ -2705,14 +2751,14 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
       longDataWordsLoopMload_setHelper_decoded_tail_word
         (I := I) (len := len) (payloadStart := payloadStart)
         hnz hlenMax hsrc htailMod hlenAbi hpayloadStart hoffMax
-  obtain ⟨k', C', rd⟩ :=
+  refine permSplit_bind (
     stringStoreLiteX_setWriteLongFrom1405Tail
       (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
       (wordTail := wordTail) (awTail := clearCurrentHashAw (setHelperEntryAw len))
       (aw := clearCurrentHashAw (setHelperEntryAw len))
       (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
       (rdata := ByteArray.empty)
-      hperm hlong htailMod hreach
+      hlong htailMod hreach
       (by
         intro i hi
         simpa [hawEq] using
@@ -2727,7 +2773,9 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
       hmloadTail
       (by
         simpa [hawEq] using
-          longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMax htailMod)
+          longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMax htailMod))
+    fun _ hrd => ?_
+  obtain ⟨k', C', rd⟩ := hrd
   refine ⟨k', C', ?_⟩
   simpa [hmemIdem, hawEq] using rd
 
@@ -2966,7 +3014,6 @@ theorem stringStoreLiteX_setEmptyWriteLongValidToClearLoop {σ σ₀ A I}
 
 theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
     {g : Sat256} {payloadStart len : UInt256} {k C fuel : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨1350⟩
       [⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart,
@@ -2983,6 +3030,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
     (hdone :
       UInt256.lt (clearDataWordsLoopIndex ⟨0⟩ fuel)
         (UInt256.sub (UInt256.div (len + ⟨31⟩) ⟨32⟩) ⟨0⟩) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
@@ -2991,7 +3039,8 @@ theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
         (clearCurrentHashAw (UInt256.ofNat 6)) ByteArray.empty
         (sstoreAccountMap I.codeOwner
           (clearDataWordsForwardFrom I.codeOwner σ (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩ fuel)
-          ⟨0⟩ ⟨0⟩) k' C' := by
+          ⟨0⟩ ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have hloopStart := stringStoreLiteX_setEmptyWriteLongValidToClearLoop
     (g := g) (payloadStart := payloadStart) (len := len)
     hreach hflag hlen hvalid
@@ -3008,7 +3057,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
       (clearCurrentBaseMemFrom currentLengthZeroReturnMem)
       (clearCurrentHashAw (UInt256.ofNat 6)) ByteArray.empty σ k C := by
     exact ⟨_, _, evm_run rd1162 with [jumpdest, push0]⟩
-  have hloop := stringStoreLiteX_setClearDataWordsLoopGenerated
+  refine staticOr_bind (stringStoreLiteX_setClearDataWordsLoopGenerated
     (σinit := σ) (τ := σ) (idx := (⟨0⟩ : UInt256))
     (base := clearCurrentBaseWord + ⟨0⟩)
     (count := UInt256.sub (UInt256.div (len + ⟨31⟩) ⟨32⟩) ⟨0⟩)
@@ -3020,8 +3069,8 @@ theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
     (mem := clearCurrentBaseMemFrom currentLengthZeroReturnMem)
     (aw := clearCurrentHashAw (UInt256.ofNat 6)) (rdata := ByteArray.empty)
     (fuel := fuel)
-    hperm hentry hcontinue hdone (by jump_dest)
-    (by simp only [List.length_cons, List.length_nil]; omega)
+    hentry hcontinue hdone (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)) fun hloop => ?_
   obtain ⟨_, _, rd1272⟩ := hloop
   have rd1405 := evm_run rd1272 with [
     jumpdest, pop, pop, pop, pop,
@@ -3030,11 +3079,10 @@ theorem stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule {σ σ₀ A I}
     (g := g) (τ := clearDataWordsForwardFrom I.codeOwner σ
       (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩ fuel)
     (payloadStart := payloadStart) (len := len)
-    hperm rd1405
+    rd1405
 
 theorem stringStoreLiteX_setEmptyWriteLongValid {σ σ₀ A I}
     {g : Sat256} {payloadStart len : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hreach : RD stringStoreLiteBytecode I g
       (initState σ σ₀ g A I) ⟨1350⟩
       [⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, payloadStart,
@@ -3044,6 +3092,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValid {σ σ₀ A I}
     (hlen : len = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
@@ -3053,7 +3102,8 @@ theorem stringStoreLiteX_setEmptyWriteLongValid {σ σ₀ A I}
         (sstoreAccountMap I.codeOwner
           (clearDataWordsForwardFrom I.codeOwner σ (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩
             (UInt256.sub (UInt256.div (len + ⟨31⟩) ⟨32⟩) ⟨0⟩).toNat)
-          ⟨0⟩ ⟨0⟩) k' C' := by
+          ⟨0⟩ ⟨0⟩) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let count := UInt256.sub (UInt256.div (len + ⟨31⟩) ⟨32⟩) ⟨0⟩
   have hcontinue : ∀ i, i < count.toNat →
       UInt256.isZero (UInt256.lt (clearDataWordsLoopIndex ⟨0⟩ i) count) = ⟨0⟩ := by
@@ -3072,7 +3122,7 @@ theorem stringStoreLiteX_setEmptyWriteLongValid {σ σ₀ A I}
   simpa [count] using
     stringStoreLiteX_setEmptyWriteLongValidWithLoopSchedule
       (g := g) (payloadStart := payloadStart) (len := len) (fuel := count.toNat)
-      hperm hreach hflag hlen hvalid hcontinue hdone
+      hreach hflag hlen hvalid hcontinue hdone
 
 theorem stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256} {k C : Nat}
@@ -3501,7 +3551,6 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidNoClearTo1405
 theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedule
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256}
     {k C fuel : Nat}
-    (hperm : I.perm = true)
     (hnz : newLen.toNat ≠ 0)
     (hlong : ¬ newLen.toNat < 32)
     (hlenMax : newLen.toNat ≤ ABI.solcMaxU64)
@@ -3526,7 +3575,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedul
       UInt256.lt (clearDataWordsLoopIndex ⟨0⟩ fuel)
         (UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩)
           (UInt256.div (newLen + ⟨31⟩) ⟨32⟩)) = ⟨0⟩) :
-    ∃ k' C',
+    (∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨1405⟩
         [oldLen, newLen, ⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩,
@@ -3535,7 +3584,8 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedul
         (clearCurrentHashAw (setHelperEntryAw newLen)) ByteArray.empty
         (clearDataWordsForwardFrom I.codeOwner σ
           (clearCurrentBaseWord + UInt256.div (newLen + ⟨31⟩) ⟨32⟩)
-          ⟨0⟩ fuel) k' C' := by
+          ⟨0⟩ fuel) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have hloopStart := stringStoreLiteX_setLongNonemptyWriteLongValidToClearLoop
     (g := g) (payloadStart := payloadStart) (newLen := newLen) (oldLen := oldLen)
     hnz hlong hlenMax hsrc hreach hflag holdLen hvalid hgtOldNew
@@ -3554,7 +3604,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedul
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
       (clearCurrentHashAw (setHelperEntryAw newLen)) ByteArray.empty σ k C := by
     exact ⟨_, _, evm_run rd1162 with [jumpdest, push0]⟩
-  have hloop := stringStoreLiteX_setClearDataWordsLoopGenerated
+  rcases stringStoreLiteX_setClearDataWordsLoopGenerated
     (σinit := σ) (τ := σ) (idx := (⟨0⟩ : UInt256))
     (base := clearCurrentBaseWord + UInt256.div (newLen + ⟨31⟩) ⟨32⟩)
     (count := UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩)
@@ -3568,18 +3618,19 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedul
     (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
     (aw := clearCurrentHashAw (setHelperEntryAw newLen)) (rdata := ByteArray.empty)
     (fuel := fuel)
-    hperm hentry hcontinue hdone (by jump_dest)
+    hentry hcontinue hdone (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨_, _, rd1272⟩ := hloop
+    with ⟨_, _, rd1272⟩ | hst
+  swap
+  · exact Or.inr hst
   have rd1405 := evm_run rd1272 with [
     jumpdest, pop, pop, pop, pop,
     jumpdest, jumpdest, pop, pop, pop, jump (by jump_dest)]
-  exact ⟨_, _, by simpa using rd1405⟩
+  exact Or.inl ⟨_, _, by simpa using rd1405⟩
 
 theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256}
     {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : newLen.toNat ≠ 0)
     (hlong : ¬ newLen.toNat < 32)
     (hlenMax : newLen.toNat ≤ ABI.solcMaxU64)
@@ -3595,7 +3646,7 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt oldLen ⟨32⟩) ≠ ⟨0⟩)
     (hgtOldNew : UInt256.gt oldLen newLen = ⟨1⟩) :
-    ∃ k' C',
+    (∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨1405⟩
         [oldLen, newLen, ⟨0⟩, ⟨128⟩, ⟨261⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩,
@@ -3606,7 +3657,8 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405
           (clearCurrentBaseWord + UInt256.div (newLen + ⟨31⟩) ⟨32⟩)
           ⟨0⟩
           (UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩)
-            (UInt256.div (newLen + ⟨31⟩) ⟨32⟩)).toNat) k' C' := by
+            (UInt256.div (newLen + ⟨31⟩) ⟨32⟩)).toNat) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let count := UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩)
     (UInt256.div (newLen + ⟨31⟩) ⟨32⟩)
   have hcontinue : ∀ i, i < count.toNat →
@@ -3627,12 +3679,11 @@ theorem stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405
     stringStoreLiteX_setLongNonemptyWriteLongValidClearTo1405WithLoopSchedule
       (g := g) (payloadStart := payloadStart) (newLen := newLen) (oldLen := oldLen)
       (fuel := count.toNat)
-      hperm hnz hlong hlenMax hsrc hreach hflag holdLen hvalid hgtOldNew hcontinue hdone
+      hnz hlong hlenMax hsrc hreach hflag holdLen hvalid hgtOldNew hcontinue hdone
 
 theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
     {σinit σ₀ A I} {g : Sat256} {τ : AccountMap}
     {payloadStart len oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ I.calldata.size)
@@ -3643,6 +3694,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
       (clearCurrentHashAw (setHelperEntryAw len))
       ByteArray.empty τ k C) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σinit σ₀ g A I) ⟨261⟩
@@ -3651,7 +3703,8 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
         (setHelperPayloadAw len)
         ByteArray.empty
         (sstoreAccountMap I.codeOwner τ ⟨0⟩
-          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C' := by
+          (setShortPackedHeader (setHelperPayloadWord I.calldata len payloadStart) len)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σinit σ₀ g A I)) := by
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
     u256_gt31_eq_zero_of_lt32 hshort
   have hnonzero : len ≠ ⟨0⟩ := by
@@ -3745,12 +3798,11 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
     (payloadStart := payloadStart) (len := len) (oldLen := oldLen)
     (payloadWord := setHelperPayloadWord I.calldata len payloadStart)
     (aw := setHelperPayloadAw len)
-    hperm rd1436'
+    rd1436'
 
 theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256}
     {k C fuel : Nat}
-    (hperm : I.perm = true)
     (hnz : newLen.toNat ≠ 0)
     (hshort : newLen.toNat < 32)
     (hsrc : payloadStart.toNat + newLen.toNat ≤ I.calldata.size)
@@ -3771,6 +3823,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
     (hdone :
       UInt256.lt (clearDataWordsLoopIndex ⟨0⟩ fuel)
         (UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
@@ -3780,7 +3833,8 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
         (sstoreAccountMap I.codeOwner
           (clearDataWordsForwardFrom I.codeOwner σ (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩ fuel)
           ⟨0⟩ (setShortPackedHeader
-            (setHelperPayloadWord I.calldata newLen payloadStart) newLen)) k' C' := by
+            (setHelperPayloadWord I.calldata newLen payloadStart) newLen)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   have hloopStart := stringStoreLiteX_setShortNonemptyWriteLongValidToClearLoop
     (g := g) (payloadStart := payloadStart) (newLen := newLen) (oldLen := oldLen)
     hnz hshort hsrc hreach hflag holdLen hvalid
@@ -3796,7 +3850,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
       (clearCurrentHashAw (setHelperEntryAw newLen)) ByteArray.empty σ k C := by
     exact ⟨_, _, evm_run rd1162 with [jumpdest, push0]⟩
-  have hloop := stringStoreLiteX_setClearDataWordsLoopGenerated
+  refine staticOr_bind (stringStoreLiteX_setClearDataWordsLoopGenerated
     (σinit := σ) (τ := σ) (idx := (⟨0⟩ : UInt256))
     (base := clearCurrentBaseWord + ⟨0⟩)
     (count := UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩)
@@ -3808,8 +3862,8 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
     (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata newLen payloadStart))
     (aw := clearCurrentHashAw (setHelperEntryAw newLen)) (rdata := ByteArray.empty)
     (fuel := fuel)
-    hperm hentry hcontinue hdone (by jump_dest)
-    (by simp only [List.length_cons, List.length_nil]; omega)
+    hentry hcontinue hdone (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)) fun hloop => ?_
   obtain ⟨_, _, rd1272⟩ := hloop
   have rd1405 := evm_run rd1272 with [
     jumpdest, pop, pop, pop, pop,
@@ -3818,11 +3872,10 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
     (g := g) (σinit := σ) (τ := clearDataWordsForwardFrom I.codeOwner σ
       (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩ fuel)
     (payloadStart := payloadStart) (len := newLen) (oldLen := oldLen)
-    hperm hnz hshort hsrc rd1405
+    hnz hshort hsrc rd1405
 
 theorem stringStoreLiteX_setShortNonemptyWriteLongValid
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : newLen.toNat ≠ 0)
     (hshort : newLen.toNat < 32)
     (hsrc : payloadStart.toNat + newLen.toNat ≤ I.calldata.size)
@@ -3836,6 +3889,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValid
     (holdLen : oldLen = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt oldLen ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C',
       RD stringStoreLiteBytecode I g
         (initState σ σ₀ g A I) ⟨261⟩
@@ -3846,7 +3900,8 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValid
           (clearDataWordsForwardFrom I.codeOwner σ (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩
             (UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩).toNat)
           ⟨0⟩ (setShortPackedHeader
-            (setHelperPayloadWord I.calldata newLen payloadStart) newLen)) k' C' := by
+            (setHelperPayloadWord I.calldata newLen payloadStart) newLen)) k' C') ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
   let count := UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩
   have hcontinue : ∀ i, i < count.toNat →
       UInt256.isZero (UInt256.lt (clearDataWordsLoopIndex ⟨0⟩ i) count) = ⟨0⟩ := by
@@ -3866,7 +3921,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongValid
     stringStoreLiteX_setShortNonemptyWriteLongValidWithLoopSchedule
       (g := g) (payloadStart := payloadStart) (newLen := newLen) (oldLen := oldLen)
       (fuel := count.toNat)
-      hperm hnz hshort hsrc hreach hflag holdLen hvalid hcontinue hdone
+      hnz hshort hsrc hreach hflag holdLen hvalid hcontinue hdone
 
 theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
     {σ σ₀ A I} {g : Sat256} {len payloadStart : UInt256} {σ' : AccountMap}
@@ -3948,7 +4003,6 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
 
 theorem stringStoreLiteX_setShortNonemptyLongValidReturn
     {σ σ₀ A I} {g : Sat256} {payloadStart newLen oldLen : UInt256} {k C : Nat}
-    (hperm : I.perm = true)
     (hnz : newLen.toNat ≠ 0)
     (hshort : newLen.toNat < 32)
     (hsrc : payloadStart.toNat + newLen.toNat ≤ I.calldata.size)
@@ -3962,18 +4016,20 @@ theorem stringStoreLiteX_setShortNonemptyLongValidReturn
     (holdLen : oldLen = UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩)
     (hvalid : UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
         (UInt256.lt oldLen ⟨32⟩) ≠ ⟨0⟩) :
+    (I.perm = true ∧
     RDret stringStoreLiteBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner
         (clearDataWordsForwardFrom I.codeOwner σ (clearCurrentBaseWord + ⟨0⟩) ⟨0⟩
           (UInt256.sub (UInt256.div (oldLen + ⟨31⟩) ⟨32⟩) ⟨0⟩).toNat)
         ⟨0⟩ (setShortPackedHeader
           (setHelperPayloadWord I.calldata newLen payloadStart) newLen))
-      (UInt256.toByteArray newLen) := by
-  have hwriteReach := stringStoreLiteX_setShortNonemptyWriteLongValid
+      (UInt256.toByteArray newLen)) ∨
+      (I.perm = false ∧ RDstatic stringStoreLiteBytecode g (initState σ σ₀ g A I)) := by
+  exact permSplit_bind (stringStoreLiteX_setShortNonemptyWriteLongValid
     (g := g) (payloadStart := payloadStart) (newLen := newLen) (oldLen := oldLen)
-    hperm hnz hshort hsrc hreach hflag holdLen hvalid
-  exact stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
-    (payloadStart := payloadStart) (len := newLen) hnz hshort hsrc hwriteReach
+    hnz hshort hsrc hreach hflag holdLen hvalid)
+    fun _ hwriteReach => stringStoreLiteX_setShortNonemptyReturnFromWriteAfterClearBase
+      (payloadStart := payloadStart) (len := newLen) hnz hshort hsrc hwriteReach
 
 
 theorem clearDataWordsForwardFrom_succ_last
@@ -4180,8 +4236,7 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
-    (hwv : I.weiValue = ⟨0⟩)
+        (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hhi : I.calldata.size < 2 ^ 255 + 4)
@@ -4273,8 +4328,8 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     simpa [len, payloadStart] using rd175₀
   obtain ⟨_, _, rd1350⟩ :=
     stringStoreLiteX_setReachStorageWriteMem (payloadStart := payloadStart) (len := len) rd175
-  have hret := stringStoreLiteX_setShortNonemptyLongValidReturn
-    (oldLen := oldLen) hperm hnz hshort hsrc rd1350 hflag rfl
+  have hsplit := stringStoreLiteX_setShortNonemptyLongValidReturn
+    (oldLen := oldLen) hnz hshort hsrc rd1350 hflag rfl
     (by simpa [oldLen] using hvalid)
   have hload :
       Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
@@ -4327,7 +4382,11 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
     rw [hpow]
     have hgap : (2 : Nat) ^ 255 + 31 < 2 ^ 256 := by norm_num
     omega
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by
       simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
         clearSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap, initState, hcountNat,
@@ -4339,7 +4398,7 @@ theorem stringStoreLiteSetShortNonemptyLongValidRuntime
 theorem stringStoreLiteSetEmptyLongValidRuntime {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -4421,12 +4480,12 @@ theorem stringStoreLiteSetEmptyLongValidRuntime {σ σ₀ A I}
     simpa [payloadStart, hlenZero] using rd175₀
   obtain ⟨_, _, rd1350⟩ := stringStoreLiteX_setEmptyReachStorageWrite
     (payloadStart := payloadStart) rd175
-  have hwriteEvm := stringStoreLiteX_setEmptyWriteLongValid
+  have hsplit := permSplit_bind (stringStoreLiteX_setEmptyWriteLongValid
     (g := Sat256.ofUInt256 g) (payloadStart := payloadStart) (len := len)
-    hperm rd1350 hflag rfl (by simpa [len] using hvalid)
-  have hret := stringStoreLiteX_setEmptyReturnFromWriteLongMem
-    (g := Sat256.ofUInt256 g) (payloadStart := payloadStart)
-    (by simpa [clearCurrentHashAw6] using hwriteEvm)
+    rd1350 hflag rfl (by simpa [len] using hvalid))
+    fun _ hwriteEvm => stringStoreLiteX_setEmptyReturnFromWriteLongMem
+      (g := Sat256.ofUInt256 g) (payloadStart := payloadStart)
+      (by simpa [clearCurrentHashAw6] using hwriteEvm)
   have hload :
       Solm.EVM.storageLoad evmSolm0 I.codeOwner ⟨0⟩ =
         currentLengthHeaderWord σ I := by
@@ -4446,7 +4505,11 @@ theorem stringStoreLiteSetEmptyLongValidRuntime {σ σ₀ A I}
       (header := currentLengthHeaderWord σ I) (len := len) (value := ByteArray.empty)
       (by decide) hloadBytes hflag rfl (by simpa [len] using hvalid)
     simpa only [evmSolm1, hshortEmpty] using hwrite₀
-  exact setRuntimeOfWriteAccountMapEq hcode hwv hret hd hdec hwrite
+  by_cases hperm : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hperm
+    exact setRuntimeStaticOfWrite hcode hwv hpf (permSplit_false hpf hsplit) hd hdec hwrite
+  exact setRuntimeOfWriteAccountMapEq hcode hwv (permSplit_true hperm hsplit) hd hdec hwrite
     (by
       simp [evmSolm1, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
         clearSolidityBytesDataWordsFrom_executionEnv, storageStore_accountMap, initState, hcountNat,

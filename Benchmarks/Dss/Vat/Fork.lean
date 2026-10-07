@@ -2339,7 +2339,7 @@ theorem execForkCheckedAddSignedRevertGuardPos {evm : EVM.State} {locals : Store
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals'] using hguardNeg)) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPosEval)
 
-theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
+theorem execForkSrcInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcInkOld srcInkNew : UInt256)
     (hsz164 : 164 ≤ I.calldata.size)
     (hilk : locals.get? "ilk" = some (forkIlkValue I))
@@ -2359,7 +2359,13 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         { contract := contract,
           locals := locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat)) }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-          (forkSrcInkSlot I) srcInkNew)) := by
+          (forkSrcInkSlot I) srcInkNew)) ∧
+    (evm.executionEnv.perm = false →
+      ExecBlock config { contract := contract, locals := locals } evm
+        (checkedSubSignedInto "srcInkNew"
+          (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
+          [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
+        .staticViolation) := by
   let locals' := locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))
   let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
     (forkSrcInkSlot I) srcInkNew
@@ -2441,24 +2447,55 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
       rw [store_get_ne _ _ (by native_decide), hbase]
     simpa [evm'] using
       assignStorageRef_fork_src_ink evm I locals' srcInkNew hsz164 hilk' hsrc' hbase'
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .letDecl "srcInkNew" (some uint256)
-        (wordWrap256
-          (.binary .sub (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))),
-      .require
-        (eitherExpr (.binary .le (.var "dink") (.intLit 0))
-          (.binary .le (.var "srcInkNew")
-            (.storage (urnsF (.var "ilk") (.var "src") "ink")))),
-      .require
-        (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
-          (.binary .ge (.var "srcInkNew")
-            (.storage (urnsF (.var "ilk") (.var "src") "ink")))),
-      .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ]
-    (.ok { contract := contract, locals := locals' } evm')
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign hsrcInkNewEval hassign) ExecBlock.nil
+  have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals' } evm
+      [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ] r →
+      ExecBlock config { contract := contract, locals := locals } evm
+        (checkedSubSignedInto "srcInkNew"
+          (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
+          [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ]) r := by
+    intro r hrest
+    change ExecBlock config { contract := contract, locals := locals } evm
+      [ .letDecl "srcInkNew" (some uint256)
+          (wordWrap256
+            (.binary .sub (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))),
+        .require
+          (eitherExpr (.binary .le (.var "dink") (.intLit 0))
+            (.binary .le (.var "srcInkNew")
+              (.storage (urnsF (.var "ilk") (.var "src") "ink")))),
+        .require
+          (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
+            (.binary .ge (.var "srcInkNew")
+              (.storage (urnsF (.var "ilk") (.var "src") "ink")))),
+        .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ] r
+    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqNeg) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hreqPos) hrest
+  exact ⟨hpre _ (ExecBlock.consNormal (ExecStmt.assign hsrcInkNewEval hassign) ExecBlock.nil),
+    fun hpf => hpre _ (ExecBlock.consStatic (ExecStmt.assignStatic hsrcInkNewEval hassign hpf))⟩
+
+theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
+    (locals : Store) (srcInkOld srcInkNew : UInt256)
+    (hsz164 : 164 ≤ I.calldata.size)
+    (hilk : locals.get? "ilk" = some (forkIlkValue I))
+    (hsrc : locals.get? "src" = some (forkSrcValue I))
+    (hdink : locals.get? "dink" = some (forkDinkValue I))
+    (hbase : locals.get? "urns" = none)
+    (hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (forkSrcInkSlot I) = srcInkOld)
+    (hnew : srcInkNew = UInt256.sub srcInkOld (forkDinkWord I))
+    (hguardNeg : forkDinkInt I ≤ 0 ∨ srcInkNew.toNat ≤ srcInkOld.toNat)
+    (hguardPos : 0 ≤ forkDinkInt I ∨ srcInkOld.toNat ≤ srcInkNew.toNat) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      (checkedSubSignedInto "srcInkNew"
+        (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink") ++
+        [ .assign .storage (urnsF (.var "ilk") (.var "src") "ink") (.var "srcInkNew") ])
+      (.ok
+        { contract := contract,
+          locals := locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (forkSrcInkSlot I) srcInkNew)) :=
+  (execForkSrcInkUpdateSplit locals srcInkOld srcInkNew hsz164 hilk hsrc hdink hbase hload hnew
+    hguardNeg hguardPos).1
 
 theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcInkOld srcInkNew : UInt256)
@@ -7286,6 +7323,36 @@ theorem execForkSourceRevertSrcInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
     checkedAddSignedInto, checkedMulUintInto, List.append_assoc] using
     ExecFuncBody.execBlockRevert hblock
 
+theorem execForkSourceStatic {evm0 : EVM.State} {I : ExecutionEnv}
+    (srcInkOld srcInkNew : UInt256)
+    (hwei : evm0.executionEnv.weiValue = ⟨0⟩)
+    (hsz164 : 164 ≤ I.calldata.size)
+    (hloadSrcInk :
+      Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (forkSrcInkSlot I) = srcInkOld)
+    (hsrcInkNew : srcInkNew = UInt256.sub srcInkOld (forkDinkWord I))
+    (hsrcInkGuardNeg : forkDinkInt I ≤ 0 ∨ srcInkNew.toNat ≤ srcInkOld.toNat)
+    (hsrcInkGuardPos : 0 ≤ forkDinkInt I ∨ srcInkOld.toNat ≤ srcInkNew.toNat)
+    (hperm : evm0.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm0 (forkStore I) forkTransition.body
+      .staticViolation := by
+  have hprefix :
+      ExecBlock config { contract := contract, locals := forkStore I } evm0 nonpayable
+        (.ok { contract := contract, locals := forkStore I } evm0) := by
+    change ExecBlock config { contract := contract, locals := forkStore I } evm0
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
+      (.ok { contract := contract, locals := forkStore I } evm0)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwei))
+      ExecBlock.nil
+  have hsrcInk := (execForkSrcInkUpdateSplit (evm := evm0) (I := I) (forkStore I)
+    srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
+    (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew
+    hsrcInkGuardNeg hsrcInkGuardPos).2 hperm
+  refine ExecFuncBody.execBlockStatic ?_
+  simp only [forkTransition, List.append_assoc]
+  refine execBlock_append hprefix ?_
+  rw [← List.append_assoc]
+  exact execBlock_append_term hsrcInk (by intro f e h; cases h)
+
 theorem execForkSourceRevertSrcArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
     (srcInkOld srcInkNew srcArtOld srcArtNew : UInt256)
     (hwei : evm0.executionEnv.weiValue = ⟨0⟩)
@@ -10186,6 +10253,32 @@ theorem RD.vatForkSrcInkSubRevert
     (by simpa [srcInkOld, srcBase, forkSrcInkSlot_eq I hsz164] using hfail)
     (by simp)
 
+theorem RD.vatForkSrcInkStoreSplit
+    {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel srcInkNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4792⟩
+      [srcInkNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
+        forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
+        ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4795⟩
+      [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
+        forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
+        ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
+  have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4794pre.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by native_decide) (by evm_ov)
+  exact ⟨_, _, by simpa [forkSrcInkSlot] using rd4795raw⟩
+
 theorem RD.vatForkSrcArtSubSuccess
     {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel srcInkNew : UInt256}
     {mem : ByteArray}
@@ -10231,18 +10324,7 @@ theorem RD.vatForkSrcArtSubSuccess
   let srcBase := forkSrcUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let srcArtOld := solcSlotWord σSrcInk I (forkSrcArtSlot I)
-  have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by native_decide) (by evm_ov)
-  have hrd4795 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4795⟩
-        [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
-          forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
-          ⟨524⟩, sel]
-        mem (UInt256.ofNat 3) ByteArray.empty σSrcInk k' C' := by
-    exact ⟨_, _, by
-      simpa [σSrcInk, forkSrcInkSlot] using rd4795raw⟩
-  obtain ⟨_, _, rd4795⟩ := hrd4795
+  obtain ⟨_, _, rd4795⟩ := permSplit_true hperm (RD.vatForkSrcInkStoreSplit h)
   have rd4797 := rd4795.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd4798pre := rd4797.dup4 (by native_decide) (by evm_ov)
   have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
@@ -10314,18 +10396,7 @@ theorem RD.vatForkSrcArtSubRevert
   let srcBase := forkSrcUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let srcArtOld := solcSlotWord σSrcInk I (forkSrcArtSlot I)
-  have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by native_decide) (by evm_ov)
-  have hrd4795 :
-      ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨4795⟩
-        [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
-          forkDinkWord I, forkDstMaskedWord I, forkSrcMaskedWord I, forkIlkWord I,
-          ⟨524⟩, sel]
-        mem (UInt256.ofNat 3) ByteArray.empty σSrcInk k' C' := by
-    exact ⟨_, _, by
-      simpa [σSrcInk, forkSrcInkSlot] using rd4795raw⟩
-  obtain ⟨_, _, rd4795⟩ := hrd4795
+  obtain ⟨_, _, rd4795⟩ := permSplit_true hperm (RD.vatForkSrcInkStoreSplit h)
   have rd4797 := rd4795.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd4798pre := rd4797.dup4 (by native_decide) (by evm_ov)
   have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
@@ -13852,8 +13923,8 @@ theorem vatForkSuccessEquivFromFinalGuards
     hret hbody
 
 set_option maxHeartbeats 1000000 in
-theorem vatForkBodyCore : VatBodyTheorem 10 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatForkBodyCore : VatBodyTheoremAnyPerm 10 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 10) rfl hsel
   have hreach := vatReachForkBody (σ := σ)
@@ -13873,7 +13944,28 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
           UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
             UInt256.lt (forkSrcInkNew σ I)
               (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩
-      · by_cases hsrcArtNeg :
+      · have hloadSrcInk0 :
+            Solm.EVM.storageLoad
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+              (forkSrcInkSlot I) =
+            solcSlotWord σ I (forkSrcInkSlot I) := by
+          simp [initState, Solm.EVM.storageLoad, solcSlotWord, State.lookupAccount,
+            Account.lookupStorage]
+        obtain ⟨_, _, h4792s⟩ := RD.vatForkSrcInkSubSuccess
+          (h := hdecoded) solcFreePtrMem_size hsz164
+          (by simpa [forkSrcInkNew] using hsrcInkNeg)
+          (by simpa [forkSrcInkNew] using hsrcInkPos)
+        rcases RD.vatForkSrcInkStoreSplit (h := by simpa [forkSrcInkNew] using h4792s) with
+          ⟨hperm, -⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode (vatDispatchFork hsel) hdecode
+            (execForkSourceStatic (evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (I := I)
+              (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
+              (by simpa [initState] using hwv) hsz164 hloadSrcInk0 rfl
+              (forkDinkSubGuardNegCond hsrcInkNeg) (forkDinkSubGuardPosCond hsrcInkPos)
+              (by simpa [initState] using hpf))
+        by_cases hsrcArtNeg :
             UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
               UInt256.gt (forkSrcArtNew σ I)
                 (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩

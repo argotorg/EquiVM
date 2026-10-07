@@ -908,7 +908,7 @@ theorem powXiSuccess {σ σ₀ A I} {g : Sat256}
 
 /-- **Runtime equivalence of `Pow.sol`'s `pow2` bytecode and its Solm specification.** -/
 theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact powReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hwv hsize
   · -- callvalue ≠ 0: the non-payable guard reverts; the generic helper handles the Solm coupling

@@ -470,8 +470,9 @@ theorem vowConstructorCorrect :
                       (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
                       vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
                     (evm4e.executionEnv.depth + 1) evm4e.executionEnv.header
-                    evm4e.executionEnv.blobVersionedHashes evm4e.executionEnv.blocks true := by
-                simp only [hmap, hSigma0, hEnv4, hperm]
+                    evm4e.executionEnv.blobVersionedHashes evm4e.executionEnv.blocks
+                    (true && evm4e.executionEnv.perm) := by
+                simp only [hmap, hSigma0, hEnv4, hperm, Bool.true_and]
         obtain ⟨σSolmCall, ASolmCall, hcallSolm, hPostAccounts⟩ :=
           typedCallViaEVM_sameInputs (evm_solm := evm4s) hcallEvm hAccounts4e
             (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,

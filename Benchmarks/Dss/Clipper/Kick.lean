@@ -93,7 +93,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 13))
     (hStorageWF : clipperStorageWF σ I) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
@@ -151,6 +151,15 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
           rw [← hlockEq]
           exact hlocked
         obtain ⟨_, _, rd5520⟩ := clipperKickX_lockOpen v hpatch hlocked rd5443
+        by_cases hperm : I.perm = true
+        swap
+        · have hstaticPerm : I.perm = false := by simpa using hperm
+          have hstatic := permSplit_false hstaticPerm
+            (clipperKickX_lockAndStoppedOpenSplit v hpatch rd5520)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (ExecFuncBody.execBlockStatic
+              ((clipperKickSourceRevertsStoppedSplit v evmSolm I hvalue hsrc
+                hauthSource hlockedSource).2 hstaticPerm))
         let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
         let evmLock := clipperKickLockedState evmSolm
         have hLockAccounts : σLock = evmLock.accountMap := by

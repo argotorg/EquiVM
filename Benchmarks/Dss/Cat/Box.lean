@@ -57,7 +57,6 @@ theorem catReachBoxBody {σ σ₀ A I} {g : Sat256}
 theorem catBoxBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x75, 0x42, 0x15, 0xa1]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

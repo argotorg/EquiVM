@@ -22,7 +22,6 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
       callargs =
         (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
           "secrets" (.array secrets))
-    (hperm : I.perm = true)
     (evmSolm : EVM.State)
     (hevmSolm : evmSolm = initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩)
@@ -107,6 +106,21 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
           (⟨0⟩ : UInt256).toNat)
         aDone.fp.toNat (⟨0⟩ : UInt256).toNat) = aDone.aw :=
     activeWords_call_empty aDone.aw aDone.fp
+  by_cases hpv : I.perm = true ∨ aDone.refund = ⟨0⟩
+  swap
+  · have hpf : I.perm = false := by simpa using (not_or.mp hpv).1
+    have hval : aDone.refund ≠ ⟨0⟩ := (not_or.mp hpv).2
+    have hst : RDstatic blindAuctionBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
+      RD.callValueStatic rd1349 hpf hval (by decide) (by simp)
+    exact hst.reEquivStaticHalt hcode hd hdec (by
+      rw [← hevmSolm]
+      exact scratch_blindAuctionRevealBodyStatic_callValue_fromLoopOfLocals
+        evmSolm evmDone callargs LDone values fakes secrets loopLen aDone.refund
+        hwvSolm hafterBody hbeforeBody hbiddingAbsent hrevealAbsent
+        (by rw [hstore]; simp) hvaluesGet hfakesGet hsecretsGet
+        hlenBodyLoop hvaluesLenLoop hfakesLenLoop hsecretsLenLoop
+        hrefundDone hloop hval (by rw [henvDone]; exact hpf))
   by_cases hdepthEq : I.depth = 1024
   · exact scratch_blindAuctionReveal_postLoop_callDepth_fromCall
 
@@ -117,7 +131,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
       (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
       (aDone := aDone) (LDone := LDone) (evmSolm := evmSolm) (evmDone := evmDone)
       (gasArg := gasArg) (k1349 := k1349) (C1349 := C1349)
-      hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody
+      hcode hd hdec hstore hpv hevmSolm hwvSolm hafterBody hbeforeBody
       hbiddingAbsent hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop
       hvaluesLenLoop hfakesLenLoop hsecretsLenLoop hrefundDone henvDone hloop rd1349
       hawCall hdepthEq
@@ -139,7 +153,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
         (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
         (aDone := aDone) (LDone := LDone) (evmSolm := evmSolm) (evmDone := evmDone)
         (gasArg := gasArg) (k1349 := k1349) (C1349 := C1349)
-        hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody
+        hcode hd hdec hstore hpv hevmSolm hwvSolm hafterBody hbeforeBody
         hbiddingAbsent hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop
         hvaluesLenLoop hfakesLenLoop hsecretsLenLoop hrefundDone henvDone hloop rd1349
         hawCall hσ0Done hsubDone haccountsDone hdepthLt
@@ -153,7 +167,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
         (fakesLenWord := fakesLenWord) (valuesLenWord := valuesLenWord)
         (aDone := aDone) (LDone := LDone) (evmSolm := evmSolm) (evmDone := evmDone)
         (gasArg := gasArg) (k1349 := k1349) (C1349 := C1349)
-        hcode hd hdec hstore hperm hevmSolm hwvSolm hafterBody hbeforeBody
+        hcode hd hdec hstore hpv hevmSolm hwvSolm hafterBody hbeforeBody
         hbiddingAbsent hrevealAbsent hvaluesGet hfakesGet hsecretsGet hlenBodyLoop
         hvaluesLenLoop hfakesLenLoop hsecretsLenLoop hrefundDone henvDone hloop rd1349
         hawCall hσ0Done hsubDone haccountsDone hdepthLt

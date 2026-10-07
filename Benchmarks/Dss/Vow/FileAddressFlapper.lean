@@ -645,20 +645,21 @@ theorem RD.vowFileAddressNopeNoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
+theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTargetSplit
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (rd : RD vowBytecode ee g s0 ⟨4300⟩
       (⟨1⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
-      mem (UInt256.ofNat 6) rdata σ k C)
-    (hperm : ee.perm = true) :
+      mem (UInt256.ofNat 6) rdata σ k C) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ⟨4350⟩
       (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata
-      (fileAddressSetFlapperAccountMap σ ee data) k' C' := by
+      (fileAddressSetFlapperAccountMap σ ee data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   obtain ⟨k4318, C4318, rd4318⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -694,6 +695,11 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
   have rd4347 := rd4346.or (by native_decide) (by evm_ov)
   have rd4348 := rd4347.swap1 (by native_decide) (by evm_ov)
   have rd4349 := rd4348.swap3 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4349.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd4350⟩ := rd4349.sstore hperm (by native_decide) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land solcAddrMask data)
@@ -724,6 +730,22 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
       using rd4350⟩
+
+theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
+    {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+    {k C : ℕ} {target data what ret sel : UInt256} {mem rdata : ByteArray}
+    {σ : AccountMap}
+    (rd : RD vowBytecode ee g s0 ⟨4300⟩
+      (⟨1⟩ :: fileAddressCallEndPtr :: ⟨3696042234⟩ ::
+        target :: data :: what :: ret :: sel :: [])
+      mem (UInt256.ofNat 6) rdata σ k C)
+    (hperm : ee.perm = true) :
+    ∃ k' C', RD vowBytecode ee g s0 ⟨4350⟩
+      (UInt256.land solcAddrMask data :: solcAddrMask :: ⟨3696042234⟩ ::
+        target :: data :: what :: ret :: sel :: [])
+      mem (UInt256.ofNat 6) rdata
+      (fileAddressSetFlapperAccountMap σ ee data) k' C' :=
+  permSplit_true hperm (RD.vowFileAddressNopeSuccessStoreFlapperWithTargetSplit rd)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
@@ -1338,7 +1360,7 @@ theorem RD.vowFileAddressHopeCallSuccess
 theorem vowFileAddressFlapperNopeNoCodeBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (_hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :

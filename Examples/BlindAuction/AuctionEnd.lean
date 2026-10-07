@@ -319,6 +319,25 @@ theorem blindAuctionAuctionEndBodyReverts_callFailure
       (evalExpr_auctionEnd_emptyBytes (auctionEndAfterEndedState evm)) hcall) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalExpr_auctionEnd_success evm' false out))
 
+theorem blindAuctionAuctionEndBodyStatic
+    (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (htime :
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat <
+        (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)
+    (hended : auctionEndEndedWordState evm = ⟨0⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody blindAuctionConfig blindAuctionContract evm ∅
+      auctionEndTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold auctionEndTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_auctionEnd_time_true evm htime)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_auctionEnd_not_ended_true evm hended)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (by simp [evalExpr?, pure]) (auctionEndAssignEnded evm) hperm)
+
 theorem blindAuctionAuctionEndBodyReturns_callSuccess
     (evm evm' : EVM.State) (out : ByteArray)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -611,17 +630,19 @@ theorem blindAuctionX_auctionEnd_afterNotEnded {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, evm_run rd617 with [push2 ⟨645⟩, jumpiT one_ne_zero_uint (by jump_dest)]⟩
 
 theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨256⟩ [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (htime : (auctionEndRevealEndWord σ I).toNat < (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨733⟩
       [auctionEndRevealEndWord σ I, ⟨276⟩, blindAuctionSelWord I]
       (auctionEndEventMem σ I) (UInt256.ofNat 6) ByteArray.empty
-      (auctionEndAfterEndedMap σ I) k C := by
+      (auctionEndAfterEndedMap σ I) k C) ∨
+      (I.perm = false ∧ RDstatic blindAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd645⟩ := blindAuctionX_auctionEnd_afterNotEnded
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hreach htime hended
   have rd648 := evm_run rd645 with [jumpdest, push1 ⟨5⟩]
@@ -670,6 +691,11 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {σ σ₀ A I} {g : Sat256}
     decide
   have rd719' := rd719
   rw [hlen64] at rd719'
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd719'.log1Static (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   have rd720 := RD.log1 0 (UInt256.ofNat 6) rd719' (by decide) hperm
     (by
       simp [M]
@@ -719,9 +745,9 @@ theorem blindAuctionX_auctionEnd_toCall {σ σ₀ A I} {g : Sat256}
         ⟨0⟩, auctionEndRevealEndWord σ I, ⟨276⟩, blindAuctionSelWord I]
       (auctionEndEventMem σ I) (UInt256.ofNat 6) ByteArray.empty
       (auctionEndAfterEndedMap σ I) k C := by
-  obtain ⟨_, _, rd733⟩ := blindAuctionX_auctionEnd_afterStoreAndLog
+  obtain ⟨_, _, rd733⟩ := permSplit_true hperm (blindAuctionX_auctionEnd_afterStoreAndLog
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hperm hwv hreach htime hended
+    hwv hreach htime hended)
   let σa := auctionEndAfterEndedMap σ I
   have rd735 := evm_run rd733 with [push0, dup1]
   obtain ⟨_, _, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
@@ -1056,7 +1082,7 @@ theorem blindAuctionAuctionEndBodyReverts_nonpayable {evm : EVM.State} {locals :
 theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
+    (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨256⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -1065,7 +1091,6 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
   have hsz := blindAuctionAuctionEndSelector_size hsel
   have hd := blindAuctionDispatch_auctionEnd (cd := I.calldata) hsel
   have hdec := blindAuctionDecode_auctionEnd (I := I) hsz
@@ -1103,6 +1128,18 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
         let evmEAfter := auctionEndAfterEndedState evmE
         let evmSAfter := auctionEndAfterEndedState evmS
         have hAfterState : evmEAfter = evmSAfter := rfl
+        by_cases hperm : I.perm = true
+        swap
+        · have hpf : I.perm = false := by simpa using hperm
+          exact (permSplit_false hpf (blindAuctionX_auctionEnd_afterStoreAndLog
+              (g := Sat256.ofUInt256 g) hwv hreach htimeLt hendedZero)).reEquivStaticHalt
+            hcode hd hdec
+            (blindAuctionAuctionEndBodyStatic evmS
+              (by simpa [evmS, initState] using hwv)
+              (by
+                simpa [evmS, initState, auctionEndRevealEndWord, auctionEndTimestampWord,
+                  Solm.EVM.storageLoad, State.lookupAccount] using htimeS)
+              hendedSState (by simpa [evmS, initState] using hpf))
         by_cases hdepthEq : I.depth = 1024
         · let evmSFail : EVM.State :=
             { evmSAfter with

@@ -17,7 +17,6 @@ theorem flipperDentBodyFrom4733SameCaller
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -145,7 +144,7 @@ theorem flipperDentBodyFrom4733SameCaller
       obtain ⟨σ_flux, zFlux, outFlux, A_flux, k5053, C5053, rd5053,
           hcallFluxEvmRaw, houtFlux⟩ :=
         flipperDentX_fluxPostCall (Acur := A) hmemFluxSize hmemFluxRead64 hfluxZero
-          hperm hdepthLt rd4927
+          hdepthLt rd4927
       let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmFluxEvm : EVM.State :=
@@ -217,13 +216,23 @@ theorem flipperDentBodyFrom4733SameCaller
         have hfluxMemGe : 64 ≤ (dentVatFluxCallMem memFlux σ I).size := by
           rw [dentVatFluxCallMem_size hmemFluxSize]
           norm_num
-        obtain ⟨_, _, rd6272⟩ := flipperDentX_storeLotToAdd48 hperm hfluxMemGe rd5073
+        have hstoreSplit := flipperDentX_storeLotToAdd48Split hfluxMemGe rd5073
         have hcallFluxSolmTrue :
             typedCallViaEVM config evm0Solm
               (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
               "flux" 0 (dentFluxArgValsOf evm0Solm I)
               (true, evmFluxSolm, outFlux) true := by
           simpa using hcallFluxSolm
+        rcases hstoreSplit with ⟨hperm, _, _, rd6272⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hsource := (flipperDentSourceBodySuccessSameCallerSplit
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (evmFlux := evmFluxSolm) (outFlux := outFlux)
+            hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
+            hfitBeg hdec hcallerSolm hvatCodeSolm hcallFluxSolmTrue
+            (by simp [evmFluxSolm, evm0Solm, initState])
+            (by simp [evmFluxSolm, evm0Solm, initState])).2 hperm
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         let evmLotEvm := Solm.EVM.storageStore evmFluxEvm evmFluxEvm.executionEnv.codeOwner
           (bidSlotOfWord (dentId I) ⟨1⟩) (dentLot I)
         let evmLotSolm := Solm.EVM.storageStore evmFluxSolm evmFluxSolm.executionEnv.codeOwner

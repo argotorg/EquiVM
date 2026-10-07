@@ -54,6 +54,31 @@ theorem spotCageBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (by simp [evalExpr?, pure])
       (cageAssignLive evm)
 
+theorem spotCageBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm ∅ cageTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  simpa [cageTransition, nonpayable, auth] using
+    nonpayableRequireAssignStorageBlockStatic
+      (cfg := config)
+      (solm := { contract := contract, locals := ∅ })
+      (evm := evm)
+      (guard := .binary .eq (.storage (wardsRef sender)) (.intLit 1))
+      (rhs := .intLit 0)
+      (ref := liveRef)
+      (value := .int 0)
+      (rest := [])
+      hwv
+      (evalExpr_auth_true_of_wards_none evm I ∅ (by simp) hsrc hauth)
+      (by simp [evalExpr?, pure])
+      (cageAssignLive evm)
+      hperm
+
 theorem spotCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -214,20 +239,43 @@ theorem spotCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem spotCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem spotCageX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD spotBytecode I g s0 ⟨1661⟩ [⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨0⟩)
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g s0
+        (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g s0) := by
   have rd1662 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1664 := rd1662.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd1666 := rd1664.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1667raw⟩ := rd1666.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode spotBytecode ⟨1666⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1666.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd1667raw⟩ := rd1666.sstore hperm hstoreDec (by evm_ov)
   have rd214 := rd1667raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd215 (by native_decide) (by evm_ov)
+
+theorem spotX_cage_okSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hreach : ∃ k C, RD spotBytecode I g
+      (initState σ σ₀ g A I) ⟨392⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+      RDret spotBytecode g (initState σ σ₀ g A I)
+        (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨0⟩)
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd1579⟩ := spotCageX_enter (g := g) hreach
+  obtain ⟨_, _, rd1661⟩ := spotCageX_authorized (I := I) hauth rd1579
+  exact spotCageX_storeAuthorizedSplit rd1661
 
 theorem spotX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -236,10 +284,8 @@ theorem spotX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret spotBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨0⟩)
-      ByteArray.empty := by
-  obtain ⟨_, _, rd1579⟩ := spotCageX_enter (g := g) hreach
-  obtain ⟨_, _, rd1661⟩ := spotCageX_authorized (I := I) hauth rd1579
-  exact spotCageX_storeAuthorized hperm rd1661
+      ByteArray.empty :=
+  permSplit_true hperm (spotX_cage_okSplit hauth hreach)
 
 theorem spotX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
@@ -281,6 +327,33 @@ theorem spotCageBodyCoreOk
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
+
+theorem spotCageBodyCoreStatic
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    (hcode : I.code = spotBytecode) (hperm : I.perm = false) (hwv : I.weiValue = ⟨0⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
+        (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
+    (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨392⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hbody :
+      ExecTransitionBody config contract evmSolm ∅ cageTransition.body
+        .staticViolation := by
+    simpa [evmSolm, relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+      State.lookupAccount] using
+      spotCageBodyStatic evmSolm I
+        (by simp only [evmSolm, initState]; exact hwv)
+        (by simp [evmSolm, initState])
+        hauth
+        (by simp only [evmSolm, initState]; exact hperm)
+  exact (permSplit_false hperm (spotX_cage_okSplit
+      (g := Sat256.ofUInt256 g) hauth hreach))
+    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
 
 theorem spotCageBodyCoreUnauthorized
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -326,6 +399,30 @@ theorem spotCageBodyCore {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel
   by_cases hauth : relyAuthWord σ I = ⟨1⟩
   · exact spotCageBodyCoreOk hcode hperm hwv hauth hdispatch hdecode hreach
+  · exact spotCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach
+
+theorem spotCageBodyCoreAnyPerm {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = spotBytecode)
+    (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (spotSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact spotCageBodyCore hcode hsize hperm hwv hsel
+  have hstatic : I.perm = false := by simpa using hperm
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I (spotSelBytes 0) rfl hsel
+  have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
+    spotDispatchCage hsel
+  have hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
+        (transitionSignature cageTransition).paramTypes I.calldata = some ∅ :=
+    spotDecode_cage hsz4
+  have hreach := spotReachCageBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    hcode hwv hsz4 hsize hsel
+  by_cases hauth : relyAuthWord σ I = ⟨1⟩
+  · exact spotCageBodyCoreStatic hcode hstatic hwv hauth hdispatch hdecode hreach
   · exact spotCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach
 
 end Benchmarks.Dss.Spot

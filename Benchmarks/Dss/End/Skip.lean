@@ -6203,9 +6203,8 @@ theorem endSkipX_artAddOverflow {σ σmem σcall σpost σ₀ A I}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_artStoreAtHash {σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreAtHashSplit {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
@@ -6217,15 +6216,17 @@ theorem endSkipX_artStoreAtHash {σ σmem σcall σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       ret σpost k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4216⟩
-      (⟨0⟩ :: endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
-        endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
-        endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
-        endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
-        endSkipReturnPc :: sel :: [])
-      (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (endSkipPostArtAccountMap σpost I
-        (endSkipArtNewWord σpost I vatOut bidOut)) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4216⟩
+        (⟨0⟩ :: endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
+          endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
+          endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
+          endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
+          endSkipReturnPc :: sel :: [])
+        (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+        ret (endSkipPostArtAccountMap σpost I
+          (endSkipArtNewWord σpost I vatOut bidOut)) k' C') ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
   let key := endSkipIlkWord I
   let mem14 := endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut
   let memStore := endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut
@@ -6279,13 +6280,18 @@ theorem endSkipX_artStoreAtHash {σ σmem σcall σpost σ₀ A I}
     raw swap2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd4216raw⟩ := rd4215.sstore hperm (by native_decide)
+  have hstoreDec : decode endBytecode ⟨4215⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4215.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd4216raw⟩ := rd4215.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSkipPostArtAccountMap, memStore] using rd4216raw⟩
 
-theorem endSkipX_artStoreIntGuardOk {σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardOkSplit {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
@@ -6299,16 +6305,20 @@ theorem endSkipX_artStoreIntGuardOk {σ σmem σcall σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       ret σpost k C) :
-    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
-      (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
-        endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
-        endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
-        endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
-        endSkipReturnPc :: sel :: [])
-      (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
-      ret (endSkipPostArtAccountMap σpost I
-        (endSkipArtNewWord σpost I vatOut bidOut)) k' C' := by
-  obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
+    (I.perm = true ∧
+      ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
+        (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
+          endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
+          endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
+          endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
+          endSkipReturnPc :: sel :: [])
+        (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+        ret (endSkipPostArtAccountMap σpost I
+          (endSkipArtNewWord σpost I vatOut bidOut)) k' C') ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
+  refine permSplit_bind (endSkipX_artStoreAtHashSplit hsz68 hloCat hloVat hloBid h)
+    fun _hperm hstore ↦ ?_
+  obtain ⟨_, _, rd4216⟩ := hstore
   have hsltLot :
       UInt256.slt (endSkipLotWord bidOut) (⟨0⟩ : UInt256) = ⟨0⟩ := by
     simpa using
@@ -6343,9 +6353,36 @@ theorem endSkipX_artStoreIntGuardOk {σ σmem σcall σpost σ₀ A I}
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4295⟩
 
-theorem endSkipX_artStoreIntGuardLotOverflow {σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardOk {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
+    (hloBid : 256 ≤ bidOut.size)
+    (hlot : (endSkipLotWord bidOut).toNat < 2 ^ 255)
+    (hart : (endSkipArtWord vatOut bidOut).toNat < 2 ^ 255)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
+      (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
+        endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
+        endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
+        endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
+        endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
+      (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨4295⟩
+      (endSkipArtWord vatOut bidOut :: endSkipTabWord bidOut ::
+        endSkipUsrWord bidOut :: endSkipLotWord bidOut :: endSkipBidWord bidOut ::
+        endFlowVatIlkRateWord vatOut :: endSkipCatIlkFlipWord catOut ::
+        endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
+        endSkipReturnPc :: sel :: [])
+      (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+      ret (endSkipPostArtAccountMap σpost I
+        (endSkipArtNewWord σpost I vatOut bidOut)) k' C' :=
+  permSplit_true hperm (endSkipX_artStoreIntGuardOkSplit
+    hsz68 hloCat hloVat hloBid hlot hart h)
+
+theorem endSkipX_artStoreIntGuardLotOverflowSplit {σ σmem σcall σpost σ₀ A I}
+    {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
@@ -6358,8 +6395,12 @@ theorem endSkipX_artStoreIntGuardLotOverflow {σ σmem σcall σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       ret σpost k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
+    (I.perm = true ∧
+      RDrev endBytecode g (initState σ σ₀ g A I)) ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
+  refine permSplit_bind (endSkipX_artStoreAtHashSplit hsz68 hloCat hloVat hloBid h)
+    fun _hperm hstore ↦ ?_
+  obtain ⟨_, _, rd4216⟩ := hstore
   have hsltLot :
       UInt256.slt (endSkipLotWord bidOut) (⟨0⟩ : UInt256) = ⟨1⟩ := by
     simpa using
@@ -6396,9 +6437,27 @@ theorem endSkipX_artStoreIntGuardLotOverflow {σ σmem σcall σpost σ₀ A I}
       hloCat hloVat hloBid)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSkipX_artStoreIntGuardArtOverflow {σ σmem σcall σpost σ₀ A I}
+theorem endSkipX_artStoreIntGuardLotOverflow {σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
+    (hloBid : 256 ≤ bidOut.size)
+    (hlot : 2 ^ 255 ≤ (endSkipLotWord bidOut).toNat)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
+      (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
+        endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
+        endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
+        endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
+        endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
+      (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) :=
+  permSplit_true hperm (endSkipX_artStoreIntGuardLotOverflowSplit
+    hsz68 hloCat hloVat hloBid hlot h)
+
+theorem endSkipX_artStoreIntGuardArtOverflowSplit {σ σmem σcall σpost σ₀ A I}
+    {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size)
@@ -6412,8 +6471,12 @@ theorem endSkipX_artStoreIntGuardArtOverflow {σ σmem σcall σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       ret σpost k C) :
-    RDrev endBytecode g (initState σ σ₀ g A I) := by
-  obtain ⟨_, _, rd4216⟩ := endSkipX_artStoreAtHash hperm hsz68 hloCat hloVat hloBid h
+    (I.perm = true ∧
+      RDrev endBytecode g (initState σ σ₀ g A I)) ∨
+      (I.perm = false ∧ RDstatic endBytecode g (initState σ σ₀ g A I)) := by
+  refine permSplit_bind (endSkipX_artStoreAtHashSplit hsz68 hloCat hloVat hloBid h)
+    fun _hperm hstore ↦ ?_
+  obtain ⟨_, _, rd4216⟩ := hstore
   have hsltLot :
       UInt256.slt (endSkipLotWord bidOut) (⟨0⟩ : UInt256) = ⟨0⟩ := by
     simpa using
@@ -6461,6 +6524,26 @@ theorem endSkipX_artStoreIntGuardArtOverflow {σ σmem σcall σpost σ₀ A I}
     (endSkipArtStoreHashMemFor_read64 σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
     (by simp only [List.length_cons, List.length_nil]; omega)
+
+theorem endSkipX_artStoreIntGuardArtOverflow {σ σmem σcall σpost σ₀ A I}
+    {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
+    (hloBid : 256 ≤ bidOut.size)
+    (hlot : (endSkipLotWord bidOut).toNat < 2 ^ 255)
+    (hart : 2 ^ 255 ≤ (endSkipArtWord vatOut bidOut).toNat)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨4197⟩
+      (endSkipArtNewWord σpost I vatOut bidOut :: endSkipArtWord vatOut bidOut ::
+        endSkipTabWord bidOut :: endSkipUsrWord bidOut :: endSkipLotWord bidOut ::
+        endSkipBidWord bidOut :: endFlowVatIlkRateWord vatOut ::
+        endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
+        endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
+      (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) :=
+  permSplit_true hperm (endSkipX_artStoreIntGuardArtOverflowSplit
+    hsz68 hloCat hloVat hloBid hlot hart h)
 
 theorem endSkipX_grabExtcodesizeGuard {σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -9256,13 +9339,18 @@ theorem endSkipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
   simpa only [endSkipPostArtState] using
     storageLocStore_uint256 evm (endSkipArtSlot I) artNew
 
-theorem endSkipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
+theorem endSkipStmtArtAssignSplit (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (catOut vatOut bidOut : ByteArray)
     (hsz68 : 68 ≤ I.calldata.size) :
-    ExecStmt config { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
+    (ExecStmt config { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
       evm (.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"))
       (.ok { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
-        (endSkipPostArtState evm I (endSkipArtNewWord σ I vatOut bidOut))) := by
+        (endSkipPostArtState evm I (endSkipArtNewWord σ I vatOut bidOut)))) ∧
+      (evm.executionEnv.perm = false →
+        ExecStmt config
+          { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
+        evm (.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"))
+        .staticViolation) := by
   have hArtNew :
       evalExpr? config { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
         evm (.var "ArtNew") =
@@ -9285,9 +9373,17 @@ theorem endSkipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
       rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide)]
       exact endSkipStoreArt_get_ilk I catOut vatOut bidOut
     exact endSkipAssignArt evm I (endSkipArtNewWord σ I vatOut bidOut) hbase hget hsz68
-  apply ExecStmt.assign
-  · exact hArtNew
-  · exact hassign
+  exact ⟨ExecStmt.assign hArtNew hassign,
+    fun hperm ↦ ExecStmt.assignStatic hArtNew hassign hperm⟩
+
+theorem endSkipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
+    (σ : AccountMap) (catOut vatOut bidOut : ByteArray)
+    (hsz68 : 68 ≤ I.calldata.size) :
+    ExecStmt config { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
+      evm (.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"))
+      (.ok { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut }
+        (endSkipPostArtState evm I (endSkipArtNewWord σ I vatOut bidOut))) :=
+  (endSkipStmtArtAssignSplit evm I σ catOut vatOut bidOut hsz68).1
 
 theorem evalExpr_endSkip_lot_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (catOut vatOut bidOut : ByteArray) :
@@ -9713,6 +9809,89 @@ theorem skipTransition_body_eq :
     endSkipSuck1Stmts, endSkipSuck2Stmts, endSkipHopeStmts, endSkipYankStmts,
     endSkipArtStmts, List.append_assoc]
 
+theorem endSkipTailAfterTabReturnsSplit {I σLoc}
+    {catOut vatOut bidOut : ByteArray}
+    {evmTab evmSuck1 evmSuck2 evmHope evmYank : EVM.State}
+    (hsz68 : 68 ≤ I.calldata.size)
+    (hArtLoad :
+      Solm.EVM.storageLoad evmYank evmYank.executionEnv.codeOwner (endSkipArtSlot I) =
+        endSkipArtOldWord σLoc I)
+    (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩)
+    (hfit :
+      (endSkipArtOldWord σLoc I).toNat + (endSkipArtWord vatOut bidOut).toNat <
+        UInt256.size)
+    (hsuck1 :
+      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+        evmTab endSkipSuck1Stmts
+        (.ok { contract := contract, locals := endSkipStoreSuck1 I catOut vatOut bidOut }
+          evmSuck1))
+    (hsuck2 :
+      ExecBlock config
+        { contract := contract, locals := endSkipStoreSuck1 I catOut vatOut bidOut }
+        evmSuck1 endSkipSuck2Stmts
+        (.ok { contract := contract, locals := endSkipStoreSuck2 I catOut vatOut bidOut }
+          evmSuck2))
+    (hhope :
+      ExecBlock config
+        { contract := contract, locals := endSkipStoreSuck2 I catOut vatOut bidOut }
+        evmSuck2 endSkipHopeStmts
+        (.ok { contract := contract, locals := endSkipStoreHope I catOut vatOut bidOut }
+          evmHope))
+    (hyank :
+      ExecBlock config
+        { contract := contract, locals := endSkipStoreHope I catOut vatOut bidOut }
+        evmHope endSkipYankStmts
+        (.ok { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
+          evmYank)) :
+    (((endSkipLotWord bidOut).toNat < 2 ^ 255) →
+      ((endSkipArtWord vatOut bidOut).toNat < 2 ^ 255) →
+      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+      evmTab endSkipTailNoGrabStmts
+      (.ok { contract := contract, locals := endSkipStoreArtNew σLoc I catOut vatOut bidOut }
+        (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut)))) ∧
+      (evmYank.executionEnv.perm = false →
+        ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+        evmTab endSkipTailNoGrabStmts
+        .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config
+        { contract := contract, locals := endSkipStoreArtNew σLoc I catOut vatOut bidOut }
+        evmYank [.assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
+          .require (.binary .and
+            (.binary .lt (.var "lot") (.intLit int256Limit))
+            (.binary .lt (.var "art") (.intLit int256Limit)))] result) :
+      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+        evmTab endSkipTailNoGrabStmts
+        result := by
+    have hartBlock :
+        ExecBlock config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
+          evmYank endSkipArtStmts
+          result := by
+      refine ExecBlock.consNormal (endSkipStmtArt evmYank I catOut vatOut bidOut hrate) ?_
+      refine ExecBlock.consNormal
+        (endSkipStmtArtNewAddReturns evmYank I σLoc catOut vatOut bidOut hsz68 hArtLoad hfit) ?_
+      exact hwrite
+    have htail2 := execBlock_append hsuck1 hsuck2
+    have htail3 := execBlock_append htail2 hhope
+    have htail4 := execBlock_append htail3 hyank
+    simpa [endSkipTailNoGrabStmts, List.append_assoc] using
+     execBlock_append htail4 hartBlock
+  have hassign := endSkipStmtArtAssignSplit evmYank I σLoc
+    catOut vatOut bidOut hsz68
+  constructor
+  · intro hlot hart
+    apply hprefix
+    refine ExecBlock.consNormal
+      (hassign.1) ?_
+    exact ExecBlock.consNormal
+      (ExecStmt.requireTrue
+        (endSkipEvalExpr_intGuard_true
+          (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))
+          I σLoc catOut vatOut bidOut hlot hart))
+      ExecBlock.nil
+  · intro hperm
+    exact hprefix (ExecBlock.consStatic (hassign.2 hperm))
+
 theorem endSkipTailAfterTabReturns {I σLoc}
     {catOut vatOut bidOut : ByteArray}
     {evmTab evmSuck1 evmSuck2 evmHope evmYank : EVM.State}
@@ -9752,28 +9931,9 @@ theorem endSkipTailAfterTabReturns {I σLoc}
     ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
       evmTab endSkipTailNoGrabStmts
       (.ok { contract := contract, locals := endSkipStoreArtNew σLoc I catOut vatOut bidOut }
-        (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))) := by
-  have hartBlock :
-      ExecBlock config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
-        evmYank endSkipArtStmts
-        (.ok { contract := contract, locals := endSkipStoreArtNew σLoc I catOut vatOut bidOut }
-          (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))) := by
-    refine ExecBlock.consNormal (endSkipStmtArt evmYank I catOut vatOut bidOut hrate) ?_
-    refine ExecBlock.consNormal
-      (endSkipStmtArtNewAddReturns evmYank I σLoc catOut vatOut bidOut hsz68 hArtLoad hfit) ?_
-    refine ExecBlock.consNormal
-      (endSkipStmtArtAssign evmYank I σLoc catOut vatOut bidOut hsz68) ?_
-    exact ExecBlock.consNormal
-      (ExecStmt.requireTrue
-        (endSkipEvalExpr_intGuard_true
-          (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))
-          I σLoc catOut vatOut bidOut hlot hart))
-      ExecBlock.nil
-  have htail2 := execBlock_append hsuck1 hsuck2
-  have htail3 := execBlock_append htail2 hhope
-  have htail4 := execBlock_append htail3 hyank
-  simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   execBlock_append htail4 hartBlock
+        (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))) :=
+  (endSkipTailAfterTabReturnsSplit hsz68 hArtLoad hrate hfit
+    hsuck1 hsuck2 hhope hyank).1 hlot hart
 
 theorem endSkipTailReverts_suck1 {I} {catOut vatOut bidOut : ByteArray}
     {evmTab : EVM.State}
@@ -10077,6 +10237,32 @@ theorem endSkipTailReverts_intGuardArt {I σLoc}
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartBlock
 
+theorem endSkipBodyBlock_afterTabTailTerm {I} {catOut vatOut bidOut : ByteArray} {result :
+  ExecResult}
+    {evm0 evmTab : EVM.State}
+    (hprefixTab :
+      ExecBlock config { contract := contract, locals := endSkipStore I } evm0
+        endSkipPrefixTabStmts
+        (.ok { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+          evmTab))
+    (htail :
+      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+        evmTab endSkipTailNoGrabStmts result)
+    (hterm : ∀ f e, result ≠ .ok f e) :
+    ExecBlock config { contract := contract, locals := endSkipStore I } evm0
+      skipTransition.body result := by
+  have htailWithGrab :
+      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
+        evmTab (endSkipTailNoGrabStmts ++ endSkipGrabStmts) result := by
+    exact execBlock_append_term htail hterm
+  have hblock :
+      ExecBlock config { contract := contract, locals := endSkipStore I } evm0
+        skipTransition.body result := by
+    have hseq := execBlock_append hprefixTab htailWithGrab
+    rw [skipTransition_body_eq]
+    exact hseq
+  exact hblock
+
 theorem endSkipBodyReverts_afterTabTailReverted {I} {catOut vatOut bidOut : ByteArray}
     {evm0 evmTab : EVM.State}
     (hprefixTab :
@@ -10087,19 +10273,9 @@ theorem endSkipBodyReverts_afterTabTailReverted {I} {catOut vatOut bidOut : Byte
     (htail :
       ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
         evmTab endSkipTailNoGrabStmts .reverted) :
-    ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
-  have htailWithGrab :
-      ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
-        evmTab (endSkipTailNoGrabStmts ++ endSkipGrabStmts) .reverted := by
-    exact execBlock_append_term htail (by intro f' e' h; cases h)
-  have hblock :
-      ExecBlock config { contract := contract, locals := endSkipStore I } evm0
-        skipTransition.body .reverted := by
-    have hseq := execBlock_append hprefixTab htailWithGrab
-    rw [skipTransition_body_eq]
-    exact hseq
-  rw [ExecTransitionBody]
-  exact ExecFuncBody.execBlockRevert hblock
+    ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted :=
+  ExecFuncBody.execBlockRevert
+    (endSkipBodyBlock_afterTabTailTerm hprefixTab htail (by intro _ _ h; cases h))
 
 theorem endSkipBodyReverts_afterTabTailGrabReverted {I σLoc}
     {catOut vatOut bidOut : ByteArray} {evm0 evmTab evmPost : EVM.State}
@@ -10260,7 +10436,7 @@ theorem endSkipBodyCoreDecodeFailed_short
 
 theorem endSkipBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf skipTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endSkipConcreteSelector := by
@@ -10370,7 +10546,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
               (callPerm := true)
               hdepthNe htgtCat
               (endSkipCatIlksEncode_eq I hsz68 (endSkipCatIlksBaseMem_size I))
-              (by simpa [initState, hperm] using hΘCatEq)
+              (by simpa [initState] using hΘCatEq)
               rfl
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
@@ -10520,7 +10696,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                     (by simpa [evmCatEvm, initState] using hdepthNe)
                     htgtVat
                     (endSkipVatIlksEncode_eq I catOut hsz68 hloCat)
-                    (by simpa [evmCatEvm, initState, hperm] using hΘVatEq)
+                    (by simpa [evmCatEvm, initState] using hΘVatEq)
                     (by simpa [evmCatEvm, evmCatSolm] using hAccountsCat)
                     (by rfl)
                     (by simpa using hStateCat.executionEnv.symm)
@@ -10892,8 +11068,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                 hdepthNeSuck1 htgtSuck1
                                 (endSkipSuck1Encode_eq σ_bids I catOut vatOut bidOut
                                   hloCat hloVat hloBid)
-                                (by simpa [evmBidsEvm, evmVatEvm, evmCatEvm, initState,
-                                  hperm] using hΘSuck1Eq)
+                                (by simpa [evmBidsEvm, evmVatEvm, evmCatEvm, initState] using
+                                  hΘSuck1Eq)
                                 (by simpa [evmBidsEvm, evmBidsSolm] using hAccountsBids)
                                 (by rfl)
                                 (by simpa using hStateBids.executionEnv.symm)
@@ -11074,7 +11250,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                     (endSkipSuck2EncodeFor_eq σ_bids σ_suck1 I
                                       catOut vatOut bidOut hloCat hloVat hloBid)
                                     (by simpa [evmSuck1Evm, evmBidsEvm, evmVatEvm,
-                                      evmCatEvm, initState, hperm] using hΘSuck2Eq)
+                                      evmCatEvm, initState] using hΘSuck2Eq)
                                     (by simpa [evmSuck1Evm, evmSuck1Solm] using
                                       hAccountsSuck1)
                                     (by rfl)
@@ -11269,7 +11445,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                         (endSkipHopeEncodeFor_eq σ_bids σ_suck1 I
                                           catOut vatOut bidOut hloCat hloVat hloBid)
                                         (by simpa [evmSuck2Evm, evmSuck1Evm, evmBidsEvm,
-                                          evmVatEvm, evmCatEvm, initState, hperm] using
+                                          evmVatEvm, evmCatEvm, initState] using
                                           hΘHopeEq)
                                         (by simpa [evmSuck2Evm, evmSuck2Solm] using
                                           hAccountsSuck2)
@@ -11441,7 +11617,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                               catOut vatOut bidOut hloCat hloVat hloBid)
                                             (by simpa [evmHopeEvm, evmSuck2Evm,
                                               evmSuck1Evm, evmBidsEvm, evmVatEvm,
-                                              evmCatEvm, initState, hperm] using
+                                              evmCatEvm, initState] using
                                               hΘYankEq)
                                             (by simpa [evmHopeEvm, evmHopeSolm] using
                                               hAccountsHope)
@@ -11614,6 +11790,25 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                                   (g := Sat256.ofUInt256 g)
                                                   (σmem := σ_bids) (σcall := σ_suck1)
                                                   (σpost := σ_yank) hfit rd10092
+                                              by_cases hperm : I.perm = true
+                                              swap
+                                              · have hp : I.perm = false := by simpa using hperm
+                                                have hstatic := permSplit_false hp
+                                                  (endSkipX_artStoreAtHashSplit hsz68 hloCat
+                                                    hloVat hloBid rd4197)
+                                                have htail := (endSkipTailAfterTabReturnsSplit hsz68
+                                                  hArtLoadSolm hrateNE hfitSolm hsuck1Block
+                                                    hsuck2Block hhopeBlock hyankBlock).2
+                                                  (by simpa [evmYankSolm, evmHopeSolm,
+                                                    evmSuck2Solm, evmSuck1Solm, evmBidsSolm,
+                                                    evmVatSolm, evmCatSolm,
+                                                    evmSolm, initState] using hp)
+                                                have hbody := ExecFuncBody.execBlockStatic
+                                                  (endSkipBodyBlock_afterTabTailTerm hprefixTab
+                                                    htail
+                                                    (by intro _ _ h; cases h))
+                                                exact hstatic.reEquivStaticHalt hcode hdispatch
+                                                  hdecode hbody
                                               let int256Bound : Nat :=
                                                 57896044618658097711785492504343953926634992332820282019728792003956564819968
                                               have hint256Bound : int256Bound = 2 ^ 255 := by

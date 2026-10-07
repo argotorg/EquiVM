@@ -245,7 +245,6 @@ theorem weth9AllowanceBodyCoreOk {σ σ₀ A I} {g : UInt256}
 /-- `allowance(address,address)` body refines its Solm transition (both callvalue branches). -/
 theorem weth9AllowanceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hsel : selIs I (weth9SelBytes 10)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩

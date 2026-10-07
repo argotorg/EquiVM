@@ -86,7 +86,7 @@ theorem ctorTruthReEquiv_callvalueZero
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
     runtimeEquivalence ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · have hcode' : I.code = truthBytecode := by

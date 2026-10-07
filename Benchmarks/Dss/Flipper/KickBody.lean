@@ -595,6 +595,211 @@ abbrev kickStoragePrefixStmts : List Stmt :=
     .assign .storage (bidsF (.var "id") "gal") (.var "gal"),
     .assign .storage (bidsF (.var "id") "tab") (.var "tab") ]
 
+theorem flipperKickSourcePrefixSplit {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
+    (hkicksLt : (kickKicksWord σ I).toNat < UInt256.size - 1) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evmKicks := Solm.EVM.storageStore evm0 I.codeOwner ⟨6⟩ (kickIdWord σ I)
+    let evmBid := Solm.EVM.storageStore evmKicks I.codeOwner
+      (bidBaseOfWord (kickIdWord σ I)) (kickBid I)
+    let evmLot := Solm.EVM.storageStore evmBid I.codeOwner
+      (bidSlotOfWord (kickIdWord σ I) ⟨1⟩) (kickLot I)
+    let evmGuy := Solm.EVM.storageStore evmLot I.codeOwner
+      (bidPackedSlotOfWord (kickIdWord σ I))
+      (setAddressOffset0Word
+        (Solm.EVM.storageLoad evmLot I.codeOwner (bidPackedSlotOfWord (kickIdWord σ I)))
+        (solcSourceWord I))
+    let evmEnd := Solm.EVM.storageStore evmGuy I.codeOwner
+      (bidPackedSlotOfWord (kickIdWord σ I))
+      (setUint48Offset26Word
+        (Solm.EVM.storageLoad evmGuy I.codeOwner (bidPackedSlotOfWord (kickIdWord σ I)))
+        (kickEndNewWord (kickAfterGuyMap σ I) I))
+    let evmUsr := Solm.EVM.storageStore evmEnd I.codeOwner
+      (bidSlotOfWord (kickIdWord σ I) ⟨3⟩)
+      (setAddressOffset0Word
+        (Solm.EVM.storageLoad evmEnd I.codeOwner (bidSlotOfWord (kickIdWord σ I) ⟨3⟩))
+        (kickUsrKey I))
+    let evmGal := Solm.EVM.storageStore evmUsr I.codeOwner
+      (bidSlotOfWord (kickIdWord σ I) ⟨4⟩)
+      (setAddressOffset0Word
+        (Solm.EVM.storageLoad evmUsr I.codeOwner (bidSlotOfWord (kickIdWord σ I) ⟨4⟩))
+        (kickGalKey I))
+    let evmTab := Solm.EVM.storageStore evmGal I.codeOwner
+      (bidSlotOfWord (kickIdWord σ I) ⟨5⟩) (kickTab I)
+    (((kickNow48 I).toNat + (kickTauWord (kickAfterGuyMap σ I) I).toNat < 2 ^ 48) →
+      ExecBlock config { contract := contract, locals := kickLocals I } evm0
+      ([ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require kickAuthGuard,
+        .require kickKicksGuard ] ++ kickStoragePrefixStmts)
+      (.ok { contract := contract, locals := kickLocalsWithEnd σ I } evmTab)) ∧
+      (I.perm = false →
+        ExecBlock config { contract := contract, locals := kickLocals I } evm0
+        ([ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require kickAuthGuard,
+          .require kickKicksGuard ] ++ kickStoragePrefixStmts) .staticViolation) := by
+  intro evm0 evmKicks evmBid evmLot evmGuy evmEnd evmUsr evmGal evmTab
+  have hauthEval := flipperAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := kickLocals I) (kickLocals_get_wards I) hauth
+  have hkicksEval := evalExpr_kickKicksLtMax_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    (locals := kickLocals I) (kickLocals_get_kicks I) hkicksLt
+  have hidEval := evalExpr_kickIdExpr (σ := σ)
+    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hidVar :
+      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evm0
+        (.var "id") = .ok (.int (Int.ofNat (kickIdWord σ I).toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable
+        ((kickLocalsWithId σ I).get? "id") =
+      .ok (.int (Int.ofNat (kickIdWord σ I).toNat))
+    rw [kickLocalsWithId_get_id]
+    rfl
+  have hassignKicks :
+      assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evm0
+        .storage kicksRef (.int (Int.ofNat (kickIdWord σ I).toNat)) =
+          .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmKicks) := by
+    simpa [evmKicks] using assign_kickKicksStorage evm0 σ I
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := kickLocalsWithId σ I }
+        evm0 kickStoragePrefixStmts.tail result) :
+      ExecBlock config { contract := contract, locals := kickLocals I } evm0
+        ([.require (.binary .eq (.env .callvalue) (.intLit 0)),
+          .require kickAuthGuard, .require kickKicksGuard] ++ kickStoragePrefixStmts)
+        result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · simpa [kickAuthGuard] using hauthEval
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · simpa [kickKicksGuard] using hkicksEval
+    exact ExecBlock.consNormal (ExecStmt.letDecl hidEval) hwrite
+  constructor
+  · intro hfit
+    have hbidVar :
+        evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmKicks
+          (.var "bid") = .ok (.int (Int.ofNat (kickBid I).toNat)) := by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          ((kickLocalsWithId σ I).get? "bid") =
+        .ok (.int (Int.ofNat (kickBid I).toNat))
+      rw [kickLocalsWithId_get_bid]
+      rfl
+    have hlotVarId :
+        evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmBid
+          (.var "lot") = .ok (.int (Int.ofNat (kickLot I).toNat)) := by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          ((kickLocalsWithId σ I).get? "lot") =
+        .ok (.int (Int.ofNat (kickLot I).toNat))
+      rw [kickLocalsWithId_get_lot]
+      rfl
+    have hsender :
+        evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmLot
+          sender = .ok (.address I.source) := by
+      simp [sender, evalExpr?, envValue, evmLot, evmBid, evmKicks, evm0, initState]
+      rfl
+    have hletEnd :
+        evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmGuy
+          (wrap48 (.binary .add now48 (.storage tauRef))) =
+            .ok (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) := by
+      have hraw := evalExpr_kickEndNew_evm (evm := evmGuy) (locals := kickLocalsWithId σ I)
+        (kickLocalsWithId_get_tau σ I)
+      simpa [evmGuy, evmLot, evmBid, evmKicks, evm0, initState, storageStore_accountMap,
+        storageStore_executionEnv, kickAfterGuyMap, kickAfterLotMap, kickAfterBidMap,
+        kickAfterKicksMap, kickGuyStoredWord, solcSlotWordAt, Solm.EVM.storageLoad,
+        State.lookupAccount] using hraw
+    have hge := evalExpr_kickEndNewGeNow_true_evm (evm := evmGuy) (σ := σ) (I := I)
+      (by simp [evmGuy, evmLot, evmBid, evmKicks, evm0, initState])
+      hfit
+    have hendVar := evalExpr_kickEndVarWithEnd (evm := evmGuy) (σ := σ) (I := I)
+    have husrVar :
+        evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmEnd
+          (.var "usr") = .ok (.address (kickUsr I)) := by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          ((kickLocalsWithEnd σ I).get? "usr") = .ok (.address (kickUsr I))
+      rw [kickLocalsWithEnd_get_usr]
+      rfl
+    have hgalVar :
+        evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmUsr
+          (.var "gal") = .ok (.address (kickGal I)) := by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          ((kickLocalsWithEnd σ I).get? "gal") = .ok (.address (kickGal I))
+      rw [kickLocalsWithEnd_get_gal]
+      rfl
+    have htabVar :
+        evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGal
+          (.var "tab") = .ok (.int (Int.ofNat (kickTab I).toNat)) := by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          ((kickLocalsWithEnd σ I).get? "tab") =
+        .ok (.int (Int.ofNat (kickTab I).toNat))
+      rw [kickLocalsWithEnd_get_tab]
+      rfl
+    have hassignBid :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmKicks
+          .storage (bidsF (.var "id") "bid") (.int (Int.ofNat (kickBid I).toNat)) =
+            .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmBid) := by
+      simpa [evmBid, evmKicks, evm0, initState, storageStore_executionEnv] using
+        assign_kickBidStorage evmKicks σ I
+        (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
+    have hassignLot :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmBid
+          .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (kickLot I).toNat)) =
+            .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmLot) := by
+      simpa [evmLot, evmBid, evmKicks, evm0, initState, storageStore_executionEnv] using
+        assign_kickLotStorage evmBid σ I
+        (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
+    have hassignGuy :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmLot
+          .storage (bidsF (.var "id") "guy") (.address I.source) =
+            .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmGuy) := by
+      simpa [evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
+        storageStore_executionEnv] using assign_kickGuyStorage evmLot σ I
+        (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
+    have hassignEnd :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGuy
+          .storage (bidsF (.var "id") "end")
+          (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) =
+            .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmEnd) := by
+      simpa [evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
+        storageStore_executionEnv] using assign_kickEndStorage evmGuy σ I
+    have hassignUsr :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmEnd
+          .storage (bidsF (.var "id") "usr") (.address (kickUsr I)) =
+            .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmUsr) := by
+      simpa [evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
+        storageStore_executionEnv] using assign_kickUsrStorage evmEnd σ I
+    have hassignGal :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmUsr
+          .storage (bidsF (.var "id") "gal") (.address (kickGal I)) =
+            .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmGal) := by
+      simpa [evmGal, evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
+        storageStore_executionEnv] using assign_kickGalStorage evmUsr σ I
+    have hassignTab :
+        assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGal
+          .storage (bidsF (.var "id") "tab") (.int (Int.ofNat (kickTab I).toNat)) =
+            .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmTab) := by
+      simpa [evmTab, evmGal, evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0,
+        initState, storageStore_executionEnv] using assign_kickTabStorage evmGal σ I
+    apply hprefix
+    refine ExecBlock.consNormal (ExecStmt.assign hidVar hassignKicks) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hlotVarId hassignLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hletEnd) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hge) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hendVar hassignEnd) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign husrVar hassignUsr) ?_
+    refine ExecBlock.consNormal (ExecStmt.assign hgalVar hassignGal) ?_
+    exact ExecBlock.consNormal (ExecStmt.assign htabVar hassignTab) ExecBlock.nil
+  · intro hperm
+    exact hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hidVar hassignKicks
+      (by simp only [evm0, initState]; exact hperm)))
+
 theorem flipperKickSourcePrefix {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (flipperCallerWardsSlot I) σ I = ⟨1⟩)
@@ -632,159 +837,8 @@ theorem flipperKickSourcePrefix {σ σ₀ A I} {g : UInt256}
       ([ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require kickAuthGuard,
         .require kickKicksGuard ] ++ kickStoragePrefixStmts)
-      (.ok { contract := contract, locals := kickLocalsWithEnd σ I } evmTab) := by
-  intro evm0 evmKicks evmBid evmLot evmGuy evmEnd evmUsr evmGal evmTab
-  have hauthEval := flipperAuthGuardEval_true
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-    (locals := kickLocals I) (kickLocals_get_wards I) hauth
-  have hkicksEval := evalExpr_kickKicksLtMax_true
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-    (locals := kickLocals I) (kickLocals_get_kicks I) hkicksLt
-  have hidEval := evalExpr_kickIdExpr (σ := σ)
-    (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-  have hidVar :
-      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evm0
-        (.var "id") = .ok (.int (Int.ofNat (kickIdWord σ I).toNat)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithId σ I).get? "id") =
-      .ok (.int (Int.ofNat (kickIdWord σ I).toNat))
-    rw [kickLocalsWithId_get_id]
-    rfl
-  have hbidVar :
-      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmKicks
-        (.var "bid") = .ok (.int (Int.ofNat (kickBid I).toNat)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithId σ I).get? "bid") =
-      .ok (.int (Int.ofNat (kickBid I).toNat))
-    rw [kickLocalsWithId_get_bid]
-    rfl
-  have hlotVarId :
-      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmBid
-        (.var "lot") = .ok (.int (Int.ofNat (kickLot I).toNat)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithId σ I).get? "lot") =
-      .ok (.int (Int.ofNat (kickLot I).toNat))
-    rw [kickLocalsWithId_get_lot]
-    rfl
-  have hsender :
-      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmLot
-        sender = .ok (.address I.source) := by
-    simp [sender, evalExpr?, envValue, evmLot, evmBid, evmKicks, evm0, initState,
-      storageStore_executionEnv]
-    rfl
-  have hletEnd :
-      evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmGuy
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
-          .ok (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) := by
-    have hraw := evalExpr_kickEndNew_evm (evm := evmGuy) (locals := kickLocalsWithId σ I)
-      (kickLocalsWithId_get_tau σ I)
-    simpa [evmGuy, evmLot, evmBid, evmKicks, evm0, initState, storageStore_accountMap,
-      storageStore_executionEnv, kickAfterGuyMap, kickAfterLotMap, kickAfterBidMap,
-      kickAfterKicksMap, kickGuyStoredWord, solcSlotWordAt, Solm.EVM.storageLoad,
-      State.lookupAccount] using hraw
-  have hge := evalExpr_kickEndNewGeNow_true_evm (evm := evmGuy) (σ := σ) (I := I)
-    (by simp [evmGuy, evmLot, evmBid, evmKicks, evm0, initState, storageStore_executionEnv])
-    hfit
-  have hendVar := evalExpr_kickEndVarWithEnd (evm := evmGuy) (σ := σ) (I := I)
-  have husrVar :
-      evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmEnd
-        (.var "usr") = .ok (.address (kickUsr I)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithEnd σ I).get? "usr") = .ok (.address (kickUsr I))
-    rw [kickLocalsWithEnd_get_usr]
-    rfl
-  have hgalVar :
-      evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmUsr
-        (.var "gal") = .ok (.address (kickGal I)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithEnd σ I).get? "gal") = .ok (.address (kickGal I))
-    rw [kickLocalsWithEnd_get_gal]
-    rfl
-  have htabVar :
-      evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGal
-        (.var "tab") = .ok (.int (Int.ofNat (kickTab I).toNat)) := by
-    rw [evalExpr?]
-    change EvalResult.ofOption EvalError.unboundVariable
-        ((kickLocalsWithEnd σ I).get? "tab") =
-      .ok (.int (Int.ofNat (kickTab I).toNat))
-    rw [kickLocalsWithEnd_get_tab]
-    rfl
-  have hassignKicks :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evm0
-        .storage kicksRef (.int (Int.ofNat (kickIdWord σ I).toNat)) =
-          .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmKicks) := by
-    simpa [evmKicks] using assign_kickKicksStorage evm0 σ I
-  have hassignBid :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmKicks
-        .storage (bidsF (.var "id") "bid") (.int (Int.ofNat (kickBid I).toNat)) =
-          .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmBid) := by
-    simpa [evmBid, evmKicks, evm0, initState, storageStore_executionEnv] using
-      assign_kickBidStorage evmKicks σ I
-      (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
-  have hassignLot :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmBid
-        .storage (bidsF (.var "id") "lot") (.int (Int.ofNat (kickLot I).toNat)) =
-          .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmLot) := by
-    simpa [evmLot, evmBid, evmKicks, evm0, initState, storageStore_executionEnv] using
-      assign_kickLotStorage evmBid σ I
-      (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
-  have hassignGuy :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithId σ I } evmLot
-        .storage (bidsF (.var "id") "guy") (.address I.source) =
-          .ok ({ contract := contract, locals := kickLocalsWithId σ I }, evmGuy) := by
-    simpa [evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
-      storageStore_executionEnv] using assign_kickGuyStorage evmLot σ I
-      (kickLocalsWithId_get_id σ I) (kickLocalsWithId_get_bids σ I)
-  have hassignEnd :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGuy
-        .storage (bidsF (.var "id") "end")
-        (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) =
-          .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmEnd) := by
-    simpa [evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
-      storageStore_executionEnv] using assign_kickEndStorage evmGuy σ I
-  have hassignUsr :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmEnd
-        .storage (bidsF (.var "id") "usr") (.address (kickUsr I)) =
-          .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmUsr) := by
-    simpa [evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
-      storageStore_executionEnv] using assign_kickUsrStorage evmEnd σ I
-  have hassignGal :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmUsr
-        .storage (bidsF (.var "id") "gal") (.address (kickGal I)) =
-          .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmGal) := by
-    simpa [evmGal, evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0, initState,
-      storageStore_executionEnv] using assign_kickGalStorage evmUsr σ I
-  have hassignTab :
-      assignStorageRef? config { contract := contract, locals := kickLocalsWithEnd σ I } evmGal
-        .storage (bidsF (.var "id") "tab") (.int (Int.ofNat (kickTab I).toNat)) =
-          .ok ({ contract := contract, locals := kickLocalsWithEnd σ I }, evmTab) := by
-    simpa [evmTab, evmGal, evmUsr, evmEnd, evmGuy, evmLot, evmBid, evmKicks, evm0,
-      initState, storageStore_executionEnv] using assign_kickTabStorage evmGal σ I
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · simpa [kickAuthGuard] using hauthEval
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · simpa [kickKicksGuard] using hkicksEval
-  change ExecBlock config { contract := contract, locals := kickLocals I } evm0
-    kickStoragePrefixStmts (.ok { contract := contract, locals := kickLocalsWithEnd σ I } evmTab)
-  simp only [kickStoragePrefixStmts, checkedAdd48Into, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hidEval) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hidVar hassignKicks) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hlotVarId hassignLot) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hletEnd) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hge) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hendVar hassignEnd) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign husrVar hassignUsr) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign hgalVar hassignGal) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign htabVar hassignTab) ExecBlock.nil
+      (.ok { contract := contract, locals := kickLocalsWithEnd σ I } evmTab) :=
+  (flipperKickSourcePrefixSplit hwv hauth hkicksLt).1 hfit
 
 theorem flipperKickSourceBodyAdd48Overflow {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1306,7 +1360,6 @@ theorem flipperKickSourceBodySuccess {σ σ₀ A I} {g : UInt256}
 theorem flipperKickBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 9)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1331,7 +1384,27 @@ theorem flipperKickBodyCore {σ σ₀ A I} {g : UInt256}
           simp [kickIdWord, hkicksWord]
         have hkicksLtSolm : (kickKicksWord σ I).toNat < UInt256.size - 1 := by
           simpa [← hkicksWord] using hkicksLt
-        obtain ⟨_, _, rd6272⟩ := flipperKickX_toAdd48 hperm hkicksLt hafterAuth
+        rcases flipperKickX_toAdd48Split hkicksLt hafterAuth with
+            ⟨hperm, _, _, rd6272⟩ | ⟨hperm, hstatic⟩
+        swap
+        · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+          have hprefix := (flipperKickSourcePrefixSplit
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            hwv hauthSolm hkicksLtSolm).2 hperm
+          have hjoined : ExecBlock config { contract := contract, locals := kickLocals I }
+              evm0 (([.require (.binary .eq (.env .callvalue) (.intLit 0)),
+                .require kickAuthGuard, .require kickKicksGuard] ++ kickStoragePrefixStmts) ++
+                (checkedExternalCallStmts (.storage vatRef) "flux" (.intLit 0)
+                  [.storage ilkRef, sender, thisAddr, .var "lot"] "_fluxRet" ++
+                  [.return [.var "id"]])) .staticViolation :=
+            execBlock_append_term hprefix (by intro _ _ h; cases h)
+          have hsource : ExecTransitionBody config contract evm0 (kickLocals I)
+              kickTransition.body .staticViolation := by
+            apply ExecFuncBody.execBlockStatic
+            simpa [kickTransition_body_eq, nonpayable, auth, kickAfterAuthStmts,
+              kickAfterKicksStmts, kickStoragePrefixStmts, checkedExternalCallStmts,
+              List.append_assoc] using hjoined
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         have hAccountsKicks :
             Eq (kickAfterKicksMap σ I) (kickAfterKicksMap σ I) := rfl
         have hAccountsBid :

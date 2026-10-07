@@ -901,6 +901,76 @@ theorem flopperKickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
         (ExecStmt.requireFalse
           (evalExpr_kick_end_guard_false_wrapped evm I haddOverflow)))
 
+theorem flopperKickBodyReturns_successSplit (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hauth :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
+    (hlive : kickLiveWord evm = ⟨1⟩)
+    (hkicksLt : (kickKicksWord evm).toNat < UInt256.size - 1) :
+    (((kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat <
+        2 ^ 48) →
+      ExecTransitionBody config contract evm (kickLocals I) kickTransition.body
+      (.returned { contract := contract, locals := kickEndLocals evm I }
+        (kickPostState evm I) (some [.int (Int.ofNat (kickIdWord evm).toNat)]))) ∧
+      (evm.executionEnv.perm = false →
+        ExecTransitionBody config contract evm (kickLocals I)
+          kickTransition.body .staticViolation) := by
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := kickIdLocals evm I } evm
+        (kickTransition.body.drop 5) result) :
+      ExecBlock config { contract := contract, locals := kickLocals I } evm
+        kickTransition.body result := by
+    simpa [kickTransition, nonpayable, auth, checkedAdd48Into, List.cons_append, List.nil_append]
+      using
+      (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue
+            (evalExpr_auth_true_of_wards_none evm I (kickLocals I) (kickLocals_get_wards I)
+              hsrc hauth)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_kick_live_one_true evm I hlive)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
+        ExecBlock.consNormal
+          (ExecStmt.letDecl (evalExpr_kick_id_add evm I hkicksLt)) <|
+        hwrite)
+  constructor
+  · intro haddFit
+    have hreturns :
+        evalExprs? config { contract := contract, locals := kickEndLocals evm I }
+            (kickPostState evm I) [.var "id"] =
+          .ok [.int (Int.ofNat (kickIdWord evm).toNat)] := by
+      simp [evalExprs?, evalExpr_kick_id_var_at evm (kickPostState evm I) I,
+        EvalResult.bind, bind, pure]
+    apply ExecFuncBody.execBlockRet
+    apply hprefix
+    simpa [kickTransition, nonpayable, auth, checkedAdd48Into] using
+      (ExecBlock.consNormal
+          (ExecStmt.assign (evalExpr_kick_id_var_idLocals_at evm evm I)
+            (assign_kickKicksStorage evm I)) <|
+        ExecBlock.consNormal
+          (ExecStmt.assign (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm) I)
+            (assign_kickBidStorage evm I)) <|
+        ExecBlock.consNormal
+          (ExecStmt.assign (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
+            (assign_kickLotStorage evm I)) <|
+        ExecBlock.consNormal
+          (ExecStmt.assign (evalExpr_kick_gal_var_at evm (kickAfterLotState evm I) I)
+            (assign_kickGuyStorage evm I)) <|
+        ExecBlock.consNormal
+          (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I haddFit)) <|
+        ExecBlock.consNormal
+          (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I haddFit)) <|
+        ExecBlock.consNormal
+          (ExecStmt.assign (evalExpr_kick_end_var evm I)
+            (assign_kickEndStorage_value evm I haddFit)) <|
+        ExecBlock.consReturn (ExecStmt.return hreturns))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic
+        (evalExpr_kick_id_var_idLocals_at evm evm I) (assign_kickKicksStorage evm I) hperm)))
+
 theorem flopperKickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)
@@ -913,47 +983,8 @@ theorem flopperKickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
         2 ^ 48) :
     ExecTransitionBody config contract evm (kickLocals I) kickTransition.body
       (.returned { contract := contract, locals := kickEndLocals evm I }
-        (kickPostState evm I) (some [.int (Int.ofNat (kickIdWord evm).toNat)])) := by
-  have hreturns :
-      evalExprs? config { contract := contract, locals := kickEndLocals evm I }
-          (kickPostState evm I) [.var "id"] =
-        .ok [.int (Int.ofNat (kickIdWord evm).toNat)] := by
-    simp [evalExprs?, evalExpr_kick_id_var_at evm (kickPostState evm I) I,
-      EvalResult.bind, bind, pure]
-  refine ExecFuncBody.execBlockRet ?_
-  simpa [kickTransition, nonpayable, auth, checkedAdd48Into, List.cons_append, List.nil_append]
-    using
-    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue
-          (evalExpr_auth_true_of_wards_none evm I (kickLocals I) (kickLocals_get_wards I)
-            hsrc hauth)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_kick_live_one_true evm I hlive)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_id_add evm I hkicksLt)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_kick_id_var_idLocals_at evm evm I)
-          (assign_kickKicksStorage evm I)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_kick_bid_var_at evm (kickAfterKicksState evm) I)
-          (assign_kickBidStorage evm I)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_kick_lot_var_at evm (kickAfterBidState evm I) I)
-          (assign_kickLotStorage evm I)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_kick_gal_var_at evm (kickAfterLotState evm I) I)
-          (assign_kickGuyStorage evm I)) <|
-      ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I haddFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I haddFit)) <|
-      ExecBlock.consNormal
-        (ExecStmt.assign (evalExpr_kick_end_var evm I)
-          (assign_kickEndStorage_value evm I haddFit)) <|
-      ExecBlock.consReturn (ExecStmt.return hreturns))
+        (kickPostState evm I) (some [.int (Int.ofNat (kickIdWord evm).toNat)])) :=
+  (flopperKickBodyReturns_successSplit evm I hwv hsrc hauth hlive hkicksLt).1 haddFit
 
 theorem flopperDecode_kick_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (kickTransition.params.map Param.name)
@@ -1344,18 +1375,20 @@ theorem flopperKickX_kicksOverflow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem flopperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem flopperKickX_toCheckedAddStartSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD flopperBytecode I g s0 ⟨3643⟩
       [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     let id := kickRuntimeIdWord σ I
     let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
     let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g s0 ⟨4740⟩
-      [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨3737⟩,
-        id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flopperBytecode I g s0 ⟨4740⟩
+        [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨3737⟩,
+          id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
+        memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C') ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g s0) := by
   intro id memStore σGuy
   let σKicks := kickRuntimeAfterKicksMap I.codeOwner σ I
   let σBid := kickRuntimeAfterBidMap I.codeOwner σ I
@@ -1383,8 +1416,14 @@ theorem flopperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State} {k C : �
     raw swap2 (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
+  have hstoreDec : decode flopperBytecode ⟨3657⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3657pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k3658, C3658, rd3658raw⟩ := rd3657pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have hidRaw : ⟨1⟩ + solcSlotWordAt ⟨7⟩ σ I = id := by
     rw [u256_add_comm]
   have hidRawSolc : ⟨1⟩ + solcSlotWord σ I ⟨7⟩ = id := by
@@ -1551,6 +1590,20 @@ theorem flopperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State} {k C : �
       show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = UInt256.ofNat (256 ^ 6)
         from by native_decide]
       using rd4740⟩
+
+theorem flopperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hperm : I.perm = true)
+    (h : RD flopperBytecode I g s0 ⟨3643⟩
+      [⟨0⟩, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    let id := kickRuntimeIdWord σ I
+    let memStore := twoWordHashMem id ⟨1⟩ (relyAuthHashMem I)
+    let σGuy := kickRuntimeAfterGuyMap I.codeOwner σ I
+    ∃ k' C', RD flopperBytecode I g s0 ⟨4740⟩
+      [kickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp, ⟨3737⟩,
+        id, kickBidWord I, kickLotWord I, kickGalMaskedWord I, ⟨644⟩, sel]
+      memStore (UInt256.ofNat 3) ByteArray.empty σGuy k' C' :=
+  permSplit_true hperm (flopperKickX_toCheckedAddStartSplit h)
 
 theorem kickRuntimeTauWord_lt (owner : AccountAddress) (σ : AccountMap) (I : ExecutionEnv) :
     (kickRuntimeTauWord owner σ I).toNat < 2 ^ 48 := by

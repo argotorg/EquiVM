@@ -605,6 +605,25 @@ theorem blindAuctionBidBodyReturns (evm : EVM.State)
       (bidPushArray_ok evm hsz36))
     ExecBlock.nil
 
+theorem blindAuctionBidBodyStatic (evm : EVM.State)
+    (hsz36 : 36 ≤ evm.executionEnv.calldata.size)
+    (htime :
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat <
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody blindAuctionConfig blindAuctionContract evm (bidStore evm.executionEnv)
+      bidTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  unfold bidTransition
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalExpr_bid_time_true evm htime)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.pushValStatic
+      (by
+        simp [bidStructValue, bidBlindedValue, bidCallValue, evalExpr?, evalStructFields?,
+          envValue, bidStore, EvalResult.ofOption, EvalResult.bind, pure, bind]
+        rfl)
+      (bidPushArray_ok evm hsz36) hperm)
+
 theorem blindAuctionBidSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     4 ≤ I.calldata.size := by
@@ -745,16 +764,17 @@ theorem blindAuctionBidX_timeRevert {σ σ₀ A I} {g : Sat256}
 
 set_option maxHeartbeats 1200000 in
 theorem blindAuctionBidX_ok {σ σ₀ A I} {g : Sat256}
-    (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (htime : (bidTimestampWord I).toNat < (biddingEndWord σ I).toNat)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
       (initState σ σ₀ g A I) ⟨449⟩ [blindAuctionSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
     RDret blindAuctionBytecode g (initState σ σ₀ g A I)
       (bidPostState (initState σ σ₀ g A I) I (bidLengthWord σ I)).accountMap
-      ByteArray.empty := by
+      ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic blindAuctionBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1426⟩ := blindAuctionBidX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hsz36 hsize hszhi hreach
   have rd1429 := evm_run rd1426 with [jumpdest, push1 ⟨1⟩]
@@ -807,6 +827,11 @@ theorem blindAuctionBidX_ok {σ σ₀ A I} {g : Sat256}
       (bidStructMem I) (UInt256.ofNat 6) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [bidLengthWord, initState] using rd1503₀⟩
   have rd1508 := evm_run rd1503 with [push1 ⟨1⟩, dup2, dup2, add, dup8]
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1508.sstoreStatic (by simpa using hperm) (by decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1510₀⟩ := rd1508.sstore hperm (by decide) (by evm_ov)
   let evm0 := initState σ σ₀ g A I
   obtain ⟨_, _, rd1510⟩ : ∃ k C, RD blindAuctionBytecode I g evm0 ⟨1510⟩
@@ -860,7 +885,7 @@ theorem blindAuctionBidX_ok {σ σ₀ A I} {g : Sat256}
 /-- `bid(bytes32)` body (pc 449) refines its transition. -/
 theorem blindAuctionBidBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩)
+    (hsel : selIs I ⟨#[0x95, 0x7b, 0xb1, 0xe0]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨449⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -887,8 +912,19 @@ theorem blindAuctionBidBodyCore {σ σ₀ A I} {g : UInt256}
             (by
               simpa [evmS, initState, biddingEndWord, bidTimestampWord, Solm.EVM.storageLoad,
                 State.lookupAccount] using htimeS')
-        exact (blindAuctionBidX_ok (g := Sat256.ofUInt256 g) hperm hsz36 hsize hbig
-            htime hreach)
+        by_cases hperm : I.perm = true
+        swap
+        · have hpf : I.perm = false := by simpa using hperm
+          exact (permSplit_false hpf (blindAuctionBidX_ok (g := Sat256.ofUInt256 g) hsz36 hsize
+              hbig htime hreach)).reEquivStaticHalt hcode hd hdec
+            (blindAuctionBidBodyStatic evmS
+              (by simpa [evmS, initState] using hsz36)
+              (by
+                simpa [evmS, initState, biddingEndWord, bidTimestampWord, Solm.EVM.storageLoad,
+                  State.lookupAccount] using htimeS')
+              (by simpa [evmS, initState] using hpf))
+        exact (permSplit_true hperm (blindAuctionBidX_ok (g := Sat256.ofUInt256 g) hsz36 hsize
+            hbig htime hreach))
           |>.reEquivExecutionGen hcode hd hdec hbody
             (by simp [evmS, bidPostState, bidAfterBlindedState, bidAfterLengthState,
               initState, storageStore_executionEnv, storageStore_accountMap])

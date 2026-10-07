@@ -88,26 +88,37 @@ theorem assignInitialized (evm : EVM.State) (locals : Store)
   scalarWrite evm _ locals "_initialized" (.elem .bool) (auctionBoolLoc ⟨0⟩) _
     hbase (by native_decide) rfl (by trivial) (storageLocStore_bool_true_offset0 evm ⟨0⟩)
 
-theorem initializerBeginSource (evm : EVM.State) (locals : Store)
+theorem initializerBeginSourceSplit (evm : EVM.State) (locals : Store)
     (hi : locals.get? "_initializing" = none) (hz : locals.get? "_initialized" = none)
     (ht : locals.get? "isTopLevelCall" = some (.bool (initializeTop evm))) :
-    ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+    (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
       (.ite (.var "isTopLevelCall")
         [.assign .storage initializingRef (.boolLit true),
           .assign .storage initializedRef (.boolLit true)] [])
-      (.ok { contract := auctionContract, locals := locals } (initializerEnteredState evm)) := by
-  by_cases hb : initializeTop evm = true
-  · rw [initializerEnteredState, if_pos hb]
-    apply ExecStmt.iteTrue
-    · simp only [evalExpr?, ht, hb, EvalResult.ofOption]
-    · apply ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure])
-        (assignInitializing evm locals true hi))
+      (.ok { contract := auctionContract, locals := locals } (initializerEnteredState evm))) ∧
+      (evm.executionEnv.perm = false → initializeTop evm = true →
+        ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
+          (.ite (.var "isTopLevelCall")
+            [.assign .storage initializingRef (.boolLit true),
+              .assign .storage initializedRef (.boolLit true)] []) .staticViolation) := by
+  have hcond : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
+      evm (.var "isTopLevelCall") = .ok (.bool (initializeTop evm)) := by
+    simp only [evalExpr?, ht, EvalResult.ofOption]
+  have hvalue : evalExpr? auctionConfig { contract := auctionContract, locals := locals }
+      evm (.boolLit true) = .ok (.bool true) := by simp only [evalExpr?, pure]
+  have hassign := assignInitializing evm locals true hi
+  constructor
+  · by_cases hb : initializeTop evm = true
+    · rw [initializerEnteredState, if_pos hb]
+      apply ExecStmt.iteTrue (by simpa only [hb] using hcond)
+      apply ExecBlock.consNormal (ExecStmt.assign hvalue hassign)
       exact assignStorageBlock (by simp [evalExpr?, pure])
         (assignInitialized (setInitializingState evm true) locals hz)
-  · rw [initializerEnteredState, if_neg hb]
-    apply ExecStmt.iteFalse
-    · have hf : initializeTop evm = false := Bool.eq_false_iff.mpr hb
-      simp only [evalExpr?, ht, hf, EvalResult.ofOption]
-    · exact ExecBlock.nil
+    · rw [initializerEnteredState, if_neg hb]
+      have hf : initializeTop evm = false := Bool.eq_false_iff.mpr hb
+      exact ExecStmt.iteFalse (by simpa only [hf] using hcond) ExecBlock.nil
+  · intro hperm htop
+    exact ExecStmt.iteTrue (by simpa only [htop] using hcond)
+      (ExecBlock.consStatic (ExecStmt.assignStatic hvalue hassign hperm))
 
 end Auction

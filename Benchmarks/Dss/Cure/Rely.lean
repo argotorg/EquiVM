@@ -474,20 +474,21 @@ theorem RD.cureLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
 abbrev cureRelyEventTopic : UInt256 :=
   ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩
 
-theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
+theorem RD.cureRelyStoreOneSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2506⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
-      (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C' := by
+    (ee.perm = true ∧
+      ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem)
+        (UInt256.ofNat 3) rdata
+        (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨1⟩) k' C') ∨
+      (ee.perm = false ∧ RDstatic cureBytecode g s0) := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -537,7 +538,14 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
       omega),
     raw swap1 (by native_decide) (by
       simpa only [List.length_cons] using hov)]
-  obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm (by native_decide)
+  have hstoreDec : decode cureBytecode ⟨2535⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdBeforeStore.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm hstoreDec
     (by simp only [List.length_cons]; omega)
   have hread64' :
       (twoWordHashMem key ⟨0⟩ mem).readWithPadding 64 32 =
@@ -568,7 +576,6 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
 theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 12)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -627,9 +634,12 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           exact hliveEvm
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (relySlotFor I) ⟨1⟩
-        have hbody :
-            ExecTransitionBody config contract evm0 locals relyTransition.body
-              (.returned { contract := contract, locals := locals } evm1 none) := by
+        have hbodySplit :
+            (ExecTransitionBody config contract evm0 locals relyTransition.body
+              (.returned { contract := contract, locals := locals } evm1 none)) ∧
+            (I.perm = false →
+              ExecTransitionBody config contract evm0 locals relyTransition.body
+                .staticViolation) := by
           have hguardAuth := cureAuthGuardEval_true
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
@@ -661,21 +671,25 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
                 simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw,
                   relyEvaledRef, relySlotFor])
               (hstore := hstore)
-          have hblock :
+          have hprefix {result : ExecResult}
+              (hrest : ExecBlock config { contract := contract, locals := locals } evm0
+                (relyTransition.body.drop 3) result) :
               ExecBlock config { contract := contract, locals := locals } evm0
-                [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
-                  .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
-                  .require (.binary .eq (.storage liveRef) (.intLit 1)),
-                  .assign .storage (wardsRef (.var "usr")) (.intLit 1) ]
-                (.ok { contract := contract, locals := locals } evm1) := by
+                relyTransition.body result := by
             refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
             · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-            exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassign)
-              ExecBlock.nil
-          simpa [ExecTransitionBody, relyTransition, nonpayable, auth, evm0, evm1] using
-            ExecFuncBody.execBlockOK hblock
+            exact hrest
+          have hrhs : evalExpr? config { contract := contract, locals := locals } evm0
+              (.intLit 1) = .ok (.int 1) := by simp [evalExpr?, pure]
+          constructor
+          · exact ExecFuncBody.execBlockOK (hprefix
+              (ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil))
+          · intro hperm
+            exact ExecFuncBody.execBlockStatic (hprefix
+              (ExecBlock.consStatic (ExecStmt.assignStatic hrhs hassign
+                (by simpa [evm0, initState] using hperm))))
         have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
           simpa [solcSlotWordAt] using hliveEvm
         obtain ⟨_, _, hstorePc⟩ := RD.cureLiveGuardOk
@@ -697,10 +711,14 @@ theorem cureRelyBodyCore {σ σ₀ A I} {g : UInt256}
           dsimp [key, relyKey]
           rw [u256_land_comm solcAddrMask (calldataWord I.calldata 4)]
           exact solcAddrMask_result_canonical (calldataWord I.calldata 4)
-        obtain ⟨_, _, hretPc⟩ := RD.cureRelyStoreOne
+        have hfirstWrite := RD.cureRelyStoreOneSplit
           (g := Sat256.ofUInt256 g) (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
-          hstorePc (by jump_dest) hperm hmemAuth hread64 hcanonKey (by simp)
+          hstorePc (by jump_dest) hmemAuth hread64 hcanonKey (by simp)
+        rcases hfirstWrite with ⟨_, _, _, hretPc⟩ | ⟨hperm, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+        have hbody := hbodySplit.1
         have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
         have hret :
             RDret cureBytecode (Sat256.ofUInt256 g)

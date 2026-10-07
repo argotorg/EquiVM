@@ -98,7 +98,6 @@ theorem jugDripBodyCoreVatIlksCallFailed
     {σ σ' σ₀ A I} {g : UInt256} {sel : UInt256}
     {out : ByteArray} {Ain : Substate} {gasWord : UInt256} {k C : ℕ}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
@@ -161,8 +160,8 @@ theorem jugDripBodyCoreVatIlksCallFailed
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-    simpa [evm, initState, hperm] using hΘ
+          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ
   have hcall :
       typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -181,7 +180,6 @@ theorem jugDripBodyCoreVatIlksCallFailed
 theorem jugDripBodyCoreVatIlksCallDepthLimit
     {σ σ₀ A I} {g : UInt256} {sel : UInt256} {k C : ℕ}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
@@ -241,7 +239,6 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     {σ σ' σ₀ A I} {g : UInt256} {sel : UInt256}
     {out : ByteArray} {Ain : Substate} {gasWord : UInt256} {k C : ℕ}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
@@ -305,8 +302,8 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
           gasWord (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-    simpa [evm, initState, hperm] using hΘ
+          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ
   have hcall :
       typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -328,7 +325,6 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     {σ σ' σ₀ A I} {g sel : UInt256}
     {out mem : ByteArray} {Ain : Substate} {callGas : UInt256} {k C : ℕ}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
@@ -384,8 +380,8 @@ theorem jugDripBodyCoreVatIlksAddOverflow
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
-          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
-    simpa [evm, initState, hperm] using hΘ
+          (evm.executionEnv.depth + 1) evm.executionEnv.header evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ
   have htgt :
       EVM.address (dripVatAddress σ I) =
         AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by

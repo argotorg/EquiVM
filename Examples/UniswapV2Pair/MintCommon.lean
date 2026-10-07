@@ -662,6 +662,25 @@ theorem uniswapMintX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rd3368⟩
 
+/-- In a static call, `mint(address)` halts at the lock-entry `SSTORE`. -/
+theorem uniswapMintX_lockEnteredStatic {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = false)
+    (hunlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
+        ⟨1⟩)
+    (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
+      (initState σ σ₀ g A I) ⟨3283⟩
+      [mintToMaskedWord I, ⟨861⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDstatic uniswapV2PairBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd3283⟩ := hdecoded
+  have rd3286 := evm_run rd3283 with [jumpdest, push1 ⟨0⟩]
+  exact RD.uniswapLockEnterBodyOkStatic
+    (pc := ⟨3286⟩) (okPc := ⟨3360⟩)
+    (R := [⟨0⟩, mintToMaskedWord I, ⟨861⟩, sel])
+    rd3286 uniswap_lock_enter_body_ok_wf hperm hunlocked (by jump_dest)
+      (by simp only [List.length_cons, List.length_nil]; omega)
+
 theorem uniswapMintBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩) :
@@ -669,6 +688,17 @@ theorem uniswapMintBodyReverts_locked (evm : EVM.State) (I : ExecutionEnv)
   have hlock :=
     uniswapLockEnterLockedRevert evm (mintStore I) hwv (by simp [mintStore]) hlocked
   exact ExecFuncBody.execBlockRevert (by
+    simpa [mintTransition, List.append_assoc] using
+      (execBlock_append_term hlock (by intro f e h; cases h)))
+
+theorem uniswapMintBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (mintStore I) mintTransition.body
+      .staticViolation := by
+  have hlock := uniswapLockEnterStatic evm (mintStore I) hwv (by simp [mintStore]) hunlocked hperm
+  exact ExecFuncBody.execBlockStatic (by
     simpa [mintTransition, List.append_assoc] using
       (execBlock_append_term hlock (by intro f e h; cases h)))
 

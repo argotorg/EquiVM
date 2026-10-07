@@ -88,7 +88,7 @@ theorem ownable2StepX_pendingOwner {σ σ₀ A I} {g : Sat256}
 theorem ownable2StepPendingOwnerBody
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xe3, 0x0c, 0x39, 0x78]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨147⟩

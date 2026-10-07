@@ -90,7 +90,6 @@ theorem weth9TotalSupplyBodyCoreOk {σ σ₀ A I} {g : UInt256}
 
 theorem weth9TotalSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hsel : selIs I (weth9SelBytes 2)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩

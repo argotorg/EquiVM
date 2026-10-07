@@ -217,7 +217,8 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
           callGas (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((endCageCallCalldataMem (endRelyAuthHashMem evmE.executionEnv)).readWithPadding
             endCageCallOutPtr.toNat endCageCallInSize.toNat)
-          (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true)
+          (evmE.executionEnv.depth + 1) evmE.executionEnv.header
+          evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks evmE.executionEnv.perm)
     (hAccounts : Eq evmE.accountMap evmS.accountMap)
     (hOriginalAccounts : evmE.σ₀ = evmS.σ₀)
     (hEnv : evmS.executionEnv = evmE.executionEnv) :
@@ -254,7 +255,8 @@ theorem endCageCallMadeBridge {evmE evmS : EVM.State} {slot : UInt256}
           ((endCageCallCalldataMem (endRelyAuthHashMem evmS.executionEnv)).readWithPadding
             endCageCallOutPtr.toNat endCageCallInSize.toNat)
           (evmS.executionEnv.depth + 1) evmS.executionEnv.header
-          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
+          evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks evmS.executionEnv.perm :=
+          by
     rw [← hAccounts, ← hOriginalAccounts, hEnv]
     exact hΘ
   have hcall :
@@ -660,20 +662,28 @@ theorem endCageAssignWhen (evm : EVM.State) :
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨8⟩ ⟨0⟩) ⟨9⟩
       (endCageTimestampWord evm)
 
-theorem endCageX_storePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hperm : I.perm = true)
+theorem endCageX_storePrefixSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256}
     (h : RD endBytecode I g s0 endCageStorePc [endCageReturnPc, sel]
       (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k' C', RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
-      (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (endCageStoredAccountMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD endBytecode I g s0 ⟨5604⟩ [⟨0⟩, endCageReturnPc, sel]
+        (endRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
+        (endCageStoredAccountMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic endBytecode g s0) := by
   have rdStoreLiveCursor := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterLive⟩ := rdStoreLiveCursor.sstore hperm (by native_decide)
+  have hstoreDec : decode endBytecode ⟨5599⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdStoreLiveCursor.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rdAfterLive⟩ := rdStoreLiveCursor.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdTimestamp := rdAfterLive.timestamp (by native_decide) (by evm_ov)
   have rdPush9 := rdTimestamp.push1 ⟨9⟩ (by native_decide) (by evm_ov)
@@ -2783,18 +2793,24 @@ theorem endCageX_finish {σ σCall σ' σ₀ A I} {g : UInt256}
     (by native_decide) (by evm_ov)
   exact RD.stop rd563 (by native_decide) (by evm_ov)
 
-theorem endCageSourceStoresPrefix {σ σ₀ A I} {g : UInt256}
+theorem endCageSourceStoresPrefixSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : endRelyAuthWord σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩) :
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmStores := endCagePostStoresState evm0
-    ExecBlock config { contract := contract, locals := ∅ } evm0
+    (ExecBlock config { contract := contract, locals := ∅ } evm0
       (nonpayable ++ auth ++
         [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
           .assign .storage liveRef (.intLit 0),
           .assign .storage whenRef nowT ])
-      (.ok { contract := contract, locals := ∅ } evmStores) := by
+      (.ok { contract := contract, locals := ∅ } evmStores)) ∧
+      (I.perm = false →
+        ExecBlock config { contract := contract, locals := ∅ } evm0
+          (nonpayable ++ auth ++
+            [ .require (.binary .eq (.storage liveRef) (.intLit 1)),
+              .assign .storage liveRef (.intLit 0),
+              .assign .storage whenRef nowT ])      .staticViolation) := by
   intro evm0 evmStores
   let evmLive := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨8⟩ ⟨0⟩
   have hguardAuth :
@@ -2823,13 +2839,25 @@ theorem endCageSourceStoresPrefix {σ σ₀ A I} {g : UInt256}
         .storage whenRef (.int (Int.ofNat (endCageTimestampWord evm0).toNat)) =
           .ok ({ contract := contract, locals := ∅ }, evmStores) := by
     simpa [evmLive, evmStores] using endCageAssignWhen evm0
-  simp only [nonpayable, auth, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp only [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign htimestamp hassignWhen) ExecBlock.nil
+  have hprefix {result : ExecResult}
+      (htail : ExecBlock config { contract := contract, locals := ∅ } evm0
+        [.assign .storage liveRef (.intLit 0), .assign .storage whenRef nowT] result) :
+      ExecBlock config { contract := contract, locals := ∅ } evm0
+        (nonpayable ++ auth ++
+          [.require (.binary .eq (.storage liveRef) (.intLit 1)),
+            .assign .storage liveRef (.intLit 0), .assign .storage whenRef nowT]) result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp only [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) htail
+  constructor
+  · apply hprefix
+    refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
+    exact ExecBlock.consNormal (ExecStmt.assign htimestamp hassignWhen) ExecBlock.nil
+  · intro hperm
+    exact hprefix (ExecBlock.consStatic
+      (ExecStmt.assignStatic (by simp [evalExpr?, pure]) hassignLive
+        (by simp only [evm0, initState]; exact hperm)))
 
 theorem evalExpr_endCage_storageAddr {evm : EVM.State} {locals : Store}
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -3089,7 +3117,7 @@ theorem endCageSourceLiveReverts {σ σ₀ A I} {g : UInt256}
 
 theorem endCageBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (selectorOf cageTransition)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endCageConcreteSelector := by
@@ -3108,7 +3136,19 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
   · obtain ⟨_, _, hLivePc⟩ := endCageX_authorized hauth hAuthPc
     by_cases hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩
     · obtain ⟨_, _, hStorePc⟩ := endCageX_live hlive hLivePc
-      obtain ⟨_, _, hVatStart⟩ := endCageX_storePrefix hperm hStorePc
+      have hsrcSplit := endCageSourceStoresPrefixSplit
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
+      rcases endCageX_storePrefixSplit hStorePc with
+        ⟨hperm, _, _, hVatStart⟩ | ⟨hperm, hstatic⟩
+      swap
+      · have hbody : ExecTransitionBody config contract evmSolm ∅
+            cageTransition.body .staticViolation := by
+          apply ExecFuncBody.execBlockStatic
+          rw [endCageSourceBody_eq]
+          exact execBlock_append_term (s2 := endCageSourceCallStmts)
+            (by simpa [evmSolm, endCageSourceStorePrefixStmts] using hsrcSplit.2 hperm)
+            (by intro f e h; cases h)
+        exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hbody
       let evmS0 := endCagePostStoresState evmSolm
       let evmE0 := endCagePostStoresState
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -3125,9 +3165,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
             endCageSourceStorePrefixStmts
             (.ok { contract := contract, locals := ∅ } evmS0) := by
         simpa [evmSolm, evmS0, endCageSourceStorePrefixStmts] using
-          endCageSourceStoresPrefix
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-            hwv hauth hlive
+          hsrcSplit.1
       have hAccounts0 : Eq evmE0.accountMap evmS0.accountMap := rfl
       have hState0 : EVMStateEquiv evmE0 evmS0 := by
         refine ⟨?_, ?_⟩
@@ -3226,7 +3264,8 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                     (endRelyAuthHashMem evmE0.executionEnv)).readWithPadding
                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
                   (evmE0.executionEnv.depth + 1) evmE0.executionEnv.header
-                  evmE0.executionEnv.blobVersionedHashes evmE0.executionEnv.blocks true := by
+                  evmE0.executionEnv.blobVersionedHashes evmE0.executionEnv.blocks
+                  evmE0.executionEnv.perm := by
             simpa [evmE0, endCagePostStoresState, initState, storageStore_accountMap,
               storageStore_executionEnv, endCageStoredAccountMap,
               hperm] using hΘ1eq
@@ -3371,7 +3410,8 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                         (endRelyAuthHashMem evmE1.executionEnv)).readWithPadding
                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
                       (evmE1.executionEnv.depth + 1) evmE1.executionEnv.header
-                      evmE1.executionEnv.blobVersionedHashes evmE1.executionEnv.blocks true := by
+                      evmE1.executionEnv.blobVersionedHashes evmE1.executionEnv.blocks
+                      evmE1.executionEnv.perm := by
                 simpa [evmE1, evmE0, endCagePostStoresState, initState,
                   storageStore_accountMap,
                   storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ2eq
@@ -3527,7 +3567,8 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                             (endRelyAuthHashMem evmE2.executionEnv)).readWithPadding
                               endCageCallOutPtr.toNat endCageCallInSize.toNat)
                           (evmE2.executionEnv.depth + 1) evmE2.executionEnv.header
-                          evmE2.executionEnv.blobVersionedHashes evmE2.executionEnv.blocks true := by
+                          evmE2.executionEnv.blobVersionedHashes evmE2.executionEnv.blocks
+                          evmE2.executionEnv.perm := by
                     simpa [evmE2, evmE1, evmE0, endCagePostStoresState, initState,
                       storageStore_accountMap,
                       storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using hΘ3eq
@@ -3682,7 +3723,8 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                 (endRelyAuthHashMem evmE3.executionEnv)).readWithPadding
                                   endCageCallOutPtr.toNat endCageCallInSize.toNat)
                               (evmE3.executionEnv.depth + 1) evmE3.executionEnv.header
-                              evmE3.executionEnv.blobVersionedHashes evmE3.executionEnv.blocks true := by
+                              evmE3.executionEnv.blobVersionedHashes evmE3.executionEnv.blocks
+                              evmE3.executionEnv.perm := by
                         simpa [evmE3, evmE2, evmE1, evmE0, endCagePostStoresState,
                           initState, storageStore_accountMap,
                           storageStore_executionEnv, endCageStoredAccountMap, endCageTimestampWord, hperm] using
@@ -3841,7 +3883,8 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                     (endRelyAuthHashMem evmE4.executionEnv)).readWithPadding
                                       endCageCallOutPtr.toNat endCageCallInSize.toNat)
                                   (evmE4.executionEnv.depth + 1) evmE4.executionEnv.header
-                                  evmE4.executionEnv.blobVersionedHashes evmE4.executionEnv.blocks true := by
+                                  evmE4.executionEnv.blobVersionedHashes evmE4.executionEnv.blocks
+                                  evmE4.executionEnv.perm := by
                             simpa [evmE4, evmE3, evmE2, evmE1, evmE0,
                               endCagePostStoresState, initState, storageStore_accountMap,
                               storageStore_executionEnv,
@@ -4011,7 +4054,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                           endCageCallOutPtr.toNat endCageCallInSize.toNat)
                                       (evmE5.executionEnv.depth + 1)
                                       evmE5.executionEnv.header evmE5.executionEnv.blobVersionedHashes
-                                      evmE5.executionEnv.blocks true := by
+                                      evmE5.executionEnv.blocks evmE5.executionEnv.perm := by
                                 simpa [evmE5, evmE4, evmE3, evmE2, evmE1, evmE0,
                                   endCagePostStoresState, initState, storageStore_accountMap,
                                   storageStore_executionEnv,
@@ -4197,7 +4240,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                               endCageCallInSize.toNat)
                                           (evmE6.executionEnv.depth + 1)
                                           evmE6.executionEnv.header evmE6.executionEnv.blobVersionedHashes
-                                          evmE6.executionEnv.blocks true := by
+                                          evmE6.executionEnv.blocks evmE6.executionEnv.perm := by
                                     simpa [evmE6, evmE5, evmE4, evmE3, evmE2, evmE1,
                                       evmE0, endCagePostStoresState, initState,
                                       storageStore_accountMap,

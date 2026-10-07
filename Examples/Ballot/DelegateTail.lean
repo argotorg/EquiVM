@@ -1730,16 +1730,16 @@ theorem ballotDelegateX_loopSenderRevertFrom972Current {σ σ₀ A I}
 
 theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
-    (hperm : I.perm = true)
     (hcanon : w.toNat < EVM.addressModulus)
     (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
+    (I.perm = true ∧ ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C)
+    ∨ (I.perm = false ∧ RDstatic ballotBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1174⟩ :=
     ballotDelegateX_tailAfterDelegateWeightFrom1134
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (w := w)
@@ -1761,7 +1761,12 @@ theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {σ σ₀ A I}
   have rd1208 := evm_run rd1207 with [dup3]
   have rd1209 := RD.or rd1208 (by decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
-  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  swap
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1210.sstoreStatic hpf (by decide) (by evm_ov)⟩
+  obtain ⟨_, _, rd1211⟩ := rd1210.sstore hp (by decide) (by evm_ov)
+  refine Or.inl ⟨hp, ?_⟩
   exact ⟨_, _, by
     simpa [delegateTailAfterSenderMap, delegateTailSenderPackedStoreWord,
       delegateSenderPackedWord, delegateSenderPackedSlot, initState] using rd1211⟩
@@ -2478,9 +2483,9 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
       rw [delegateTailVoterWeightCurrent_afterSenderState_init,
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hfitSolm)
-  have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
+  have hreach1211 := permSplit_true hperm <| ballotDelegateX_tailAfterSenderPackedStoreFrom1134
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
+    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hcanonTail hdelegateWeight hreach
   exact (ballotDelegateX_tailNotVotedSuccessFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
@@ -2554,9 +2559,9 @@ theorem ballotDelegateTailNotVotedOverflowEquiv
       rw [delegateTailVoterWeightCurrent_afterSenderState_init,
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hoverSolm)
-  have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
+  have hreach1211 := permSplit_true hperm <| ballotDelegateX_tailAfterSenderPackedStoreFrom1134
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
+    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hcanonTail hdelegateWeight hreach
   exact (ballotDelegateX_tailNotVotedOverflowFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateNotVoted hover hreach1211)
@@ -2637,9 +2642,9 @@ theorem ballotDelegateTailVotedSuccessEquiv
       rw [delegateTailProposalCountCurrent_init,
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hfitSolm)
-  have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
+  have hreach1211 := permSplit_true hperm <| ballotDelegateX_tailAfterSenderPackedStoreFrom1134
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
+    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hcanonTail hdelegateWeight hreach
   exact (ballotDelegateX_tailVotedSuccessFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
@@ -2712,9 +2717,9 @@ theorem ballotDelegateTailVotedOobEquiv
       rw [delegateTailVoterVoteCurrent_afterSenderState_init,
         delegateTailProposalsLengthCurrent_afterSenderState_init]
       exact hboundSolm)
-  have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
+  have hreach1211 := permSplit_true hperm <| ballotDelegateX_tailAfterSenderPackedStoreFrom1134
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
+    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hcanonTail hdelegateWeight hreach
   exact (ballotDelegateX_tailVotedOobFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateVoted hbound hreach1211)
@@ -2793,9 +2798,9 @@ theorem ballotDelegateTailVotedOverflowEquiv
       rw [delegateTailProposalCountCurrent_init,
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hoverSolm)
-  have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
+  have hreach1211 := permSplit_true hperm <| ballotDelegateX_tailAfterSenderPackedStoreFrom1134
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
+    (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hcanonTail hdelegateWeight hreach
   exact (ballotDelegateX_tailVotedOverflowFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateVoted hbound hover hreach1211)

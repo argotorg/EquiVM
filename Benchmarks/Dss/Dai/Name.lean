@@ -169,7 +169,7 @@ theorem daiDecode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
 /-- `name()` body refines its Solm transition. -/
 theorem daiNameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 9)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=

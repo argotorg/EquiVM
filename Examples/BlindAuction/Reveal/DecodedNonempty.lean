@@ -15,7 +15,6 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hd : dispatchMsg blindAuctionContract I.calldata = some revealTransition)
     (hdec : decodeCalldata (revealTransition.params.map Param.name)
       (transitionSignature revealTransition).paramTypes I.calldata = some callargs)
@@ -162,7 +161,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
         (fakesLenWord := fakesLenWord) (fakesEnd := fakesEnd)
         (valuesLenWord := valuesLenWord) (valuesEnd := valuesEnd) (sel := sel)
         (values := values) (fakes := fakes) (secrets := secrets) (callargs := callargs)
-        hsize hperm hdec hstore hsecretsEnd hfakesEnd hvaluesEnd
+        hsize hdec hstore hsecretsEnd hfakesEnd hvaluesEnd
         hvaluesEq' hfakesEq' hsecretsEq'
         hvaluesListLen' hfakesListLen' hsecretsListLen' hvaluesLenMax'
   exact
@@ -177,7 +176,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
       (valuesLenWord := valuesLenWord)
       (initCursor := initCursor) (evmSolm := evmSolm)
       (k1014 := k1014) (C1014 := C1014)
-      hcode hperm hd hdec hstore rfl
+      hcode hd hdec hstore rfl
       hwvSolm hafterBody hbeforeBody hbiddingAbsent hrevealAbsent
       hvaluesGet hfakesGet hsecretsGet hlenBody
       rfl

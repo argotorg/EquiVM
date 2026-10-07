@@ -847,7 +847,6 @@ set_option maxHeartbeats 1000000 in
 theorem flopperKickBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 8)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -871,6 +870,18 @@ theorem flopperKickBody {σ σ₀ A I} {g : UInt256}
         by_cases hkicksLt : (solcSlotWordAt ⟨7⟩ σ I).toNat < UInt256.size - 1
         · obtain ⟨_, _, rd3643⟩ := flopperKickX_kicksOk (g := Sat256.ofUInt256 g)
             hkicksLt rd3568
+          by_cases hperm : I.perm = true
+          swap
+          · have hp : I.perm = false := by simpa using hperm
+            have hstatic := permSplit_false hp (flopperKickX_toCheckedAddStartSplit rd3643)
+            have hsource := (flopperKickBodyReturns_successSplit
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv rfl
+              (by simpa [relyAuthWord, solcSlotWordAt, initState, Solm.EVM.storageLoad,
+                State.lookupAccount] using hauth)
+              (by simpa [kickLiveWord, initState] using hlive)
+              (by simpa [kickKicksWord, initState] using hkicksLt)).2 hp
+            exact hstatic.reEquivStaticHalt hcode hdispatch
+              (flopperDecode_kick_ok hsz100) hsource
           by_cases haddFit :
               (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
                 (kickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48

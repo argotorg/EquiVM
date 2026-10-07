@@ -1637,7 +1637,6 @@ theorem RD.vowCageHealPostCall
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (kissDaiTargetWord σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true)
     (hov : R.length + 15 ≤ 1024) :
     ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -1702,7 +1701,7 @@ theorem RD.vowCageHealPostCall
         exact absurd hdepth (by rw [hEq]; decide))
       (kissVatAddress_eq_daiTarget σCall I)
       (cageHealEncode_eq healRad hmem) ?_
-    simpa [evmCall, initState, hperm] using hΘ
+    simpa [evmCall, initState] using hΘ
 
 theorem RD.vowCageHealCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}

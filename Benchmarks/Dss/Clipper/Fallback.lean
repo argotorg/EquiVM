@@ -1052,7 +1052,7 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size

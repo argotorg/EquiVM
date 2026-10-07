@@ -269,6 +269,27 @@ theorem erc6909SetOperatorBodyReturns (evm : EVM.State)
       (setOperatorAssign evm evm.executionEnv)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
+/-- Static mode: the body halts at the operator-flag write. -/
+theorem erc6909SetOperatorBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
+    (hspender :
+      AccountAddress.ofNat (setOperatorSpenderWord evm.executionEnv).toNat ≠
+        AccountAddress.ofNat 0)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (setOperatorStore evm.executionEnv)
+      setOperatorTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_setOperator_sender_ne_zero_true evm hsource)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue
+      (evalExpr_setOperator_spender_ne_zero_true evm evm.executionEnv hspender)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_setOperator_approved evm evm.executionEnv)
+      (setOperatorAssign evm evm.executionEnv) hperm)
+
 theorem erc6909SetOperatorBodyReverts_sender (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsource : evm.executionEnv.source = AccountAddress.ofNat 0) :
@@ -956,35 +977,40 @@ theorem erc6909SetOperatorX_toPreStore {σ σ₀ A I} {g : Sat256}
   exact ⟨_, _, by
     simpa [setOperatorStoredPreStoreStack] using rd1094'⟩
 
+/-- The operator-flag `SSTORE` (the first forbidden opcode on the success path): with write
+    permission the store happens; in static mode the run halts there. -/
 theorem erc6909SetOperatorX_sstore {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hpre : ∃ k C, RD erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨1094⟩ (setOperatorStoredPreStoreStack σ I sel)
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
       (setOperatorStoredFinalStack I sel)
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
-      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C := by
+      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1094⟩ := hpre
-  obtain ⟨k, C, rd1095⟩ := rd1094.sstore hperm (by decide) (by evm_ov)
-  refine ⟨k, C, ?_⟩
-  simpa [setOperatorStoredPreStoreStack, setOperatorStoredPostMap] using rd1095
+  by_cases hp : I.perm = true
+  · obtain ⟨k, C, rd1095⟩ := rd1094.sstore hp (by decide) (by evm_ov)
+    refine Or.inl ⟨hp, k, C, ?_⟩
+    simpa [setOperatorStoredPreStoreStack, setOperatorStoredPostMap] using rd1095
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1094.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc6909SetOperatorX_storeLoaded {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
-    (hperm : I.perm = true)
     (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
     (hloaded : ∃ k C, RD erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨1082⟩ (setOperatorStoredLoadedStack σ I sel)
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
       (setOperatorStoredFinalStack I sel)
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
-      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C := by
+      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   exact erc6909SetOperatorX_sstore (σ := σ)
-    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hperm
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
     (erc6909SetOperatorX_toPreStore (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hcanonSpender hloaded)
 
@@ -992,7 +1018,6 @@ theorem erc6909SetOperatorX_stored {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hperm : I.perm = true)
     (hcanonSpender : (setOperatorSpenderWord I).toNat < EVM.addressModulus)
     (hbool : setOperatorApprovedWord I = ⟨0⟩ ∨ setOperatorApprovedWord I = ⟨1⟩)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
@@ -1000,12 +1025,13 @@ theorem erc6909SetOperatorX_stored {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨247⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1095⟩
       (setOperatorStoredFinalStack I sel)
       (setOperatorSpenderHashMem (setOperatorOwnerWord I) (setOperatorSpenderWord I))
-      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C := by
+      (UInt256.ofNat 3) ByteArray.empty (setOperatorStoredPostMap σ I) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   exact erc6909SetOperatorX_storeLoaded (σ := σ)
-    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hperm hcanonSpender
+    (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) hcanonSpender
     (erc6909SetOperatorX_loaded
       (erc6909SetOperatorX_toStoredSlot (σ := σ)
         (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
@@ -1026,9 +1052,9 @@ theorem erc6909X_setOperator {σ σ₀ A I} {g : Sat256}
     RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (setOperatorSlotI I) (setOperatorStoredWord σ I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  obtain ⟨_, _, rd1095⟩ := erc6909SetOperatorX_stored
+  obtain ⟨_, _, rd1095⟩ := permSplit_true hperm (erc6909SetOperatorX_stored
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz68 hsize hszhi hperm hcanonSpender hbool hsource hspender hreach
+    hsz68 hsize hszhi hcanonSpender hbool hsource hspender hreach)
   have rd1142pre := evm_run rd1095 with [
     swap2,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -1099,7 +1125,7 @@ theorem erc6909X_setOperator {σ σ₀ A I} {g : Sat256}
 theorem erc6909SetOperatorBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 4))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨247⟩
@@ -1138,23 +1164,36 @@ theorem erc6909SetOperatorBodyCore
               exact (erc6909SetOperatorX_revert_spender (g := Sat256.ofUInt256 g)
                   hsz68 hsize hbig hcanonSpender hbool hsource hspender hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
-            · have hbody :
-                  ExecTransitionBody config contract evmS (setOperatorStore I)
-                    setOperatorTransition.body
-                    (.returned { contract := contract, locals := setOperatorStore I }
-                      (setOperatorPostState evmS I) (some [(.bool true)])) := by
-                simpa [evmS, initState] using erc6909SetOperatorBodyReturns evmS
-                  (by simp only [evmS, initState]; exact hwv)
-                  (by simpa [evmS, initState] using hsource)
-                  (by simpa [evmS, initState] using hspender)
-              exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
-                  hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
-                |>.reEquivExecutionGen hcode hd hdec hbody
-                  (by simp [evmS, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
-                    setOperatorStoredWord, setOperatorStorageWord, initState,
-                    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                    storageStore_accountMap])
-                  (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+            · by_cases hperm : I.perm = true
+              · have hbody :
+                    ExecTransitionBody config contract evmS (setOperatorStore I)
+                      setOperatorTransition.body
+                      (.returned { contract := contract, locals := setOperatorStore I }
+                        (setOperatorPostState evmS I) (some [(.bool true)])) := by
+                  simpa [evmS, initState] using erc6909SetOperatorBodyReturns evmS
+                    (by simp only [evmS, initState]; exact hwv)
+                    (by simpa [evmS, initState] using hsource)
+                    (by simpa [evmS, initState] using hspender)
+                exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
+                    hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
+                  |>.reEquivExecutionGen hcode hd hdec hbody
+                    (by simp [evmS, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
+                      setOperatorStoredWord, setOperatorStorageWord, initState,
+                      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                      storageStore_accountMap])
+                    (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+              · have hpf : I.perm = false := by simpa using hperm
+                have hbody :
+                    ExecTransitionBody config contract evmS (setOperatorStore I)
+                      setOperatorTransition.body .staticViolation := by
+                  simpa [evmS, initState] using erc6909SetOperatorBodyStatic evmS
+                    (by simp only [evmS, initState]; exact hwv)
+                    (by simpa [evmS, initState] using hsource)
+                    (by simpa [evmS, initState] using hspender)
+                    (by simp only [evmS, initState]; exact hpf)
+                exact (permSplit_false hpf (erc6909SetOperatorX_stored (g := Sat256.ofUInt256 g)
+                    hsz68 hsize hbig hcanonSpender hbool hsource hspender hreach))
+                  |>.reEquivStaticHalt hcode hd hdec hbody
         · have hnz : setOperatorApprovedWord I ≠ ⟨0⟩ := by
             intro hzero
             exact hbool (Or.inl hzero)

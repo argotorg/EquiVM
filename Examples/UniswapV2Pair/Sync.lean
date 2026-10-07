@@ -386,6 +386,19 @@ theorem uniswapSyncBodyReverts_locked (evm : EVM.State)
     ExecTransitionBody config contract evm ∅ syncTransition.body .reverted := by
   exact ExecFuncBody.execBlockRevert (uniswapSyncLockedSource evm hwv hlocked)
 
+theorem uniswapSyncBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm ∅ syncTransition.body .staticViolation := by
+  have hlock := uniswapLockEnterStatic evm ∅ hwv (by simp) hunlocked hperm
+  exact ExecFuncBody.execBlockStatic (by
+    simpa [syncTransition, List.append_assoc] using
+      (execBlock_append_term
+        (s2 := syncBalanceCallsBody ++
+          updateReservesStmts (.var "balance0") (.var "balance1") ++ lockExit)
+        hlock (by intro f e h; cases h)))
+
 theorem uniswapSyncBodyReverts_firstNoCode (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)

@@ -27,7 +27,7 @@ PC, then hands control to one per-function body theorem.
 /-- Calldata shorter than a selector (`size < 4`) reverts before Solm dispatch. -/
 theorem simpleAuctionShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsz : I.calldata.size < 4) :
+    (hsz : I.calldata.size < 4) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
   exact (simpleAuctionX_short (g := Sat256.ofUInt256 g) hcode hsz).reEquivNoDispatch hcode
@@ -36,7 +36,6 @@ theorem simpleAuctionShortRevert {σ σ₀ A I} {g : UInt256}
 /-- `size ≥ 4` but no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
 theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hnm : ∀ i, i < 7 → (simpleAuctionSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor simpleAuctionConfig simpleAuctionContract
       σ σ₀ g A I := by
@@ -50,11 +49,11 @@ theorem simpleAuctionNoDispatch {σ σ₀ A I} {g : UInt256}
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
     runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm
+  refine ⟨fun σ σ₀ g A I hcode hsize
       => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I ⟨#[0x19, 0x98, 0xae, 0xef]⟩
-    · exact simpleAuctionBidBody hcode hsize hperm h0
+    · exact simpleAuctionBidBody hcode hsize h0
         (simpleAuctionReachLowBody 0 (by omega) ⟨114⟩ hcode hsz hsize
           (simpleAuctionPivotTaken 0 (by omega) hsz
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0))
@@ -64,7 +63,7 @@ theorem simpleAuctionCorrect :
             (by simpa [selIs, simpleAuctionLowSelBytes] using h0)).2
           (by jump_dest) (by decide))
     · by_cases h1 : selIs I ⟨#[0x3c, 0xcf, 0xd6, 0x0b]⟩
-      · exact simpleAuctionWithdrawBody hcode hsize hperm h1
+      · exact simpleAuctionWithdrawBody hcode hsize h1
           (simpleAuctionReachHighBody 0 (by omega) ⟨203⟩ hcode hsz hsize
             (simpleAuctionPivotNotTaken 0 (by omega) hsz
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1))
@@ -74,7 +73,7 @@ theorem simpleAuctionCorrect :
               (by simpa [selIs, simpleAuctionHighSelBytes] using h1)).2
             (by jump_dest) (by decide))
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
-        · exact simpleAuctionAuctionEndBody hcode hperm h2
+        · exact simpleAuctionAuctionEndBody hcode h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
               (simpleAuctionPivotTaken 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2))
@@ -84,7 +83,7 @@ theorem simpleAuctionCorrect :
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2)).2
               (by jump_dest) (by decide))
         · by_cases h3 : selIs I ⟨#[0x38, 0xaf, 0x3e, 0xed]⟩
-          · exact simpleAuctionBeneficiaryBody hcode hsize hperm h3
+          · exact simpleAuctionBeneficiaryBody hcode hsize h3
               (simpleAuctionReachLowBody 2 (by omega) ⟨144⟩ hcode hsz hsize
                 (simpleAuctionPivotTaken 2 (by omega) hsz
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3))
@@ -94,7 +93,7 @@ theorem simpleAuctionCorrect :
                   (by simpa [selIs, simpleAuctionLowSelBytes] using h3)).2
                 (by jump_dest) (by decide))
           · by_cases h4 : selIs I ⟨#[0x4b, 0x44, 0x9c, 0xba]⟩
-            · exact simpleAuctionAuctionEndTimeBody hcode hsize hperm h4
+            · exact simpleAuctionAuctionEndTimeBody hcode hsize h4
                 (simpleAuctionReachHighBody 1 (by omega) ⟨239⟩ hcode hsz hsize
                   (simpleAuctionPivotNotTaken 1 (by omega) hsz
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4))
@@ -104,7 +103,7 @@ theorem simpleAuctionCorrect :
                     (by simpa [selIs, simpleAuctionHighSelBytes] using h4)).2
                   (by jump_dest) (by decide))
             · by_cases h5 : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩
-              · exact simpleAuctionHighestBidderBody hcode hsize hperm h5
+              · exact simpleAuctionHighestBidderBody hcode hsize h5
                   (simpleAuctionReachHighBody 2 (by omega) ⟨274⟩ hcode hsz hsize
                     (simpleAuctionPivotNotTaken 2 (by omega) hsz
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5))
@@ -114,7 +113,7 @@ theorem simpleAuctionCorrect :
                       (by simpa [selIs, simpleAuctionHighSelBytes] using h5)).2
                     (by jump_dest) (by decide))
               · by_cases h6 : selIs I ⟨#[0xd5, 0x7b, 0xde, 0x79]⟩
-                · exact simpleAuctionHighestBidBody hcode hsize hperm h6
+                · exact simpleAuctionHighestBidBody hcode hsize h6
                     (simpleAuctionReachHighBody 3 (by omega) ⟨305⟩ hcode hsz hsize
                       (simpleAuctionPivotNotTaken 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6))
@@ -123,7 +122,7 @@ theorem simpleAuctionCorrect :
                       (simpleAuctionHighMatches 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).2
                       (by jump_dest) (by decide))
-                · refine simpleAuctionNoDispatch hcode hsize hperm ?_
+                · refine simpleAuctionNoDispatch hcode hsize ?_
                   intro i hi
                   interval_cases i
                   · simpa [selIs, simpleAuctionSelBytes] using h0
@@ -133,7 +132,7 @@ theorem simpleAuctionCorrect :
                   · simpa [selIs, simpleAuctionSelBytes] using h4
                   · simpa [selIs, simpleAuctionSelBytes] using h5
                   · simpa [selIs, simpleAuctionSelBytes] using h6
-  · exact simpleAuctionShortRevert hcode hsize hperm (by omega)
+  · exact simpleAuctionShortRevert hcode hsize (by omega)
 
 /-! ## Constructor side -/
 

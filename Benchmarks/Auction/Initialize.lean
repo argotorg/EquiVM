@@ -10,7 +10,7 @@ namespace Auction
 
 theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (entryBytes 11))
+    (hsel : selIs I (entryBytes 11))
     (hreach : EntryReached 11 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -35,8 +35,13 @@ theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
               ⟨413⟩ :: [solcSelectorWord I]) _ _ _ _ _ _ at rd731
           have rd2130 := evm_run rd731 with [jumpdest, push2 ⟨2130⟩, jump (by jump_dest)]
           by_cases hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩
-          · obtain ⟨_, _, rd413⟩ := initializeRuntime (initializeArgs I.calldata) rd2130 hc hg
-              hperm (by jump_dest) (by evm_ov)
+          · rcases initializeRuntimeSplit (initializeArgs I.calldata) rd2130 hc hg
+              (by jump_dest) (by evm_ov) with
+              ⟨_hperm, _, _, rd413⟩ | ⟨hperm, hstatic⟩
+            swap
+            · exact hstatic.reEquivStaticHalt hcode hd hdec
+                (initializeBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                  (initializeArgs I.calldata) hwv hg hperm)
             have hbody := initializeBody
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (initializeArgs I.calldata) hwv hc hg

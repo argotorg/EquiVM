@@ -70,6 +70,35 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
           evm' (.var "tmp") = .ok value
     simp only [evalExpr?, EvalResult.ofOption, store_get_self]
 
+/-- Static mode: after a successful sub-call the body halts at its storage write. -/
+theorem callerBodyStatic (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
+    {value : Value} {evm' evm'' : EVM.State} {out : ByteArray} {solm'' : Frame}
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (ht : locals.get? "t" = some (.address tval))
+    (hn : locals.get? "n" = some (.int nval))
+    (hcall : typedCallViaEVM callerConfig evm (EVM.address tval) "pow2" 0 [.int nval]
+              (true, evm', out))
+    (hdec : callerConfig.externalABI.decode? "pow2" out = some [value])
+    (hassign : assignStorageRef? callerConfig
+        { contract := callerContract, locals := locals.insert "tmp" value } evm'
+        .storage { base := "stored", steps := [] } value = .ok (solm'', evm''))
+    (hperm : evm'.executionEnv.perm = false) :
+    ExecTransitionBody callerConfig callerContract evm locals runTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic
+    (ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv))
+      (ExecBlock.consNormal (ExecStmt.externalCallSuccess ?_ ?_ ?_ hcall hdec)
+        (ExecBlock.consStatic (ExecStmt.assignStatic ?_ hassign hperm))))
+  · show evalExpr? callerConfig _ evm (.var "t") = .ok (.address tval)
+    simp only [evalExpr?, EvalResult.ofOption, ht]
+  · show evalExpr? callerConfig _ evm (.intLit 0) = .ok (.int 0)
+    simp only [evalExpr?]; rfl
+  · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
+    simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
+  · show evalExpr? callerConfig { contract := callerContract, locals := locals.insert "tmp" value }
+          evm' (.var "tmp") = .ok value
+    simp only [evalExpr?, EvalResult.ofOption, store_get_self]
+
 /-- **The Solm body reverts on a failed sub-call** (`z = false`): `require` passes, the external call
     fails, so the body reverts (`externalCallFailure`). -/
 theorem callerBodyExtFail (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
@@ -648,7 +677,7 @@ theorem callerX_postCall {σ σ₀ A I} {g : Sat256}
     (hsz68 : 68 ≤ I.calldata.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩)
-    (hperm : I.perm = true) (hdepth : I.depth.val < 1024) :
+    (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A' : Substate) (k' C' : ℕ),
       RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
@@ -686,7 +715,7 @@ theorem callerX_postCall {σ σ₀ A I} {g : Sat256}
     · rw [show (callerOutPtr I).toNat = 128 from by rw [callerOutPtr_eq]; decide,
           show (UInt256.sub ⟨164⟩ (callerOutPtr I)).toNat = 36 from by rw [callerOutPtr_eq]; decide]
       exact callerEncode_eq I
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
   · exact hosz
 
 /-- **Post-call failure tail** (`z = false`): the `CALL` returned `0`, so the solc check
@@ -831,13 +860,13 @@ theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
     (rd : RD callerBytecode I g (initState σ σ₀ g A I) ⟨491⟩
             [⟨0⟩, ⟨128⟩, UInt256.add ⟨128⟩ (UInt256.ofNat o.size), ⟨194⟩, arg1, arg0, ⟨71⟩, sel]
             mem2 ⟨6⟩ o σx k C)
-    (hperm : I.perm = true)
     (hword : mem2.readWithPadding 128 32 = o.extract 0 32)
     (hsize2 : 128 < mem2.size) :
-    RDret callerBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret callerBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σx ⟨0⟩
               (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
-      ByteArray.empty := by
+      ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic callerBytecode g (initState σ σ₀ g A I)) := by
   have rd198 := evm_run rd with [
     jumpdest, push0, push2 ⟨504⟩, dup5, dup3, dup6, add, push2 ⟨450⟩, jump callerContains450,
     jumpdest, push0, dup2,
@@ -857,9 +886,12 @@ theorem callerX_succ_tail {σ σ₀ A I} {g : Sat256}
     jumpdest, swap3, swap2, pop, pop, jump callerContains504,
     jumpdest, swap2, pop, pop, swap3, swap2, pop, pop, jump callerContains194,
     jumpdest, push0, dup2, swap1 ]
-  obtain ⟨k', C', rd199⟩ := rd198.sstore hperm (by decide) (by evm_ov)
-  exact RD.stop (evm_run rd199 with [pop, pop, pop, jump callerContains71, jumpdest])
-    (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  · obtain ⟨k', C', rd199⟩ := rd198.sstore hp (by decide) (by evm_ov)
+    exact Or.inl ⟨hp, RD.stop (evm_run rd199 with [pop, pop, pop, jump callerContains71, jumpdest])
+      (by decide) (by evm_ov)⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd198.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 /-- **The whole success decoder, chained (144 → STOP).**  Given the post-call cursor (`z = true`,
     active words `⟨6⟩`), the free-pointer read `hfp`, the result-region read `hword`, and the size
@@ -869,15 +901,16 @@ theorem callerX_successChain {σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel d0 d1 d2 : UInt256}
     (rd144 : RD callerBytecode I g (initState σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
             (⟨1⟩ :: d0 :: d1 :: d2 :: arg1 :: arg0 :: ⟨71⟩ :: sel :: []) mem ⟨6⟩ o σx k C)
-    (hperm : I.perm = true) (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255)
+    (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255)
     (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩)
     (hword : mem.readWithPadding 128 32 = o.extract 0 32) (hmsz : 160 ≤ mem.size) :
-    RDret callerBytecode g (initState σ σ₀ g A I)
+    (I.perm = true ∧ RDret callerBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σx ⟨0⟩
               (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))))
-      ByteArray.empty := by
+      ByteArray.empty)
+    ∨ (I.perm = false ∧ RDstatic callerBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
   obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp
   obtain ⟨k3, C3, rd491⟩ := callerX_succ_to491 rd470 ho32 ho
@@ -889,7 +922,7 @@ theorem callerX_successChain {σ σ₀ A I} {g : Sat256}
       ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
       ByteArray.size_extract, toByteArray_size]
     omega
-  exact callerX_succ_tail rd491 hperm hword2 hmsz2
+  exact callerX_succ_tail rd491 hword2 hmsz2
 
 /-- **The clean-address check ⇒ canonical address.**  The bytecode's `eq(arg0, arg0 & 0xff…ff)`
     holding means `arg0`'s high bits are zero, i.e. `arg0 < 2¹⁶⁰` — exactly the Solm decoder's
@@ -1051,7 +1084,7 @@ theorem callerWrite_read64 (I : ExecutionEnv) (o : ByteArray) (L : ℕ) (hL : L 
 set_option maxHeartbeats 1000000 in
 theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsize : I.calldata.size < UInt256.size) (hperm : I.perm = true) (hdepth : I.depth.val < 1024)
+    (hsize : I.calldata.size < UInt256.size) (hdepth : I.depth.val < 1024)
     (hsz68 : 68 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hmatch : ((⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hclean : UInt256.eq (callerArg0 I) (UInt256.land (callerArg0 I) addrMask) = ⟨1⟩) :
@@ -1064,7 +1097,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
   obtain ⟨σ', z, o, A', k', C', rd144, hcoin, hosize⟩ :=
     callerX_postCall (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv (by omega) hsize hsz68 hbig hmatch hclean
-      hperm hdepth
+      hdepth
   cases z
   · -- z = false: external call failed ⇒ revert
     simp only [Bool.false_eq_true, if_false] at rd144 hcoin
@@ -1086,7 +1119,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
           exact mloadFreePtrValue (by rw [callerWrite_size I o 32 (by omega) ho32]; decide) (callerWrite_read64 I o 32 (by omega) ho32)
         have hword : (o.write 0 (callerCalldataMem I) 128 32).readWithPadding 128 32 = o.extract 0 32 :=
           write32_read_back o (callerCalldataMem I) 128 ho32 (by rw [callerCalldataMem_size]; omega)
-        have hrd := callerX_successChain rd144 hperm ho32 ho255 hfp hword hmsz
+        have hrd := callerX_successChain rd144 ho32 ho255 hfp hword hmsz
         -- Solm body
         set evmP : EVM.State := { initState σ σ₀ g A I with
           accountMap := σ', substate := A' } with hevmP
@@ -1097,12 +1130,19 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
           show defaultDecodeReturn? "pow2" o = _
           simpa [defaultDecodeReturn?, ← hkw, Int.ofNat_eq_natCast] using
             decodeReturnValues_uint256_ok (returndata := o) ho32 ho255
-        have hbody := callerBodySuccess (initState σ σ₀ g A I)
-          (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
-          hcoin hdecv hassign
-        exact RDret.reEquivExecutionGen hcode hrd hd hdec hbody
-          (by rw [storageStore_accountMap]; simp [evmP, initState])
-          (returnEquiv.fallthrough rfl rfl (by native_decide))
+        by_cases hperm : I.perm = true
+        · have hbody := callerBodySuccess (initState σ σ₀ g A I)
+            (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
+            hcoin hdecv hassign
+          exact RDret.reEquivExecutionGen hcode (permSplit_true hperm hrd) hd hdec hbody
+            (by rw [storageStore_accountMap]; simp [evmP, initState])
+            (returnEquiv.fallthrough rfl rfl (by native_decide))
+        · -- static mode: both sides halt at the store of the decoded result
+          have hpf : I.perm = false := by simpa using hperm
+          have hbody := callerBodyStatic (initState σ σ₀ g A I)
+            (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
+            hcoin hdecv hassign (by simp only [hevmP, initState]; exact hpf)
+          exact (permSplit_false hpf hrd).reEquivStaticHalt hcode hd hdec hbody
       · -- `|o| < 32`: decode reverts
         rw [not_le] at ho32
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
@@ -1158,7 +1198,7 @@ theorem callerX_callDepthLimit {σ σ₀ A I} {g : Sat256}
 theorem callerReEquiv_callvalueZero
     {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = callerBytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true) :
+    (hwv : I.weiValue = ⟨0⟩) :
     runtimeEquivalenceFor callerConfig callerContract
       σ σ₀ g.toUInt256 A I := by
   by_cases hsz : I.calldata.size < 4
@@ -1173,7 +1213,7 @@ theorem callerReEquiv_callvalueZero
         · by_cases hcanon : (callerArg0 I).toNat < EVM.addressModulus
           · -- valid decode: the external call executes; its outcome depends only on the depth limit
             by_cases hdepth : I.depth.val < 1024
-            · exact callerExec_canonical hcode hwv hsize hperm hdepth hsz68 hbig hmatch
+            · exact callerExec_canonical hcode hwv hsize hdepth hsz68 hbig hmatch
                 (callerCanon_eq hcanon)
             · -- call-depth limit reached ⇒ the `CALL` returns 0 immediately (both sides revert)
               rw [not_lt] at hdepth
@@ -1214,9 +1254,9 @@ theorem callerReEquiv_callvalueZero
 theorem callerCorrect :
     runtimeEquivalence callerConfig callerBytecode callerContract := by
   refine ⟨fun σ σ₀ g A I
-      hcode hsize hperm => ?_⟩
+      hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hperm
+  · exact callerReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv
   · exact (callerX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivNonPayable hcode rfl rfl
       fun _ca => bodyReverts_nonPayable (by simp only [initState]; exact hwv)
 
@@ -1301,6 +1341,7 @@ theorem callerConstructorCorrect :
 /-- The full contract equivalence combines constructor/initcode and runtime equivalence. -/
 theorem callerContractCorrect :
     contractEquivalence callerConfig callerInitcode callerBytecode callerContract :=
-  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode) callerCorrect
+  emptyContractCorrect_of_RDret rfl rfl rfl (fun hcode => callerInitcodeRun hcode)
+    callerCorrect
 
 end Caller

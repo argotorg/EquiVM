@@ -198,7 +198,6 @@ theorem flapperWardsBodyCoreDecodeFailed_short
 theorem flapperWardsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flapperSelBytes 18)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

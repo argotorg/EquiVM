@@ -220,7 +220,6 @@ theorem catWardsBodyShort {σ σ₀ A I} {g : UInt256}
 theorem catWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

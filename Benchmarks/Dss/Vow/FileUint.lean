@@ -292,7 +292,7 @@ theorem assign_fileUintHumpStorage (evm : EVM.State) {locals : Store} (data : UI
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := hstore)
 
-theorem fileUintWaitSourceBody {σ σ₀ A I} {g : UInt256}
+theorem fileUintWaitSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintWaitBytes) :
@@ -300,7 +300,9 @@ theorem fileUintWaitSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨7⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -325,21 +327,45 @@ theorem fileUintWaitSourceBody {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintWaitStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage waitRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage waitRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileUintTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond
+      (execBlock_singleton h))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, evm0, evm1, locals] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
 
-theorem fileUintBumpSourceBody {σ σ₀ A I} {g : UInt256}
+theorem fileUintWaitSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hwhat : fileUintWhat I = fileUintWaitBytes) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨7⟩ (fileUintData I)
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (fileUintWaitSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).1
+
+theorem fileUintWaitSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hwhat : fileUintWhat I = fileUintWaitBytes)
+    (hperm : I.perm = false) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .staticViolation :=
+  (fileUintWaitSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hwhat).2 hperm
+
+theorem fileUintBumpSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
@@ -348,7 +374,9 @@ theorem fileUintBumpSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨10⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -380,34 +408,48 @@ theorem fileUintBumpSourceBody {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintBumpStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage bumpRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage bumpRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have helse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") bumpParamLit)
-          [.assign .storage bumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") sumpParamLit)
-            [.assign .storage sumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") dumpParamLit)
-              [.assign .storage dumpRef (.var "data")]
-              [.ite (.binary .eq (.var "what") humpParamLit)
-                [.assign .storage humpRef (.var "data")]
-                [.require (.boolLit false)]]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hbump hthen) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileUintTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hwait helse) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteFalse hwait
+      (execBlock_singleton (ExecStmt.iteTrue hbump
+        (execBlock_singleton h))))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, evm0, evm1, locals] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
 
-theorem fileUintSumpSourceBody {σ σ₀ A I} {g : UInt256}
+theorem fileUintBumpSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hwhat : fileUintWhat I = fileUintBumpBytes) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨10⟩ (fileUintData I)
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (fileUintBumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hwhat).1
+
+theorem fileUintBumpSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hwhat : fileUintWhat I = fileUintBumpBytes)
+    (hperm : I.perm = false) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .staticViolation :=
+  (fileUintBumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hwhat).2 hperm
+
+theorem fileUintSumpSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
@@ -417,7 +459,9 @@ theorem fileUintSumpSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨9⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -456,45 +500,52 @@ theorem fileUintSumpSourceBody {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintSumpStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage sumpRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage sumpRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hsumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") sumpParamLit)
-          [.assign .storage sumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") dumpParamLit)
-            [.assign .storage dumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") humpParamLit)
-              [.assign .storage humpRef (.var "data")]
-              [.require (.boolLit false)]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hsump hthen) ExecBlock.nil
-  have hbumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") bumpParamLit)
-          [.assign .storage bumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") sumpParamLit)
-            [.assign .storage sumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") dumpParamLit)
-              [.assign .storage dumpRef (.var "data")]
-              [.ite (.binary .eq (.var "what") humpParamLit)
-                [.assign .storage humpRef (.var "data")]
-                [.require (.boolLit false)]]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hbump hsumpElse) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileUintTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hwait hbumpElse) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteFalse hwait
+      (execBlock_singleton (ExecStmt.iteFalse hbump
+        (execBlock_singleton (ExecStmt.iteTrue hsump
+          (execBlock_singleton h))))))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, evm0, evm1, locals] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
 
-theorem fileUintDumpSourceBody {σ σ₀ A I} {g : UInt256}
+theorem fileUintSumpSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hwhat : fileUintWhat I = fileUintSumpBytes) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨9⟩ (fileUintData I)
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (fileUintSumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump hwhat).1
+
+theorem fileUintSumpSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hwhat : fileUintWhat I = fileUintSumpBytes)
+    (hperm : I.perm = false) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .staticViolation :=
+  (fileUintSumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump
+    hwhat).2 hperm
+
+theorem fileUintDumpSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
@@ -505,7 +556,9 @@ theorem fileUintDumpSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨8⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -551,54 +604,56 @@ theorem fileUintDumpSourceBody {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintDumpStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage dumpRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage dumpRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hdumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") dumpParamLit)
-          [.assign .storage dumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") humpParamLit)
-            [.assign .storage humpRef (.var "data")]
-            [.require (.boolLit false)]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hdump hthen) ExecBlock.nil
-  have hsumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") sumpParamLit)
-          [.assign .storage sumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") dumpParamLit)
-            [.assign .storage dumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") humpParamLit)
-              [.assign .storage humpRef (.var "data")]
-              [.require (.boolLit false)]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hsump hdumpElse) ExecBlock.nil
-  have hbumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") bumpParamLit)
-          [.assign .storage bumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") sumpParamLit)
-            [.assign .storage sumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") dumpParamLit)
-              [.assign .storage dumpRef (.var "data")]
-              [.ite (.binary .eq (.var "what") humpParamLit)
-                [.assign .storage humpRef (.var "data")]
-                [.require (.boolLit false)]]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hbump hsumpElse) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileUintTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hwait hbumpElse) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteFalse hwait
+      (execBlock_singleton (ExecStmt.iteFalse hbump
+        (execBlock_singleton (ExecStmt.iteFalse hsump
+          (execBlock_singleton (ExecStmt.iteTrue hdump
+            (execBlock_singleton h))))))))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, evm0, evm1, locals] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
 
-theorem fileUintHumpSourceBody {σ σ₀ A I} {g : UInt256}
+theorem fileUintDumpSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
+    (hwhat : fileUintWhat I = fileUintDumpBytes) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨8⟩ (fileUintData I)
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (fileUintDumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump
+    hnotSump hwhat).1
+
+theorem fileUintDumpSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
+    (hwhat : fileUintWhat I = fileUintDumpBytes)
+    (hperm : I.perm = false) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .staticViolation :=
+  (fileUintDumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump
+    hnotSump hwhat).2 hperm
+
+theorem fileUintHumpSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
@@ -610,7 +665,9 @@ theorem fileUintHumpSourceBody {σ σ₀ A I} {g : UInt256}
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨11⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+      (.returned { contract := contract, locals := locals } evm1 none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals fileUintTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
@@ -663,59 +720,57 @@ theorem fileUintHumpSourceBody {σ σ₀ A I} {g : UInt256}
     simpa [evm1] using
       (assign_fileUintHumpStorage evm0 (locals := locals) (fileUintData I)
         (by simp [locals, fileUintLocals]))
-  have hthen :
+  have hbody : ∀ r, ExecStmt config { contract := contract, locals := locals } evm0
+      (.assign .storage humpRef (.var "data")) r →
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage humpRef (.var "data")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hdata hassign) ExecBlock.nil
-  have hhumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") humpParamLit)
-          [.assign .storage humpRef (.var "data")]
-          [.require (.boolLit false)]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hhump hthen) ExecBlock.nil
-  have hdumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") dumpParamLit)
-          [.assign .storage dumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") humpParamLit)
-            [.assign .storage humpRef (.var "data")]
-            [.require (.boolLit false)]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hdump hhumpElse) ExecBlock.nil
-  have hsumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") sumpParamLit)
-          [.assign .storage sumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") dumpParamLit)
-            [.assign .storage dumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") humpParamLit)
-              [.assign .storage humpRef (.var "data")]
-              [.require (.boolLit false)]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hsump hdumpElse) ExecBlock.nil
-  have hbumpElse :
-      ExecBlock config { contract := contract, locals := locals } evm0
-        [.ite (.binary .eq (.var "what") bumpParamLit)
-          [.assign .storage bumpRef (.var "data")]
-          [.ite (.binary .eq (.var "what") sumpParamLit)
-            [.assign .storage sumpRef (.var "data")]
-            [.ite (.binary .eq (.var "what") dumpParamLit)
-              [.assign .storage dumpRef (.var "data")]
-              [.ite (.binary .eq (.var "what") humpParamLit)
-                [.assign .storage humpRef (.var "data")]
-                [.require (.boolLit false)]]]]]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hbump hsumpElse) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 fileUintTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        fileUintTransition.body r := by
+    intro r h
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteFalse hwait hbumpElse) ExecBlock.nil
-  simpa [ExecTransitionBody, evm0, evm1, locals] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteFalse hwait
+      (execBlock_singleton (ExecStmt.iteFalse hbump
+        (execBlock_singleton (ExecStmt.iteFalse hsump
+          (execBlock_singleton (ExecStmt.iteFalse hdump
+            (execBlock_singleton (ExecStmt.iteTrue hhump
+              (execBlock_singleton h))))))))))
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, evm0, evm1, locals] using
+      ExecFuncBody.execBlockOK (hbody _ (ExecStmt.assign hdata hassign))
+  · simpa [ExecTransitionBody, evm0, locals] using ExecFuncBody.execBlockStatic
+      (hbody _ (ExecStmt.assignStatic hdata hassign (by simp [evm0, initState]; exact hpf)))
+
+theorem fileUintHumpSourceBody {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
+    (hnotDump : fileUintWhat I ≠ fileUintDumpBytes)
+    (hwhat : fileUintWhat I = fileUintHumpBytes) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨11⟩ (fileUintData I)
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none) :=
+  (fileUintHumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump
+    hnotSump hnotDump hwhat).1
+
+theorem fileUintHumpSourceBodyStatic {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
+    (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
+    (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
+    (hnotDump : fileUintWhat I ≠ fileUintDumpBytes)
+    (hwhat : fileUintWhat I = fileUintHumpBytes)
+    (hperm : I.perm = false) :
+    let locals := fileUintLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 locals fileUintTransition.body
+      .staticViolation :=
+  (fileUintHumpSourceBodySplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hnotWait hnotBump
+    hnotSump hnotDump hwhat).2 hperm
 
 theorem fileUintUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -937,17 +992,18 @@ theorem RD.vowFileUintAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       repeat' first | apply And.intro | native_decide)
     hauth (by simp)
 
-theorem RD.vowFileUintStoreWait {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+theorem RD.vowFileUintStoreWaitSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD vowBytecode ee g s0 ⟨2031⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintWaitBytes)
     (hret : (D_J vowBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 7 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨7⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨7⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   have rd2032 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2033 := rd2032.dup2 (by native_decide) (by evm_ov)
   have rd2038 := rd2033.push4 ⟨500718173⟩ (by native_decide) (by evm_ov)
@@ -966,6 +1022,11 @@ theorem RD.vowFileUintStoreWait {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd2049 := rd2047.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   have rd2050 := rd2049.dup2 (by native_decide) (by evm_ov)
   have rd2051 := rd2050.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2051.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2052⟩ := rd2051.sstore hperm (by native_decide) (by evm_ov)
   have rd2055 := rd2052.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
   have rd2233 := rd2055.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1001,17 +1062,18 @@ theorem RD.vowFileUintSkipWait {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   exact ⟨_, _, rd2046.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
-theorem RD.vowFileUintStoreBump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+theorem RD.vowFileUintStoreBumpSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD vowBytecode ee g s0 ⟨2056⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintBumpBytes)
     (hret : (D_J vowBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 7 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨10⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨10⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   have rd2057 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2058 := rd2057.dup2 (by native_decide) (by evm_ov)
   have rd2063 := rd2058.push4 ⟨103241431⟩ (by native_decide) (by evm_ov)
@@ -1030,6 +1092,11 @@ theorem RD.vowFileUintStoreBump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd2074 := rd2072.push1 ⟨10⟩ (by native_decide) (by evm_ov)
   have rd2075 := rd2074.dup2 (by native_decide) (by evm_ov)
   have rd2076 := rd2075.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2076.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2077⟩ := rd2076.sstore hperm (by native_decide) (by evm_ov)
   have rd2080 := rd2077.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
   have rd2233 := rd2080.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1065,17 +1132,18 @@ theorem RD.vowFileUintSkipBump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   exact ⟨_, _, rd2071.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
-theorem RD.vowFileUintStoreSump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+theorem RD.vowFileUintStoreSumpSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD vowBytecode ee g s0 ⟨2081⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintSumpBytes)
     (hret : (D_J vowBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 7 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨9⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨9⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   have rd2082 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2083 := rd2082.dup2 (by native_decide) (by evm_ov)
   have rd2088 := rd2083.push4 ⟨121067223⟩ (by native_decide) (by evm_ov)
@@ -1094,6 +1162,11 @@ theorem RD.vowFileUintStoreSump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd2099 := rd2097.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   have rd2100 := rd2099.dup2 (by native_decide) (by evm_ov)
   have rd2101 := rd2100.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2101.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2102⟩ := rd2101.sstore hperm (by native_decide) (by evm_ov)
   have rd2105 := rd2102.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
   have rd2233 := rd2105.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1129,17 +1202,18 @@ theorem RD.vowFileUintSkipSump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   exact ⟨_, _, rd2096.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
-theorem RD.vowFileUintStoreDump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+theorem RD.vowFileUintStoreDumpSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD vowBytecode ee g s0 ⟨2106⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintDumpBytes)
     (hret : (D_J vowBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 7 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨8⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨8⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   have rd2107 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2108 := rd2107.dup2 (by native_decide) (by evm_ov)
   have rd2113 := rd2108.push4 ⟨105338583⟩ (by native_decide) (by evm_ov)
@@ -1158,6 +1232,11 @@ theorem RD.vowFileUintStoreDump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd2124 := rd2122.push1 ⟨8⟩ (by native_decide) (by evm_ov)
   have rd2125 := rd2124.dup2 (by native_decide) (by evm_ov)
   have rd2126 := rd2125.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2126.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2127⟩ := rd2126.sstore hperm (by native_decide) (by evm_ov)
   have rd2130 := rd2127.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
   have rd2233 := rd2130.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1193,17 +1272,18 @@ theorem RD.vowFileUintSkipDump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   exact ⟨_, _, rd2121.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
-theorem RD.vowFileUintStoreHump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
+theorem RD.vowFileUintStoreHumpSplit {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD vowBytecode ee g s0 ⟨2131⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmatch : what = ABI.bytesToWord fileUintHumpBytes)
     (hret : (D_J vowBytecode 0).contains ret = true)
-    (hperm : ee.perm = true)
     (hov : R.length + 7 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vowBytecode ee g s0 ret (sel :: R) mem (UInt256.ofNat 3) rdata
-      (sstoreAccountMap ee.codeOwner σ ⟨11⟩ data) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨11⟩ data) k' C') ∨
+      (ee.perm = false ∧ RDstatic vowBytecode g s0) := by
   have rd2132 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2133 := rd2132.dup2 (by native_decide) (by evm_ov)
   have rd2138 := rd2133.push4 ⟨109532887⟩ (by native_decide) (by evm_ov)
@@ -1222,6 +1302,11 @@ theorem RD.vowFileUintStoreHump {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd2149 := rd2147.push1 ⟨11⟩ (by native_decide) (by evm_ov)
   have rd2150 := rd2149.dup2 (by native_decide) (by evm_ov)
   have rd2151 := rd2150.swap1 (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2151.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd2152⟩ := rd2151.sstore hperm (by native_decide) (by evm_ov)
   have rd2155 := rd2152.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
   have rd2233 := rd2155.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1320,39 +1405,44 @@ theorem RD.vowFileUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Executi
     raw swap1 (by native_decide) (by evm_ov),
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
-theorem RD.vowFileUintWaitSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.vowFileUintWaitSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
       ⟨414⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintWaitBytes) :
+    (I.perm = true ∧
     RDret vowBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨7⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨7⟩ (fileUintData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode g
+        (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.vowFileUintToSwitch hreach hsz68 hsize hauth
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintWaitBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
-  obtain ⟨_, _, hretPc⟩ := RD.vowFileUintStoreWait
+  refine permSplit_bind (RD.vowFileUintStoreWaitSplit
     (data := fileUintData I) (what := calldataWord I.calldata 4) (ret := ⟨412⟩)
-    (sel := sel) (R := []) hswitch hword (by jump_dest) hperm (by simp)
+    (sel := sel) (R := []) hswitch hword (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
 
-theorem RD.vowFileUintBumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.vowFileUintBumpSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
       ⟨414⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
     (hwhat : fileUintWhat I = fileUintBumpBytes) :
+    (I.perm = true ∧
     RDret vowBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨10⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨10⟩ (fileUintData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode g
+        (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.vowFileUintToSwitch hreach hsz68 hsize hauth
   have hwaitNe :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintWaitBytes :=
@@ -1363,16 +1453,16 @@ theorem RD.vowFileUintBumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintBumpBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
-  obtain ⟨_, _, hretPc⟩ := RD.vowFileUintStoreBump
+  refine permSplit_bind (RD.vowFileUintStoreBumpSplit
     (data := fileUintData I) (what := calldataWord I.calldata 4) (ret := ⟨412⟩)
-    (sel := sel) (R := []) hbumpPc hword (by jump_dest) hperm (by simp)
+    (sel := sel) (R := []) hbumpPc hword (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
 
-theorem RD.vowFileUintSumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.vowFileUintSumpSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
       ⟨414⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
@@ -1380,8 +1470,11 @@ theorem RD.vowFileUintSumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnotWait : fileUintWhat I ≠ fileUintWaitBytes)
     (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
     (hwhat : fileUintWhat I = fileUintSumpBytes) :
+    (I.perm = true ∧
     RDret vowBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨9⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨9⟩ (fileUintData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode g
+        (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.vowFileUintToSwitch hreach hsz68 hsize hauth
   have hwaitNe :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintWaitBytes :=
@@ -1398,16 +1491,16 @@ theorem RD.vowFileUintSumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintSumpBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
-  obtain ⟨_, _, hretPc⟩ := RD.vowFileUintStoreSump
+  refine permSplit_bind (RD.vowFileUintStoreSumpSplit
     (data := fileUintData I) (what := calldataWord I.calldata 4) (ret := ⟨412⟩)
-    (sel := sel) (R := []) hsumpPc hword (by jump_dest) hperm (by simp)
+    (sel := sel) (R := []) hsumpPc hword (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
 
-theorem RD.vowFileUintDumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.vowFileUintDumpSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
       ⟨414⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
@@ -1416,8 +1509,11 @@ theorem RD.vowFileUintDumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnotBump : fileUintWhat I ≠ fileUintBumpBytes)
     (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
     (hwhat : fileUintWhat I = fileUintDumpBytes) :
+    (I.perm = true ∧
     RDret vowBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨8⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨8⟩ (fileUintData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode g
+        (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.vowFileUintToSwitch hreach hsz68 hsize hauth
   have hwaitNe :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintWaitBytes :=
@@ -1440,16 +1536,16 @@ theorem RD.vowFileUintDumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintDumpBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
-  obtain ⟨_, _, hretPc⟩ := RD.vowFileUintStoreDump
+  refine permSplit_bind (RD.vowFileUintStoreDumpSplit
     (data := fileUintData I) (what := calldataWord I.calldata 4) (ret := ⟨412⟩)
-    (sel := sel) (R := []) hdumpPc hword (by jump_dest) hperm (by simp)
+    (sel := sel) (R := []) hdumpPc hword (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
 
-theorem RD.vowFileUintHumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.vowFileUintHumpSuccessSplit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
       ⟨414⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
-    (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth :
@@ -1459,8 +1555,11 @@ theorem RD.vowFileUintHumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hnotSump : fileUintWhat I ≠ fileUintSumpBytes)
     (hnotDump : fileUintWhat I ≠ fileUintDumpBytes)
     (hwhat : fileUintWhat I = fileUintHumpBytes) :
+    (I.perm = true ∧
     RDret vowBytecode g (initState σ σ₀ g A I)
-      (sstoreAccountMap I.codeOwner σ ⟨11⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨11⟩ (fileUintData I)) ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic vowBytecode g
+        (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hswitch⟩ := RD.vowFileUintToSwitch hreach hsz68 hsize hauth
   have hwaitNe :
       calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintWaitBytes :=
@@ -1489,9 +1588,10 @@ theorem RD.vowFileUintHumpSuccess {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hword :
       calldataWord I.calldata 4 = ABI.bytesToWord fileUintHumpBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
-  obtain ⟨_, _, hretPc⟩ := RD.vowFileUintStoreHump
+  refine permSplit_bind (RD.vowFileUintStoreHumpSplit
     (data := fileUintData I) (what := calldataWord I.calldata 4) (ret := ⟨412⟩)
-    (sel := sel) (R := []) hhumpPc hword (by jump_dest) hperm (by simp)
+    (sel := sel) (R := []) hhumpPc hword (by jump_dest) (by simp)) fun hperm hseg => ?_
+  obtain ⟨_, _, hretPc⟩ := hseg
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop hretPc' (by native_decide) (by simp)
 
@@ -1553,7 +1653,7 @@ theorem RD.vowFileUintUnrecognizedParamRevert
 theorem vowFileUintBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true) (hsz68 : 68 ≤ I.calldata.size)
+    (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hdecode :
@@ -1587,7 +1687,13 @@ theorem vowFileUintBodyCore
         simpa [evm0, evm1, locals, data] using
           (fileUintWaitSourceBody (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwait)
-      have hret := RD.vowFileUintWaitSuccess hreach hperm hsz68 hsize hauthSolc hwait
+      rcases RD.vowFileUintWaitSuccessSplit hreach hsz68 hsize hauthSolc hwait with
+        ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+      swap
+      · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+          (by simpa [evm0, locals, data] using
+            (fileUintWaitSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              hwv hauthSolm hwait hpf))
       have haccounts :
           sstoreAccountMap I.codeOwner σ ⟨7⟩ data = evm1.accountMap := by
         simp [evm1, evm0, initState, storageStore_accountMap, data]
@@ -1602,8 +1708,13 @@ theorem vowFileUintBodyCore
           simpa [evm0, evm1, locals, data] using
             (fileUintBumpSourceBody (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwait hbump)
-        have hret := RD.vowFileUintBumpSuccess hreach hperm hsz68 hsize hauthSolc hwait
-          hbump
+        rcases RD.vowFileUintBumpSuccessSplit hreach hsz68 hsize hauthSolc hwait hbump with
+          ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            (by simpa [evm0, locals, data] using
+              (fileUintBumpSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                hwv hauthSolm hwait hbump hpf))
         have haccounts :
             sstoreAccountMap I.codeOwner σ ⟨10⟩ data = evm1.accountMap := by
           simp [evm1, evm0, initState, storageStore_accountMap, data]
@@ -1619,8 +1730,13 @@ theorem vowFileUintBodyCore
               (fileUintSumpSourceBody (σ := σ)
                 (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwait hbump
                 hsump)
-          have hret := RD.vowFileUintSumpSuccess hreach hperm hsz68 hsize hauthSolc
-            hwait hbump hsump
+          rcases RD.vowFileUintSumpSuccessSplit hreach hsz68 hsize hauthSolc hwait hbump hsump with
+            ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+          swap
+          · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+              (by simpa [evm0, locals, data] using
+                (fileUintSumpSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                  hwv hauthSolm hwait hbump hsump hpf))
           have haccounts :
               sstoreAccountMap I.codeOwner σ ⟨9⟩ data = evm1.accountMap := by
             simp [evm1, evm0, initState, storageStore_accountMap, data]
@@ -1636,8 +1752,13 @@ theorem vowFileUintBodyCore
                 (fileUintDumpSourceBody
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   hwv hauthSolm hwait hbump hsump hdump)
-            have hret := RD.vowFileUintDumpSuccess hreach hperm hsz68 hsize hauthSolc
-              hwait hbump hsump hdump
+            rcases RD.vowFileUintDumpSuccessSplit hreach hsz68 hsize hauthSolc hwait hbump hsump
+                hdump with ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+            swap
+            · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                (by simpa [evm0, locals, data] using
+                  (fileUintDumpSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                    hwv hauthSolm hwait hbump hsump hdump hpf))
             have haccounts :
                 sstoreAccountMap I.codeOwner σ ⟨8⟩ data = evm1.accountMap := by
               simp [evm1, evm0, initState, storageStore_accountMap, data]
@@ -1653,8 +1774,13 @@ theorem vowFileUintBodyCore
                   (fileUintHumpSourceBody
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     hwv hauthSolm hwait hbump hsump hdump hhump)
-              have hret := RD.vowFileUintHumpSuccess hreach hperm hsz68 hsize
-                hauthSolc hwait hbump hsump hdump hhump
+              rcases RD.vowFileUintHumpSuccessSplit hreach hsz68 hsize hauthSolc hwait hbump hsump
+                  hdump hhump with ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+              swap
+              · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+                  (by simpa [evm0, locals, data] using
+                    (fileUintHumpSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                      hwv hauthSolm hwait hbump hsump hdump hhump hpf))
               have haccounts :
                   sstoreAccountMap I.codeOwner σ ⟨11⟩ data = evm1.accountMap := by
                 simp [evm1, evm0, initState, storageStore_accountMap, data]
@@ -1713,19 +1839,19 @@ theorem vowFileUintBodyCore
 
 theorem vowFileUintBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  exact vowFileUintBodyCore (sel := vowSelWord I) hcode hwv hperm hsz68 hsize
+  exact vowFileUintBodyCore (sel := vowSelWord I) hcode hwv hsz68 hsize
     (vowDispatch_fileUint hsel)
     (by simpa [fileUintLocals] using vowDecode_fileUint_ok (I := I) hsz68)
     (vowReachFileUintBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
 theorem vowFileUintShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsel : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

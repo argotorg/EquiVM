@@ -130,7 +130,7 @@ theorem blindAuctionDecode_highestBidder {I : ExecutionEnv} (hsz : 4 ≤ I.calld
 theorem blindAuctionHighestBidderBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
+    (hsel : selIs I ⟨#[0x91, 0xf9, 0x01, 0x57]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨418⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -138,7 +138,6 @@ theorem blindAuctionHighestBidderBodyCore {σ σ₀ A I}
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionHighestBidderSelector_size hsel
   have hd := blindAuctionDispatch_highestBidder (cd := I.calldata) hsel

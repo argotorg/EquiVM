@@ -320,7 +320,7 @@ theorem assign_cageAshStorage (evm : EVM.State) {locals : Store} (value : UInt25
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, cageAshEvaledRef])
     (hstore := hstore)
 
-theorem vowCageSourceClearPrefix {σ σ₀ A I} {g : UInt256}
+theorem vowCageSourceClearPrefixSplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩) :
@@ -336,7 +336,9 @@ theorem vowCageSourceClearPrefix {σ σ₀ A I} {g : UInt256}
         [ .assign .storage liveRef (.intLit 0),
           .assign .storage SinRef (.intLit 0),
           .assign .storage AshRef (.intLit 0) ])
-      (.ok { contract := contract, locals := locals } evmAsh) := by
+      (.ok { contract := contract, locals := locals } evmAsh) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 locals cageTransition.body .staticViolation) := by
   intro locals evm0 evmLive evmSin evmAsh
   have hguardAuth := vowAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
@@ -364,14 +366,48 @@ theorem vowCageSourceClearPrefix {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract, locals := locals }, evmAsh) := by
     simpa [evmAsh, evmSin, evmLive, storageStore_executionEnv] using
       assign_cageAshStorage evmSin (locals := locals) (⟨0⟩ : UInt256) (by simp [locals])
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-  refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
+  have hpre : ∀ rest r, ExecBlock config { contract := contract, locals := locals } evm0
+      (.assign .storage liveRef (.intLit 0) :: rest) r →
+      ExecBlock config { contract := contract, locals := locals } evm0
+        (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
+          .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
+          .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
+          .assign .storage liveRef (.intLit 0) :: rest) r := by
+    intro rest r h
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) h
+  have hzero :
+      evalExpr? config { contract := contract, locals := locals } evm0 (.intLit 0) =
+        .ok (.int 0) := by
+    simp [evalExpr?, pure]
+  refine ⟨hpre _ _ ?_, fun hpf => ExecFuncBody.execBlockStatic (hpre _ _
+    (ExecBlock.consStatic (ExecStmt.assignStatic hzero hassignLive
+      (by simp [evm0, initState]; exact hpf))))⟩
+  refine ExecBlock.consNormal (ExecStmt.assign hzero hassignLive) ?_
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignSin) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignAsh)
     ExecBlock.nil
+
+theorem vowCageSourceClearPrefix {σ σ₀ A I} {g : UInt256}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩) :
+    let locals : Store := ∅
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
+    let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
+    let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
+    ExecBlock config { contract := contract, locals := locals } evm0
+      (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
+        .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ::
+        .require (.binary .eq (.storage liveRef) (.intLit 1)) ::
+        [ .assign .storage liveRef (.intLit 0),
+          .assign .storage SinRef (.intLit 0),
+          .assign .storage AshRef (.intLit 0) ])
+      (.ok { contract := contract, locals := locals } evmAsh) :=
+  (vowCageSourceClearPrefixSplit (σ₀ := σ₀) (A := A) (g := g) hwv hauth hlive).1
 
 
 @[reducible] def vowCageClearStoresWf (code : ByteArray) (pc : UInt256) : Prop :=
@@ -414,21 +450,22 @@ theorem vowCageSourceClearPrefix {σ σ₀ A I} {g : UInt256}
   p15 + ⟨1⟩
 
 set_option maxHeartbeats 0 in
-theorem RD.vowCageClearStores {code : ByteArray} {g : Sat256} {s0 : State}
+theorem RD.vowCageClearStoresSplit {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
     {σ : AccountMap}
     (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowCageClearStoresWf code pc)
-    (hperm : ee.perm = true)
     (hov : R.length + 4 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD code ee g s0 (vowCageClearStoresOutPc pc) (ret :: R) mem
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner
         (sstoreAccountMap ee.codeOwner (sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩)
           ⟨5⟩ ⟨0⟩)
         ⟨6⟩ ⟨0⟩)
-      k' C' := by
+      k' C') ∨
+      (ee.perm = false ∧ RDstatic code g s0) := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15⟩
   let σ1 := sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨0⟩
@@ -439,6 +476,11 @@ theorem RD.vowCageClearStores {code : ByteArray} {g : Sat256} {s0 : State}
     raw push1 ⟨12⟩ hd3 (by evm_ov),
     raw dup2 hd5 (by evm_ov),
     raw swap1 hd6 (by evm_ov)]
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rdLivePrefix.sstoreStatic (by simpa using hperm) hd7 (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rdLive⟩ := rdLivePrefix.sstore hperm hd7 (by evm_ov)
   have rdSinPrefix := evm_run rdLive with [
     raw push1 ⟨5⟩ hd8 (by evm_ov),
@@ -507,18 +549,21 @@ theorem vowReachCageBody {σ σ₀ A I} {g : Sat256}
   exact vowReachLowHighBody 5 (by omega) ⟨563⟩ hcode hwv hsz hsize hroot hlow heq0
     htake (by jump_dest) (by native_decide)
 
-theorem vowCageReachAfterClear {σ σ₀ A I} {g : UInt256}
+theorem vowCageReachAfterClearSplit {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
     (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩) :
+    (I.perm = true ∧
     ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2663⟩
       [⟨412⟩, vowSelWord I]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty
-      (vowCageClearedAccountMap I.codeOwner σ) k C := by
+      (vowCageClearedAccountMap I.codeOwner σ) k C) ∨
+      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ rfl hsel
   obtain ⟨_, _, hbodyEntry⟩ :=
@@ -553,14 +598,30 @@ theorem vowCageReachAfterClear {σ σ₀ A I} {g : UInt256}
       unfold vowLiveGuardWf
       repeat' first | apply And.intro | native_decide)
     hliveSolc (by jump_dest) (by simp)
-  obtain ⟨_, _, hafterClear⟩ := RD.vowCageClearStores
+  refine permSplit_bind (RD.vowCageClearStoresSplit
     (code := vowBytecode) (pc := ⟨2647⟩) (ret := ⟨412⟩) (R := [vowSelWord I])
     hafterLive
     (by
       unfold vowCageClearStoresWf
       repeat' first | apply And.intro | native_decide)
-    hperm (by simp)
+    (by simp)) fun _ hseg => ?_
+  obtain ⟨_, _, hafterClear⟩ := hseg
   exact ⟨_, _, by simpa [vowCageClearStoresOutPc, vowCageClearedAccountMap] using hafterClear⟩
+
+theorem vowCageReachAfterClear {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
+    (hauth : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : solcSlotWordAt ⟨12⟩ σ I = ⟨1⟩) :
+    ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2663⟩
+      [⟨412⟩, vowSelWord I]
+      (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty
+      (vowCageClearedAccountMap I.codeOwner σ) k C :=
+  permSplit_true hperm
+    (vowCageReachAfterClearSplit (σ₀ := σ₀) (A := A) (g := g) hcode hsize hwv hsel hauth hlive)
 
 theorem RD.vowCageFirstDaiLoadTargets {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1096,7 +1157,6 @@ theorem RD.vowCageFlapperCageCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σCall target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true)
     (htgt : EVM.address (AccountAddress.ofNat target.toNat) =
       AccountAddress.ofUInt256 target)
     (hov : R.length + 12 ≤ 1024) :
@@ -1155,7 +1215,7 @@ theorem RD.vowCageFlapperCageCall
           simpa [evmCall, initState] using h
         exact absurd hdepth (by rw [hEq]; decide))
       htgt (flapCageEncode_eq rad hmem) ?_
-    simpa [evmCall, initState, hperm] using hΘ
+    simpa [evmCall, initState] using hΘ
 
 theorem RD.vowCageFlapperCageCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
@@ -1369,7 +1429,6 @@ theorem RD.vowCageFlopperCageCall
       Reasoning.Theory.extCodeSizeWord σCall
         (solcAddressSlotWord ⟨3⟩ σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
-    (hperm : I.perm = true)
     (hov : R.length + 15 ≤ 1024) :
     let target := solcAddressSlotWord ⟨3⟩ σCall I
     ∃ (σ' : AccountMap) (z : Bool)
@@ -1428,7 +1487,7 @@ theorem RD.vowCageFlopperCageCall
         exact absurd hdepth (by rw [hEq]; decide))
       (by simpa [target] using cageFlopperAddress_eq_target σCall I)
       (flopCageEncode_eq hmem) ?_
-    simpa [evmCall, initState, hperm] using hΘ
+    simpa [evmCall, initState] using hΘ
 
 theorem RD.vowCageFlopperCageCallFailure {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : AccountMap}
@@ -1463,7 +1522,7 @@ theorem RD.vowCageFlopperCageCallSuccessCleanup {g : Sat256} {s0 : State}
 
 theorem vowCageAuthRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -1520,7 +1579,7 @@ theorem vowCageAuthRevert {σ σ₀ A I} {g : UInt256}
 
 theorem vowCageLiveRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩)
     (hauthEvm : solcSlotWordAt (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hliveEvm : solcSlotWordAt ⟨12⟩ σ I ≠ ⟨1⟩) :

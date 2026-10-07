@@ -108,7 +108,7 @@ theorem blindAuctionDecode_revealEnd {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
 theorem blindAuctionRevealEndBodyCore {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩)
+    (hsel : selIs I ⟨#[0xa6, 0xe6, 0x64, 0x77]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨468⟩
       [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
@@ -116,7 +116,6 @@ theorem blindAuctionRevealEndBodyCore {σ σ₀ A I}
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
-  have _hperm : I.perm = true := hperm
 
   have hsz := blindAuctionRevealEndSelector_size hsel
   have hd := blindAuctionDispatch_revealEnd (cd := I.calldata) hsel

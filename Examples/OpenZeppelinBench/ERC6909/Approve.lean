@@ -255,6 +255,25 @@ theorem erc6909ApproveBodyReturns (evm : EVM.State)
       (approveAssign evm evm.executionEnv)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
+/-- Static mode: the body halts at the allowance write. -/
+theorem erc6909ApproveBodyStatic (evm : EVM.State)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsource : evm.executionEnv.source ≠ AccountAddress.ofNat 0)
+    (hspender :
+      AccountAddress.ofNat (approveSpenderWord evm.executionEnv).toNat ≠ AccountAddress.ofNat 0)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (approveStore evm.executionEnv) approveTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_sender_ne_zero_true evm hsource)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_approve_spender_ne_zero_true evm evm.executionEnv hspender)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_amount evm evm.executionEnv)
+      (approveAssign evm evm.executionEnv) hperm)
+
 theorem erc6909ApproveBodyReverts_sender (evm : EVM.State)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsource : evm.executionEnv.source = AccountAddress.ofNat 0) :
@@ -690,19 +709,19 @@ theorem erc6909ApproveX_toHelper {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hperm : I.perm = true)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
       [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
       [⟨32⟩, ⟨64⟩, approveOwnerWord I, approveSpenderWord I, approveAmountWord I,
         approveIdWord I, approveSpenderWord I, approveOwnerWord I, ⟨512⟩, ⟨0⟩,
         approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
       (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I) (approveIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C := by
+      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
@@ -788,7 +807,10 @@ theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcAddrMask from by decide,
     solcAddrMask_clean_left (approveOwnerWord_canonical I),
     solcAddrMask_clean hcanonSpender] at rd899'
-  simpa using rd899'.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  · exact Or.inl ⟨hp, by simpa using rd899'.sstore hp (by decide) (by evm_ov)⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd899'.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -891,9 +913,9 @@ theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  obtain ⟨_, _, rd900⟩ := erc6909ApproveX_stored
+  obtain ⟨_, _, rd900⟩ := permSplit_true hperm (erc6909ApproveX_stored
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz100 hsize hszhi hperm hcanonSpender hsource hspender hreach
+    hsz100 hsize hszhi hcanonSpender hsource hspender hreach)
   have rd951 := evm_run rd900 with [
     swap1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
@@ -963,7 +985,7 @@ theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem erc6909ApproveBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 3))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
@@ -1003,21 +1025,34 @@ theorem erc6909ApproveBodyCore
             exact (erc6909ApproveX_revert_spender (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hcanonSpender hsource hspender hreach)
               |>.reEquivExecutionRevert hcode hd hdec hbody
-          · have hbody :
-                ExecTransitionBody config contract evmS (approveStore I)
-                  approveTransition.body
-                  (.returned { contract := contract, locals := approveStore I }
-                    (approvePostState evmS I) (some [(.bool true)])) := by
-              simpa [evmS, initState] using erc6909ApproveBodyReturns evmS
-                (by simp only [evmS, initState]; exact hwv)
-                (by simpa [evmS, initState] using hsource)
-                (by simpa [evmS, initState] using hspender)
-            exact (erc6909X_approve (g := Sat256.ofUInt256 g)
-                hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
-              |>.reEquivExecutionGen hcode hd hdec hbody
-                (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
-                  storageStore_accountMap])
-                (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+          · by_cases hperm : I.perm = true
+            · have hbody :
+                  ExecTransitionBody config contract evmS (approveStore I)
+                    approveTransition.body
+                    (.returned { contract := contract, locals := approveStore I }
+                      (approvePostState evmS I) (some [(.bool true)])) := by
+                simpa [evmS, initState] using erc6909ApproveBodyReturns evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+              exact (erc6909X_approve (g := Sat256.ofUInt256 g)
+                  hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
+                |>.reEquivExecutionGen hcode hd hdec hbody
+                  (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
+                    storageStore_accountMap])
+                  (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
+            · have hpf : I.perm = false := by simpa using hperm
+              have hbody :
+                  ExecTransitionBody config contract evmS (approveStore I)
+                    approveTransition.body .staticViolation := by
+                simpa [evmS, initState] using erc6909ApproveBodyStatic evmS
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState] using hsource)
+                  (by simpa [evmS, initState] using hspender)
+                  (by simp only [evmS, initState]; exact hpf)
+              exact (permSplit_false hpf (erc6909ApproveX_stored (g := Sat256.ofUInt256 g)
+                  hsz100 hsize hbig hcanonSpender hsource hspender hreach))
+                |>.reEquivStaticHalt hcode hd hdec hbody
       · have hdec := erc6909Decode_approve_none_noncanon (I := I)
           hsz100 hbig hcanonSpender
         have hnc : UInt256.eq (approveSpenderWord I)

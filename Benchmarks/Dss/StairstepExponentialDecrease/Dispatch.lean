@@ -547,7 +547,6 @@ theorem stairstepNonPayable {σ σ₀ A I} {g : UInt256}
 theorem stairstepNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stairstepExponentialDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 7 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

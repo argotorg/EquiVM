@@ -51,7 +51,7 @@ theorem minBidIncrementPercentageX {σ σ₀ A I} {g : UInt256}
 
 theorem minBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 14))
+    (hsel : selIs I (entryBytes 14))
     (hreach : EntryReached 14 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract
       σ σ₀ g A I := by

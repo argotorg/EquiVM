@@ -178,24 +178,33 @@ theorem clipperKickX_locked {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s
     (clipperRelyAuthHashMem_read64 I) (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperKickX_stopped {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_stoppedSplit {σ : AccountMap} {I : ExecutionEnv}
+    {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hperm : I.perm = true)
     (hstopped : 1 ≤ (solcSlotWord
       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat)
     (h : RD code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDrev code g s0 := by
+    (I.perm = true ∧
+      RDrev code g s0) ∨
+      (I.perm = false ∧ RDstatic code g s0) := by
   have rd5527pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup2 (by clipper_runtime_decode) (by evm_ov),
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
-  obtain ⟨_, _, rd5528⟩ := rd5527pre.sstore hperm (by clipper_runtime_decode) (by evm_ov)
+  have hstoreDec : decode code ⟨5527⟩ = some (.SSTORE, none) := by
+    clipper_runtime_decode
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd5527pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd5528⟩ := rd5527pre.sstore hperm hstoreDec (by evm_ov)
   have rd5530 := rd5528.push1 ⟨14⟩ (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨_, _, rd5531raw⟩ := rd5530.sload (by clipper_runtime_decode) (by evm_ov)
   have rd5531 := show RD code I g s0 ⟨5531⟩
@@ -220,6 +229,19 @@ theorem clipperKickX_stopped {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {
     rd5537 (clipperKickStoppedRevertTailWf v hpatch)
     (by decide) (by native_decide) (clipperRelyAuthHashMem_size I)
     (clipperRelyAuthHashMem_read64 I) (by simp)
+
+theorem clipperKickX_stopped {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hperm : I.perm = true)
+    (hstopped : 1 ≤ (solcSlotWord
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat)
+    (h : RD code I g s0 ⟨5520⟩
+      (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
+        clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g s0 :=
+  permSplit_true hperm (clipperKickX_stoppedSplit v hpatch hstopped h)
 
 theorem clipperKickX_tabZero {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}

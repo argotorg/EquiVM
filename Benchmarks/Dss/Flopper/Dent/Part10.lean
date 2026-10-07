@@ -13,7 +13,6 @@ theorem flopperDentBody
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -81,13 +80,13 @@ theorem flopperDentBody
                                   uint48Mask).toNat +
                                 (dentRuntimeTtlWord I.codeOwner σ I).toNat <
                               2 ^ 48
-                        · exact flopperDentBodyCoreSuccessCallerEq hcode hperm hwv
+                        · exact flopperDentBodyCoreSuccessCallerEq hcode hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
                             (by simpa [packedSlot, id] using hcallerEq) haddFit
                             hdispatch hdecode rd2405
-                        · exact flopperDentBodyCoreAddOverflowCallerEq hcode hperm hwv
+                        · exact flopperDentBodyCoreAddOverflowCallerEq hcode hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
@@ -101,7 +100,7 @@ theorem flopperDentBody
                         by_cases hnoCode :
                             Reasoning.Theory.extCodeSizeWord σ
                               (solcAddressSlotWord ⟨2⟩ σ I) = ⟨0⟩
-                        · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
+                        · exact flopperDentBodyCoreMoveNoCode hcode hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                             (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                             hbegFit (by simpa [id] using hlotOneFit) hsuff
@@ -163,7 +162,7 @@ theorem flopperDentBody
                             obtain ⟨σ', zMove, outMove, A', k2545, C2545,
                                 rd2545, hcallMove, houtMoveSize⟩ :=
                               flopperDentX_moveCall
-                                (g := Sat256.ofUInt256 g) hperm hcodeSize hdepthLt
+                                (g := Sat256.ofUInt256 g) hcodeSize hdepthLt
                                 hmemCaller hread64Caller rd2439
                             by_cases hzMove : zMove = true
                             · have rd2545True : RD flopperBytecode I
@@ -223,7 +222,7 @@ theorem flopperDentBody
                                       houtAshSize, hmemAsh64, hreadAsh64, hmemAsh128Of,
                                       hreadAsh128Of⟩ :=
                                     flopperDentX_moveSuccessTicZeroAshCall
-                                      (g := Sat256.ofUInt256 g) hperm hmoveMem96
+                                      (g := Sat256.ofUInt256 g) hmoveMem96
                                       hmoveRead64
                                       (by simpa [packedSlot, id] using hticMoveZero)
                                       hashCodeSize hdepthLt rd2545True
@@ -343,7 +342,7 @@ theorem flopperDentBody
                                             AinKiss, AKiss, k2833, C2833, rd2833,
                                             hkissCall, houtKissSize⟩ :=
                                           flopperDentX_kissCall
-                                            (g := Sat256.ofUInt256 g) hperm
+                                            (g := Sat256.ofUInt256 g)
                                             hkissCodeSize hdepthLt
                                             (by
                                               simpa only [memAsh, memKissMap, memKiss]
@@ -397,7 +396,7 @@ theorem flopperDentBody
                                                 2 ^ 48
                                           · exact
                                               flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
-                                                hcode hperm hwv hlive hguy hticOk
+                                                hcode hwv hlive hguy hticOk
                                                 (by simpa [packedSlot, id] using hendGt)
                                                 (by simpa [id] using hbid)
                                                 (by simpa [id] using hlotLt) hbegFit
@@ -411,7 +410,7 @@ theorem flopperDentBody
                                                 hdispatch hdecode
                                           · exact
                                               flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
-                                                hcode hperm hwv hlive hguy hticOk
+                                                hcode hwv hlive hguy hticOk
                                                 (by simpa [packedSlot, id] using hendGt)
                                                 (by simpa [id] using hbid)
                                                 (by simpa [id] using hlotLt) hbegFit
@@ -562,7 +561,7 @@ theorem flopperDentBody
                                           I).toNat <
                                       2 ^ 48
                                 · exact flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
-                                    hcode hperm hwv hlive hguy hticOk
+                                    hcode hwv hlive hguy hticOk
                                     (by simpa [packedSlot, id] using hendGt)
                                     (by simpa [id] using hbid)
                                     (by simpa [id] using hlotLt) hbegFit
@@ -570,7 +569,7 @@ theorem flopperDentBody
                                     hcodeSize hticMoveNe haddFit rd2545True
                                     hcallMoveTrue hdispatch hdecode
                                 · exact flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
-                                    hcode hperm hwv hlive hguy hticOk
+                                    hcode hwv hlive hguy hticOk
                                     (by simpa [packedSlot, id] using hendGt)
                                     (by simpa [id] using hbid)
                                     (by simpa [id] using hlotLt) hbegFit
@@ -685,13 +684,13 @@ theorem flopperDentBody
                                     uint48Mask).toNat +
                                   (dentRuntimeTtlWord I.codeOwner σ I).toNat <
                                 2 ^ 48
-                          · exact flopperDentBodyCoreSuccessCallerEq hcode hperm hwv
+                          · exact flopperDentBodyCoreSuccessCallerEq hcode hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
                               (by simpa [packedSlot, id] using hcallerEq) haddFit
                               hdispatch hdecode rd2405
-                          · exact flopperDentBodyCoreAddOverflowCallerEq hcode hperm hwv
+                          · exact flopperDentBodyCoreAddOverflowCallerEq hcode hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
@@ -705,7 +704,7 @@ theorem flopperDentBody
                           by_cases hnoCode :
                               Reasoning.Theory.extCodeSizeWord σ
                                 (solcAddressSlotWord ⟨2⟩ σ I) = ⟨0⟩
-                          · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
+                          · exact flopperDentBodyCoreMoveNoCode hcode hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
                               (by simpa [id] using hbid) (by simpa [id] using hlotLt)
                               hbegFit (by simpa [id] using hlotOneFit) hsuff
@@ -749,7 +748,7 @@ theorem flopperDentBody
                               obtain ⟨σ', zMove, outMove, A', k2545, C2545,
                                   rd2545, hcallMove, houtMoveSize⟩ :=
                                 flopperDentX_moveCall
-                                  (g := Sat256.ofUInt256 g) hperm hcodeSize hdepthLt
+                                  (g := Sat256.ofUInt256 g) hcodeSize hdepthLt
                                   hmemCaller hread64Caller rd2439
                               have hmemMap : memMap.size = 96 := by
                                 simpa [memMap, memCaller, id] using
@@ -806,7 +805,7 @@ theorem flopperDentBody
                                 by_cases hticMoveZero :
                                     uint48Offset20Word packedSlot σ' I = ⟨0⟩
                                 · exact flopperDentBodyCoreMoveSuccessTicZero
-                                    hcode hperm hwv hlive hguy hticOk
+                                    hcode hwv hlive hguy hticOk
                                     (by simpa [packedSlot, id] using hendGt)
                                     (by simpa [id] using hbid)
                                     (by simpa [id] using hlotLt) hbegFit
@@ -828,7 +827,7 @@ theorem flopperDentBody
                                             I).toNat <
                                         2 ^ 48
                                   · exact flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
-                                      hcode hperm hwv hlive hguy hticOk
+                                      hcode hwv hlive hguy hticOk
                                       (by simpa [packedSlot, id] using hendGt)
                                       (by simpa [id] using hbid)
                                       (by simpa [id] using hlotLt) hbegFit
@@ -836,7 +835,7 @@ theorem flopperDentBody
                                       hcodeSize hticMoveNe haddFit rd2545True
                                       hcallMoveTrue hdispatch hdecode
                                   · exact flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
-                                      hcode hperm hwv hlive hguy hticOk
+                                      hcode hwv hlive hguy hticOk
                                       (by simpa [packedSlot, id] using hendGt)
                                       (by simpa [id] using hbid)
                                       (by simpa [id] using hlotLt) hbegFit

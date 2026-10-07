@@ -141,7 +141,7 @@ theorem weth9DecimalsBodyCoreOk {σ σ₀ A I} {g : UInt256}
 
 theorem weth9DecimalsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 5)) :
+    (hsel : selIs I (weth9SelBytes 5)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9DecimalsBodyCoreOk hcode hsize hwv hsel

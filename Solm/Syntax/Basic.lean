@@ -281,6 +281,9 @@ inductive Stmt where
   | pop : StorageRef -> Stmt
   /- `delete x`: reset the storage at `x` to its zero value (recursively, per its type) -/
   | delete : StorageRef -> Stmt
+  /- `emit E(e₁, …)`: an event.  The arguments are evaluated (and may revert); the log itself is
+     not modelled.  In static mode (`LOG*` is forbidden) the statement halts the execution. -/
+  | emit : Ident -> List Expr -> Stmt
   deriving Repr, Inhabited
 
 

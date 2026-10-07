@@ -49,7 +49,7 @@ theorem tinyNonPayable {σ σ₀ A I} {g : UInt256}
 
 theorem tinyImmutableCorrect (v : TinyImmutables) :
     runtimeEquivalence (config v) (patchedRuntime v) (contract v) := by
-  refine ⟨fun σ σ₀ g A I hIcode hsize _hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hIcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hshort : I.calldata.size < 4
     · exact (tinyBlocksX_short (g := Sat256.ofUInt256 g) v hIcode hwv hshort)
@@ -74,8 +74,8 @@ theorem tinyImmutableCorrect (v : TinyImmutables) :
   · exact tinyNonPayable v hIcode hwv
 
 theorem tinyImmutableContractCorrect (v : TinyImmutables) :
-    contractEquivalenceWith (config v) tinyImmutableCreationBytecode (patchedRuntime v) (contract v)
-      (runtimeCodeOf tinyImmutableBytecode) :=
+    contractEquivalenceWith (config v) tinyImmutableCreationBytecode (patchedRuntime v)
+      (contract v) (runtimeCodeOf tinyImmutableBytecode) :=
   contractEquivalenceWith.intro (tinyImmutableConstructorCorrect v)
     (tinyImmutableCorrect v)
 

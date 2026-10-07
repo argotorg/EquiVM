@@ -1143,11 +1143,10 @@ theorem erc20SelectorMissRuntime_mod4
 theorem erc20TransferFromRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hperm : I.perm = true)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
-  exact erc20TransferFromBodyCore hcode hwv hperm hsize
+  exact erc20TransferFromBodyCore hcode hwv hsize
     (by
       have hcd : I.calldata.extract 0 4 = (⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) :=
         (byteArray_eq_of_beq hsel).symm
@@ -1285,7 +1284,7 @@ theorem erc20NoDispatchRuntimeCore
 theorem erc20NoDispatchRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (_hwv : I.weiValue = ⟨0⟩)
-    (_hsize : I.calldata.size < UInt256.size) (_hperm : I.perm = true)
+    (_hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (erc20SelBytes i == I.calldata.extract 0 4) = false) :
     runtimeEquivalenceFor config contract σ σ₀ g A I :=
   erc20NoDispatchRuntimeCore hcode hnm
@@ -1470,7 +1469,7 @@ theorem erc20AllowanceNonPayableRuntime
 theorem erc20NonPayableRuntime
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
-    (_hsize : I.calldata.size < UInt256.size) (_hperm : I.perm = true) :
+    (_hsize : I.calldata.size < UInt256.size) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
   · exact erc20ApproveNonPayableRuntime hcode hwv h0
@@ -1500,21 +1499,21 @@ The dispatcher routing is explicit here.  The proven Vyper function-body obligat
 success remains isolated above as a bytecode obligation. -/
 theorem runtimeCorrect :
     runtimeEquivalence config vyperERC20Bytecode contract := by
-  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true
-    · exact erc20ApproveRuntimeSuccess hcode hwv hperm hsize h0
+    · exact erc20ApproveRuntimeSuccess hcode hwv hsize h0
     · by_cases h1 : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true
       · exact erc20TotalSupplyRuntime hcode hwv h1
       · by_cases h2 : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true
-        · exact erc20TransferFromRuntime hcode hwv hperm hsize h2
+        · exact erc20TransferFromRuntime hcode hwv hsize h2
         · by_cases h3 : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true
           · exact erc20BalanceOfRuntimeSuccess hcode hwv hsize h3
           · by_cases h4 : ((⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) == I.calldata.extract 0 4) = true
-            · exact erc20TransferRuntimeSuccess hcode hwv hperm hsize h4
+            · exact erc20TransferRuntimeSuccess hcode hwv hsize h4
             · by_cases h5 : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true
               · exact erc20AllowanceRuntimeSuccess hcode hwv hsize h5
-              · refine erc20NoDispatchRuntime hcode hwv hsize hperm ?_
+              · refine erc20NoDispatchRuntime hcode hwv hsize ?_
                 intro i hi
                 interval_cases i
                 · simpa using h0
@@ -1523,7 +1522,7 @@ theorem runtimeCorrect :
                 · simpa using h3
                 · simpa using h4
                 · simpa using h5
-  · exact erc20NonPayableRuntime hcode hwv hsize hperm
+  · exact erc20NonPayableRuntime hcode hwv hsize
 
 /-- Constructor equivalence for the Vyper 0.4.3 ERC20 deployment bytecode. -/
 theorem constructorCorrect :

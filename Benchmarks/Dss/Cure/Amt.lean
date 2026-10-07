@@ -165,7 +165,6 @@ theorem cureAmtBodyCoreDecodeFailed_short
 theorem cureAmtBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 0)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -132,7 +132,7 @@ theorem auctionX {σ σ₀ A I} {g : UInt256}
 
 theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (entryBytes 9))
+    (hsel : selIs I (entryBytes 9))
     (hreach : EntryReached 9 σ σ₀ A I g) :
     runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩

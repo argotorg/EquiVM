@@ -189,7 +189,7 @@ theorem vowSinMappingBodyCore
 
 theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -200,7 +200,7 @@ theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}
 
 theorem vowSinMappingShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -1201,21 +1201,22 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
     rd6653 (by simpa [old, slot, inner] using hfail)
     (by simp [List.length_cons] at hov ⊢; omega)
 
-theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
+theorem RD.vatSlipStoreValueSplit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum wad usr ilk ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD vatBytecode ee g s0 ⟨4685⟩ (sum :: wad :: usr :: ilk :: ret :: R) mem
       (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (husrClean : UInt256.land usr solcAddrMask = usr)
-    (hperm : ee.perm = true)
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
+    (ee.perm = true ∧
     ∃ k' C', RD vatBytecode ee g s0 ret R
       (twoWordHashMem usr (solcMappingSlot ⟨4⟩ ilk) (twoWordHashMem ilk ⟨4⟩ mem))
       (UInt256.ofNat 3) rdata
       (sstoreAccountMap ee.codeOwner σ
-        (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) usr) sum) k' C' := by
+        (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) usr) sum) k' C') ∨
+      (ee.perm = false ∧ RDstatic vatBytecode g s0) := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
   have rd4686 := h.jumpdest (by native_decide) (by evm_ov)
@@ -1273,6 +1274,12 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
   have rd4723 := rd4722.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
     mem_cost hslot (by native_decide) (by evm_ov)
+  by_cases hperm : ee.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4723.sstoreStatic (by simpa using hperm) (by native_decide)
+        (by simp only [List.length_cons]; omega)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd4724⟩ := rd4723.sstore hperm (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd4725 := rd4724.pop (by native_decide) (by evm_ov)
@@ -1285,7 +1292,7 @@ theorem slipUsrMaskedWord_clean (I : ExecutionEnv) :
   exact solcAddrMask_clean (solcAddrMask_result_canonical (slipUsrWord I))
 
 set_option maxHeartbeats 1000000 in
-theorem RD.vatSlipStoreOk {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+theorem RD.vatSlipStoreOkSplit {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨4558⟩
       [slipWadWord I, slipUsrMaskedWord I, slipIlkWord I, ⟨524⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
@@ -1305,8 +1312,8 @@ theorem RD.vatSlipStoreOk {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256
             solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
               (slipUsrMaskedWord I)))
           (solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-            (slipUsrMaskedWord I))) = ⟨0⟩)
-    (hperm : I.perm = true) :
+            (slipUsrMaskedWord I))) = ⟨0⟩) :
+    (I.perm = true ∧
     ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨524⟩ [sel]
       (twoWordHashMem (slipUsrMaskedWord I)
         (solcMappingSlot ⟨4⟩ (slipIlkWord I))
@@ -1320,7 +1327,8 @@ theorem RD.vatSlipStoreOk {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256
         (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I)) (slipUsrMaskedWord I))
         (slipWadWord I +
           solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
-            (slipUsrMaskedWord I)))) k' C' := by
+            (slipUsrMaskedWord I)))) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
     (code := vatBytecode) (pc := ⟨4558⟩) (okPc := ⟨4640⟩)
     (key := slipWadWord I) (ret := slipUsrMaskedWord I)
@@ -1342,16 +1350,17 @@ theorem RD.vatSlipStoreOk {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256
     apply twoWordHashMem_size_96
     apply twoWordHashMem_size_96
     exact hmemAuth
-  obtain ⟨_, _, hstored⟩ := RD.vatSlipStoreValue
+  refine permSplit_bind (RD.vatSlipStoreValueSplit
     (sum := slipWadWord I +
       solcSlotWord σ I (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
         (slipUsrMaskedWord I)))
     (wad := slipWadWord I) (usr := slipUsrMaskedWord I) (ilk := slipIlkWord I)
     (ret := ⟨524⟩) (R := [sel]) hwithSum hmemOuter (slipUsrMaskedWord_clean I)
-    hperm (by jump_dest) (by simp)
+    (by jump_dest) (by simp)) fun _ hseg => ?_
+  obtain ⟨_, _, hstored⟩ := hseg
   exact ⟨_, _, by simpa using hstored⟩
 
-theorem vatSlipSourceOk
+theorem vatSlipSourceOkSplit
     {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz100 : 100 ≤ I.calldata.size)
     (hauthEvm : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩) :
@@ -1369,7 +1378,10 @@ theorem vatSlipSourceOk
     ExecTransitionBody config contract evm0 (slipStore I) slipTransition.body
       (.returned { contract := contract, locals := slipStoreGemNew I gemNew }
         (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (slipStorageSlot I) gemNew)
-        none) := by
+        none) ∧
+    (I.perm = false →
+      ExecTransitionBody config contract evm0 (slipStore I) slipTransition.body
+        .staticViolation) := by
   intro evm0 old gemNew hguardNeg hguardPos
   have hload :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (slipStorageSlot I) = old := by
@@ -1398,13 +1410,24 @@ theorem vatSlipSourceOk
         .ok ({ contract := contract, locals := slipStoreGemNew I gemNew }, evm1) :=
     assignStorageRef_slip_gemNew (evm := evm0) (evm' := evm1) (I := I)
       (gemNew := gemNew) hsz100 rfl
-  have hblock :
+  have hgemNewVar :
+      evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
+        (.var "gemNew") = .ok (.int (Int.ofNat gemNew.toNat)) := by
+    rw [evalExpr?]
+    change EvalResult.ofOption EvalError.unboundVariable
+      ((slipStoreGemNew I gemNew).get? "gemNew") =
+        .ok (.int (Int.ofNat gemNew.toNat))
+    rw [slipStoreGemNew_get_gemNew]
+    rfl
+  have hpre : ∀ r, ExecBlock config
+      { contract := contract, locals := slipStoreGemNew I gemNew } evm0
+      [ .assign .storage (gemRef (.var "ilk") (.var "usr")) (.var "gemNew") ] r →
       ExecBlock config { contract := contract, locals := slipStore I } evm0
         (nonpayable ++ auth ++
           checkedAddSignedInto "gemNew" (.storage (gemRef (.var "ilk") (.var "usr")))
             (.var "wad") ++
-          [ .assign .storage (gemRef (.var "ilk") (.var "usr")) (.var "gemNew") ])
-        (.ok { contract := contract, locals := slipStoreGemNew I gemNew } evm1) := by
+          [ .assign .storage (gemRef (.var "ilk") (.var "usr")) (.var "gemNew") ]) r := by
+    intro r hrest
     change ExecBlock config { contract := contract, locals := slipStore I } evm0
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
@@ -1417,25 +1440,21 @@ theorem vatSlipSourceOk
           (eitherExpr (.binary .le (.var "wad") (.intLit 0))
             (.binary .ge (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))),
         .assign .storage (gemRef (.var "ilk") (.var "usr")) (.var "gemNew") ]
-      (.ok { contract := contract, locals := slipStoreGemNew I gemNew } evm1)
+      r
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNeg) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    have hgemNewVar :
-        evalExpr? config { contract := contract, locals := slipStoreGemNew I gemNew } evm0
-          (.var "gemNew") = .ok (.int (Int.ofNat gemNew.toNat)) := by
-      rw [evalExpr?]
-      change EvalResult.ofOption EvalError.unboundVariable
-        ((slipStoreGemNew I gemNew).get? "gemNew") =
-          .ok (.int (Int.ofNat gemNew.toNat))
-      rw [slipStoreGemNew_get_gemNew]
-      rfl
-    exact ExecBlock.consNormal (ExecStmt.assign hgemNewVar hassign) ExecBlock.nil
-  simpa [ExecTransitionBody, slipTransition, evm0, evm1, nonpayable, auth] using
-    ExecFuncBody.execBlockOK hblock
+    exact hrest
+  refine ⟨?_, fun hpf => ?_⟩
+  · simpa [ExecTransitionBody, slipTransition, evm0, evm1, nonpayable, auth] using
+      ExecFuncBody.execBlockOK (hpre _
+        (ExecBlock.consNormal (ExecStmt.assign hgemNewVar hassign) ExecBlock.nil))
+  · simpa [ExecTransitionBody, slipTransition, evm0, nonpayable, auth] using
+      ExecFuncBody.execBlockStatic (hpre _ (ExecBlock.consStatic
+        (ExecStmt.assignStatic hgemNewVar hassign (by simp [evm0, initState]; exact hpf))))
 
 theorem vatSlipSourceRevertGuardNeg
     {σ σ₀ A I} {g : UInt256}
@@ -1563,8 +1582,8 @@ theorem vatSlipSourceRevertGuardPos
     ExecFuncBody.execBlockRevert hblock
 
 set_option maxHeartbeats 0 in
-theorem vatSlipBodyCore : VatBodyTheorem 23 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatSlipBodyCore : VatBodyTheoremAnyPerm 23 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 23) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some slipTransition :=
@@ -1659,14 +1678,18 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
                   .ok (.bool true) :=
             evalSlipGuardPos_true (evm := evm0) (I := I) (old := old)
               (gemNew := gemNew) hsz100 hloadS hposSource
-          have hbody := vatSlipSourceOk
+          have hboth := vatSlipSourceOkSplit
             (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hsz100
             (by simpa [callerSlot] using hauthEvm) hguardNeg hguardPos
-          obtain ⟨_, _, hretPc⟩ := RD.vatSlipStoreOk
-            (σ := σ) (σ₀ := σ₀)
-            (A := A) (I := I) (g := Sat256.ofUInt256 g)
-            hdecoded hauthSolc hnegSolc hposSolc hperm
+          have hbody := hboth.1
+          rcases RD.vatSlipStoreOkSplit
+              (σ := σ) (σ₀ := σ₀)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g)
+              hdecoded hauthSolc hnegSolc hposSolc with
+            ⟨_, _, _, hretPc⟩ | ⟨hpf, hstatic⟩
+          swap
+          · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hboth.2 hpf)
           have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
           have hret :
               RDret vatBytecode (Sat256.ofUInt256 g)

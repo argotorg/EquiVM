@@ -187,7 +187,6 @@ theorem stairstepWardsBodyCoreDecodeFailed_short
 theorem stairstepWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = exponentialDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (stairstepSelBytes 5)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

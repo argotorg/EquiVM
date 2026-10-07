@@ -160,9 +160,8 @@ theorem flopperTickX_toLotStoreStart
   exact ⟨_, _, rd4558⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flopperTickX_toCheckedAddStart
+theorem flopperTickX_toCheckedAddStartSplit
     {σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hperm : I.perm = true)
     (hendLt :
       (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
@@ -180,10 +179,12 @@ theorem flopperTickX_toCheckedAddStart
     let memLot := twoWordHashMem id ⟨1⟩ memTic
     let memStore := twoWordHashMem id ⟨1⟩ memLot
     let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
-    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
-      [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
-        ⟨4618⟩, id, ⟨334⟩, sel]
-      memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+        [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
+          ⟨4618⟩, id, ⟨334⟩, sel]
+        memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C') ∨
+      (I.perm = false ∧ RDstatic flopperBytecode g (initState σ σ₀ g A I)) := by
   intro id memEnd memTic memLot memStore σLot
   obtain ⟨_, _, rd4558⟩ := flopperTickX_toLotStoreStart hendLt htic hmulFit rd4292
   have rd4563pre := evm_run rd4558 with [
@@ -248,8 +249,14 @@ theorem flopperTickX_toCheckedAddStart
   have hlotSlot : base + ⟨1⟩ = auctionLotSlot id := by
     simp [base, auctionLotSlot_eq, id]
   rw [hlotSlot] at rd4589pre
+  have hstoreDec : decode flopperBytecode ⟨4589⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4589pre.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨k4590, C4590, rd4590raw⟩ := rd4589pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    hstoreDec (by evm_ov)
   have rd4590 : RD flopperBytecode I g
       (initState σ σ₀ g A I) ⟨4590⟩
       [id, ⟨334⟩, sel] memStore (UInt256.ofNat 3) ByteArray.empty
@@ -285,6 +292,32 @@ theorem flopperTickX_toCheckedAddStart
       show UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = UInt256.ofNat (256 ^ 6)
         from by native_decide]
       using rd4740⟩
+
+theorem flopperTickX_toCheckedAddStart
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hperm : I.perm = true)
+    (hendLt :
+      (uint48Offset26Word (auctionPackedSlot (tickIdWord I)) σ I).toNat <
+        (UInt256.ofNat I.header.timestamp).toNat)
+    (htic : uint48Offset20Word (auctionPackedSlot (tickIdWord I)) σ I = ⟨0⟩)
+    (hmulFit :
+      (solcSlotWordAt ⟨5⟩ σ I).toNat *
+        (solcSlotWordAt (auctionLotSlot (tickIdWord I)) σ I).toNat < UInt256.size)
+    (rd4292 : ∃ k C, RD flopperBytecode I g
+      (initState σ σ₀ g A I) ⟨4292⟩
+      [tickIdWord I, ⟨334⟩, sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    let id := tickIdWord I
+    let memEnd := twoWordHashMem id ⟨1⟩ solcFreePtrMem
+    let memTic := twoWordHashMem id ⟨1⟩ memEnd
+    let memLot := twoWordHashMem id ⟨1⟩ memTic
+    let memStore := twoWordHashMem id ⟨1⟩ memLot
+    let σLot := tickRuntimeAfterLotMap I.codeOwner σ I
+    ∃ k' C', RD flopperBytecode I g (initState σ σ₀ g A I) ⟨4740⟩
+      [tickRuntimeTauWord I.codeOwner σ I, UInt256.ofNat I.header.timestamp,
+        ⟨4618⟩, id, ⟨334⟩, sel]
+      memStore (UInt256.ofNat 3) ByteArray.empty σLot k' C' :=
+  permSplit_true hperm (flopperTickX_toCheckedAddStartSplit hendLt htic hmulFit rd4292)
 
 set_option maxHeartbeats 1000000 in
 theorem flopperTickX_toEndStoreStart
@@ -857,7 +890,6 @@ theorem flopperTickBodyCoreDecodeFailed_short
 theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flopperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flopperSelBytes 14)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -880,7 +912,22 @@ theorem flopperTickBody {σ σ₀ A I} {g : UInt256}
       · by_cases hmulFit :
           (solcSlotWordAt ⟨5⟩ σ I).toNat *
             (solcSlotWordAt (auctionLotSlot id) σ I).toNat < UInt256.size
-        · by_cases haddFit :
+        · by_cases hperm : I.perm = true
+          swap
+          · have hp : I.perm = false := by simpa using hperm
+            have hstatic := permSplit_false hp (flopperTickX_toCheckedAddStartSplit
+              (by simpa [id, packedSlot] using hendLt)
+              (by simpa [id, packedSlot] using htic)
+              (by simpa [id] using hmulFit) rd4292)
+            have hsource := (flopperTickBodyReturns_successSplit
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I hwv
+              (by simpa [tickEndWord, tickTimestampWord, initState, id, packedSlot]
+                using hendLt)
+              (by simpa [tickTicWord, initState, id, packedSlot] using htic)
+              (by simpa [tickPadWord, tickLotWord, initState, id] using hmulFit)).2 hp
+            exact hstatic.reEquivStaticHalt hcode hdispatch
+              (flopperDecode_tick_ok hsz36) hsource
+          by_cases haddFit :
             (UInt256.land (UInt256.ofNat I.header.timestamp) uint48Mask).toNat +
               (tickRuntimeTauWord I.codeOwner σ I).toNat < 2 ^ 48
           · exact flopperTickBodyCoreSuccess hcode hperm hwv

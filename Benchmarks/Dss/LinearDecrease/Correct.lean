@@ -21,26 +21,27 @@ namespace Benchmarks.Dss.LinearDecrease
 theorem linearDecreaseCorrect :
     runtimeEquivalence config linearDecreaseBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro σ σ₀ g A I hcode hsize hperm
+  intro σ σ₀ g A I hcode hsize
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hdeny : selIs I (stairstepSelBytes 0)
-    · exact stairstepDenyBody hcode hsize hperm hwv hdeny
+    · exact stairstepDenyBodyAnyPerm hcode hsize hwv hdeny
     · by_cases hfile : selIs I (stairstepSelBytes 1)
-      · exact stairstepFileBody hcode hsize hperm hwv hfile
+      · exact stairstepFileBody hcode hsize hwv hfile
       · by_cases hprice : selIs I (stairstepSelBytes 2)
-        · exact stairstepPriceBody hcode hsize hperm hwv hprice
+        · exact stairstepPriceBody hcode hsize hwv hprice
         · by_cases hrely : selIs I (stairstepSelBytes 3)
-          · exact stairstepRelyBody hcode hsize hperm hwv hrely
+          · exact stairstepRelyBodyAnyPerm hcode hsize hwv hrely
           · by_cases htau : selIs I (stairstepSelBytes 4)
-            · exact stairstepTauBody hcode hsize hperm hwv htau
+            · exact stairstepTauBody hcode hsize hwv htau
             · by_cases hwards : selIs I (stairstepSelBytes 5)
-              · exact stairstepWardsBody hcode hsize hperm hwv hwards
-              · exact stairstepNoDispatch hcode hsize hperm hwv
+              · exact stairstepWardsBody hcode hsize hwv hwards
+              · exact stairstepNoDispatch hcode hsize hwv
                   (stairstepNoSelectorMatches hdeny hfile hprice hrely htau hwards)
   · exact stairstepNonPayable hcode hwv
 
 theorem linearDecreaseContractCorrect :
-    contractEquivalence config linearDecreaseCreationBytecode linearDecreaseBytecode contract :=
+    contractEquivalence config linearDecreaseCreationBytecode
+      linearDecreaseBytecode contract :=
   contractEquivalence.intro linearDecreaseConstructorCorrect linearDecreaseCorrect
 
 end Benchmarks.Dss.LinearDecrease

@@ -6,8 +6,9 @@ import Solm.SolidityLayout
 
 Solm benchmark scaffold for upstream `dss/src/spot.sol`.
 
-The storage layout and public ABI surface follow solc `0.6.12`. Events are omitted. `poke` keeps
-the source-level oracle call and conditional arithmetic evaluation shape.
+The storage layout and public ABI surface follow solc `0.6.12`. The one event, `Poke`, is
+modelled: `poke` writes no storage, so under a static call its log is the first forbidden
+operation. `poke` keeps the source-level oracle call and conditional arithmetic evaluation shape.
 -/
 
 open Solm ABI Ethereum
@@ -291,7 +292,8 @@ def pokeTransition : TransitionDecl :=
               .assign .localVar { base := "spot" } (.var "spot2") ])
           [] ] ++
       checkedExternalCallStmts (.storage vatRef) "file" (.intLit 0)
-        [.var "ilk", spotParamLit, .var "spot"] "_fileRet" }
+        [.var "ilk", spotParamLit, .var "spot"] "_fileRet" ++
+      [ .emit "Poke" [.var "ilk", .var "val", .var "spot"] ] }
 
 def cageTransition : TransitionDecl :=
   { name := "cage"

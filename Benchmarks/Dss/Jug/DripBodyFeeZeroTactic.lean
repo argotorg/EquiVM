@@ -55,8 +55,8 @@ by_cases hprevMaxNot :
             (dripIlkHashMem I)).readWithPadding
               dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           (evm.executionEnv.depth + 1)
-          (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-    simpa [evm, initState, hperm] using hΘ'
+          (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+    simpa [evm, initState] using hΘ'
   have hcall :
       typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -167,8 +167,8 @@ by_cases hprevMaxNot :
               (dripIlkHashMem I)).readWithPadding
                 dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
             (evm.executionEnv.depth + 1)
-            (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-      simpa [evm, initState, hperm] using hΘ'
+            (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+      simpa [evm, initState] using hΘ'
     have hcall :
         typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
           [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -391,8 +391,8 @@ by_cases hprevMaxNot :
                 (dripIlkHashMem I)).readWithPadding
                   dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
               (evm.executionEnv.depth + 1)
-              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-        simpa [evm, initState, hperm] using hΘ'
+              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       have hcall :
           typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
             [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -442,8 +442,8 @@ by_cases hprevMaxNot :
                   (dripVatIlksPrevWord out)) foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
               (evmVat.executionEnv.depth + 1)
-              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) true := by
-        simpa [evmVat, evm, initState, hperm, foldBaseMem] using
+              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) (true && evmVat.executionEnv.perm) := by
+        simpa [evmVat, evm, initState, foldBaseMem] using
           hΘFold'
       have hfoldCall :
           typedCallViaEVM config evmVat (EVM.address (dripVatAddress σ' I))
@@ -554,8 +554,8 @@ by_cases hprevMaxNot :
                 (dripIlkHashMem I)).readWithPadding
                   dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
               (evm.executionEnv.depth + 1)
-              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) true := by
-        simpa [evm, initState, hperm] using hΘ'
+              (evm.executionEnv.header) (evm.executionEnv.blobVersionedHashes) (evm.executionEnv.blocks) (true && evm.executionEnv.perm) := by
+        simpa [evm, initState] using hΘ'
       have hcall :
           typedCallViaEVM config evm (EVM.address (dripVatAddress σ I)) "ilks" 0
             [.fixedBytes bytes32Width (fileDutyIlkBytes I)]
@@ -605,8 +605,8 @@ by_cases hprevMaxNot :
                   (dripVatIlksPrevWord out)) foldBaseMem).readWithPadding
                     dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
               (evmVat.executionEnv.depth + 1)
-              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) true := by
-        simpa [evmVat, evm, initState, hperm, foldBaseMem] using
+              (evmVat.executionEnv.header) (evmVat.executionEnv.blobVersionedHashes) (evmVat.executionEnv.blocks) (true && evmVat.executionEnv.perm) := by
+        simpa [evmVat, evm, initState, foldBaseMem] using
           hΘFold'
       have hfoldCall :
           typedCallViaEVM config evmVat (EVM.address (dripVatAddress σ' I))
@@ -646,15 +646,8 @@ by_cases hprevMaxNot :
         Solm.EVM.storageStore evmFoldS evmFoldS.executionEnv.codeOwner
           (fileDutyRhoSlotFor I)
           (UInt256.ofNat evmFoldS.executionEnv.header.timestamp)
-      have hbody :
-          ExecTransitionBody config contract evm locals
-            dripTransition.body
-            (.returned { contract := contract, locals := finalLocals }
-              evmRhoS
-              (some [.int (Int.ofNat (⟨0⟩ : UInt256).toNat)])) := by
-        simpa [evm, evmVat, evmFoldS, finalLocals, evmRhoS,
-          locals, initState, solcSlotWordAt] using
-          (jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzero
+      have hboth :=
+          (jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzeroSplit
             (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g)
             (evmVat := evmVat) (evmFold := evmFoldS)
@@ -673,21 +666,32 @@ by_cases hprevMaxNot :
                 (by simpa [age] using hageNZ))
             hprevMax hfoldCodeSolm
             (by simpa [evmVat] using hfoldCall))
+      have hbody :
+          ExecTransitionBody config contract evm locals
+            dripTransition.body
+            (.returned { contract := contract, locals := finalLocals }
+              evmRhoS
+              (some [.int (Int.ofNat (⟨0⟩ : UInt256).toNat)])) := by
+        simpa [evm, evmVat, evmFoldS, finalLocals, evmRhoS,
+          locals, initState, solcSlotWordAt] using hboth.1
       obtain ⟨_, _, rd1669⟩ :=
         RD.jugDripVatFoldCallSucceeded
           (targetWord := dripVatTargetWord σ' I) rd1651
-      have hret := RD.jugDripVatFoldStoreRhoReturns
-        (targetWord := dripVatTargetWord σ' I)
-        hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-      exact hret.reEquivExecutionGen hcode hdispatch
-        (jugDecode_drip_ok hsz36) hbody
-        (by simp [evmRhoS, evmFoldS, evmVat, evm, initState,
-          storageStore_accountMap])
-        (by
-          rw [show dripTransition.returnType = [uint256] by rfl]
-          exact returnEquiv_of_encode
-            (by simpa [uint256] using
-              uint256ReturnEncoding (⟨0⟩ : UInt256)))
+      rcases RD.jugDripVatFoldStoreRhoReturnsSplit
+          (targetWord := dripVatTargetWord σ' I)
+          hsz36 hfoldCallMemSize hfoldCallMemRead64 rd1669 with
+        ⟨_, hret⟩ | ⟨hpf, hstatic⟩
+      · exact hret.reEquivExecutionGen hcode hdispatch
+          (jugDecode_drip_ok hsz36) hbody
+          (by simp [evmRhoS, evmFoldS, evmVat, evm, initState,
+            storageStore_accountMap])
+          (by
+            rw [show dripTransition.returnType = [uint256] by rfl]
+            exact returnEquiv_of_encode
+              (by simpa [uint256] using
+                uint256ReturnEncoding (⟨0⟩ : UInt256)))
+      · exact hstatic.reEquivStaticHalt hcode hdispatch (jugDecode_drip_ok hsz36)
+          (hboth.2 hpf)
 "#
 
 elab "jug_drip_fee_zero_tac" : tactic => do

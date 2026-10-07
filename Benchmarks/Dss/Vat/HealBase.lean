@@ -1008,6 +1008,43 @@ theorem vatHealSourceSinUnderflow (evm : EVM.State) (I : ExecutionEnv)
     simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc] using htail
   exact ExecFuncBody.execBlockRevert hblock
 
+theorem vatHealSourceStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsrc : evm.executionEnv.source = I.source)
+    (hsinEnough : (healRad I).toNat ≤
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (healLocals I) healTransition.body
+      .staticViolation := by
+  let sinVal := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (healSinSlot I)
+  let sinNew := UInt256.sub sinVal (healRad I)
+  have hsin := vatHealSinSubBlockOk (evm := evm) (I := I)
+    (sinVal := sinVal) (sinNew := sinNew) hsrc rfl rfl hsinEnough
+  have hassignSin :
+      ExecBlock config { contract := contract, locals := healLocalsSinNew I sinNew } evm
+        [ .assign .storage (sinRef sender) (.var "sinNew") ] .staticViolation := by
+    cases vatHealAssignSinOk (evm := evm) (I := I) (sinNew := sinNew) hsrc with
+    | consNormal hstmt _ => exact ExecBlock.consStatic (execStmt_assign_static hstmt hperm)
+  have htail :
+      ExecBlock config { contract := contract, locals := healLocals I } evm
+        healBodyTail .staticViolation := by
+    simpa [List.append_assoc] using
+      (execBlock_append_term (s2 :=
+        checkedSubUintInto "daiNew" (.storage (daiRef sender)) (.var "rad") ++
+        [ .assign .storage (daiRef sender) (.var "daiNew") ] ++
+        checkedSubUintInto "viceNew" (.storage viceRef) (.var "rad") ++
+        [ .assign .storage viceRef (.var "viceNew") ] ++
+        checkedSubUintInto "debtNew" (.storage debtRef) (.var "rad") ++
+        [ .assign .storage debtRef (.var "debtNew") ])
+        (execBlock_append hsin hassignSin) (by intro f e h; cases h))
+  have hblock :
+      ExecBlock config { contract := contract, locals := healLocals I } evm
+        healTransition.body .staticViolation := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+    simpa [healTransition, nonpayable, healBodyTail, checkedSubUintInto, List.append_assoc]
+      using htail
+  exact ExecFuncBody.execBlockStatic hblock
+
 theorem vatHealSourceDaiUnderflow (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsrc : evm.executionEnv.source = I.source)

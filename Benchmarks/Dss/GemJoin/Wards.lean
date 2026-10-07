@@ -185,7 +185,6 @@ theorem gemJoinWardsBodyCoreDecodeFailed_short
 theorem gemJoinWardsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (gemJoinSelBytes 10)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -95,11 +95,18 @@ inductive execResultsEquiv
     solmRes = .reverted →
     execResultsEquiv evmRes solmRes returnConvention
   -- `INVALID` (`0xFE`) refines a Solm `.reverted`; legacy solc uses it as the assert/panic failure
-  -- path.  It is the ONLY EVM exception matched here — any other error leaves `execResultsEquiv`
-  -- unmatchable, so a real crash never equates with a revert.
+  -- path.  Static-mode violations have their own case below; no other EVM exception is matched.
   | invalidHalt :
     evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
+    execResultsEquiv evmRes solmRes returnConvention
+  -- Static mode (`I.perm = false`, the contract was entered through `STATICCALL`): the EVM's
+  -- `StaticModeViolation` at a forbidden opcode refines a Solm `.staticViolation`, which only a
+  -- state-changing statement can produce.  A body without one (a view function) can never match
+  -- an EVM static halt.
+  | staticHalt :
+    evmRes = .error .StaticModeViolation →
+    solmRes = .staticViolation →
     execResultsEquiv evmRes solmRes returnConvention
 
 inductive ctorResultEquiv
@@ -136,7 +143,9 @@ inductive ctorResultEquiv
 
     Holds in exactly one of four ways:
     * `execution`: Solm dispatches and runs a transition to `solmRes`; the EVM result is
-      `execResultsEquiv`-related to it under the transition's return convention.
+      `execResultsEquiv`-related to it under the transition's return convention.  This includes
+      the static-mode case (`I.perm = false`): an EVM `StaticModeViolation` pairs with a Solm
+      `.staticViolation`.
     * `noDispatch`: no Solm transition accepts the calldata, and the EVM reverts.
     * `decodingFailed`: the selector matches a transition but calldata decoding fails,
       and the EVM reverts.
@@ -182,9 +191,8 @@ def trivialStorageWF : StorageWF := fun _ _ => True
 /-- Runtime equivalence under a contract-specific storage well-formedness precondition.
 
 This is the same runtime relation as `runtimeEquivalence`, except the caller must additionally
-prove `wf σ I` for the EVM-side initial storage and execution environment.  The old
-unconditional relation remains available as before; new contracts that need reachable-state or
-layout invariants can use this parameterized entry point. -/
+prove `wf σ I` for the EVM-side initial storage and execution environment.  Both relations
+cover either permission mode. -/
 inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : ByteArray)
     (contract : ContractDecl) : Prop where
   | intro :
@@ -195,13 +203,16 @@ inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : B
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    I.perm = true →
     wf σ I →
     runtimeEquivalenceFor cfg contract σ σ₀ g A I
     ) →
     runtimeEquivalenceWithWF wf cfg bytecode contract
 
-inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
+/-- Runtime equivalence in either permission mode.  When entered through `STATICCALL`, the EVM
+    halts at the first forbidden opcode and Solm halts at a state-changing statement, paired by
+    `execResultsEquiv.staticHalt`. -/
+inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray)
+    (contract : ContractDecl) : Prop where
   | intro :
     (∀ (σ : Ethereum.AccountMap)
       (σ₀ : Ethereum.AccountMap)
@@ -210,11 +221,6 @@ inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : C
       (I : Ethereum.ExecutionEnv),
     I.code = bytecode →
     I.calldata.size < Ethereum.UInt256.size →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
-    I.perm = true →
     runtimeEquivalenceFor cfg contract σ σ₀ g A I
     ) →
     runtimeEquivalence cfg bytecode contract
@@ -229,14 +235,14 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
     cases h with
     | intro hrun =>
         refine runtimeEquivalence.intro ?_
-        intro σ σ₀ g A I hcode hsize hperm
-        exact hrun σ σ₀ g A I hcode hsize hperm trivial
+        intro σ σ₀ g A I hcode hsize
+        exact hrun σ σ₀ g A I hcode hsize trivial
   · intro h
     cases h with
     | intro hrun =>
         refine runtimeEquivalenceWithWF.intro ?_
-        intro σ σ₀ g A I hcode hsize hperm _hwf
-        exact hrun σ σ₀ g A I hcode hsize hperm
+        intro σ σ₀ g A I hcode hsize _hwf
+        exact hrun σ σ₀ g A I hcode hsize
 
 
 /-- Constructor (deployment) equivalence at fixed transaction inputs: couples the EVM
@@ -298,10 +304,9 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    -- A top-level message call is never executed in static (read-only) mode: the EVM's
-    -- transaction entry `Υ` sets the permission flag, and Solm's external-call rule likewise
-    -- hardcodes a writable sub-call.  Required for contracts that write storage (`SSTORE` aborts
-    -- under `perm = false`, whereas Solm's `.assign` is permission-free); benign for pure ones.
+    -- Init code never runs in static mode: the transaction entry `Υ` passes `true` to `Λ`, and
+    -- `CREATE`/`CREATE2` are themselves forbidden under `perm = false`, so `Λ` is never reached
+    -- with it.  The hypothesis excludes nothing reachable.
     I.perm = true →
     -- We need to enforce that all successful execution paths return the same runtime code
     constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
@@ -400,7 +405,7 @@ inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (cont
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
-    I.perm = true →
+    I.perm = true →  -- unreachable otherwise, see `constructorEquivalence`
     constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
     ) →
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf

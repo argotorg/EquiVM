@@ -1695,4 +1695,34 @@ theorem uniswapSyncBody
         exact uniswapSyncBodyRevert_firstCallDepth hcode hsize hperm hwv hsel
           hdepth1024 hunlocked htoken0NoCode hdispatch
 
+/-- `sync` with any call permission; a static call halts at the lock-entry `SSTORE`. -/
+theorem uniswapSyncBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapSyncBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hlocked :
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
+        ⟨1⟩
+  · exact uniswapSyncBodyRevert_locked hcode hsize hwv hsel hlocked hdispatch
+  have hunlocked := not_not.mp hlocked
+  have hsz4 : 4 ≤ I.calldata.size :=
+    calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hunlockedSolm :
+      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
+    simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage] using hunlocked
+  exact (uniswapSyncX_lockEnteredStatic (g := Sat256.ofUInt256 g) hperm hunlocked
+      (uniswapReachSyncBody (σ := σ) (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
+        hcode hwv hsz4 hsize hsel))
+    |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_sync hsz4)
+      (uniswapSyncBodyStatic evmS (by simp only [evmS, initState]; exact hwv) hunlockedSolm
+        (by simp only [evmS, initState]; exact hperm))
+
 end UniswapV2Pair

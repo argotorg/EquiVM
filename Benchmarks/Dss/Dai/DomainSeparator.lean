@@ -116,7 +116,7 @@ theorem daiDomainSeparatorBodyCoreOk
 /-- `DOMAIN_SEPARATOR()` body refines its Solm transition. -/
 theorem daiDomainSeparatorBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 6)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=

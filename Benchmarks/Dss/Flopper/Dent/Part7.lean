@@ -416,7 +416,7 @@ theorem flopperDentX_toBegLotOkFromDecoded
 theorem flopperDentBodyCoreMoveNoCode
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {memStart : ByteArray} {k C : ℕ}
-    (hcode : I.code = flopperBytecode) (_hperm : I.perm = true)
+    (hcode : I.code = flopperBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : solcSlotWordAt ⟨8⟩ σ I = ⟨1⟩)
     (hguy : solcAddressSlotWord (auctionPackedSlot (dentIdWord I)) σ I ≠ ⟨0⟩)

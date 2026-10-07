@@ -102,6 +102,14 @@ theorem evalExpr_approve_value (evm : EVM.State) (I : ExecutionEnv) :
   simp only [evalExpr?, EvalResult.ofOption]
   rw [approveStore_value]
 
+/-- The `Approval(msg.sender, spender, value)` event arguments evaluate. -/
+theorem evalExprs_approve_event (evm : EVM.State) (I : ExecutionEnv) :
+    evalExprs? erc20Config { contract := erc20Contract, locals := approveStore I } evm
+      [sender, .var "spender", .var "value"]
+      = .ok [.address evm.executionEnv.source, approveSpenderValue I, approveValueValue I] := by
+  simp [evalExprs?, evalExpr_approve_spender, evalExpr_approve_value, sender, evalExpr?, envValue,
+    EvalResult.bind, bind, pure]
+
 def approveEvaledRef (evm : EVM.State) (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "allowance",
     steps := [.mindex (.address evm.executionEnv.source),
@@ -138,7 +146,18 @@ theorem erc20ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
   refine ExecBlock.consNormal (ExecStmt.assign (evalExpr_approve_value evm I) (approveAssign evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.emit (evalExprs_approve_event (approvePostState evm I) I)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
+
+/-- Static mode: the body halts at its storage write. -/
+theorem erc20ApproveBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (h : evm.executionEnv.weiValue = ⟨0⟩) (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody erc20Config erc20Contract evm (approveStore I) approveTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true h)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_approve_value evm I) (approveAssign evm I) hperm)
 
 /-! ## EVM scratch memory and slot facts for `approve(address,uint256)` -/
 
@@ -578,18 +597,20 @@ theorem erc20ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, swap2, pop, pop, swap3, pop, swap3, swap1, pop, jump erc20_jd,
     jumpdest, push2 ⟨370⟩, jump erc20_jd ]⟩
 
+/-- Up to and through the allowance `SSTORE`: with write permission the store happens; in static
+    mode the run halts there. -/
 theorem erc20ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hperm : I.perm = true)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨100⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨496⟩
+    (I.perm = true ∧ ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨496⟩
         [approveValueWord I, ⟨0⟩, approveValueWord I, approveSpenderWord I, ⟨126⟩, sel]
         (allowanceOuterHashMem (approveOwnerWord I) (approveSpenderWord I)) (UInt256.ofNat 3)
         ByteArray.empty
-        (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveValueWord I)) k C := by
+        (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveValueWord I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc20Bytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨k, C, rd370⟩ := erc20ApproveX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonSpender hreach
@@ -615,7 +636,10 @@ theorem erc20ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (approveOuterSpenderMem_writeSlot (approveOwnerWord I) (approveSpenderWord I))
     hslot (by evm_ov)
   have rd493 := evm_run rd493₀ with [ dup2, swap1 ]
-  exact rd493.sstore hperm (by decide) (by evm_ov)
+  by_cases hp : I.perm = true
+  · exact Or.inl ⟨hp, rd493.sstore hp (by decide) (by evm_ov)⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd493.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -627,9 +651,9 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     RDret erc20Bytecode g (initState σ σ₀ g A I)
       (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveValueWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  obtain ⟨k, C, rd496⟩ := erc20ApproveX_stored
+  obtain ⟨k, C, rd496⟩ := permSplit_true hperm (erc20ApproveX_stored
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz68 hsize hszhi hperm hcanonSpender hreach
+    hsz68 hsize hszhi hcanonSpender hreach)
   have hownerCleanL : UInt256.land erc20AddrMask (approveOwnerWord I) = approveOwnerWord I :=
     solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hspenderCleanL :
@@ -762,7 +786,7 @@ theorem erc20Dispatch_approve {cd : ByteArray}
 theorem erc20ApproveBodyCore
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨100⟩ [sel]
@@ -776,13 +800,20 @@ theorem erc20ApproveBodyCore
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc20Decode_approve_ok (I := I) hsz68 hbig hcanonSpender
         let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hbody := erc20ApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
-        exact (erc20X_approve (g := Sat256.ofUInt256 g)
-            hsz68 hsize hbig hperm hcanonSpender hreach)
-          |>.reEquivExecutionGen hcode hd hdec hbody
-            (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
-              storageStore_accountMap])
-            (returnEquiv_of_encode boolTrueReturnEncoding)
+        by_cases hperm : I.perm = true
+        · have hbody := erc20ApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
+          exact (erc20X_approve (g := Sat256.ofUInt256 g)
+              hsz68 hsize hbig hperm hcanonSpender hreach)
+            |>.reEquivExecutionGen hcode hd hdec hbody
+              (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
+                storageStore_accountMap])
+              (returnEquiv_of_encode boolTrueReturnEncoding)
+        · have hpf : I.perm = false := by simpa using hperm
+          have hbody := erc20ApproveBodyStatic evmS I (by simp only [evmS, initState]; exact hwv)
+            (by simp only [evmS, initState]; exact hpf)
+          exact (permSplit_false hpf (erc20ApproveX_stored (g := Sat256.ofUInt256 g)
+              hsz68 hsize hbig hcanonSpender hreach))
+            |>.reEquivStaticHalt hcode hd hdec hbody
       · have hdec := erc20Decode_approve_none_noncanon (I := I) hsz68 hbig hcanonSpender
         have hnc : UInt256.eq (approveSpenderWord I)
             (UInt256.land (approveSpenderWord I) erc20AddrMask) = ⟨0⟩ :=

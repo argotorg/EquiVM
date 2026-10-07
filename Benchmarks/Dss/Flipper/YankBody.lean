@@ -9,7 +9,6 @@ namespace Benchmarks.Dss.Flipper
 theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (flipperSelBytes 18)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -151,7 +150,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                 exact hdepthEq (Fin.ext hval)
               obtain ⟨σ_cat, zCat, outCat, A_cat, k1346, C1346, rd1346,
                   hcallCatEvmRaw, houtCat⟩ :=
-                flipperYankX_catPostCall hcatZero hperm hdepthLt hafterBidLt
+                flipperYankX_catPostCall hcatZero hdepthLt hafterBidLt
               let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evmCatEvm :=
@@ -277,7 +276,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         (flipperVatAddress_eq_target σ_cat_solm I) hvatNeSolm
                   obtain ⟨σ_vat, zVat, outVat, A_vat, k1482, C1482, rd1482,
                       hcallVatEvmRaw, houtVat⟩ :=
-                    flipperYankX_vatPostCall (Acur := A_cat) hvatZero hperm hdepthLt rd1365
+                    flipperYankX_vatPostCall (Acur := A_cat) hvatZero hdepthLt rd1365
                   let evmVatEvm : EVM.State :=
                     { evmCatEvm with
                       accountMap := σ_vat
@@ -433,7 +432,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                       obtain ⟨σ_move, zMove, outMove, A_move, k1615,
                           C1615, rd1615, hcallMoveEvmRaw, houtMove⟩ :=
                         flipperYankX_movePostCall (Acur := A_vat)
-                          hmoveZero hperm hdepthLt rd1501
+                          hmoveZero hdepthLt rd1501
                       let evmMoveEvm : EVM.State :=
                         { evmVatEvm with
                           accountMap := σ_move
@@ -532,13 +531,13 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           simpa using rd1615
                         obtain ⟨k1635, C1635, rd1635⟩ :=
                           flipperYankX_moveCallSuccessToDeleteStart rd1615True
-                        have hret :=
-                          flipperYankX_deleteReturnFromPostCall
+                        have hretSplit :=
+                          flipperYankX_deleteReturnFromPostCallSplit
                             (σmem := σ)
                             (σflux := σ_cat) (σcall := σ_vat) (σ := σ_move)
                             (σ₀ := σ₀) (A := A) (I := I) (g := g)
                             (k := k1635) (C := C1635)
-                            (out := outMove) hperm rd1635
+                            (out := outMove) rd1635
                         have hcallMoveSolmTrue :
                             typedCallViaEVM config evmVatSolm
                               (EVM.address
@@ -551,13 +550,15 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           (((yankLocals I).insert "_clawRet" (collapseReturns [])).insert
                             "_fluxRet" (collapseReturns [])).insert "_moveRet"
                             (collapseReturns [])
-                        have hbody :
-                            ExecTransitionBody config contract evm0Solm (yankLocals I)
+                        have hbodySplit :
+                            (ExecTransitionBody config contract evm0Solm (yankLocals I)
                               yankTransition.body
                               (.returned { contract := contract, locals := locals3 }
-                                (bidDeletedEVM evmMoveSolm (yankId I)) none) := by
+                                (bidDeletedEVM evmMoveSolm (yankId I)) none)) ∧
+                            (I.perm = false → ExecTransitionBody config contract evm0Solm
+                              (yankLocals I) yankTransition.body .staticViolation) := by
                           simpa [evm0Solm, locals3] using
-                            (flipperYankSourceBodySuccess
+                            (flipperYankSourceBodySuccessSplit
                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (evmCat := evmCatSolm) (evmVat := evmVatSolm)
                               (evmMove := evmMoveSolm)
@@ -565,6 +566,10 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               hwv hauthSolm hguySolm hbidLtSolm hcatCode
                               hcallCatSolmTrue hvatCodeSolm hcallVatSolmTrue
                               hmoveCodeSolm hcallMoveSolmTrue)
+                        rcases hretSplit with ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+                        swap
+                        · exact hstatic.reEquivStaticHalt
+                            hcode hdispatch hdecode (hbodySplit.2 hperm)
                         have hMoveStateEquiv' : EVMStateEquiv evmMoveEvm evmMoveSolm := by
                           simpa [evmMoveEvm, evmMoveSolm] using hMoveStateEquiv
                         have hMoveAccounts : Eq σ_move σ_move_solm := by
@@ -588,7 +593,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               (bidDeletedEVM evmMoveSolm (yankId I)).accountMap :=
                           Eq.trans hcollapsed hdeleted
                         exact hret.reEquivExecutionGen hcode hdispatch hdecode
-                          hbody
+                          hbodySplit.1
                           haccounts
                           (by
                             rw [show yankTransition.returnType = [] by rfl]

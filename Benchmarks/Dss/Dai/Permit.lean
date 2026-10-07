@@ -1207,6 +1207,136 @@ theorem evalExpr_permitRecoveredStore_expiry_false
   rw [evalExpr_permitRecoveredStore_timestamp_le_expiry_false evm evm' I out recovered hlt]
   rfl
 
+abbrev permitSavedNonceStore (evm : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress) (oldNonce : UInt256) : Store :=
+  (permitRecoveredStore evm I out recovered).insert "oldNonce" (.int oldNonce.toNat)
+
+theorem evalExpr_permitSavedNonceStore_holder
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "holder") = .ok (permitHolderValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "holder") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_holder evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_nonce
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "nonce") = .ok (permitNonceValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "nonce") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_nonce evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_allowed
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "allowed") = .ok (permitAllowedValue I) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "allowed") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_allowed evm evm' I out recovered
+
+theorem evalExpr_permitSavedNonceStore_oldNonce
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.var "oldNonce") = .ok (.int oldNonce.toNat) := by
+  simp [evalExpr?, permitSavedNonceStore, EvalResult.ofOption]
+
+theorem evalExpr_permitSavedNonceStore_increment
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (uncheckedAdd256 (.var "oldNonce") (.intLit 1)) =
+      .ok (.int (Int.ofNat oldNonce.toNat + 1)) := by
+  rw [uncheckedAdd256, evalExpr_binary_nonshort (by decide) (by decide)]
+  rw [evalExpr_permitSavedNonceStore_oldNonce]
+  simp [evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?]
+
+theorem evalExpr_permitSavedNonceStore_eq
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' (.binary .eq (.var "nonce") (.var "oldNonce")) =
+      .ok (.bool (decide (permitNonceWord I = oldNonce))) := by
+  rw [evalExpr_binary_nonshort (by decide) (by decide)]
+  rw [evalExpr_permitSavedNonceStore_nonce, evalExpr_permitSavedNonceStore_oldNonce]
+  by_cases h : permitNonceWord I = oldNonce
+  · simp [EvalResult.bind, bind, evalBinaryOp?, permitNonceValue, h]
+  · simp [EvalResult.bind, bind, evalBinaryOp?, permitNonceValue, h]
+    intro heq
+    exact h (u256_inj heq)
+
+
+theorem permitAssignSavedNonce (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress) (oldNonce : UInt256)
+    (hmatch :
+      oldNonce =
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    assignStorageRef? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm' .storage (noncesRef (.var "holder"))
+        (.int (Int.ofNat (oldNonce).toNat + 1)) =
+      .ok ({ contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce },
+        permitPostNonceState evm' I) := by
+  have hbase :
+      (permitSavedNonceStore evm I out recovered oldNonce).get? "nonces" = none :=
+    by
+      simp [permitSavedNonceStore]
+
+  have her :
+      evalStorageRef config
+          { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+          evm' (noncesRef (.var "holder")) =
+        .ok (permitNonceEvaledRef I) :=
+    by
+      simp [evalStorageRef, evalStorageRefStep, noncesRef,
+        evalExpr_permitSavedNonceStore_holder, permitHolderValue, permitHolderKey,
+        permitNonceEvaledRef, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  have hty :
+      storageTypeAt? contract.storage (permitNonceEvaledRef I) = some uint256St := by
+    simp [storageTypeAt?, storageTypeStep?, contract, storageDecls,
+      permitHolderKey, uint256St]
+  have hloc :
+      config.storage.layout (permitNonceEvaledRef I) =
+        fun _ ↦ some (wordLoc (permitNonceStorageSlot I) (.int uint256Int)) := by
+    rfl
+  have hstore :
+      storageLocStore evm' (wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+          (.int (Int.ofNat (oldNonce).toNat + 1)) =
+        some (permitPostNonceState evm' I) := by
+    rw [show wordLoc (permitNonceStorageSlot I) (ElemType.int uint256Int) =
+      uint256Loc (permitNonceStorageSlot I) by rfl]
+    rw [show Int.ofNat (oldNonce).toNat + 1 =
+        Int.ofNat ((oldNonce).toNat + 1) by
+          exact Eq.symm (Int.natCast_add (oldNonce).toNat 1)]
+    rw [storageLocStore_uint256_ofNat]
+    rw [show (Int.ofNat ((oldNonce).toNat + 1)).toNat =
+        (oldNonce).toNat + 1 by simp]
+    have hword : EVM.word ((oldNonce).toNat + 1) =
+        UInt256.add (oldNonce) ⟨1⟩ := by
+      rw [show UInt256.add (oldNonce) ⟨1⟩ =
+        EVM.word ((oldNonce).toNat + 1) by
+          rw [← u256_ofNat_toNat (oldNonce)]
+          rfl]
+    unfold permitPostNonceState
+    rw [← hmatch, hword]
+  exact assignStorageRef_storage_scalar
+    (cfg := config)
+    (solm := { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce })
+    (evm := evm') (evm' := permitPostNonceState evm' I)
+    (slot := noncesRef (.var "holder")) (er := permitNonceEvaledRef I)
+    (ty := uint256St) (loc := wordLoc (permitNonceStorageSlot I) (.int uint256Int))
+    hbase her hty hloc hstore
+
 theorem evalExpr_permitRecoveredStore_nonce_increment
     (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (recovered : AccountAddress)
@@ -1311,9 +1441,21 @@ theorem evalExpr_permitRecoveredStore_wad
     simp only [evalExpr?]
     native_decide
 
+theorem evalExpr_permitSavedNonceStore_wad
+    (evm evm' : EVM.State) (I : ExecutionEnv) (out : ByteArray)
+    (recovered : AccountAddress) (oldNonce : UInt256) :
+    evalExpr? config
+        { contract := contract, locals := permitSavedNonceStore evm I out recovered oldNonce }
+        evm'
+        (.ite (.var "allowed") (.intLit maxUint256) (.intLit 0)) =
+      .ok (.int (Int.ofNat (permitWadWord I).toNat)) := by
+  simpa only [evalExpr?, permitSavedNonceStore,
+    store_get_ne (k := "oldNonce") (a := "allowed") _ _ (by decide)] using
+    evalExpr_permitRecoveredStore_wad evm evm' I out recovered
+
 abbrev permitWadStore (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) : Store :=
-  (permitRecoveredStore evm I out recovered).insert "wad"
+  (permitSavedNonceStore evm I out recovered (permitNonceWord I)).insert "wad"
     (.int (Int.ofNat (permitWadWord I).toNat))
 
 theorem permitRecoveredStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
@@ -1329,7 +1471,8 @@ theorem permitRecoveredStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
 theorem permitWadStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) :
     (permitWadStore evm I out recovered).get? "allowance" = none := by
-  unfold permitWadStore
+  unfold permitWadStore permitSavedNonceStore
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   exact permitRecoveredStore_get_allowance evm I out recovered
 
@@ -1353,8 +1496,10 @@ theorem evalExpr_permitWadStore_holder
         evm' (.var "holder") =
       .ok (permitHolderValue I) := by
   rw [evalExpr?]
-  unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
+  unfold permitWadStore permitSavedNonceStore permitRecoveredStore
+    permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
@@ -1370,8 +1515,10 @@ theorem evalExpr_permitWadStore_spender
         evm' (.var "spender") =
       .ok (permitSpenderValue I) := by
   rw [evalExpr?]
-  unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
+  unfold permitWadStore permitSavedNonceStore permitRecoveredStore
+    permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
+  rw [store_get_ne _ _ (by decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
   rw [store_get_ne _ _ (by native_decide)]
@@ -1697,8 +1844,7 @@ theorem daiPermitBodyReverts_expired (evm evm' : EVM.State) (I : ExecutionEnv)
                     (evalExpr_permitRecoveredStore_expiry_false evm evm' I out recovered
                       hexpiryNonzero hexpired))))))))
 
-/-- The Solm `permit(...)` body reverts when calldata nonce mismatches storage. -/
-theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : ExecutionEnv)
+theorem daiPermitBodyPrefix (evm evm' : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress)
     (hsz260 : 260 ≤ I.calldata.size)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -1712,68 +1858,15 @@ theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : Execution
     (hexpiryOk :
       permitExpiryWord I = ⟨0⟩ ∨
         (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
-    (hnonce :
-      permitNonceWord I ≠
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
-  refine ExecFuncBody.execBlockRevert ?_
-  simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore] using
-    ((((ABlock.start
-      |>.requireStep (evalCallvalueEq_true hwv)
-      |>.letStep (evalExpr_permitDigest evm I))
-      |>.requireStep (evalExpr_permitDigestStore_holder_ne_zero_true evm I hnz)).run <|
-        ExecBlock.consNormal
-          (ExecStmt.lowLevelCallSuccess
-            (evalExpr_ecrecoverPrecompile evm (permitDigestStore evm I))
-            (evalExpr_zeroInt evm (permitDigestStore evm I))
-            (evalExpr_ecrecoverCalldata evm hsz260)
-            hcall)
-          (ExecBlock.consNormal
-            (ExecStmt.requireTrue
-              (evalExpr_ecrecoverSuccess_true evm'
-                (permitDigestStore evm I) out))
-            (ExecBlock.consNormal
-              (ExecStmt.letDecl
-                (evalExpr_permitEcrecoverCallStore_recovered_ok
-                  evm evm' I out recovered hdec))
-              (ExecBlock.consNormal
-                (ExecStmt.requireTrue
-                  (evalExpr_permitRecoveredStore_holder_eq_recovered_true
-                    evm evm' I out recovered heq))
-                (ExecBlock.consNormal
-                  (ExecStmt.requireTrue
-                    (evalExpr_permitRecoveredStore_expiry_ok
-                      evm evm' I out recovered hexpiryOk))
-                  (ExecBlock.consRevert
-                    (ExecStmt.requireFalse
-                      (evalExpr_permitRecoveredStore_nonce_eq_storage_false
-                        evm evm' I out recovered hnonce)))))))))
-
-set_option maxHeartbeats 10000000
-/-- The Solm `permit(...)` body updates nonce and allowance after successful recovery. -/
-theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
-    (out : ByteArray) (recovered : AccountAddress)
-    (hsz260 : 260 ≤ I.calldata.size)
-    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
-    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
-    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
-      (permitEcrecoverCalldata evm I) (true, evm', out) false)
-    (hdec :
-      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
-        some (.address recovered))
-    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
-    (hexpiryOk :
-      permitExpiryWord I = ⟨0⟩ ∨
-        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
-    (hnonce :
-      permitNonceWord I =
-        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
-    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
-      (.returned { contract := contract, locals := permitWadStore evm I out recovered }
-        (permitPostState evm' I) none) := by
-  refine ExecFuncBody.execBlockOK ?_
+    {result : ExecResult}
+    (htail : ExecBlock config
+      { contract := contract, locals := permitSavedNonceStore evm I out recovered
+          (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) }
+      evm' (permitTransition.body.drop 9) result) :
+    ExecBlock config { contract := contract, locals := permitStore I } evm
+      permitTransition.body result := by
   simpa [permitTransition, nonpayable, permitEcrecoverCallStore, permitRecoveredStore,
-    permitWadStore] using
+    permitSavedNonceStore] using
     ((((ABlock.start
       |>.requireStep (evalCallvalueEq_true hwv)
       |>.letStep (evalExpr_permitDigest evm I))
@@ -1801,24 +1894,103 @@ theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
                     (evalExpr_permitRecoveredStore_expiry_ok
                       evm evm' I out recovered hexpiryOk))
                   (ExecBlock.consNormal
-                    (ExecStmt.requireTrue
-                      (evalExpr_permitRecoveredStore_nonce_eq_storage_true
-                        evm evm' I out recovered hnonce))
-                    (ExecBlock.consNormal
-                      (ExecStmt.assign
-                        (evalExpr_permitRecoveredStore_nonce_increment
-                          evm evm' I out recovered hnonce)
-                        (permitAssignNonce evm evm' I out recovered hnonce))
-                      (ExecBlock.consNormal
-                        (ExecStmt.letDecl
-                          (evalExpr_permitRecoveredStore_wad
-                            evm (permitPostNonceState evm' I) I out recovered))
-                        (ExecBlock.consNormal
-                          (ExecStmt.assign
-                            (evalExpr_permitWadStore_wad
-                              evm (permitPostNonceState evm' I) I out recovered)
-                            (permitAssignAllowance evm evm' I out recovered))
-                          ExecBlock.nil))))))))))
+                    (ExecStmt.letDecl
+                      (evalExpr_permitRecoveredStore_nonce_storage evm evm' I out recovered))
+                    htail)))))))
+
+theorem daiPermitBodyStatic (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hperm : evm'.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  exact ExecBlock.consStatic (ExecStmt.assignStatic
+    (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+    (permitAssignSavedNonce evm evm' I out recovered _ rfl) hperm)
+
+
+/-- The Solm `permit(...)` body reverts when calldata nonce mismatches storage. -/
+theorem daiPermitBodyReverts_nonceMismatch (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hnonce :
+      permitNonceWord I ≠
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body .reverted := by
+  refine ExecFuncBody.execBlockRevert ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  refine ExecBlock.consNormal
+    (ExecStmt.assign
+      (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+      (permitAssignSavedNonce evm evm' I out recovered _ rfl)) ?_
+  exact ExecBlock.consRevert (ExecStmt.requireFalse (by
+    simpa [hnonce] using evalExpr_permitSavedNonceStore_eq evm
+      (permitPostNonceState evm' I) I out recovered
+      (Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I))))
+
+set_option maxHeartbeats 10000000
+/-- The Solm `permit(...)` body updates nonce and allowance after successful recovery. -/
+theorem daiPermitBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEnv)
+    (out : ByteArray) (recovered : AccountAddress)
+    (hsz260 : 260 ≤ I.calldata.size)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hnz : permitHolderMaskedWord I ≠ ⟨0⟩)
+    (hcall : callViaEVM evm (EVM.address (AccountAddress.ofNat 1)) 0
+      (permitEcrecoverCalldata evm I) (true, evm', out) false)
+    (hdec :
+      ABI.decodeReturnValueWithMode? config.abiDecodeMode addr out =
+        some (.address recovered))
+    (heq : AccountAddress.ofNat (permitHolderWord I).toNat = recovered)
+    (hexpiryOk :
+      permitExpiryWord I = ⟨0⟩ ∨
+        (UInt256.ofNat evm'.executionEnv.header.timestamp).toNat ≤ (permitExpiryWord I).toNat)
+    (hnonce :
+      permitNonceWord I =
+        Solm.EVM.storageLoad evm' evm'.executionEnv.codeOwner (permitNonceStorageSlot I)) :
+    ExecTransitionBody config contract evm (permitStore I) permitTransition.body
+      (.returned { contract := contract, locals := permitWadStore evm I out recovered }
+        (permitPostState evm' I) none) := by
+  refine ExecFuncBody.execBlockOK ?_
+  apply daiPermitBodyPrefix evm evm' I out recovered hsz260 hwv hnz hcall hdec heq hexpiryOk
+  rw [← hnonce]
+  refine ExecBlock.consNormal
+    (ExecStmt.assign
+      (evalExpr_permitSavedNonceStore_increment evm evm' I out recovered _)
+      (permitAssignSavedNonce evm evm' I out recovered _ hnonce)) ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (by
+    simpa using evalExpr_permitSavedNonceStore_eq evm
+      (permitPostNonceState evm' I) I out recovered (permitNonceWord I))) ?_
+  exact ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_permitSavedNonceStore_wad evm
+      (permitPostNonceState evm' I) I out recovered (permitNonceWord I)))
+    (ExecBlock.consNormal
+      (ExecStmt.assign
+        (evalExpr_permitWadStore_wad evm (permitPostNonceState evm' I) I out recovered)
+        (permitAssignAllowance evm evm' I out recovered)) ExecBlock.nil)
 
 
 theorem decodeABIValues_permit_ok {bytes : List UInt8}
@@ -5080,11 +5252,10 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
-theorem daiPermitX_nonceBranchAfter2957
+theorem daiPermitX_nonceBranchAfter2957Split
     {σ σ₀ A I} {g : Sat256}
     {σ' : AccountMap}
     {o memRet : ByteArray} {k C : ℕ}
-    (hperm : I.perm = true)
     (hmem : memRet.size = 610)
     (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
     (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
@@ -5093,14 +5264,16 @@ theorem daiPermitX_nonceBranchAfter2957
         permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
         permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
       memRet permitEcrecoverStaticcallAw o σ' k C) :
-    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
-      [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
-        permitDigestWord (initState σ σ₀ g A I) I,
-        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
-        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
-        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
-      (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
-      (permitEvmAfterNonceAccountMap σ' I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+        [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
+          permitDigestWord (initState σ σ₀ g A I) I,
+          permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+          permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+          permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+        (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
+        (permitEvmAfterNonceAccountMap σ' I) k' C') ∨
+      (I.perm = false ∧ RDstatic daiBytecode g (initState σ σ₀ g A I)) := by
   have hmask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -5156,7 +5329,14 @@ theorem daiPermitX_nonceBranchAfter2957
     raw add (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm (by native_decide)
+  have hstoreDec : decode daiBytecode ⟨2990⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2990.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm hstoreDec
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rd2991 := by
     simpa [permitEvmAfterNonceAccountMap] using rd2991raw
@@ -5165,6 +5345,29 @@ theorem daiPermitX_nonceBranchAfter2957
     raw eq (by native_decide) (by evm_ov),
     raw push2 ⟨3061⟩ (by native_decide) (by evm_ov)]
   exact ⟨_, _, rd2996⟩
+
+theorem daiPermitX_nonceBranchAfter2957
+    {σ σ₀ A I} {g : Sat256}
+    {σ' : AccountMap}
+    {o memRet : ByteArray} {k C : ℕ}
+    (hperm : I.perm = true)
+    (hmem : memRet.size = 610)
+    (hread64 : memRet.readWithPadding 64 32 = UInt256.toByteArray (⟨482⟩ : UInt256))
+    (rd2957 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨2957⟩
+      [permitDigestWord (initState σ σ₀ g A I) I,
+        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+      memRet permitEcrecoverStaticcallAw o σ' k C) :
+    ∃ k' C', RD daiBytecode I g (initState σ σ₀ g A I) ⟨2996⟩
+      [⟨3061⟩, UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I),
+        permitDigestWord (initState σ σ₀ g A I) I,
+        permitSWord I, permitRWord I, permitVMaskedWord I, permitAllowedCleanWord I,
+        permitExpiryWord I, permitNonceWord I, permitSpenderMaskedWord I,
+        permitHolderMaskedWord I, ⟨686⟩, daiSelWord I]
+      (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
+      (permitEvmAfterNonceAccountMap σ' I) k' C' :=
+  permSplit_true hperm (daiPermitX_nonceBranchAfter2957Split hmem hread64 rd2957)
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonceMismatchAfter2957
@@ -5764,7 +5967,7 @@ theorem permitStaticcallTheta_callViaEVM {σ σ₀ A I} {g : Sat256}
 /-- `permit(address,address,uint256,uint256,bool,uint8,bytes32,bytes32)` body refines its Solm transition. -/
 theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (daiSelBytes 11)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -5933,6 +6136,18 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                 obtain ⟨k2957, C2957, rd2957⟩ :=
                   daiPermitX_nonzeroHolderExpiryOkAfter2874
                     (g := Sat256.ofUInt256 g) rd2874 hexpiryOkEvm
+                by_cases hperm : I.perm = true
+                swap
+                · have hstatic : I.perm = false := by simpa using hperm
+                  have hbody : ExecTransitionBody config contract evmSolm (permitStore I)
+                      permitTransition.body .staticViolation :=
+                    daiPermitBodyStatic evmSolm evmPostSolm I o recovered hsz260
+                      (by simpa [evmSolm, initState] using hwv) hz hcallSucceeded hdecRet
+                      heqRecovered hexpiryOk
+                      (by simpa [evmPostSolm, evmSolm, initState] using hstatic)
+                  exact (permSplit_false hstatic (daiPermitX_nonceBranchAfter2957Split
+                    (g := Sat256.ofUInt256 g) hmemRet hread64 rd2957))
+                    |>.reEquivStaticHalt hcode hdispatch hdecode hbody
                 by_cases hnonce : permitNonceWord I = permitEvmNonceWord σ' I
                 · have hnonceSolm :
                     permitNonceWord I =

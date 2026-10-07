@@ -1073,15 +1073,17 @@ theorem clipperYankAuthSourceReverts {σ σ₀ A I} {g : UInt256}
         hauthEval
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperYankInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
+theorem clipperYankInactiveSourceRevertsSplit {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
-    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
-    (husr :
-      clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩) :
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩) :
     let locals := clipperYankStore I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted := by
+    (clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩ →
+    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted) ∧
+    (I.perm = false →
+      ExecTransitionBody (config v) (contract v) evm0 locals
+        (yankTransition v).body .staticViolation) := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
   have hauthEval :
@@ -1107,29 +1109,53 @@ theorem clipperYankInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
           .ok ({ contract := contract v, locals := locals }, evmLock) := by
     simpa [locals, evmLock] using assign_clipperLocked v evm0 locals
       (by simp [locals]) ⟨1⟩
-  have husrLoad :
-      UInt256.land
-        (Solm.EVM.storageLoad evmLock evmLock.executionEnv.codeOwner
-          (clipperYankSalesUsrSlot I)) solcAddrMask = ⟨0⟩ := by
-    simpa [evmLock, evm0, initState, clipperYankSalesUsrWord, solcSlotWord,
-      storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
-      State.lookupAccount] using husr
-  have husrEval :
-      evalExpr? (config v) { contract := contract v, locals := locals } evmLock
-        (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool false) := by
-    simpa [locals] using clipperEvalYankSalesUsrNeZero_false v evmLock I husrLoad
-  have hblock :
+  have hprefix {result : ExecResult}
+      (hrest : ExecBlock (config v) { contract := contract v, locals := locals } evm0
+        ((yankTransition v).body.drop 3) result) :
       ExecBlock (config v) { contract := contract v, locals := locals } evm0
-        (yankTransition v).body .reverted := by
-    simpa [yankTransition, nonpayable, auth, lockPrefix] using
-      (by
-        refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-        · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-        refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
-        refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
-        exact ExecBlock.consRevert (ExecStmt.requireFalse husrEval))
-  simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+        (yankTransition v).body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hauthEval) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hlockedEval) ?_
+    exact hrest
+  constructor
+  · intro husr
+    have husrLoad :
+        UInt256.land
+          (Solm.EVM.storageLoad evmLock evmLock.executionEnv.codeOwner
+            (clipperYankSalesUsrSlot I)) solcAddrMask = ⟨0⟩ := by
+      simpa [evmLock, evm0, initState, clipperYankSalesUsrWord, solcSlotWord,
+        storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
+        State.lookupAccount] using husr
+    have husrEval :
+        evalExpr? (config v) { contract := contract v, locals := locals } evmLock
+          (.binary .ne (.storage (salesF (.var "id") "usr")) zeroAddr) = .ok (.bool false) := by
+      simpa [locals] using clipperEvalYankSalesUsrNeZero_false v evmLock I husrLoad
+    have hblock :
+        ExecBlock (config v) { contract := contract v, locals := locals } evm0
+          (yankTransition v).body .reverted := by
+      apply hprefix
+      simpa [yankTransition, nonpayable, auth, lockPrefix] using
+        (by
+          refine ExecBlock.consNormal (ExecStmt.assign hlockRhs hlockAssign) ?_
+          exact ExecBlock.consRevert (ExecStmt.requireFalse husrEval))
+    simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic (hprefix
+      (ExecBlock.consStatic (ExecStmt.assignStatic hlockRhs hlockAssign
+        (by simpa [evm0, initState] using hperm))))
+
+theorem clipperYankInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
+    (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
+    (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
+    (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
+    (husr :
+      clipperYankSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩) :
+    let locals := clipperYankStore I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody (config v) (contract v) evm0 locals (yankTransition v).body .reverted :=
+  (clipperYankInactiveSourceRevertsSplit v hwv hauth hlocked).1 husr
 
 theorem clipperYankLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)

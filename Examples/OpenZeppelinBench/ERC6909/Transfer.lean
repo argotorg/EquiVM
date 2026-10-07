@@ -629,6 +629,28 @@ theorem erc6909TransferBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (transferAssignTo evm I hfit)) ?_
   exact ExecBlock.consReturn (ExecStmt.return (by simp [evalExprs?, evalExpr?, EvalResult.bind, bind, pure]))
 
+/-- Static mode: the body halts at the sender debit. -/
+theorem erc6909TransferBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hsender : evm.executionEnv.source ≠ zeroAccountAddress)
+    (hreceiver : AccountAddress.ofNat (transferReceiverWord I).toNat ≠ zeroAccountAddress)
+    (henough : (transferAmountWord I).toNat ≤ (transferFromBalanceWord evm I).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferStore I)
+      transferTransition.body .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_sender_nonzero_true evm I hsender)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_receiver_nonzero_true evm I hreceiver)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_from_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_require_from_true evm I henough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transfer_debit evm I henough) (transferAssignFrom evm I)
+      hperm)
+
 theorem erc6909TransferBodySourceCore (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hsender : evm.executionEnv.source ≠ zeroAccountAddress)
@@ -1816,7 +1838,7 @@ theorem erc6909TransferX_insufficient {σ σ₀ A I} {g : Sat256}
 theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
+    (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonReceiver : (transferReceiverWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hreceiver : AccountAddress.ofNat (transferReceiverWord I).toNat ≠ AccountAddress.ofNat 0)
@@ -1825,7 +1847,7 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
       (initState σ σ₀ g A I) ⟨209⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
+    (I.perm = true ∧ ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1476⟩
       [transferSenderWord I, transferAmountWord I, transferIdWord I, transferReceiverWord I,
         transferSenderWord I, ⟨760⟩, transferAmountWord I, transferIdWord I,
         transferReceiverWord I, transferSenderWord I, ⟨512⟩, ⟨0⟩,
@@ -1834,7 +1856,8 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
         (transferSenderWord I) (transferIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromSlotI I)
-        (transferDebitWord (initState σ σ₀ g A I) I)) k C := by
+        (transferDebitWord (initState σ σ₀ g A I) I)) k C)
+    ∨ (I.perm = false ∧ RDstatic erc6909BenchBytecode g (initState σ σ₀ g A I)) := by
   obtain ⟨_, _, rd1437⟩ := erc6909TransferX_afterRequire
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonReceiver hsource hreceiver henough hreach
@@ -1923,8 +1946,11 @@ theorem erc6909TransferX_afterDebit {σ σ₀ A I} {g : Sat256}
     swap1, dup4, swap1, sub, swap1 ]
   have rd1475 := rd1475₀
   rw [hdebit, hslot] at rd1475
-  obtain ⟨_, _, rd1476⟩ := rd1475.sstore hperm (by decide) (by evm_ov)
-  exact ⟨_, _, rd1476⟩
+  by_cases hp : I.perm = true
+  · obtain ⟨_, _, rd1476⟩ := rd1475.sstore hp (by decide) (by evm_ov)
+    exact Or.inl ⟨hp, _, _, rd1476⟩
+  · have hpf : I.perm = false := by simpa using hp
+    exact Or.inr ⟨hpf, rd1475.sstoreStatic hpf (by decide) (by evm_ov)⟩
 
 theorem erc6909TransferX_toCheckedAdd {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -1952,9 +1978,9 @@ theorem erc6909TransferX_toCheckedAdd {σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 3) ByteArray.empty
       (sstoreAccountMap I.codeOwner σ (transferFromSlotI I)
         (transferDebitWord (initState σ σ₀ g A I) I)) k C := by
-  obtain ⟨_, _, rd1476⟩ := erc6909TransferX_afterDebit
+  obtain ⟨_, _, rd1476⟩ := permSplit_true hperm (erc6909TransferX_afterDebit
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
-    hsz100 hsize hszhi hperm hcanonReceiver hsource hreceiver henough hreach
+    hsz100 hsize hszhi hcanonReceiver hsource hreceiver henough hreach)
   let debitMem :=
     transferMapScratchMem (transferOuterHashMem (transferSenderWord I) (transferIdWord I))
       (transferSenderWord I) (transferIdWord I)
@@ -2260,7 +2286,7 @@ theorem erc6909X_transfer {σ σ₀ A I} {g : Sat256}
 theorem erc6909TransferBodyCore
     {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 2))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨209⟩
@@ -2305,7 +2331,20 @@ theorem erc6909TransferBodyCore
           · by_cases henough : (transferAmountWord I).toNat ≤
               (transferFromBalanceWord
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
-            · by_cases hfit :
+            · by_cases hperm : I.perm = true
+              swap
+              · -- static mode: both sides halt at the sender debit
+                have hpf : I.perm = false := by simpa using hperm
+                have hbody := erc6909TransferBodyStatic evmS I
+                  (by simp only [evmS, initState]; exact hwv)
+                  (by simpa [evmS, initState, zeroAccountAddress] using hsource)
+                  (by simpa [zeroAccountAddress] using hreceiver)
+                  (by simpa [evmE, hFromBalance] using henough)
+                  (by simp only [evmS, initState]; exact hpf)
+                exact (permSplit_false hpf (erc6909TransferX_afterDebit (g := Sat256.ofUInt256 g)
+                    hsz100 hsize hbig hcanonReceiver hsource hreceiver henough hreach))
+                  |>.reEquivStaticHalt hcode hd hdec hbody
+              by_cases hfit :
                 transferNewToNat
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I <
                   UInt256.size

@@ -180,6 +180,25 @@ theorem uniswapLockEnterLockedRevert (evm : EVM.State) (locals : Store)
   exact nonpayableSecondRequireReverts hwv
     (evalExpr_uniswap_unlocked_eq_one_false evm locals hbase hlocked)
 
+/-- In a static call, the lock-entry block halts at its storage write. -/
+theorem uniswapLockEnterStatic (evm : EVM.State) (locals : Store)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (hbase : locals.get? "unlocked" = none)
+    (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecBlock config { contract := contract, locals := locals } evm lockEnter
+      .staticViolation := by
+  change ExecBlock config { contract := contract, locals := locals } evm
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .require (.binary .eq (.storage unlockedRef) (.intLit 1)),
+      .assign .storage unlockedRef (.intLit 0) ]
+    .staticViolation
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_uniswap_unlocked_eq_one_true evm locals hbase hunlocked)) ?_
+  exact ExecBlock.consStatic (ExecStmt.assignStatic (by simp [evalExpr?, pure])
+    (uniswapAssignUnlockedZero evm locals hbase) hperm)
+
 theorem uniswapLockExitSuffix (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "unlocked" = none) :
     ExecBlock config { contract := contract, locals := locals } evm lockExit

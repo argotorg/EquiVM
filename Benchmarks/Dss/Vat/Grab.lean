@@ -2217,7 +2217,7 @@ theorem assignStorageRef_grab_vice (evm : EVM.State)
     (hstore := by simpa [evm'] using
       storageLocStore_uint256 evm grabViceSourceSlot viceNew)
 
-theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
+theorem execGrabUrnInkUpdateSplit {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (urnInkOld urnInkNew : UInt256)
     (hsz196 : 196 ≤ I.calldata.size)
     (hi : locals.get? "i" = some (grabIValue I))
@@ -2238,7 +2238,13 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         { contract := contract,
           locals := locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat)) }
         (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
-          (grabUrnInkSourceSlot I) urnInkNew)) := by
+          (grabUrnInkSourceSlot I) urnInkNew)) ∧
+    (evm.executionEnv.perm = false →
+      ExecBlock config { contract := contract, locals := locals } evm
+        (checkedAddSignedInto "urnInkNew" (.storage (urnsF (.var "i") (.var "u") "ink"))
+          (.var "dink") ++
+          [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ])
+        .staticViolation) := by
   let locals' := locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))
   let evm' := Solm.EVM.storageStore evm evm.executionEnv.codeOwner
     (grabUrnInkSourceSlot I) urnInkNew
@@ -2307,24 +2313,56 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         (urnsF (.var "i") (.var "u") "ink") (.int (Int.ofNat urnInkNew.toNat)) =
         .ok ({ contract := contract, locals := locals' }, evm') :=
     assignStorageRef_grab_urn_ink evm I locals' urnInkNew hsz196 hiAfter huAfter hbaseAfter
-  change ExecBlock config { contract := contract, locals := locals } evm
-    [ .letDecl "urnInkNew" (some uint256)
-        (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
-      .require
-        (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
-          (.binary .le (.var "urnInkNew")
-            (.storage (urnsF (.var "i") (.var "u") "ink")))),
-      .require
-        (eitherExpr (.binary .le (.var "dink") (.intLit 0))
-          (.binary .ge (.var "urnInkNew")
-            (.storage (urnsF (.var "i") (.var "u") "ink")))),
-      .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ]
-    (.ok { contract := contract, locals := locals' } evm')
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ?_
-  exact ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
+  have hpre : ∀ r, ExecBlock config { contract := contract, locals := locals' } evm
+      [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ] r →
+      ExecBlock config { contract := contract, locals := locals } evm
+        (checkedAddSignedInto "urnInkNew" (.storage (urnsF (.var "i") (.var "u") "ink"))
+          (.var "dink") ++
+          [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ]) r := by
+    intro r hrest
+    change ExecBlock config { contract := contract, locals := locals } evm
+      [ .letDecl "urnInkNew" (some uint256)
+          (wordWrap256
+            (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
+        .require
+          (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
+            (.binary .le (.var "urnInkNew")
+              (.storage (urnsF (.var "i") (.var "u") "ink")))),
+        .require
+          (eitherExpr (.binary .le (.var "dink") (.intLit 0))
+            (.binary .ge (.var "urnInkNew")
+              (.storage (urnsF (.var "i") (.var "u") "ink")))),
+        .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ] r
+    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) hrest
+  exact ⟨hpre _ (ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil),
+    fun hpf => hpre _ (ExecBlock.consStatic (ExecStmt.assignStatic hnewEval hassign hpf))⟩
+
+theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
+    (locals : Store) (urnInkOld urnInkNew : UInt256)
+    (hsz196 : 196 ≤ I.calldata.size)
+    (hi : locals.get? "i" = some (grabIValue I))
+    (hu : locals.get? "u" = some (grabUValue I))
+    (hdink : locals.get? "dink" = some (grabDinkValue I))
+    (hbase : locals.get? "urns" = none)
+    (hload :
+      Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+        (grabUrnInkSourceSlot I) = urnInkOld)
+    (hnew : urnInkNew = grabDinkWord I + urnInkOld)
+    (hguardNeg : 0 ≤ grabDinkInt I ∨ urnInkNew.toNat ≤ urnInkOld.toNat)
+    (hguardPos : grabDinkInt I ≤ 0 ∨ urnInkOld.toNat ≤ urnInkNew.toNat) :
+    ExecBlock config { contract := contract, locals := locals } evm
+      (checkedAddSignedInto "urnInkNew" (.storage (urnsF (.var "i") (.var "u") "ink"))
+        (.var "dink") ++
+        [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ])
+      (.ok
+        { contract := contract,
+          locals := locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat)) }
+        (Solm.EVM.storageStore evm evm.executionEnv.codeOwner
+          (grabUrnInkSourceSlot I) urnInkNew)) :=
+  (execGrabUrnInkUpdateSplit locals urnInkOld urnInkNew hsz196 hi hu hdink hbase hload hnew
+    hguardNeg hguardPos).1
 
 theorem execGrabUrnInkCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (urnInkOld urnInkNew : UInt256)
@@ -5360,6 +5398,69 @@ theorem vatGrabSourceBodyUrnInkRevertGuardPos
   simpa [ExecTransitionBody, grabTransition, nonpayable, auth, evm0, List.append_assoc]
     using ExecFuncBody.execBlockRevert hblock
 
+theorem vatGrabSourceBodyStatic
+    {σ σ₀ A I} {g : UInt256}
+    (hwei : I.weiValue = ⟨0⟩)
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hsz196 : 196 ≤ I.calldata.size)
+    (hinkNeg :
+      0 ≤ grabDinkInt I ∨
+        (grabUrnInkNew σ I).toNat ≤
+          (solcSlotWordAt (grabUrnInkSlot I) σ I).toNat)
+    (hinkPos :
+      grabDinkInt I ≤ 0 ∨
+        (solcSlotWordAt (grabUrnInkSlot I) σ I).toNat ≤
+          (grabUrnInkNew σ I).toNat)
+    (hperm : I.perm = false) :
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    ExecTransitionBody config contract evm0 (grabStore I) grabTransition.body
+      .staticViolation := by
+  intro evm0
+  have hguardAuth := vatAuthGuardEval_true
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (g := Sat256.ofUInt256 g) (locals := grabStore I)
+    (grabStore_get_wards I) hauth
+  have hprefix :
+      ExecBlock config { contract := contract, locals := grabStore I } evm0
+        (nonpayable ++ auth) (.ok { contract := contract, locals := grabStore I } evm0) := by
+    change ExecBlock config { contract := contract, locals := grabStore I } evm0
+      [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) ]
+      (.ok { contract := contract, locals := grabStore I } evm0)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwei)
+    exact ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ExecBlock.nil
+  have hInkStatic := (execGrabUrnInkUpdateSplit (evm := evm0) (I := I) (locals := grabStore I)
+    (solcSlotWordAt (grabUrnInkSlot I) σ I) (grabUrnInkNew σ I) hsz196
+    (grabStore_get_i I) (grabStore_get_u I) (grabStore_get_dink I)
+    (grabStore_urns I)
+    (by
+      simpa [evm0] using
+        (grabSourceLoad_urnInk
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+    (by simp [grabUrnInkNew, solcSlotWordAt])
+    (by simpa [solcSlotWordAt] using hinkNeg)
+    (by simpa [solcSlotWordAt] using hinkPos)).2 (by simpa [evm0, initState] using hperm)
+  have hblock := execBlock_append_term
+    (s2 :=
+      checkedAddSignedInto "urnArtNew" (.storage (urnsF (.var "i") (.var "u") "art"))
+        (.var "dart") ++
+      [ .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew") ] ++
+      checkedAddSignedInto "ilkArtNew" (.storage (ilksF (.var "i") "Art"))
+        (.var "dart") ++
+      [ .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew") ] ++
+      checkedMulSignedInto "dtab" (.storage (ilksF (.var "i") "rate")) (.var "dart") ++
+      checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
+        (.var "dink") ++
+      [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
+      checkedSubSignedInto "sinNew" (.storage (sinRef (.var "w"))) (.var "dtab") ++
+      [ .assign .storage (sinRef (.var "w")) (.var "sinNew") ] ++
+      checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
+      [ .assign .storage viceRef (.var "viceNew") ])
+    (execBlock_append hprefix hInkStatic) (by intro f e h; cases h)
+  simpa [ExecTransitionBody, grabTransition, nonpayable, auth, evm0, List.append_assoc]
+    using ExecFuncBody.execBlockStatic hblock
+
 theorem vatGrabSourceBodyUrnArtRevertFromBlock
     {σ σ₀ A I} {g : UInt256}
     (hwei : I.weiValue = ⟨0⟩)
@@ -6814,6 +6915,30 @@ theorem RD.vatGrabUrnInkAddRevert
     (by simpa [urnInkOld, urnBase, grabUrnInkSlot, grabUrnBase] using hfail)
     (by simp)
 
+theorem RD.vatGrabUrnInkStoreSplit
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel urnInkNew : UInt256}
+    {mem : ByteArray}
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4343⟩
+      [urnInkNew, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
+        grabWMaskedWord I, grabVMaskedWord I, grabUMaskedWord I, grabIWord I, ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    (I.perm = true ∧
+    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨4346⟩
+      [grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
+        grabWMaskedWord I, grabVMaskedWord I, grabUMaskedWord I, grabIWord I, ⟨524⟩, sel]
+      mem (UInt256.ofNat 3) ByteArray.empty
+      (sstoreAccountMap I.codeOwner σ (grabUrnBase I) urnInkNew) k' C') ∨
+      (I.perm = false ∧ RDstatic vatBytecode g (initState σInit σ₀ g A I)) := by
+  have rd4344 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd4345 := rd4344.dup3 (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd4345.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by native_decide) (by evm_ov)
+  exact ⟨_, _, by simpa using rd4346⟩
+
 theorem RD.vatGrabUrnArtAddSuccess
     {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel urnInkNew : UInt256}
     {mem : ByteArray}
@@ -6850,9 +6975,7 @@ theorem RD.vatGrabUrnArtAddSuccess
   let ilkBase := grabIlkBase I
   let σInk := sstoreAccountMap I.codeOwner σ (grabUrnInkSlot I) urnInkNew
   let urnArtOld := solcSlotWord σInk I (grabUrnArtSlot I)
-  have rd4344 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4345 := rd4344.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd4346⟩ := permSplit_true hperm (RD.vatGrabUrnInkStoreSplit h)
   have rd4348 := rd4346.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd4349 := rd4348.dup3 (by native_decide) (by evm_ov)
   have rd4350 := rd4349.add (by native_decide) (by evm_ov)
@@ -6917,9 +7040,7 @@ theorem RD.vatGrabUrnArtAddRevert
   let ilkBase := grabIlkBase I
   let σInk := sstoreAccountMap I.codeOwner σ (grabUrnInkSlot I) urnInkNew
   let urnArtOld := solcSlotWord σInk I (grabUrnArtSlot I)
-  have rd4344 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4345 := rd4344.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd4346⟩ := permSplit_true hperm (RD.vatGrabUrnInkStoreSplit h)
   have rd4348 := rd4346.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd4349 := rd4348.dup3 (by native_decide) (by evm_ov)
   have rd4350 := rd4349.add (by native_decide) (by evm_ov)
@@ -8496,8 +8617,40 @@ theorem vatGrabSuccessEquivFromSourceBodyAndRuntimeGuards
     dtab (grabGemNew σ I) (grabSinNew σ I) (grabViceNew σ I)
     rfl rfl rfl rfl rfl rfl hret hbody
 
-theorem vatGrabBodyCore : VatBodyTheorem 13 := by
-  intro σ σ₀ A I g hcode hsize hperm hwv hsel
+theorem vatGrabBodyStaticAfterInk
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256} {k C : ℕ}
+    (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I (vatSelBytes 13)) (hsz196 : 196 ≤ I.calldata.size)
+    (hdecode :
+      decodeCalldataWithMode config.abiDecodeMode (grabTransition.params.map Param.name)
+        (transitionSignature grabTransition).paramTypes I.calldata = some (grabStore I))
+    (hauth : solcSlotWordAt (vatCallerWardsSlot I) σ I = ⟨1⟩)
+    (hafterAuth : RD vatBytecode I (Sat256.ofUInt256 g)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4286⟩
+      [grabDartWord I, grabDinkWord I, grabWMaskedWord I, grabVMaskedWord I,
+        grabUMaskedWord I, grabIWord I, ⟨524⟩, sel]
+      (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem)
+      (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hInkNeg : grabInkNegOk σ I) (hInkPos : grabInkPosOk σ I)
+    (hperm : I.perm = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  obtain ⟨_, _, hInk⟩ := RD.vatGrabUrnInkAddSuccess
+    (h := hafterAuth)
+    (twoWordHashMem_size_96 (hopeSourceWord I) ⟨0⟩ solcFreePtrMem_size)
+    (by simpa [grabUrnInkNew] using hInkNeg)
+    (by simpa [grabUrnInkNew] using hInkPos)
+  exact (permSplit_false hperm (RD.vatGrabUrnInkStoreSplit hInk)).reEquivStaticHalt hcode
+    (vatDispatchGrab hsel) hdecode
+    (vatGrabSourceBodyStatic (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      hwv hauth hsz196
+      (grabDinkAddGuardNegCond (by
+        simpa [grabInkNegOk, grabUrnInkNew, solcSlotWordAt] using hInkNeg))
+      (grabDinkAddGuardPosCond (by
+        simpa [grabInkPosOk, grabUrnInkNew, solcSlotWordAt] using hInkPos))
+      hperm)
+
+theorem vatGrabBodyCore : VatBodyTheoremAnyPerm 13 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 13) rfl hsel
   have hreach := vatReachGrabBody (σ := σ)
@@ -8548,6 +8701,10 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
           ⟨hInkNeg, hInkPos, hUrnArtNeg, hUrnArtPos, hIlkArtNeg, hIlkArtPos,
             hDtabMax, hDtabMul, hGemPos, hGemNeg, hSinPos, hSinNeg, hVicePos,
             hViceNeg, hdtabLo, hdtabHi, hguardMax, hguardMul⟩
+        by_cases hperm : I.perm = true
+        swap
+        · exact vatGrabBodyStaticAfterInk hcode hwv hsel hsz196 hdecode hauthSolm hafterAuth
+            hInkNeg hInkPos (by simpa using hperm)
         have hdtabMod :
             dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
           change
@@ -8580,7 +8737,11 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
           hVicePos hViceNeg dtab hbody
       · by_cases hInkNeg : grabInkNegOk σ I
         · by_cases hInkPos : grabInkPosOk σ I
-          · by_cases hUrnArtNeg : grabUrnArtNegOk σ I
+          · by_cases hperm : I.perm = true
+            swap
+            · exact vatGrabBodyStaticAfterInk hcode hwv hsel hsz196 hdecode hauthSolm
+                hafterAuth hInkNeg hInkPos (by simpa using hperm)
+            by_cases hUrnArtNeg : grabUrnArtNegOk σ I
             · by_cases hUrnArtPos : grabUrnArtPosOk σ I
               · by_cases hIlkArtNeg : grabIlkArtNegOk σ I
                 · by_cases hIlkArtPos : grabIlkArtPosOk σ I

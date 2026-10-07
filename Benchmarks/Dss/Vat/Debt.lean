@@ -48,8 +48,8 @@ theorem vatReachDebtBody {σ σ₀ A I} {g : Sat256}
   exact vatReachArms419Body 0 (by omega) ⟨457⟩ hcode hwv hsz hsize
     hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
 
-theorem vatDebtBodyCore : VatBodyTheorem 4 := by
-  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
+theorem vatDebtBodyCore : VatBodyTheoremAnyPerm 4 := by
+  intro σ σ₀ A I g hcode hsize hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 4) rfl hsel
   have hbody :

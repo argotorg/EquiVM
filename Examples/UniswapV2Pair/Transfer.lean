@@ -406,6 +406,21 @@ theorem uniswapTransferBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transfer_newToBalance_revert evm I hover))
 
+theorem uniswapTransferBodyStatic (evm : EVM.State) (I : ExecutionEnv)
+    (hwv : evm.executionEnv.weiValue = ⟨0⟩)
+    (henough : (transferValueWord I).toNat ≤ (transferFromBalanceWord evm).toNat)
+    (hperm : evm.executionEnv.perm = false) :
+    ExecTransitionBody config contract evm (transferStore I) transferTransition.body
+      .staticViolation := by
+  refine ExecFuncBody.execBlockStatic ?_
+  refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transfer_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.requireTrue (evalExpr_transfer_require_from_true evm I henough)) ?_
+  exact ExecBlock.consStatic
+    (ExecStmt.assignStatic (evalExpr_transfer_debit evm I henough)
+      (transferAssignSender evm I) hperm)
+
 /-- The optimized external wrapper for `transfer(address,uint256)` masks address calldata and
     jumps to the external transfer routine at pc 5061. -/
 theorem uniswapTransferX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1044,6 +1059,37 @@ theorem uniswapTransferBody
           henough hfit hdispatch
       · exact uniswapTransferBodyRevert_overflow hcode hsize hperm hwv hsel hsz68
           henough (by omega) hdispatch
+    · exact uniswapTransferBodyRevert_insufficient hcode hsize hwv hsel hsz68
+        (by omega) hdispatch
+  · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch
+
+/-- `transfer` with any call permission; a static call halts at the sender-balance `SSTORE`. -/
+theorem uniswapTransferBodyAnyPerm
+    {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hwv : I.weiValue = ⟨0⟩)
+    (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩)
+    (hdispatch : dispatchMsg contract I.calldata = some transferTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  by_cases hperm : I.perm = true
+  · exact uniswapTransferBody hcode hsize hperm hwv hsel hdispatch
+  replace hperm : I.perm = false := by simpa using hperm
+  by_cases hsz68 : 68 ≤ I.calldata.size
+  · by_cases henough : (transferValueWord I).toNat ≤
+      (transferFromBalanceWord
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)).toNat
+    · have hsz4 : 4 ≤ I.calldata.size :=
+        calldata_size_ge_of_selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ rfl hsel
+      obtain ⟨_, _, rd7551⟩ := uniswapTransferX_afterDebit (g := Sat256.ofUInt256 g)
+        hsz68 hsize henough
+        (uniswapReachTransferBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+      exact (RD.uniswapTransferInternalStoreDebitStatic rd7551 solcFreePtrMem_size hperm
+          (uniswapSourceWord_canonical I)
+          (by simp only [List.length_cons, List.length_nil]; omega))
+        |>.reEquivStaticHalt hcode hdispatch (uniswapDecode_transfer_ok hsz68)
+          (uniswapTransferBodyStatic (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
+            (by simp only [initState]; exact hwv) henough
+            (by simp only [initState]; exact hperm))
     · exact uniswapTransferBodyRevert_insufficient hcode hsize hwv hsel hsz68
         (by omega) hdispatch
   · exact uniswapTransferBodyDecodeFailed_short hcode hsize hwv hsel (by omega) hdispatch

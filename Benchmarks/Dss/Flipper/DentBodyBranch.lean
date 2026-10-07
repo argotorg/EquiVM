@@ -16,7 +16,6 @@ theorem flipperDentBodyFrom4601LotLower
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (dentTransition.params.map Param.name)
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -131,13 +130,13 @@ theorem flipperDentBodyFrom4601LotLower
         by_cases hcallerEvm : solcSourceWord I = bidGuyWord (dentId I) σ I
         · have hcallerSolm : solcSourceWord I = bidGuyWord (dentId I) σ I := by
             simpa [hguyEq] using hcallerEvm
-          exact flipperDentBodyFrom4733SameCaller hcode hdispatch hdecode hperm hwv
+          exact flipperDentBodyFrom4733SameCaller hcode hdispatch hdecode hwv
             hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLotSolm
             hfitBegSolm hdec hcallerEvm hcallerSolm hmem4650Size hmem4650Read64 rd4733
         · have hcallerSolm : solcSourceWord I ≠ bidGuyWord (dentId I) σ I := by
             intro hcaller
             exact hcallerEvm (by simpa [hguyEq] using hcaller)
-          exact flipperDentBodyFrom4733Refund hcode hdispatch hdecode hperm hwv
+          exact flipperDentBodyFrom4733Refund hcode hdispatch hdecode hwv
             hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLotSolm hfitBegSolm
             hdec hcallerEvm hcallerSolm hmem4650Size hmem4650Read64 rd4733
       · have hgtEvm :

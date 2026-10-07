@@ -196,7 +196,7 @@ theorem evalExpr_tendAfterRefundTicVarWithTicFrom {evm : EVM.State}
     (name := "tic_") (value := tendTicNewWord σtic I)
     (tendLocalsAfterRefundWithTicFrom_get_tic σpre σtic I)
 
-theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
+theorem flipperTendSourceBlockAfterRefundSuccessTailSplit {σ σ₀ A I}
     {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray}
     {r : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
@@ -249,16 +249,7 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
-        (true, evmRefund, outRefund) true)
-    (htail :
-      let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
-        (bidPackedSlotOfWord (tendId I))
-        (setAddressOffset0Word
-          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
-            (bidPackedSlotOfWord (tendId I)))
-          (solcSourceWord evmRefund.executionEnv))
-      ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy
-        tendAfterIncreasePayTailStmts r) :
+        (true, evmRefund, outRefund) true) :
     let locals := tendLocals I
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -267,7 +258,18 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
         (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
           (bidPackedSlotOfWord (tendId I)))
         (solcSourceWord evmRefund.executionEnv))
-    ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body r := by
+    ((let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+        (bidPackedSlotOfWord (tendId I))
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+            (bidPackedSlotOfWord (tendId I)))
+          (solcSourceWord evmRefund.executionEnv))
+      ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy
+        tendAfterIncreasePayTailStmts r) →
+      ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body r) ∧
+      (I.perm = false →
+        ExecBlock config { contract := contract, locals := locals } evm0
+          tendTransition.body .staticViolation) := by
   intro locals evm0 evmGuy
   have hguyGuard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -369,34 +371,134 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
     simpa [evmGuy] using
       assign_bidGuyStorage evmRefund (tendId I)
         (tendLocalsAfterRefund_get_id σ I) (tendLocalsAfterRefund_get_bids σ I)
-  have hassignBlock :
-      ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I }
-        evmRefund [ .assign .storage (bidsF (.var "id") "guy") sender ]
-        (.ok { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ExecBlock.nil
-  have hthen :
-      ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
-        (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
-          [sender, .storage (bidsF (.var "id") "guy"),
-            .storage (bidsF (.var "id") "bid")] "_refundRet" ++
-        [ .assign .storage (bidsF (.var "id") "guy") sender ])
-        (.ok { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy) := by
-    exact execBlock_append hrefundBlock hassignBlock
-  refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
-  · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hguyGuard) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hticGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hendGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBid) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
-  refine ExecBlock.consNormal (ExecStmt.requireTrue hinc) ?_
-  refine ExecBlock.consNormal (ExecStmt.iteTrue hcallerTrue hthen) ?_
-  simpa [tendAfterIncreasePayTailStmts] using htail
+  have hprefix {result : ExecResult}
+      (hafter : ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
+        evm0 ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
+          (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [sender, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "bid")] "_refundRet" ++
+            [.assign .storage (bidsF (.var "id") "guy") sender]) []] ++
+          tendAfterIncreasePayTailStmts) result) :
+      ExecBlock config { contract := contract, locals := locals } evm0
+        tendTransition.body result := by
+    refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
+    · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hguyGuard) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hticGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hendGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBid) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.requireTrue hinc) ?_
+    exact hafter
+  constructor
+  · intro htail
+    have hassignBlock :
+        ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I }
+          evmRefund [ .assign .storage (bidsF (.var "id") "guy") sender ]
+          (.ok { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy) := by
+      exact ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ExecBlock.nil
+    have hthen :
+        ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
+          (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
+            [sender, .storage (bidsF (.var "id") "guy"),
+              .storage (bidsF (.var "id") "bid")] "_refundRet" ++
+          [ .assign .storage (bidsF (.var "id") "guy") sender ])
+          (.ok { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy) := by
+      exact execBlock_append hrefundBlock hassignBlock
+    apply hprefix
+    refine ExecBlock.consNormal (ExecStmt.iteTrue hcallerTrue hthen) ?_
+    simpa [tendAfterIncreasePayTailStmts] using htail
+  · intro hperm
+    have hp : evmRefund.executionEnv.perm = false := by
+      rw [typedCallViaEVM_executionEnv_eq hcallRefund]
+      exact hperm
+    have hwrite : ExecBlock config
+        { contract := contract, locals := tendLocalsAfterRefund σ I } evmRefund
+        [.assign .storage (bidsF (.var "id") "guy") sender] .staticViolation :=
+      ExecBlock.consStatic (ExecStmt.assignStatic hsender hassignGuy hp)
+    exact hprefix (ExecBlock.consStatic
+      (ExecStmt.iteTrue hcallerTrue (execBlock_append hrefundBlock hwrite)))
+
+theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
+    {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray}
+    {r : ExecResult}
+    (hwv : I.weiValue = ⟨0⟩)
+    (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
+    (hticGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .or
+          (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
+          (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
+          .ok (.bool true))
+    (hendGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
+          .ok (.bool true))
+    (hlotGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
+          .ok (.bool true))
+    (htabGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
+          .ok (.bool true))
+    (hbidGuard :
+      evalExpr? config { contract := contract, locals := tendLocals I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
+          .ok (.bool true))
+    (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
+    (hfitBeg :
+      (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
+    (hinc :
+      evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (.binary .or
+          (.binary .ge (.var "bidOne") (.var "begBid"))
+          (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
+          .ok (.bool true))
+    (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
+    (hvatCode :
+      0 <
+        (UInt256.ofNat
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+            (flipperVatAddress σ I)).option 0 (fun acc ↦ acc.code.size))).toNat)
+    (hcallRefund :
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (flipperVatAddress σ I)) "move" 0
+        (tendRefundMoveArgValsOf
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
+        (true, evmRefund, outRefund) true)
+    (htail :
+      let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+        (bidPackedSlotOfWord (tendId I))
+        (setAddressOffset0Word
+          (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+            (bidPackedSlotOfWord (tendId I)))
+          (solcSourceWord evmRefund.executionEnv))
+      ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy
+        tendAfterIncreasePayTailStmts r) :
+    let locals := tendLocals I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    let _evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
+      (bidPackedSlotOfWord (tendId I))
+      (setAddressOffset0Word
+        (Solm.EVM.storageLoad evmRefund evmRefund.executionEnv.codeOwner
+          (bidPackedSlotOfWord (tendId I)))
+        (solcSourceWord evmRefund.executionEnv))
+    ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body r :=
+  (flipperTendSourceBlockAfterRefundSuccessTailSplit
+    hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard
+    hfitBid hfitBeg hinc hcaller hvatCode hcallRefund).1 htail
 
 theorem flipperTendSourceBodyRefundBranchRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -602,7 +704,8 @@ theorem flipperTendSourceBodyRefundNoCode {σ σ₀ A I} {g : UInt256}
   simpa [locals, evm0] using
     (flipperTendSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc
+      hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard
+    hfitBid hfitBeg hinc
       hcaller hbranch)
 
 theorem flipperTendSourceBodyRefundCallFailure {σ σ₀ A I}
@@ -711,7 +814,8 @@ theorem flipperTendSourceBodyRefundCallFailure {σ σ₀ A I}
   simpa [locals, evm0] using
     (flipperTendSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc
+      hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard
+    hfitBid hfitBeg hinc
       hcaller hbranch)
 
 theorem flipperTendSourceBodyPayNoCodeAfterRefund {σ σ₀ A I}
@@ -1817,7 +1921,6 @@ theorem flipperTendX_refundPostCall
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
-    (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
       (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
@@ -1887,7 +1990,7 @@ theorem flipperTendX_refundPostCall
         bidGuyWord, bidPackedSlotOfWord, bidBidWord, bidBaseOfWord,
         solcAddressSlotWord]
         using tendVatRefundCallMem_encode σ I hhashSize
-    · simpa [initState, hperm] using hΘ
+    · simpa [initState] using hΘ
 
 theorem flipperTendX_refundCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
@@ -1923,17 +2026,18 @@ theorem flipperTendX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3652⟩
 
-theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_storeRefundGuyToPayStartSplit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
-    (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
     (h : RD flipperBytecode I g s0 ⟨3652⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) out σ k C) :
-    ∃ k' C', RD flipperBytecode I g s0 ⟨3686⟩
-      [tendBid I, tendLot I, tendId I, ret, sel]
-      (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (tendAfterRefundMap σ I) k' C' := by
+    (I.perm = true ∧
+      ∃ k' C', RD flipperBytecode I g s0 ⟨3686⟩
+        [tendBid I, tendLot I, tendId I, ret, sel]
+        (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
+        (tendAfterRefundMap σ I) k' C') ∨
+      (I.perm = false ∧ RDstatic flipperBytecode g s0) := by
   let mem1 := wordAt0Mem (tendId I) mem
   let mem2 := twoWordHashMem (tendId I) ⟨1⟩ mem
   let slot := bidPackedSlotOfWord (tendId I)
@@ -2001,7 +2105,13 @@ theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
     raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredRaw] at rd3684
-  obtain ⟨k3685, C3685, rd3685raw⟩ := rd3684.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode flipperBytecode ⟨3684⟩ = some (.SSTORE, none) := by native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd3684.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨k3685, C3685, rd3685raw⟩ := rd3684.sstore hperm hstoreDec (by evm_ov)
   have rd3685 : RD flipperBytecode I g s0 ⟨3685⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
       mem2 (UInt256.ofNat 8) out (tendAfterRefundMap σ I) k3685 C3685 := by
@@ -2552,7 +2662,6 @@ theorem flipperTendBodyFrom3486Refund
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (tendTransition.params.map Param.name)
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hguySolm : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
@@ -2687,7 +2796,7 @@ theorem flipperTendBodyFrom3486Refund
       obtain ⟨σ_ref, zRefund, outRefund, A_ref, k3632, C3632, rd3632,
           hcallRefundEvmRaw, houtRefund⟩ :=
         flipperTendX_refundPostCall (Acur := A) hmemSize hmemRead64 hcallerEvm
-          hrefundZero hperm hdepthLt h
+          hrefundZero hdepthLt h
       let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundEvm : EVM.State :=
@@ -2768,8 +2877,17 @@ theorem flipperTendBodyFrom3486Refund
         have hrefundMemGe : 64 ≤ (tendVatRefundCallMem memHash σ I).size := by
           rw [hrefundMemSize]
           norm_num
-        obtain ⟨_, _, rd3686⟩ := flipperTendX_storeRefundGuyToPayStart
-          hperm hrefundMemGe rd3652
+        rcases flipperTendX_storeRefundGuyToPayStartSplit hrefundMemGe rd3652 with
+            ⟨hperm, _, _, rd3686⟩ | ⟨hperm, hstatic⟩
+        swap
+        · have hsource := ExecFuncBody.execBlockStatic
+            ((flipperTendSourceBlockAfterRefundSuccessTailSplit
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (evmRefund := evmRefundSolm) (outRefund := outRefund) (r := .staticViolation)
+              hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
+              hfitBeg hinc hcallerSolm hrefundCodeSolm
+              (by simpa [evm0Solm] using hcallRefundSolm)).2 hperm)
+          exact hstatic.reEquivStaticHalt hcode hdispatch hdecode hsource
         let evmGuyEvm := Solm.EVM.storageStore evmRefundEvm
           evmRefundEvm.executionEnv.codeOwner (bidPackedSlotOfWord (tendId I))
           (setAddressOffset0Word

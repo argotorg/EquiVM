@@ -145,7 +145,7 @@ theorem kissHealEncode_eq (I : ExecutionEnv) {mem : ByteArray} (hmem : mem.size 
     word_toBytesBE_toByteArray_eq_toByteArray]
 
 set_option maxHeartbeats 1000000 in
-theorem RD.vowKissSurplusEnoughStoresAsh
+theorem RD.vowKissSurplusEnoughStoresAshSplit
     {σ σ₀ A I} {g sel vatDai : UInt256}
     {σ' : AccountMap}
     {mem o : ByteArray} {k C : ℕ}
@@ -154,13 +154,15 @@ theorem RD.vowKissSurplusEnoughStoresAsh
       (vatDai :: kissRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o σ' k C)
     (hvatDaiEnough : (kissRad I).toNat ≤ vatDai.toNat)
-    (hashEnoughDai : (kissRad I).toNat ≤ (solcSlotWordAt ⟨6⟩ σ' I).toNat)
-    (hperm : I.perm = true) :
+    (hashEnoughDai : (kissRad I).toNat ≤ (solcSlotWordAt ⟨6⟩ σ' I).toNat) :
+    (I.perm = true ∧
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1839⟩
       [kissRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o
       (sstoreAccountMap I.codeOwner σ' ⟨6⟩
-          (UInt256.sub (solcSlotWordAt ⟨6⟩ σ' I) (kissRad I))) k' C' := by
+          (UInt256.sub (solcSlotWordAt ⟨6⟩ σ' I) (kissRad I))) k' C') ∨
+      (I.perm = false ∧ RDstatic vowBytecode (Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   have rd1746 := rd.dup2 (by native_decide) (by evm_ov)
   have rd1747₀ := rd1746.gt (by native_decide) (by evm_ov)
   have hgt : UInt256.gt (kissRad I) vatDai = ⟨0⟩ :=
@@ -196,6 +198,11 @@ theorem RD.vowKissSurplusEnoughStoresAsh
     hashEnoughDai (by jump_dest) (by jump_dest) (by simp)
   have rd1836 := rd1835.jumpdest (by native_decide) (by evm_ov)
   have rd1838 := rd1836.push1 ⟨6⟩ (by native_decide) (by evm_ov)
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd1838.sstoreStatic (by simpa using hperm) (by native_decide) (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
   obtain ⟨_, _, rd1839⟩ := rd1838.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, by simpa using rd1839⟩
 
@@ -1065,13 +1072,13 @@ theorem vowKissHealSuccessBodyCore
 set_option maxHeartbeats 0 in
 theorem vowKissBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩ rfl hsel
   by_cases hshort : I.calldata.size < 36
-  · exact vowKissShort hcode hsize hperm hwv hsz4 hshort hsel
+  · exact vowKissShort hcode hsize hwv hsz4 hshort hsel
   have hsz36 : 36 ≤ I.calldata.size := by omega
   have hdispatch : dispatchMsg contract I.calldata = some kissTransition :=
     vowDispatch_kiss hsel
@@ -1234,8 +1241,12 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
             hcallDaiSolm
           simpa [evmDaiSolm, initState, Solm.EVM.storageLoad, solcSlotWordAt, solcSlotWord]
             using h
-        obtain ⟨k1839, C1839, rd1839Raw⟩ :=
-          RD.vowKissSurplusEnoughStoresAsh rd1745 hvatDaiEnough hashEnoughDai hperm
+        rcases RD.vowKissSurplusEnoughStoresAshSplit rd1745 hvatDaiEnough hashEnoughDai with
+          ⟨hperm, k1839, C1839, rd1839Raw⟩ | ⟨hpf, hstatic⟩
+        swap
+        · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode
+            ((vowKissSourceStoreAshSplit (g := g) hwv hashEnoughEvm hvatCodeSolm hcallDaiSolm
+              hdecDai hvatDaiEnough hAshLoadDai hAshNew).2 hpf)
         let σAshEvm : AccountMap := sstoreAccountMap I.codeOwner σ_dai ⟨6⟩ AshNew
         have rd1839 : RD vowBytecode I (Sat256.ofUInt256 g)
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1839⟩

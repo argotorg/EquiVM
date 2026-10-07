@@ -799,7 +799,6 @@ theorem catIlksBodyCoreDecodeFailed_short
 theorem catIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

@@ -61,6 +61,27 @@ theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : Transi
     have haccounts : s.accountMap = evm''.accountMap := hsacc.trans hAccountMap
     exact execResultsEquiv.success rfl rfl haccounts (.abi henc)
 
+theorem weth9ReEquivExecStatic {cfg : Config} {contract : ContractDecl}
+    {t : TransitionDecl} {σ σ₀ A I} {g : Sat256} {callargs}
+    (hcode : I.code = weth9Bytecode)
+    (h : RDstatic weth9Bytecode g (initState σ σ₀ g A I))
+    (hsel : selectorDispatchMsg contract I.calldata = some t)
+    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
+      (transitionSignature t).paramTypes I.calldata = some callargs)
+    (hbody : ExecTransitionBody cfg contract
+      (initState σ σ₀ g A I) callargs t.body .staticViolation) :
+    runtimeEquivalenceFor cfg contract σ σ₀ g.toUInt256 A I := by
+  apply h.reEquivElim hcode
+  intro hstatic
+  have hbody' : ExecTransitionBody cfg contract
+      (initState σ σ₀ (Sat256.ofUInt256 g.toUInt256) A I)
+      callargs t.body .staticViolation := by
+    simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hbody
+  refine runtimeEquivalenceFor.execution rfl
+    (solmExec.intro hsel rfl hdec rfl hbody') ?_
+  rw [hstatic]
+  exact execResultsEquiv.staticHalt rfl rfl
+
 /-- `RDrev ⇒ execution` (revert) for a directly-matched selector. -/
 theorem weth9ReEquivExecRev {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256} {callargs}

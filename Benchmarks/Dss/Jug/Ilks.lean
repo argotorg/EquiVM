@@ -588,7 +588,6 @@ theorem jugIlksBodyCoreDecodeFailed_short
 theorem jugIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (jugSelBytes 6)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

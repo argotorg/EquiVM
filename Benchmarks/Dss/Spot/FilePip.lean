@@ -189,7 +189,7 @@ theorem assign_filePipStorage (evm : EVM.State) (I : ExecutionEnv)
     (hscalar := by trivial)
     (hstore := hstore)
 
-theorem spotFilePipSourceBody {σ σ₀ A I} {g : UInt256}
+theorem spotFilePipSourceBodySplit {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -201,8 +201,10 @@ theorem spotFilePipSourceBody {σ σ₀ A I} {g : UInt256}
       (setAddressOffset0Word
         (Solm.EVM.storageLoad evm0 I.codeOwner (filePipSlotFor I))
         (filePipMaskedWord I))
-    ExecTransitionBody config contract evm0 locals filePipTransition.body
-      (.returned { contract := contract, locals := locals } evm1 none) := by
+    (ExecTransitionBody config contract evm0 locals filePipTransition.body
+      (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        filePipTransition.body .staticViolation) := by
   intro locals evm0 evm1
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -237,20 +239,23 @@ theorem spotFilePipSourceBody {σ σ₀ A I} {g : UInt256}
         .storage (ilksF (.var "ilk") "pip") (.address (filePipAddress I)) =
           .ok ({ contract := contract, locals := locals }, evm1) := by
     simpa [locals, evm1] using assign_filePipStorage evm0 I hsz36
-  have hthen :
+  have hprefix {result : ExecResult}
+      (hwrite : ExecBlock config { contract := contract, locals := locals } evm0
+        [.assign .storage (ilksF (.var "ilk") "pip") (.var "pip_")] result) :
       ExecBlock config { contract := contract, locals := locals } evm0
-        [.assign .storage (ilksF (.var "ilk") "pip") (.var "pip_")]
-        (.ok { contract := contract, locals := locals } evm1) := by
-    exact ExecBlock.consNormal (ExecStmt.assign hpip hassign) ExecBlock.nil
-  have hblock :
-      ExecBlock config { contract := contract, locals := locals } evm0 filePipTransition.body
-        (.ok { contract := contract, locals := locals } evm1) := by
+        filePipTransition.body result := by
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hliveGuard) ?_
-    exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
-  simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
+    exact execBlock_singleton (ExecStmt.iteTrue hcond hwrite)
+  constructor
+  · exact ExecFuncBody.execBlockOK
+      (hprefix (ExecBlock.consNormal (ExecStmt.assign hpip hassign) ExecBlock.nil))
+  · intro hperm
+    exact ExecFuncBody.execBlockStatic
+      (hprefix (ExecBlock.consStatic (ExecStmt.assignStatic hpip hassign
+        (by simp only [evm0, initState]; exact hperm))))
 
 theorem spotFilePipSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -630,16 +635,18 @@ theorem spotFilePipX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem spotFilePipX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
-    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size) (hperm : I.perm = true)
+theorem spotFilePipX_storeAuthorizedSplit {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+    {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hmatch : filePipWhatWord I = ABI.bytesToWord filePipBytes)
     (h : RD spotBytecode I g s0 ⟨1993⟩
       [filePipMaskedWord I, filePipWhatWord I, filePipIlkWord I, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
-    RDret spotBytecode g s0
-      (sstoreAccountMap I.codeOwner σ (filePipSlotFor I)
-        (setAddressOffset0Word (solcSlotWordAt (filePipSlotFor I) σ I) (filePipMaskedWord I)))
-      ByteArray.empty := by
+    (I.perm = true ∧
+      RDret spotBytecode g s0
+        (sstoreAccountMap I.codeOwner σ (filePipSlotFor I)
+          (setAddressOffset0Word (solcSlotWordAt (filePipSlotFor I) σ I) (filePipMaskedWord I)))
+        ByteArray.empty) ∨
+      (I.perm = false ∧ RDstatic spotBytecode g s0) := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((filePipIlkHashMem I).readWithPadding 0 64))) =
@@ -698,7 +705,14 @@ theorem spotFilePipX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd2044 := rd2043.and (by native_decide) (by evm_ov)
   have rd2045 := rd2044.or (by native_decide) (by evm_ov)
   have rd2046 := rd2045.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2047⟩ := rd2046.sstore hperm (by native_decide) (by evm_ov)
+  have hstoreDec : decode spotBytecode ⟨2046⟩ = some (.SSTORE, none) := by
+    native_decide
+  by_cases hperm : I.perm = true
+  swap
+  · exact Or.inr ⟨by simpa using hperm,
+      rd2046.sstoreStatic (by simpa using hperm) hstoreDec (by evm_ov)⟩
+  refine Or.inl ⟨hperm, ?_⟩
+  obtain ⟨_, _, rd2047⟩ := rd2046.sstore hperm hstoreDec (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land (filePipMaskedWord I) solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask)
@@ -802,7 +816,7 @@ theorem spotFilePipX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem spotFilePipBodyCoreOk
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = spotBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
+    (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hauth : relyAuthWord σ I = ⟨1⟩)
     (hlive : spotLiveWord σ I = ⟨1⟩)
@@ -824,12 +838,14 @@ theorem spotFilePipBodyCoreOk
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner pipSlot storedSolm
   have hauthSolm : relyAuthWord σ I = ⟨1⟩ := hauth
   have hliveSolm : spotLiveWord σ I = ⟨1⟩ := hlive
-  have hbody :
-      ExecTransitionBody config contract evm0 locals filePipTransition.body
-        (.returned { contract := contract, locals := locals } evm1 none) := by
+  have hbodySplit :
+      (ExecTransitionBody config contract evm0 locals filePipTransition.body
+        (.returned { contract := contract, locals := locals } evm1 none)) ∧
+      (I.perm = false → ExecTransitionBody config contract evm0 locals
+        filePipTransition.body .staticViolation) := by
     simpa [evm0, evm1, locals, pipSlot, pipWord, storedSolm, solcSlotWordAt, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
-      (spotFilePipSourceBody (σ := σ)
+      (spotFilePipSourceBodySplit (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthSolm
         hliveSolm hwhat)
   obtain ⟨_, _, hdecoded⟩ := spotFilePipX_decoded (g := Sat256.ofUInt256 g)
@@ -838,8 +854,11 @@ theorem spotFilePipBodyCoreOk
   obtain ⟨_, _, hlivez⟩ := spotFilePipX_liveOk (I := I) hlive hauthz
   have hmatch : filePipWhatWord I = ABI.bytesToWord filePipBytes :=
     filePipWhatWord_eq_of_bytes_eq (by omega) hwhat
-  have hret := spotFilePipX_storeAuthorized (I := I) (by omega) hperm hmatch hlivez
-  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
+  rcases spotFilePipX_storeAuthorizedSplit (I := I) (by omega) hmatch hlivez with
+    ⟨_hperm, hret⟩ | ⟨hperm, hstatic⟩
+  swap
+  · exact hstatic.reEquivStaticHalt hcode hdispatch hdecode (hbodySplit.2 hperm)
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbodySplit.1
     (by simp [evm1, evm0, initState, storageStore_accountMap, pipSlot, pipWord, storedSolm])
     (by
       simpa [filePipTransition] using
@@ -952,7 +971,6 @@ theorem spotFilePipBodyCoreDecodeFailed_short
 theorem spotFilePipBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = spotBytecode)
     (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (spotSelBytes 4)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
@@ -967,7 +985,7 @@ theorem spotFilePipBodyCore {σ σ₀ A I} {g : UInt256}
   · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · by_cases hlive : spotLiveWord σ I = ⟨1⟩
       · by_cases hwhat : filePipWhatBytes I = filePipBytes
-        · exact spotFilePipBodyCoreOk hcode hsize _hperm hwv hsz100 hauth hlive hwhat
+        · exact spotFilePipBodyCoreOk hcode hsize hwv hsz100 hauth hlive hwhat
             hdispatch (spotDecode_filePip_ok hsz100) hreach
         · exact spotFilePipBodyCoreUnrecognized hcode hsize hwv hsz100 hauth hlive hwhat
             hdispatch (spotDecode_filePip_ok hsz100) hreach
