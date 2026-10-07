@@ -101,6 +101,9 @@ NAMES = {
     0x50: "pop", 0x51: "mload", 0x52: "mstore", 0x53: "mstore8", 0x54: "sload",
     0x55: "sstore", 0x56: "jump", 0x57: "jumpi", 0x5A: "gas",
     0x5C: "tload", 0x5D: "tstore",
+    0x08: "addmod", 0x09: "mulmod", 0x0B: "signextend", 0x1A: "byte", 0x1D: "sar",
+    0x31: "balance", 0x3F: "extcodehash", 0x40: "blockhash", 0x48: "basefee",
+    0x5E: "mcopy", 0xA0: "log0",
     0x5B: "jumpdest", 0x5F: "push0", 0xA1: "log1", 0xA2: "log2", 0xA3: "log3",
     0xA4: "log4", 0xF1: "call", 0xF3: "return", 0xFA: "staticcall",
     0xFD: "revert", 0xFE: "invalid", 0xFF: "selfdestruct",
@@ -412,7 +415,7 @@ def stack_shape(ins: Instruction) -> tuple[int, int, int]:
     if op in {0x00, 0x5B, 0xFE}:
         return (0, 0, 0)
     if op == 0x5F or 0x60 <= op <= 0x7F or op in {
-        0x30, 0x33, 0x34, 0x36, 0x38, 0x3D, 0x42, 0x43, 0x44, 0x45, 0x46, 0x5A,
+        0x30, 0x33, 0x34, 0x36, 0x38, 0x3D, 0x42, 0x43, 0x44, 0x45, 0x46, 0x48, 0x5A,
     }:
         return (0, 0, 1)
     if 0x80 <= op <= 0x8F:
@@ -421,16 +424,18 @@ def stack_shape(ins: Instruction) -> tuple[int, int, int]:
     if 0x90 <= op <= 0x9F:
         depth = op - 0x8F + 1
         return (depth, 0, 0)
-    if op in {0x15, 0x19, 0x35, 0x3B, 0x51, 0x54, 0x5C}:
+    if op in {0x15, 0x19, 0x31, 0x35, 0x3B, 0x3F, 0x40, 0x51, 0x54, 0x5C}:
         return (1, 1, 1)
     if op in {0x50, 0x56}:
         return (1, 1, 0)
-    if op in {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x0A, 0x10, 0x11, 0x12, 0x13,
-              0x14, 0x16, 0x17, 0x18, 0x1B, 0x1C, 0x20}:
+    if op in {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x0A, 0x0B, 0x10, 0x11, 0x12, 0x13,
+              0x14, 0x16, 0x17, 0x18, 0x1A, 0x1B, 0x1C, 0x1D, 0x20}:
         return (2, 2, 1)
-    if op in {0x52, 0x53, 0x55, 0x57, 0x5D, 0xF3, 0xFD}:
+    if op in {0x08, 0x09}:
+        return (3, 3, 1)
+    if op in {0x52, 0x53, 0x55, 0x57, 0x5D, 0xA0, 0xF3, 0xFD}:
         return (2, 2, 0)
-    if op in {0x37, 0x39, 0x3E}:
+    if op in {0x37, 0x39, 0x3E, 0x5E}:
         return (3, 3, 0)
     if op == 0xA1:
         return (3, 3, 0)
@@ -526,6 +531,9 @@ BINOPS = {
     0x18: lambda a, b: f"(UInt256.xor {a} {b})",
     0x1B: lambda a, b: f"(UInt256.shiftLeft {b} {a})",
     0x1C: lambda a, b: f"(UInt256.shiftRight {b} {a})",
+    0x0B: lambda a, b: f"(UInt256.signextend {a} {b})",
+    0x1A: lambda a, b: f"(UInt256.byteAt {a} {b})",
+    0x1D: lambda a, b: f"(UInt256.sar {a} {b})",
 }
 
 
@@ -536,6 +544,7 @@ STATIC_COST = {
     0x36: 2, 0x38: 2, 0x3D: 2, 0x42: 2, 0x43: 2, 0x44: 2, 0x45: 2,
     0x46: 2, 0x50: 2,
     0x56: 8, 0x57: 10, 0x5A: 2, 0x5B: 1, 0x5F: 2,
+    0x08: 8, 0x09: 8, 0x0B: 5, 0x1A: 3, 0x1D: 3, 0x40: 20, 0x48: 2,
 }
 
 
@@ -707,10 +716,15 @@ def simulate(block: list[Instruction], branch: str | None,
             a = stack.pop(0)
             stack.insert(0, f"(UInt256.lnot {a})")
             proof.append(f"  have {after} := {before}.not {decode} {ov}")
+        elif op in {0x08, 0x09}:
+            a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
+            fn = "UInt256.addMod" if op == 0x08 else "UInt256.mulMod"
+            stack.insert(0, f"({fn} {a} {b} {c})")
+            proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
         elif op == 0x50:
             stack.pop(0)
             proof.append(f"  have {after} := {before}.pop {decode} {ov}")
-        elif op in {0x30, 0x33, 0x34, 0x36, 0x38, 0x3D, 0x42, 0x43, 0x44, 0x45, 0x46}:
+        elif op in {0x30, 0x33, 0x34, 0x36, 0x38, 0x3D, 0x42, 0x43, 0x44, 0x45, 0x46, 0x48}:
             pushed = {
                 0x30: "(UInt256.ofNat ee.codeOwner.val)",
                 0x33: "(UInt256.ofNat ee.source.val)",
@@ -723,6 +737,7 @@ def simulate(block: list[Instruction], branch: str | None,
                 0x44: "ee.header.prevRandao",
                 0x45: "(UInt256.ofNat ee.header.gasLimit)",
                 0x46: "(UInt256.ofNat Ethereum.chainId)",
+                0x48: "(UInt256.ofNat ee.header.baseFeePerGas)",
             }[op]
             stack.insert(0, pushed)
             proof.append(f"  have {after} := {before}.{ins.name} {decode} {ov}")
@@ -766,6 +781,13 @@ def simulate(block: list[Instruction], branch: str | None,
             aw = f"(M {aw} {a} {c})"
             theorem = "RD.genCalldatacopy" if op == 0x37 else "RD.genCodecopy"
             proof.append(f"  have {after} := {theorem} {before} {decode} {ov}")
+        elif op == 0x5E:
+            a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
+            mem = f"({mem}.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
+            costs.append(f"mcopyExpansionCost {aw} {a} {b} {c}")
+            costs.append(f"3 + 3 * (({c}.toNat + 31) / 32)")
+            aw = f"(Mmcopy {aw} {a} {b} {c})"
+            proof.append(f"  have {after} := RD.genMcopy {before} {decode} {ov}")
         elif op == 0x3E:
             a, b, c = stack.pop(0), stack.pop(0), stack.pop(0)
             mem = f"(rdata.write {b}.toNat {mem} {a}.toNat {c}.toNat)"
@@ -809,6 +831,16 @@ def simulate(block: list[Instruction], branch: str | None,
             stack.insert(0, f"(extCodeSizeWord {world_map} {target})")
             proof.append(f"  obtain ⟨_, _, {after}⟩ := {before}.extcodesize {decode} {ov}")
             existential = True
+        elif op in {0x31, 0x3F}:
+            target = stack.pop(0)
+            word = "balanceWord" if op == 0x31 else "extCodeHashWord"
+            stack.insert(0, f"({word} {world_map} {target})")
+            proof.append(f"  obtain ⟨_, _, {after}⟩ := {before}.{ins.name} {decode} {ov}")
+            existential = True
+        elif op == 0x40:
+            n = stack.pop(0)
+            stack.insert(0, f"(blockHashWord ee {n})")
+            proof.append(f"  have {after} := {before}.blockhash {decode} {ov}")
         elif op == 0x5A:
             if existential:
                 gas_word = f"gasWord{len(existential_words)}"
@@ -869,15 +901,16 @@ def simulate(block: list[Instruction], branch: str | None,
                 proof.append(f"  exact RD.genRev {before} {decode} {ov}")
                 terminal = "RDrev __CODE__ g s0"
             break
-        elif op in {0xA1, 0xA2, 0xA3, 0xA4}:
-            count = {0xA1: 3, 0xA2: 4, 0xA3: 5, 0xA4: 6}[op]
+        elif op in {0xA0, 0xA1, 0xA2, 0xA3, 0xA4}:
+            count = {0xA0: 2, 0xA1: 3, 0xA2: 4, 0xA3: 5, 0xA4: 6}[op]
             vals = [stack.pop(0) for _ in range(count)]
             off, length = vals[0], vals[1]
             perm = require("hperm", "ee.perm = true")
             costs.append(f"memExpansionCost {aw} {off} {length}")
             topics = count - 2
             costs.append(
-                f"375 + 8 * {length}.toNat + {topics} * 375"
+                f"375 + 8 * {length}.toNat" if topics == 0
+                else f"375 + 8 * {length}.toNat + {topics} * 375"
             )
             aw = f"(M {aw} {off} {length})"
             theorem = f"RD.gen{ins.name.capitalize()}"
@@ -885,8 +918,8 @@ def simulate(block: list[Instruction], branch: str | None,
         else:
             raise ValueError(f"no generator rule for {ins.name} at pc {ins.pc}")
 
-        if op not in {0x0A, 0x20, 0x37, 0x39, 0x3B, 0x3E, 0x51, 0x52, 0x53, 0x54,
-                      0x55, 0x5C, 0x5D, 0xA1, 0xA2, 0xA3, 0xA4, 0xF3, 0xFD}:
+        if op not in {0x0A, 0x20, 0x31, 0x37, 0x39, 0x3B, 0x3E, 0x3F, 0x51, 0x52, 0x53, 0x54,
+                      0x55, 0x5C, 0x5D, 0x5E, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xF3, 0xFD}:
             costs.append(3 if 0x60 <= op <= 0x9F else STATIC_COST.get(op, 0))
         elif op == 0x0A:
             # The exponent is the second popped operand; the generated RD rule carries this term.
