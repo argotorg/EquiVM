@@ -23,16 +23,23 @@ You are given a working directory, which is named after the contract
 - A correctness file stating the top-level theorem with a `sorry`
   placeholder. (file `Correct.lean`)
 
-The top-level theorem bundles the correctness of the constructor:
+The top-level theorem is the contract refinement
 
 ```lean
-constructorEquivalence <config> <initcode> <contract> <runtimeBytecode>
+contractRefinement <config> <initcode> <contract>
+```
+
+which, for a contract without immutables, is assembled with `contractRefinement.of_constant` from
+the correctness of the constructor (it returns one runtime bytecode):
+
+```lean
+typedConstructorRefinement <config> <initcode> <contract> (fun _ => <runtimeBytecode>)
 ```
 
 and the correctness of the runtime code:
 
 ```lean
-runtimeEquivalence <config> <runtimeBytecode> <contract>
+runtimeRefinement <config> <runtimeBytecode> <contract>
 ```
 
 Your goal is to complete the proof. The proof must be correct,
@@ -153,7 +160,7 @@ The proof of each function follows, roughly, four phases:
 5. Connect. `reEquivExecution` / `reEquivDecodingFailed` /
    `reEquivNoDispatch` / `reEquivElim` glue the source result, the
    decode fact, and the EVM `RDret`/`RDrev` into
-   `runtimeEquivalenceFor`.
+   `runtimeRefinementFor`.
 
 ---
 

@@ -36,6 +36,6 @@ namespace Benchmarks.Xxx
 --     (hcode : I.code = xxxBytecode) (hsize : I.calldata.size < UInt256.size)
 --     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
 --     (hsel : selIs I (xxxSelBytes 0)) :
---     runtimeEquivalenceFor config contract σ σ₀ g A I := …
+--     runtimeRefinementFor config contract σ σ₀ g A I := …
 
 end Benchmarks.Xxx
